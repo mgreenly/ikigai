@@ -112,6 +112,7 @@ static Suite *response_suite(void)
     Suite *s = suite_create("Response Builders");
 
     TCase *tc_response = tcase_create("Response Builders");
+    tcase_set_timeout(tc_response, 30);
     tcase_add_checked_fixture(tc_response, setup, teardown);
     tcase_add_test(tc_response, test_response_create);
     tcase_add_test(tc_response, test_response_add_content);

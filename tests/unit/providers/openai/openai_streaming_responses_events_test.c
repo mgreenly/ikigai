@@ -327,6 +327,7 @@ static Suite *openai_streaming_responses_events_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events");
 
     TCase *tc = tcase_create("Events");
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_invalid_json);
     tcase_add_test(tc, test_response_created_edge_cases);

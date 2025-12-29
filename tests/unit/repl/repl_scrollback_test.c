@@ -456,6 +456,10 @@ static Suite *repl_scrollback_suite(void)
     Suite *s = suite_create("REPL Scrollback Integration");
 
     TCase *tc_init = tcase_create("Initialization");
+    tcase_set_timeout(tc_init, 30);
+    tcase_set_timeout(tc_init, 30);
+    tcase_set_timeout(tc_init, 30);
+    tcase_set_timeout(tc_init, 30);
     tcase_add_unchecked_fixture(tc_init, suite_setup, NULL);
     tcase_set_timeout(tc_init, 30);
     tcase_add_test(tc_init, test_repl_context_with_scrollback);
@@ -463,6 +467,10 @@ static Suite *repl_scrollback_suite(void)
     suite_add_tcase(s, tc_init);
 
     TCase *tc_scroll = tcase_create("Scrolling");
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
     tcase_add_unchecked_fixture(tc_scroll, suite_setup, NULL);
     tcase_set_timeout(tc_scroll, 30);
     tcase_add_test(tc_scroll, test_page_down_scrolling);
@@ -474,6 +482,10 @@ static Suite *repl_scrollback_suite(void)
     suite_add_tcase(s, tc_scroll);
 
     TCase *tc_submit = tcase_create("Submit Line");
+    tcase_set_timeout(tc_submit, 30);
+    tcase_set_timeout(tc_submit, 30);
+    tcase_set_timeout(tc_submit, 30);
+    tcase_set_timeout(tc_submit, 30);
     tcase_add_unchecked_fixture(tc_submit, suite_setup, NULL);
     tcase_set_timeout(tc_submit, 30);
     tcase_add_test(tc_submit, test_submit_line_to_scrollback);

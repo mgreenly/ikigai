@@ -299,6 +299,11 @@ static Suite *completion_trigger_suite(void)
 {
     Suite *s = suite_create("Completion_Trigger");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_typing_slash_triggers_completion);
     tcase_add_test(tc_core, test_typing_m_after_slash_filters);

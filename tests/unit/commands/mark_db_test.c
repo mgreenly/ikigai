@@ -385,6 +385,7 @@ static Suite *commands_mark_db_suite(void)
 
     // All tests use mocks (no real database)
     TCase *tc_db_errors = tcase_create("Database Error Handling");
+    tcase_set_timeout(tc_db_errors, 30);
     tcase_add_checked_fixture(tc_db_errors, test_setup, test_teardown);
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_null_label);
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_label);

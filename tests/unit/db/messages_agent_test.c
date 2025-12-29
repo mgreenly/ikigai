@@ -405,6 +405,7 @@ static Suite *messages_agent_suite(void)
     suite_add_tcase(s, tc_schema);
 
     TCase *tc_insert = tcase_create("Insert");
+    tcase_set_timeout(tc_insert, 30);
     tcase_add_unchecked_fixture(tc_insert, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_insert, test_setup, test_teardown);
     tcase_add_test(tc_insert, test_message_insert_with_agent_uuid);
@@ -414,6 +415,7 @@ static Suite *messages_agent_suite(void)
     suite_add_tcase(s, tc_insert);
 
     TCase *tc_kinds = tcase_create("Event Kinds");
+    tcase_set_timeout(tc_kinds, 30);
     tcase_add_unchecked_fixture(tc_kinds, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_kinds, test_setup, test_teardown);
     tcase_add_test(tc_kinds, test_agent_killed_is_valid_kind);

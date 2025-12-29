@@ -314,6 +314,10 @@ static Suite *cursor_position_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_cursor_position_with_one_blank_line);
     tcase_add_test(tc_core, test_cursor_position_viewport_full);
     tcase_add_test(tc_core, test_cursor_position_viewport_half_full);

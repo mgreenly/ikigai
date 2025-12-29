@@ -401,6 +401,7 @@ static Suite *openai_serialize_suite(void)
     Suite *s = suite_create("OpenAI Serialize");
 
     TCase *tc_user = tcase_create("User Messages");
+    tcase_set_timeout(tc_user, 30);
     tcase_add_unchecked_fixture(tc_user, setup, teardown);
     tcase_add_test(tc_user, test_serialize_user_message_single_text);
     tcase_add_test(tc_user, test_serialize_user_message_multiple_text_blocks);
@@ -409,6 +410,7 @@ static Suite *openai_serialize_suite(void)
     suite_add_tcase(s, tc_user);
 
     TCase *tc_assistant = tcase_create("Assistant Messages");
+    tcase_set_timeout(tc_assistant, 30);
     tcase_add_unchecked_fixture(tc_assistant, setup, teardown);
     tcase_add_test(tc_assistant, test_serialize_assistant_message_text);
     tcase_add_test(tc_assistant, test_serialize_assistant_message_with_tool_calls);
@@ -419,6 +421,7 @@ static Suite *openai_serialize_suite(void)
     suite_add_tcase(s, tc_assistant);
 
     TCase *tc_tool = tcase_create("Tool Messages");
+    tcase_set_timeout(tc_tool, 30);
     tcase_add_unchecked_fixture(tc_tool, setup, teardown);
     tcase_add_test(tc_tool, test_serialize_tool_message);
     tcase_add_test(tc_tool, test_serialize_tool_message_empty_content);

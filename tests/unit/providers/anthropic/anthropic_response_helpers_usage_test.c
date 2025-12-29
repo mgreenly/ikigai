@@ -250,6 +250,7 @@ static Suite *anthropic_response_helpers_usage_suite(void)
     Suite *s = suite_create("Anthropic Response Helpers - Usage");
 
     TCase *tc_usage = tcase_create("Usage Parsing");
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_unchecked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_parse_usage_null);
     tcase_add_test(tc_usage, test_parse_usage_basic);

@@ -386,6 +386,7 @@ static Suite *commands_clear_suite(void)
 {
     Suite *s = suite_create("Commands/Clear");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_checked_fixture(tc, setup, teardown);

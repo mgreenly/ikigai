@@ -434,6 +434,7 @@ static Suite *commands_mark_db_id_suite(void)
 {
     Suite *s = suite_create("Commands: Mark DB ID");
     TCase *tc = tcase_create("get_mark_db_id");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

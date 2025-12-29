@@ -312,6 +312,7 @@ static Suite *google_coverage_suite(void)
     Suite *s = suite_create("Google Coverage");
 
     TCase *tc_coverage = tcase_create("Coverage Tests");
+    tcase_set_timeout(tc_coverage, 30);
     tcase_add_unchecked_fixture(tc_coverage, setup, teardown);
 
     // Line 134: NULL checks in stream_write_cb

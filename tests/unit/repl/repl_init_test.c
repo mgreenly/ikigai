@@ -460,6 +460,10 @@ static Suite *repl_init_suite(void)
     Suite *s = suite_create("REPL Initialization");
 
     TCase *tc_term = tcase_create("Terminal Init Failures");
+    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
     tcase_add_unchecked_fixture(tc_term, suite_setup, NULL);
     tcase_set_timeout(tc_term, 30);
     tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
@@ -469,6 +473,10 @@ static Suite *repl_init_suite(void)
     suite_add_tcase(s, tc_term);
 
     TCase *tc_success = tcase_create("Successful Init");
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
     tcase_add_unchecked_fixture(tc_success, suite_setup, NULL);
     tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);

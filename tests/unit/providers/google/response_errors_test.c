@@ -376,6 +376,7 @@ static Suite *google_response_errors_suite(void)
     Suite *s = suite_create("Google Response Errors & Utilities");
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
+    tcase_set_timeout(tc_finish, 30);
     tcase_add_test(tc_finish, test_map_finish_reason_stop);
     tcase_add_test(tc_finish, test_map_finish_reason_max_tokens);
     tcase_add_test(tc_finish, test_map_finish_reason_safety);
@@ -391,6 +392,7 @@ static Suite *google_response_errors_suite(void)
     suite_add_tcase(s, tc_finish);
 
     TCase *tc_error = tcase_create("Error Parsing");
+    tcase_set_timeout(tc_error, 30);
     tcase_add_unchecked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_parse_error_400);
     tcase_add_test(tc_error, test_parse_error_401);
@@ -412,6 +414,7 @@ static Suite *google_response_errors_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_id = tcase_create("Tool ID Generation");
+    tcase_set_timeout(tc_id, 30);
     tcase_add_unchecked_fixture(tc_id, setup, teardown);
     tcase_add_test(tc_id, test_generate_tool_id_length);
     tcase_add_test(tc_id, test_generate_tool_id_charset);

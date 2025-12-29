@@ -156,6 +156,7 @@ static Suite *spinner_layer_suite(void)
     Suite *s = suite_create("Spinner Layer");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_spinner_layer_create_and_visibility);
     tcase_add_test(tc_core, test_spinner_layer_height);
     tcase_add_test(tc_core, test_spinner_get_frame_cycles);

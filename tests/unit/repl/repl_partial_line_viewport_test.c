@@ -241,6 +241,10 @@ static Suite *separator_partial_suite(void)
 
     TCase *tc_partial = tcase_create("Partial");
     tcase_set_timeout(tc_partial, 30);
+    tcase_set_timeout(tc_partial, 30);
+    tcase_set_timeout(tc_partial, 30);
+    tcase_set_timeout(tc_partial, 30);
+    tcase_set_timeout(tc_partial, 30);
     tcase_add_test(tc_partial, test_separator_partial_first_line);
     tcase_add_test(tc_partial, test_separator_row_offset_impact);
     suite_add_tcase(s, tc_partial);

@@ -253,6 +253,7 @@ static Suite *anthropic_client_suite(void)
     Suite *s = suite_create("Anthropic Client");
 
     TCase *tc_request = tcase_create("Request Serialization");
+    tcase_set_timeout(tc_request, 30);
     tcase_add_unchecked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_build_request_with_system_and_user_messages);
     tcase_add_test(tc_request, test_build_request_with_thinking_budget);

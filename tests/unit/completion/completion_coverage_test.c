@@ -150,6 +150,7 @@ static Suite *completion_coverage_suite(void)
 {
     Suite *s = suite_create("Completion Coverage");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

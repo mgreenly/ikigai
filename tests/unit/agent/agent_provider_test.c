@@ -443,17 +443,20 @@ static Suite *agent_provider_suite(void)
     Suite *s = suite_create("Agent Provider");
 
     TCase *tc_apply_defaults = tcase_create("Apply Defaults");
+    tcase_set_timeout(tc_apply_defaults, 30);
     tcase_add_test(tc_apply_defaults, test_apply_defaults_null_config);
     tcase_add_test(tc_apply_defaults, test_apply_defaults_success);
     suite_add_tcase(s, tc_apply_defaults);
 
     TCase *tc_restore = tcase_create("Restore From Row");
+    tcase_set_timeout(tc_restore, 30);
     tcase_add_test(tc_restore, test_restore_from_row_null);
     tcase_add_test(tc_restore, test_restore_from_row_null_fields);
     tcase_add_test(tc_restore, test_restore_from_row_with_fields);
     suite_add_tcase(s, tc_restore);
 
     TCase *tc_thinking = tcase_create("Thinking Level Parsing");
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_test(tc_thinking, test_thinking_level_null);
     tcase_add_test(tc_thinking, test_thinking_level_none);
     tcase_add_test(tc_thinking, test_thinking_level_low);
@@ -464,6 +467,7 @@ static Suite *agent_provider_suite(void)
     suite_add_tcase(s, tc_thinking);
 
     TCase *tc_get_provider = tcase_create("Get Provider");
+    tcase_set_timeout(tc_get_provider, 30);
     tcase_add_test(tc_get_provider, test_get_provider_cached);
     tcase_add_test(tc_get_provider, test_get_provider_null);
     tcase_add_test(tc_get_provider, test_get_provider_empty);
@@ -472,6 +476,7 @@ static Suite *agent_provider_suite(void)
     suite_add_tcase(s, tc_get_provider);
 
     TCase *tc_invalidate = tcase_create("Invalidate Provider");
+    tcase_set_timeout(tc_invalidate, 30);
     tcase_add_test(tc_invalidate, test_invalidate_provider_null);
     tcase_add_test(tc_invalidate, test_invalidate_provider_cached);
     suite_add_tcase(s, tc_invalidate);

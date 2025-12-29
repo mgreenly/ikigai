@@ -469,6 +469,11 @@ static Suite *repl_event_handlers_suite(void)
     Suite *s = suite_create("repl_event_handlers_1");
 
     TCase *tc_fd_sets = tcase_create("fd_sets");
+    tcase_set_timeout(tc_fd_sets, 30);
+    tcase_set_timeout(tc_fd_sets, 30);
+    tcase_set_timeout(tc_fd_sets, 30);
+    tcase_set_timeout(tc_fd_sets, 30);
+    tcase_set_timeout(tc_fd_sets, 30);
     tcase_add_checked_fixture(tc_fd_sets, setup, teardown);
     tcase_add_test(tc_fd_sets, test_setup_fd_sets_no_agents);
     tcase_add_test(tc_fd_sets, test_setup_fd_sets_with_provider_instance);
@@ -478,6 +483,11 @@ static Suite *repl_event_handlers_suite(void)
     suite_add_tcase(s, tc_fd_sets);
 
     TCase *tc_timeout = tcase_create("timeout");
+    tcase_set_timeout(tc_timeout, 30);
+    tcase_set_timeout(tc_timeout, 30);
+    tcase_set_timeout(tc_timeout, 30);
+    tcase_set_timeout(tc_timeout, 30);
+    tcase_set_timeout(tc_timeout, 30);
     tcase_add_checked_fixture(tc_timeout, setup, teardown);
     tcase_add_test(tc_timeout, test_curl_min_timeout_no_agents);
     tcase_add_test(tc_timeout, test_curl_min_timeout_with_provider);

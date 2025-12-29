@@ -313,6 +313,7 @@ static Suite *agent_replay_errors_suite(void)
     Suite *s = suite_create("Agent Replay Errors");
 
     TCase *tc_errors = tcase_create("Errors");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, NULL);
     tcase_add_test(tc_errors, test_find_clear_query_failure);
     tcase_add_test(tc_errors, test_find_clear_parse_failure);

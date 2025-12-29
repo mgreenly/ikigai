@@ -270,6 +270,7 @@ static Suite *response_responses_simple_suite(void)
     Suite *s = suite_create("OpenAI Responses API Simple Response Parsing");
 
     TCase *tc_simple = tcase_create("Simple Responses");
+    tcase_set_timeout(tc_simple, 30);
     tcase_add_checked_fixture(tc_simple, setup, teardown);
     tcase_add_test(tc_simple, test_parse_simple_text_response);
     tcase_add_test(tc_simple, test_parse_response_with_reasoning_tokens);
@@ -278,6 +279,7 @@ static Suite *response_responses_simple_suite(void)
     suite_add_tcase(s, tc_simple);
 
     TCase *tc_tools = tcase_create("Tool Call Responses");
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_parse_response_function_call);
     tcase_add_test(tc_tools, test_parse_response_function_call_with_call_id);

@@ -122,6 +122,7 @@ static Suite *request_tools_error_suite(void)
     Suite *s = suite_create("Request Tools Errors");
 
     TCase *tc = tcase_create("Error Paths");
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_set_system_error_cleanup);
     tcase_add_test(tc, test_add_message_error_cleanup);

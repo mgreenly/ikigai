@@ -385,7 +385,9 @@ static Suite *message_from_db_suite(void)
 {
     Suite *s = suite_create("Message from DB");
     TCase *tc_tool_call = tcase_create("Tool Call");
+    tcase_set_timeout(tc_tool_call, 30);
     TCase *tc_tool_result = tcase_create("Tool Result");
+    tcase_set_timeout(tc_tool_result, 30);
 
     tcase_add_checked_fixture(tc_tool_call, setup, teardown);
     tcase_add_test(tc_tool_call, test_tool_call_json_array);

@@ -305,6 +305,7 @@ static Suite *request_coverage_suite(void)
     Suite *s = suite_create("Google Request Coverage");
 
     TCase *tc_contents = tcase_create("Contents Multiple Messages");
+    tcase_set_timeout(tc_contents, 30);
     tcase_add_checked_fixture(tc_contents, setup, teardown);
     tcase_add_test(tc_contents, test_serialize_multiple_messages);
     tcase_add_test(tc_contents, test_serialize_first_assistant_message);
@@ -312,11 +313,13 @@ static Suite *request_coverage_suite(void)
     suite_add_tcase(s, tc_contents);
 
     TCase *tc_tools = tcase_create("Tools Multiple");
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_serialize_multiple_tools);
     suite_add_tcase(s, tc_tools);
 
     TCase *tc_thinking = tcase_create("Thinking Edge Cases");
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_checked_fixture(tc_thinking, setup, teardown);
     tcase_add_test(tc_thinking, test_serialize_thinking_gemini_3_null_level);
     tcase_add_test(tc_thinking, test_serialize_thinking_gemini_3_with_level);

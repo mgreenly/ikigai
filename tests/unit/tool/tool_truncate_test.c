@@ -79,6 +79,7 @@ static Suite *tool_truncate_suite(void)
     Suite *s = suite_create("Tool Truncate");
 
     TCase *tc_truncate = tcase_create("Truncate Output");
+    tcase_set_timeout(tc_truncate, 30);
     tcase_add_checked_fixture(tc_truncate, setup, teardown);
     tcase_add_test(tc_truncate, test_tool_truncate_output_null);
     tcase_add_test(tc_truncate, test_tool_truncate_output_empty);

@@ -460,6 +460,11 @@ static Suite *repl_event_handlers_suite(void)
     Suite *s = suite_create("repl_event_handlers_3");
 
     TCase *tc_persist = tcase_create("persist");
+    tcase_set_timeout(tc_persist, 30);
+    tcase_set_timeout(tc_persist, 30);
+    tcase_set_timeout(tc_persist, 30);
+    tcase_set_timeout(tc_persist, 30);
+    tcase_set_timeout(tc_persist, 30);
     tcase_add_checked_fixture(tc_persist, setup, teardown);
     tcase_add_test(tc_persist, test_persist_with_thinking_level_low);
     tcase_add_test(tc_persist, test_persist_with_thinking_level_med);
@@ -471,6 +476,11 @@ static Suite *repl_event_handlers_suite(void)
     suite_add_tcase(s, tc_persist);
 
     TCase *tc_curl_error = tcase_create("curl_error");
+    tcase_set_timeout(tc_curl_error, 30);
+    tcase_set_timeout(tc_curl_error, 30);
+    tcase_set_timeout(tc_curl_error, 30);
+    tcase_set_timeout(tc_curl_error, 30);
+    tcase_set_timeout(tc_curl_error, 30);
     tcase_add_checked_fixture(tc_curl_error, setup, teardown);
     tcase_add_test(tc_curl_error, test_curl_events_with_http_error);
     tcase_add_test(tc_curl_error, test_curl_events_with_http_error_and_assistant_response);

@@ -240,6 +240,7 @@ static Suite *anthropic_request_suite_2(void)
     Suite *s = suite_create("Anthropic Request - Part 2");
 
     TCase *tc_content = tcase_create("Message Content");
+    tcase_set_timeout(tc_content, 30);
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_serialize_single_text_message);
     tcase_add_test(tc_content, test_serialize_multiple_content_blocks);

@@ -406,6 +406,10 @@ static Suite *input_escape_suite(void)
     Suite *s = suite_create("Input Escape");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_input_parse_arrow_up);
     tcase_add_test(tc_core, test_input_parse_arrow_down);

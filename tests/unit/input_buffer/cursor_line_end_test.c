@@ -215,6 +215,10 @@ static Suite *input_buffer_cursor_line_end_suite(void)
 {
     Suite *s = suite_create("Input Buffer Cursor to Line End");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests - cursor to line end */
     tcase_add_test(tc_core, test_cursor_to_line_end_basic);
@@ -227,6 +231,10 @@ static Suite *input_buffer_cursor_line_end_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_to_line_end_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

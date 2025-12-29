@@ -343,6 +343,7 @@ static Suite *anthropic_response_suite(void)
     Suite *s = suite_create("Anthropic Response");
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
+    tcase_set_timeout(tc_finish, 30);
     tcase_add_unchecked_fixture(tc_finish, setup, teardown);
     tcase_add_test(tc_finish, test_map_finish_reason_null);
     tcase_add_test(tc_finish, test_map_finish_reason_end_turn);
@@ -354,6 +355,7 @@ static Suite *anthropic_response_suite(void)
     suite_add_tcase(s, tc_finish);
 
     TCase *tc_parse = tcase_create("Response Parsing");
+    tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_response_basic);
     tcase_add_test(tc_parse, test_parse_response_invalid_json);
@@ -364,6 +366,7 @@ static Suite *anthropic_response_suite(void)
     suite_add_tcase(s, tc_parse);
 
     TCase *tc_error = tcase_create("Error Parsing");
+    tcase_set_timeout(tc_error, 30);
     tcase_add_unchecked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_parse_error_400);
     tcase_add_test(tc_error, test_parse_error_401);

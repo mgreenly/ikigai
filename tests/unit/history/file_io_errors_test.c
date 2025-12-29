@@ -368,6 +368,7 @@ static Suite *history_file_io_errors_suite(void)
 {
     Suite *s = suite_create("History File I/O Errors");
     TCase *tc = tcase_create("file_io_errors");
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_history_ensure_directory_race_condition);
     tcase_add_test(tc, test_history_ensure_directory_mkdir_failure);

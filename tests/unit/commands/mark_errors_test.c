@@ -463,6 +463,7 @@ static Suite *commands_mark_errors_suite(void)
 {
     Suite *s = suite_create("Commands: Mark/Rewind Errors");
     TCase *tc = tcase_create("DB Errors");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

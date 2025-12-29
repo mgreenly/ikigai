@@ -282,12 +282,14 @@ static Suite *streaming_chat_coverage_suite_2(void)
     Suite *s = suite_create("OpenAI Streaming Chat Coverage 2");
 
     TCase *tc_usage = tcase_create("UsageExtraction");
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_usage_with_reasoning_tokens);
     tcase_add_test(tc_usage, test_usage_without_reasoning_tokens);
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_choices = tcase_create("ChoicesEdgeCases");
+    tcase_set_timeout(tc_choices, 30);
     tcase_add_checked_fixture(tc_choices, setup, teardown);
     tcase_add_test(tc_choices, test_choices_not_array);
     tcase_add_test(tc_choices, test_choices_empty_array);
@@ -297,6 +299,7 @@ static Suite *streaming_chat_coverage_suite_2(void)
     suite_add_tcase(s, tc_choices);
 
     TCase *tc_usage_edge = tcase_create("UsageEdgeCases");
+    tcase_set_timeout(tc_usage_edge, 30);
     tcase_add_checked_fixture(tc_usage_edge, setup, teardown);
     tcase_add_test(tc_usage_edge, test_usage_not_object);
     tcase_add_test(tc_usage_edge, test_usage_prompt_tokens_not_int);
@@ -307,6 +310,7 @@ static Suite *streaming_chat_coverage_suite_2(void)
     suite_add_tcase(s, tc_usage_edge);
 
     TCase *tc_edges = tcase_create("EdgeCases");
+    tcase_set_timeout(tc_edges, 30);
     tcase_add_checked_fixture(tc_edges, setup, teardown);
     tcase_add_test(tc_edges, test_error_without_message_field);
     tcase_add_test(tc_edges, test_model_field_non_string);

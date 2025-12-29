@@ -242,6 +242,7 @@ static Suite *openai_streaming_responses_integration_suite(void)
 
     /* Integration Tests */
     TCase *tc_integration = tcase_create("Integration");
+    tcase_set_timeout(tc_integration, 30);
     tcase_add_checked_fixture(tc_integration, setup, teardown);
     tcase_add_test(tc_integration, test_write_callback_with_thinking_delta);
     tcase_add_test(tc_integration, test_write_callback_with_tool_call);

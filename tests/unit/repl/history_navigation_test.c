@@ -422,6 +422,11 @@ static Suite *history_navigation_suite(void)
 {
     Suite *s = suite_create("History_Navigation");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_history_up_from_empty_input);
     tcase_add_test(tc_core, test_history_up_multiple_times);

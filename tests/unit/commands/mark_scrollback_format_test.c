@@ -274,6 +274,7 @@ static Suite *mark_scrollback_format_suite(void)
 {
     Suite *s = suite_create("Mark Scrollback Format");
     TCase *tc = tcase_create("scrollback_format");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

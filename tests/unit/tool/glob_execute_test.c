@@ -248,6 +248,7 @@ static Suite *glob_execute_suite(void)
     Suite *s = suite_create("Glob Execution");
 
     TCase *tc_glob_exec = tcase_create("Glob Execution");
+    tcase_set_timeout(tc_glob_exec, 30);
     tcase_add_checked_fixture(tc_glob_exec, setup, teardown);
     tcase_add_test(tc_glob_exec, test_glob_exec_with_matches);
     tcase_add_test(tc_glob_exec, test_glob_exec_no_matches);

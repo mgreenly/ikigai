@@ -399,6 +399,7 @@ static Suite *anthropic_errors_suite(void)
     Suite *s = suite_create("Anthropic Errors");
 
     TCase *tc_errors = tcase_create("Error Handling");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_handle_error_401_auth);
     tcase_add_test(tc_errors, test_handle_error_403_auth);
@@ -419,6 +420,7 @@ static Suite *anthropic_errors_suite(void)
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After Headers");
+    tcase_set_timeout(tc_retry, 30);
     tcase_add_unchecked_fixture(tc_retry, setup, teardown);
     tcase_add_test(tc_retry, test_retry_after_found);
     tcase_add_test(tc_retry, test_retry_after_missing);

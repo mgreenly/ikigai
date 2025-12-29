@@ -189,6 +189,10 @@ static Suite *agent_transitions_suite(void)
 
     TCase *tc_transitions = tcase_create("State Transitions");
     tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
     tcase_add_test(tc_transitions, test_agent_transition_to_waiting_for_llm);
     tcase_add_test(tc_transitions, test_agent_transition_to_idle);
     tcase_add_test(tc_transitions, test_agent_transition_to_executing_tool);

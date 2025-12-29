@@ -269,6 +269,7 @@ static Suite *openai_client_toolchoice_suite(void)
     Suite *s = suite_create("OpenAI Client Tool Choice");
 
     TCase *tc_toolchoice = tcase_create("Tool Choice");
+    tcase_set_timeout(tc_toolchoice, 30);
     tcase_add_unchecked_fixture(tc_toolchoice, setup, teardown);
     tcase_add_test(tc_toolchoice, test_build_request_with_tool_choice_none);
     tcase_add_test(tc_toolchoice, test_build_request_with_tool_choice_required);
@@ -277,6 +278,7 @@ static Suite *openai_client_toolchoice_suite(void)
     suite_add_tcase(s, tc_toolchoice);
 
     TCase *tc_validation = tcase_create("Validation");
+    tcase_set_timeout(tc_validation, 30);
     tcase_add_unchecked_fixture(tc_validation, setup, teardown);
     tcase_add_test(tc_validation, test_build_request_with_invalid_tool_parameters);
     tcase_add_test(tc_validation, test_build_request_with_null_model);

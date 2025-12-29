@@ -180,12 +180,20 @@ static Suite *test_utils_db_suite(void)
     Suite *s = suite_create("test_utils_db");
 
     TCase *tc_name = tcase_create("DB Name Derivation");
+    tcase_set_timeout(tc_name, 30);
+    tcase_set_timeout(tc_name, 30);
+    tcase_set_timeout(tc_name, 30);
+    tcase_set_timeout(tc_name, 30);
     tcase_add_test(tc_name, test_db_name_from_file_path);
     tcase_add_test(tc_name, test_db_name_from_nested_path);
     tcase_add_test(tc_name, test_db_name_simple_file);
     suite_add_tcase(s, tc_name);
 
     TCase *tc_lifecycle = tcase_create("DB Lifecycle");
+    tcase_set_timeout(tc_lifecycle, 30);
+    tcase_set_timeout(tc_lifecycle, 30);
+    tcase_set_timeout(tc_lifecycle, 30);
+    tcase_set_timeout(tc_lifecycle, 30);
     tcase_set_timeout(tc_lifecycle, 30);
     tcase_add_test(tc_lifecycle, test_db_full_lifecycle);
     tcase_add_test(tc_lifecycle, test_db_truncate_all);

@@ -58,7 +58,7 @@ BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -Isrc -I/usr/include/postgresql
 BUILD ?= debug
 
 # Parallelization settings
-MAKE_JOBS ?= $(shell lscpu -b -p=Core,Socket | grep -v '^\#' | sort -u | wc -l)
+MAKE_JOBS ?= $(shell expr $$(nproc) / 4)
 PARALLEL ?= 0
 
 # Build directory (can be overridden for parallel builds)
@@ -496,7 +496,8 @@ else
 	@$< || (echo "✗ Test failed: $<" && exit 1)
 endif
 
-check: check-unit check-integration
+check:
+	@$(MAKE) -j$(MAKE_JOBS) check-unit check-integration
 	@echo "All tests passed!"
 
 # Build test binaries without running them
@@ -684,8 +685,8 @@ check-sanitize:
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
 	@echo "Building test binaries in parallel..."
 	@BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
-	@echo "Running tests sequentially (sanitizers + DB tests require serial execution)..."
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j1 check-unit check-integration
+	@echo "Running tests in parallel..."
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
 	@echo "✓ Sanitizer checks passed!"
 
 check-valgrind:
@@ -752,8 +753,8 @@ check-tsan:
 	@find tests/unit -type d | sed 's|tests/unit|build-tsan/tests/unit|' | xargs mkdir -p
 	@echo "Building test binaries in parallel..."
 	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
-	@echo "Running tests sequentially (ThreadSanitizer + DB tests require serial execution)..."
-	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j1 check-unit check-integration
+	@echo "Running tests in parallel..."
+	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
 	@echo "✓ ThreadSanitizer checks passed!"
 
 check-dynamic:

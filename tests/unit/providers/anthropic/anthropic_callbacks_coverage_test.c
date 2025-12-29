@@ -393,6 +393,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     Suite *s = suite_create("Anthropic Callbacks Coverage");
 
     TCase *tc_write = tcase_create("Stream Write Callback");
+    tcase_set_timeout(tc_write, 30);
     tcase_add_unchecked_fixture(tc_write, setup, teardown);
     tcase_add_test(tc_write, test_stream_write_cb_with_null_context);
     tcase_add_test(tc_write, test_stream_write_cb_with_null_sse_parser);
@@ -401,17 +402,20 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     suite_add_tcase(s, tc_write);
 
     TCase *tc_completion = tcase_create("Stream Completion Callback");
+    tcase_set_timeout(tc_completion, 30);
     tcase_add_unchecked_fixture(tc_completion, setup, teardown);
     tcase_add_test(tc_completion, test_stream_completion_cb_with_null_context);
     tcase_add_test(tc_completion, test_stream_completion_cb_with_valid_context);
     suite_add_tcase(s, tc_completion);
 
     TCase *tc_creation = tcase_create("Provider Creation");
+    tcase_set_timeout(tc_creation, 30);
     tcase_add_unchecked_fixture(tc_creation, setup, teardown);
     tcase_add_test(tc_creation, test_anthropic_create_http_multi_failure);
     suite_add_tcase(s, tc_creation);
 
     TCase *tc_info_read = tcase_create("Info Read");
+    tcase_set_timeout(tc_info_read, 30);
     tcase_add_unchecked_fixture(tc_info_read, setup, teardown);
     tcase_add_test(tc_info_read, test_info_read_no_active_stream);
     tcase_add_test(tc_info_read, test_info_read_success_http_status);

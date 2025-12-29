@@ -363,6 +363,7 @@ static Suite *shared_suite(void)
     Suite *s = suite_create("Shared Context");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_shared_ctx_init_and_memory);
     tcase_add_test(tc_core, test_shared_ctx_config);

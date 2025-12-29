@@ -222,6 +222,10 @@ static Suite *input_csi_u_edge_suite(void)
     Suite *s = suite_create("Input CSI u Edge Cases");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_csi_u_too_short);
     tcase_add_test(tc_core, test_csi_u_invalid_not_ending_with_u);

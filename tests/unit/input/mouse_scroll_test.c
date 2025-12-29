@@ -255,6 +255,10 @@ static Suite *mouse_scroll_suite(void)
 
     TCase *tc_parse = tcase_create("Parsing");
     tcase_set_timeout(tc_parse, 30);
+    tcase_set_timeout(tc_parse, 30);
+    tcase_set_timeout(tc_parse, 30);
+    tcase_set_timeout(tc_parse, 30);
+    tcase_set_timeout(tc_parse, 30);
     tcase_add_test(tc_parse, test_mouse_scroll_up_parsing);
     tcase_add_test(tc_parse, test_mouse_scroll_down_parsing);
     tcase_add_test(tc_parse, test_mouse_sequence_missing_separator);

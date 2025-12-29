@@ -214,6 +214,7 @@ static Suite *anthropic_request_suite_1(void)
     Suite *s = suite_create("Anthropic Request - Part 1");
 
     TCase *tc_basic = tcase_create("Basic Serialization");
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_unchecked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_serialize_request_basic);
     tcase_add_test(tc_basic, test_serialize_request_stream);

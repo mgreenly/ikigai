@@ -227,6 +227,7 @@ static Suite *streaming_chat_delta_edge_suite(void)
     Suite *s = suite_create("OpenAI Streaming Chat Delta Edge Cases");
 
     TCase *tc_arguments = tcase_create("ArgumentsEdgeCases");
+    tcase_set_timeout(tc_arguments, 30);
     tcase_add_checked_fixture(tc_arguments, setup, teardown);
     tcase_add_test(tc_arguments, test_delta_arguments_with_function_val_null);
     tcase_add_test(tc_arguments, test_delta_arguments_not_string);

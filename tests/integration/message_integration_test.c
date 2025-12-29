@@ -363,6 +363,7 @@ static Suite *message_integration_suite(void)
 {
     Suite *s = suite_create("Message Integration");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_core, test_setup, test_teardown);

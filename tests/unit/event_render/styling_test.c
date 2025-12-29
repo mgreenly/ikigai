@@ -231,6 +231,7 @@ static Suite *event_render_styling_suite(void)
     Suite *s = suite_create("Event Render Styling");
 
     TCase *tc_colors = tcase_create("Color Styling");
+    tcase_set_timeout(tc_colors, 30);
     tcase_add_test(tc_colors, test_user_message_no_color);
     tcase_add_test(tc_colors, test_assistant_message_gray_249);
     tcase_add_test(tc_colors, test_tool_call_message_gray_242);

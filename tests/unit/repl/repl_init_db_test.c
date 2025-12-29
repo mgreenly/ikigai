@@ -412,6 +412,10 @@ static Suite *repl_init_db_suite(void)
 
     TCase *tc_db = tcase_create("Database Failures");
     tcase_set_timeout(tc_db, 30);
+    tcase_set_timeout(tc_db, 30);
+    tcase_set_timeout(tc_db, 30);
+    tcase_set_timeout(tc_db, 30);
+    tcase_set_timeout(tc_db, 30);
     tcase_add_unchecked_fixture(tc_db, suite_setup, NULL);
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_ensure_agent_zero_failure);
@@ -419,6 +423,10 @@ static Suite *repl_init_db_suite(void)
     suite_add_tcase(s, tc_db);
 
     TCase *tc_db_success = tcase_create("Database Success");
+    tcase_set_timeout(tc_db_success, 30);
+    tcase_set_timeout(tc_db_success, 30);
+    tcase_set_timeout(tc_db_success, 30);
+    tcase_set_timeout(tc_db_success, 30);
     tcase_set_timeout(tc_db_success, 30);
     tcase_add_unchecked_fixture(tc_db_success, suite_setup, NULL);
     tcase_add_test(tc_db_success, test_repl_init_db_success);

@@ -377,6 +377,7 @@ static Suite *provider_types_suite(void)
     Suite *s = suite_create("Provider Types");
 
     TCase *tc_enums = tcase_create("Enum Values");
+    tcase_set_timeout(tc_enums, 30);
     tcase_add_test(tc_enums, test_thinking_level_enum_values);
     tcase_add_test(tc_enums, test_finish_reason_enum_values);
     tcase_add_test(tc_enums, test_content_type_enum_values);
@@ -388,25 +389,30 @@ static Suite *provider_types_suite(void)
     suite_add_tcase(s, tc_enums);
 
     TCase *tc_structs = tcase_create("Struct Validation");
+    tcase_set_timeout(tc_structs, 30);
     tcase_add_test(tc_structs, test_struct_sizes);
     suite_add_tcase(s, tc_structs);
 
     TCase *tc_talloc = tcase_create("Talloc Allocation");
+    tcase_set_timeout(tc_talloc, 30);
     tcase_add_test(tc_talloc, test_talloc_allocation_request);
     tcase_add_test(tc_talloc, test_talloc_allocation_response);
     suite_add_tcase(s, tc_talloc);
 
     TCase *tc_errors = tcase_create("Error Codes");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_test(tc_errors, test_error_code_provider);
     tcase_add_test(tc_errors, test_error_code_missing_credentials);
     tcase_add_test(tc_errors, test_error_code_not_implemented);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_callbacks = tcase_create("Callback Types");
+    tcase_set_timeout(tc_callbacks, 30);
     tcase_add_test(tc_callbacks, test_callback_type_assignment);
     suite_add_tcase(s, tc_callbacks);
 
     TCase *tc_infer = tcase_create("Provider Inference");
+    tcase_set_timeout(tc_infer, 30);
     tcase_add_test(tc_infer, test_infer_provider_openai_gpt);
     tcase_add_test(tc_infer, test_infer_provider_openai_o1);
     tcase_add_test(tc_infer, test_infer_provider_openai_o3);
@@ -418,6 +424,7 @@ static Suite *provider_types_suite(void)
     suite_add_tcase(s, tc_infer);
 
     TCase *tc_thinking = tcase_create("Model Thinking Support");
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_test(tc_thinking, test_model_supports_thinking_null_model);
     tcase_add_test(tc_thinking, test_model_supports_thinking_null_supports);
     tcase_add_test(tc_thinking, test_model_supports_thinking_known_model);
@@ -426,6 +433,7 @@ static Suite *provider_types_suite(void)
     suite_add_tcase(s, tc_thinking);
 
     TCase *tc_budget = tcase_create("Model Thinking Budget");
+    tcase_set_timeout(tc_budget, 30);
     tcase_add_test(tc_budget, test_model_get_thinking_budget_null_model);
     tcase_add_test(tc_budget, test_model_get_thinking_budget_null_budget);
     tcase_add_test(tc_budget, test_model_get_thinking_budget_anthropic_model);

@@ -293,6 +293,7 @@ static Suite *replay_coverage_suite(void)
     Suite *s = suite_create("Replay Coverage");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

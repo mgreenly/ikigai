@@ -359,6 +359,7 @@ static Suite *request_responses_advanced_suite(void)
     Suite *s = suite_create("OpenAI Responses API Advanced Serialization");
 
     TCase *tc_reasoning = tcase_create("Reasoning Configuration");
+    tcase_set_timeout(tc_reasoning, 30);
     tcase_add_checked_fixture(tc_reasoning, setup, teardown);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_low);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_medium);
@@ -368,6 +369,7 @@ static Suite *request_responses_advanced_suite(void)
     suite_add_tcase(s, tc_reasoning);
 
     TCase *tc_tools = tcase_create("Tool Definitions");
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_serialize_single_tool);
     tcase_add_test(tc_tools, test_serialize_multiple_tools);

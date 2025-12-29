@@ -130,6 +130,7 @@ static Suite *google_response_utils_suite(void)
     Suite *s = suite_create("Google Response Utils");
 
     TCase *tc_thought = tcase_create("Thought Signature Extraction");
+    tcase_set_timeout(tc_thought, 30);
     tcase_add_unchecked_fixture(tc_thought, setup, teardown);
     tcase_add_test(tc_thought, test_extract_thought_signature_top_level);
     tcase_add_test(tc_thought, test_extract_thought_signature_in_candidates);

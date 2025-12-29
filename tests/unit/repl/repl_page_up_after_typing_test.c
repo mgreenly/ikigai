@@ -178,6 +178,10 @@ static Suite *page_up_typing_suite(void)
 
     TCase *tc = tcase_create("PageUpTyping");
     tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_page_up_after_typing_in_input_buffer);
     suite_add_tcase(s, tc);
 

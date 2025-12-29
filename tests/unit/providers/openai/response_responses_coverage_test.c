@@ -288,6 +288,7 @@ static Suite *response_responses_coverage_suite(void)
     Suite *s = suite_create("OpenAI Responses API Coverage Tests");
 
     TCase *tc_usage = tcase_create("Usage Parsing Coverage");
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_parse_usage_prompt_tokens_not_int);
     tcase_add_test(tc_usage, test_parse_usage_completion_tokens_not_int);
@@ -296,17 +297,20 @@ static Suite *response_responses_coverage_suite(void)
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_function = tcase_create("Function Call Coverage");
+    tcase_set_timeout(tc_function, 30);
     tcase_add_checked_fixture(tc_function, setup, teardown);
     tcase_add_test(tc_function, test_parse_function_call_id_null);
     suite_add_tcase(s, tc_function);
 
     TCase *tc_count = tcase_create("Count Blocks Coverage");
+    tcase_set_timeout(tc_count, 30);
     tcase_add_checked_fixture(tc_count, setup, teardown);
     tcase_add_test(tc_count, test_count_content_blocks_type_null);
     tcase_add_test(tc_count, test_count_content_blocks_type_not_string);
     suite_add_tcase(s, tc_count);
 
     TCase *tc_main = tcase_create("Main Parsing Coverage");
+    tcase_set_timeout(tc_main, 30);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_parse_response_root_not_object);
     tcase_add_test(tc_main, test_parse_response_error_with_message);

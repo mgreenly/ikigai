@@ -296,6 +296,7 @@ static Suite *read_mail_suite(void)
 {
     Suite *s = suite_create("Read Mail Command");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

@@ -268,6 +268,7 @@ static Suite *config_history_size_suite(void)
 {
     Suite *s = suite_create("Config History Size");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_history_size_default);
     tcase_add_test(tc_core, test_config_history_size_custom);

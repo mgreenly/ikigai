@@ -229,6 +229,10 @@ static Suite *column_preservation_suite(void)
     Suite *s = suite_create("Column Preservation");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_cursor_up_down_column_preservation);
     tcase_add_test(tc_core, test_column_preservation_resets_on_horizontal_move);

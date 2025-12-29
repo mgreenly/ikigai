@@ -231,6 +231,7 @@ static Suite *filter_mail_coverage_suite(void)
 {
     Suite *s = suite_create("Filter Mail Command Coverage");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

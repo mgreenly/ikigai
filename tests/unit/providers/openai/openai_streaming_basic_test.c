@@ -279,6 +279,7 @@ static Suite *openai_streaming_basic_suite(void)
 
     /* Basic Streaming */
     TCase *tc_basic = tcase_create("Basic");
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_parse_initial_role_delta);
     tcase_add_test(tc_basic, test_parse_content_delta);
@@ -288,6 +289,7 @@ static Suite *openai_streaming_basic_suite(void)
 
     /* Content Accumulation */
     TCase *tc_accumulation = tcase_create("Accumulation");
+    tcase_set_timeout(tc_accumulation, 30);
     tcase_add_checked_fixture(tc_accumulation, setup, teardown);
     tcase_add_test(tc_accumulation, test_accumulate_multiple_deltas);
     tcase_add_test(tc_accumulation, test_handle_empty_content_delta);

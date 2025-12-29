@@ -186,6 +186,7 @@ static Suite *request_chat_coverage_suite(void)
     Suite *s = suite_create("request_chat_coverage");
 
     TCase *tc_tools = tcase_create("tool_serialization");
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_serialize_with_tools);
     tcase_add_test(tc_tools, test_tool_choice_none);

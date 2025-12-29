@@ -110,6 +110,7 @@ static Suite *layer_scrollback_partial_newline_suite(void)
     Suite *s = suite_create("Layer Scrollback Partial Newline");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_partial_render_with_newlines);
     tcase_add_test(tc_core, test_wrapped_segment_with_newline);
     tcase_add_test(tc_core, test_skip_multiple_newline_segments);

@@ -169,6 +169,11 @@ static Suite *repl_tool_call_state_mutation_suite(void)
     Suite *s = suite_create("REPL Tool Call State Mutation");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_add_tool_call_message_to_conversation);
     tcase_add_test(tc_core, test_execute_tool_and_add_result_message);

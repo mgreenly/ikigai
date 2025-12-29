@@ -230,6 +230,10 @@ static Suite *repl_submit_line_error_suite(void)
     Suite *s = suite_create("REPL Submit Line Error Handling");
 
     TCase *tc_error = tcase_create("Error Handling");
+    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, 30);
     tcase_add_unchecked_fixture(tc_error, suite_setup, reset_mocks);
     tcase_set_timeout(tc_error, 30);
     tcase_add_test(tc_error, test_submit_line_event_render_fails);

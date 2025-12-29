@@ -292,6 +292,11 @@ static Suite *nav_sibling_suite(void)
     Suite *s = suite_create("Sibling Navigation");
 
     TCase *tc_nav = tcase_create("Navigation");
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
     tcase_add_checked_fixture(tc_nav, setup, teardown);
     tcase_add_test(tc_nav, test_nav_next_with_siblings_switches_to_next);
     tcase_add_test(tc_nav, test_nav_next_wraps_to_first_after_last);

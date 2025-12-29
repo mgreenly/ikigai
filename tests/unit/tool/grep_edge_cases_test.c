@@ -364,6 +364,7 @@ static Suite *grep_edge_cases_suite(void)
     Suite *s = suite_create("Grep Edge Cases");
 
     TCase *tc_edge_cases = tcase_create("Edge Cases");
+    tcase_set_timeout(tc_edge_cases, 30);
     tcase_add_checked_fixture(tc_edge_cases, setup, teardown);
     tcase_add_test(tc_edge_cases, test_grep_exec_invalid_regex);
     tcase_add_test(tc_edge_cases, test_grep_exec_file_without_newline);

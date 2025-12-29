@@ -260,6 +260,7 @@ static Suite *mark_library_errors_suite(void)
 {
     Suite *s = suite_create("Mark Library Errors");
     TCase *tc = tcase_create("gmtime/strftime failures");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

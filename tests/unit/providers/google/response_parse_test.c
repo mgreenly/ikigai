@@ -257,6 +257,7 @@ static Suite *google_response_parse_suite(void)
     Suite *s = suite_create("Google Response Parsing");
 
     TCase *tc_parse = tcase_create("Response Parsing");
+    tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_simple_text_response);
     tcase_add_test(tc_parse, test_parse_thinking_response);

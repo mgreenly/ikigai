@@ -175,6 +175,11 @@ static Suite *nav_context_dead_agent_suite(void)
     Suite *s = suite_create("Navigation Context Dead Agent");
 
     TCase *tc = tcase_create("Dead Agent References");
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_nav_context_with_removed_prev_sibling);
     tcase_add_test(tc, test_nav_context_with_removed_next_sibling);

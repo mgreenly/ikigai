@@ -222,6 +222,7 @@ static Suite *cmd_fork_args_suite(void)
 {
     Suite *s = suite_create("Fork Argument Parsing");
     TCase *tc_parse = tcase_create("Parse Args");
+    tcase_set_timeout(tc_parse, 30);
 
     tcase_add_checked_fixture(tc_parse, setup, teardown);
 

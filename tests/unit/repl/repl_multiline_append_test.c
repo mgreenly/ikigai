@@ -108,6 +108,10 @@ static Suite *repl_multiline_append_suite(void)
 
     TCase *tc_edge_cases = tcase_create("Edge Cases");
     tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, 30);
     tcase_add_test(tc_edge_cases, test_append_empty_output);
     tcase_add_test(tc_edge_cases, test_append_output_ending_with_newline);
     tcase_add_test(tc_edge_cases, test_append_multiple_lines_ending_with_newline);

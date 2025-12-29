@@ -236,6 +236,7 @@ static Suite *cmd_agent_coverage_suite(void)
 {
     Suite *s = suite_create("Commands Agent Coverage");
     TCase *tc = tcase_create("Error Paths");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

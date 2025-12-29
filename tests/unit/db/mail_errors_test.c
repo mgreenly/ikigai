@@ -190,6 +190,7 @@ static Suite *db_mail_errors_suite(void)
     Suite *s = suite_create("db_mail_errors");
 
     TCase *tc_errors = tcase_create("Errors");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_test(tc_errors, test_db_mail_insert_query_failure);
     tcase_add_test(tc_errors, test_db_mail_inbox_query_failure);
     tcase_add_test(tc_errors, test_db_mail_mark_read_query_failure);

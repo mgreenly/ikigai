@@ -242,6 +242,10 @@ static Suite *repl_autoscroll_suite(void)
 {
     Suite *s = suite_create("repl_autoscroll");
     TCase *tc = tcase_create("autoscroll");
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_autoscroll_on_char_insert);

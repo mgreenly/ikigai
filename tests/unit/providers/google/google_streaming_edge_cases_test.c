@@ -176,12 +176,14 @@ static Suite *google_streaming_edge_cases_suite(void)
     Suite *s = suite_create("Google Streaming - Edge Cases");
 
     TCase *tc_json = tcase_create("JSON Parsing");
+    tcase_set_timeout(tc_json, 30);
     tcase_add_checked_fixture(tc_json, setup, teardown);
     tcase_add_test(tc_json, test_json_array_root);
     tcase_add_test(tc_json, test_json_string_root);
     suite_add_tcase(s, tc_json);
 
     TCase *tc_parts = tcase_create("Parts Processing");
+    tcase_set_timeout(tc_parts, 30);
     tcase_add_checked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_part_without_text_or_function_call);
     tcase_add_test(tc_parts, test_part_with_empty_text);

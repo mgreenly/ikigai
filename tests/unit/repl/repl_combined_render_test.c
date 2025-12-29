@@ -193,6 +193,10 @@ static Suite *repl_combined_render_suite(void)
 
     TCase *tc_render = tcase_create("Combined Render");
     tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_render_frame_empty_scrollback);
     tcase_add_test(tc_render, test_render_frame_with_scrollback);
     suite_add_tcase(s, tc_render);

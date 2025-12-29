@@ -392,6 +392,10 @@ static Suite *repl_scroll_suite(void)
 
     TCase *tc_scroll = tcase_create("Scroll");
     tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
     tcase_add_test(tc_scroll, test_scroll_up_increases_offset);
     tcase_add_test(tc_scroll, test_scroll_down_decreases_offset);
     tcase_add_test(tc_scroll, test_scroll_up_clamps_at_max);

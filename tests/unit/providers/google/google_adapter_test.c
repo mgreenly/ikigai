@@ -107,6 +107,7 @@ static Suite *google_adapter_suite(void)
     Suite *s = suite_create("Google Adapter");
 
     TCase *tc_create = tcase_create("Provider Creation");
+    tcase_set_timeout(tc_create, 30);
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_adapter_with_valid_credentials);
     tcase_add_test(tc_create, test_destroy_adapter_cleans_up_resources);
@@ -114,6 +115,7 @@ static Suite *google_adapter_suite(void)
     suite_add_tcase(s, tc_create);
 
     TCase *tc_async = tcase_create("Async Pattern");
+    tcase_set_timeout(tc_async, 30);
     tcase_add_unchecked_fixture(tc_async, setup, teardown);
     tcase_add_test(tc_async, test_fdset_returns_ok);
     tcase_add_test(tc_async, test_perform_returns_ok);

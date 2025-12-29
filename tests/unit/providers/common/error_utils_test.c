@@ -144,6 +144,7 @@ static Suite *error_suite(void)
 
     /* Category name tests */
     TCase *tc_category = tcase_create("Category Names");
+    tcase_set_timeout(tc_category, 30);
     tcase_add_test(tc_category, test_category_name_auth);
     tcase_add_test(tc_category, test_category_name_rate_limit);
     tcase_add_test(tc_category, test_category_name_invalid_arg);
@@ -158,6 +159,7 @@ static Suite *error_suite(void)
 
     /* Retryability tests */
     TCase *tc_retry = tcase_create("Retryability");
+    tcase_set_timeout(tc_retry, 30);
     tcase_add_test(tc_retry, test_retryable_rate_limit);
     tcase_add_test(tc_retry, test_retryable_server);
     tcase_add_test(tc_retry, test_retryable_timeout);

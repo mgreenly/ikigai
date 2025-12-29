@@ -396,6 +396,7 @@ static Suite *event_render_basic_suite(void)
     Suite *s = suite_create("Event Render Basic");
 
     TCase *tc_visible = tcase_create("Visibility");
+    tcase_set_timeout(tc_visible, 30);
     tcase_add_test(tc_visible, test_renders_visible_user);
     tcase_add_test(tc_visible, test_renders_visible_assistant);
     tcase_add_test(tc_visible, test_renders_visible_system);
@@ -407,6 +408,7 @@ static Suite *event_render_basic_suite(void)
     suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_render_user_event);
     tcase_add_test(tc_render, test_render_assistant_event);
     tcase_add_test(tc_render, test_render_system_event);
@@ -425,6 +427,7 @@ static Suite *event_render_basic_suite(void)
     suite_add_tcase(s, tc_render);
 
     TCase *tc_errors = tcase_create("Error Handling");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_test(tc_errors, test_render_null_kind_returns_error);
     suite_add_tcase(s, tc_errors);
 

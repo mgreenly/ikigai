@@ -202,6 +202,11 @@ static Suite *agent_tool_execution_suite(void)
     Suite *s = suite_create("agent_tool_execution");
 
     TCase *tc_core = tcase_create("agent_context");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_tool_execution_uses_agent_context);
     tcase_add_test(tc_core, test_start_tool_execution_on_agent);

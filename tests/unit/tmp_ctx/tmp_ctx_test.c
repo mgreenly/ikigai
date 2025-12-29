@@ -37,6 +37,7 @@ static Suite *tmp_ctx_suite(void)
 {
     Suite *s = suite_create("TmpCtx");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_test(tc, test_tmp_ctx_create_returns_non_null);
     tcase_add_test(tc, test_tmp_ctx_can_allocate);

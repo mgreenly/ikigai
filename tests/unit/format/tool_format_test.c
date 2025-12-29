@@ -406,6 +406,7 @@ static Suite *tool_format_suite(void)
 {
     Suite *s = suite_create("Tool Formatting");
     TCase *tc = tcase_create("tool_format");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

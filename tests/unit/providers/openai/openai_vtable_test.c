@@ -148,6 +148,7 @@ static Suite *openai_vtable_suite(void)
     Suite *s = suite_create("OpenAI Vtable");
 
     TCase *tc_create = tcase_create("Provider Creation");
+    tcase_set_timeout(tc_create, 30);
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_with_empty_api_key_fails);
     tcase_add_test(tc_create, test_create_with_options_responses_api);
@@ -155,6 +156,7 @@ static Suite *openai_vtable_suite(void)
     suite_add_tcase(s, tc_create);
 
     TCase *tc_vtable = tcase_create("Vtable Methods");
+    tcase_set_timeout(tc_vtable, 30);
     tcase_add_unchecked_fixture(tc_vtable, setup_provider, teardown_provider);
     tcase_add_test(tc_vtable, test_cleanup_method);
     tcase_add_test(tc_vtable, test_cancel_method);

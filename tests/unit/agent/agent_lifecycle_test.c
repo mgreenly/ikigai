@@ -56,6 +56,7 @@ static Suite *agent_lifecycle_suite(void)
     Suite *s = suite_create("Agent Lifecycle");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_agent_allocated_under_parent);
     tcase_add_test(tc_core, test_agent_can_be_freed);
     suite_add_tcase(s, tc_core);

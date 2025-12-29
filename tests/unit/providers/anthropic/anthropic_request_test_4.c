@@ -306,6 +306,7 @@ static Suite *anthropic_request_suite_4(void)
     Suite *s = suite_create("Anthropic Request - Part 4");
 
     TCase *tc_tools = tcase_create("Tool Definitions");
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_unchecked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_tools_none);
     tcase_add_test(tc_tools, test_tools_single);
@@ -317,12 +318,14 @@ static Suite *anthropic_request_suite_4(void)
     suite_add_tcase(s, tc_tools);
 
     TCase *tc_headers = tcase_create("Header Building");
+    tcase_set_timeout(tc_headers, 30);
     tcase_add_unchecked_fixture(tc_headers, setup, teardown);
     tcase_add_test(tc_headers, test_build_headers);
     tcase_add_test(tc_headers, test_build_headers_different_key);
     suite_add_tcase(s, tc_headers);
 
     TCase *tc_errors = tcase_create("Error Cases");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_serialize_invalid_tool_call_json);
     tcase_add_test(tc_errors, test_serialize_invalid_tool_params_json);

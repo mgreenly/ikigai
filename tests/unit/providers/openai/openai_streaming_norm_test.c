@@ -243,6 +243,7 @@ static Suite *openai_streaming_norm_suite(void)
 
     /* Event Normalization */
     TCase *tc_normalize = tcase_create("Normalization");
+    tcase_set_timeout(tc_normalize, 30);
     tcase_add_checked_fixture(tc_normalize, setup, teardown);
     tcase_add_test(tc_normalize, test_normalize_content_to_text_delta);
     tcase_add_test(tc_normalize, test_normalize_tool_calls_to_deltas);
@@ -251,6 +252,7 @@ static Suite *openai_streaming_norm_suite(void)
 
     /* Error Handling */
     TCase *tc_errors = tcase_create("Errors");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_handle_malformed_json);
     tcase_add_test(tc_errors, test_handle_error_response);

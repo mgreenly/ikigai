@@ -333,6 +333,11 @@ static Suite *repl_full_viewport_suite(void)
     Suite *s = suite_create("REPL Full Viewport");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_layer_positions_when_viewport_full);
     tcase_add_test(tc_core, test_document_height_includes_lower_separator);
     tcase_add_test(tc_core, test_bottom_separator_visible_when_viewport_full);

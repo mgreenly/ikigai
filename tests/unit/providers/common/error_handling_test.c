@@ -115,6 +115,7 @@ static Suite *error_handling_suite(void)
     Suite *s = suite_create("Provider Error Handling");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_error_category_names);
     tcase_add_test(tc_core, test_error_is_retryable);
     tcase_add_test(tc_core, test_error_user_message);

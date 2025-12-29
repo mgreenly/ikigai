@@ -349,6 +349,11 @@ static Suite *repl_tool_completion_suite(void)
     Suite *s = suite_create("repl_tool_completion");
 
     TCase *tc_core = tcase_create("core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_handle_tool_completion_delegates_to_current);
     tcase_add_test(tc_core, test_handle_tool_completion_calls_handler);

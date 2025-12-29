@@ -92,6 +92,11 @@ static Suite *scrollback_trim_trailing_suite(void)
 {
     Suite *s = suite_create("Scrollback Trim Trailing");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Add all tests */
     tcase_add_test(tc_core, test_trim_trailing_null_returns_empty);

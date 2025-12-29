@@ -282,6 +282,7 @@ static Suite *commands_clear_db_json_suite(void)
 {
     Suite *s = suite_create("Commands/Clear DB JSON");
     TCase *tc = tcase_create("JSON Logging Errors");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_checked_fixture(tc, setup, teardown);

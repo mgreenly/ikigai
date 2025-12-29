@@ -368,6 +368,7 @@ static Suite *openai_handlers_stream_suite(void)
     Suite *s = suite_create("OpenAI Streaming Handlers");
 
     TCase *tc_stream_write = tcase_create("Stream Write Callback");
+    tcase_set_timeout(tc_stream_write, 30);
     tcase_add_unchecked_fixture(tc_stream_write, setup, teardown);
     tcase_add_test(tc_stream_write, test_stream_write_callback_single_line);
     tcase_add_test(tc_stream_write, test_stream_write_callback_partial_line);
@@ -377,6 +378,7 @@ static Suite *openai_handlers_stream_suite(void)
     suite_add_tcase(s, tc_stream_write);
 
     TCase *tc_stream_completion = tcase_create("Stream Completion");
+    tcase_set_timeout(tc_stream_completion, 30);
     tcase_add_unchecked_fixture(tc_stream_completion, setup, teardown);
     tcase_add_test(tc_stream_completion, test_stream_completion_success);
     tcase_add_test(tc_stream_completion, test_stream_completion_error_with_json);

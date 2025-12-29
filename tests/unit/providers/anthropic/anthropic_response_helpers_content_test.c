@@ -413,6 +413,7 @@ static Suite *anthropic_response_helpers_content_suite(void)
     Suite *s = suite_create("Anthropic Response Helpers - Content");
 
     TCase *tc_content = tcase_create("Content Blocks");
+    tcase_set_timeout(tc_content, 30);
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_parse_content_blocks_empty_array);
     tcase_add_test(tc_content, test_parse_content_blocks_text);

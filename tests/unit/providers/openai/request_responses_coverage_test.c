@@ -278,6 +278,7 @@ static Suite *request_responses_coverage_suite(void)
 	Suite *s = suite_create("OpenAI Responses API Coverage Tests");
 
 	TCase *tc_tool_errors = tcase_create("Tool Serialization Errors");
+    tcase_set_timeout(tc_tool_errors, 30);
 	tcase_add_checked_fixture(tc_tool_errors, setup, teardown);
 	tcase_add_test(tc_tool_errors, test_serialize_tool_add_type_fails);
 	tcase_add_test(tc_tool_errors, test_serialize_tool_add_name_fails);
@@ -289,6 +290,7 @@ static Suite *request_responses_coverage_suite(void)
 	suite_add_tcase(s, tc_tool_errors);
 
 	TCase *tc_tool_choice = tcase_create("Tool Choice Errors");
+    tcase_set_timeout(tc_tool_choice, 30);
 	tcase_add_checked_fixture(tc_tool_choice, setup, teardown);
 	tcase_add_test(tc_tool_choice, test_add_tool_choice_fails);
 	suite_add_tcase(s, tc_tool_choice);

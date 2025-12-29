@@ -151,6 +151,10 @@ static Suite *separator_wrapped_suite(void)
 
     TCase *tc_wrapped = tcase_create("Wrapped");
     tcase_set_timeout(tc_wrapped, 30);
+    tcase_set_timeout(tc_wrapped, 30);
+    tcase_set_timeout(tc_wrapped, 30);
+    tcase_set_timeout(tc_wrapped, 30);
+    tcase_set_timeout(tc_wrapped, 30);
     tcase_add_test(tc_wrapped, test_separator_with_wrapped_lines);
     suite_add_tcase(s, tc_wrapped);
 

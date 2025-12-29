@@ -178,6 +178,7 @@ static Suite *fzy_wrapper_suite(void)
 {
     Suite *s = suite_create("FZY_Wrapper");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_fzy_filter_normal);
     tcase_add_test(tc_core, test_fzy_filter_no_matches);
@@ -190,6 +191,7 @@ static Suite *fzy_wrapper_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
     tcase_add_test_raise_signal(tc_assertions, test_fzy_filter_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_fzy_filter_null_candidates, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_fzy_filter_null_search, SIGABRT);

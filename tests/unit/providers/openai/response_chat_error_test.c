@@ -191,6 +191,7 @@ static Suite *response_chat_error_suite(void)
     Suite *s = suite_create("OpenAI Chat Error Parsing");
 
     TCase *tc_errors = tcase_create("Error Responses");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_parse_error_response);
     tcase_add_test(tc_errors, test_parse_malformed_json);
@@ -198,6 +199,7 @@ static Suite *response_chat_error_suite(void)
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_error_parse = tcase_create("Error Parsing");
+    tcase_set_timeout(tc_error_parse, 30);
     tcase_add_checked_fixture(tc_error_parse, setup, teardown);
     tcase_add_test(tc_error_parse, test_parse_error_auth);
     tcase_add_test(tc_error_parse, test_parse_error_rate_limit);

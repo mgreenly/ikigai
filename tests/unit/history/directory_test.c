@@ -128,6 +128,7 @@ static Suite *history_directory_suite(void)
 {
     Suite *s = suite_create("History Directory");
     TCase *tc = tcase_create("directory");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_history_ensure_directory_creates);

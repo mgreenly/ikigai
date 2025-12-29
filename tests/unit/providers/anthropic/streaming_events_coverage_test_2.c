@@ -242,6 +242,7 @@ static Suite *streaming_events_coverage_suite_2(void)
     Suite *s = suite_create("Anthropic Streaming Events Coverage 2");
 
     TCase *tc_content_block_start = tcase_create("content_block_start Edge Cases");
+    tcase_set_timeout(tc_content_block_start, 30);
     tcase_add_checked_fixture(tc_content_block_start, setup, teardown);
     tcase_add_test(tc_content_block_start, test_content_block_start_no_index_field);
     tcase_add_test(tc_content_block_start, test_content_block_start_index_not_int);
@@ -252,6 +253,7 @@ static Suite *streaming_events_coverage_suite_2(void)
     suite_add_tcase(s, tc_content_block_start);
 
     TCase *tc_content_block_delta = tcase_create("content_block_delta Edge Cases");
+    tcase_set_timeout(tc_content_block_delta, 30);
     tcase_add_checked_fixture(tc_content_block_delta, setup, teardown);
     tcase_add_test(tc_content_block_delta, test_content_block_delta_text_delta);
     tcase_add_test(tc_content_block_delta, test_content_block_delta_text_delta_no_text_field);

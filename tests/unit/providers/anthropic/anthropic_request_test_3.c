@@ -255,6 +255,7 @@ static Suite *anthropic_request_suite_3(void)
     Suite *s = suite_create("Anthropic Request - Part 3");
 
     TCase *tc_role = tcase_create("Role Mapping");
+    tcase_set_timeout(tc_role, 30);
     tcase_add_unchecked_fixture(tc_role, setup, teardown);
     tcase_add_test(tc_role, test_role_user);
     tcase_add_test(tc_role, test_role_assistant);
@@ -262,6 +263,7 @@ static Suite *anthropic_request_suite_3(void)
     suite_add_tcase(s, tc_role);
 
     TCase *tc_thinking = tcase_create("Thinking Configuration");
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_unchecked_fixture(tc_thinking, setup, teardown);
     tcase_add_test(tc_thinking, test_thinking_none);
     tcase_add_test(tc_thinking, test_thinking_low);

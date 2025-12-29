@@ -167,6 +167,7 @@ static Suite *request_tools_validation_suite(void)
     Suite *s = suite_create("Request Tools Validation");
 
     TCase *tc_validation = tcase_create("Model Validation");
+    tcase_set_timeout(tc_validation, 30);
     tcase_add_checked_fixture(tc_validation, setup, teardown);
     tcase_add_test(tc_validation, test_null_model_error);
     tcase_add_test(tc_validation, test_empty_model_error);
@@ -174,12 +175,14 @@ static Suite *request_tools_validation_suite(void)
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_system = tcase_create("System Message");
+    tcase_set_timeout(tc_system, 30);
     tcase_add_checked_fixture(tc_system, setup, teardown);
     tcase_add_test(tc_system, test_with_system_message);
     tcase_add_test(tc_system, test_without_system_message);
     suite_add_tcase(s, tc_system);
 
     TCase *tc_messages = tcase_create("Message Array");
+    tcase_set_timeout(tc_messages, 30);
     tcase_add_checked_fixture(tc_messages, setup, teardown);
     tcase_add_test(tc_messages, test_skip_null_message);
     suite_add_tcase(s, tc_messages);

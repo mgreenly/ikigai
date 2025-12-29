@@ -367,6 +367,7 @@ static Suite *http_multi_info_suite(void)
 
 	/* Completion scenario tests */
 	TCase *tc_completion = tcase_create("Completion Scenarios");
+    tcase_set_timeout(tc_completion, 30);
 	tcase_add_checked_fixture(tc_completion, setup, teardown);
 	tcase_add_test(tc_completion, test_info_read_http_200_success);
 	tcase_add_test(tc_completion, test_info_read_http_404_client_error);

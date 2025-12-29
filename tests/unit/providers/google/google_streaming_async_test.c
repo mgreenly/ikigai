@@ -330,6 +330,7 @@ static Suite *google_streaming_async_suite(void)
     Suite *s = suite_create("Google Streaming Async");
 
     TCase *tc_async = tcase_create("Async Event Loop");
+    tcase_set_timeout(tc_async, 30);
     tcase_add_unchecked_fixture(tc_async, setup, teardown);
     tcase_add_test(tc_async, test_start_stream_returns_immediately);
     tcase_add_test(tc_async, test_fdset_returns_mock_fds);
@@ -339,6 +340,7 @@ static Suite *google_streaming_async_suite(void)
     suite_add_tcase(s, tc_async);
 
     TCase *tc_errors = tcase_create("Error Handling");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_http_error_calls_completion_cb);
     tcase_add_test(tc_errors, test_malformed_response_handled);

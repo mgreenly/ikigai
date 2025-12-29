@@ -474,6 +474,10 @@ static Suite *repl_run_basic_suite(void)
     Suite *s = suite_create("REPL_Run_Basic");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_repl_run_simple_char_input);
     tcase_add_test(tc_core, test_repl_run_multiple_chars);

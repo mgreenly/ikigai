@@ -96,6 +96,11 @@ static Suite *tool_json_helpers_suite(void)
     Suite *s = suite_create("Tool JSON Helpers");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_parse_success_valid);
     tcase_add_test(tc_core, test_parse_error_valid);

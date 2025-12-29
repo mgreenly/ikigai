@@ -66,6 +66,7 @@ static Suite *request_tools_schema_suite(void)
     Suite *s = suite_create("Request Tools Schema");
 
     TCase *tc = tcase_create("Tool Schema Building");
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_build_tool_parameters_json_via_conversation);
     suite_add_tcase(s, tc);

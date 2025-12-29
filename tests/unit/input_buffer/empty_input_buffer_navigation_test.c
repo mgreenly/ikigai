@@ -342,6 +342,10 @@ static Suite *empty_input_buffer_navigation_suite(void)
 
     TCase *tc_empty = tcase_create("empty_input_buffer");
     tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
     tcase_add_test(tc_empty, test_cursor_up_empty_input_buffer);
     tcase_add_test(tc_empty, test_cursor_down_empty_input_buffer);
     tcase_add_test(tc_empty, test_cursor_up_after_delete_to_empty);

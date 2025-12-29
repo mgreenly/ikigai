@@ -489,6 +489,7 @@ static Suite *credentials_suite(void)
     Suite *s = suite_create("Credentials");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
     tcase_add_test(tc_core, test_empty_and_env_credentials);

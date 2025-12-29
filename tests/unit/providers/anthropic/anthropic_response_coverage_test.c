@@ -283,6 +283,7 @@ static Suite *anthropic_response_coverage_suite(void)
     Suite *s = suite_create("Anthropic Response Coverage");
 
     TCase *tc_parse = tcase_create("Response Parsing Coverage");
+    tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_response_type_null);
     tcase_add_test(tc_parse, test_parse_response_error_type_no_error_obj);
@@ -294,6 +295,7 @@ static Suite *anthropic_response_coverage_suite(void)
     suite_add_tcase(s, tc_parse);
 
     TCase *tc_error = tcase_create("Error Parsing Coverage");
+    tcase_set_timeout(tc_error, 30);
     tcase_add_unchecked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_parse_error_invalid_json);
     tcase_add_test(tc_error, test_parse_error_json_not_object);
@@ -303,6 +305,7 @@ static Suite *anthropic_response_coverage_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_stubs = tcase_create("Stub Functions");
+    tcase_set_timeout(tc_stubs, 30);
     tcase_add_unchecked_fixture(tc_stubs, setup, teardown);
     tcase_add_test(tc_stubs, test_start_request_stub);
     tcase_add_test(tc_stubs, test_start_stream_stub);

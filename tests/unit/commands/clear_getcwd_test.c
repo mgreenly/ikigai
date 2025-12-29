@@ -93,6 +93,7 @@ static Suite *commands_clear_getcwd_suite(void)
 {
     Suite *s = suite_create("Commands/Clear getcwd");
     TCase *tc = tcase_create("GetCWD Failure");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_clear_getcwd_failure);
