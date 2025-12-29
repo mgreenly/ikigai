@@ -106,7 +106,7 @@ def run_make_check() -> tuple[bool, str]:
     log("Running make check...")
     spinner = Spinner("Running make check")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "-j1", "check"])
+    code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
@@ -121,7 +121,7 @@ def run_single_test(test_file: str) -> tuple[bool, str]:
     # Try TEST= pattern first
     spinner = Spinner(f"Running {test_name}")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "-j1", "check", f"TEST={test_file}"])
+    code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check", f"TEST={test_file}"])
     spinner.stop()
     if code == 0:
         return True, stdout + stderr
@@ -130,7 +130,7 @@ def run_single_test(test_file: str) -> tuple[bool, str]:
     # This is slower but more reliable
     spinner = Spinner("Running make check")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "-j1", "check"])
+    code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
     spinner.stop()
     output = stdout + stderr
 
