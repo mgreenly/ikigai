@@ -7,7 +7,8 @@ You have ONE job: fix the thread synchronization error described below. Do not r
 Before starting, load these skills for context:
 - /load errors
 - /load memory
-- /load style
+- /load mocking
+- /load source-code
 
 ## The Error
 

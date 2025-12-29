@@ -7,10 +7,11 @@ You have ONE job: fix the failing test described below. Do not fix other tests. 
 Before starting, load these skills for context:
 - /load ctags
 - /load errors
-- /load log
+- /load makefile
 - /load memory
+- /load mocking
 - /load naming
-- /load style
+- /load testability
 
 ## The Failure
 

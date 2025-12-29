@@ -7,7 +7,7 @@ You have ONE job: fix the memory or undefined behavior error described below. Do
 Before starting, load these skills for context:
 - /load errors
 - /load memory
-- /load style
+- /load source-code
 
 ## The Error
 

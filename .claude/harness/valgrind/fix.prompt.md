@@ -7,7 +7,7 @@ You have ONE job: fix the memory error described below. Do not refactor unrelate
 Before starting, load these skills for context:
 - /load errors
 - /load memory
-- /load style
+- /load source-code
 
 ## The Error
 

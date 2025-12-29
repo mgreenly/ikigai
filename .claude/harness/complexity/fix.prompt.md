@@ -6,9 +6,11 @@ You have ONE job: reduce the complexity of the function described below. Do not 
 
 Before starting, load these skills for context:
 - /load errors
+- /load makefile
 - /load memory
 - /load naming
 - /load style
+- /load testability
 
 ## The Problem
 

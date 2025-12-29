@@ -6,8 +6,10 @@ You have ONE job: split the oversized file into smaller, well-organized modules.
 
 Before starting, load these skills for context:
 - /load errors
+- /load makefile
 - /load memory
 - /load naming
+- /load source-code
 - /load style
 
 ## The Problem

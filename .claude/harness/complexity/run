@@ -74,7 +74,19 @@ class Spinner:
 def log(msg: str) -> None:
     """Print timestamped log message."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{timestamp} | complexity | {msg}", flush=True)
+    print(f"{timestamp} | {'complexity':10} | {msg}", flush=True)
+
+
+def format_elapsed(seconds: float) -> str:
+    """Format elapsed seconds as human-readable string."""
+    hours, remainder = divmod(int(seconds), 3600)
+    mins, secs = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}h {mins}m {secs}s"
+    elif mins > 0:
+        return f"{mins}m {secs}s"
+    else:
+        return f"{secs}s"
 
 
 def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tuple[int, str, str]:
@@ -312,6 +324,8 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
 
 def main() -> int:
     """Main entry point."""
+    start_time = time.time()
+
     parser = argparse.ArgumentParser(description="Automated complexity fix loop")
     parser.add_argument("--dry-run", action="store_true",
                         help="Identify complex functions without fixing them")
@@ -331,7 +345,7 @@ def main() -> int:
     success, output = run_make_complexity()
 
     if success:
-        log("All complexity checks passed!")
+        log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
         return 0
 
     failures = parse_failures(output)
@@ -341,6 +355,7 @@ def main() -> int:
         log("Output tail:")
         for line in output.split('\n')[-20:]:
             log(f"  {line}")
+        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
         return 1
 
     log(f"Found {len(failures)} complex functions")
@@ -350,6 +365,7 @@ def main() -> int:
         log("Functions needing fixes:")
         for failure in failures:
             log(f"  - {failure['file']}:{failure['function']} - {failure['issue_type']} score {failure['score']}")
+        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
         return 0
 
     pass_num = 0
@@ -363,7 +379,7 @@ def main() -> int:
             success, output = run_make_complexity()
 
             if success:
-                log("All complexity checks passed!")
+                log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
                 return 0
 
             failures = parse_failures(output)
@@ -373,6 +389,7 @@ def main() -> int:
                 log("Output tail:")
                 for line in output.split('\n')[-20:]:
                     log(f"  {line}")
+                log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
                 return 1
 
             log(f"Found {len(failures)} complex functions")
@@ -400,8 +417,12 @@ def main() -> int:
                 log("Skipped functions:")
                 for f in skipped:
                     log(f"  - {f}")
+            log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
             return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

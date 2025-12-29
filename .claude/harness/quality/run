@@ -1,7 +1,9 @@
 #!/bin/bash
-# harness/quality - Run all quality checks in sequence
+# harness/quality - Run all quality checks in fix-point loop
 #
 # Runs: filesize → check → complexity → sanitize → tsan → valgrind → helgrind → coverage
+#
+# If any step makes commits, restarts from the beginning.
 # Stops on first failure.
 #
 # Usage: ./run [--dry-run]
@@ -9,17 +11,77 @@
 
 set -e
 
+START_TIME=$SECONDS
+
+format_elapsed() {
+    local total=$1
+    local hours=$((total / 3600))
+    local mins=$(((total % 3600) / 60))
+    local secs=$((total % 60))
+    if [ $hours -gt 0 ]; then
+        echo "${hours}h ${mins}m ${secs}s"
+    elif [ $mins -gt 0 ]; then
+        echo "${mins}m ${secs}s"
+    else
+        echo "${secs}s"
+    fi
+}
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Verify clean workspace before starting
+if [ -n "$(git status --porcelain)" ]; then
+    echo "ERROR: Git workspace is not clean. Commit or stash changes before running quality checks."
+    git status --short
+    exit 1
+fi
 
 # Pass all arguments to sub-tasks
 ARGS="$@"
 
-"$HARNESS_DIR/filesize/run" $ARGS
-"$HARNESS_DIR/check/run" $ARGS
-"$HARNESS_DIR/complexity/run" $ARGS
-"$HARNESS_DIR/sanitize/run" $ARGS
-"$HARNESS_DIR/tsan/run" $ARGS
-"$HARNESS_DIR/valgrind/run" $ARGS
-"$HARNESS_DIR/helgrind/run" $ARGS
-"$HARNESS_DIR/coverage/run" $ARGS
+STEPS=(
+    "filesize"
+    "check"
+    "complexity"
+    "sanitize"
+    "tsan"
+    "valgrind"
+    "helgrind"
+    "coverage"
+)
+
+run_step() {
+    local step="$1"
+    local head_before head_after
+
+    head_before=$(git rev-parse HEAD)
+    "$HARNESS_DIR/$step/run" $ARGS
+    head_after=$(git rev-parse HEAD)
+
+    if [ "$head_before" != "$head_after" ]; then
+        return 1  # commits made, signal restart
+    fi
+    return 0  # no commits, continue
+}
+
+pass=1
+while true; do
+    echo "=== Quality pass $pass ==="
+    restart=false
+
+    for step in "${STEPS[@]}"; do
+        if ! run_step "$step"; then
+            echo "Step '$step' made commits, restarting from beginning"
+            restart=true
+            break
+        fi
+    done
+
+    if [ "$restart" = false ]; then
+        echo "=== All quality checks passed (elapsed: $(format_elapsed $((SECONDS - START_TIME)))) ==="
+        break
+    fi
+
+    ((pass++))
+done
