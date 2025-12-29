@@ -129,56 +129,24 @@ def parse_failures(output: str) -> list[dict]:
     Returns list of {file, line, message} dicts.
     """
     failures = []
-
-    # Pattern 1: test_file.c:123: error message
-    pattern1 = re.compile(r'^(tests?/[^\s:]+\.c):(\d+):(.+)$', re.MULTILINE)
-
-    # Pattern 2: FAIL: test_name
-    pattern2 = re.compile(r'^FAIL:\s*(\S+)', re.MULTILINE)
-
-    # Pattern 3: assertion failed in file:line
-    pattern3 = re.compile(r'assertion.*failed.*?([^\s:]+\.c):(\d+)', re.IGNORECASE)
-
     seen_files = set()
 
-    for match in pattern1.finditer(output):
-        file = match.group(1)
-        if file not in seen_files:
-            seen_files.add(file)
-            failures.append({
-                "file": file,
-                "line": match.group(2),
-                "message": match.group(3).strip(),
-            })
+    # Match make target failures for test executables only:
+    # make[1]: *** [Makefile:215: build/tests/unit/foo/bar_test] Error 1
+    # Only match targets ending with _test (no extension) to skip .o files etc.
+    pattern = re.compile(r'make\[\d+\]: \*\*\* \[Makefile:\d+:(build/tests/[^\]]+_test)\] Error', re.MULTILINE)
 
-    for match in pattern2.finditer(output):
-        test_name = match.group(1)
-        # Try to find the file
-        file = f"tests/unit/{test_name}.c"
-        if file not in seen_files:
-            seen_files.add(file)
+    for match in pattern.finditer(output):
+        target = match.group(1)  # build/tests/unit/providers/openai/openai_serialize_test
+        # Convert to source: tests/unit/providers/openai/openai_serialize_test.c
+        source_file = target.replace("build/", "") + ".c"
+        if source_file not in seen_files and Path(PROJECT_ROOT / source_file).exists():
+            seen_files.add(source_file)
             failures.append({
-                "file": file,
+                "file": source_file,
                 "line": "1",
-                "message": f"FAIL: {test_name}",
+                "message": "build/test failure",
             })
-
-    for match in pattern3.finditer(output):
-        file = match.group(1)
-        if file not in seen_files:
-            # Find full path
-            for prefix in ["tests/unit/", "tests/integration/", "tests/"]:
-                full_path = prefix + file
-                if Path(PROJECT_ROOT / full_path).exists():
-                    file = full_path
-                    break
-            if file not in seen_files:
-                seen_files.add(file)
-                failures.append({
-                    "file": file,
-                    "line": match.group(2),
-                    "message": "assertion failed",
-                })
 
     return failures
 
