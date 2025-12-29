@@ -691,7 +691,7 @@ check-valgrind:
 	@rm -rf build-valgrind
 	@mkdir -p build-valgrind/tests/unit build-valgrind/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-valgrind/tests/unit|' | xargs mkdir -p
-	@SKIP_SIGNAL_TESTS=1 $(MAKE) check BUILD=valgrind BUILDDIR=build-valgrind TEST_TARGETS_VAR=1
+	@SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check BUILD=valgrind BUILDDIR=build-valgrind TEST_TARGETS_VAR=1
 	@echo "Running tests under Valgrind Memcheck..."
 	@ulimit -n 1024; \
 	SUPP_FILE="$$(pwd)/.suppressions/valgrind.supp"; \
