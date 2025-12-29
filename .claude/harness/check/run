@@ -114,31 +114,13 @@ def run_make_check() -> tuple[bool, str]:
 
 def run_single_test(test_file: str) -> tuple[bool, str]:
     """Run a single test file and return (success, output)."""
-    # Try to run just this test - adjust based on your Makefile
-    # Common patterns: make test-<name>, make check TEST=<file>
     test_name = Path(test_file).stem
 
-    # Try TEST= pattern first
     spinner = Spinner(f"Running {test_name}")
     spinner.start()
     code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check", f"TEST={test_file}"])
     spinner.stop()
-    if code == 0:
-        return True, stdout + stderr
-
-    # Fallback: run full check and see if this specific test passes
-    # This is slower but more reliable
-    spinner = Spinner("Running make check")
-    spinner.start()
-    code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
-    spinner.stop()
-    output = stdout + stderr
-
-    # Check if this specific test is in the failures
-    if test_file not in output and test_name not in output:
-        return True, output
-
-    return False, output
+    return code == 0, stdout + stderr
 
 
 def parse_failures(output: str) -> list[dict]:
@@ -213,20 +195,11 @@ def build_prompt(failure: dict, make_output: str) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
-    # Compute verify command: tests/unit/foo_test.c -> make build/tests/unit/foo_test.run
-    test_file = failure["file"]
-    if test_file.endswith(".c"):
-        test_binary = test_file[:-2]  # Remove .c
-    else:
-        test_binary = test_file
-    verify_command = f"make build/{test_binary}.run"
-
     # Simple placeholder replacement
     prompt = template.replace("{{file}}", failure["file"])
     prompt = prompt.replace("{{line}}", failure["line"])
     prompt = prompt.replace("{{message}}", failure["message"])
     prompt = prompt.replace("{{make_output}}", make_output[-4000:])  # Last 4k chars
-    prompt = prompt.replace("{{verify_command}}", verify_command)
 
     return prompt
 
