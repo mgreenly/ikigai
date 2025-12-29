@@ -496,18 +496,30 @@ def main() -> int:
 
         fixed_count = 0
         skipped = []
+        file_times: list[float] = []
 
         for i, failure in enumerate(failures, 1):
             file = failure["file"]
             msg = failure["message"][:50]
-            log(f"[{i}/{len(failures)}] {file}:{failure['line']} - {msg}")
+            log(f"[file {i}/{len(failures)}] {file}:{failure['line']} - {msg}")
 
+            file_start = time.time()
             if try_fix_file(failure, output, args.time_out):
                 fixed_count += 1
             else:
                 skipped.append(file)
+            file_elapsed = time.time() - file_start
+            file_times.append(file_elapsed)
+            avg_time = sum(file_times) / len(file_times)
+            remaining = len(failures) - i
+            eta = avg_time * remaining
+            log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
 
         log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
+
+        if fixed_count > 0 and len(skipped) == 0:
+            log(f"All failures fixed! (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 0
 
         if fixed_count == 0:
             log("No progress made. Stopping.")
@@ -518,7 +530,7 @@ def main() -> int:
             log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
             return 1
 
-        # Progress made, continue to next pass
+        # Progress made but some failures remain, continue to next pass
 
     log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
     return 0
