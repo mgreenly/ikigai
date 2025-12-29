@@ -28,7 +28,8 @@ static ik_repl_ctx_t *repl;
 // Mock counter for controlling which call fails
 static int mock_insert_call_count = 0;
 static int mock_insert_fail_on_call = -1;
-static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel
+static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel for failure
+static PGresult *mock_success_result = (PGresult *)2;  // Non-null sentinel for success
 
 // Mock pq_exec_params_ to fail on specified call
 PGresult *pq_exec_params_(PGconn *conn,
@@ -55,17 +56,21 @@ PGresult *pq_exec_params_(PGconn *conn,
         return mock_failed_result;
     }
 
-    // Should not be called in tests that don't need DB
-    return mock_failed_result;
+    // Return success for all other calls
+    return mock_success_result;
 }
 
-// Mock PQresultStatus to return error for our mock
-ExecStatusType PQresultStatus(const PGresult *res)
+// Mock PQresultStatus_ to return error for our mock
+ExecStatusType PQresultStatus_(const PGresult *res)
 {
     if (res == mock_failed_result) {
         return PGRES_FATAL_ERROR;
     }
-    return PGRES_COMMAND_OK;
+    if (res == mock_success_result) {
+        return PGRES_COMMAND_OK;
+    }
+    // Should not happen in our tests
+    return PGRES_FATAL_ERROR;
 }
 
 // Mock PQclear (no-op)
@@ -125,6 +130,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     r->current = agent;
 
     r->shared = shared;

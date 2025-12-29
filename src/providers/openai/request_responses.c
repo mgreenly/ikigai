@@ -8,6 +8,7 @@
 #include "reasoning.h"
 #include "error.h"
 #include "panic.h"
+#include "wrapper.h"
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
 #include <assert.h>
@@ -31,8 +32,8 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
     if (!tool_obj) return false; // LCOV_EXCL_BR_LINE
 
     // Add type
-    if (!yyjson_mut_obj_add_str(doc, tool_obj, "type", "function")) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str_(doc, tool_obj, "type", "function")) {
+        return false;
     }
 
     // Create function object
@@ -40,13 +41,13 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
     if (!func_obj) return false; // LCOV_EXCL_BR_LINE
 
     // Add name
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "name", tool->name)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str_(doc, func_obj, "name", tool->name)) {
+        return false;
     }
 
     // Add description
-    if (!yyjson_mut_obj_add_str(doc, func_obj, "description", tool->description)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str_(doc, func_obj, "description", tool->description)) {
+        return false;
     }
 
     // Parse parameters JSON and add as object
@@ -58,23 +59,23 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
     yyjson_doc_free(params_doc);
     if (!params_mut) return false; // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, func_obj, "parameters", params_mut)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val_(doc, func_obj, "parameters", params_mut)) {
+        return false;
     }
 
     // Add strict: true for structured outputs
-    if (!yyjson_mut_obj_add_bool(doc, func_obj, "strict", true)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_bool_(doc, func_obj, "strict", true)) {
+        return false;
     }
 
     // Add function object to tool
-    if (!yyjson_mut_obj_add_val(doc, tool_obj, "function", func_obj)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val_(doc, tool_obj, "function", func_obj)) {
+        return false;
     }
 
     // Add to array
-    if (!yyjson_mut_arr_add_val(tools_arr, tool_obj)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_arr_add_val_(tools_arr, tool_obj)) {
+        return false;
     }
 
     return true;
@@ -104,8 +105,8 @@ static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_
             break;
     }
 
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_choice", choice_str)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str_(doc, root, "tool_choice", choice_str)) {
+        return false;
     }
 
     return true;

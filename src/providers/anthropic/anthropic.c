@@ -4,6 +4,7 @@
  */
 
 #include "anthropic.h"
+#include "anthropic_internal.h"
 #include "thinking.h"
 #include "error.h"
 #include "response.h"
@@ -13,22 +14,9 @@
 #include "providers/common/http_multi.h"
 #include "providers/common/sse_parser.h"
 #include "logger.h"
+#include "wrapper_internal.h"
 #include <string.h>
 #include <sys/select.h>
-
-/**
- * Active streaming context
- *
- * Tracks state for an active streaming request.
- */
-typedef struct ik_anthropic_active_stream {
-    ik_anthropic_stream_ctx_t *stream_ctx;     /* SSE event processing context */
-    ik_sse_parser_t *sse_parser;               /* SSE parser */
-    ik_provider_completion_cb_t completion_cb; /* Completion callback */
-    void *completion_ctx;                      /* Completion callback context */
-    bool completed;                            /* Transfer completed */
-    int http_status;                           /* HTTP status code */
-} ik_anthropic_active_stream_t;
 
 /**
  * Anthropic provider implementation context
@@ -101,12 +89,13 @@ res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **
     if (impl_ctx->base_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Create HTTP multi handle for async operations
-    res_t r = ik_http_multi_create(impl_ctx);
+    void *http_multi = NULL;
+    res_t r = ik_http_multi_create_(impl_ctx, &http_multi);
     if (is_err(&r)) {
         talloc_free(provider);
         return r;
     }
-    impl_ctx->http_multi = (ik_http_multi_t *)r.ok;
+    impl_ctx->http_multi = (ik_http_multi_t *)http_multi;
     impl_ctx->active_stream = NULL;
 
     // Initialize provider
@@ -128,7 +117,7 @@ res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **
  * Called by http_multi as data arrives. Feeds data to SSE parser
  * and processes complete events through the stream callback.
  */
-static size_t anthropic_stream_write_cb(const char *data, size_t len, void *ctx)
+size_t ik_anthropic_stream_write_cb(const char *data, size_t len, void *ctx)
 {
     ik_anthropic_active_stream_t *stream = (ik_anthropic_active_stream_t *)ctx;
     if (stream == NULL || stream->sse_parser == NULL) {
@@ -159,7 +148,7 @@ static size_t anthropic_stream_write_cb(const char *data, size_t len, void *ctx)
  *
  * Called when the HTTP transfer completes (success or error).
  */
-static void anthropic_stream_completion_cb(const ik_http_completion_t *completion, void *ctx)
+void ik_anthropic_stream_completion_cb(const ik_http_completion_t *completion, void *ctx)
 {
     ik_anthropic_active_stream_t *stream = (ik_anthropic_active_stream_t *)ctx;
     if (stream == NULL) {
@@ -212,7 +201,7 @@ static void anthropic_info_read(void *ctx, ik_logger_t *logger)
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
 
     // Process completed transfers
-    ik_http_multi_info_read(impl_ctx->http_multi, logger);
+    ik_http_multi_info_read_(impl_ctx->http_multi, logger);
 
     // Check if streaming is complete and invoke completion callback
     if (impl_ctx->active_stream != NULL && impl_ctx->active_stream->completed) {
@@ -341,8 +330,8 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
 
     // Add request to http_multi
     r = ik_http_multi_add_request(impl_ctx->http_multi, &http_req,
-                                   anthropic_stream_write_cb, active_stream,
-                                   anthropic_stream_completion_cb, active_stream);
+                                   ik_anthropic_stream_write_cb, active_stream,
+                                   ik_anthropic_stream_completion_cb, active_stream);
     if (is_err(&r)) {
         impl_ctx->active_stream = NULL;
         talloc_free(active_stream);

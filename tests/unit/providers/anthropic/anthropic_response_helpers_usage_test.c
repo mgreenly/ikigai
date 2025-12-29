@@ -165,6 +165,80 @@ END_TEST START_TEST(test_parse_usage_non_int_values)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_parse_usage_output_tokens_not_int)
+{
+    // output_tokens is a string, should be ignored (line 161 branch 3)
+    const char *json = "{"
+                       "\"input_tokens\": 100,"
+                       "\"output_tokens\": \"not an int\""
+                       "}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ik_usage_t usage;
+
+    ik_anthropic_parse_usage(root, &usage);
+
+    ck_assert_int_eq(usage.input_tokens, 100);
+    ck_assert_int_eq(usage.output_tokens, 0);  // Ignored non-int
+    ck_assert_int_eq(usage.thinking_tokens, 0);
+    ck_assert_int_eq(usage.cached_tokens, 0);
+    ck_assert_int_eq(usage.total_tokens, 100);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_parse_usage_thinking_tokens_not_int)
+{
+    // thinking_tokens is a string, should be ignored (line 167 branch 3)
+    const char *json = "{"
+                       "\"input_tokens\": 100,"
+                       "\"output_tokens\": 50,"
+                       "\"thinking_tokens\": \"not an int\""
+                       "}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ik_usage_t usage;
+
+    ik_anthropic_parse_usage(root, &usage);
+
+    ck_assert_int_eq(usage.input_tokens, 100);
+    ck_assert_int_eq(usage.output_tokens, 50);
+    ck_assert_int_eq(usage.thinking_tokens, 0);  // Ignored non-int
+    ck_assert_int_eq(usage.cached_tokens, 0);
+    ck_assert_int_eq(usage.total_tokens, 150);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST START_TEST(test_parse_usage_cached_tokens_not_int)
+{
+    // cache_read_input_tokens is a string, should be ignored (line 173 branch 3)
+    const char *json = "{"
+                       "\"input_tokens\": 100,"
+                       "\"output_tokens\": 50,"
+                       "\"cache_read_input_tokens\": \"not an int\""
+                       "}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ik_usage_t usage;
+
+    ik_anthropic_parse_usage(root, &usage);
+
+    ck_assert_int_eq(usage.input_tokens, 100);
+    ck_assert_int_eq(usage.output_tokens, 50);
+    ck_assert_int_eq(usage.thinking_tokens, 0);
+    ck_assert_int_eq(usage.cached_tokens, 0);  // Ignored non-int
+    ck_assert_int_eq(usage.total_tokens, 150);
+
+    yyjson_doc_free(doc);
+}
+
 END_TEST
 
 /* ================================================================
@@ -184,6 +258,9 @@ static Suite *anthropic_response_helpers_usage_suite(void)
     tcase_add_test(tc_usage, test_parse_usage_all_fields);
     tcase_add_test(tc_usage, test_parse_usage_empty_object);
     tcase_add_test(tc_usage, test_parse_usage_non_int_values);
+    tcase_add_test(tc_usage, test_parse_usage_output_tokens_not_int);
+    tcase_add_test(tc_usage, test_parse_usage_thinking_tokens_not_int);
+    tcase_add_test(tc_usage, test_parse_usage_cached_tokens_not_int);
     suite_add_tcase(s, tc_usage);
 
     return s;

@@ -64,8 +64,8 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
                                provider, model_name, level_name, budget);
     } else if (strcmp(provider, "openai") == 0) {
-        const char *effort = (thinking_level == IK_THINKING_NONE) ? "none" :
-                             (thinking_level == IK_THINKING_LOW) ? "low" :
+        // Note: THINKING_NONE is handled by early return at line 50-53
+        const char *effort = (thinking_level == IK_THINKING_LOW) ? "low" :
                              (thinking_level == IK_THINKING_MED) ? "medium" : "high";
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
                                provider, model_name, effort);

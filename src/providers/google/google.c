@@ -4,41 +4,20 @@
  */
 
 #include "google.h"
-#include "thinking.h"
-#include "streaming.h"
-#include "request.h"
-#include "response.h"
+
 #include "error.h"
+#include "google_internal.h"
+#include "logger.h"
 #include "panic.h"
 #include "providers/common/http_multi.h"
 #include "providers/common/sse_parser.h"
-#include "logger.h"
+#include "request.h"
+#include "response.h"
+#include "streaming.h"
+#include "thinking.h"
+
 #include <string.h>
 #include <sys/select.h>
-
-/**
- * Active streaming context
- *
- * Tracks state for an active streaming request.
- */
-typedef struct ik_google_active_stream {
-    ik_google_stream_ctx_t *stream_ctx;        /* JSON chunk processing context */
-    ik_sse_parser_t *sse_parser;               /* SSE parser */
-    ik_provider_completion_cb_t completion_cb; /* Completion callback */
-    void *completion_ctx;                      /* Completion callback context */
-    bool completed;                            /* Transfer completed */
-    int http_status;                           /* HTTP status code */
-} ik_google_active_stream_t;
-
-/**
- * Google provider implementation context
- */
-typedef struct {
-    char *api_key;
-    char *base_url;
-    ik_http_multi_t *http_multi;               /* Async HTTP client */
-    ik_google_active_stream_t *active_stream;  /* Current streaming request */
-} ik_google_ctx_t;
 
 /* ================================================================
  * Forward Declarations - Vtable Methods
@@ -128,7 +107,7 @@ res_t ik_google_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
  * Called by http_multi as data arrives. Feeds data to SSE parser
  * which extracts JSON chunks and processes them through the stream callback.
  */
-static size_t google_stream_write_cb(const char *data, size_t len, void *ctx)
+size_t ik_google_stream_write_cb(const char *data, size_t len, void *ctx)
 {
     ik_google_active_stream_t *stream = (ik_google_active_stream_t *)ctx;
     if (stream == NULL || stream->sse_parser == NULL) {
@@ -160,7 +139,7 @@ static size_t google_stream_write_cb(const char *data, size_t len, void *ctx)
  *
  * Called when the HTTP transfer completes (success or error).
  */
-static void google_stream_completion_cb(const ik_http_completion_t *completion, void *ctx)
+void ik_google_stream_completion_cb(const ik_http_completion_t *completion, void *ctx)
 {
     ik_google_active_stream_t *stream = (ik_google_active_stream_t *)ctx;
     if (stream == NULL) {
@@ -344,8 +323,8 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
 
     // Add request to http_multi
     r = ik_http_multi_add_request(impl_ctx->http_multi, &http_req,
-                                   google_stream_write_cb, active_stream,
-                                   google_stream_completion_cb, active_stream);
+                                   ik_google_stream_write_cb, active_stream,
+                                   ik_google_stream_completion_cb, active_stream);
     if (is_err(&r)) {
         impl_ctx->active_stream = NULL;
         talloc_free(active_stream);

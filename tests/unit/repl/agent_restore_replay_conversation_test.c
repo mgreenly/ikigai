@@ -257,6 +257,198 @@ START_TEST(test_restore_marks_empty_stack)
 }
 
 END_TEST
+// Test: yyjson_read returns NULL (invalid JSON that passes through DB)
+START_TEST(test_yyjson_read_returns_null)
+{
+    SKIP_IF_NO_DB();
+
+    const char *agent_uuid = "test-yyjson-null-1";
+    insert_agent(agent_uuid);
+
+    // Create agent
+    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
+
+    // Create a replay context with invalid JSON string
+    ik_replay_context_t *replay_ctx = talloc_zero(test_ctx, ik_replay_context_t);
+    ck_assert_ptr_nonnull(replay_ctx);
+
+    replay_ctx->capacity = 1;
+    replay_ctx->count = 1;
+    replay_ctx->messages = talloc_array(replay_ctx, ik_msg_t *, 1);
+    ck_assert_ptr_nonnull(replay_ctx->messages);
+
+    ik_msg_t *msg = talloc_zero(replay_ctx->messages, ik_msg_t);
+    ck_assert_ptr_nonnull(msg);
+    msg->kind = talloc_strdup(msg, "command");
+    msg->content = NULL;
+    // Empty string causes yyjson_read to return NULL
+    msg->data_json = talloc_strdup(msg, "");
+
+    replay_ctx->messages[0] = msg;
+
+    // Populate scrollback - should handle NULL from yyjson_read gracefully
+    ik_agent_restore_populate_scrollback(agent, replay_ctx,
+                                         agent->shared->logger);
+
+    // Agent state should be unchanged
+    ck_assert_ptr_null(agent->provider);
+    ck_assert_ptr_null(agent->model);
+}
+
+END_TEST
+// Test: model command with existing provider and provider_instance
+START_TEST(test_existing_provider_and_instance_cleanup)
+{
+    SKIP_IF_NO_DB();
+
+    const char *agent_uuid = "test-existing-prov-2";
+    insert_agent(agent_uuid);
+
+    // Insert a model command
+    const char *data_json = "{\"command\":\"model\",\"args\":\"claude-opus-4\"}";
+    insert_message(agent_uuid, "command", NULL, data_json);
+
+    // Create agent
+    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
+
+    // Set existing provider and model (testing lines 156-161)
+    agent->provider = talloc_strdup(agent, "openai");
+    agent->model = talloc_strdup(agent, "gpt-4");
+    ck_assert_ptr_nonnull(agent->provider);
+    ck_assert_ptr_nonnull(agent->model);
+
+    // Create a mock provider instance (testing lines 168-171)
+    void *dummy_instance = talloc_zero(agent, int32_t);
+    agent->provider_instance = (struct ik_provider *)dummy_instance;
+    ck_assert_ptr_nonnull(agent->provider_instance);
+
+    // Load replay context
+    ik_replay_context_t *replay_ctx = NULL;
+    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
+    ck_assert(is_ok(&res));
+
+    // Populate scrollback
+    ik_agent_restore_populate_scrollback(agent, replay_ctx,
+                                         agent->shared->logger);
+
+    // Verify old provider/model were freed and new ones set
+    ck_assert_ptr_nonnull(agent->provider);
+    ck_assert_ptr_nonnull(agent->model);
+    ck_assert_str_eq(agent->provider, "anthropic");
+    ck_assert_str_eq(agent->model, "claude-opus-4");
+
+    // Provider instance should be NULL (invalidated)
+    ck_assert_ptr_null(agent->provider_instance);
+}
+
+END_TEST
+// Test: JSON with missing root object
+START_TEST(test_json_missing_root)
+{
+    SKIP_IF_NO_DB();
+
+    const char *agent_uuid = "test-json-no-root-1";
+    insert_agent(agent_uuid);
+
+    // Create agent
+    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
+
+    // Create a replay context with JSON that parses but has no root
+    // (This is difficult - yyjson always returns a root. Let's use NULL data_json instead)
+    ik_replay_context_t *replay_ctx = talloc_zero(test_ctx, ik_replay_context_t);
+    ck_assert_ptr_nonnull(replay_ctx);
+
+    replay_ctx->capacity = 1;
+    replay_ctx->count = 1;
+    replay_ctx->messages = talloc_array(replay_ctx, ik_msg_t *, 1);
+    ck_assert_ptr_nonnull(replay_ctx->messages);
+
+    ik_msg_t *msg = talloc_zero(replay_ctx->messages, ik_msg_t);
+    ck_assert_ptr_nonnull(msg);
+    msg->kind = talloc_strdup(msg, "command");
+    msg->content = NULL;
+    // JSON null value - this should have a root that is null type
+    msg->data_json = talloc_strdup(msg, "null");
+
+    replay_ctx->messages[0] = msg;
+
+    // Populate scrollback - should handle missing command field gracefully
+    ik_agent_restore_populate_scrollback(agent, replay_ctx,
+                                         agent->shared->logger);
+
+    // Agent state should be unchanged
+    ck_assert_ptr_null(agent->provider);
+    ck_assert_ptr_null(agent->model);
+}
+
+END_TEST
+// Test: message with NULL kind in scrollback
+START_TEST(test_message_with_null_kind)
+{
+    SKIP_IF_NO_DB();
+
+    const char *agent_uuid = "test-null-kind-1";
+    insert_agent(agent_uuid);
+
+    // Create agent
+    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
+
+    // Create a replay context with a message that has NULL kind
+    ik_replay_context_t *replay_ctx = talloc_zero(test_ctx, ik_replay_context_t);
+    ck_assert_ptr_nonnull(replay_ctx);
+
+    replay_ctx->capacity = 1;
+    replay_ctx->count = 1;
+    replay_ctx->messages = talloc_array(replay_ctx, ik_msg_t *, 1);
+    ck_assert_ptr_nonnull(replay_ctx->messages);
+
+    ik_msg_t *msg = talloc_zero(replay_ctx->messages, ik_msg_t);
+    ck_assert_ptr_nonnull(msg);
+    msg->kind = NULL;  // NULL kind
+    msg->content = talloc_strdup(msg, "Some content");
+    msg->data_json = NULL;
+
+    replay_ctx->messages[0] = msg;
+
+    // Populate scrollback - should handle NULL kind gracefully
+    ik_agent_restore_populate_scrollback(agent, replay_ctx,
+                                         agent->shared->logger);
+
+    // NULL kind should be skipped (not added to scrollback)
+    ck_assert_uint_eq(agent->scrollback->count, 0);
+}
+
+END_TEST
+
+// Test: populate_conversation handles system messages (provider_msg == NULL)
+START_TEST(test_populate_conversation_system_message)
+{
+    SKIP_IF_NO_DB();
+
+    const char *agent_uuid = "test-conv-system-1";
+    insert_agent(agent_uuid);
+
+    // Insert a system message (returns provider_msg == NULL)
+    insert_message(agent_uuid, "system", "You are a helpful assistant", "{}");
+    insert_message(agent_uuid, "user", "Hello", "{}");
+
+    // Create agent
+    ik_agent_ctx_t *agent = create_test_agent(agent_uuid);
+
+    // Load replay context
+    ik_replay_context_t *replay_ctx = NULL;
+    res_t res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
+    ck_assert(is_ok(&res));
+
+    // Populate conversation
+    ik_agent_restore_populate_conversation(agent, replay_ctx,
+                                           agent->shared->logger);
+
+    // System message returns NULL provider_msg, so only user message added
+    ck_assert_uint_ge(agent->message_count, 1);
+}
+
+END_TEST
 
 // ========== Suite Configuration ==========
 
@@ -275,6 +467,11 @@ static Suite *agent_restore_replay_conversation_suite(void)
     tcase_add_test(tc_core, test_populate_conversation_adds_messages);
     tcase_add_test(tc_core, test_populate_conversation_skips_commands);
     tcase_add_test(tc_core, test_restore_marks_empty_stack);
+    tcase_add_test(tc_core, test_yyjson_read_returns_null);
+    tcase_add_test(tc_core, test_existing_provider_and_instance_cleanup);
+    tcase_add_test(tc_core, test_json_missing_root);
+    tcase_add_test(tc_core, test_message_with_null_kind);
+    tcase_add_test(tc_core, test_populate_conversation_system_message);
 
     suite_add_tcase(s, tc_core);
     return s;

@@ -117,6 +117,20 @@ END_TEST START_TEST(test_thinking_budget_null)
     ck_assert_int_eq(budget, -1);
 }
 
+END_TEST START_TEST(test_thinking_budget_2_5_unknown_model)
+{
+    // Test a Gemini 2.5 model not in BUDGET_TABLE - uses defaults
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_HIGH);
+    ck_assert_int_eq(budget, 24576); // DEFAULT_MAX_BUDGET
+}
+
+END_TEST START_TEST(test_thinking_budget_2_5_unknown_model_none)
+{
+    // Test NONE level with unknown model - uses DEFAULT_MIN_BUDGET
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_NONE);
+    ck_assert_int_eq(budget, 0); // DEFAULT_MIN_BUDGET
+}
+
 END_TEST
 /* ================================================================
  * Thinking Level String Tests
@@ -214,6 +228,13 @@ END_TEST START_TEST(test_can_disable_thinking_1_5_pro)
 {
     bool can_disable = ik_google_can_disable_thinking("gemini-1.5-pro");
     ck_assert(!can_disable); // doesn't support thinking
+}
+
+END_TEST START_TEST(test_can_disable_thinking_2_5_unknown)
+{
+    // Test a Gemini 2.5 model not in BUDGET_TABLE - uses defaults
+    bool can_disable = ik_google_can_disable_thinking("gemini-2.5-experimental");
+    ck_assert(can_disable); // DEFAULT_MIN_BUDGET = 0
 }
 
 END_TEST
@@ -341,6 +362,8 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_med);
     tcase_add_test(tc_budget, test_thinking_budget_gemini_3_pro);
     tcase_add_test(tc_budget, test_thinking_budget_null);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_unknown_model);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_unknown_model_none);
     suite_add_tcase(s, tc_budget);
 
     TCase *tc_level = tcase_create("Thinking Level Strings");
@@ -367,6 +390,7 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_disable, test_can_disable_thinking_3_pro);
     tcase_add_test(tc_disable, test_can_disable_thinking_null);
     tcase_add_test(tc_disable, test_can_disable_thinking_1_5_pro);
+    tcase_add_test(tc_disable, test_can_disable_thinking_2_5_unknown);
     suite_add_tcase(s, tc_disable);
 
     TCase *tc_validate = tcase_create("Thinking Validation");

@@ -40,9 +40,11 @@ static char log_file_path[512];
 
 // Mock result for PQexecParams failure
 static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel
+static PGresult *mock_success_result = (PGresult *)2;  // Non-null sentinel for success
 static ExecStatusType mock_status = PGRES_FATAL_ERROR;
+static bool use_success_mock = false;
 
-// Mock pq_exec_params_ to fail
+// Mock pq_exec_params_ to fail or succeed based on flag
 PGresult *pq_exec_params_(PGconn *conn,
                           const char *command,
                           int nParams,
@@ -61,8 +63,8 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)paramFormats;
     (void)resultFormat;
 
-    // Return a mock result that simulates failure
-    return mock_failed_result;
+    // Return success or failure mock based on flag
+    return use_success_mock ? mock_success_result : mock_failed_result;
 }
 
 // Mock PQresultStatus to return our configured status
@@ -70,6 +72,9 @@ ExecStatusType PQresultStatus(const PGresult *res)
 {
     if (res == mock_failed_result) {
         return mock_status;
+    }
+    if (res == mock_success_result) {
+        return PGRES_COMMAND_OK;
     }
     // Should not reach here in tests
     return PGRES_FATAL_ERROR;
@@ -159,6 +164,7 @@ static void test_setup(void)
 
     // Reset mock status
     mock_status = PGRES_FATAL_ERROR;
+    use_success_mock = false;
 }
 
 // Per-test teardown
@@ -341,6 +347,35 @@ START_TEST(test_rewind_db_insert_error)
 }
 
 END_TEST
+// Test: DB success during mark persistence (covers line 98 false branch)
+START_TEST(test_mark_db_insert_success)
+{
+    // Set up mock DB context
+    ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
+    mock_db->conn = (PGconn *)0x1234;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
+
+    // Set mock to succeed
+    use_success_mock = true;
+
+    // Create labeled mark - DB insert will succeed
+    res_t res = ik_cmd_mark(test_ctx, repl, "success_label");
+    ck_assert(is_ok(&res));
+
+    // Mark should be created in memory
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_str_eq(repl->current->marks[0]->label, "success_label");
+
+    // Read log file - should be empty or minimal (no error logged)
+    char *log_output = read_log_file();
+    // Either file doesn't exist or it doesn't contain db_persist_failed
+    if (log_output != NULL) {
+        ck_assert(strstr(log_output, "db_persist_failed") == NULL);
+    }
+}
+
+END_TEST
 
 // ========== Suite Configuration ==========
 
@@ -355,6 +390,7 @@ static Suite *commands_mark_db_suite(void)
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_label);
     tcase_add_test(tc_db_errors, test_rewind_error_handling);
     tcase_add_test(tc_db_errors, test_rewind_db_insert_error);
+    tcase_add_test(tc_db_errors, test_mark_db_insert_success);
     suite_add_tcase(s, tc_db_errors);
 
     return s;

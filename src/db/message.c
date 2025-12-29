@@ -83,7 +83,7 @@ res_t ik_db_message_insert(ik_db_ctx_t *db,
     PGresult *res = res_wrapper->pg_result;
 
     // Check result
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    if (PQresultStatus_(res) != PGRES_COMMAND_OK) {
         // Bug 9 fix: Allocate error on db context (outlives function call)
         // not tmp context (freed below, leaving dangling pointer)
         const char *pq_err = PQerrorMessage(db->conn);

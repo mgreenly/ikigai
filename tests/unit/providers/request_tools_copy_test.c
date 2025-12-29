@@ -1,0 +1,184 @@
+/**
+ * @file request_tools_copy_test.c
+ * @brief Tests for message deep copy in request_tools.c (lines 182-214)
+ */
+
+#include "../../../src/providers/request.h"
+#include "../../../src/agent.h"
+#include "../../../src/error.h"
+#include "../../../src/shared.h"
+#include "../../test_utils.h"
+
+#include <check.h>
+#include <stdlib.h>
+#include <string.h>
+#include <talloc.h>
+
+static TALLOC_CTX *test_ctx;
+static ik_shared_ctx_t *shared_ctx;
+
+static void setup(void)
+{
+    test_ctx = talloc_new(NULL);
+    shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+}
+
+static void teardown(void)
+{
+    talloc_free(test_ctx);
+}
+
+/**
+ * Test copying message with TEXT content block (line 182 true branch)
+ */
+START_TEST(test_copy_text_message)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
+    agent->thinking_level = 0;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_USER;
+    agent->messages[0]->content_count = 1;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 1);
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_TEXT;
+    agent->messages[0]->content_blocks[0].data.text.text = talloc_strdup(agent->messages[0], "Hello");
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.text.text, "Hello");
+}
+END_TEST
+
+/**
+ * Test copying message with TOOL_CALL content (lines 192-193 branches)
+ */
+START_TEST(test_copy_tool_call_message)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gpt-4o");
+    agent->thinking_level = 0;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_ASSISTANT;
+    agent->messages[0]->content_count = 1;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 1);
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    agent->messages[0]->content_blocks[0].data.tool_call.id = talloc_strdup(agent->messages[0], "c1");
+    agent->messages[0]->content_blocks[0].data.tool_call.name = talloc_strdup(agent->messages[0], "bash");
+    agent->messages[0]->content_blocks[0].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{}");
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.tool_call.id, "c1");
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.tool_call.name, "bash");
+}
+END_TEST
+
+/**
+ * Test copying message with TOOL_RESULT content (line 202 branches)
+ */
+START_TEST(test_copy_tool_result_message)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gemini-2.0-flash");
+    agent->thinking_level = 0;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_USER;
+    agent->messages[0]->content_count = 1;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 1);
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_TOOL_RESULT;
+    agent->messages[0]->content_blocks[0].data.tool_result.tool_call_id =
+        talloc_strdup(agent->messages[0], "c2");
+    agent->messages[0]->content_blocks[0].data.tool_result.content =
+        talloc_strdup(agent->messages[0], "output");
+    agent->messages[0]->content_blocks[0].data.tool_result.is_error = false;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_TOOL_RESULT);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.tool_result.tool_call_id, "c2");
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.tool_result.content, "output");
+    ck_assert(!req->messages[0].content_blocks[0].data.tool_result.is_error);
+}
+END_TEST
+
+/**
+ * Test copying message with THINKING content
+ */
+START_TEST(test_copy_thinking_message)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "o1-preview");
+    agent->thinking_level = 1;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_ASSISTANT;
+    agent->messages[0]->content_count = 1;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 1);
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_THINKING;
+    agent->messages[0]->content_blocks[0].data.thinking.text =
+        talloc_strdup(agent->messages[0], "Thinking...");
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.thinking.text, "Thinking...");
+}
+END_TEST
+
+static Suite *request_tools_copy_suite(void)
+{
+    Suite *s = suite_create("Request Tools Copy");
+
+    TCase *tc = tcase_create("Message Deep Copy");
+    tcase_add_checked_fixture(tc, setup, teardown);
+    tcase_add_test(tc, test_copy_text_message);
+    tcase_add_test(tc, test_copy_tool_call_message);
+    tcase_add_test(tc, test_copy_tool_result_message);
+    tcase_add_test(tc, test_copy_thinking_message);
+    suite_add_tcase(s, tc);
+
+    return s;
+}
+
+int main(void)
+{
+    int number_failed;
+    Suite *s = request_tools_copy_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}

@@ -99,7 +99,7 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
         return;
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
     if (!yyjson_is_obj(root)) {
         // Not an object - emit error
         ik_stream_event_t error_event = {

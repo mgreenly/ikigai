@@ -47,7 +47,7 @@ For each file in the discovery results, spawn a fix sub-agent:
 - `subagent_type`: `general-purpose`
 - `model`: `sonnet`
 
-**CRITICAL:** Run sub-agents ONE AT A TIME. Wait for each to complete before spawning the next.
+**CRITICAL:** Run sub-agents ONE AT A TIME. Wait for each to complete before spawning the next. This cannot be violated because the build system does not support multiple agents running concurrently - parallel execution will invalidate results as agents overwrite each other's changes and corrupt build artifacts.
 
 **Prompt template:**
 ```

@@ -5,11 +5,13 @@
 
 #include "openai.h"
 #include "openai_handlers.h"
+#include "openai_internal.h"
 #include "error.h"
 #include "panic.h"
 #include "providers/common/http_multi.h"
 #include "reasoning.h"
 #include "request.h"
+#include "wrapper_internal.h"
 #include <assert.h>
 #include <string.h>
 #include <sys/select.h>
@@ -181,9 +183,9 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     res_t serialize_res;
 
     if (use_responses_api) {
-        serialize_res = ik_openai_serialize_responses_request(req_ctx, req, false, &json_body);
+        serialize_res = ik_openai_serialize_responses_request_(req_ctx, req, false, &json_body);
     } else {
-        serialize_res = ik_openai_serialize_chat_request(req_ctx, req, false, &json_body);
+        serialize_res = ik_openai_serialize_chat_request_(req_ctx, req, false, &json_body);
     }
 
     if (is_err(&serialize_res)) {
@@ -197,9 +199,9 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     res_t url_res;
 
     if (use_responses_api) {
-        url_res = ik_openai_build_responses_url(req_ctx, impl_ctx->base_url, &url);
+        url_res = ik_openai_build_responses_url_(req_ctx, impl_ctx->base_url, &url);
     } else {
-        url_res = ik_openai_build_chat_url(req_ctx, impl_ctx->base_url, &url);
+        url_res = ik_openai_build_chat_url_(req_ctx, impl_ctx->base_url, &url);
     }
 
     if (is_err(&url_res)) {
@@ -210,7 +212,7 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
 
     // Build headers
     char **headers_tmp = NULL;
-    res_t headers_res = ik_openai_build_headers(req_ctx, impl_ctx->api_key, &headers_tmp);
+    res_t headers_res = ik_openai_build_headers_(req_ctx, impl_ctx->api_key, &headers_tmp);
     if (is_err(&headers_res)) {
         talloc_steal(impl_ctx, headers_res.err);
         talloc_free(req_ctx);
@@ -235,12 +237,12 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     };
 
     // Add request to multi handle
-    res_t add_res = ik_http_multi_add_request(impl_ctx->http_multi,
-                                               &http_req,
-                                               NULL,  // No streaming write callback
-                                               NULL,  // No write context
-                                               ik_openai_http_completion_handler,
-                                               req_ctx);
+    res_t add_res = ik_http_multi_add_request_(impl_ctx->http_multi,
+                                                &http_req,
+                                                NULL,  // No streaming write callback
+                                                NULL,  // No write context
+                                                ik_openai_http_completion_handler,
+                                                req_ctx);
 
     if (is_err(&add_res)) {
         talloc_steal(impl_ctx, add_res.err);
@@ -291,9 +293,9 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     res_t serialize_res;
 
     if (use_responses_api) {
-        serialize_res = ik_openai_serialize_responses_request(req_ctx, req, true, &json_body);
+        serialize_res = ik_openai_serialize_responses_request_(req_ctx, req, true, &json_body);
     } else {
-        serialize_res = ik_openai_serialize_chat_request(req_ctx, req, true, &json_body);
+        serialize_res = ik_openai_serialize_chat_request_(req_ctx, req, true, &json_body);
     }
 
     if (is_err(&serialize_res)) {
@@ -307,9 +309,9 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     res_t url_res;
 
     if (use_responses_api) {
-        url_res = ik_openai_build_responses_url(req_ctx, impl_ctx->base_url, &url);
+        url_res = ik_openai_build_responses_url_(req_ctx, impl_ctx->base_url, &url);
     } else {
-        url_res = ik_openai_build_chat_url(req_ctx, impl_ctx->base_url, &url);
+        url_res = ik_openai_build_chat_url_(req_ctx, impl_ctx->base_url, &url);
     }
 
     if (is_err(&url_res)) {
@@ -320,7 +322,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
 
     // Build headers
     char **headers_tmp = NULL;
-    res_t headers_res = ik_openai_build_headers(req_ctx, impl_ctx->api_key, &headers_tmp);
+    res_t headers_res = ik_openai_build_headers_(req_ctx, impl_ctx->api_key, &headers_tmp);
     if (is_err(&headers_res)) {
         talloc_steal(impl_ctx, headers_res.err);
         talloc_free(req_ctx);
@@ -342,7 +344,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     };
 
     // Add request with streaming write callback
-    res_t add_res = ik_http_multi_add_request(
+    res_t add_res = ik_http_multi_add_request_(
         impl_ctx->http_multi,
         &http_req,
         ik_openai_stream_write_callback,
@@ -359,6 +361,39 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     // Request successfully started (returns immediately)
     return OK(NULL);
 }
+
+/* ================================================================
+ * Internal Wrappers (for test mocking)
+ * ================================================================ */
+
+#ifndef NDEBUG
+res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx, const ik_request_t *req,
+                                         bool stream, char **out_json)
+{
+    return ik_openai_serialize_chat_request(ctx, req, stream, out_json);
+}
+
+res_t ik_openai_serialize_responses_request_(TALLOC_CTX *ctx, const ik_request_t *req,
+                                              bool stream, char **out_json)
+{
+    return ik_openai_serialize_responses_request(ctx, req, stream, out_json);
+}
+
+res_t ik_openai_build_chat_url_(TALLOC_CTX *ctx, const char *base_url, char **out_url)
+{
+    return ik_openai_build_chat_url(ctx, base_url, out_url);
+}
+
+res_t ik_openai_build_responses_url_(TALLOC_CTX *ctx, const char *base_url, char **out_url)
+{
+    return ik_openai_build_responses_url(ctx, base_url, out_url);
+}
+
+res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out_headers)
+{
+    return ik_openai_build_headers(ctx, api_key, out_headers);
+}
+#endif
 
 static void openai_cleanup(void *ctx)
 {

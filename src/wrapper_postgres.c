@@ -37,5 +37,10 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
     return PQexecParams(conn, command, nParams, paramTypes, paramValues, paramLengths, paramFormats, resultFormat);
 }
 
+MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res)
+{
+    return PQresultStatus(res);
+}
+
 // LCOV_EXCL_STOP
 #endif

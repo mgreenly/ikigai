@@ -297,7 +297,9 @@ END_TEST START_TEST(test_http_completion_parse_response_failure)
               strstr(cb_state.error_msg_copy, "Failed") != NULL);
 }
 
-END_TEST START_TEST(test_http_completion_error_parse_error_invalid_json)
+END_TEST
+
+START_TEST(test_http_completion_error_parse_error_invalid_json)
 {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
@@ -327,6 +329,37 @@ END_TEST START_TEST(test_http_completion_error_parse_error_invalid_json)
 
 END_TEST
 
+START_TEST(test_http_completion_error_with_empty_body)
+{
+    callback_state_t cb_state = {0};
+    reset_callback_state(&cb_state);
+
+    ik_openai_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_request_ctx_t);
+    req_ctx->use_responses_api = false;
+    req_ctx->cb = provider_completion_cb;
+    req_ctx->cb_ctx = &cb_state;
+
+    char *error_body = talloc_strdup(test_ctx, "");
+    ik_http_completion_t http_completion = {
+        .type = IK_HTTP_CLIENT_ERROR,
+        .http_code = 403,
+        .curl_code = 0,
+        .error_message = NULL,
+        .response_body = error_body,
+        .response_len = 0
+    };
+
+    ik_openai_http_completion_handler(&http_completion, req_ctx);
+
+    ck_assert(cb_state.called);
+    ck_assert(!cb_state.completion.success);
+    ck_assert_int_eq(cb_state.completion.error_category, IK_ERR_CAT_UNKNOWN);
+    ck_assert_ptr_nonnull(cb_state.error_msg_copy);
+    ck_assert(strstr(cb_state.error_msg_copy, "403") != NULL);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -350,6 +383,7 @@ static Suite *openai_handlers_suite(void)
     tcase_add_test(tc_http_error, test_http_completion_network_error_no_message);
     tcase_add_test(tc_http_error, test_http_completion_parse_response_failure);
     tcase_add_test(tc_http_error, test_http_completion_error_parse_error_invalid_json);
+    tcase_add_test(tc_http_error, test_http_completion_error_with_empty_body);
     suite_add_tcase(s, tc_http_error);
 
     return s;

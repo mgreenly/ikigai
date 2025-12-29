@@ -73,6 +73,13 @@ ExecStatusType PQresultStatus(const PGresult *res)
     return PGRES_COMMAND_OK;
 }
 
+// Mock PQresultStatus_ (the actual function called by the code)
+ExecStatusType PQresultStatus_(const PGresult *res)
+{
+    (void)res;
+    return PGRES_COMMAND_OK;
+}
+
 // Mock PQclear (no-op)
 void PQclear(PGresult *res)
 {

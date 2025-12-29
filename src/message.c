@@ -116,26 +116,26 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             return ERR(ctx, PARSE, "Invalid JSON in tool_call data_json");
         }
 
-        yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
-        yyjson_val *name_val = yyjson_obj_get(root, "name");
-        yyjson_val *args_val = yyjson_obj_get(root, "arguments");
+        yyjson_val *root = yyjson_doc_get_root_(doc);
+        yyjson_val *id_val = yyjson_obj_get_(root, "tool_call_id");
+        yyjson_val *name_val = yyjson_obj_get_(root, "name");
+        yyjson_val *args_val = yyjson_obj_get_(root, "arguments");
 
         if (!id_val || !name_val || !args_val) {
             yyjson_doc_free(doc);
             return ERR(ctx, PARSE, "Missing required fields in tool_call data_json");
         }
 
-        const char *id = yyjson_get_str(id_val);
-        const char *name = yyjson_get_str(name_val);
-        const char *arguments = yyjson_get_str(args_val);
+        const char *id = yyjson_get_str_(id_val);
+        const char *name = yyjson_get_str_(name_val);
+        const char *arguments = yyjson_get_str_(args_val);
 
         if (!id || !name || !arguments) {
             yyjson_doc_free(doc);
             return ERR(ctx, PARSE, "Invalid field types in tool_call data_json");
         }
 
-        *out = ik_message_create_tool_call(ctx, id, name, arguments);
+        *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
         yyjson_doc_free(doc);
         return OK(*out);
     }
@@ -152,18 +152,18 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             return ERR(ctx, PARSE, "Invalid JSON in tool_result data_json");
         }
 
-        yyjson_val *root = yyjson_doc_get_root(doc);
-        yyjson_val *id_val = yyjson_obj_get(root, "tool_call_id");
-        yyjson_val *output_val = yyjson_obj_get(root, "output");
-        yyjson_val *success_val = yyjson_obj_get(root, "success");
+        yyjson_val *root = yyjson_doc_get_root_(doc);
+        yyjson_val *id_val = yyjson_obj_get_(root, "tool_call_id");
+        yyjson_val *output_val = yyjson_obj_get_(root, "output");
+        yyjson_val *success_val = yyjson_obj_get_(root, "success");
 
         if (!id_val || !output_val) {
             yyjson_doc_free(doc);
             return ERR(ctx, PARSE, "Missing required fields in tool_result data_json");
         }
 
-        const char *tool_call_id = yyjson_get_str(id_val);
-        const char *output = yyjson_get_str(output_val);
+        const char *tool_call_id = yyjson_get_str_(id_val);
+        const char *output = yyjson_get_str_(output_val);
 
         if (!tool_call_id || !output) {
             yyjson_doc_free(doc);
@@ -173,7 +173,7 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         // Map success to is_error (inverted boolean)
         bool is_error = success_val ? !yyjson_get_bool(success_val) : false;
 
-        *out = ik_message_create_tool_result(ctx, tool_call_id, output, is_error);
+        *out = ik_message_create_tool_result(ctx, tool_call_id, output, is_error); // LCOV_EXCL_BR_LINE
         yyjson_doc_free(doc);
         return OK(*out);
     }

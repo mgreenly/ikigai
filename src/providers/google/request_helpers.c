@@ -11,6 +11,7 @@
 #include "error.h"
 #include "panic.h"
 #include "vendor/yyjson/yyjson.h"
+#include "wrapper_json.h"
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -51,17 +52,17 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
 
     switch (block->type) {
         case IK_CONTENT_TEXT:
-            if (!yyjson_mut_obj_add_str(doc, obj, "text", block->data.text.text)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str_(doc, obj, "text", block->data.text.text)) {
+                return false;
             }
             break;
 
         case IK_CONTENT_THINKING:
-            if (!yyjson_mut_obj_add_str(doc, obj, "text", block->data.thinking.text)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str_(doc, obj, "text", block->data.thinking.text)) {
+                return false;
             }
-            if (!yyjson_mut_obj_add_bool(doc, obj, "thought", true)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_bool_(doc, obj, "thought", true)) {
+                return false;
             }
             break;
 
@@ -70,8 +71,8 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
             yyjson_mut_val *func_obj = yyjson_mut_obj(doc);
             if (!func_obj) return false; // LCOV_EXCL_BR_LINE
 
-            if (!yyjson_mut_obj_add_str(doc, func_obj, "name", block->data.tool_call.name)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str_(doc, func_obj, "name", block->data.tool_call.name)) {
+                return false;
             }
 
             // Parse arguments JSON string and add as object
@@ -79,15 +80,15 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
                                                strlen(block->data.tool_call.arguments), 0);
             if (!args_doc) return false; // LCOV_EXCL_BR_LINE
 
-            yyjson_mut_val *args_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(args_doc));
+            yyjson_mut_val *args_mut = yyjson_val_mut_copy_(doc, yyjson_doc_get_root(args_doc));
             yyjson_doc_free(args_doc);
-            if (!args_mut) return false; // LCOV_EXCL_BR_LINE
+            if (!args_mut) return false;
 
-            if (!yyjson_mut_obj_add_val(doc, func_obj, "args", args_mut)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_val_(doc, func_obj, "args", args_mut)) {
+                return false;
             }
 
-            if (!yyjson_mut_obj_add_val(doc, obj, "functionCall", func_obj)) {
+            if (!yyjson_mut_obj_add_val_(doc, obj, "functionCall", func_obj)) {
                 return false; // LCOV_EXCL_BR_LINE
             }
             break;
@@ -98,23 +99,23 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
             yyjson_mut_val *func_resp = yyjson_mut_obj(doc);
             if (!func_resp) return false; // LCOV_EXCL_BR_LINE
 
-            if (!yyjson_mut_obj_add_str(doc, func_resp, "name", block->data.tool_result.tool_call_id)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str_(doc, func_resp, "name", block->data.tool_result.tool_call_id)) {
+                return false;
             }
 
             // Build response object with content field
             yyjson_mut_val *response_obj = yyjson_mut_obj(doc);
             if (!response_obj) return false; // LCOV_EXCL_BR_LINE
 
-            if (!yyjson_mut_obj_add_str(doc, response_obj, "content", block->data.tool_result.content)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str_(doc, response_obj, "content", block->data.tool_result.content)) {
+                return false;
             }
 
-            if (!yyjson_mut_obj_add_val(doc, func_resp, "response", response_obj)) {
-                return false; // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_val_(doc, func_resp, "response", response_obj)) {
+                return false;
             }
 
-            if (!yyjson_mut_obj_add_val(doc, obj, "functionResponse", func_resp)) {
+            if (!yyjson_mut_obj_add_val_(doc, obj, "functionResponse", func_resp)) {
                 return false; // LCOV_EXCL_BR_LINE
             }
             break;
@@ -124,7 +125,7 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
             return false; // LCOV_EXCL_LINE
     }
 
-    if (!yyjson_mut_arr_add_val(arr, obj)) return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_arr_add_val_(arr, obj)) return false; // LCOV_EXCL_BR_LINE
     return true;
 }
 
@@ -234,12 +235,12 @@ bool ik_google_serialize_message_parts(yyjson_mut_doc *doc, yyjson_mut_val *cont
         yyjson_mut_val *sig_obj = yyjson_mut_obj(doc);
         if (!sig_obj) return false; // LCOV_EXCL_BR_LINE
 
-        if (!yyjson_mut_obj_add_str(doc, sig_obj, "thoughtSignature", thought_sig)) {
-            return false; // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str_(doc, sig_obj, "thoughtSignature", thought_sig)) {
+            return false;
         }
 
-        if (!yyjson_mut_arr_add_val(parts_arr, sig_obj)) {
-            return false; // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_arr_add_val_(parts_arr, sig_obj)) {
+            return false;
         }
     }
 
@@ -250,8 +251,8 @@ bool ik_google_serialize_message_parts(yyjson_mut_doc *doc, yyjson_mut_val *cont
         }
     }
 
-    if (!yyjson_mut_obj_add_val(doc, content_obj, "parts", parts_arr)) {
-        return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val_(doc, content_obj, "parts", parts_arr)) {
+        return false;
     }
 
     return true;

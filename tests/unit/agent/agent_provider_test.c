@@ -246,6 +246,25 @@ START_TEST(test_thinking_level_medium)
 }
 
 END_TEST
+// Test parse_thinking_level with empty string
+START_TEST(test_thinking_level_empty)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent);
+
+    ik_db_agent_row_t *row = create_test_row(ctx, "");
+
+    res_t res = ik_agent_restore_from_row(agent, row);
+    ck_assert(is_ok(&res));
+    ck_assert_int_eq(agent->thinking_level, IK_THINKING_NONE);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test parse_thinking_level with unknown value defaults to none
 START_TEST(test_thinking_level_unknown)
 {
@@ -440,6 +459,7 @@ static Suite *agent_provider_suite(void)
     tcase_add_test(tc_thinking, test_thinking_level_low);
     tcase_add_test(tc_thinking, test_thinking_level_med);
     tcase_add_test(tc_thinking, test_thinking_level_medium);
+    tcase_add_test(tc_thinking, test_thinking_level_empty);
     tcase_add_test(tc_thinking, test_thinking_level_unknown);
     suite_add_tcase(s, tc_thinking);
 

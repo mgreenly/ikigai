@@ -257,6 +257,115 @@ END_TEST START_TEST(test_infer_provider_null)
     ck_assert_ptr_null(provider);
 }
 
+END_TEST START_TEST(test_infer_provider_openai_o3_exact)
+{
+    const char *provider = ik_infer_provider("o3");
+    ck_assert_ptr_nonnull(provider);
+    ck_assert_str_eq(provider, "openai");
+}
+
+END_TEST
+
+/* ================================================================
+ * Model Thinking Support
+ * ================================================================ */
+
+START_TEST(test_model_supports_thinking_null_model)
+{
+    void *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    bool supports = false;
+    res_t r = ik_model_supports_thinking(NULL, &supports);
+    ck_assert(is_err(&r));
+    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_model_supports_thinking_null_supports)
+{
+    void *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    res_t r = ik_model_supports_thinking("gpt-5", NULL);
+    ck_assert(is_err(&r));
+    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
+
+    talloc_free(ctx);
+}
+
+END_TEST START_TEST(test_model_supports_thinking_known_model)
+{
+    bool supports = false;
+    res_t r = ik_model_supports_thinking("gpt-5", &supports);
+    ck_assert(is_ok(&r));
+    ck_assert(supports == true);
+}
+
+END_TEST START_TEST(test_model_supports_thinking_non_thinking_model)
+{
+    bool supports = true;
+    res_t r = ik_model_supports_thinking("gpt-4", &supports);
+    ck_assert(is_ok(&r));
+    ck_assert(supports == false);
+}
+
+END_TEST START_TEST(test_model_supports_thinking_unknown_model)
+{
+    bool supports = true;
+    res_t r = ik_model_supports_thinking("unknown-model", &supports);
+    ck_assert(is_ok(&r));
+    ck_assert(supports == false);
+}
+
+END_TEST
+
+/* ================================================================
+ * Model Thinking Budget
+ * ================================================================ */
+
+START_TEST(test_model_get_thinking_budget_null_model)
+{
+    int32_t budget = 0;
+    res_t r = ik_model_get_thinking_budget(NULL, &budget);
+    ck_assert(is_err(&r));
+    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
+    talloc_free(r.err);
+}
+
+END_TEST START_TEST(test_model_get_thinking_budget_null_budget)
+{
+    res_t r = ik_model_get_thinking_budget("claude-sonnet-4-5", NULL);
+    ck_assert(is_err(&r));
+    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
+    talloc_free(r.err);
+}
+
+END_TEST START_TEST(test_model_get_thinking_budget_anthropic_model)
+{
+    int32_t budget = 0;
+    res_t r = ik_model_get_thinking_budget("claude-sonnet-4-5", &budget);
+    ck_assert(is_ok(&r));
+    ck_assert_int_eq(budget, 64000);
+}
+
+END_TEST START_TEST(test_model_get_thinking_budget_openai_model)
+{
+    int32_t budget = -1;
+    res_t r = ik_model_get_thinking_budget("gpt-5", &budget);
+    ck_assert(is_ok(&r));
+    ck_assert_int_eq(budget, 0);
+}
+
+END_TEST START_TEST(test_model_get_thinking_budget_unknown_model)
+{
+    int32_t budget = -1;
+    res_t r = ik_model_get_thinking_budget("unknown-model", &budget);
+    ck_assert(is_ok(&r));
+    ck_assert_int_eq(budget, 0);
+}
+
 END_TEST
 
 /* ================================================================
@@ -301,11 +410,28 @@ static Suite *provider_types_suite(void)
     tcase_add_test(tc_infer, test_infer_provider_openai_gpt);
     tcase_add_test(tc_infer, test_infer_provider_openai_o1);
     tcase_add_test(tc_infer, test_infer_provider_openai_o3);
+    tcase_add_test(tc_infer, test_infer_provider_openai_o3_exact);
     tcase_add_test(tc_infer, test_infer_provider_anthropic);
     tcase_add_test(tc_infer, test_infer_provider_google);
     tcase_add_test(tc_infer, test_infer_provider_unknown);
     tcase_add_test(tc_infer, test_infer_provider_null);
     suite_add_tcase(s, tc_infer);
+
+    TCase *tc_thinking = tcase_create("Model Thinking Support");
+    tcase_add_test(tc_thinking, test_model_supports_thinking_null_model);
+    tcase_add_test(tc_thinking, test_model_supports_thinking_null_supports);
+    tcase_add_test(tc_thinking, test_model_supports_thinking_known_model);
+    tcase_add_test(tc_thinking, test_model_supports_thinking_non_thinking_model);
+    tcase_add_test(tc_thinking, test_model_supports_thinking_unknown_model);
+    suite_add_tcase(s, tc_thinking);
+
+    TCase *tc_budget = tcase_create("Model Thinking Budget");
+    tcase_add_test(tc_budget, test_model_get_thinking_budget_null_model);
+    tcase_add_test(tc_budget, test_model_get_thinking_budget_null_budget);
+    tcase_add_test(tc_budget, test_model_get_thinking_budget_anthropic_model);
+    tcase_add_test(tc_budget, test_model_get_thinking_budget_openai_model);
+    tcase_add_test(tc_budget, test_model_get_thinking_budget_unknown_model);
+    suite_add_tcase(s, tc_budget);
 
     return s;
 }

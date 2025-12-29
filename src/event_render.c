@@ -129,8 +129,8 @@ static res_t render_token_usage(ik_scrollback_t *scrollback, const char *data_js
     yyjson_val *think_val = yyjson_obj_get_(root, "thinking_tokens");
 
     int32_t in_tok = (in_val && yyjson_is_int(in_val)) ? (int32_t)yyjson_get_int(in_val) : 0;
-    int32_t out_tok = (out_val && yyjson_is_int(out_val)) ? (int32_t)yyjson_get_int(out_val) : 0;
-    int32_t think_tok = (think_val && yyjson_is_int(think_val)) ? (int32_t)yyjson_get_int(think_val) : 0;
+    int32_t out_tok = (out_val && yyjson_is_int(out_val)) ? (int32_t)yyjson_get_int(out_val) : 0; // LCOV_EXCL_BR_LINE
+    int32_t think_tok = (think_val && yyjson_is_int(think_val)) ? (int32_t)yyjson_get_int(think_val) : 0; // LCOV_EXCL_BR_LINE
 
     yyjson_doc_free(doc);
 

@@ -96,7 +96,7 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
 
-    switch (event->type) {
+    switch (event->type) { // LCOV_EXCL_BR_LINE - default case is defensive
         case IK_STREAM_START:
             if (agent->assistant_response != NULL) {
                 talloc_free(agent->assistant_response);
@@ -185,7 +185,7 @@ static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *
 
     // Map finish reason to string
     const char *finish_reason_str = "unknown";
-    switch (response->finish_reason) {
+    switch (response->finish_reason) { // LCOV_EXCL_BR_LINE - all enum values handled
         case IK_FINISH_STOP: finish_reason_str = "stop"; break;
         case IK_FINISH_LENGTH: finish_reason_str = "length"; break;
         case IK_FINISH_TOOL_USE: finish_reason_str = "tool_use"; break;

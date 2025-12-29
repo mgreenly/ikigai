@@ -4,7 +4,10 @@
  */
 
 #include "error.h"
+
 #include "panic.h"
+#include "wrapper.h"
+
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
 
@@ -48,18 +51,18 @@ res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
         return ERR(ctx, PARSE, "Failed to parse Google error response");
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root_(doc);
     if (root == NULL) {
         yyjson_doc_free(doc);
         return ERR(ctx, PARSE, "Google error response has no root");
     }
 
     // Extract error.status and error.message (optional - just for validation)
-    yyjson_val *error_obj = yyjson_obj_get(root, "error");
+    yyjson_val *error_obj = yyjson_obj_get_(root, "error");
     if (error_obj != NULL) {
         // Validate that error object has the expected fields
-        yyjson_val *status_val = yyjson_obj_get(error_obj, "status");
-        yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
+        yyjson_val *status_val = yyjson_obj_get_(error_obj, "status");
+        yyjson_val *msg_val = yyjson_obj_get_(error_obj, "message");
 
         // Fields exist but we don't need to do anything with them
         // The category is determined by HTTP status, not error.status
@@ -83,21 +86,21 @@ int32_t ik_google_get_retry_after(const char *body)
         return -1;
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root_(doc);
     if (root == NULL) {
         yyjson_doc_free(doc);
         return -1;
     }
 
     // Extract retryDelay field (top-level)
-    yyjson_val *retry_delay = yyjson_obj_get(root, "retryDelay");
+    yyjson_val *retry_delay = yyjson_obj_get_(root, "retryDelay");
     if (retry_delay == NULL || !yyjson_is_str(retry_delay)) {
         yyjson_doc_free(doc);
         return -1;
     }
 
     // Parse delay string (format: "60s")
-    const char *delay_str = yyjson_get_str(retry_delay);
+    const char *delay_str = yyjson_get_str_(retry_delay);
     if (delay_str == NULL) {
         yyjson_doc_free(doc);
         return -1;

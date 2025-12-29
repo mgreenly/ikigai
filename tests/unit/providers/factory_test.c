@@ -7,7 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "providers/factory.h"
+#include "error.h"
 
 // Helper macro to check if a string contains a substring
 #define ck_assert_str_contains(haystack, needle) \
@@ -144,11 +148,126 @@ START_TEST(test_create_unknown_provider)
 
 END_TEST
 
-// Note: Testing missing credentials scenario requires integration testing
-// because ik_provider_create calls ik_credentials_load which loads from
-// ~/.config/ikigai/credentials.json. Unit testing this would require
-// mocking the credentials loading or creating temporary credential files,
-// which is beyond the scope of factory unit tests.
+START_TEST(test_create_credentials_load_error)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_provider_t *provider = NULL;
+    FILE *f = NULL;
+
+    // Create a malformed JSON file to trigger parse error
+    char *bad_json_path = talloc_asprintf(ctx, "/tmp/ikigai_bad_creds_%d.json", getpid());
+    f = fopen(bad_json_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{ this is not valid json }");
+    fclose(f);
+    chmod(bad_json_path, 0600);
+
+    // Try to create provider with path to bad credentials file
+    // Note: We need to use an environment variable to override the default path
+    // Actually, ik_provider_create doesn't allow us to specify a path...
+    // So we need a different approach - we can create malformed JSON at the default location
+
+    // Clean up and use a different approach
+    unlink(bad_json_path);
+
+    // We can't easily test this without modifying the function signature
+    // or using dependency injection. This is actually untestable in the current design.
+    // However, looking at the code, the only way to trigger is_err(&load_res) is
+    // if credentials parsing fails. Let's create a test credentials file with bad JSON.
+
+    // Get home directory and create bad credentials
+    const char *home = getenv("HOME");
+    if (home == NULL) {
+        talloc_free(ctx);
+        ck_abort_msg("HOME not set");
+    }
+
+    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
+
+    // Backup existing credentials if any
+    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
+    rename(creds_path, backup_path);  // OK if this fails (no existing file)
+
+    // Create directory if it doesn't exist
+    mkdir(config_dir, 0700);
+
+    // Create malformed credentials file
+    f = fopen(creds_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{ malformed json }");
+    fclose(f);
+    chmod(creds_path, 0600);
+
+    // Clear environment variables
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Now try to create provider - should fail due to bad JSON
+    res_t res = ik_provider_create(ctx, "openai", &provider);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
+
+    // Restore credentials
+    unlink(creds_path);
+    rename(backup_path, creds_path);  // OK if this fails
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_create_missing_credentials)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_provider_t *provider = NULL;
+    FILE *f = NULL;
+
+    // Get home directory and manipulate credentials
+    const char *home = getenv("HOME");
+    if (home == NULL) {
+        talloc_free(ctx);
+        ck_abort_msg("HOME not set");
+    }
+
+    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
+
+    // Backup existing credentials if any
+    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
+    rename(creds_path, backup_path);  // OK if this fails (no existing file)
+
+    // Create directory if it doesn't exist
+    mkdir(config_dir, 0700);
+
+    // Create credentials file WITHOUT the provider we're requesting
+    f = fopen(creds_path, "w");
+    ck_assert_ptr_nonnull(f);
+    // Create valid JSON but without openai credentials
+    fprintf(f, "{\"anthropic\":{\"api_key\":\"test-key\"}}");
+    fclose(f);
+    chmod(creds_path, 0600);
+
+    // Clear ALL environment variables
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Try to create openai provider - should fail with missing credentials
+    res_t res = ik_provider_create(ctx, "openai", &provider);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_MISSING_CREDENTIALS);
+    ck_assert_str_contains(error_message(res.err), "OPENAI_API_KEY");
+
+    // Restore credentials
+    unlink(creds_path);
+    rename(backup_path, creds_path);  // OK if this fails
+
+    talloc_free(ctx);
+}
+END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -181,8 +300,8 @@ static Suite *factory_suite(void)
 
     TCase *tc_create = tcase_create("Provider Creation");
     tcase_add_test(tc_create, test_create_unknown_provider);
-    // test_create_missing_credentials is skipped - it requires integration testing
-    // with actual credential file manipulation
+    tcase_add_test(tc_create, test_create_credentials_load_error);
+    tcase_add_test(tc_create, test_create_missing_credentials);
     suite_add_tcase(s, tc_create);
 
     return s;

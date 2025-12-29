@@ -7,17 +7,44 @@
 #include <talloc.h>
 #include "providers/google/error.h"
 #include "providers/provider.h"
+#include "wrapper.h"
 
 static TALLOC_CTX *test_ctx;
+
+// Mocking flags
+static bool mock_yyjson_doc_get_root_null = false;
+static bool mock_yyjson_get_str_null = false;
+
+// Mock yyjson_doc_get_root_ to return NULL
+yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
+{
+    if (mock_yyjson_doc_get_root_null) {
+        return NULL;
+    }
+    return yyjson_doc_get_root(doc);
+}
+
+// Mock yyjson_get_str_ to return NULL
+const char *yyjson_get_str_(yyjson_val *val)
+{
+    if (mock_yyjson_get_str_null) {
+        return NULL;
+    }
+    return yyjson_get_str(val);
+}
 
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
+    mock_yyjson_doc_get_root_null = false;
+    mock_yyjson_get_str_null = false;
 }
 
 static void teardown(void)
 {
     talloc_free(test_ctx);
+    mock_yyjson_doc_get_root_null = false;
+    mock_yyjson_get_str_null = false;
 }
 
 /* ================================================================
@@ -102,6 +129,49 @@ END_TEST START_TEST(test_handle_error_invalid_json)
     ck_assert(is_err(&result));
 }
 
+END_TEST START_TEST(test_handle_error_unknown_status)
+{
+    const char *body = "{\"error\":{\"code\":418,\"message\":\"I'm a teapot\",\"status\":\"UNKNOWN\"}}";
+    ik_error_category_t category;
+
+    res_t result = ik_google_handle_error(test_ctx, 418, body, &category);
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
+}
+
+END_TEST START_TEST(test_handle_error_null_root)
+{
+    // Mock yyjson_doc_get_root_ to return NULL
+    const char *body = "{\"error\":{\"code\":500}}";
+    ik_error_category_t category;
+
+    mock_yyjson_doc_get_root_null = true;
+    res_t result = ik_google_handle_error(test_ctx, 500, body, &category);
+    ck_assert(is_err(&result));
+}
+
+END_TEST START_TEST(test_handle_error_with_error_fields)
+{
+    // Test case where error object has status and message fields
+    const char *body = "{\"error\":{\"status\":\"PERMISSION_DENIED\",\"message\":\"API key invalid\"}}";
+    ik_error_category_t category;
+
+    res_t result = ik_google_handle_error(test_ctx, 403, body, &category);
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
+}
+
+END_TEST START_TEST(test_handle_error_no_error_object)
+{
+    // Test case with no error object in JSON (valid JSON but not a proper error response)
+    const char *body = "{\"someOtherField\":\"value\"}";
+    ik_error_category_t category;
+
+    res_t result = ik_google_handle_error(test_ctx, 500, body, &category);
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+
 END_TEST
 /* ================================================================
  * Retry-After Tests
@@ -145,6 +215,58 @@ END_TEST START_TEST(test_get_retry_after_null_body)
     ck_assert_int_eq(retry, -1);
 }
 
+END_TEST START_TEST(test_get_retry_after_null_root_mock)
+{
+    // Mock yyjson_doc_get_root_ to return NULL
+    const char *body = "{\"retryDelay\":\"60s\"}";
+
+    mock_yyjson_doc_get_root_null = true;
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
+END_TEST START_TEST(test_get_retry_after_not_string)
+{
+    // retryDelay present but not a string
+    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":123}";
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
+END_TEST START_TEST(test_get_retry_after_null_string_mock)
+{
+    // Mock yyjson_get_str_ to return NULL
+    const char *body = "{\"retryDelay\":\"60s\"}";
+
+    mock_yyjson_get_str_null = true;
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
+END_TEST START_TEST(test_get_retry_after_invalid_format)
+{
+    // retryDelay is a string but not parseable as a number
+    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"abc\"}";
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
+END_TEST START_TEST(test_get_retry_after_negative)
+{
+    // retryDelay is negative (invalid)
+    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"-10s\"}";
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
+END_TEST START_TEST(test_get_retry_after_zero)
+{
+    // retryDelay is zero (invalid per the check)
+    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"0s\"}";
+    int32_t retry = ik_google_get_retry_after(body);
+    ck_assert_int_eq(retry, -1);
+}
+
 END_TEST
 
 /* ================================================================
@@ -165,6 +287,10 @@ static Suite *google_error_suite(void)
     tcase_add_test(tc_error, test_handle_error_500_server);
     tcase_add_test(tc_error, test_handle_error_503_server);
     tcase_add_test(tc_error, test_handle_error_invalid_json);
+    tcase_add_test(tc_error, test_handle_error_unknown_status);
+    tcase_add_test(tc_error, test_handle_error_null_root);
+    tcase_add_test(tc_error, test_handle_error_with_error_fields);
+    tcase_add_test(tc_error, test_handle_error_no_error_object);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_retry = tcase_create("Retry After");
@@ -174,6 +300,12 @@ static Suite *google_error_suite(void)
     tcase_add_test(tc_retry, test_get_retry_after_not_present);
     tcase_add_test(tc_retry, test_get_retry_after_invalid_json);
     tcase_add_test(tc_retry, test_get_retry_after_null_body);
+    tcase_add_test(tc_retry, test_get_retry_after_null_root_mock);
+    tcase_add_test(tc_retry, test_get_retry_after_not_string);
+    tcase_add_test(tc_retry, test_get_retry_after_null_string_mock);
+    tcase_add_test(tc_retry, test_get_retry_after_invalid_format);
+    tcase_add_test(tc_retry, test_get_retry_after_negative);
+    tcase_add_test(tc_retry, test_get_retry_after_zero);
     suite_add_tcase(s, tc_retry);
 
     return s;

@@ -206,6 +206,18 @@ $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(T
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
 
+# Special case: http_multi_coverage_test includes http_multi.c directly
+# so it must exclude http_multi.o from MODULE_OBJ to avoid duplicate symbols
+$(BUILDDIR)/tests/unit/providers/common/http_multi_coverage_test: $(BUILDDIR)/tests/unit/providers/common/http_multi_coverage_test.o $(filter-out $(BUILDDIR)/providers/common/http_multi.o,$(MODULE_OBJ)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
+# Special case: http_multi_info_test includes http_multi_info.c directly
+# so it must exclude http_multi_info.o from MODULE_OBJ to avoid duplicate symbols
+$(BUILDDIR)/tests/unit/providers/common/http_multi_info_test: $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test.o $(filter-out $(BUILDDIR)/providers/common/http_multi_info.o,$(MODULE_OBJ)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+
 # Note: Provider factory test no longer needs separate stubs since stubs.c
 # is now part of MODULE_OBJ and will be replaced when actual providers are implemented
 

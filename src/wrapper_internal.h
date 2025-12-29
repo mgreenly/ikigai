@@ -8,11 +8,16 @@
 #include "wrapper_base.h"
 
 #ifdef NDEBUG
+#include "agent.h"
 #include "db/connection.h"
 #include "db/message.h"
 #include "config.h"
+#include "providers/request.h"
+#include "providers/common/http_multi.h"
 #include "scrollback.h"
 #include "msg.h"
+#include "repl.h"
+#include "logger.h"
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -34,6 +39,47 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
 }
 
+MOCKABLE res_t ik_repl_render_frame_(void *repl)
+{
+    return ik_repl_render_frame((ik_repl_ctx_t *)repl);
+}
+
+MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out)
+{
+    return ik_agent_get_provider((ik_agent_ctx_t *)agent, (ik_provider_t **)provider_out);
+}
+
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+}
+
+MOCKABLE res_t ik_http_multi_create_(void *parent, void **out)
+{
+    res_t r = ik_http_multi_create(parent);
+    if (is_ok(&r)) {
+        *out = r.ok;
+    }
+    return r;
+}
+
+MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger)
+{
+    ik_http_multi_info_read((ik_http_multi_t *)http_multi, (ik_logger_t *)logger);
+}
+
+MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
+                                          void *write_cb, void *write_ctx,
+                                          void *completion_cb, void *completion_ctx)
+{
+    return ik_http_multi_add_request((ik_http_multi_t *)http_multi,
+                                      (const ik_http_request_t *)http_req,
+                                      (ik_http_write_cb_t)write_cb,
+                                      write_ctx,
+                                      (ik_http_completion_cb_t)completion_cb,
+                                      completion_ctx);
+}
+
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
@@ -47,6 +93,14 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
                                      const char *content,
                                      const char *data_json);
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
+MOCKABLE res_t ik_repl_render_frame_(void *repl);
+MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out);
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out);
+MOCKABLE res_t ik_http_multi_create_(void *parent, void **out);
+MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
+MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
+                                          void *write_cb, void *write_ctx,
+                                          void *completion_cb, void *completion_ctx);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

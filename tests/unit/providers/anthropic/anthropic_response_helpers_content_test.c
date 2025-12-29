@@ -374,6 +374,34 @@ END_TEST START_TEST(test_parse_content_blocks_multiple_types)
     yyjson_doc_free(doc);
 }
 
+END_TEST START_TEST(test_parse_content_blocks_mixed_order)
+{
+    // Test strcmp false branches with mixed type order
+    const char *json = "["
+                       "{\"type\": \"thinking\", \"thinking\": \"A\"},"
+                       "{\"type\": \"tool_use\", \"id\": \"c1\", \"name\": \"f\", \"input\": {}},"
+                       "{\"type\": \"redacted_thinking\"},"
+                       "{\"type\": \"text\", \"text\": \"B\"}"
+                       "]";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ik_content_block_t *blocks = NULL;
+    size_t count = 0;
+
+    res_t r = ik_anthropic_parse_content_blocks(test_ctx, root, &blocks, &count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_uint_eq(count, 4);
+    ck_assert_int_eq(blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_int_eq(blocks[1].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_int_eq(blocks[2].type, IK_CONTENT_THINKING);
+    ck_assert_int_eq(blocks[3].type, IK_CONTENT_TEXT);
+
+    yyjson_doc_free(doc);
+}
+
 END_TEST
 
 /* ================================================================
@@ -404,6 +432,7 @@ static Suite *anthropic_response_helpers_content_suite(void)
     tcase_add_test(tc_content, test_parse_content_blocks_tool_use_missing_input);
     tcase_add_test(tc_content, test_parse_content_blocks_unknown_type);
     tcase_add_test(tc_content, test_parse_content_blocks_multiple_types);
+    tcase_add_test(tc_content, test_parse_content_blocks_mixed_order);
     suite_add_tcase(s, tc_content);
 
     return s;

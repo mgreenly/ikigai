@@ -29,6 +29,11 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
     return PQexecParams(conn, command, nParams, paramTypes, paramValues, paramLengths, paramFormats, resultFormat);
 }
 
+MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res)
+{
+    return PQresultStatus(res);
+}
+
 #else
 
 MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number);
@@ -41,6 +46,7 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
                                    const int *paramLengths,
                                    const int *paramFormats,
                                    int resultFormat);
+MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res);
 
 #endif
 

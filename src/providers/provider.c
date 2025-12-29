@@ -1,4 +1,7 @@
 #include "providers/provider.h"
+
+#include "panic.h"
+
 #include <string.h>
 
 /**
@@ -76,7 +79,10 @@ const char *ik_infer_provider(const char *model_name)
 res_t ik_model_supports_thinking(const char *model, bool *supports)
 {
     if (model == NULL || supports == NULL) {
-        return ERR(NULL, INVALID_ARG, "model and supports must not be NULL");
+        TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        res_t r = ERR(tmp_ctx, INVALID_ARG, "model and supports must not be NULL");
+        return r;
     }
 
     // Search for exact match in capability table
@@ -95,7 +101,10 @@ res_t ik_model_supports_thinking(const char *model, bool *supports)
 res_t ik_model_get_thinking_budget(const char *model, int32_t *budget)
 {
     if (model == NULL || budget == NULL) {
-        return ERR(NULL, INVALID_ARG, "model and budget must not be NULL");
+        TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        res_t r = ERR(tmp_ctx, INVALID_ARG, "model and budget must not be NULL");
+        return r;
     }
 
     // Search for exact match in capability table

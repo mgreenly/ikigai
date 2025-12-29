@@ -4,9 +4,12 @@
  */
 
 #include "response.h"
+
 #include "json_allocator.h"
 #include "panic.h"
-#include "vendor/yyjson/yyjson.h"
+#include "wrapper_json.h"
+#include "wrapper_talloc.h"
+
 #include <assert.h>
 
 /**
@@ -54,14 +57,14 @@ res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
         // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
         yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
         if (doc != NULL) {
-            yyjson_val *root = yyjson_doc_get_root(doc);
+            yyjson_val *root = yyjson_doc_get_root_(doc);
             if (yyjson_is_obj(root)) {
                 yyjson_val *error_obj = yyjson_obj_get(root, "error");
                 if (error_obj != NULL) {
                     yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
                     const char *msg = yyjson_get_str(msg_val);
                     if (msg != NULL) {
-                        *out_message = talloc_asprintf(ctx, "%d: %s", http_status, msg);
+                        *out_message = talloc_asprintf_(ctx, "%d: %s", http_status, msg);
                         yyjson_doc_free(doc);
                         if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                         return OK(NULL);
@@ -73,7 +76,7 @@ res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
     }
 
     // Fallback to generic message
-    *out_message = talloc_asprintf(ctx, "HTTP %d", http_status);
+    *out_message = talloc_asprintf_(ctx, "HTTP %d", http_status);
     if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     return OK(NULL);
 }

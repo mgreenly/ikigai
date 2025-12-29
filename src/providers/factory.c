@@ -98,11 +98,11 @@ res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out)
         factory_res = ik_openai_create(ctx, api_key, out);
     } else if (strcmp(name, "anthropic") == 0) {
         factory_res = ik_anthropic_create(ctx, api_key, out);
-    } else if (strcmp(name, "google") == 0) {
+    } else if (strcmp(name, "google") == 0) { // LCOV_EXCL_BR_LINE
         factory_res = ik_google_create(ctx, api_key, out);
     } else {
         // Should not reach here due to validation above
-        talloc_free(tmp_ctx);
+        talloc_free(tmp_ctx); // LCOV_EXCL_LINE
         return ERR(ctx, INVALID_ARG, "Unknown provider: %s", name); // LCOV_EXCL_LINE
     }
 

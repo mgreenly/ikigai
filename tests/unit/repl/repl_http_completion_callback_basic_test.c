@@ -286,6 +286,33 @@ START_TEST(test_completion_error_null_message)
 
 END_TEST
 
+/* Test: Completion with text content (not tool_call) */
+START_TEST(test_completion_text_content_no_tool_call)
+{
+    /* Create response with text content block */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 10;
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_TEXT;
+    response->content_blocks[0].data.text.text = talloc_strdup(response, "Hello");
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify no pending_tool_call (because content is text, not tool_call) */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+}
+
+END_TEST
+
 /*
  * Test suite
  */
@@ -306,6 +333,7 @@ static Suite *repl_http_completion_callback_basic_suite(void)
     tcase_add_test(tc_core, test_completion_client_error);
     tcase_add_test(tc_core, test_completion_flushes_buffer_and_stores_error);
     tcase_add_test(tc_core, test_completion_error_null_message);
+    tcase_add_test(tc_core, test_completion_text_content_no_tool_call);
     suite_add_tcase(s, tc_core);
 
     return s;

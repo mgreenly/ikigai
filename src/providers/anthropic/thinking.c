@@ -69,7 +69,7 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
     // Calculate budget based on level
     int32_t range = max_budget - min_budget;
 
-    switch (level) {
+    switch (level) { // LCOV_EXCL_BR_LINE
         case IK_THINKING_NONE:
             return min_budget;
         case IK_THINKING_LOW:

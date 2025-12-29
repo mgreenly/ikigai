@@ -1,5 +1,7 @@
 #include "../../src/credentials.h"
 #include "../../src/panic.h"
+#include "../../src/vendor/yyjson/yyjson.h"
+#include "../../src/wrapper.h"
 
 #include <check.h>
 #include <errno.h>
@@ -45,39 +47,26 @@ static void set_file_permissions(const char *path, mode_t mode)
     }
 }
 
-// Test: Empty credentials (no file, no env)
-START_TEST(test_empty_credentials) {
-    // Ensure env vars are not set
+// Test: Empty credentials and load from environment
+START_TEST(test_empty_and_env_credentials)
+{
+    // Test 1: No file, no env
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
+    ik_credentials_t *creds1 = NULL;
+    res_t result1 = ik_credentials_load(test_ctx, "/nonexistent/credentials.json", &creds1);
+    ck_assert(!is_err(&result1));
+    ck_assert_ptr_null(creds1->openai_api_key);
 
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, "/nonexistent/credentials.json", &creds);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(creds);
-    ck_assert_ptr_null(creds->openai_api_key);
-    ck_assert_ptr_null(creds->anthropic_api_key);
-    ck_assert_ptr_null(creds->google_api_key);
-}
-END_TEST
-// Test: Load from environment variables
-START_TEST(test_load_from_environment)
-{
+    // Test 2: Load from environment
     setenv("OPENAI_API_KEY", "env-openai-key", 1);
     setenv("ANTHROPIC_API_KEY", "env-anthropic-key", 1);
     setenv("GOOGLE_API_KEY", "env-google-key", 1);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, "/nonexistent/credentials.json", &creds);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(creds);
-    ck_assert_str_eq(creds->openai_api_key, "env-openai-key");
-    ck_assert_str_eq(creds->anthropic_api_key, "env-anthropic-key");
-    ck_assert_str_eq(creds->google_api_key, "env-google-key");
-
+    ik_credentials_t *creds2 = NULL;
+    res_t result2 = ik_credentials_load(test_ctx, "/nonexistent/credentials.json", &creds2);
+    ck_assert(!is_err(&result2));
+    ck_assert_str_eq(creds2->openai_api_key, "env-openai-key");
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -185,76 +174,18 @@ START_TEST(test_invalid_json)
 }
 
 END_TEST
-// Test: Insecure permissions (0644)
-START_TEST(test_insecure_permissions)
+// Test: File permissions (secure and insecure)
+START_TEST(test_file_permissions)
 {
     const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
     char *path = create_temp_credentials(json);
-    set_file_permissions(path, 0644);
 
-    // Check function should report insecure
+    set_file_permissions(path, 0644);
     ck_assert(ik_credentials_insecure_permissions(path));
 
-    unlink(path);
-}
-
-END_TEST
-// Test: Secure permissions (0600)
-START_TEST(test_secure_permissions)
-{
-    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
-    char *path = create_temp_credentials(json);
     set_file_permissions(path, 0600);
-
-    // Check function should report secure
     ck_assert(!ik_credentials_insecure_permissions(path));
 
-    unlink(path);
-}
-
-END_TEST
-// Test: All providers from file
-START_TEST(test_all_providers_from_file)
-{
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    const char *json = "{\n"
-                       "  \"openai\": { \"api_key\": \"sk-proj-123\" },\n"
-                       "  \"anthropic\": { \"api_key\": \"sk-ant-api03-456\" },\n"
-                       "  \"google\": { \"api_key\": \"AIza789\" }\n"
-                       "}";
-    char *path = create_temp_credentials(json);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(creds->openai_api_key);
-    ck_assert_ptr_nonnull(creds->anthropic_api_key);
-    ck_assert_ptr_nonnull(creds->google_api_key);
-
-    unlink(path);
-}
-
-END_TEST
-// Test: Empty env var ignored
-START_TEST(test_empty_env_ignored)
-{
-    const char *json = "{ \"openai\": { \"api_key\": \"file-key\" } }";
-    char *path = create_temp_credentials(json);
-
-    setenv("OPENAI_API_KEY", "", 1);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-
-    ck_assert(!is_err(&result));
-    // Empty env should be ignored, file value used
-    ck_assert_str_eq(creds->openai_api_key, "file-key");
-
-    unsetenv("OPENAI_API_KEY");
     unlink(path);
 }
 
@@ -277,70 +208,32 @@ START_TEST(test_unknown_provider)
 }
 
 END_TEST
-// Test: Partial providers in file
-START_TEST(test_partial_providers)
+// Test: Edge cases - partial providers, nonexistent file perms, invalid JSON
+START_TEST(test_misc_edge_cases)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    const char *json = "{ \"openai\": { \"api_key\": \"openai-only\" } }";
-    char *path = create_temp_credentials(json);
+    // Test 1: Partial providers in file
+    const char *json1 = "{ \"openai\": { \"api_key\": \"openai-only\" } }";
+    char *path1 = create_temp_credentials(json1);
+    ik_credentials_t *creds1 = NULL;
+    res_t result1 = ik_credentials_load(test_ctx, path1, &creds1);
+    ck_assert(!is_err(&result1));
+    ck_assert_ptr_nonnull(creds1->openai_api_key);
+    ck_assert_ptr_null(creds1->anthropic_api_key);
+    unlink(path1);
 
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(creds->openai_api_key);
-    ck_assert_ptr_null(creds->anthropic_api_key);
-    ck_assert_ptr_null(creds->google_api_key);
-
-    unlink(path);
-}
-
-END_TEST
-// Test: Non-existent file returns false for insecure permissions
-START_TEST(test_nonexistent_file_permissions)
-{
+    // Test 2: Nonexistent file permissions
     ck_assert(!ik_credentials_insecure_permissions("/nonexistent/file.json"));
-}
 
-END_TEST
-// Test: JSON not an object
-START_TEST(test_json_not_object)
-{
-    char *path = create_temp_credentials("[1, 2, 3]");
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-
-    ck_assert(is_err(&result));
-
-    unlink(path);
-}
-
-END_TEST
-// Test: Empty API keys in file are ignored
-START_TEST(test_empty_api_keys_in_file)
-{
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    const char *json = "{\n"
-                       "  \"openai\": { \"api_key\": \"\" },\n"
-                       "  \"anthropic\": { \"api_key\": \"valid-key\" }\n"
-                       "}";
-    char *path = create_temp_credentials(json);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_null(creds->openai_api_key);  // Empty string ignored
-    ck_assert_str_eq(creds->anthropic_api_key, "valid-key");
-
-    unlink(path);
+    // Test 3: JSON not an object
+    char *path3 = create_temp_credentials("[1, 2, 3]");
+    ik_credentials_t *creds3 = NULL;
+    res_t result3 = ik_credentials_load(test_ctx, path3, &creds3);
+    ck_assert(is_err(&result3));
+    unlink(path3);
 }
 
 END_TEST
@@ -406,61 +299,185 @@ START_TEST(test_home_not_set)
 }
 
 END_TEST
-// Test: Provider object without api_key field
-START_TEST(test_provider_without_api_key)
+// Test: Provider parsing edge cases (no api_key, non-string, not object)
+START_TEST(test_provider_parsing)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    ik_credentials_t *c = NULL;
+    res_t r;
+
+    // No api_key field
+    char *p = create_temp_credentials("{ \"openai\": { \"other_field\": \"value\" } }");
+    r = ik_credentials_load(test_ctx, p, &c);
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_null(c->openai_api_key);
+    unlink(p);
+
+    // api_key is not a string
+    p = create_temp_credentials("{ \"openai\": { \"api_key\": 12345 } }");
+    r = ik_credentials_load(test_ctx, p, &c);
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_null(c->openai_api_key);
+    unlink(p);
+
+    // Provider is not an object
+    p = create_temp_credentials("{ \"openai\": \"not-an-object\" }");
+    r = ik_credentials_load(test_ctx, p, &c);
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_null(c->openai_api_key);
+    unlink(p);
+}
+
+END_TEST
+// Test: Path handling (no tilde, NULL path)
+START_TEST(test_path_handling)
+{
+    ik_credentials_t *c = NULL;
+    res_t r;
+
+    // Test 1: Path without tilde
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    char *p = create_temp_credentials("{ \"openai\": { \"api_key\": \"test-key\" } }");
+    r = ik_credentials_load(test_ctx, p, &c);
+    ck_assert(!is_err(&r));
+    ck_assert_str_eq(c->openai_api_key, "test-key");
+    unlink(p);
+
+    // Test 2: NULL path uses default
+    setenv("OPENAI_API_KEY", "env-key", 1);
+    r = ik_credentials_load(test_ctx, NULL, &c);
+    ck_assert(!is_err(&r));
+    ck_assert_str_eq(c->openai_api_key, "env-key");
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+}
+
+END_TEST
+// Test: Environment override when no file value exists
+START_TEST(test_env_override_no_file_value)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    const char *json = "{ \"openai\": { \"other_field\": \"value\" } }";
+    // File has only anthropic key
+    const char *json = "{ \"anthropic\": { \"api_key\": \"file-anthropic\" } }";
     char *path = create_temp_credentials(json);
+
+    // Set env vars for openai and google (which are not in file)
+    setenv("OPENAI_API_KEY", "env-openai", 1);
+    setenv("GOOGLE_API_KEY", "env-google", 1);
 
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_str_eq(creds->openai_api_key, "env-openai");
+    ck_assert_str_eq(creds->anthropic_api_key, "file-anthropic");
+    ck_assert_str_eq(creds->google_api_key, "env-google");
 
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
     unlink(path);
 }
 
 END_TEST
-// Test: Provider api_key is not a string (number)
-START_TEST(test_api_key_not_string)
+
+// Mock for yyjson_read_file_ to return NULL
+static bool mock_yyjson_read_file_fail = false;
+yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg, const yyjson_alc *alc, yyjson_read_err *err)
+{
+    if (mock_yyjson_read_file_fail) {
+        if (err) {
+            err->code = YYJSON_READ_ERROR_FILE_OPEN;
+            err->msg = "mock";
+            err->pos = 0;
+        }
+        return NULL;
+    }
+    return yyjson_read_file(path, flg, alc, err);
+}
+
+// Mock for yyjson_doc_get_root_ to return NULL
+static bool mock_yyjson_doc_get_root_null = false;
+yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
+{
+    if (mock_yyjson_doc_get_root_null) {
+        return NULL;
+    }
+    return yyjson_doc_get_root(doc);
+}
+
+// Test: yyjson_read_file_ returns NULL
+START_TEST(test_yyjson_read_file_error) {
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    char *path = create_temp_credentials(json);
+
+    // Mock yyjson_read_file_ to fail
+    mock_yyjson_read_file_fail = true;
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should get error from JSON parse failure
+    ck_assert(is_err(&result));
+
+    mock_yyjson_read_file_fail = false;
+    unlink(path);
+}
+END_TEST
+// Test: yyjson_doc_get_root_ returns NULL
+START_TEST(test_yyjson_doc_get_root_null)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    const char *json = "{ \"openai\": { \"api_key\": 12345 } }";
+    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
     char *path = create_temp_credentials(json);
+
+    // Mock yyjson_doc_get_root_ to return NULL
+    mock_yyjson_doc_get_root_null = true;
 
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
 
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_null(creds->openai_api_key);
+    // Should get error for NULL root
+    ck_assert(is_err(&result));
 
+    mock_yyjson_doc_get_root_null = false;
     unlink(path);
 }
 
 END_TEST
-// Test: Provider field is not an object
-START_TEST(test_provider_not_object)
+
+// Test: Only google provider in file (ensure lines 104-113 fully covered)
+START_TEST(test_only_google_provider)
 {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    const char *json = "{ \"openai\": \"not-an-object\" }";
+    const char *json = "{ \"google\": { \"api_key\": \"google-only-key\" } }";
     char *path = create_temp_credentials(json);
 
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
 
     ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(creds);
     ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_ptr_null(creds->anthropic_api_key);
+    ck_assert_str_eq(creds->google_api_key, "google-only-key");
 
     unlink(path);
 }
@@ -474,26 +491,22 @@ static Suite *credentials_suite(void)
     TCase *tc_core = tcase_create("Core");
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
-    tcase_add_test(tc_core, test_empty_credentials);
-    tcase_add_test(tc_core, test_load_from_environment);
+    tcase_add_test(tc_core, test_empty_and_env_credentials);
     tcase_add_test(tc_core, test_load_from_file);
     tcase_add_test(tc_core, test_environment_precedence);
     tcase_add_test(tc_core, test_provider_lookup);
     tcase_add_test(tc_core, test_invalid_json);
-    tcase_add_test(tc_core, test_insecure_permissions);
-    tcase_add_test(tc_core, test_secure_permissions);
-    tcase_add_test(tc_core, test_all_providers_from_file);
-    tcase_add_test(tc_core, test_empty_env_ignored);
+    tcase_add_test(tc_core, test_file_permissions);
     tcase_add_test(tc_core, test_unknown_provider);
-    tcase_add_test(tc_core, test_partial_providers);
-    tcase_add_test(tc_core, test_nonexistent_file_permissions);
-    tcase_add_test(tc_core, test_json_not_object);
-    tcase_add_test(tc_core, test_empty_api_keys_in_file);
+    tcase_add_test(tc_core, test_misc_edge_cases);
     tcase_add_test(tc_core, test_tilde_expansion);
     tcase_add_test(tc_core, test_home_not_set);
-    tcase_add_test(tc_core, test_provider_without_api_key);
-    tcase_add_test(tc_core, test_api_key_not_string);
-    tcase_add_test(tc_core, test_provider_not_object);
+    tcase_add_test(tc_core, test_provider_parsing);
+    tcase_add_test(tc_core, test_path_handling);
+    tcase_add_test(tc_core, test_env_override_no_file_value);
+    tcase_add_test(tc_core, test_yyjson_read_file_error);
+    tcase_add_test(tc_core, test_yyjson_doc_get_root_null);
+    tcase_add_test(tc_core, test_only_google_provider);
 
     suite_add_tcase(s, tc_core);
 

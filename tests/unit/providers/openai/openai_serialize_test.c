@@ -204,14 +204,13 @@ END_TEST START_TEST(test_serialize_assistant_message_multiple_tool_calls)
 
 END_TEST START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
 {
-    // If there are any tool calls, content should be null even if text blocks exist
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 2;
     msg->content_blocks = talloc_array(msg, ik_content_block_t, 2);
 
     msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "Some text");
+    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "Text");
 
     msg->content_blocks[1].type = IK_CONTENT_TOOL_CALL;
     msg->content_blocks[1].data.tool_call.id = talloc_strdup(msg, "call_1");
@@ -229,7 +228,6 @@ END_TEST START_TEST(test_serialize_assistant_message_mixed_content_and_tool_call
 
     yyjson_mut_val *tool_calls = yyjson_mut_obj_get(val, "tool_calls");
     ck_assert_ptr_nonnull(tool_calls);
-    // Only one tool call in array (text block not serialized as tool call)
     ck_assert_int_eq((int)yyjson_mut_arr_size(tool_calls), 1);
 
     yyjson_mut_doc_free(doc);
@@ -277,6 +275,34 @@ END_TEST START_TEST(test_serialize_assistant_message_non_text_blocks)
     yyjson_mut_val *content = yyjson_mut_obj_get(val, "content");
     ck_assert_ptr_nonnull(content);
     ck_assert_str_eq(yyjson_mut_get_str(content), "");
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST START_TEST(test_serialize_user_message_text_and_thinking)
+{
+    ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
+    msg->role = IK_ROLE_USER;
+    msg->content_count = 3;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, 3);
+
+    msg->content_blocks[0].type = IK_CONTENT_TEXT;
+    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "First");
+
+    msg->content_blocks[1].type = IK_CONTENT_THINKING;
+    msg->content_blocks[1].data.thinking.text = talloc_strdup(msg, "Think");
+
+    msg->content_blocks[2].type = IK_CONTENT_TEXT;
+    msg->content_blocks[2].data.text.text = talloc_strdup(msg, "Second");
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *val = ik_openai_serialize_message(doc, msg);
+
+    ck_assert_ptr_nonnull(val);
+
+    yyjson_mut_val *content = yyjson_mut_obj_get(val, "content");
+    ck_assert_ptr_nonnull(content);
+    ck_assert_str_eq(yyjson_mut_get_str(content), "First\n\nSecond");
 
     yyjson_mut_doc_free(doc);
 }
@@ -379,6 +405,7 @@ static Suite *openai_serialize_suite(void)
     tcase_add_test(tc_user, test_serialize_user_message_single_text);
     tcase_add_test(tc_user, test_serialize_user_message_multiple_text_blocks);
     tcase_add_test(tc_user, test_serialize_user_message_empty_content);
+    tcase_add_test(tc_user, test_serialize_user_message_text_and_thinking);
     suite_add_tcase(s, tc_user);
 
     TCase *tc_assistant = tcase_create("Assistant Messages");

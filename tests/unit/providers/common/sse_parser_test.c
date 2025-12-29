@@ -303,6 +303,170 @@ START_TEST(test_partial_remaining)
 
 END_TEST
 
+/* Test: Feed with zero length (line 46) */
+START_TEST(test_feed_zero_length)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Feed with len=0 should return early without modifying parser */
+    size_t initial_len = parser->len;
+    ik_sse_parser_feed(parser, "data", 0);
+    ck_assert_uint_eq(parser->len, initial_len);
+
+    /* Also test with NULL data and len=0 (allowed by assertion) */
+    ik_sse_parser_feed(parser, NULL, 0);
+    ck_assert_uint_eq(parser->len, initial_len);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: CRLF delimiter only (line 83 - crlf_delimiter != NULL && delimiter == NULL) */
+START_TEST(test_crlf_delimiter_only)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Use CRLF delimiter without any LF-only delimiter */
+    const char *input = "data: crlf_only\r\n\r\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_nonnull(event->data);
+    ck_assert_str_eq(event->data, "crlf_only");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: CRLF delimiter before LF delimiter (line 83 - crlf_delimiter < delimiter) */
+START_TEST(test_crlf_before_lf)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* CRLF delimiter comes before LF delimiter in buffer */
+    const char *input = "data: first\r\n\r\ndata: second\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    /* First event should use CRLF delimiter */
+    ik_sse_event_t *event1 = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event1);
+    ck_assert_str_eq(event1->data, "first");
+
+    /* Second event should use LF delimiter */
+    ik_sse_event_t *event2 = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event2);
+    ck_assert_str_eq(event2->data, "second");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Empty event (no data, no event type - just delimiter) */
+START_TEST(test_empty_event)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Just the delimiter with no content - should create event with NULL data */
+    const char *input = "\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_null(event->data);
+    ck_assert_ptr_null(event->event);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Event with comment line (ignored line type) */
+START_TEST(test_event_with_comment)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Comment lines (starting with ':') should be ignored */
+    const char *input = ": this is a comment\ndata: content\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_nonnull(event->data);
+    ck_assert_str_eq(event->data, "content");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: is_done with NULL data (line 210) */
+START_TEST(test_is_done_null_data)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Create an event with no data field (just delimiter) */
+    const char *input = "\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_null(event->data);
+
+    /* is_done should return false for NULL data */
+    ck_assert(!ik_sse_event_is_done(event));
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: LF delimiter before CRLF delimiter (line 83 branch 5) */
+START_TEST(test_lf_before_crlf)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* LF delimiter comes before CRLF delimiter in buffer */
+    const char *input = "data: first\n\ndata: second\r\n\r\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    /* First event should use LF delimiter */
+    ik_sse_event_t *event1 = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event1);
+    ck_assert_str_eq(event1->data, "first");
+
+    /* Second event should use CRLF delimiter */
+    ik_sse_event_t *event2 = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event2);
+    ck_assert_str_eq(event2->data, "second");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* Test: Event with short line (< 5 chars) - line 152 branch 1 */
+START_TEST(test_event_with_short_line)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Include a short line (less than 5 chars) that should be ignored */
+    const char *input = "id\ndata: content\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_nonnull(event->data);
+    ck_assert_str_eq(event->data, "content");
+
+    talloc_free(ctx);
+}
+END_TEST
+
 /* Test suite */
 static Suite *sse_parser_suite(void)
 {
@@ -323,6 +487,14 @@ static Suite *sse_parser_suite(void)
     tcase_add_test(tc_core, test_event_type_no_space);
     tcase_add_test(tc_core, test_buffer_growth);
     tcase_add_test(tc_core, test_partial_remaining);
+    tcase_add_test(tc_core, test_feed_zero_length);
+    tcase_add_test(tc_core, test_crlf_delimiter_only);
+    tcase_add_test(tc_core, test_crlf_before_lf);
+    tcase_add_test(tc_core, test_empty_event);
+    tcase_add_test(tc_core, test_event_with_comment);
+    tcase_add_test(tc_core, test_is_done_null_data);
+    tcase_add_test(tc_core, test_lf_before_crlf);
+    tcase_add_test(tc_core, test_event_with_short_line);
     suite_add_tcase(s, tc_core);
 
     return s;

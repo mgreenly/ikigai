@@ -226,6 +226,23 @@ START_TEST(test_model_openai_thinking_med)
 }
 
 END_TEST
+// Test: OpenAI GPT-5 with none thinking effort (early return line 50-52)
+START_TEST(test_model_openai_thinking_none)
+{
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/none");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->provider, "openai");
+    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
+
+    // Verify feedback shows "disabled" (not "none effort")
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "disabled") != NULL);
+}
+
+END_TEST
 // Test: Warning for non-thinking model with thinking level
 START_TEST(test_model_nothinking_with_level)
 {
@@ -298,6 +315,41 @@ START_TEST(test_model_parse_empty_model)
 }
 
 END_TEST
+// Test: Google model with budget=0 (gemini-3.0-flash - level-based)
+START_TEST(test_model_google_level_based)
+{
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-3.0-flash/high");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->provider, "google");
+
+    // Verify feedback shows "level" instead of tokens for Gemini 3.x
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "high") != NULL);
+    ck_assert(strstr(line, "level") != NULL);
+}
+
+END_TEST
+// Test: Anthropic model with budget=0 (non-budget model)
+START_TEST(test_model_anthropic_no_budget)
+{
+    // Use claude-3-5-sonnet-20241022 which is not in capability table (budget=0)
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/high");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->provider, "anthropic");
+
+    // Verify feedback shows "level" instead of tokens when budget=0
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "high") != NULL);
+    ck_assert(strstr(line, "level") != NULL);
+}
+
+END_TEST
 
 // Suite definition
 static Suite *commands_model_thinking_suite(void)
@@ -316,10 +368,13 @@ static Suite *commands_model_thinking_suite(void)
     tcase_add_test(tc_core, test_model_openai_thinking);
     tcase_add_test(tc_core, test_model_openai_thinking_low);
     tcase_add_test(tc_core, test_model_openai_thinking_med);
+    tcase_add_test(tc_core, test_model_openai_thinking_none);
     tcase_add_test(tc_core, test_model_nothinking_with_level);
     tcase_add_test(tc_core, test_model_switch_during_request);
     tcase_add_test(tc_core, test_model_parse_trailing_slash);
     tcase_add_test(tc_core, test_model_parse_empty_model);
+    tcase_add_test(tc_core, test_model_google_level_based);
+    tcase_add_test(tc_core, test_model_anthropic_no_budget);
 
     suite_add_tcase(s, tc_core);
 

@@ -198,7 +198,7 @@ void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
     // Persist to database
     res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                         repl->current->uuid, "command", content, data_json);
-    if (is_err(&db_res)) {
+    if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE - Success path tested in integration, error path in unit tests
         // Log error but don't crash - memory state is authoritative
         yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE

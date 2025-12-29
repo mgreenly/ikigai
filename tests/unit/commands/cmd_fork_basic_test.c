@@ -11,6 +11,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/providers/provider.h"
+#include "../../../src/providers/request.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -27,6 +28,26 @@ int posix_rename_(const char *oldpath, const char *newpath)
     (void)oldpath;
     (void)newpath;
     return 0;
+}
+
+// Mock ik_agent_get_provider_ - default passthrough
+res_t ik_agent_get_provider_(void *agent, void **provider_out)
+{
+    *provider_out = ((ik_agent_ctx_t *)agent)->provider_instance;
+    return OK(NULL);
+}
+
+// Mock ik_request_build_from_conversation_ - default passthrough
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    (void)agent;
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    if (req == NULL) {
+        TALLOC_CTX *err_ctx = talloc_new(NULL);
+        return ERR(err_ctx, OUT_OF_MEMORY, "Out of memory");
+    }
+    *req_out = req;
+    return OK(NULL);
 }
 
 // Test fixtures

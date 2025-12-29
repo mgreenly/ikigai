@@ -178,6 +178,27 @@ END_TEST START_TEST(test_user_message_allocated_on_context)
     ck_assert(size > 0);
 }
 
+END_TEST START_TEST(test_user_message_google_provider_multiple_categories)
+{
+    /* Test google provider with multiple error categories to ensure branch coverage */
+    char *msg;
+
+    /* Auth error with google */
+    msg = ik_error_user_message(test_ctx, "google", IK_ERR_CAT_AUTH, NULL);
+    ck_assert_ptr_nonnull(msg);
+    ck_assert(strstr(msg, "GOOGLE_API_KEY") != NULL);
+
+    /* Server error with google */
+    msg = ik_error_user_message(test_ctx, "google", IK_ERR_CAT_SERVER, NULL);
+    ck_assert_ptr_nonnull(msg);
+    ck_assert(strstr(msg, "google") != NULL);
+
+    /* Rate limit with google */
+    msg = ik_error_user_message(test_ctx, "google", IK_ERR_CAT_RATE_LIMIT, NULL);
+    ck_assert_ptr_nonnull(msg);
+    ck_assert(strstr(msg, "google") != NULL);
+}
+
 END_TEST
 /**
  * Retry Delay Calculation Tests
@@ -306,6 +327,7 @@ static Suite *error_messages_suite(void)
     tcase_add_test(tc_message, test_user_message_unknown_no_detail);
     tcase_add_test(tc_message, test_user_message_empty_detail_treated_as_null);
     tcase_add_test(tc_message, test_user_message_allocated_on_context);
+    tcase_add_test(tc_message, test_user_message_google_provider_multiple_categories);
     suite_add_tcase(s, tc_message);
 
     /* Retry delay calculation tests */

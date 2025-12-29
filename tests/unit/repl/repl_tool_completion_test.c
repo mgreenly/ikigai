@@ -38,6 +38,30 @@ res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid
     return OK(NULL);
 }
 
+/* Mock render frame - used to test the render branch without full render setup */
+res_t ik_repl_render_frame_(void *repl)
+{
+    (void)repl;
+    return OK(NULL);
+}
+
+/* Mock agent_get_provider - needed for tool loop continuation */
+res_t ik_agent_get_provider_(void *agent, void **provider_out)
+{
+    (void)provider_out;
+    /* Return error with agent context to satisfy error context requirements */
+    return ERR(agent, PROVIDER, "Mock provider error");
+}
+
+/* Mock request_build_from_conversation - needed if get_provider succeeds */
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    (void)agent;
+    (void)req_out;
+    /* Return error with ctx to satisfy error context requirements */
+    return ERR(ctx, PARSE, "Mock request build error");
+}
+
 /* Dummy thread function that immediately exits - used for tests that need
  * a valid thread handle for pthread_join but don't actually run the thread */
 static void *dummy_thread_func(void *arg)

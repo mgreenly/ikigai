@@ -174,6 +174,46 @@ END_TEST START_TEST(test_parse_usage_edge_cases)
                                              "response.completed",
                                              "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20,\"output_tokens_details\":{\"reasoning_tokens\":\"not an int\"}}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.thinking_tokens, 0);
+
+    talloc_free(ctx);
+    events->count = 0;
+    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":\"not an int\",\"output_tokens\":20}}}");
+    ck_assert_int_eq(events->items[0].data.done.usage.input_tokens, 0);
+
+    talloc_free(ctx);
+    events->count = 0;
+    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens\":\"not an int\"}}}");
+    ck_assert_int_eq(events->items[0].data.done.usage.output_tokens, 0);
+
+    talloc_free(ctx);
+    events->count = 0;
+    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"total_tokens\":\"not an int\"}}}");
+    ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 0);
+
+    talloc_free(ctx);
+    events->count = 0;
+    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":0,\"output_tokens\":0,\"total_tokens\":50}}}");
+    ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 50);
+
+    talloc_free(ctx);
+    events->count = 0;
+    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":{}}}}");
+    ck_assert_int_eq(events->items[0].data.done.usage.thinking_tokens, 0);
 }
 
 END_TEST

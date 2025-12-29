@@ -220,6 +220,71 @@ END_TEST START_TEST(test_handle_error_without_error_object)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
+END_TEST START_TEST(test_handle_error_with_error_object_missing_type)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"message\": \"Some error message\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 400, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
+}
+
+END_TEST START_TEST(test_handle_error_with_error_object_missing_message)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"type\": \"invalid_request_error\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 400, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
+}
+
+END_TEST START_TEST(test_handle_error_with_empty_error_object)
+{
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {}"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 404, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+}
+
+END_TEST START_TEST(test_handle_error_with_string_error)
+{
+    // Test case where "error" field is a string instead of an object
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": \"Some error string\""
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 500, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+
 END_TEST
 /* ================================================================
  * Retry-After Header Tests
@@ -347,6 +412,10 @@ static Suite *anthropic_errors_suite(void)
     tcase_add_test(tc_errors, test_handle_error_no_root);
     tcase_add_test(tc_errors, test_handle_error_with_error_object);
     tcase_add_test(tc_errors, test_handle_error_without_error_object);
+    tcase_add_test(tc_errors, test_handle_error_with_error_object_missing_type);
+    tcase_add_test(tc_errors, test_handle_error_with_error_object_missing_message);
+    tcase_add_test(tc_errors, test_handle_error_with_empty_error_object);
+    tcase_add_test(tc_errors, test_handle_error_with_string_error);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After Headers");

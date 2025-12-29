@@ -138,6 +138,31 @@ START_TEST(test_completion_model_arguments)
 }
 
 END_TEST
+
+// Test: /model with thinking level (slash present)
+START_TEST(test_completion_model_thinking_level)
+{
+    // "/model claude-haiku-4-5/" should complete thinking levels
+    ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model claude-haiku-4-5/");
+    ck_assert_ptr_nonnull(comp);
+    ck_assert(comp->count > 0);
+
+    // Verify thinking levels are present
+    bool found_none = false, found_low = false, found_med = false, found_high = false;
+    for (size_t i = 0; i < comp->count; i++) {
+        if (strcmp(comp->candidates[i], "none") == 0) found_none = true;
+        if (strcmp(comp->candidates[i], "low") == 0) found_low = true;
+        if (strcmp(comp->candidates[i], "med") == 0) found_med = true;
+        if (strcmp(comp->candidates[i], "high") == 0) found_high = true;
+    }
+    ck_assert(found_none);
+    ck_assert(found_low);
+    ck_assert(found_med);
+    ck_assert(found_high);
+}
+
+END_TEST
+
 // Test: Uppercase argument prefix (tests case handling in fzy)
 START_TEST(test_completion_argument_case_sensitive)
 {
@@ -225,6 +250,7 @@ static Suite *completion_matching_args_suite(void)
     tcase_add_test(tc, test_completion_rewind_arguments);
     tcase_add_test(tc, test_completion_rewind_no_marks);
     tcase_add_test(tc, test_completion_model_arguments);
+    tcase_add_test(tc, test_completion_model_thinking_level);
     tcase_add_test(tc, test_completion_argument_case_sensitive);
     tcase_add_test(tc, test_completion_no_space_in_input);
     tcase_add_test(tc, test_completion_empty_command_name);

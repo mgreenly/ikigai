@@ -29,8 +29,7 @@ static void teardown(void)
  * Edge Cases - Invalid Types (Part 2)
  * ================================================================ */
 
-START_TEST(test_parse_response_refusal_no_field)
-{
+START_TEST(test_parse_response_refusal_no_field) {
     const char *json = "{"
                        "\"id\":\"resp-norefusal\","
                        "\"model\":\"gpt-4o\","

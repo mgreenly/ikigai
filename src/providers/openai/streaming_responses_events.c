@@ -8,7 +8,7 @@
 #include "error.h"
 #include "panic.h"
 #include "response.h"
-#include "vendor/yyjson/yyjson.h"
+#include "wrapper_json.h"
 
 #include <assert.h>
 #include <string.h>
@@ -134,7 +134,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         return;
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root_(doc);
     if (root == NULL || !yyjson_is_obj(root)) {
         yyjson_doc_free(doc);
         return;

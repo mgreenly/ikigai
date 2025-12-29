@@ -159,6 +159,33 @@ START_TEST(test_completion_null_tool_call_clears_pending)
 }
 
 END_TEST
+
+/* Test: Completion with IK_FINISH_STOP maps to "stop" */
+START_TEST(test_completion_finish_reason_stop)
+{
+    /* Create response with STOP finish reason */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = NULL;
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 0;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    /* Create successful completion */
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify finish reason was mapped */
+    ck_assert_ptr_nonnull(repl->current->response_finish_reason);
+    ck_assert_str_eq(repl->current->response_finish_reason, "stop");
+}
+
+END_TEST
+
 /* Test: Completion with IK_FINISH_LENGTH maps to "length" */
 START_TEST(test_completion_finish_reason_length)
 {
@@ -298,6 +325,7 @@ static Suite *repl_http_completion_callback_advanced_suite(void)
     tcase_add_test(tc_core, test_completion_stores_tool_call);
     tcase_add_test(tc_core, test_completion_clears_previous_tool_call);
     tcase_add_test(tc_core, test_completion_null_tool_call_clears_pending);
+    tcase_add_test(tc_core, test_completion_finish_reason_stop);
     tcase_add_test(tc_core, test_completion_finish_reason_length);
     tcase_add_test(tc_core, test_completion_finish_reason_tool_use);
     tcase_add_test(tc_core, test_completion_finish_reason_content_filter);

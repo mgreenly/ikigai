@@ -15,7 +15,8 @@ extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t
 
 static int parse_thinking_level(const char *level_str)
 {
-    if (level_str == NULL || strcmp(level_str, "none") == 0) {
+    // Note: level_str guaranteed non-NULL by caller (checked in ik_agent_restore_from_row)
+    if (strcmp(level_str, "none") == 0) {
         return IK_THINKING_NONE;
     } else if (strcmp(level_str, "low") == 0) {
         return IK_THINKING_LOW;
@@ -114,9 +115,10 @@ res_t ik_agent_get_provider(ik_agent_ctx_t *agent, struct ik_provider **out)
     res_t res = ik_provider_create(agent, agent->provider, &provider);
     if (is_err(&res)) {
         // Provider creation failed (likely missing credentials)
+        // Note: agent->provider guaranteed non-NULL here (checked at line 108)
         return ERR(agent, MISSING_CREDENTIALS,
                    "Failed to create provider '%s': %s",
-                   agent->provider ? agent->provider : "NULL",
+                   agent->provider,
                    res.err->msg);
     }
 

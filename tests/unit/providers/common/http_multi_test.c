@@ -1,4 +1,5 @@
 #include "../../../../src/providers/common/http_multi.h"
+#include "../../../../src/wrapper.h"
 #include "../../../test_utils.h"
 
 #include <check.h>
@@ -276,6 +277,225 @@ END_TEST START_TEST(test_destructor_handles_active_requests)
 END_TEST
 
 /**
+ * Error Path Tests
+ */
+
+/* Mock data for curl failures */
+static bool g_curl_multi_init_should_fail = false;
+static bool g_curl_multi_perform_should_fail = false;
+static bool g_curl_multi_fdset_should_fail = false;
+static bool g_curl_multi_timeout_should_fail = false;
+static bool g_curl_easy_init_should_fail = false;
+static bool g_curl_multi_add_handle_should_fail = false;
+
+/* Mock implementations */
+CURLM *curl_multi_init_(void) {
+    if (g_curl_multi_init_should_fail) {
+        return NULL;
+    }
+    return curl_multi_init();
+}
+
+CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles) {
+    if (g_curl_multi_perform_should_fail) {
+        return CURLM_BAD_HANDLE;
+    }
+    return curl_multi_perform(multi_handle, running_handles);
+}
+
+CURLMcode curl_multi_fdset_(CURLM *multi_handle, fd_set *read_fd_set,
+                             fd_set *write_fd_set, fd_set *exc_fd_set,
+                             int *max_fd) {
+    if (g_curl_multi_fdset_should_fail) {
+        return CURLM_BAD_HANDLE;
+    }
+    return curl_multi_fdset(multi_handle, read_fd_set, write_fd_set, exc_fd_set, max_fd);
+}
+
+CURLMcode curl_multi_timeout_(CURLM *multi_handle, long *timeout) {
+    if (g_curl_multi_timeout_should_fail) {
+        return CURLM_BAD_HANDLE;
+    }
+    return curl_multi_timeout(multi_handle, timeout);
+}
+
+CURL *curl_easy_init_(void) {
+    if (g_curl_easy_init_should_fail) {
+        return NULL;
+    }
+    return curl_easy_init();
+}
+
+CURLMcode curl_multi_add_handle_(CURLM *multi_handle, CURL *easy_handle) {
+    if (g_curl_multi_add_handle_should_fail) {
+        return CURLM_BAD_HANDLE;
+    }
+    return curl_multi_add_handle(multi_handle, easy_handle);
+}
+
+START_TEST(test_multi_create_init_failure) {
+    g_curl_multi_init_should_fail = true;
+    res_t res = ik_http_multi_create(test_ctx);
+    g_curl_multi_init_should_fail = false;
+
+    ck_assert(res.is_err);
+    ck_assert_ptr_nonnull(res.err);
+}
+
+END_TEST
+
+START_TEST(test_multi_perform_failure) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+    int still_running = 0;
+
+    g_curl_multi_perform_should_fail = true;
+    res_t perform_res = ik_http_multi_perform(multi, &still_running);
+    g_curl_multi_perform_should_fail = false;
+
+    ck_assert(perform_res.is_err);
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_multi_fdset_failure) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+    fd_set read_fds, write_fds, exc_fds;
+    int max_fd = -1;
+
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    FD_ZERO(&exc_fds);
+
+    g_curl_multi_fdset_should_fail = true;
+    res_t fdset_res = ik_http_multi_fdset(multi, &read_fds, &write_fds, &exc_fds, &max_fd);
+    g_curl_multi_fdset_should_fail = false;
+
+    ck_assert(fdset_res.is_err);
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_multi_timeout_failure) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+    long timeout_ms = 0;
+
+    g_curl_multi_timeout_should_fail = true;
+    res_t timeout_res = ik_http_multi_timeout(multi, &timeout_ms);
+    g_curl_multi_timeout_should_fail = false;
+
+    ck_assert(timeout_res.is_err);
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_add_request_easy_init_failure) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+
+    ik_http_request_t req = {
+        .url = "https://example.com",
+        .method = NULL,
+        .headers = NULL,
+        .body = NULL,
+        .body_len = 0
+    };
+
+    g_curl_easy_init_should_fail = true;
+    res_t add_res = ik_http_multi_add_request(multi, &req, NULL, NULL, NULL, NULL);
+    g_curl_easy_init_should_fail = false;
+
+    ck_assert(add_res.is_err);
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_add_request_multi_add_handle_failure) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+
+    ik_http_request_t req = {
+        .url = "https://example.com",
+        .method = NULL,
+        .headers = NULL,
+        .body = NULL,
+        .body_len = 0
+    };
+
+    g_curl_multi_add_handle_should_fail = true;
+    res_t add_res = ik_http_multi_add_request(multi, &req, NULL, NULL, NULL, NULL);
+    g_curl_multi_add_handle_should_fail = false;
+
+    ck_assert(add_res.is_err);
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_add_request_with_body_null) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+
+    /* Request with body = NULL and body_len = 0 */
+    ik_http_request_t req = {
+        .url = "https://example.com/api",
+        .method = "POST",
+        .headers = NULL,
+        .body = NULL,
+        .body_len = 0
+    };
+
+    res_t add_res = ik_http_multi_add_request(multi, &req, NULL, NULL, NULL, NULL);
+    ck_assert(!add_res.is_err);
+
+    talloc_free(multi);
+}
+
+END_TEST
+
+START_TEST(test_add_request_with_body_zero_length) {
+    res_t res = ik_http_multi_create(test_ctx);
+    ck_assert(!res.is_err);
+
+    ik_http_multi_t *multi = res.ok;
+
+    /* Request with body != NULL but body_len = 0 */
+    const char *empty_body = "";
+    ik_http_request_t req = {
+        .url = "https://example.com/api",
+        .method = "POST",
+        .headers = NULL,
+        .body = empty_body,
+        .body_len = 0
+    };
+
+    res_t add_res = ik_http_multi_add_request(multi, &req, NULL, NULL, NULL, NULL);
+    ck_assert(!add_res.is_err);
+
+    talloc_free(multi);
+}
+
+END_TEST
+
+/**
  * Test Suite Configuration
  */
 
@@ -308,6 +528,19 @@ static Suite *http_multi_suite(void)
     tcase_add_test(tc_memory, test_parent_context_frees_all);
     tcase_add_test(tc_memory, test_destructor_handles_active_requests);
     suite_add_tcase(s, tc_memory);
+
+    /* Error path tests */
+    TCase *tc_errors = tcase_create("Error Paths");
+    tcase_add_checked_fixture(tc_errors, setup, teardown);
+    tcase_add_test(tc_errors, test_multi_create_init_failure);
+    tcase_add_test(tc_errors, test_multi_perform_failure);
+    tcase_add_test(tc_errors, test_multi_fdset_failure);
+    tcase_add_test(tc_errors, test_multi_timeout_failure);
+    tcase_add_test(tc_errors, test_add_request_easy_init_failure);
+    tcase_add_test(tc_errors, test_add_request_multi_add_handle_failure);
+    tcase_add_test(tc_errors, test_add_request_with_body_null);
+    tcase_add_test(tc_errors, test_add_request_with_body_zero_length);
+    suite_add_tcase(s, tc_errors);
 
     return s;
 }
