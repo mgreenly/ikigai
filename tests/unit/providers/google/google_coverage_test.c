@@ -11,8 +11,10 @@
 #include "error.h"
 #include "logger.h"
 #include "providers/common/http_multi.h"
+#include "providers/common/sse_parser.h"
 #include "providers/google/google.h"
 #include "providers/google/google_internal.h"
+#include "providers/google/streaming.h"
 #include "providers/provider.h"
 #include "providers/request.h"
 #include "wrapper_internal.h"
@@ -33,7 +35,7 @@ static void teardown(void)
  * Coverage Tests
  * ================================================================ */
 
-// Test line 134 branches 1 and 2: NULL stream and NULL sse_parser
+// Test line 113 branches 1 and 2: NULL stream and NULL sse_parser
 START_TEST(test_google_stream_write_cb_null_stream)
 {
     // Test with NULL stream context
@@ -59,6 +61,7 @@ START_TEST(test_google_stream_write_cb_null_sse_parser)
     ck_assert_uint_eq(result, 10);
 }
 END_TEST
+
 
 // Test line 166: NULL stream in completion callback
 START_TEST(test_google_stream_completion_cb_null_stream)
@@ -303,6 +306,125 @@ START_TEST(test_google_cancel_with_active_stream)
 }
 END_TEST
 
+// Test google_fdset vtable method
+START_TEST(test_google_fdset)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    fd_set read_fds, write_fds, exc_fds;
+    int max_fd = 0;
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    FD_ZERO(&exc_fds);
+
+    res_t r = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+
+    // Should succeed (delegates to http_multi)
+    ck_assert(!is_err(&r));
+}
+END_TEST
+
+// Test google_perform vtable method
+START_TEST(test_google_perform)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    int running_handles = 0;
+    res_t r = provider->vt->perform(provider->ctx, &running_handles);
+
+    // Should succeed (delegates to http_multi)
+    ck_assert(!is_err(&r));
+}
+END_TEST
+
+// Test google_timeout vtable method
+START_TEST(test_google_timeout)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    long timeout_ms = 0;
+    res_t r = provider->vt->timeout(provider->ctx, &timeout_ms);
+
+    // Should succeed (delegates to http_multi)
+    ck_assert(!is_err(&r));
+}
+END_TEST
+
+// Test google_cleanup vtable method
+START_TEST(test_google_cleanup)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Call cleanup - should not crash
+    provider->vt->cleanup(provider->ctx);
+}
+END_TEST
+
+// Test line 204: success path (200-299 status) in info_read
+START_TEST(test_google_info_read_success_status)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    ik_google_ctx_t *impl_ctx = (ik_google_ctx_t *)provider->ctx;
+
+    ik_google_active_stream_t *stream = talloc_zero(impl_ctx, ik_google_active_stream_t);
+    stream->completed = true;
+    stream->http_status = 200;
+    stream->completion_cb = test_completion_cb;
+    stream->completion_ctx = NULL;
+
+    impl_ctx->active_stream = stream;
+
+    completion_cb_called = 0;
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
+
+    // Completion callback should be called with success
+    ck_assert_int_eq(completion_cb_called, 1);
+    ck_assert(completion_success);
+    ck_assert_int_eq(completion_http_status, 200);
+}
+END_TEST
+
+// Test line 237: non-NULL error_message path
+START_TEST(test_google_info_read_error_message_cleanup)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    ik_google_ctx_t *impl_ctx = (ik_google_ctx_t *)provider->ctx;
+
+    ik_google_active_stream_t *stream = talloc_zero(impl_ctx, ik_google_active_stream_t);
+    stream->completed = true;
+    stream->http_status = 404;
+    stream->completion_cb = test_completion_cb;
+    stream->completion_ctx = NULL;
+
+    impl_ctx->active_stream = stream;
+
+    completion_cb_called = 0;
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
+
+    // Should have cleaned up error message
+    ck_assert_int_eq(completion_cb_called, 1);
+    ck_assert(!completion_success);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -315,7 +437,7 @@ static Suite *google_coverage_suite(void)
     tcase_set_timeout(tc_coverage, 30);
     tcase_add_unchecked_fixture(tc_coverage, setup, teardown);
 
-    // Line 134: NULL checks in stream_write_cb
+    // Line 113: NULL checks in stream_write_cb
     tcase_add_test(tc_coverage, test_google_stream_write_cb_null_stream);
     tcase_add_test(tc_coverage, test_google_stream_write_cb_null_sse_parser);
 
@@ -340,6 +462,16 @@ static Suite *google_coverage_suite(void)
     // Line 373-374: cancel with/without active_stream
     tcase_add_test(tc_coverage, test_google_cancel_null_active_stream);
     tcase_add_test(tc_coverage, test_google_cancel_with_active_stream);
+
+    // Vtable methods
+    tcase_add_test(tc_coverage, test_google_fdset);
+    tcase_add_test(tc_coverage, test_google_perform);
+    tcase_add_test(tc_coverage, test_google_timeout);
+    tcase_add_test(tc_coverage, test_google_cleanup);
+
+    // Success path and error message cleanup
+    tcase_add_test(tc_coverage, test_google_info_read_success_status);
+    tcase_add_test(tc_coverage, test_google_info_read_error_message_cleanup);
 
     suite_add_tcase(s, tc_coverage);
 
