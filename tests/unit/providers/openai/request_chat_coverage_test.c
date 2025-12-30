@@ -181,6 +181,113 @@ START_TEST(test_tool_choice_invalid)
 
 END_TEST
 
+/**
+ * Test: Serialize with system_prompt to cover lines 161-182
+ */
+START_TEST(test_serialize_with_system_prompt)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 0;
+    req->tool_count = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(json);
+
+    /* Verify system message is present */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *messages = yyjson_obj_get(root, "messages");
+    ck_assert_ptr_nonnull(messages);
+    ck_assert(yyjson_is_arr(messages));
+    ck_assert_uint_ge(yyjson_arr_size(messages), 1);
+
+    yyjson_val *first_msg = yyjson_arr_get_first(messages);
+    yyjson_val *role = yyjson_obj_get(first_msg, "role");
+    const char *role_str = yyjson_get_str(role);
+    ck_assert_str_eq(role_str, "system");
+
+    yyjson_val *content = yyjson_obj_get(first_msg, "content");
+    const char *content_str = yyjson_get_str(content);
+    ck_assert_str_eq(content_str, "You are a helpful assistant.");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with streaming=true to cover lines 208-230
+ */
+START_TEST(test_serialize_with_streaming)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = NULL;
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 0;
+    req->tool_count = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, true, &json);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(json);
+
+    /* Verify stream is true */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *stream = yyjson_obj_get(root, "stream");
+    ck_assert_ptr_nonnull(stream);
+    ck_assert(yyjson_get_bool(stream));
+
+    /* Verify stream_options with include_usage */
+    yyjson_val *stream_opts = yyjson_obj_get(root, "stream_options");
+    ck_assert_ptr_nonnull(stream_opts);
+    yyjson_val *include_usage = yyjson_obj_get(stream_opts, "include_usage");
+    ck_assert_ptr_nonnull(include_usage);
+    ck_assert(yyjson_get_bool(include_usage));
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with invalid tool parameters JSON to cover error path (line 62)
+ */
+START_TEST(test_tool_invalid_json_parameters)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = NULL;
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 0;
+    req->tool_count = 1;
+    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(ctx, "test_tool");
+    req->tools[0].description = talloc_strdup(ctx, "A test tool");
+    req->tools[0].parameters = talloc_strdup(ctx, "{invalid json}"); /* Invalid JSON */
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    /* Should fail due to invalid JSON parameters */
+    ck_assert(!is_ok(&result));
+}
+
+END_TEST
+
 static Suite *request_chat_coverage_suite(void)
 {
     Suite *s = suite_create("request_chat_coverage");
@@ -192,7 +299,15 @@ static Suite *request_chat_coverage_suite(void)
     tcase_add_test(tc_tools, test_tool_choice_none);
     tcase_add_test(tc_tools, test_tool_choice_required);
     tcase_add_test(tc_tools, test_tool_choice_invalid);
+    tcase_add_test(tc_tools, test_tool_invalid_json_parameters);
     suite_add_tcase(s, tc_tools);
+
+    TCase *tc_basic = tcase_create("basic_serialization");
+    tcase_set_timeout(tc_basic, 30);
+    tcase_add_checked_fixture(tc_basic, setup, teardown);
+    tcase_add_test(tc_basic, test_serialize_with_system_prompt);
+    tcase_add_test(tc_basic, test_serialize_with_streaming);
+    suite_add_tcase(s, tc_basic);
 
     return s;
 }
