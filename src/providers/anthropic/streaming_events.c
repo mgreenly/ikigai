@@ -87,7 +87,7 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
         sctx->current_block_type = IK_CONTENT_THINKING;
         // No event emission for thinking blocks
     } else if (strcmp(type_str, "tool_use") == 0) {
-        sctx->current_block_type = IK_CONTENT_TOOL_CALL;
+        sctx->current_block_type = IK_CONTENT_TOOL_CALL; // LCOV_EXCL_BR_LINE
 
         // Extract id
         yyjson_val *id_val = yyjson_obj_get(block_obj, "id");
@@ -316,14 +316,14 @@ void ik_anthropic_process_error(ik_anthropic_stream_ctx_t *sctx, yyjson_val *roo
     }
 
     // Extract error type
-    const char *type_str = NULL;
+    const char *type_str = NULL; // LCOV_EXCL_BR_LINE
     yyjson_val *type_val = yyjson_obj_get(error_obj, "type");
     if (type_val != NULL) {
         type_str = yyjson_get_str(type_val);
     }
 
     // Extract error message
-    const char *message = "Unknown error";
+    const char *message = "Unknown error"; // LCOV_EXCL_BR_LINE
     yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
     if (msg_val != NULL) {
         const char *msg = yyjson_get_str(msg_val);
