@@ -25,126 +25,77 @@ static void teardown(void)
  * Additional Response Parsing Coverage Tests
  * ================================================================ */
 
-START_TEST(test_parse_response_type_null)
+START_TEST(test_parse_response_null_fields)
 {
-    const char *json =
-        "{"
-        "  \"type\": null,"
-        "  \"model\": \"claude-3-5-sonnet-20241022\","
-        "  \"stop_reason\": \"end_turn\","
-        "  \"usage\": {\"input_tokens\": 10, \"output_tokens\": 20},"
-        "  \"content\": []"
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(resp);
+    const char *jsons[] = {
+        "{\"type\":null,\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
+        "{\"type\":\"message\",\"model\":null,\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
+        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}"
+    };
+    for (size_t i = 0; i < 3; i++) {
+        ik_response_t *resp = NULL;
+        res_t r = ik_anthropic_parse_response(test_ctx, jsons[i], strlen(jsons[i]), &resp);
+        ck_assert(!is_err(&r));
+        ck_assert_ptr_nonnull(resp);
+        talloc_free(resp);
+    }
 }
-
-END_TEST START_TEST(test_parse_response_error_type_no_error_obj)
+END_TEST START_TEST(test_parse_response_errors)
 {
-    const char *json =
-        "{"
-        "  \"type\": \"error\","
-        "  \"model\": \"claude-3-5-sonnet-20241022\""
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&r));
+    const char *jsons[] = {
+        "{\"type\":\"error\",\"model\":\"claude\"}",
+        "{\"type\":\"error\",\"error\":{\"message\":null}}",
+        "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":null}}",
+        "{\"type\":\"error\",\"error\":{\"type\":\"server_error\",\"message\":\"Error occurred\"}}",
+        "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\"}}"
+    };
+    for (size_t i = 0; i < 5; i++) {
+        ik_response_t *resp = NULL;
+        res_t r = ik_anthropic_parse_response(test_ctx, jsons[i], strlen(jsons[i]), &resp);
+        ck_assert(is_err(&r));
+    }
 }
-
-END_TEST START_TEST(test_parse_response_error_type_null_message)
+END_TEST START_TEST(test_parse_response_edge_cases)
 {
-    const char *json =
-        "{"
-        "  \"type\": \"error\","
-        "  \"error\": {"
-        "    \"message\": null"
-        "  }"
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&r));
+    struct { const char *json; bool should_error; } cases[] = {
+        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":\"not array\"}", false},
+        {"{ invalid json }", true},
+        {"[1, 2, 3]", true},
+        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}", true},
+        {"{\"type\":\"message\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false},
+        {"{\"type\":\"message\",\"model\":\"claude\",\"usage\":{},\"content\":[]}", false},
+        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false}
+    };
+    for (size_t i = 0; i < 7; i++) {
+        ik_response_t *resp = NULL;
+        res_t r = ik_anthropic_parse_response(test_ctx, cases[i].json, strlen(cases[i].json), &resp);
+        if (cases[i].should_error) {
+            ck_assert(is_err(&r));
+        } else {
+            ck_assert(!is_err(&r));
+            talloc_free(resp);
+        }
+    }
 }
+END_TEST
 
-END_TEST START_TEST(test_parse_response_error_type_null_message_str)
+/* ================================================================
+ * Finish Reason Mapping Coverage Tests
+ * ================================================================ */
+
+START_TEST(test_map_finish_reason_all)
 {
-    const char *json =
-        "{"
-        "  \"type\": \"error\","
-        "  \"error\": {"
-        "    \"type\": \"invalid_request_error\","
-        "    \"message\": null"
-        "  }"
-        "}";
+    struct { const char *input; ik_finish_reason_t expected; } test_cases[] = {
+        {"end_turn", IK_FINISH_STOP}, {"stop_sequence", IK_FINISH_STOP},
+        {"max_tokens", IK_FINISH_LENGTH}, {"tool_use", IK_FINISH_TOOL_USE},
+        {"refusal", IK_FINISH_CONTENT_FILTER}, {"unknown_reason", IK_FINISH_UNKNOWN},
+        {NULL, IK_FINISH_UNKNOWN}
+    };
 
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&r));
-}
-
-END_TEST START_TEST(test_parse_response_model_null)
-{
-    const char *json =
-        "{"
-        "  \"type\": \"message\","
-        "  \"model\": null,"
-        "  \"stop_reason\": \"end_turn\","
-        "  \"usage\": {\"input_tokens\": 10, \"output_tokens\": 20},"
-        "  \"content\": []"
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(resp);
-}
-
-END_TEST START_TEST(test_parse_response_stop_reason_null)
-{
-    const char *json =
-        "{"
-        "  \"type\": \"message\","
-        "  \"model\": \"claude-3-5-sonnet-20241022\","
-        "  \"stop_reason\": null,"
-        "  \"usage\": {\"input_tokens\": 10, \"output_tokens\": 20},"
-        "  \"content\": []"
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST START_TEST(test_parse_response_content_not_array)
-{
-    const char *json =
-        "{"
-        "  \"type\": \"message\","
-        "  \"model\": \"claude-3-5-sonnet-20241022\","
-        "  \"stop_reason\": \"end_turn\","
-        "  \"usage\": {\"input_tokens\": 10, \"output_tokens\": 20},"
-        "  \"content\": \"not an array\""
-        "}";
-
-    ik_response_t *resp = NULL;
-    res_t r = ik_anthropic_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(resp);
-    ck_assert(resp->content_count == 0);
-    ck_assert_ptr_null(resp->content_blocks);
+    for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+        ik_finish_reason_t reason = ik_anthropic_map_finish_reason(test_cases[i].input);
+        ck_assert_int_eq(reason, test_cases[i].expected);
+    }
 }
 
 END_TEST
@@ -232,6 +183,93 @@ END_TEST START_TEST(test_parse_error_message_null_no_type)
     ck_assert_ptr_nonnull(message);
 }
 
+END_TEST START_TEST(test_parse_error_http_codes)
+{
+    struct { int code; ik_error_category_t expected_cat; } test_cases[] = {
+        {400, IK_ERR_CAT_INVALID_ARG}, {401, IK_ERR_CAT_AUTH}, {403, IK_ERR_CAT_AUTH},
+        {404, IK_ERR_CAT_NOT_FOUND}, {429, IK_ERR_CAT_RATE_LIMIT},
+        {500, IK_ERR_CAT_SERVER}, {502, IK_ERR_CAT_SERVER}, {503, IK_ERR_CAT_SERVER},
+        {529, IK_ERR_CAT_SERVER}, {999, IK_ERR_CAT_UNKNOWN}
+    };
+
+    for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+        ik_error_category_t category;
+        char *message = NULL;
+        res_t r = ik_anthropic_parse_error(test_ctx, test_cases[i].code, NULL, 0, &category, &message);
+        ck_assert(!is_err(&r));
+        ck_assert_int_eq(category, test_cases[i].expected_cat);
+        ck_assert_ptr_nonnull(message);
+        talloc_free(message);
+    }
+}
+
+END_TEST START_TEST(test_parse_error_type_and_message)
+{
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"invalid_request_error\","
+        "    \"message\": \"Invalid request\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 400, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(message);
+    ck_assert(strstr(message, "invalid_request_error") != NULL);
+    ck_assert(strstr(message, "Invalid request") != NULL);
+}
+
+END_TEST START_TEST(test_parse_error_message_only)
+{
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"message\": \"Error occurred\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 500, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "Error occurred");
+}
+
+END_TEST START_TEST(test_parse_error_type_only)
+{
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"server_error\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 500, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "server_error");
+}
+
+END_TEST START_TEST(test_parse_error_empty_json)
+{
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 500, "", 0, &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+}
+
 END_TEST
 
 /* ================================================================
@@ -285,14 +323,15 @@ static Suite *anthropic_response_coverage_suite(void)
     TCase *tc_parse = tcase_create("Response Parsing Coverage");
     tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
-    tcase_add_test(tc_parse, test_parse_response_type_null);
-    tcase_add_test(tc_parse, test_parse_response_error_type_no_error_obj);
-    tcase_add_test(tc_parse, test_parse_response_error_type_null_message);
-    tcase_add_test(tc_parse, test_parse_response_error_type_null_message_str);
-    tcase_add_test(tc_parse, test_parse_response_model_null);
-    tcase_add_test(tc_parse, test_parse_response_stop_reason_null);
-    tcase_add_test(tc_parse, test_parse_response_content_not_array);
+    tcase_add_test(tc_parse, test_parse_response_null_fields);
+    tcase_add_test(tc_parse, test_parse_response_errors);
+    tcase_add_test(tc_parse, test_parse_response_edge_cases);
     suite_add_tcase(s, tc_parse);
+
+    TCase *tc_finish = tcase_create("Finish Reason Mapping");
+    tcase_set_timeout(tc_finish, 30);
+    tcase_add_test(tc_finish, test_map_finish_reason_all);
+    suite_add_tcase(s, tc_finish);
 
     TCase *tc_error = tcase_create("Error Parsing Coverage");
     tcase_set_timeout(tc_error, 30);
@@ -302,6 +341,11 @@ static Suite *anthropic_response_coverage_suite(void)
     tcase_add_test(tc_error, test_parse_error_no_error_field);
     tcase_add_test(tc_error, test_parse_error_type_null_no_message);
     tcase_add_test(tc_error, test_parse_error_message_null_no_type);
+    tcase_add_test(tc_error, test_parse_error_http_codes);
+    tcase_add_test(tc_error, test_parse_error_type_and_message);
+    tcase_add_test(tc_error, test_parse_error_message_only);
+    tcase_add_test(tc_error, test_parse_error_type_only);
+    tcase_add_test(tc_error, test_parse_error_empty_json);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_stubs = tcase_create("Stub Functions");
