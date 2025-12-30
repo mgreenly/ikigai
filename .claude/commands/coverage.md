@@ -30,9 +30,20 @@ If all files show 100% (or dash), report success and stop.
 
 ### 2. Create Todo List
 
-Use TodoWrite to create a task for each file with coverage gaps. Include:
+**Sort files by gap size before creating todos:**
+
+For each file with gaps, calculate a gap score:
+- **Uncovered branches** = Total branches × (100 - Branch%) / 100
+- **Uncovered lines** = Total lines × (100 - Line%) / 100
+- **Uncovered functions** = Total functions × (100 - Function%) / 100
+- **Gap score** = (Uncovered branches × 3) + (Uncovered lines × 2) + (Uncovered functions × 1)
+
+Sort files by gap score **descending** (highest gap first). This ensures we tackle the largest coverage gaps first, maximizing overall improvement.
+
+Use TodoWrite to create a task for each file in sorted order. Include:
 - Source file path (relative to src/, e.g., `config.c`, `db/agent.c`)
 - Current coverage rates (lines/functions/branches)
+- Gap score (for reference)
 
 ### 3. Fix Issues Sequentially
 
