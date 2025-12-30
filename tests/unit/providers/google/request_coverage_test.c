@@ -394,6 +394,67 @@ START_TEST(test_invalid_tool_call_json)
  ck_assert(is_err(&r));
 }
 END_TEST
+START_TEST(test_thinking_content_block)
+{
+ // Test serialization of thinking content blocks
+ ik_message_t msg = {0};
+ msg.role = IK_ROLE_ASSISTANT;
+ msg.content_count = 1;
+ ik_content_block_t block = {0};
+ block.type = IK_CONTENT_THINKING;
+ block.data.thinking.text = (char *)"Let me think about this...";
+ msg.content_blocks = &block;
+ ik_request_t req = {0};
+ req.model = (char *)"gemini-2.0-flash";
+ req.messages = &msg;
+ req.message_count = 1;
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ ck_assert_ptr_nonnull(json);
+ // Verify the JSON contains thought:true
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+ yyjson_val *contents = yyjson_obj_get(yyjson_doc_get_root(doc), "contents");
+ yyjson_val *content = yyjson_arr_get_first(contents);
+ yyjson_val *parts = yyjson_obj_get(content, "parts");
+ yyjson_val *part = yyjson_arr_get_first(parts);
+ yyjson_val *thought = yyjson_obj_get(part, "thought");
+ ck_assert_ptr_nonnull(thought);
+ ck_assert(yyjson_get_bool(thought));
+ yyjson_doc_free(doc);
+}
+END_TEST
+START_TEST(test_tool_result_content_block)
+{
+ // Test serialization of tool result content blocks
+ ik_message_t msg = {0};
+ msg.role = IK_ROLE_USER;
+ msg.content_count = 1;
+ ik_content_block_t block = {0};
+ block.type = IK_CONTENT_TOOL_RESULT;
+ block.data.tool_result.tool_call_id = (char *)"call_123";
+ block.data.tool_result.content = (char *)"Tool execution result";
+ block.data.tool_result.is_error = false;
+ msg.content_blocks = &block;
+ ik_request_t req = {0};
+ req.model = (char *)"gemini-2.0-flash";
+ req.messages = &msg;
+ req.message_count = 1;
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ ck_assert_ptr_nonnull(json);
+ // Verify the JSON contains functionResponse
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+ yyjson_val *contents = yyjson_obj_get(yyjson_doc_get_root(doc), "contents");
+ yyjson_val *content = yyjson_arr_get_first(contents);
+ yyjson_val *parts = yyjson_obj_get(content, "parts");
+ yyjson_val *part = yyjson_arr_get_first(parts);
+ yyjson_val *func_resp = yyjson_obj_get(part, "functionResponse");
+ ck_assert_ptr_nonnull(func_resp);
+ yyjson_doc_free(doc);
+}
+END_TEST
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -432,6 +493,8 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_system_instruction_cases);
  tcase_add_test(tc_misc, test_edge_cases);
  tcase_add_test(tc_misc, test_invalid_tool_call_json);
+ tcase_add_test(tc_misc, test_thinking_content_block);
+ tcase_add_test(tc_misc, test_tool_result_content_block);
  suite_add_tcase(s, tc_misc);
  return s;
 }
