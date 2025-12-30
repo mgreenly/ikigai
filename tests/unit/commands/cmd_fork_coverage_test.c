@@ -11,6 +11,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/providers/provider.h"
+#include "../../../src/providers/provider_vtable.h"
 #include "../../../src/providers/request.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -33,6 +34,7 @@ int posix_rename_(const char *oldpath, const char *newpath)
 // Mock control flags
 static bool mock_get_provider_should_fail = false;
 static bool mock_build_request_should_fail = false;
+static bool mock_start_stream_should_fail = false;
 static TALLOC_CTX *mock_err_ctx = NULL;
 
 // Mock ik_agent_get_provider_
@@ -67,6 +69,26 @@ res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **r
     return OK(NULL);
 }
 
+// Mock start_stream function for provider
+static res_t mock_start_stream(void *ctx, const ik_request_t *req,
+                                ik_stream_cb_t stream_cb, void *stream_ctx,
+                                ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+{
+    (void)ctx;
+    (void)req;
+    (void)stream_cb;
+    (void)stream_ctx;
+    (void)completion_cb;
+    (void)completion_ctx;
+
+    if (mock_start_stream_should_fail) {
+        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
+        return ERR(mock_err_ctx, PROVIDER, "Mock stream error: Failed to start stream");
+    }
+
+    return OK(NULL);
+}
+
 // Test fixtures
 static const char *DB_NAME;
 static ik_db_ctx_t *db;
@@ -96,6 +118,18 @@ static void setup_repl(void)
     agent->created_at = 1234567890;
     agent->fork_message_id = 0;
     repl->current = agent;
+
+    // Create mock provider with vtable
+    ik_provider_t *provider = talloc_zero(agent, ik_provider_t);
+    ck_assert_ptr_nonnull(provider);
+    provider->ctx = agent;
+
+    ik_provider_vtable_t *vt = talloc_zero(provider, ik_provider_vtable_t);
+    ck_assert_ptr_nonnull(vt);
+    vt->start_stream = mock_start_stream;
+    provider->vt = vt;
+
+    agent->provider_instance = provider;
 
     ik_shared_ctx_t *shared = talloc_zero(test_ctx, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
@@ -157,6 +191,7 @@ static void setup(void)
     // Reset mock flags
     mock_get_provider_should_fail = false;
     mock_build_request_should_fail = false;
+    mock_start_stream_should_fail = false;
 }
 
 static void teardown(void)
@@ -319,6 +354,52 @@ START_TEST(test_fork_supports_thinking)
 }
 
 END_TEST
+// Test: Lines 157-160: Parse error displays message to scrollback
+START_TEST(test_fork_parse_error_display)
+{
+    // Pass malformed arguments to trigger parse error
+    res_t res = ik_cmd_fork(test_ctx, repl, "unquoted text");
+    ck_assert(is_ok(&res));  // Function returns OK even on parse error
+
+    // Check that error message was added to scrollback
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_gt(line_count, 0);
+
+    // Verify error message contains expected text
+    const char *text = NULL;
+    size_t length = 0;
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &text, &length);
+    ck_assert(is_ok(&line_res));
+    ck_assert_ptr_nonnull(text);
+    // Should contain error about unquoted prompt
+}
+END_TEST
+// Test: Lines 165-170: Fork already in progress error
+START_TEST(test_fork_already_in_progress)
+{
+    // Set fork_pending to true to simulate another fork in progress
+    atomic_store(&repl->shared->fork_pending, true);
+
+    // Try to fork - should fail with error message
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));  // Function returns OK but shows error
+
+    // Check that error message was added to scrollback
+    size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_gt(line_count, 0);
+
+    // Verify error message
+    const char *text = NULL;
+    size_t length = 0;
+    res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &text, &length);
+    ck_assert(is_ok(&line_res));
+    ck_assert_ptr_nonnull(text);
+    ck_assert(strstr(text, "Fork already in progress") != NULL);
+
+    // Clean up
+    atomic_store(&repl->shared->fork_pending, false);
+}
+END_TEST
 
 static Suite *cmd_fork_coverage_suite(void)
 {
@@ -336,6 +417,8 @@ static Suite *cmd_fork_coverage_suite(void)
     tcase_add_test(tc, test_fork_no_thinking_level);
     tcase_add_test(tc, test_fork_no_model);
     tcase_add_test(tc, test_fork_supports_thinking);
+    tcase_add_test(tc, test_fork_parse_error_display);
+    tcase_add_test(tc, test_fork_already_in_progress);
 
     suite_add_tcase(s, tc);
     return s;
