@@ -323,6 +323,90 @@ START_TEST(test_env_empty_string)
 
 END_TEST
 
+// Test: Override when file credential is NULL (tests creds->*_api_key NULL branch)
+START_TEST(test_env_override_null_file_credential)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Create file with NO credentials
+    const char *json = "{}";
+    char *path = create_temp_credentials(json);
+
+    // Set all env vars
+    setenv("OPENAI_API_KEY", "env-only-openai", 1);
+    setenv("ANTHROPIC_API_KEY", "env-only-anthropic", 1);
+    setenv("GOOGLE_API_KEY", "env-only-google", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should use env vars since file has none
+    ck_assert(!is_err(&result));
+    ck_assert_str_eq(creds->openai_api_key, "env-only-openai");
+    ck_assert_str_eq(creds->anthropic_api_key, "env-only-anthropic");
+    ck_assert_str_eq(creds->google_api_key, "env-only-google");
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    unlink(path);
+}
+
+END_TEST
+
+// Test: Missing api_key field entirely (tests yyjson_get_str_ returning NULL)
+START_TEST(test_missing_api_key_field)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Provider objects exist but have no api_key field
+    const char *json = "{\n"
+                       "  \"openai\": { \"other_field\": \"value\" },\n"
+                       "  \"anthropic\": { \"something\": \"else\" },\n"
+                       "  \"google\": { \"random\": \"data\" }\n"
+                       "}";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should succeed but have no credentials
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_ptr_null(creds->anthropic_api_key);
+    ck_assert_ptr_null(creds->google_api_key);
+
+    unlink(path);
+}
+
+END_TEST
+
+// Test: Corrupted JSON file (parse error)
+START_TEST(test_corrupted_json_file)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Invalid JSON syntax
+    const char *json = "{\"openai\": {\"api_key\": \"test\" CORRUPTED";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should continue with warning and return success with NULL credentials
+    ck_assert(!is_err(&result));
+
+    unlink(path);
+}
+
+END_TEST
+
 // Test Suite Configuration
 static Suite *credentials_coverage_suite(void)
 {
@@ -342,6 +426,9 @@ static Suite *credentials_coverage_suite(void)
     tcase_add_test(tc_core, test_provider_not_object);
     tcase_add_test(tc_core, test_api_key_not_string);
     tcase_add_test(tc_core, test_env_empty_string);
+    tcase_add_test(tc_core, test_env_override_null_file_credential);
+    tcase_add_test(tc_core, test_missing_api_key_field);
+    tcase_add_test(tc_core, test_corrupted_json_file);
 
     suite_add_tcase(s, tc_core);
 
