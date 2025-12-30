@@ -89,6 +89,34 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
     return OK(NULL);
 }
 
+// Test line 198 branch 3: active_stream exists but not completed
+START_TEST(test_google_info_read_active_stream_not_completed)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    ik_google_ctx_t *impl_ctx = (ik_google_ctx_t *)provider->ctx;
+
+    // Create a fake active stream that is NOT completed
+    ik_google_active_stream_t *stream = talloc_zero(impl_ctx, ik_google_active_stream_t);
+    stream->completed = false; // NOT completed
+    stream->http_status = 200;
+    stream->completion_cb = test_completion_cb;
+    stream->completion_ctx = NULL;
+
+    impl_ctx->active_stream = stream;
+
+    completion_cb_called = 0;
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
+
+    // Completion callback should NOT be called (stream not complete yet)
+    ck_assert_int_eq(completion_cb_called, 0);
+}
+END_TEST
+
 // Test line 225 branch 1: Non-2xx HTTP status (error path)
 START_TEST(test_google_info_read_error_status)
 {
@@ -227,6 +255,34 @@ START_TEST(test_google_info_read_server_error)
     ck_assert_int_eq(completion_cb_called, 1);
     ck_assert(!completion_success);
     ck_assert_int_eq(completion_error_category, IK_ERR_CAT_SERVER);
+}
+END_TEST
+
+// Test line 204 branch: status < 200 (informational/redirect)
+START_TEST(test_google_info_read_status_below_200)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    ik_google_ctx_t *impl_ctx = (ik_google_ctx_t *)provider->ctx;
+
+    ik_google_active_stream_t *stream = talloc_zero(impl_ctx, ik_google_active_stream_t);
+    stream->completed = true;
+    stream->http_status = 100; // Informational status
+    stream->completion_cb = test_completion_cb;
+    stream->completion_ctx = NULL;
+
+    impl_ctx->active_stream = stream;
+
+    completion_cb_called = 0;
+
+    ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
+    provider->vt->info_read(provider->ctx, logger);
+
+    ck_assert_int_eq(completion_cb_called, 1);
+    ck_assert(!completion_success); // Not a success
+    ck_assert_int_eq(completion_http_status, 100);
 }
 END_TEST
 
@@ -512,6 +568,9 @@ static Suite *google_coverage_suite(void)
     // Line 219: NULL active_stream in info_read
     tcase_add_test(tc_coverage, test_google_info_read_null_active_stream);
 
+    // Line 198 branch 3: active_stream not completed
+    tcase_add_test(tc_coverage, test_google_info_read_active_stream_not_completed);
+
     // Line 225: Error status path
     tcase_add_test(tc_coverage, test_google_info_read_error_status);
 
@@ -520,6 +579,9 @@ static Suite *google_coverage_suite(void)
     tcase_add_test(tc_coverage, test_google_info_read_auth_error_403);
     tcase_add_test(tc_coverage, test_google_info_read_rate_limit_error);
     tcase_add_test(tc_coverage, test_google_info_read_server_error);
+
+    // Line 204: status < 200
+    tcase_add_test(tc_coverage, test_google_info_read_status_below_200);
 
     // Line 253: NULL completion_cb
     tcase_add_test(tc_coverage, test_google_info_read_null_completion_cb);
