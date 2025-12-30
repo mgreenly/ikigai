@@ -413,6 +413,26 @@ START_TEST(test_google_start_request)
 }
 END_TEST
 
+// Test google_start_stream vtable method (wrapper - lines 258-334)
+START_TEST(test_google_start_stream)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Create minimal request
+    ik_request_t req = {0};
+    req.model = talloc_strdup(test_ctx, "gemini-2.5-flash");
+
+    // Call start_stream
+    res_t r = provider->vt->start_stream(provider->ctx, &req, noop_stream_cb, NULL,
+                                          test_completion_cb, NULL);
+
+    // Should succeed
+    ck_assert(!is_err(&r));
+}
+END_TEST
+
 // Test line 204: success path (200-299 status) in info_read
 START_TEST(test_google_info_read_success_status)
 {
@@ -514,6 +534,7 @@ static Suite *google_coverage_suite(void)
     tcase_add_test(tc_coverage, test_google_timeout);
     tcase_add_test(tc_coverage, test_google_cleanup);
     tcase_add_test(tc_coverage, test_google_start_request);
+    tcase_add_test(tc_coverage, test_google_start_stream);
 
     // Success path and error message cleanup
     tcase_add_test(tc_coverage, test_google_info_read_success_status);
