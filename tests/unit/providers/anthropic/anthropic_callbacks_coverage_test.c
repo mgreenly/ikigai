@@ -385,6 +385,48 @@ START_TEST(test_info_read_unknown_error_400)
 END_TEST
 
 /* ================================================================
+ * Cancel Tests
+ * ================================================================ */
+
+START_TEST(test_cancel_with_active_stream)
+{
+    // Test line 360: impl_ctx->active_stream->completed = true
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Get internal context
+    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
+
+    // Create active stream
+    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
+    stream->completed = false;
+    stream->http_status = 0;
+    impl_ctx->active_stream = stream;
+
+    // Call cancel
+    provider->vt->cancel(provider->ctx);
+
+    // Verify stream is marked as completed
+    ck_assert(impl_ctx->active_stream->completed);
+}
+
+END_TEST
+
+START_TEST(test_cancel_without_active_stream)
+{
+    // Test cancel when no active stream exists
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Should not crash
+    provider->vt->cancel(provider->ctx);
+}
+
+END_TEST
+
+/* ================================================================
  * Test Suite Setup
  * ================================================================ */
 
@@ -425,6 +467,13 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_info_read, test_info_read_server_error_500);
     tcase_add_test(tc_info_read, test_info_read_unknown_error_400);
     suite_add_tcase(s, tc_info_read);
+
+    TCase *tc_cancel = tcase_create("Cancel");
+    tcase_set_timeout(tc_cancel, 30);
+    tcase_add_unchecked_fixture(tc_cancel, setup, teardown);
+    tcase_add_test(tc_cancel, test_cancel_with_active_stream);
+    tcase_add_test(tc_cancel, test_cancel_without_active_stream);
+    suite_add_tcase(s, tc_cancel);
 
     return s;
 }
