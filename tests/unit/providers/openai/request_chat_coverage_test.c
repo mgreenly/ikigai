@@ -288,6 +288,152 @@ START_TEST(test_tool_invalid_json_parameters)
 
 END_TEST
 
+/**
+ * Test: Serialize with messages to cover lines 185-191
+ */
+START_TEST(test_serialize_with_messages)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = NULL;
+    req->max_output_tokens = 0;
+    req->tool_count = 0;
+
+    /* Add one message with a text content block */
+    req->message_count = 1;
+    req->messages = talloc_array(ctx, ik_message_t, 1);
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks = talloc_array(ctx, ik_content_block_t, 1);
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(ctx, "Hello");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(json);
+
+    /* Verify messages array contains the user message */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *messages = yyjson_obj_get(root, "messages");
+    ck_assert_ptr_nonnull(messages);
+    ck_assert_uint_eq(yyjson_arr_size(messages), 1);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with max_output_tokens > 0 to cover lines 200-205
+ */
+START_TEST(test_serialize_with_max_output_tokens)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = NULL;
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 2048;
+    req->tool_count = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(json);
+
+    /* Verify max_completion_tokens is present */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_completion_tokens");
+    ck_assert_ptr_nonnull(max_tokens);
+    ck_assert_int_eq(yyjson_get_int(max_tokens), 2048);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: ik_openai_build_chat_url to cover lines 284-295
+ */
+START_TEST(test_build_chat_url)
+{
+    const char *base_url = "https://api.openai.com";
+    char *url = NULL;
+    res_t result = ik_openai_build_chat_url(ctx, base_url, &url);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(url);
+    ck_assert_str_eq(url, "https://api.openai.com/v1/chat/completions");
+}
+
+END_TEST
+
+/**
+ * Test: ik_openai_build_headers to cover lines 297-320
+ */
+START_TEST(test_build_headers)
+{
+    const char *api_key = "sk-test-12345";
+    char **headers = NULL;
+    res_t result = ik_openai_build_headers(ctx, api_key, &headers);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(headers);
+
+    /* Verify headers array has expected values */
+    ck_assert_ptr_nonnull(headers[0]); /* Authorization header */
+    ck_assert_ptr_nonnull(headers[1]); /* Content-Type header */
+    ck_assert_ptr_null(headers[2]);    /* NULL terminator */
+
+    /* Check Authorization header format */
+    ck_assert(strstr(headers[0], "Authorization: Bearer") != NULL);
+    ck_assert(strstr(headers[0], "sk-test-12345") != NULL);
+
+    /* Check Content-Type header */
+    ck_assert_str_eq(headers[1], "Content-Type: application/json");
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with empty system_prompt string (should not add system message)
+ */
+START_TEST(test_serialize_with_empty_system_prompt)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = talloc_strdup(ctx, "gpt-4");
+    req->system_prompt = talloc_strdup(ctx, ""); /* Empty string */
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 0;
+    req->tool_count = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(json);
+
+    /* Verify NO system message is added for empty string */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *messages = yyjson_obj_get(root, "messages");
+    ck_assert_ptr_nonnull(messages);
+    ck_assert_uint_eq(yyjson_arr_size(messages), 0); /* No system message */
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 static Suite *request_chat_coverage_suite(void)
 {
     Suite *s = suite_create("request_chat_coverage");
@@ -307,7 +453,17 @@ static Suite *request_chat_coverage_suite(void)
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_serialize_with_system_prompt);
     tcase_add_test(tc_basic, test_serialize_with_streaming);
+    tcase_add_test(tc_basic, test_serialize_with_messages);
+    tcase_add_test(tc_basic, test_serialize_with_max_output_tokens);
+    tcase_add_test(tc_basic, test_serialize_with_empty_system_prompt);
     suite_add_tcase(s, tc_basic);
+
+    TCase *tc_api = tcase_create("api_functions");
+    tcase_set_timeout(tc_api, 30);
+    tcase_add_checked_fixture(tc_api, setup, teardown);
+    tcase_add_test(tc_api, test_build_chat_url);
+    tcase_add_test(tc_api, test_build_headers);
+    suite_add_tcase(s, tc_api);
 
     return s;
 }
