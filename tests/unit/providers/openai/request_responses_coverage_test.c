@@ -389,6 +389,74 @@ START_TEST(test_single_message_only_non_text_content) {
 END_TEST
 
 /* ================================================================
+ * use_string_input Edge Cases
+ * ================================================================ */
+
+START_TEST(test_single_assistant_message) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	// Create a single ASSISTANT message (not USER)
+	// This tests use_string_input = false branch (line 157: role != IK_ROLE_USER)
+	ik_request_add_message(req, IK_ROLE_ASSISTANT, "I am an assistant");
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should succeed, using array format (not string)
+	ck_assert(!is_err(&result));
+	ck_assert_ptr_nonnull(json);
+
+	// Verify input is an array (not a string)
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_nonnull(doc);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *input = yyjson_obj_get(root, "input");
+	ck_assert_ptr_nonnull(input);
+	ck_assert(yyjson_is_arr(input));
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_single_user_message_empty) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	// Create a single USER message with no content
+	// This tests use_string_input = false branch (line 158: content_count == 0)
+	ik_message_t *msg = talloc(req, ik_message_t);
+	msg->role = IK_ROLE_USER;
+	msg->content_count = 0;
+	msg->content_blocks = NULL;
+
+	req->message_count = 1;
+	req->messages = talloc_array(req, ik_message_t, 1);
+	req->messages[0] = *msg;
+	talloc_free(msg);
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should succeed, using array format (not string)
+	ck_assert(!is_err(&result));
+	ck_assert_ptr_nonnull(json);
+
+	// Verify input is an array (not a string)
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_nonnull(doc);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *input = yyjson_obj_get(root, "input");
+	ck_assert_ptr_nonnull(input);
+	ck_assert(yyjson_is_arr(input));
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * Test Suite
  * ================================================================ */
 
@@ -426,6 +494,13 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_add_test(tc_content, test_single_message_with_non_text_content);
 	tcase_add_test(tc_content, test_single_message_only_non_text_content);
 	suite_add_tcase(s, tc_content);
+
+	TCase *tc_input_format = tcase_create("Input Format Edge Cases");
+    tcase_set_timeout(tc_input_format, 30);
+	tcase_add_checked_fixture(tc_input_format, setup, teardown);
+	tcase_add_test(tc_input_format, test_single_assistant_message);
+	tcase_add_test(tc_input_format, test_single_user_message_empty);
+	suite_add_tcase(s, tc_input_format);
 
 	return s;
 }
