@@ -939,6 +939,17 @@ ci:
 	@$(MAKE) check-helgrind
 	@echo "🟢 All CI checks passed"
 
+# Generate source file -> test mapping for targeted coverage runs
+# Output: .claude/data/source_tests.json
+coverage-map:
+	@echo "Building test binaries with coverage instrumentation..."
+	@$(MAKE) clean
+	@mkdir -p build-coverage/tests/unit build-coverage/tests/integration
+	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p
+	@find tests/integration -type d | sed 's|tests/integration|build-coverage/tests/integration|' | xargs mkdir -p
+	@BUILDDIR=build-coverage $(MAKE) build-tests CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
+	@BUILDDIR=build-coverage .claude/scripts/generate-coverage-map.sh
+
 coverage:
 	@echo "Building with coverage instrumentation..."
 	@$(MAKE) clean
