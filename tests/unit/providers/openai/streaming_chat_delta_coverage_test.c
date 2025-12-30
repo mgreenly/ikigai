@@ -6,6 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
+#include <stdbool.h>
 #include "providers/openai/streaming.h"
 #include "providers/openai/openai.h"
 #include "providers/provider.h"
@@ -312,6 +313,65 @@ START_TEST(test_delta_tool_call_null_name_string)
 
 END_TEST
 
+START_TEST(test_delta_role_field)
+{
+    /* Line 79-81: role_val != NULL - first chunk with role */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Should not emit any events when only role is present */
+    ck_assert_int_eq((int)events->count, 0);
+}
+
+END_TEST
+
+START_TEST(test_delta_content_string)
+{
+    /* Line 86-101: content path with valid string */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    const char *data = "{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Should emit START and TEXT_DELTA events */
+    ck_assert_int_ge((int)events->count, 1);
+
+    /* Find the TEXT_DELTA event */
+    bool found_text = false;
+    for (size_t i = 0; i < events->count; i++) {
+        if (events->items[i].type == IK_STREAM_TEXT_DELTA) {
+            found_text = true;
+            ck_assert_str_eq(events->items[i].data.delta.text, "Hello");
+        }
+    }
+    ck_assert(found_text);
+}
+
+END_TEST
+
+START_TEST(test_delta_finish_reason)
+{
+    /* Line 190-191: finish_reason_str != NULL */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* First, send some content to initialize the stream */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"content\":\"test\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Now send a chunk with finish_reason */
+    const char *data2 = "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* This should process without error and cover the finish_reason branch */
+}
+
+END_TEST
+
 
 /* ================================================================
  * Test Suite
@@ -326,6 +386,9 @@ static Suite *streaming_chat_delta_coverage_suite(void)
     tcase_add_checked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_delta_content_non_string);
     tcase_add_test(tc_content, test_delta_content_null_string);
+    tcase_add_test(tc_content, test_delta_content_string);
+    tcase_add_test(tc_content, test_delta_role_field);
+    tcase_add_test(tc_content, test_delta_finish_reason);
     suite_add_tcase(s, tc_content);
 
     TCase *tc_tool_calls = tcase_create("ToolCallsEdgeCases");
