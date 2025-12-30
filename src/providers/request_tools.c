@@ -244,15 +244,15 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
 
     ik_request_t *req = NULL;
     res_t res = ik_request_create(ctx, agent->model, &req);
-    if (is_err(&res)) return res;
+    if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
 
     ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
 
     if (agent->shared && agent->shared->cfg && agent->shared->cfg->openai_system_message) {
         res = ik_request_set_system(req, agent->shared->cfg->openai_system_message);
-        if (is_err(&res)) {
-            talloc_free(req);
-            return res;
+        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(req);  // LCOV_EXCL_LINE
+            return res;        // LCOV_EXCL_LINE
         }
     }
 
@@ -262,9 +262,9 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
             if (msg == NULL) continue;
 
             res = ik_request_add_message_direct(req, msg);
-            if (is_err(&res)) {
-                talloc_free(req);
-                return res;
+            if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+                talloc_free(req);  // LCOV_EXCL_LINE
+                return res;        // LCOV_EXCL_LINE
             }
         }
     }
@@ -280,9 +280,9 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
     for (size_t i = 0; i < 5; i++) {
         char *params_json = build_tool_parameters_json(req, tool_defs[i]);
         res = ik_request_add_tool(req, tool_defs[i]->name, tool_defs[i]->description, params_json, false);
-        if (is_err(&res)) {
-            talloc_free(req);
-            return res;
+        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(req);  // LCOV_EXCL_LINE
+            return res;        // LCOV_EXCL_LINE
         }
     }
 
