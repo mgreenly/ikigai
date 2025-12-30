@@ -207,6 +207,164 @@ END_TEST START_TEST(test_parse_invalid_json)
     talloc_free(result.err);
 }
 
+END_TEST START_TEST(test_parse_empty_parts_array)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-flash\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 0);
+    ck_assert_ptr_null(resp->content_blocks);
+}
+
+END_TEST START_TEST(test_parse_thought_flag_false)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-flash\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":["
+                       "{\"text\":\"Normal text\",\"thought\":false}"
+                       "]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Normal text");
+}
+
+END_TEST START_TEST(test_parse_function_call_no_args)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-pro\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{"
+                       "\"functionCall\":{"
+                       "\"name\":\"list_files\""
+                       "}"
+                       "}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.name, "list_files");
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{}");
+}
+
+END_TEST START_TEST(test_parse_part_without_text_or_function)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-flash\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":["
+                       "{\"someOtherField\":\"value\"},"
+                       "{\"text\":\"Hello world\"}"
+                       "]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    // First part is skipped, only second part should be present
+    ck_assert_uint_eq((unsigned int)resp->content_count, 2);
+    ck_assert_int_eq(resp->content_blocks[1].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[1].data.text.text, "Hello world");
+}
+
+END_TEST START_TEST(test_parse_function_call_missing_name)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-pro\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{"
+                       "\"functionCall\":{"
+                       "\"args\":{\"key\":\"value\"}"
+                       "}"
+                       "}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "missing 'name' field"));
+    talloc_free(result.err);
+}
+
+END_TEST START_TEST(test_parse_function_call_name_not_string)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-pro\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{"
+                       "\"functionCall\":{"
+                       "\"name\":123,"
+                       "\"args\":{\"key\":\"value\"}"
+                       "}"
+                       "}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "not a string"));
+    talloc_free(result.err);
+}
+
+END_TEST START_TEST(test_parse_text_not_string)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-flash\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{"
+                       "\"text\":42"
+                       "}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{\"totalTokenCount\":10}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "not a string"));
+    talloc_free(result.err);
+}
+
 END_TEST START_TEST(test_parse_thought_signature)
 {
     const char *json = "{"
@@ -267,6 +425,13 @@ static Suite *google_response_parse_suite(void)
     tcase_add_test(tc_parse, test_parse_empty_candidates);
     tcase_add_test(tc_parse, test_parse_no_candidates);
     tcase_add_test(tc_parse, test_parse_invalid_json);
+    tcase_add_test(tc_parse, test_parse_empty_parts_array);
+    tcase_add_test(tc_parse, test_parse_thought_flag_false);
+    tcase_add_test(tc_parse, test_parse_function_call_no_args);
+    tcase_add_test(tc_parse, test_parse_part_without_text_or_function);
+    tcase_add_test(tc_parse, test_parse_function_call_missing_name);
+    tcase_add_test(tc_parse, test_parse_function_call_name_not_string);
+    tcase_add_test(tc_parse, test_parse_text_not_string);
     tcase_add_test(tc_parse, test_parse_thought_signature);
     tcase_add_test(tc_parse, test_parse_no_thought_signature);
     suite_add_tcase(s, tc_parse);
