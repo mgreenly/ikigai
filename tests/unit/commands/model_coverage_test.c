@@ -123,6 +123,174 @@ START_TEST(test_model_multiple_switches_talloc_free) {
 
 END_TEST
 
+// Test: Anthropic model with low thinking level (line 32, 58-61)
+START_TEST(test_anthropic_model_low_thinking) {
+    // Switch to Anthropic model with low thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-7-sonnet/low");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "claude-3-7-sonnet");
+    ck_assert_str_eq(repl->current->provider, "anthropic");
+    ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
+}
+
+END_TEST
+
+// Test: Anthropic model with medium thinking level (line 34, 58-61)
+START_TEST(test_anthropic_model_med_thinking) {
+    // Switch to Anthropic model with medium thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-7-sonnet/med");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "claude-3-7-sonnet");
+    ck_assert_str_eq(repl->current->provider, "anthropic");
+    ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
+}
+
+END_TEST
+
+// Test: Google model with low thinking level (line 32, 62-65)
+START_TEST(test_google_model_low_thinking) {
+    // Switch to Google model with low thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/low");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gemini-2.5-flash");
+    ck_assert_str_eq(repl->current->provider, "google");
+    ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
+}
+
+END_TEST
+
+// Test: Google model with medium thinking level (line 34, 62-65)
+START_TEST(test_google_model_med_thinking) {
+    // Switch to Google model with medium thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/med");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gemini-2.5-flash");
+    ck_assert_str_eq(repl->current->provider, "google");
+    ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
+}
+
+END_TEST
+
+// Test: OpenAI model with low effort (line 68-69)
+START_TEST(test_openai_model_low_thinking) {
+    // Switch to OpenAI model with low thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model o1/low");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "o1");
+    ck_assert_str_eq(repl->current->provider, "openai");
+    ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
+}
+
+END_TEST
+
+// Test: OpenAI model with medium effort (line 68-69)
+START_TEST(test_openai_model_med_thinking) {
+    // Switch to OpenAI model with medium thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model o1/med");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "o1");
+    ck_assert_str_eq(repl->current->provider, "openai");
+    ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
+}
+
+END_TEST
+
+// Test: Model switch with none thinking level (line 130)
+START_TEST(test_model_thinking_none) {
+    // Switch to model with none thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/none");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gpt-4");
+    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
+}
+
+END_TEST
+
+// Test: cmd_model_parse with trailing slash (line 276)
+START_TEST(test_parse_trailing_slash) {
+    char *model = NULL;
+    char *thinking = NULL;
+    res_t res = cmd_model_parse(ctx, "gpt-4/", &model, &thinking);
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+    ck_assert_str_eq(error_message(res.err), "Malformed input: trailing '/' with no thinking level");
+    talloc_free(res.err);
+}
+
+END_TEST
+
+// Test: cmd_model_parse with empty model name (line 282)
+START_TEST(test_parse_empty_model) {
+    char *model = NULL;
+    char *thinking = NULL;
+    res_t res = cmd_model_parse(ctx, "/low", &model, &thinking);
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+    ck_assert_str_eq(error_message(res.err), "Malformed input: empty model name");
+    talloc_free(res.err);
+}
+
+END_TEST
+
+// Test: Error path - switch model during active LLM request (line 94)
+START_TEST(test_model_switch_during_llm_request) {
+    // Set agent state to waiting for LLM
+    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+
+    // Attempt to switch model - should fail
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+    ck_assert_str_eq(error_message(res.err), "Cannot switch models during active request");
+    talloc_free(res.err);
+
+    // Reset state
+    repl->current->state = IK_AGENT_STATE_IDLE;
+}
+
+END_TEST
+
+// Test: Error path - unknown model (line 118)
+START_TEST(test_model_unknown_model) {
+    // Attempt to switch to unknown model
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model unknown-model-xyz");
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+}
+
+END_TEST
+
+// Test: Error path - invalid thinking level (line 136-146)
+START_TEST(test_model_invalid_thinking_level) {
+    // Attempt to use invalid thinking level
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/invalid");
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+}
+
+END_TEST
+
+// Test: Model switch with NULL provider and model (lines 151, 159 false branches)
+START_TEST(test_model_switch_null_provider_model) {
+    // Set provider and model to NULL
+    if (repl->current->provider != NULL) {
+        talloc_free(repl->current->provider);
+        repl->current->provider = NULL;
+    }
+    if (repl->current->model != NULL) {
+        talloc_free(repl->current->model);
+        repl->current->model = NULL;
+    }
+
+    // Switch model - should allocate new strings without freeing NULL
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gpt-4");
+    ck_assert_str_eq(repl->current->provider, "openai");
+}
+
+END_TEST
+
 // Suite definition
 static Suite *commands_model_coverage_suite(void)
 {
@@ -134,6 +302,19 @@ static Suite *commands_model_coverage_suite(void)
 
     tcase_add_test(tc_core, test_model_switch_without_db);
     tcase_add_test(tc_core, test_model_multiple_switches_talloc_free);
+    tcase_add_test(tc_core, test_anthropic_model_low_thinking);
+    tcase_add_test(tc_core, test_anthropic_model_med_thinking);
+    tcase_add_test(tc_core, test_google_model_low_thinking);
+    tcase_add_test(tc_core, test_google_model_med_thinking);
+    tcase_add_test(tc_core, test_openai_model_low_thinking);
+    tcase_add_test(tc_core, test_openai_model_med_thinking);
+    tcase_add_test(tc_core, test_model_thinking_none);
+    tcase_add_test(tc_core, test_parse_trailing_slash);
+    tcase_add_test(tc_core, test_parse_empty_model);
+    tcase_add_test(tc_core, test_model_switch_during_llm_request);
+    tcase_add_test(tc_core, test_model_unknown_model);
+    tcase_add_test(tc_core, test_model_invalid_thinking_level);
+    tcase_add_test(tc_core, test_model_switch_null_provider_model);
 
     suite_add_tcase(s, tc_core);
 
