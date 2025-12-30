@@ -434,6 +434,28 @@ START_TEST(test_serialize_with_empty_system_prompt)
 
 END_TEST
 
+/**
+ * Test: Serialize with NULL model to cover error path (line 133)
+ */
+START_TEST(test_serialize_null_model)
+{
+    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    req->model = NULL; /* NULL model */
+    req->system_prompt = NULL;
+    req->messages = NULL;
+    req->message_count = 0;
+    req->max_output_tokens = 0;
+    req->tool_count = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    /* Should fail with INVALID_ARG error */
+    ck_assert(!is_ok(&result));
+}
+
+END_TEST
+
 static Suite *request_chat_coverage_suite(void)
 {
     Suite *s = suite_create("request_chat_coverage");
@@ -456,6 +478,7 @@ static Suite *request_chat_coverage_suite(void)
     tcase_add_test(tc_basic, test_serialize_with_messages);
     tcase_add_test(tc_basic, test_serialize_with_max_output_tokens);
     tcase_add_test(tc_basic, test_serialize_with_empty_system_prompt);
+    tcase_add_test(tc_basic, test_serialize_null_model);
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_api = tcase_create("api_functions");
