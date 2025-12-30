@@ -168,6 +168,117 @@ START_TEST(test_part_with_non_string_text) {
 END_TEST
 
 /* ================================================================
+ * Model Version Edge Cases
+ * ================================================================ */
+
+START_TEST(test_missing_model_version) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process chunk without modelVersion */
+    const char *chunk = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify START event with NULL model */
+    ck_assert_int_eq((int)captured_count, 2); /* START + TEXT_DELTA */
+    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
+}
+
+END_TEST
+
+/* ================================================================
+ * Usage Metadata Edge Cases
+ * ================================================================ */
+
+START_TEST(test_usage_empty_metadata) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}");
+
+    /* Empty usageMetadata object */
+    process_chunk(sctx, "{\"usageMetadata\":{}}");
+
+    /* Find DONE event */
+    int done_idx = -1;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_DONE) {
+            done_idx = (int)i;
+            break;
+        }
+    }
+    ck_assert_int_ge(done_idx, 0);
+    ck_assert_int_eq(captured_events[done_idx].data.done.usage.input_tokens, 0);
+    ck_assert_int_eq(captured_events[done_idx].data.done.usage.total_tokens, 0);
+}
+
+END_TEST
+
+/* ================================================================
+ * Candidates Edge Cases
+ * ================================================================ */
+
+START_TEST(test_empty_candidates_array) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Empty candidates array */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[]}");
+
+    /* Only START event */
+    ck_assert_int_eq((int)captured_count, 1);
+    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
+}
+
+END_TEST
+
+START_TEST(test_candidate_without_content) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+    captured_count = 0;
+
+    /* Candidate without content field */
+    process_chunk(sctx, "{\"candidates\":[{\"finishReason\":\"STOP\"}]}");
+
+    /* No text events */
+    int text_count = 0;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) text_count++;
+    }
+    ck_assert_int_eq(text_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_candidate_without_parts) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+    captured_count = 0;
+
+    /* Candidate with content but no parts */
+    process_chunk(sctx, "{\"candidates\":[{\"content\":{}}]}");
+
+    /* No text events */
+    int text_count = 0;
+    for (size_t i = 0; i < captured_count; i++) {
+        if (captured_events[i].type == IK_STREAM_TEXT_DELTA) text_count++;
+    }
+    ck_assert_int_eq(text_count, 0);
+}
+
+END_TEST
+
+/* ================================================================
  * Test Suite Setup
  * ================================================================ */
 
@@ -190,6 +301,26 @@ static Suite *google_streaming_edge_cases_suite(void)
     tcase_add_test(tc_parts, test_part_with_null_text_value);
     tcase_add_test(tc_parts, test_part_with_non_string_text);
     suite_add_tcase(s, tc_parts);
+
+    TCase *tc_model = tcase_create("Model Version");
+    tcase_set_timeout(tc_model, 30);
+    tcase_add_checked_fixture(tc_model, setup, teardown);
+    tcase_add_test(tc_model, test_missing_model_version);
+    suite_add_tcase(s, tc_model);
+
+    TCase *tc_usage = tcase_create("Usage Metadata");
+    tcase_set_timeout(tc_usage, 30);
+    tcase_add_checked_fixture(tc_usage, setup, teardown);
+    tcase_add_test(tc_usage, test_usage_empty_metadata);
+    suite_add_tcase(s, tc_usage);
+
+    TCase *tc_candidates = tcase_create("Candidates");
+    tcase_set_timeout(tc_candidates, 30);
+    tcase_add_checked_fixture(tc_candidates, setup, teardown);
+    tcase_add_test(tc_candidates, test_empty_candidates_array);
+    tcase_add_test(tc_candidates, test_candidate_without_content);
+    tcase_add_test(tc_candidates, test_candidate_without_parts);
+    suite_add_tcase(s, tc_candidates);
 
     return s;
 }
