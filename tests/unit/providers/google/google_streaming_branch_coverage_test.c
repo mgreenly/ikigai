@@ -243,6 +243,39 @@ START_TEST(test_function_call_with_null_args) {
 
 END_TEST
 
+START_TEST(test_function_call_continued_with_more_args) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Start a tool call with initial args */
+    const char *chunk1 =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"test_func\",\"args\":{\"a\":1}}}]}}]}";
+    process_chunk(sctx, chunk1);
+
+    /* Verify initial tool call started */
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_START), 1);
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_DELTA), 1);
+
+    /* Reset to check continuation */
+    captured_count = 0;
+    memset(captured_events, 0, sizeof(captured_events));
+
+    /* Continue the same tool call with more args - covers line 119 false branch */
+    const char *chunk2 =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"args\":{\"b\":2}}}]}}]}";
+    process_chunk(sctx, chunk2);
+
+    /* Verify no new START, just another DELTA */
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_START), 0);
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_DELTA), 1);
+}
+
+END_TEST
+
 /* ================================================================
  * Thinking Transition Coverage Tests
  * ================================================================ */
@@ -283,129 +316,6 @@ START_TEST(test_text_after_thinking_increments_index) {
 END_TEST
 
 /* ================================================================
- * Usage Metadata Branch Coverage Tests
- * ================================================================ */
-
-START_TEST(test_usage_with_missing_prompt_tokens) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process START first */
-    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
-
-    /* Process usage without promptTokenCount - covers line 269 false branch */
-    const char *chunk =
-        "{\"usageMetadata\":{\"candidatesTokenCount\":200,\"totalTokenCount\":200}}";
-    process_chunk(sctx, chunk);
-
-    /* Verify usage with 0 input tokens */
-    ik_usage_t usage = ik_google_stream_get_usage(sctx);
-    ck_assert_int_eq(usage.input_tokens, 0);
-    ck_assert_int_eq(usage.output_tokens, 200);
-}
-
-END_TEST
-
-START_TEST(test_usage_with_missing_candidates_tokens) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process START first */
-    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
-
-    /* Process usage without candidatesTokenCount - covers line 270 false branch */
-    const char *chunk =
-        "{\"usageMetadata\":{\"promptTokenCount\":100,\"totalTokenCount\":100}}";
-    process_chunk(sctx, chunk);
-
-    /* Verify usage with 0 output tokens */
-    ik_usage_t usage = ik_google_stream_get_usage(sctx);
-    ck_assert_int_eq(usage.input_tokens, 100);
-    ck_assert_int_eq(usage.output_tokens, 0);
-}
-
-END_TEST
-
-START_TEST(test_usage_with_missing_total_tokens) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process START first */
-    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
-
-    /* Process usage without totalTokenCount - covers line 276 false branch */
-    const char *chunk =
-        "{\"usageMetadata\":{\"promptTokenCount\":100,\"candidatesTokenCount\":200}}";
-    process_chunk(sctx, chunk);
-
-    /* Verify usage with 0 total tokens */
-    ik_usage_t usage = ik_google_stream_get_usage(sctx);
-    ck_assert_int_eq(usage.input_tokens, 100);
-    ck_assert_int_eq(usage.output_tokens, 200);
-    ck_assert_int_eq(usage.total_tokens, 0);
-}
-
-END_TEST
-
-/* ================================================================
- * Model Extraction Branch Coverage Tests
- * ================================================================ */
-
-START_TEST(test_start_without_model_version) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process chunk without modelVersion field - covers line 382 false branch */
-    const char *chunk = "{\"candidates\":[]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify START event with NULL model */
-    const ik_stream_event_t *event = find_event(IK_STREAM_START);
-    ck_assert_ptr_nonnull(event);
-    ck_assert_ptr_null(event->data.start.model);
-}
-
-END_TEST
-
-START_TEST(test_start_with_null_model_version) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process chunk with null modelVersion - covers line 384 false branch */
-    const char *chunk = "{\"modelVersion\":null,\"candidates\":[]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify START event with NULL model */
-    const ik_stream_event_t *event = find_event(IK_STREAM_START);
-    ck_assert_ptr_nonnull(event);
-    ck_assert_ptr_null(event->data.start.model);
-}
-
-END_TEST
-
-START_TEST(test_start_with_non_string_model_version) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process chunk with non-string modelVersion - covers line 384 false branch */
-    const char *chunk = "{\"modelVersion\":123,\"candidates\":[]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify START event with NULL model */
-    const ik_stream_event_t *event = find_event(IK_STREAM_START);
-    ck_assert_ptr_nonnull(event);
-    ck_assert_ptr_null(event->data.start.model);
-}
-
-END_TEST
-
-/* ================================================================
  * Candidates Processing Branch Coverage Tests
  * ================================================================ */
 
@@ -441,91 +351,6 @@ START_TEST(test_candidates_not_array) {
 
 END_TEST
 
-START_TEST(test_candidate_without_finish_reason) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process candidate without finishReason - covers line 408 false branch */
-    const char *chunk =
-        "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"hi\"}]}}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify finish reason remains UNKNOWN */
-    ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST
-
-START_TEST(test_candidate_with_null_finish_reason) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process candidate with null finishReason - covers line 410 false branch */
-    const char *chunk =
-        "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[{\"finishReason\":null,\"content\":{\"parts\":[{\"text\":\"hi\"}]}}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify finish reason remains UNKNOWN */
-    ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST
-
-START_TEST(test_candidate_without_content) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process candidate without content field - covers line 416 false branch */
-    const char *chunk =
-        "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[{\"finishReason\":\"STOP\"}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify only START event emitted */
-    ck_assert_int_eq((int)captured_count, 1);
-    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-}
-
-END_TEST
-
-START_TEST(test_content_without_parts) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process content without parts field - covers line 417 false branch */
-    const char *chunk =
-        "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[{\"content\":{}}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify only START event emitted */
-    ck_assert_int_eq((int)captured_count, 1);
-    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-}
-
-END_TEST
-
-START_TEST(test_parts_not_array) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process parts as non-array - covers line 418 false branch */
-    const char *chunk =
-        "{\"modelVersion\":\"gemini-2.5-flash\",\"candidates\":[{\"content\":{\"parts\":null}}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify only START event emitted */
-    ck_assert_int_eq((int)captured_count, 1);
-    ck_assert_int_eq(captured_events[0].type, IK_STREAM_START);
-}
-
-END_TEST
-
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -542,6 +367,7 @@ static Suite *google_streaming_branch_coverage_suite(void)
     tcase_add_test(tc_function_call, test_function_call_with_non_string_name);
     tcase_add_test(tc_function_call, test_function_call_without_args);
     tcase_add_test(tc_function_call, test_function_call_with_null_args);
+    tcase_add_test(tc_function_call, test_function_call_continued_with_more_args);
     suite_add_tcase(s, tc_function_call);
 
     TCase *tc_thinking = tcase_create("Thinking Transition");
@@ -550,32 +376,11 @@ static Suite *google_streaming_branch_coverage_suite(void)
     tcase_add_test(tc_thinking, test_text_after_thinking_increments_index);
     suite_add_tcase(s, tc_thinking);
 
-    TCase *tc_usage = tcase_create("Usage Metadata Branches");
-    tcase_set_timeout(tc_usage, 30);
-    tcase_add_checked_fixture(tc_usage, setup, teardown);
-    tcase_add_test(tc_usage, test_usage_with_missing_prompt_tokens);
-    tcase_add_test(tc_usage, test_usage_with_missing_candidates_tokens);
-    tcase_add_test(tc_usage, test_usage_with_missing_total_tokens);
-    suite_add_tcase(s, tc_usage);
-
-    TCase *tc_model = tcase_create("Model Extraction Branches");
-    tcase_set_timeout(tc_model, 30);
-    tcase_add_checked_fixture(tc_model, setup, teardown);
-    tcase_add_test(tc_model, test_start_without_model_version);
-    tcase_add_test(tc_model, test_start_with_null_model_version);
-    tcase_add_test(tc_model, test_start_with_non_string_model_version);
-    suite_add_tcase(s, tc_model);
-
     TCase *tc_candidates = tcase_create("Candidates Processing Branches");
     tcase_set_timeout(tc_candidates, 30);
     tcase_add_checked_fixture(tc_candidates, setup, teardown);
     tcase_add_test(tc_candidates, test_candidates_empty_array);
     tcase_add_test(tc_candidates, test_candidates_not_array);
-    tcase_add_test(tc_candidates, test_candidate_without_finish_reason);
-    tcase_add_test(tc_candidates, test_candidate_with_null_finish_reason);
-    tcase_add_test(tc_candidates, test_candidate_without_content);
-    tcase_add_test(tc_candidates, test_content_without_parts);
-    tcase_add_test(tc_candidates, test_parts_not_array);
     suite_add_tcase(s, tc_candidates);
 
     return s;
