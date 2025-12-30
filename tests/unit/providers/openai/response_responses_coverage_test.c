@@ -818,6 +818,204 @@ START_TEST(test_parse_content_refusal_null) {
 
 END_TEST
 
+START_TEST(test_parse_content_refusal_valid) {
+    const char *json = "{"
+                       "\"id\":\"resp-content\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"refusal\","
+                       "\"refusal\":\"I cannot help with that\""
+                       "}]"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+    ck_assert_str_eq(resp->content_blocks[0].data.text.text, "I cannot help with that");
+}
+
+END_TEST
+
+START_TEST(test_parse_content_text_val_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-content\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"output_text\""
+                       "}]"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_content_refusal_val_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-content\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"refusal\""
+                       "}]"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_map_status_incomplete_unknown_reason) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "unknown_reason");
+    ck_assert_int_eq(reason, IK_FINISH_LENGTH);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_no_output_field) {
+    const char *json = "{"
+                       "\"id\":\"resp-no-output\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\""
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_no_incomplete_details) {
+    const char *json = "{"
+                       "\"id\":\"resp-incomplete\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"incomplete\","
+                       "\"output\":[]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->finish_reason, IK_FINISH_LENGTH);
+}
+
+END_TEST
+
+START_TEST(test_count_content_blocks_message_no_content) {
+    const char *json = "{"
+                       "\"id\":\"resp-message\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_message_no_type) {
+    const char *json = "{"
+                       "\"id\":\"resp-message\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"content\":[{"
+                       "\"type\":\"output_text\","
+                       "\"text\":\"Hello\""
+                       "}]"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_count_content_blocks_no_type) {
+    const char *json = "{"
+                       "\"id\":\"resp-no-type\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{\"foo\":\"bar\"}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_content_unknown_content_type) {
+    const char *json = "{"
+                       "\"id\":\"resp-content\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"message\","
+                       "\"content\":[{"
+                       "\"type\":\"unknown_content_type\","
+                       "\"data\":\"some data\""
+                       "}]"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -853,6 +1051,8 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_count, test_count_content_blocks_type_null);
     tcase_add_test(tc_count, test_count_content_blocks_type_not_string);
     tcase_add_test(tc_count, test_count_content_blocks_unknown_type);
+    tcase_add_test(tc_count, test_count_content_blocks_message_no_content);
+    tcase_add_test(tc_count, test_count_content_blocks_no_type);
     suite_add_tcase(s, tc_count);
 
     TCase *tc_main = tcase_create("Main Parsing Coverage");
@@ -873,6 +1073,9 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_main, test_parse_response_status_not_string);
     tcase_add_test(tc_main, test_parse_response_incomplete_details_not_object);
     tcase_add_test(tc_main, test_parse_response_incomplete_reason_not_string);
+    tcase_add_test(tc_main, test_parse_response_no_output_field);
+    tcase_add_test(tc_main, test_parse_response_no_incomplete_details);
+    tcase_add_test(tc_main, test_parse_message_no_type);
     suite_add_tcase(s, tc_main);
 
     TCase *tc_status = tcase_create("Status Mapping Coverage");
@@ -882,6 +1085,7 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_status, test_map_status_cancelled);
     tcase_add_test(tc_status, test_map_status_incomplete_content_filter);
     tcase_add_test(tc_status, test_map_status_incomplete_max_tokens);
+    tcase_add_test(tc_status, test_map_status_incomplete_unknown_reason);
     suite_add_tcase(s, tc_status);
 
     TCase *tc_call_id = tcase_create("Call ID Coverage");
@@ -899,6 +1103,10 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_content, test_parse_content_item_type_not_string);
     tcase_add_test(tc_content, test_parse_content_output_text_null);
     tcase_add_test(tc_content, test_parse_content_refusal_null);
+    tcase_add_test(tc_content, test_parse_content_refusal_valid);
+    tcase_add_test(tc_content, test_parse_content_text_val_null);
+    tcase_add_test(tc_content, test_parse_content_refusal_val_null);
+    tcase_add_test(tc_content, test_parse_content_unknown_content_type);
     suite_add_tcase(s, tc_content);
 
     return s;
