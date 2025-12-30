@@ -31,6 +31,10 @@ int posix_rename_(const char *oldpath, const char *newpath)
     return 0;
 }
 
+static res_t mock_start_stream(void *ctx, const ik_request_t *req,
+                                ik_stream_cb_t stream_cb, void *stream_ctx,
+                                ik_provider_completion_cb_t completion_cb, void *completion_ctx);
+
 // Mock control flags
 static bool mock_get_provider_should_fail = false;
 static bool mock_build_request_should_fail = false;
@@ -45,7 +49,28 @@ res_t ik_agent_get_provider_(void *agent, void **provider_out)
         return ERR(mock_err_ctx, PROVIDER, "Mock provider error: Failed to get provider");
     }
 
-    *provider_out = ((ik_agent_ctx_t *)agent)->provider_instance;
+    ik_agent_ctx_t *ag = (ik_agent_ctx_t *)agent;
+
+    // Lazily create provider_instance if NULL (mimics real behavior)
+    if (ag->provider_instance == NULL) {
+        ik_provider_t *provider = talloc_zero(ag, ik_provider_t);
+        if (provider == NULL) {
+            if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
+            return ERR(mock_err_ctx, OUT_OF_MEMORY, "Out of memory");
+        }
+        provider->ctx = ag;
+
+        ik_provider_vtable_t *vt = talloc_zero(provider, ik_provider_vtable_t);
+        if (vt == NULL) {
+            if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
+            return ERR(mock_err_ctx, OUT_OF_MEMORY, "Out of memory");
+        }
+        vt->start_stream = mock_start_stream;
+        provider->vt = vt;
+        ag->provider_instance = provider;
+    }
+
+    *provider_out = ag->provider_instance;
     return OK(NULL);
 }
 
@@ -59,7 +84,6 @@ res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **r
         return ERR(mock_err_ctx, INVALID_ARG, "Mock request error: Failed to build request");
     }
 
-    // Create minimal request
     ik_request_t *req = talloc_zero(ctx, ik_request_t);
     if (req == NULL) {
         if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
@@ -94,6 +118,7 @@ static const char *DB_NAME;
 static ik_db_ctx_t *db;
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
+static int test_counter = 0;
 
 // Helper: Create minimal REPL for testing
 static void setup_repl(void)
@@ -112,11 +137,15 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
 
-    agent->uuid = talloc_strdup(agent, "parent-uuid-123");
+    // Unique UUID per test (timestamp + counter) to avoid DB conflicts
+    agent->uuid = talloc_asprintf(agent, "parent-uuid-%ld-%d", (long)time(NULL), ++test_counter);
     agent->name = NULL;
     agent->parent_uuid = NULL;
     agent->created_at = 1234567890;
     agent->fork_message_id = 0;
+    agent->provider = talloc_strdup(agent, "openai");
+    agent->model = talloc_strdup(agent, "gpt-4o-mini");
+    agent->thinking_level = IK_THINKING_NONE;
     repl->current = agent;
 
     // Create mock provider with vtable
@@ -300,6 +329,23 @@ START_TEST(test_fork_prompt_build_request_error)
 }
 
 END_TEST
+// Test: Lines 107-127: Success path in handle_fork_prompt
+START_TEST(test_fork_prompt_success_path)
+{
+    mock_get_provider_should_fail = false;
+    mock_build_request_should_fail = false;
+    mock_start_stream_should_fail = false;
+
+    res_t res = ik_cmd_fork(test_ctx, repl, "\"Test successful prompt handling\"");
+    ck_assert(is_ok(&res));
+
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_int_eq(child->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+    ck_assert_int_eq(child->tool_iteration_count, 0);
+    ck_assert_int_eq(child->curl_still_running, 1);
+}
+
+END_TEST
 // Test: Line 294 branch: child->thinking_level == IK_THINKING_NONE
 START_TEST(test_fork_no_thinking_level)
 {
@@ -377,18 +423,14 @@ END_TEST
 // Test: Lines 165-170: Fork already in progress error
 START_TEST(test_fork_already_in_progress)
 {
-    // Set fork_pending to true to simulate another fork in progress
     atomic_store(&repl->shared->fork_pending, true);
 
-    // Try to fork - should fail with error message
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));  // Function returns OK but shows error
+    ck_assert(is_ok(&res));
 
-    // Check that error message was added to scrollback
     size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(line_count, 0);
 
-    // Verify error message
     const char *text = NULL;
     size_t length = 0;
     res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &text, &length);
@@ -396,7 +438,6 @@ START_TEST(test_fork_already_in_progress)
     ck_assert_ptr_nonnull(text);
     ck_assert(strstr(text, "Fork already in progress") != NULL);
 
-    // Clean up
     atomic_store(&repl->shared->fork_pending, false);
 }
 END_TEST
@@ -414,6 +455,7 @@ static Suite *cmd_fork_coverage_suite(void)
     tcase_add_test(tc, test_fork_clears_both_response_and_buffer);
     tcase_add_test(tc, test_fork_prompt_provider_error);
     tcase_add_test(tc, test_fork_prompt_build_request_error);
+    tcase_add_test(tc, test_fork_prompt_success_path);
     tcase_add_test(tc, test_fork_no_thinking_level);
     tcase_add_test(tc, test_fork_no_model);
     tcase_add_test(tc, test_fork_supports_thinking);

@@ -24,6 +24,7 @@
 #include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
+#include "wrapper_internal.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -94,7 +95,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
 
     // Get or create provider (lazy initialization)
     ik_provider_t *provider = NULL;
-    res = ik_agent_get_provider(repl->current, &provider);
+    res = ik_agent_get_provider_(repl->current, (void **)&provider);
     if (is_err(&res)) {
         const char *err_msg = error_message(res.err);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
@@ -105,7 +106,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
 
     // Build normalized request from conversation
     ik_request_t *req = NULL;
-    res = ik_request_build_from_conversation(repl->current, repl->current, &req);
+    res = ik_request_build_from_conversation_(repl->current, repl->current, (void **)&req);
     if (is_err(&res)) {
         const char *err_msg = error_message(res.err);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
