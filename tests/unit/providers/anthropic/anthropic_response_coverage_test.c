@@ -64,9 +64,10 @@ END_TEST START_TEST(test_parse_response_edge_cases)
         {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}", true},
         {"{\"type\":\"message\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false},
         {"{\"type\":\"message\",\"model\":\"claude\",\"usage\":{},\"content\":[]}", false},
-        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false}
+        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false},
+        {"{\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false}
     };
-    for (size_t i = 0; i < 7; i++) {
+    for (size_t i = 0; i < 8; i++) {
         ik_response_t *resp = NULL;
         res_t r = ik_anthropic_parse_response(test_ctx, cases[i].json, strlen(cases[i].json), &resp);
         if (cases[i].should_error) {
@@ -270,6 +271,100 @@ END_TEST START_TEST(test_parse_error_empty_json)
     ck_assert_ptr_nonnull(message);
 }
 
+END_TEST START_TEST(test_parse_error_invalid_json_root_not_object)
+{
+    // Test doc != NULL but root is not object (covers line 168 branch)
+    const char *json = "\"just a string\"";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 404, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+    ck_assert_ptr_nonnull(message);
+    talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_with_http_502)
+{
+    // Test case 502 specifically with valid JSON error
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"overloaded_error\","
+        "    \"message\": \"Service temporarily unavailable\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 502, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_with_http_503)
+{
+    // Test case 503 specifically
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"service_unavailable\","
+        "    \"message\": \"Service is down\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 503, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_with_http_529)
+{
+    // Test case 529 specifically
+    const char *json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"overloaded\","
+        "    \"message\": \"Too many requests\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 529, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_no_error_obj_in_valid_json)
+{
+    // Test doc != NULL, root is object, but no error field (covers line 170 branch)
+    const char *json = "{\"status\":\"failed\",\"code\":404}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 404, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+    ck_assert_ptr_nonnull(message);
+    ck_assert(strstr(message, "404") != NULL);
+    talloc_free(message);
+}
+
 END_TEST
 
 /* ================================================================
@@ -346,6 +441,11 @@ static Suite *anthropic_response_coverage_suite(void)
     tcase_add_test(tc_error, test_parse_error_message_only);
     tcase_add_test(tc_error, test_parse_error_type_only);
     tcase_add_test(tc_error, test_parse_error_empty_json);
+    tcase_add_test(tc_error, test_parse_error_invalid_json_root_not_object);
+    tcase_add_test(tc_error, test_parse_error_with_http_502);
+    tcase_add_test(tc_error, test_parse_error_with_http_503);
+    tcase_add_test(tc_error, test_parse_error_with_http_529);
+    tcase_add_test(tc_error, test_parse_error_no_error_obj_in_valid_json);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_stubs = tcase_create("Stub Functions");
