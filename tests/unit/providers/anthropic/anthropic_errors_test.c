@@ -349,6 +349,51 @@ END_TEST START_TEST(test_handle_error_with_boolean_error)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
+END_TEST START_TEST(test_handle_error_with_reversed_field_order)
+{
+    // Test case where "message" comes before "type" in error object
+    // This exercises the branch where yyjson_obj_get has to iterate past other fields
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"message\": \"Some error message\","
+        "    \"type\": \"rate_limit_error\","
+        "    \"extra\": \"field\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 429, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
+}
+
+END_TEST START_TEST(test_handle_error_with_many_fields)
+{
+    // Test case with many fields to exercise iteration in yyjson_obj_get
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": {"
+        "    \"field1\": \"value1\","
+        "    \"field2\": \"value2\","
+        "    \"field3\": \"value3\","
+        "    \"type\": \"authentication_error\","
+        "    \"field4\": \"value4\","
+        "    \"message\": \"invalid x-api-key\","
+        "    \"field5\": \"value5\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 401, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
+}
+
 END_TEST
 /* ================================================================
  * Retry-After Header Tests
@@ -485,6 +530,8 @@ static Suite *anthropic_errors_suite(void)
     tcase_add_test(tc_errors, test_handle_error_with_array_error);
     tcase_add_test(tc_errors, test_handle_error_with_number_error);
     tcase_add_test(tc_errors, test_handle_error_with_boolean_error);
+    tcase_add_test(tc_errors, test_handle_error_with_reversed_field_order);
+    tcase_add_test(tc_errors, test_handle_error_with_many_fields);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After Headers");

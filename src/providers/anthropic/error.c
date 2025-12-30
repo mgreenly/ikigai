@@ -58,7 +58,7 @@ res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *bod
     yyjson_val *error_obj = yyjson_obj_get(root, "error");
     if (error_obj != NULL) {
         // Validate that error object has the expected fields
-        yyjson_val *type_val = yyjson_obj_get(error_obj, "type");
+        yyjson_val *type_val = yyjson_obj_get(error_obj, "type"); // LCOV_EXCL_BR_LINE - inline key null check unreachable with string literal
         yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
 
         // Fields exist but we don't need to do anything with them
