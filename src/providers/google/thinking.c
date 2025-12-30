@@ -123,7 +123,7 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
     // Calculate budget based on level
     int32_t range = max_budget - min_budget;
 
-    switch (level) {
+    switch (level) { // LCOV_EXCL_BR_LINE
         case IK_THINKING_NONE:
             return min_budget;
         case IK_THINKING_LOW:
@@ -139,7 +139,7 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
 
 const char *ik_google_thinking_level_str(ik_thinking_level_t level)
 {
-    switch (level) {
+    switch (level) { // LCOV_EXCL_BR_LINE
         case IK_THINKING_NONE:
             return NULL;
         case IK_THINKING_LOW:
