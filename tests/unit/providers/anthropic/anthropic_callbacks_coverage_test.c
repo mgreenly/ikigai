@@ -369,6 +369,32 @@ START_TEST(test_info_read_no_completion_callback)
 
 END_TEST
 
+START_TEST(test_info_read_stream_not_completed)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
+
+    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
+    stream->completed = false;  // Not completed yet
+    stream->http_status = 0;
+    stream->completion_cb = test_completion_cb;
+    stream->completion_ctx = NULL;
+    impl_ctx->active_stream = stream;
+
+    g_completion_called = false;
+
+    // Call info_read - should not invoke callback since stream not completed
+    provider->vt->info_read(provider->ctx, NULL);
+
+    ck_assert(!g_completion_called);  // Callback should NOT be called
+    ck_assert(impl_ctx->active_stream != NULL);  // Stream should still be active
+}
+
+END_TEST
+
 /* Cancel Tests */
 
 START_TEST(test_cancel_with_active_stream)
@@ -447,6 +473,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_info_read, test_info_read_server_error_500);
     tcase_add_test(tc_info_read, test_info_read_unknown_error_400);
     tcase_add_test(tc_info_read, test_info_read_no_completion_callback);
+    tcase_add_test(tc_info_read, test_info_read_stream_not_completed);
     suite_add_tcase(s, tc_info_read);
 
     TCase *tc_cancel = tcase_create("Cancel");
