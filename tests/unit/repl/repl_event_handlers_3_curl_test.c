@@ -39,6 +39,9 @@ static ik_shared_ctx_t *shared;
 static ik_agent_ctx_t *agent;
 static ik_db_ctx_t *fake_db;
 
+/* Global context for mock error creation */
+static TALLOC_CTX *error_ctx = NULL;
+
 /* Mock database insert that succeeds */
 res_t ik_db_message_insert_(void *db,
                             int64_t session_id,
@@ -89,6 +92,15 @@ static res_t mock_perform(void *provider_ctx, int *still_running)
     return OK(NULL);
 }
 
+static res_t mock_perform_error(void *provider_ctx, int *still_running)
+{
+    (void)provider_ctx;
+    (void)still_running;
+    /* Return error to test error handling path */
+    /* Use global error_ctx which is set up in test setup */
+    return ERR(error_ctx, PROVIDER, "mock perform error");
+}
+
 static void mock_info_read(void *provider_ctx, ik_logger_t *logger)
 {
     (void)provider_ctx;
@@ -103,9 +115,18 @@ static ik_provider_vtable_t mock_vt = {
     .cleanup = NULL
 };
 
+static ik_provider_vtable_t mock_vt_error = {
+    .fdset = mock_fdset,
+    .timeout = mock_timeout,
+    .perform = mock_perform_error,
+    .info_read = mock_info_read,
+    .cleanup = NULL
+};
+
 static void setup(void)
 {
     ctx = talloc_new(NULL);
+    error_ctx = ctx;  /* Set global error context for mocks */
 
     /* Create fake database context */
     fake_db = talloc_zero(ctx, ik_db_ctx_t);
@@ -411,6 +432,30 @@ START_TEST(test_curl_events_no_provider_instance)
 
 END_TEST
 
+START_TEST(test_curl_events_perform_error)
+{
+    /* Create mock provider instance with error vtable */
+    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
+    instance->vt = &mock_vt_error;
+    instance->ctx = NULL;
+    agent->provider_instance = instance;
+    agent->curl_still_running = 1;
+    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+
+    /* Add agent to repl */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->current = agent;
+
+    /* perform() will return an error */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    /* Should propagate the error */
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
 /* ========== Test Suite Setup ========== */
 
 static Suite *repl_event_handlers_curl_suite(void)
@@ -428,6 +473,7 @@ static Suite *repl_event_handlers_curl_suite(void)
     tcase_add_test(tc_curl_error, test_curl_events_with_null_current);
     tcase_add_test(tc_curl_error, test_curl_events_state_not_waiting_for_llm);
     tcase_add_test(tc_curl_error, test_curl_events_no_provider_instance);
+    tcase_add_test(tc_curl_error, test_curl_events_perform_error);
     suite_add_tcase(s, tc_curl_error);
 
     return s;
