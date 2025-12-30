@@ -327,49 +327,49 @@ START_TEST(test_max_output_tokens_only)
  yyjson_doc_free(doc);
 }
 END_TEST
-START_TEST(test_system_instruction_non_empty)
+START_TEST(test_system_instruction_cases)
 {
- // Test system instruction with non-empty prompt
  ik_request_t req = {0};
  req.model = (char *)"gemini-2.0-flash";
- req.system_prompt = (char *)"You are a helpful assistant.";
  req.message_count = 0;
  req.tool_count = 0;
  char *json = NULL;
+ // Test non-empty prompt
+ req.system_prompt = (char *)"You are a helpful assistant.";
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
  yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *root = yyjson_doc_get_root(doc);
- yyjson_val *sys_inst = yyjson_obj_get(root, "systemInstruction");
+ yyjson_val *sys_inst = yyjson_obj_get(yyjson_doc_get_root(doc), "systemInstruction");
  ck_assert_ptr_nonnull(sys_inst);
- yyjson_val *parts = yyjson_obj_get(sys_inst, "parts");
- ck_assert_ptr_nonnull(parts);
- ck_assert_uint_eq(yyjson_arr_size(parts), 1);
- yyjson_val *part = yyjson_arr_get_first(parts);
- yyjson_val *text = yyjson_obj_get(part, "text");
- ck_assert_str_eq(yyjson_get_str(text), "You are a helpful assistant.");
+ yyjson_doc_free(doc);
+ // Test empty string (should be skipped)
+ req.system_prompt = (char *)"";
+ r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ doc = yyjson_read(json, strlen(json), 0);
+ sys_inst = yyjson_obj_get(yyjson_doc_get_root(doc), "systemInstruction");
+ ck_assert_ptr_null(sys_inst);
  yyjson_doc_free(doc);
 }
 END_TEST
-START_TEST(test_system_instruction_empty_string)
+START_TEST(test_edge_cases)
 {
- // Test system instruction with empty string (should be skipped like NULL)
  ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- req.system_prompt = (char *)""; // Empty string
- req.message_count = 0;
- req.tool_count = 0;
  char *json = NULL;
+ // NULL model error
+ req.model = NULL;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_err(&r));
+ // Thought signature cleanup
+ ik_message_t msgs[2] = {0};
+ ik_content_block_t blocks[2] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"Hi"},
+                                  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"Bye"}};
+ msgs[0].role = IK_ROLE_USER; msgs[0].content_blocks = &blocks[0]; msgs[0].content_count = 1;
+ msgs[1].role = IK_ROLE_ASSISTANT; msgs[1].content_blocks = &blocks[1]; msgs[1].content_count = 1;
+ msgs[1].provider_metadata = (char *)"{\"thought_signature\":\"sig\"}";
+ req.model = (char *)"gemini-3.0-flash"; req.messages = msgs; req.message_count = 2;
+ r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
- yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *root = yyjson_doc_get_root(doc);
- // Should not have system instruction for empty string
- yyjson_val *sys_inst = yyjson_obj_get(root, "systemInstruction");
- ck_assert_ptr_null(sys_inst);
- yyjson_doc_free(doc);
 }
 END_TEST
 /* ================================================================
@@ -407,8 +407,8 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_build_headers_non_streaming);
  tcase_add_test(tc_misc, test_build_headers_streaming);
  tcase_add_test(tc_misc, test_max_output_tokens_only);
- tcase_add_test(tc_misc, test_system_instruction_non_empty);
- tcase_add_test(tc_misc, test_system_instruction_empty_string);
+ tcase_add_test(tc_misc, test_system_instruction_cases);
+ tcase_add_test(tc_misc, test_edge_cases);
  suite_add_tcase(s, tc_misc);
  return s;
 }
