@@ -29,10 +29,8 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-/**
- * Test: Serialize request with tools to cover tool serialization branches
- */
-START_TEST(test_serialize_with_tools)
+/* Helper: Create a minimal request */
+static ik_request_t *create_minimal_request(void)
 {
     ik_request_t *req = talloc_zero(ctx, ik_request_t);
     req->model = talloc_strdup(ctx, "gpt-4");
@@ -40,11 +38,40 @@ START_TEST(test_serialize_with_tools)
     req->messages = NULL;
     req->message_count = 0;
     req->max_output_tokens = 0;
-    req->tool_count = 1;
-    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
-    req->tools[0].name = talloc_strdup(ctx, "test_tool");
-    req->tools[0].description = talloc_strdup(ctx, "A test tool");
-    req->tools[0].parameters = talloc_strdup(ctx, "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    req->tool_count = 0;
+    return req;
+}
+
+/* Helper: Add a tool to a request */
+static void add_tool(ik_request_t *req, const char *name, const char *desc, const char *params)
+{
+    size_t idx = req->tool_count++;
+    req->tools = talloc_realloc(ctx, req->tools, ik_tool_def_t, (unsigned int)req->tool_count);
+    req->tools[idx].name = talloc_strdup(ctx, name);
+    req->tools[idx].description = talloc_strdup(ctx, desc);
+    req->tools[idx].parameters = talloc_strdup(ctx, params);
+}
+
+/* Helper: Add a text message to a request */
+static void add_message(ik_request_t *req, ik_role_t role, const char *text)
+{
+    size_t idx = req->message_count++;
+    req->messages = talloc_realloc(ctx, req->messages, ik_message_t, (unsigned int)req->message_count);
+    req->messages[idx].role = role;
+    req->messages[idx].content_count = 1;
+    req->messages[idx].content_blocks = talloc_array(ctx, ik_content_block_t, 1);
+    req->messages[idx].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[idx].content_blocks[0].data.text.text = talloc_strdup(ctx, text);
+}
+
+/**
+ * Test: Serialize request with tools to cover tool serialization branches
+ */
+START_TEST(test_serialize_with_tools)
+{
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "test_tool", "A test tool",
+             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 0; // IK_TOOL_AUTO
 
     char *json = NULL;
@@ -72,34 +99,18 @@ END_TEST
  */
 START_TEST(test_tool_choice_none)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 1;
-    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
-    req->tools[0].name = talloc_strdup(ctx, "test_tool");
-    req->tools[0].description = talloc_strdup(ctx, "A test tool");
-    req->tools[0].parameters = talloc_strdup(ctx, "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "test_tool", "A test tool",
+             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 1; // IK_TOOL_NONE
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify tool_choice is "none" */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-    ck_assert_ptr_nonnull(tool_choice);
-    const char *choice_str = yyjson_get_str(tool_choice);
-    ck_assert_str_eq(choice_str, "none");
-
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "none");
     yyjson_doc_free(doc);
 }
 
@@ -110,34 +121,18 @@ END_TEST
  */
 START_TEST(test_tool_choice_required)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 1;
-    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
-    req->tools[0].name = talloc_strdup(ctx, "test_tool");
-    req->tools[0].description = talloc_strdup(ctx, "A test tool");
-    req->tools[0].parameters = talloc_strdup(ctx, "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "test_tool", "A test tool",
+             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify tool_choice is "required" */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-    ck_assert_ptr_nonnull(tool_choice);
-    const char *choice_str = yyjson_get_str(tool_choice);
-    ck_assert_str_eq(choice_str, "required");
-
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "required");
     yyjson_doc_free(doc);
 }
 
@@ -148,34 +143,18 @@ END_TEST
  */
 START_TEST(test_tool_choice_invalid)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 1;
-    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
-    req->tools[0].name = talloc_strdup(ctx, "test_tool");
-    req->tools[0].description = talloc_strdup(ctx, "A test tool");
-    req->tools[0].parameters = talloc_strdup(ctx, "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "test_tool", "A test tool",
+             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 999; /* Invalid value to trigger default case */
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify tool_choice defaults to "auto" */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-    ck_assert_ptr_nonnull(tool_choice);
-    const char *choice_str = yyjson_get_str(tool_choice);
-    ck_assert_str_eq(choice_str, "auto");
-
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
     yyjson_doc_free(doc);
 }
 
@@ -186,38 +165,19 @@ END_TEST
  */
 START_TEST(test_serialize_with_system_prompt)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
+    ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify system message is present */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *messages = yyjson_obj_get(root, "messages");
-    ck_assert_ptr_nonnull(messages);
-    ck_assert(yyjson_is_arr(messages));
+    yyjson_val *messages = yyjson_obj_get(yyjson_doc_get_root(doc), "messages");
     ck_assert_uint_ge(yyjson_arr_size(messages), 1);
-
     yyjson_val *first_msg = yyjson_arr_get_first(messages);
-    yyjson_val *role = yyjson_obj_get(first_msg, "role");
-    const char *role_str = yyjson_get_str(role);
-    ck_assert_str_eq(role_str, "system");
-
-    yyjson_val *content = yyjson_obj_get(first_msg, "content");
-    const char *content_str = yyjson_get_str(content);
-    ck_assert_str_eq(content_str, "You are a helpful assistant.");
-
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(first_msg, "role")), "system");
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(first_msg, "content")), "You are a helpful assistant.");
     yyjson_doc_free(doc);
 }
 
@@ -228,35 +188,16 @@ END_TEST
  */
 START_TEST(test_serialize_with_streaming)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
+    ik_request_t *req = create_minimal_request();
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, true, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify stream is true */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
     yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *stream = yyjson_obj_get(root, "stream");
-    ck_assert_ptr_nonnull(stream);
-    ck_assert(yyjson_get_bool(stream));
-
-    /* Verify stream_options with include_usage */
-    yyjson_val *stream_opts = yyjson_obj_get(root, "stream_options");
-    ck_assert_ptr_nonnull(stream_opts);
-    yyjson_val *include_usage = yyjson_obj_get(stream_opts, "include_usage");
-    ck_assert_ptr_nonnull(include_usage);
-    ck_assert(yyjson_get_bool(include_usage));
-
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "stream")));
+    ck_assert(yyjson_get_bool(yyjson_obj_get(yyjson_obj_get(root, "stream_options"), "include_usage")));
     yyjson_doc_free(doc);
 }
 
@@ -267,17 +208,8 @@ END_TEST
  */
 START_TEST(test_tool_invalid_json_parameters)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 1;
-    req->tools = talloc_array(ctx, ik_tool_def_t, 1);
-    req->tools[0].name = talloc_strdup(ctx, "test_tool");
-    req->tools[0].description = talloc_strdup(ctx, "A test tool");
-    req->tools[0].parameters = talloc_strdup(ctx, "{invalid json}"); /* Invalid JSON */
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "test_tool", "A test tool", "{invalid json}"); /* Invalid JSON */
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
@@ -293,35 +225,16 @@ END_TEST
  */
 START_TEST(test_serialize_with_messages)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
-
-    /* Add one message with a text content block */
-    req->message_count = 1;
-    req->messages = talloc_array(ctx, ik_message_t, 1);
-    req->messages[0].role = IK_ROLE_USER;
-    req->messages[0].content_count = 1;
-    req->messages[0].content_blocks = talloc_array(ctx, ik_content_block_t, 1);
-    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
-    req->messages[0].content_blocks[0].data.text.text = talloc_strdup(ctx, "Hello");
+    ik_request_t *req = create_minimal_request();
+    add_message(req, IK_ROLE_USER, "Hello");
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify messages array contains the user message */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *messages = yyjson_obj_get(root, "messages");
-    ck_assert_ptr_nonnull(messages);
+    yyjson_val *messages = yyjson_obj_get(yyjson_doc_get_root(doc), "messages");
     ck_assert_uint_eq(yyjson_arr_size(messages), 1);
-
     yyjson_doc_free(doc);
 }
 
@@ -332,28 +245,16 @@ END_TEST
  */
 START_TEST(test_serialize_with_max_output_tokens)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
+    ik_request_t *req = create_minimal_request();
     req->max_output_tokens = 2048;
-    req->tool_count = 0;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify max_completion_tokens is present */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *max_tokens = yyjson_obj_get(root, "max_completion_tokens");
-    ck_assert_ptr_nonnull(max_tokens);
+    yyjson_val *max_tokens = yyjson_obj_get(yyjson_doc_get_root(doc), "max_completion_tokens");
     ck_assert_int_eq(yyjson_get_int(max_tokens), 2048);
-
     yyjson_doc_free(doc);
 }
 
@@ -407,28 +308,16 @@ END_TEST
  */
 START_TEST(test_serialize_with_empty_system_prompt)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
+    ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, ""); /* Empty string */
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
     ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(json);
-
-    /* Verify NO system message is added for empty string */
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *messages = yyjson_obj_get(root, "messages");
-    ck_assert_ptr_nonnull(messages);
+    yyjson_val *messages = yyjson_obj_get(yyjson_doc_get_root(doc), "messages");
     ck_assert_uint_eq(yyjson_arr_size(messages), 0); /* No system message */
-
     yyjson_doc_free(doc);
 }
 
@@ -439,19 +328,99 @@ END_TEST
  */
 START_TEST(test_serialize_null_model)
 {
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
+    ik_request_t *req = create_minimal_request();
     req->model = NULL; /* NULL model */
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
 
-    /* Should fail with INVALID_ARG error */
     ck_assert(!is_ok(&result));
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with multiple tools to cover loop iteration branches
+ */
+START_TEST(test_serialize_with_multiple_tools)
+{
+    ik_request_t *req = create_minimal_request();
+    add_tool(req, "tool_one", "First tool",
+             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    add_tool(req, "tool_two", "Second tool",
+             "{\"type\":\"object\",\"properties\":{\"arg1\":{\"type\":\"string\"}},\"required\":[\"arg1\"],\"additionalProperties\":false}");
+    add_tool(req, "tool_three", "Third tool",
+             "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}},\"additionalProperties\":false}");
+    req->tool_choice_mode = 0;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *tools = yyjson_obj_get(yyjson_doc_get_root(doc), "tools");
+    ck_assert_uint_eq(yyjson_arr_size(tools), 3);
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: Serialize with multiple messages to cover loop iteration branches
+ */
+START_TEST(test_serialize_with_multiple_messages)
+{
+    ik_request_t *req = create_minimal_request();
+    add_message(req, IK_ROLE_USER, "Hello");
+    add_message(req, IK_ROLE_ASSISTANT, "Hi there!");
+    add_message(req, IK_ROLE_USER, "How are you?");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    ck_assert(is_ok(&result));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *messages = yyjson_obj_get(yyjson_doc_get_root(doc), "messages");
+    ck_assert_uint_eq(yyjson_arr_size(messages), 3);
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/**
+ * Test: Full-featured request with all options enabled
+ * This exercises all code paths together to improve branch coverage
+ */
+START_TEST(test_serialize_full_featured_request)
+{
+    ik_request_t *req = create_minimal_request();
+    req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
+    req->max_output_tokens = 4096;
+    add_message(req, IK_ROLE_USER, "Hello");
+    add_message(req, IK_ROLE_ASSISTANT, "Hi!");
+    add_tool(req, "get_weather", "Get weather info",
+             "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"],\"additionalProperties\":false}");
+    add_tool(req, "search", "Search the web",
+             "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"additionalProperties\":false}");
+    req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, true, &json);
+
+    ck_assert(is_ok(&result));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    /* Verify all fields are present */
+    ck_assert_ptr_nonnull(yyjson_obj_get(root, "model"));
+    ck_assert_uint_eq(yyjson_arr_size(yyjson_obj_get(root, "messages")), 3); /* system + 2 */
+    ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(root, "max_completion_tokens")), 4096);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "stream")));
+    ck_assert_ptr_nonnull(yyjson_obj_get(root, "stream_options"));
+    ck_assert_uint_eq(yyjson_arr_size(yyjson_obj_get(root, "tools")), 2);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(root, "tool_choice")), "required");
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -479,6 +448,9 @@ static Suite *request_chat_coverage_suite(void)
     tcase_add_test(tc_basic, test_serialize_with_max_output_tokens);
     tcase_add_test(tc_basic, test_serialize_with_empty_system_prompt);
     tcase_add_test(tc_basic, test_serialize_null_model);
+    tcase_add_test(tc_basic, test_serialize_with_multiple_tools);
+    tcase_add_test(tc_basic, test_serialize_with_multiple_messages);
+    tcase_add_test(tc_basic, test_serialize_full_featured_request);
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_api = tcase_create("api_functions");
