@@ -120,38 +120,38 @@ START_TEST(test_parse_blocked_prompt_with_reason)
 }
 END_TEST
 
-START_TEST(test_parse_no_model_version)
+START_TEST(test_parse_promptfeedback_without_blockreason)
 {
-    const char *json = "{"
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{\"text\":\"Hello\"}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}]"
-                       "}";
+    const char *json = "{\"promptFeedback\":{\"other\":\"x\"},"
+                       "\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(resp);
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+}
+END_TEST
+
+START_TEST(test_parse_no_model_version)
+{
+    const char *json = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
 }
 END_TEST
 
 START_TEST(test_parse_model_version_not_string)
 {
-    const char *json = "{"
-                       "\"modelVersion\":123,"
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{\"text\":\"Hello\"}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}]"
-                       "}";
+    const char *json = "{\"modelVersion\":123,\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
 
     ik_response_t *resp = NULL;
     res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(resp);
 }
 END_TEST
 
@@ -245,6 +245,47 @@ START_TEST(test_parse_usage_all_fields_present)
     ck_assert_int_eq(resp->usage.thinking_tokens, 10);
     ck_assert_int_eq(resp->usage.output_tokens, 40);
     ck_assert_int_eq(resp->usage.total_tokens, 150);
+}
+END_TEST
+
+START_TEST(test_parse_usage_all_fields_null)
+{
+    const char *json = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}],"
+                       "\"usageMetadata\":{\"promptTokenCount\":null,\"candidatesTokenCount\":null,"
+                       "\"thoughtsTokenCount\":null,\"totalTokenCount\":null}}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(resp->usage.input_tokens, 0);
+    ck_assert_int_eq(resp->usage.total_tokens, 0);
+}
+END_TEST
+
+START_TEST(test_parse_no_candidates_field)
+{
+    const char *json = "{\"modelVersion\":\"gemini-2.5-flash\"}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 0);
+    ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
+}
+END_TEST
+
+START_TEST(test_parse_content_without_parts_field)
+{
+    const char *json = "{\"candidates\":[{\"content\":{\"other\":\"x\"},\"finishReason\":\"STOP\"}]}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 0);
+    ck_assert_ptr_null(resp->content_blocks);
 }
 END_TEST
 
@@ -417,12 +458,16 @@ static Suite *google_response_main_coverage_suite(void)
     tcase_add_test(tc_parse, test_parse_error_with_message);
     tcase_add_test(tc_parse, test_parse_blocked_prompt_null_reason);
     tcase_add_test(tc_parse, test_parse_blocked_prompt_with_reason);
+    tcase_add_test(tc_parse, test_parse_promptfeedback_without_blockreason);
     tcase_add_test(tc_parse, test_parse_no_model_version);
     tcase_add_test(tc_parse, test_parse_model_version_not_string);
     tcase_add_test(tc_parse, test_parse_no_usage_metadata);
     tcase_add_test(tc_parse, test_parse_usage_missing_some_fields);
     tcase_add_test(tc_parse, test_parse_usage_missing_total_tokens);
     tcase_add_test(tc_parse, test_parse_usage_all_fields_present);
+    tcase_add_test(tc_parse, test_parse_usage_all_fields_null);
+    tcase_add_test(tc_parse, test_parse_no_candidates_field);
+    tcase_add_test(tc_parse, test_parse_content_without_parts_field);
     tcase_add_test(tc_parse, test_parse_candidates_not_array);
     tcase_add_test(tc_parse, test_parse_empty_candidates_array);
     tcase_add_test(tc_parse, test_parse_no_finish_reason);
