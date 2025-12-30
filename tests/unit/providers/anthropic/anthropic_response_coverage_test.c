@@ -30,9 +30,10 @@ START_TEST(test_parse_response_null_fields)
     const char *jsons[] = {
         "{\"type\":null,\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
         "{\"type\":\"message\",\"model\":null,\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
-        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}"
+        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
+        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":123,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}"
     };
-    for (size_t i = 0; i < 3; i++) {
+    for (size_t i = 0; i < 4; i++) {
         ik_response_t *resp = NULL;
         res_t r = ik_anthropic_parse_response(test_ctx, jsons[i], strlen(jsons[i]), &resp);
         ck_assert(!is_err(&r));
@@ -90,7 +91,7 @@ START_TEST(test_map_finish_reason_all)
         {"end_turn", IK_FINISH_STOP}, {"stop_sequence", IK_FINISH_STOP},
         {"max_tokens", IK_FINISH_LENGTH}, {"tool_use", IK_FINISH_TOOL_USE},
         {"refusal", IK_FINISH_CONTENT_FILTER}, {"unknown_reason", IK_FINISH_UNKNOWN},
-        {NULL, IK_FINISH_UNKNOWN}
+        {NULL, IK_FINISH_UNKNOWN}, {"", IK_FINISH_UNKNOWN}
     };
 
     for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
