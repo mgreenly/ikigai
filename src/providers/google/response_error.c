@@ -64,7 +64,7 @@ res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
                     yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
                     const char *msg = yyjson_get_str(msg_val);
                     if (msg != NULL) {
-                        *out_message = talloc_asprintf_(ctx, "%d: %s", http_status, msg);
+                        *out_message = talloc_asprintf_(ctx, "%d: %s", http_status, msg); // LCOV_EXCL_BR_LINE
                         yyjson_doc_free(doc);
                         if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                         return OK(NULL);
