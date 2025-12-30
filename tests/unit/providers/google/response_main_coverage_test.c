@@ -25,6 +25,19 @@ static void teardown(void)
  * ik_google_parse_response Edge Cases
  * ================================================================ */
 
+START_TEST(test_parse_invalid_json)
+{
+    const char *json = "{invalid json";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "Invalid JSON"));
+    talloc_free(result.err);
+}
+END_TEST
+
 START_TEST(test_parse_root_not_object)
 {
     const char *json = "[]";
@@ -55,6 +68,24 @@ START_TEST(test_parse_error_with_null_message)
 }
 END_TEST
 
+START_TEST(test_parse_error_with_message)
+{
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"code\":400,"
+                       "\"message\":\"Invalid request\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "Invalid request"));
+    talloc_free(result.err);
+}
+END_TEST
+
 START_TEST(test_parse_blocked_prompt_null_reason)
 {
     const char *json = "{"
@@ -68,6 +99,23 @@ START_TEST(test_parse_blocked_prompt_null_reason)
 
     ck_assert(is_err(&result));
     ck_assert_ptr_nonnull(strstr(result.err->msg, "Unknown reason"));
+    talloc_free(result.err);
+}
+END_TEST
+
+START_TEST(test_parse_blocked_prompt_with_reason)
+{
+    const char *json = "{"
+                       "\"promptFeedback\":{"
+                       "\"blockReason\":\"SAFETY\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_ptr_nonnull(strstr(result.err->msg, "SAFETY"));
     talloc_free(result.err);
 }
 END_TEST
@@ -172,11 +220,56 @@ START_TEST(test_parse_usage_missing_total_tokens)
 }
 END_TEST
 
+START_TEST(test_parse_usage_all_fields_present)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-3\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{\"text\":\"Hello\"}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}],"
+                       "\"usageMetadata\":{"
+                       "\"promptTokenCount\":100,"
+                       "\"candidatesTokenCount\":50,"
+                       "\"thoughtsTokenCount\":10,"
+                       "\"totalTokenCount\":150"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->usage.input_tokens, 100);
+    ck_assert_int_eq(resp->usage.thinking_tokens, 10);
+    ck_assert_int_eq(resp->usage.output_tokens, 40);
+    ck_assert_int_eq(resp->usage.total_tokens, 150);
+}
+END_TEST
+
 START_TEST(test_parse_candidates_not_array)
 {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":\"not an array\""
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_uint_eq((unsigned int)resp->content_count, 0);
+    ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
+}
+END_TEST
+
+START_TEST(test_parse_empty_candidates_array)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-flash\","
+                       "\"candidates\":[]"
                        "}";
 
     ik_response_t *resp = NULL;
@@ -318,15 +411,20 @@ static Suite *google_response_main_coverage_suite(void)
     TCase *tc_parse = tcase_create("ik_google_parse_response edge cases");
     tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
+    tcase_add_test(tc_parse, test_parse_invalid_json);
     tcase_add_test(tc_parse, test_parse_root_not_object);
     tcase_add_test(tc_parse, test_parse_error_with_null_message);
+    tcase_add_test(tc_parse, test_parse_error_with_message);
     tcase_add_test(tc_parse, test_parse_blocked_prompt_null_reason);
+    tcase_add_test(tc_parse, test_parse_blocked_prompt_with_reason);
     tcase_add_test(tc_parse, test_parse_no_model_version);
     tcase_add_test(tc_parse, test_parse_model_version_not_string);
     tcase_add_test(tc_parse, test_parse_no_usage_metadata);
     tcase_add_test(tc_parse, test_parse_usage_missing_some_fields);
     tcase_add_test(tc_parse, test_parse_usage_missing_total_tokens);
+    tcase_add_test(tc_parse, test_parse_usage_all_fields_present);
     tcase_add_test(tc_parse, test_parse_candidates_not_array);
+    tcase_add_test(tc_parse, test_parse_empty_candidates_array);
     tcase_add_test(tc_parse, test_parse_no_finish_reason);
     tcase_add_test(tc_parse, test_parse_no_content);
     tcase_add_test(tc_parse, test_parse_parts_not_array);

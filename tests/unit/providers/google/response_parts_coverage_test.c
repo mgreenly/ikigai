@@ -87,6 +87,29 @@ START_TEST(test_parse_function_call_name_not_string)
 }
 END_TEST
 
+START_TEST(test_parse_function_call_with_args)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-2.5-pro\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":[{"
+                       "\"functionCall\":{\"name\":\"get_weather\",\"args\":{\"city\":\"London\"}}"
+                       "}]},"
+                       "\"finishReason\":\"STOP\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.name, "get_weather");
+    ck_assert_ptr_nonnull(strstr(resp->content_blocks[0].data.tool_call.arguments, "London"));
+}
+END_TEST
+
 START_TEST(test_parse_function_call_no_args)
 {
     const char *json = "{"
@@ -209,6 +232,7 @@ static Suite *google_response_parts_coverage_suite(void)
     tcase_add_test(tc_parts, test_parse_empty_parts_array);
     tcase_add_test(tc_parts, test_parse_function_call_missing_name);
     tcase_add_test(tc_parts, test_parse_function_call_name_not_string);
+    tcase_add_test(tc_parts, test_parse_function_call_with_args);
     tcase_add_test(tc_parts, test_parse_function_call_no_args);
     tcase_add_test(tc_parts, test_parse_part_with_thought_flag_true);
     tcase_add_test(tc_parts, test_parse_part_with_thought_flag_false);
