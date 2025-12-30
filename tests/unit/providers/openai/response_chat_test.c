@@ -147,6 +147,96 @@ END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
 }
 
 END_TEST
+
+START_TEST(test_parse_response_no_usage)
+{
+    const char *json = "{"
+                       "\"id\":\"chatcmpl-123\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"Hello\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->usage.input_tokens, 0);
+    ck_assert_int_eq(resp->usage.output_tokens, 0);
+    ck_assert_int_eq(resp->usage.total_tokens, 0);
+    ck_assert_int_eq(resp->usage.thinking_tokens, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_null_content)
+{
+    const char *json = "{"
+                       "\"id\":\"chatcmpl-123\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":null"
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+    ck_assert_ptr_null(resp->content_blocks);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_empty_content)
+{
+    const char *json = "{"
+                       "\"id\":\"chatcmpl-123\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+    ck_assert_ptr_null(resp->content_blocks);
+}
+
+END_TEST
 /* ================================================================
  * Tool Call Response Tests
  * ================================================================ */
@@ -176,6 +266,9 @@ static Suite *response_chat_suite(void)
     tcase_add_checked_fixture(tc_simple, setup, teardown);
     tcase_add_test(tc_simple, test_parse_simple_text_response);
     tcase_add_test(tc_simple, test_parse_response_with_reasoning_tokens);
+    tcase_add_test(tc_simple, test_parse_response_no_usage);
+    tcase_add_test(tc_simple, test_parse_response_null_content);
+    tcase_add_test(tc_simple, test_parse_response_empty_content);
     suite_add_tcase(s, tc_simple);
 
     return s;
