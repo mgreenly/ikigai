@@ -77,18 +77,12 @@ START_TEST(test_serialize_thinking_gemini_3_null_level)
 {
     ik_request_t req = {0};
     req.model = (char *)"gemini-3.0-flash";
-    req.message_count = 0;
-    req.tool_count = 0;
-    req.max_output_tokens = 0;
     req.thinking.level = IK_THINKING_NONE;
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
     ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
-    ck_assert_ptr_null(gen_config);
+    ck_assert_ptr_null(yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig"));
     yyjson_doc_free(doc);
 }
 END_TEST
@@ -176,7 +170,6 @@ START_TEST(test_thinking_model_variations)
 {
  ik_request_t req = {0};
  char *json = NULL;
-
  req.model = (char *)"gemini-2.5-flash";
  req.thinking.level = IK_THINKING_HIGH;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -185,7 +178,6 @@ START_TEST(test_thinking_model_variations)
  yyjson_val *cfg = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
  ck_assert(yyjson_get_int(yyjson_obj_get(yyjson_obj_get(cfg, "thinkingConfig"), "thinkingBudget")) > 0);
  yyjson_doc_free(doc);
-
  req.model = (char *)"gemini-1.5-pro";
  r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
