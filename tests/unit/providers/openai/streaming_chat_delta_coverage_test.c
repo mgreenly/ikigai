@@ -115,14 +115,11 @@ static void teardown(void)
 
 START_TEST(test_delta_content_non_string)
 {
-    /* Line 86: content_val != NULL but NOT yyjson_is_str (false branch) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L86: content not string */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"content\":123}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"content\":123}}]}");
 
-    /* Should not emit text delta since content is not a string */
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -130,16 +127,10 @@ END_TEST
 
 START_TEST(test_delta_content_null_string)
 {
-    /* Line 88: content == NULL (true branch) */
-    /* This tests yyjson_get_str returning NULL for a non-string value */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L88: content null */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"content\":null}}]}");
 
-    /* Create a scenario where yyjson_get_str would return NULL */
-    const char *data = "{\"choices\":[{\"delta\":{\"content\":null}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit text delta */
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -147,14 +138,10 @@ END_TEST
 
 START_TEST(test_delta_tool_calls_not_array)
 {
-    /* Line 107: tool_calls_val != NULL but NOT yyjson_is_arr (false branch) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L107 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":\"not_array\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not process tool calls */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":\"not_array\"}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -162,14 +149,10 @@ END_TEST
 
 START_TEST(test_delta_tool_calls_empty_array)
 {
-    /* Line 109: arr_size == 0 (true branch - NOT > 0) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L109 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit any tool call events */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -177,17 +160,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_null)
 {
-    /* Line 112: tool_call == NULL (first condition false) */
-    /* This is tricky - yyjson_arr_get returns NULL for out-of-bounds */
-    /* But we have arr_size > 0, so element 0 exists */
-    /* We need tool_call to be null in the array */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L112 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[null]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit any tool call events */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[null]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -195,14 +171,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_not_object)
 {
-    /* Line 112: tool_call != NULL but NOT yyjson_is_obj (second condition false) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L112 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[\"not_object\"]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit any tool call events */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[\"not_object\"]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -210,14 +182,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_index_null)
 {
-    /* Line 116: index_val == NULL (first condition false) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L116 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should still process with default index 0 */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_ge((int)events->count, 0);
 }
 
@@ -225,14 +193,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_index_not_int)
 {
-    /* Line 116: index_val != NULL but NOT yyjson_is_int (second condition false) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L116 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":\"not_int\",\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should still process with default index 0 */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":\"not_int\",\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_ge((int)events->count, 0);
 }
 
@@ -240,14 +204,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_missing_id_or_function)
 {
-    /* Line 126: Test when id_val == NULL */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L126 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"test\"}}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit tool call start without id */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -255,14 +215,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_missing_function)
 {
-    /* Line 126: Test when function_val == NULL */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L126 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\"}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit tool call start without function */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\"}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -270,14 +226,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_function_not_object)
 {
-    /* Line 129: function_val not an object */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L129 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":\"not_object\"}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit tool call start */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":\"not_object\"}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -285,14 +237,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_null_id_string)
 {
-    /* Line 134: id == NULL (after yyjson_get_str) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L134 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":null,\"function\":{\"name\":\"test\"}}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit tool call start */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":null,\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -300,14 +248,10 @@ END_TEST
 
 START_TEST(test_delta_tool_call_null_name_string)
 {
-    /* Line 134: name == NULL (after yyjson_get_str) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    /* L134 */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{\"name\":null}}]}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit tool call start */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{\"name\":null}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -316,13 +260,10 @@ END_TEST
 START_TEST(test_delta_role_field)
 {
     /* Line 79-81: role_val != NULL - first chunk with role */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
 
-    /* Should not emit any events when only role is present */
     ck_assert_int_eq((int)events->count, 0);
 }
 
@@ -331,13 +272,10 @@ END_TEST
 START_TEST(test_delta_content_string)
 {
     /* Line 86-101: content path with valid string */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    const char *data = "{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}");
 
-    /* Should emit START and TEXT_DELTA events */
     ck_assert_int_ge((int)events->count, 1);
 
     /* Find the TEXT_DELTA event */
@@ -356,8 +294,7 @@ END_TEST
 START_TEST(test_delta_finish_reason)
 {
     /* Line 190-191: finish_reason_str != NULL */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* First, send some content to initialize the stream */
     const char *data1 = "{\"choices\":[{\"delta\":{\"content\":\"test\"}}]}";
@@ -375,8 +312,7 @@ END_TEST
 START_TEST(test_delta_emit_start_already_started)
 {
     /* Line 51: Test false branch - sctx->started already true */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* First content will trigger START */
     const char *data1 = "{\"choices\":[{\"delta\":{\"content\":\"First\"}}]}";
@@ -388,7 +324,6 @@ START_TEST(test_delta_emit_start_already_started)
     const char *data2 = "{\"choices\":[{\"delta\":{\"content\":\"Second\"}}]}";
     ik_openai_chat_stream_process_data(sctx, data2);
 
-    /* Should have additional TEXT_DELTA but not another START */
     ck_assert_int_gt((int)events->count, (int)first_count);
 
     /* Count START events - should only be 1 */
@@ -406,8 +341,7 @@ END_TEST
 START_TEST(test_delta_tool_call_arguments_delta)
 {
     /* Line 164-181: Test tool call arguments delta (both conditions true) */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* First, start a tool call */
     const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\"}}]}}]}";
@@ -419,7 +353,6 @@ START_TEST(test_delta_tool_call_arguments_delta)
     const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"city\\\":\"}}]}}]}";
     ik_openai_chat_stream_process_data(sctx, data2);
 
-    /* Should have emitted TOOL_CALL_DELTA */
     ck_assert_int_gt((int)events->count, (int)count_after_start);
 
     /* Find TOOL_CALL_DELTA event */
@@ -438,8 +371,7 @@ END_TEST
 START_TEST(test_delta_tool_call_then_text)
 {
     /* Line 53 + 90: Test ending tool call when text comes in */
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Start a tool call */
     const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"test\"}}]}}]}";
@@ -453,7 +385,6 @@ START_TEST(test_delta_tool_call_then_text)
     const char *data3 = "{\"choices\":[{\"delta\":{\"content\":\"Some text\"}}]}";
     ik_openai_chat_stream_process_data(sctx, data3);
 
-    /* Should have emitted TOOL_CALL_DONE before TEXT_DELTA */
     bool found_done = false;
     bool found_text = false;
     size_t done_index = 0;
