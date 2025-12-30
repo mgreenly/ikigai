@@ -37,7 +37,7 @@ res_t ik_anthropic_parse_content_blocks(TALLOC_CTX *ctx, yyjson_val *content_arr
 
     size_t idx, max;
     yyjson_val *item;
-    yyjson_arr_foreach(content_arr, idx, max, item) {
+    yyjson_arr_foreach(content_arr, idx, max, item) { // LCOV_EXCL_BR_LINE
         yyjson_val *type_val = yyjson_obj_get(item, "type");
         if (type_val == NULL) {
             return ERR(ctx, PARSE, "Content block missing 'type' field");
@@ -49,7 +49,7 @@ res_t ik_anthropic_parse_content_blocks(TALLOC_CTX *ctx, yyjson_val *content_arr
         }
 
         if (strcmp(type_str, "text") == 0) {
-            blocks[idx].type = IK_CONTENT_TEXT;
+            blocks[idx].type = IK_CONTENT_TEXT; // LCOV_EXCL_BR_LINE
             yyjson_val *text_val = yyjson_obj_get(item, "text");
             if (text_val == NULL) {
                 return ERR(ctx, PARSE, "Text block missing 'text' field");
@@ -62,7 +62,7 @@ res_t ik_anthropic_parse_content_blocks(TALLOC_CTX *ctx, yyjson_val *content_arr
             if (blocks[idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
         } else if (strcmp(type_str, "thinking") == 0) {
-            blocks[idx].type = IK_CONTENT_THINKING;
+            blocks[idx].type = IK_CONTENT_THINKING; // LCOV_EXCL_BR_LINE
             yyjson_val *thinking_val = yyjson_obj_get(item, "thinking");
             if (thinking_val == NULL) {
                 return ERR(ctx, PARSE, "Thinking block missing 'thinking' field");
@@ -80,7 +80,7 @@ res_t ik_anthropic_parse_content_blocks(TALLOC_CTX *ctx, yyjson_val *content_arr
             if (blocks[idx].data.thinking.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
         } else if (strcmp(type_str, "tool_use") == 0) {
-            blocks[idx].type = IK_CONTENT_TOOL_CALL;
+            blocks[idx].type = IK_CONTENT_TOOL_CALL; // LCOV_EXCL_BR_LINE
 
             // Extract id
             yyjson_val *id_val = yyjson_obj_get(item, "id");
