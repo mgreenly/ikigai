@@ -186,6 +186,143 @@ START_TEST(test_insecure_permissions_warning)
 
 END_TEST
 
+// Test: HOME environment variable not set (expand_tilde error)
+START_TEST(test_home_not_set)
+{
+    // Save and unset HOME
+    char *old_home = getenv("HOME");
+    char *saved_home = old_home ? talloc_strdup(test_ctx, old_home) : NULL;
+    unsetenv("HOME");
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    ik_credentials_t *creds = NULL;
+    // Use tilde path to trigger expand_tilde
+    res_t result = ik_credentials_load(test_ctx, "~/credentials.json", &creds);
+
+    // Should fail with ERR_INVALID_ARG error
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+
+    // Restore HOME
+    if (saved_home) {
+        setenv("HOME", saved_home, 1);
+    }
+}
+
+END_TEST
+
+// Test: Invalid JSON - root is not an object
+START_TEST(test_invalid_json_root_not_object)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // JSON root is an array, not an object
+    const char *json = "[\"not\", \"an\", \"object\"]";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should continue with warning, but return success with NULL credentials
+    ck_assert(!is_err(&result));
+
+    unlink(path);
+}
+
+END_TEST
+
+// Test: Provider value is not an object (e.g., string instead of object)
+START_TEST(test_provider_not_object)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // openai, anthropic, google are strings instead of objects
+    const char *json = "{\n"
+                       "  \"openai\": \"not-an-object\",\n"
+                       "  \"anthropic\": \"also-not-object\",\n"
+                       "  \"google\": \"still-not-object\"\n"
+                       "}";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should succeed but skip invalid providers
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_ptr_null(creds->anthropic_api_key);
+    ck_assert_ptr_null(creds->google_api_key);
+
+    unlink(path);
+}
+
+END_TEST
+
+// Test: api_key field is not a string (e.g., number or object)
+START_TEST(test_api_key_not_string)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // api_key fields are numbers and objects instead of strings
+    const char *json = "{\n"
+                       "  \"openai\": { \"api_key\": 12345 },\n"
+                       "  \"anthropic\": { \"api_key\": {\"nested\": \"object\"} },\n"
+                       "  \"google\": { \"api_key\": [\"array\", \"value\"] }\n"
+                       "}";
+    char *path = create_temp_credentials(json);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should succeed but skip invalid api_key values
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_ptr_null(creds->anthropic_api_key);
+    ck_assert_ptr_null(creds->google_api_key);
+
+    unlink(path);
+}
+
+END_TEST
+
+// Test: Environment variable with empty string (should be treated as unset)
+START_TEST(test_env_empty_string)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    // Create file with valid credentials
+    const char *json = "{\n"
+                       "  \"openai\": { \"api_key\": \"file-key\" }\n"
+                       "}";
+    char *path = create_temp_credentials(json);
+
+    // Set env var to empty string
+    setenv("OPENAI_API_KEY", "", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Empty env var should not override file credential
+    ck_assert(!is_err(&result));
+    ck_assert_str_eq(creds->openai_api_key, "file-key");
+
+    unsetenv("OPENAI_API_KEY");
+    unlink(path);
+}
+
+END_TEST
+
 // Test Suite Configuration
 static Suite *credentials_coverage_suite(void)
 {
@@ -200,6 +337,11 @@ static Suite *credentials_coverage_suite(void)
     tcase_add_test(tc_core, test_empty_string_api_keys);
     tcase_add_test(tc_core, test_file_then_env_override);
     tcase_add_test(tc_core, test_insecure_permissions_warning);
+    tcase_add_test(tc_core, test_home_not_set);
+    tcase_add_test(tc_core, test_invalid_json_root_not_object);
+    tcase_add_test(tc_core, test_provider_not_object);
+    tcase_add_test(tc_core, test_api_key_not_string);
+    tcase_add_test(tc_core, test_env_empty_string);
 
     suite_add_tcase(s, tc_core);
 
