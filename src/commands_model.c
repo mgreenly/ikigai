@@ -172,11 +172,13 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Persist to database
     if (repl->shared->db_ctx != NULL) {
         const char *thinking_level_str = NULL;
-        switch (thinking_level) {
+        switch (thinking_level) { // LCOV_EXCL_BR_LINE
             case IK_THINKING_NONE: thinking_level_str = "none"; break;
             case IK_THINKING_LOW:  thinking_level_str = "low";  break;
             case IK_THINKING_MED:  thinking_level_str = "med";  break;
             case IK_THINKING_HIGH: thinking_level_str = "high"; break;
+            default: // LCOV_EXCL_LINE
+                PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
         }
 
         res_t db_res = ik_db_agent_update_provider(repl->shared->db_ctx, repl->current->uuid,
