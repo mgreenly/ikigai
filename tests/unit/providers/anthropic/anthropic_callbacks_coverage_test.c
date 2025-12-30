@@ -1,9 +1,6 @@
 /**
  * @file anthropic_callbacks_coverage_test.c
- * @brief Coverage tests for anthropic.c internal callbacks
- *
- * These tests directly invoke exposed callback functions to achieve
- * 100% branch coverage of defensive checks and edge cases.
+ * @brief Coverage tests for anthropic.c callbacks
  */
 
 #include <check.h>
@@ -30,12 +27,9 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-/* ================================================================
- * Stream Write Callback Tests
- * ================================================================ */
+/* Stream Write Callback Tests */
 
 START_TEST(test_stream_write_cb_with_null_context) {
-    // Test line 121: stream == NULL
     const char *data = "test data";
     size_t result = ik_anthropic_stream_write_cb(data, 9, NULL);
 
@@ -44,7 +38,6 @@ START_TEST(test_stream_write_cb_with_null_context) {
 }
 END_TEST START_TEST(test_stream_write_cb_with_null_sse_parser)
 {
-    // Test line 121: stream->sse_parser == NULL
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = NULL;
 
@@ -57,9 +50,6 @@ END_TEST START_TEST(test_stream_write_cb_with_null_sse_parser)
 
 END_TEST START_TEST(test_stream_write_cb_with_valid_context)
 {
-    // Test that valid context is handled properly
-    // The full integration path is tested in anthropic_streaming_*.c tests
-    // This just confirms the callback accepts valid contexts
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
     stream->stream_ctx = talloc_zero_(stream, 1); // Mock - won't be dereferenced with no events
@@ -72,13 +62,10 @@ END_TEST START_TEST(test_stream_write_cb_with_valid_context)
 }
 
 END_TEST
-/* ================================================================
- * Stream Completion Callback Tests
- * ================================================================ */
+/* Stream Completion Callback Tests */
 
 START_TEST(test_stream_completion_cb_with_null_context)
 {
-    // Test line 152: stream == NULL
     ik_http_completion_t completion = {
         .http_code = 200,
         .curl_code = 0
@@ -90,7 +77,6 @@ START_TEST(test_stream_completion_cb_with_null_context)
 
 END_TEST START_TEST(test_stream_completion_cb_with_valid_context)
 {
-    // Test normal path
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->completed = false;
     stream->http_status = 0;
@@ -108,9 +94,7 @@ END_TEST START_TEST(test_stream_completion_cb_with_valid_context)
 
 END_TEST
 
-/* ================================================================
- * Provider Creation Tests
- * ================================================================ */
+/* Provider Creation Tests */
 
 // Mock control flag
 static bool g_http_multi_create_should_fail = false;
@@ -129,7 +113,6 @@ res_t ik_http_multi_create_(void *parent, void **out)
 
 START_TEST(test_anthropic_create_http_multi_failure)
 {
-    // Test line 94: is_err(&r) from ik_http_multi_create_
     g_http_multi_create_should_fail = true;
 
     ik_provider_t *provider = NULL;
@@ -143,16 +126,10 @@ START_TEST(test_anthropic_create_http_multi_failure)
 
 END_TEST
 
-/* ================================================================
- * Stream Write Callback - Event Processing Tests
- * ================================================================ */
+/* Stream Write Callback - Event Processing Tests */
 
 START_TEST(test_stream_write_cb_with_events)
 {
-    // Test lines 130-144: while loop with events, event->event != NULL, event->data != NULL
-    // The full integration is tested in other anthropic streaming tests
-    // Here we just ensure the code path with non-NULL event and data is covered
-    // by feeding incomplete SSE data that won't generate complete events
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
     stream->stream_ctx = talloc_zero_(stream, 1);
@@ -161,18 +138,12 @@ START_TEST(test_stream_write_cb_with_events)
     const char *sse_data = "event: test\n";
     size_t result = ik_anthropic_stream_write_cb(sse_data, strlen(sse_data), stream);
 
-    // Should accept the data
     ck_assert_uint_eq(result, strlen(sse_data));
-
-    // Note: Lines 130-144 (while loop processing events) are covered by
-    // the full integration tests in anthropic_streaming_*.c
 }
 
 END_TEST
 
-/* ================================================================
- * Info Read Tests - Requires Provider Context Access
- * ================================================================ */
+/* Info Read Tests */
 
 // We need to expose the internal context structure for testing
 typedef struct {
@@ -204,7 +175,6 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
 
 START_TEST(test_info_read_no_active_stream)
 {
-    // Test line 205: impl_ctx->active_stream == NULL (false branch)
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -219,7 +189,6 @@ END_TEST
 
 START_TEST(test_info_read_success_http_status)
 {
-    // Test line 211: stream->http_status >= 200 && stream->http_status < 300
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -251,7 +220,6 @@ END_TEST
 
 START_TEST(test_info_read_auth_error_401)
 {
-    // Test line 224: stream->http_status == 401
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -278,7 +246,6 @@ END_TEST
 
 START_TEST(test_info_read_auth_error_403)
 {
-    // Test line 224: stream->http_status == 403
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -305,7 +272,6 @@ END_TEST
 
 START_TEST(test_info_read_rate_limit_429)
 {
-    // Test line 226: stream->http_status == 429
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -332,7 +298,6 @@ END_TEST
 
 START_TEST(test_info_read_server_error_500)
 {
-    // Test line 228: stream->http_status >= 500
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -359,7 +324,6 @@ END_TEST
 
 START_TEST(test_info_read_unknown_error_400)
 {
-    // Test line 231: else branch (other error codes)
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -384,13 +348,31 @@ START_TEST(test_info_read_unknown_error_400)
 
 END_TEST
 
-/* ================================================================
- * Cancel Tests
- * ================================================================ */
+START_TEST(test_info_read_no_completion_callback)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
+
+    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
+    stream->completed = true;
+    stream->http_status = 200;
+    stream->completion_cb = NULL;  // No callback
+    stream->completion_ctx = NULL;
+    impl_ctx->active_stream = stream;
+
+    // Should not crash even without callback
+    provider->vt->info_read(provider->ctx, NULL);
+}
+
+END_TEST
+
+/* Cancel Tests */
 
 START_TEST(test_cancel_with_active_stream)
 {
-    // Test line 360: impl_ctx->active_stream->completed = true
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -426,9 +408,7 @@ START_TEST(test_cancel_without_active_stream)
 
 END_TEST
 
-/* ================================================================
- * Test Suite Setup
- * ================================================================ */
+/* Test Suite Setup */
 
 static Suite *anthropic_callbacks_coverage_suite(void)
 {
@@ -466,6 +446,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_info_read, test_info_read_rate_limit_429);
     tcase_add_test(tc_info_read, test_info_read_server_error_500);
     tcase_add_test(tc_info_read, test_info_read_unknown_error_400);
+    tcase_add_test(tc_info_read, test_info_read_no_completion_callback);
     suite_add_tcase(s, tc_info_read);
 
     TCase *tc_cancel = tcase_create("Cancel");
