@@ -332,6 +332,48 @@ END_TEST START_TEST(test_parse_error_unknown_status)
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
 
+END_TEST START_TEST(test_parse_error_error_not_object)
+{
+    const char *json = "{\"error\":\"string instead of object\"}";
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t result = ik_google_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
+}
+
+END_TEST START_TEST(test_parse_error_message_null)
+{
+    const char *json = "{\"error\":{\"message\":null}}";
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t result = ik_google_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
+}
+
+END_TEST START_TEST(test_parse_error_empty_message)
+{
+    const char *json = "{\"error\":{\"message\":\"\"}}";
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t result = ik_google_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(strstr(message, "500: "));
+}
+
 END_TEST
 /* ================================================================
  * Tool ID Generation Tests
@@ -409,7 +451,10 @@ static Suite *google_response_errors_suite(void)
     tcase_add_test(tc_error, test_parse_error_invalid_json);
     tcase_add_test(tc_error, test_parse_error_root_not_object);
     tcase_add_test(tc_error, test_parse_error_no_error_field);
+    tcase_add_test(tc_error, test_parse_error_error_not_object);
     tcase_add_test(tc_error, test_parse_error_no_message_field);
+    tcase_add_test(tc_error, test_parse_error_message_null);
+    tcase_add_test(tc_error, test_parse_error_empty_message);
     tcase_add_test(tc_error, test_parse_error_message_not_string);
     suite_add_tcase(s, tc_error);
 
