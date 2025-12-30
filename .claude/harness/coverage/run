@@ -1,0 +1,627 @@
+#!/usr/bin/env python3
+import sys
+sys.dont_write_bytecode = True
+"""
+harness/coverage - Automated coverage gap fix loop
+
+Runs make coverage, fixes gaps one file at a time with escalation,
+commits on success, reverts on exhaustion, continues until
+all coverage thresholds met or no progress is made.
+"""
+
+import argparse
+import subprocess
+import sys
+import os
+import re
+import threading
+import time
+from datetime import datetime
+from pathlib import Path
+
+# Configuration
+MAX_ATTEMPTS_PER_FILE = 3
+
+# Escalation ladder: (model, thinking_budget, display_name)
+ESCALATION_LADDER = {
+    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
+    2: ("claude-opus-4-20250514", "10000", "opus:think"),
+    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
+}
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+COVERAGE_DIR = PROJECT_ROOT / "coverage"
+DEFAULT_TIMEOUT = 900
+
+
+class Spinner:
+    """Threaded spinner for long-running operations."""
+
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message: str = ""):
+        self.message = message
+        self.running = False
+        self.thread: threading.Thread | None = None
+        self.start_time: float = 0
+
+    def _spin(self) -> None:
+        idx = 0
+        while self.running:
+            elapsed = int(time.time() - self.start_time)
+            mins, secs = divmod(elapsed, 60)
+            frame = self.FRAMES[idx % len(self.FRAMES)]
+            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
+            sys.stdout.flush()
+            idx += 1
+            time.sleep(0.1)
+        sys.stdout.write("\r" + " " * 60 + "\r")
+        sys.stdout.flush()
+
+    def start(self) -> None:
+        self.running = True
+        self.start_time = time.time()
+        self.thread = threading.Thread(target=self._spin, daemon=True)
+        self.thread.start()
+
+    def stop(self) -> None:
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=1)
+
+
+def log(msg: str) -> None:
+    """Print timestamped log message."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} | {'coverage':10} | {msg}", flush=True)
+
+
+def format_elapsed(seconds: float) -> str:
+    """Format elapsed seconds as human-readable string."""
+    hours, remainder = divmod(int(seconds), 3600)
+    mins, secs = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}h {mins}m {secs}s"
+    elif mins > 0:
+        return f"{mins}m {secs}s"
+    else:
+        return f"{secs}s"
+
+
+def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeout: int | None = None) -> tuple[int, str, str]:
+    """Run a command and return (returncode, stdout, stderr)."""
+    result = subprocess.run(
+        cmd,
+        capture_output=capture,
+        text=True,
+        cwd=cwd or PROJECT_ROOT,
+        timeout=timeout,
+    )
+    return result.returncode, result.stdout or "", result.stderr or ""
+
+
+def drop_test_databases() -> None:
+    """Drop all ikigai_test_* databases before running coverage."""
+    conn_str = "postgresql://ikigai:ikigai@localhost/postgres"
+
+    # Get list of test databases
+    code, stdout, stderr = run_cmd(
+        ["psql", conn_str, "-t", "-c", "SELECT datname FROM pg_database WHERE datname LIKE 'ikigai_test_%';"],
+        capture=True
+    )
+
+    if code != 0:
+        log(f"WARNING: Failed to list test databases: {stderr.strip()}")
+        return
+
+    # Parse database names from output
+    db_names = [line.strip() for line in stdout.strip().split('\n') if line.strip()]
+
+    if not db_names:
+        log("No test databases to clean up")
+        return
+
+    log(f"Dropping {len(db_names)} test database(s)...")
+    spinner = Spinner(f"Dropping test databases")
+    spinner.start()
+
+    dropped = 0
+    for db_name in db_names:
+        code, _, stderr = run_cmd(
+            ["psql", conn_str, "-c", f"DROP DATABASE IF EXISTS {db_name};"],
+            capture=True
+        )
+        if code == 0:
+            dropped += 1
+        else:
+            log(f"WARNING: Failed to drop {db_name}: {stderr.strip()}")
+
+    spinner.stop()
+    log(f"Dropped {dropped}/{len(db_names)} test database(s)")
+
+
+def run_make_coverage() -> tuple[bool, str]:
+    """Run make coverage and return (success, output)."""
+    log("Running make coverage...")
+    spinner = Spinner("Running make coverage")
+    spinner.start()
+    code, stdout, stderr = run_cmd(["make", "coverage"], timeout=600)
+    spinner.stop()
+    output = stdout + stderr
+    return code == 0, output
+
+
+def parse_summary_for_gaps(summary_path: Path) -> list[dict]:
+    """
+    Parse coverage/summary.txt to find files with < 100% coverage.
+    Returns list of {file, lines_pct, funcs_pct, branches_pct} dicts.
+    """
+    gaps = []
+    if not summary_path.exists():
+        return gaps
+
+    content = summary_path.read_text()
+    current_dir = ""
+
+    # Pattern: filename | XX.X% NNN| XX.X% N| XX.X% NN (or - for no branches)
+    # Example: array.c                             |96.5%    85|90.9%  11|87.5%   16
+    line_pattern = re.compile(
+        r'^(\S+\.(?:c|h))\s+\|[\s]*(\d+(?:\.\d+)?)%\s+\d+\|[\s]*(\d+(?:\.\d+)?)%\s+\d+\|[\s]*(?:(\d+(?:\.\d+)?)%|-)\s+\d+',
+        re.MULTILINE
+    )
+
+    # Directory pattern: [/path/to/dir/]
+    dir_pattern = re.compile(r'^\[(.+)\]$', re.MULTILINE)
+
+    lines = content.split('\n')
+    for line in lines:
+        dir_match = dir_pattern.match(line.strip())
+        if dir_match:
+            current_dir = dir_match.group(1)
+            continue
+
+        match = line_pattern.match(line.strip())
+        if match:
+            filename = match.group(1)
+            lines_pct = float(match.group(2))
+            funcs_pct = float(match.group(3))
+            branches_pct = float(match.group(4)) if match.group(4) else 100.0  # '-' means N/A
+
+            if lines_pct < 100.0 or funcs_pct < 100.0 or branches_pct < 100.0:
+                # Construct full path
+                if current_dir:
+                    full_path = current_dir + filename
+                else:
+                    full_path = filename
+
+                gaps.append({
+                    "file": full_path,
+                    "lines_pct": lines_pct,
+                    "funcs_pct": funcs_pct,
+                    "branches_pct": branches_pct,
+                })
+
+    return gaps
+
+
+def parse_coverage_info_for_file(coverage_info_path: Path, source_file: str) -> dict:
+    """
+    Parse coverage.info to get detailed gaps for a specific file.
+    Returns {uncovered_lines: [...], uncovered_branches: [...], uncovered_functions: [...]}
+    """
+    result = {
+        "uncovered_lines": [],
+        "uncovered_branches": [],
+        "uncovered_functions": [],
+    }
+
+    if not coverage_info_path.exists():
+        return result
+
+    content = coverage_info_path.read_text()
+
+    # Find the section for this file
+    in_file = False
+    for line in content.split('\n'):
+        if line.startswith('SF:'):
+            in_file = source_file in line
+            continue
+
+        if not in_file:
+            continue
+
+        if line == 'end_of_record':
+            break
+
+        # DA:line_number,hit_count - uncovered if hit_count == 0
+        if line.startswith('DA:'):
+            parts = line[3:].split(',')
+            if len(parts) >= 2 and parts[1] == '0':
+                result["uncovered_lines"].append(int(parts[0]))
+
+        # BRDA:line,block,branch,taken - uncovered if taken == 0 or '-'
+        elif line.startswith('BRDA:'):
+            parts = line[5:].split(',')
+            if len(parts) >= 4 and (parts[3] == '0' or parts[3] == '-'):
+                result["uncovered_branches"].append({
+                    "line": int(parts[0]),
+                    "branch": int(parts[2]),
+                })
+
+        # FNA:index,hit_count,name - uncovered if hit_count == 0
+        elif line.startswith('FNA:'):
+            parts = line[4:].split(',')
+            if len(parts) >= 3 and parts[1] == '0':
+                result["uncovered_functions"].append(parts[2])
+
+    return result
+
+
+def load_prompt_template() -> str:
+    """Load the fix prompt template."""
+    if not FIX_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
+        sys.exit(1)
+    return FIX_PROMPT_TEMPLATE.read_text()
+
+
+def build_prompt(gap: dict, details: dict) -> str:
+    """Build the fix prompt from template."""
+    template = load_prompt_template()
+
+    # Format gap details
+    gap_description = []
+    if details["uncovered_lines"]:
+        gap_description.append(f"Uncovered lines: {details['uncovered_lines'][:20]}")
+        if len(details["uncovered_lines"]) > 20:
+            gap_description.append(f"  ... and {len(details['uncovered_lines']) - 20} more")
+
+    if details["uncovered_branches"]:
+        branches = [f"line {b['line']} branch {b['branch']}" for b in details["uncovered_branches"][:10]]
+        gap_description.append(f"Uncovered branches: {branches}")
+        if len(details["uncovered_branches"]) > 10:
+            gap_description.append(f"  ... and {len(details['uncovered_branches']) - 10} more")
+
+    if details["uncovered_functions"]:
+        gap_description.append(f"Uncovered functions: {details['uncovered_functions']}")
+
+    gap_text = "\n".join(gap_description) if gap_description else "Coverage below threshold"
+
+    # Simple placeholder replacement (chain all replacements)
+    source_file = gap["file"].replace(str(PROJECT_ROOT) + "/", "")
+    prompt = template
+    prompt = prompt.replace("{{file}}", gap["file"])
+    prompt = prompt.replace("{{source_file}}", source_file)
+    prompt = prompt.replace("{{lines_pct}}", str(gap["lines_pct"]))
+    prompt = prompt.replace("{{funcs_pct}}", str(gap["funcs_pct"]))
+    prompt = prompt.replace("{{branches_pct}}", str(gap["branches_pct"]))
+    prompt = prompt.replace("{{gap_details}}", gap_text)
+
+    return prompt
+
+
+def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
+    """
+    Invoke Claude CLI with the prompt via stdin.
+    Returns (success, response).
+    """
+    import json as json_mod
+    import tempfile
+
+    # Write prompt to temp file to avoid command line length limits
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        f.write(prompt)
+        prompt_file = f.name
+
+    spinner = Spinner(f"Waiting for {model_name}")
+    try:
+        # Use shell to pipe the prompt file
+        # Set MAX_THINKING_TOKENS env var for extended thinking
+        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
+        env = os.environ.copy()
+        env["MAX_THINKING_TOKENS"] = thinking_budget
+        spinner.start()
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
+            timeout=timeout,
+            env=env,
+        )
+        spinner.stop()
+        code = result.returncode
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+    except subprocess.TimeoutExpired:
+        spinner.stop()
+        return False, f"Timeout after {timeout} seconds"
+    finally:
+        Path(prompt_file).unlink(missing_ok=True)
+
+    if code != 0:
+        return False, stderr
+
+    try:
+        result = json_mod.loads(stdout)
+        return True, result.get("result", "")
+    except:
+        return True, stdout
+
+
+def git_get_modified_files() -> set[str]:
+    """Get set of currently modified/untracked files."""
+    code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+    files = set()
+    for line in stdout.strip().split('\n'):
+        if line.strip():
+            parts = line[3:].split(' -> ')
+            files.add(parts[-1])
+    return files
+
+
+def git_has_changes() -> bool:
+    """Check if there are uncommitted changes."""
+    return bool(git_get_modified_files())
+
+
+def git_commit(gap: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
+    """Commit only files that changed during fix attempt."""
+    files_after = git_get_modified_files()
+    new_changes = files_after - files_before
+
+    if not new_changes:
+        return False
+
+    for f in new_changes:
+        run_cmd(["git", "add", f])
+
+    source_file = Path(gap["file"]).name
+    msg = f"test: add coverage for {source_file}\n\nharness/coverage | {model_name} | attempt {attempt}"
+
+    code, _, _ = run_cmd(["git", "commit", "-m", msg])
+    return code == 0
+
+
+def git_revert(files_before: set[str] | None = None) -> None:
+    """Revert changes made during fix attempt."""
+    if files_before is not None:
+        files_after = git_get_modified_files()
+        new_changes = files_after - files_before
+        if new_changes:
+            log("Reverting uncommitted changes...")
+            for f in new_changes:
+                run_cmd(["git", "checkout", f])
+            # Also clean any new untracked files
+            run_cmd(["git", "clean", "-fd", "tests/"])
+    elif git_has_changes():
+        log("Reverting uncommitted changes...")
+        run_cmd(["git", "checkout", "."])
+        run_cmd(["git", "clean", "-fd"])
+
+
+def get_file_coverage(source_file: str) -> tuple[int, int, int]:
+    """Get current coverage percentages for a file."""
+    summary_path = COVERAGE_DIR / "summary.txt"
+    if not summary_path.exists():
+        return 0, 0, 0
+
+    content = summary_path.read_text()
+    filename = Path(source_file).name
+
+    # Find the line for this file
+    for line in content.split('\n'):
+        if filename in line and '|' in line:
+            match = re.search(r'(\d+)%\s+\d+\|\s*(\d+)%\s+\d+\|\s*(?:(\d+)%|-)', line)
+            if match:
+                lines_pct = int(match.group(1))
+                funcs_pct = int(match.group(2))
+                branches_pct = int(match.group(3)) if match.group(3) else 100
+                return lines_pct, funcs_pct, branches_pct
+
+    return 0, 0, 0
+
+
+def try_fix_file(gap: dict, timeout: int) -> bool:
+    """
+    Attempt to fix coverage gaps in a single file.
+    Returns True if fixed, False if exhausted attempts.
+    """
+    source_file = gap["file"]
+    initial_lines = gap["lines_pct"]
+    initial_funcs = gap["funcs_pct"]
+    initial_branches = gap["branches_pct"]
+
+    files_before = git_get_modified_files()
+
+    for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
+        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
+
+        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
+
+        # Get detailed coverage info
+        details = parse_coverage_info_for_file(COVERAGE_DIR / "coverage.info", source_file)
+
+        prompt = build_prompt(gap, details)
+        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+        if not success:
+            log(f"{model_name} invocation FAILED: {response[:200]}")
+            continue
+
+        # Verify the fix by running coverage
+        coverage_passed, _ = run_make_coverage()
+
+        if coverage_passed:
+            log(f"{model_name} SUCCESS - coverage thresholds met")
+            git_commit(gap, model_name, attempt, files_before)
+            return True
+
+        # Check if we made progress on this file
+        new_lines, new_funcs, new_branches = get_file_coverage(source_file)
+        if new_lines > initial_lines or new_funcs > initial_funcs or new_branches > initial_branches:
+            log(f"{model_name} PARTIAL - improved coverage, committing")
+            git_commit(gap, model_name, attempt, files_before)
+            # Update initial values for next attempt
+            initial_lines, initial_funcs, initial_branches = new_lines, new_funcs, new_branches
+            files_before = git_get_modified_files()
+        else:
+            log(f"{model_name} FAILED (no coverage improvement)")
+
+    # Exhausted all attempts
+    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
+    git_revert(files_before)
+    return False
+
+
+def count_total_gaps(gaps: list[dict]) -> int:
+    """Count total gap percentage points across all files."""
+    total = 0
+    for gap in gaps:
+        total += (100 - gap["lines_pct"])
+        total += (100 - gap["funcs_pct"])
+        total += (100 - gap["branches_pct"])
+    return total
+
+
+def main() -> int:
+    """Main entry point."""
+    start_time = time.time()
+    parser = argparse.ArgumentParser(description="Automated coverage gap fix loop")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Identify gaps without fixing them")
+    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
+                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    args = parser.parse_args()
+
+    opts = []
+    if args.dry_run:
+        opts.append("dry-run")
+    if args.time_out != DEFAULT_TIMEOUT:
+        opts.append(f"timeout={args.time_out}s")
+    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
+    os.chdir(PROJECT_ROOT)
+
+    # Drop test databases
+    drop_test_databases()
+
+    # Clean build to avoid stale gcda files
+    log("Running make clean...")
+    spinner = Spinner("Running make clean")
+    spinner.start()
+    run_cmd(["make", "clean"])
+    spinner.stop()
+
+    # Run make coverage
+    success, output = run_make_coverage()
+
+    if success:
+        log(f"All coverage thresholds met! (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 0
+
+    # Parse summary for gaps
+    summary_path = COVERAGE_DIR / "summary.txt"
+    gaps = parse_summary_for_gaps(summary_path)
+
+    if not gaps:
+        log("make coverage failed but couldn't parse gaps")
+        log("Output tail:")
+        for line in output.split('\n')[-20:]:
+            log(f"  {line}")
+        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 1
+
+    initial_gap_count = count_total_gaps(gaps)
+    log(f"Found {len(gaps)} files with coverage gaps (total gap: {initial_gap_count}%)")
+
+    # Dry-run: just list gaps and exit
+    if args.dry_run:
+        log("Files needing coverage:")
+        for gap in gaps:
+            source_file = Path(gap["file"]).name
+            log(f"  - {source_file} - lines:{gap['lines_pct']}% funcs:{gap['funcs_pct']}% branches:{gap['branches_pct']}%")
+        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 0
+
+    pass_num = 0
+
+    while True:
+        pass_num += 1
+        log(f"=== Pass {pass_num} ===")
+
+        if pass_num > 1:
+            # Re-run coverage for subsequent passes
+            success, output = run_make_coverage()
+
+            if success:
+                log(f"All coverage thresholds met! (elapsed: {format_elapsed(time.time() - start_time)})")
+                return 0
+
+            gaps = parse_summary_for_gaps(summary_path)
+
+            if not gaps:
+                log("make coverage failed but couldn't parse gaps")
+                log("Output tail:")
+                for line in output.split('\n')[-20:]:
+                    log(f"  {line}")
+                log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+                return 1
+
+            initial_gap_count = count_total_gaps(gaps)
+            log(f"Found {len(gaps)} files with coverage gaps (total gap: {initial_gap_count}%)")
+
+        fixed_count = 0
+        skipped = []
+        file_times: list[float] = []
+
+        for i, gap in enumerate(gaps, 1):
+            source_file = Path(gap["file"]).name
+            log(f"[file {i}/{len(gaps)}] {source_file} - lines:{gap['lines_pct']}% funcs:{gap['funcs_pct']}% branches:{gap['branches_pct']}%")
+
+            file_start = time.time()
+            if try_fix_file(gap, args.time_out):
+                fixed_count += 1
+            else:
+                skipped.append(source_file)
+
+            file_elapsed = time.time() - file_start
+            file_times.append(file_elapsed)
+            avg_time = sum(file_times) / len(file_times)
+            remaining = len(gaps) - i
+            eta = avg_time * remaining
+            log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
+
+        log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
+
+        # Early exit: if all failures were fixed, done!
+        if fixed_count > 0 and len(skipped) == 0:
+            log(f"All coverage gaps fixed! (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 0
+
+        # Check if we made progress
+        _, _ = run_make_coverage()  # Refresh coverage data
+        new_gaps = parse_summary_for_gaps(summary_path)
+        new_gap_count = count_total_gaps(new_gaps)
+
+        if new_gap_count >= initial_gap_count and fixed_count == 0:
+            log("No progress made. Stopping.")
+            if skipped:
+                log("Skipped files:")
+                for f in skipped:
+                    log(f"  - {f}")
+            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 1
+
+        # Progress made, continue to next pass
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
