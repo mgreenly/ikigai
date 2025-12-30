@@ -285,6 +285,70 @@ END_TEST START_TEST(test_handle_error_with_string_error)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
+END_TEST START_TEST(test_handle_error_with_null_error)
+{
+    // Test case where "error" field is null
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": null"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 400, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
+}
+
+END_TEST START_TEST(test_handle_error_with_array_error)
+{
+    // Test case where "error" field is an array instead of an object
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": [\"error1\", \"error2\"]"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 500, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+
+END_TEST START_TEST(test_handle_error_with_number_error)
+{
+    // Test case where "error" field is a number instead of an object
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": 404"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 404, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+}
+
+END_TEST START_TEST(test_handle_error_with_boolean_error)
+{
+    // Test case where "error" field is a boolean instead of an object
+    const char *error_json =
+        "{"
+        "  \"type\": \"error\","
+        "  \"error\": true"
+        "}";
+
+    ik_error_category_t category;
+    res_t r = ik_anthropic_handle_error(test_ctx, 500, error_json, &category);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+
 END_TEST
 /* ================================================================
  * Retry-After Header Tests
@@ -417,6 +481,10 @@ static Suite *anthropic_errors_suite(void)
     tcase_add_test(tc_errors, test_handle_error_with_error_object_missing_message);
     tcase_add_test(tc_errors, test_handle_error_with_empty_error_object);
     tcase_add_test(tc_errors, test_handle_error_with_string_error);
+    tcase_add_test(tc_errors, test_handle_error_with_null_error);
+    tcase_add_test(tc_errors, test_handle_error_with_array_error);
+    tcase_add_test(tc_errors, test_handle_error_with_number_error);
+    tcase_add_test(tc_errors, test_handle_error_with_boolean_error);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After Headers");
