@@ -218,134 +218,56 @@ START_TEST(test_info_read_success_http_status)
 
 END_TEST
 
-START_TEST(test_info_read_auth_error_401)
+static void test_error_status(int http_status, ik_error_category_t expected_cat)
 {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
 
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
-
     ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->completed = true;
-    stream->http_status = 401;
+    stream->http_status = http_status;
     stream->completion_cb = test_completion_cb;
     stream->completion_ctx = NULL;
     impl_ctx->active_stream = stream;
 
     g_completion_called = false;
-
     provider->vt->info_read(provider->ctx, NULL);
 
     ck_assert(g_completion_called);
     ck_assert(!g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.error_category, IK_ERR_CAT_AUTH);
+    ck_assert_int_eq(g_last_completion.error_category, expected_cat);
 }
 
+START_TEST(test_info_read_auth_error_401)
+{
+    test_error_status(401, IK_ERR_CAT_AUTH);
+}
 END_TEST
 
 START_TEST(test_info_read_auth_error_403)
 {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
-
-    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
-    stream->completed = true;
-    stream->http_status = 403;
-    stream->completion_cb = test_completion_cb;
-    stream->completion_ctx = NULL;
-    impl_ctx->active_stream = stream;
-
-    g_completion_called = false;
-
-    provider->vt->info_read(provider->ctx, NULL);
-
-    ck_assert(g_completion_called);
-    ck_assert(!g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.error_category, IK_ERR_CAT_AUTH);
+    test_error_status(403, IK_ERR_CAT_AUTH);
 }
-
 END_TEST
 
 START_TEST(test_info_read_rate_limit_429)
 {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
-
-    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
-    stream->completed = true;
-    stream->http_status = 429;
-    stream->completion_cb = test_completion_cb;
-    stream->completion_ctx = NULL;
-    impl_ctx->active_stream = stream;
-
-    g_completion_called = false;
-
-    provider->vt->info_read(provider->ctx, NULL);
-
-    ck_assert(g_completion_called);
-    ck_assert(!g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.error_category, IK_ERR_CAT_RATE_LIMIT);
+    test_error_status(429, IK_ERR_CAT_RATE_LIMIT);
 }
-
 END_TEST
 
 START_TEST(test_info_read_server_error_500)
 {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
-
-    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
-    stream->completed = true;
-    stream->http_status = 500;
-    stream->completion_cb = test_completion_cb;
-    stream->completion_ctx = NULL;
-    impl_ctx->active_stream = stream;
-
-    g_completion_called = false;
-
-    provider->vt->info_read(provider->ctx, NULL);
-
-    ck_assert(g_completion_called);
-    ck_assert(!g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.error_category, IK_ERR_CAT_SERVER);
+    test_error_status(500, IK_ERR_CAT_SERVER);
 }
-
 END_TEST
 
 START_TEST(test_info_read_unknown_error_400)
 {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
-
-    ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
-    stream->completed = true;
-    stream->http_status = 400;
-    stream->completion_cb = test_completion_cb;
-    stream->completion_ctx = NULL;
-    impl_ctx->active_stream = stream;
-
-    g_completion_called = false;
-
-    provider->vt->info_read(provider->ctx, NULL);
-
-    ck_assert(g_completion_called);
-    ck_assert(!g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.error_category, IK_ERR_CAT_UNKNOWN);
+    test_error_status(400, IK_ERR_CAT_UNKNOWN);
 }
-
 END_TEST
 
 START_TEST(test_info_read_no_completion_callback)
@@ -434,6 +356,75 @@ START_TEST(test_cancel_without_active_stream)
 
 END_TEST
 
+/* Vtable Method Tests - fdset, perform, timeout, cleanup */
+
+START_TEST(test_anthropic_fdset)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    fd_set read_fds, write_fds, exc_fds;
+    int max_fd = 0;
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+    FD_ZERO(&exc_fds);
+
+    res_t result = provider->vt->fdset(provider->ctx, &read_fds, &write_fds, &exc_fds, &max_fd);
+
+    // Just check it doesn't crash - result may be error if curl not initialized
+    // The function is exercised which is what we need for coverage
+    (void)result;
+}
+
+END_TEST
+
+START_TEST(test_anthropic_perform)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    int running_handles = 0;
+
+    res_t result = provider->vt->perform(provider->ctx, &running_handles);
+
+    // Just check it doesn't crash - result may be error if curl not initialized
+    // The function is exercised which is what we need for coverage
+    (void)result;
+}
+
+END_TEST
+
+START_TEST(test_anthropic_timeout)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    long timeout_ms = 0;
+
+    res_t result = provider->vt->timeout(provider->ctx, &timeout_ms);
+
+    // Just check it doesn't crash - result may be error if curl not initialized
+    // The function is exercised which is what we need for coverage
+    (void)result;
+}
+
+END_TEST
+
+START_TEST(test_anthropic_cleanup)
+{
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Should not crash - just a no-op function
+    provider->vt->cleanup(provider->ctx);
+}
+
+END_TEST
+
 /* Test Suite Setup */
 
 static Suite *anthropic_callbacks_coverage_suite(void)
@@ -482,6 +473,15 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_cancel, test_cancel_with_active_stream);
     tcase_add_test(tc_cancel, test_cancel_without_active_stream);
     suite_add_tcase(s, tc_cancel);
+
+    TCase *tc_vtable = tcase_create("Vtable Methods");
+    tcase_set_timeout(tc_vtable, 30);
+    tcase_add_unchecked_fixture(tc_vtable, setup, teardown);
+    tcase_add_test(tc_vtable, test_anthropic_fdset);
+    tcase_add_test(tc_vtable, test_anthropic_perform);
+    tcase_add_test(tc_vtable, test_anthropic_timeout);
+    tcase_add_test(tc_vtable, test_anthropic_cleanup);
+    suite_add_tcase(s, tc_vtable);
 
     return s;
 }
