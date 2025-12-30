@@ -128,14 +128,25 @@ END_TEST
 
 /* Stream Write Callback - Event Processing Tests */
 
-START_TEST(test_stream_write_cb_with_events)
+// Dummy stream callback
+static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
+{
+    (void)event;
+    (void)ctx;
+    return OK(NULL);
+}
+
+START_TEST(test_stream_write_cb_with_complete_event)
 {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
-    stream->stream_ctx = talloc_zero_(stream, 1);
 
-    // Feed partial SSE data - won't create complete events but exercises the parser
-    const char *sse_data = "event: test\n";
+    // Create a proper streaming context
+    res_t r = ik_anthropic_stream_ctx_create(stream, dummy_stream_cb, NULL, &stream->stream_ctx);
+    ck_assert(is_ok(&r));
+
+    // Feed complete SSE event to trigger event processing loop
+    const char *sse_data = "event: message_start\ndata: {\"type\":\"message_start\"}\n\n";
     size_t result = ik_anthropic_stream_write_cb(sse_data, strlen(sse_data), stream);
 
     ck_assert_uint_eq(result, strlen(sse_data));
@@ -437,7 +448,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_write, test_stream_write_cb_with_null_context);
     tcase_add_test(tc_write, test_stream_write_cb_with_null_sse_parser);
     tcase_add_test(tc_write, test_stream_write_cb_with_valid_context);
-    tcase_add_test(tc_write, test_stream_write_cb_with_events);
+    tcase_add_test(tc_write, test_stream_write_cb_with_complete_event);
     suite_add_tcase(s, tc_write);
 
     TCase *tc_completion = tcase_create("Stream Completion Callback");
