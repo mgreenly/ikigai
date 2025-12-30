@@ -30,10 +30,15 @@ int posix_rename_(const char *oldpath, const char *newpath)
     return 0;
 }
 
-// Mock ik_agent_get_provider_ - default passthrough
+// Mock ik_agent_get_provider_ - return error when provider not initialized
 res_t ik_agent_get_provider_(void *agent, void **provider_out)
 {
-    *provider_out = ((ik_agent_ctx_t *)agent)->provider_instance;
+    ik_agent_ctx_t *ctx = (ik_agent_ctx_t *)agent;
+    if (ctx->provider_instance == NULL) {
+        TALLOC_CTX *err_ctx = talloc_new(NULL);
+        return ERR(err_ctx, PROVIDER, "Provider not initialized (mock)");
+    }
+    *provider_out = ctx->provider_instance;
     return OK(NULL);
 }
 
