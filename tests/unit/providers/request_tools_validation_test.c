@@ -174,6 +174,26 @@ START_TEST(test_without_system_message)
 END_TEST
 
 /**
+ * Test with different thinking levels (line 249)
+ */
+START_TEST(test_different_thinking_levels)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "o1-preview");
+    agent->thinking_level = 2;  // Extended thinking
+    agent->messages = NULL;
+    agent->message_count = 0;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->thinking.level, 2);
+}
+END_TEST
+
+/**
  * Test with NULL message in array (line 260 continue)
  */
 START_TEST(test_skip_null_message)
@@ -227,6 +247,7 @@ static Suite *request_tools_validation_suite(void)
     TCase *tc_messages = tcase_create("Message Array");
     tcase_set_timeout(tc_messages, 30);
     tcase_add_checked_fixture(tc_messages, setup, teardown);
+    tcase_add_test(tc_messages, test_different_thinking_levels);
     tcase_add_test(tc_messages, test_skip_null_message);
     suite_add_tcase(s, tc_messages);
 
