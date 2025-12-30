@@ -161,6 +161,56 @@ START_TEST(test_copy_tool_result_error_message)
 END_TEST
 
 /**
+ * Test copying message with multiple content blocks
+ */
+START_TEST(test_copy_multiple_content_blocks)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
+    agent->thinking_level = 0;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_ASSISTANT;
+    agent->messages[0]->content_count = 3;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 3);
+
+    // Block 0: text
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_TEXT;
+    agent->messages[0]->content_blocks[0].data.text.text = talloc_strdup(agent->messages[0], "Let me run a command");
+
+    // Block 1: tool call
+    agent->messages[0]->content_blocks[1].type = IK_CONTENT_TOOL_CALL;
+    agent->messages[0]->content_blocks[1].data.tool_call.id = talloc_strdup(agent->messages[0], "tc1");
+    agent->messages[0]->content_blocks[1].data.tool_call.name = talloc_strdup(agent->messages[0], "bash");
+    agent->messages[0]->content_blocks[1].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{\"command\":\"ls\"}");
+
+    // Block 2: thinking
+    agent->messages[0]->content_blocks[2].type = IK_CONTENT_THINKING;
+    agent->messages[0]->content_blocks[2].data.thinking.text = talloc_strdup(agent->messages[0], "Analyzing...");
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq((int)req->messages[0].content_count, 3);
+
+    // Verify all blocks were copied
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.text.text, "Let me run a command");
+
+    ck_assert_int_eq(req->messages[0].content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(req->messages[0].content_blocks[1].data.tool_call.id, "tc1");
+
+    ck_assert_int_eq(req->messages[0].content_blocks[2].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(req->messages[0].content_blocks[2].data.thinking.text, "Analyzing...");
+}
+END_TEST
+
+/**
  * Test copying message with THINKING content
  */
 START_TEST(test_copy_thinking_message)
@@ -201,6 +251,7 @@ static Suite *request_tools_copy_suite(void)
     tcase_add_test(tc, test_copy_tool_call_message);
     tcase_add_test(tc, test_copy_tool_result_message);
     tcase_add_test(tc, test_copy_tool_result_error_message);
+    tcase_add_test(tc, test_copy_multiple_content_blocks);
     tcase_add_test(tc, test_copy_thinking_message);
     suite_add_tcase(s, tc);
 

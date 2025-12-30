@@ -111,7 +111,48 @@ START_TEST(test_with_system_message)
 END_TEST
 
 /**
- * Test without system message (line 249 false branch)
+ * Test with NULL shared context (line 249 - first condition false)
+ */
+START_TEST(test_null_shared_context)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = NULL;  // NULL shared context
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(req->system_prompt);
+}
+END_TEST
+
+/**
+ * Test with NULL config (line 249 - second condition false)
+ */
+START_TEST(test_null_config)
+{
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->shared->cfg = NULL;  // NULL config
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_null(req->system_prompt);
+}
+END_TEST
+
+/**
+ * Test without system message (line 249 - third condition false)
  */
 START_TEST(test_without_system_message)
 {
@@ -178,6 +219,8 @@ static Suite *request_tools_validation_suite(void)
     tcase_set_timeout(tc_system, 30);
     tcase_add_checked_fixture(tc_system, setup, teardown);
     tcase_add_test(tc_system, test_with_system_message);
+    tcase_add_test(tc_system, test_null_shared_context);
+    tcase_add_test(tc_system, test_null_config);
     tcase_add_test(tc_system, test_without_system_message);
     suite_add_tcase(s, tc_system);
 
