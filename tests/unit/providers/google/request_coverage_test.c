@@ -16,131 +16,60 @@ static void teardown(void) { talloc_free(test_ctx); }
 
 START_TEST(test_serialize_multiple_messages)
 {
-    ik_message_t msgs[2];
-    msgs[0].role = IK_ROLE_USER;
-    msgs[0].content_count = 1;
-    ik_content_block_t block1 = {0};
-    block1.type = IK_CONTENT_TEXT;
-    block1.data.text.text = (char *)"First";
-    msgs[0].content_blocks = &block1;
-    msgs[1].role = IK_ROLE_ASSISTANT;
-    msgs[1].content_count = 1;
-    ik_content_block_t block2 = {0};
-    block2.type = IK_CONTENT_TEXT;
-    block2.data.text.text = (char *)"Second";
-    msgs[1].content_blocks = &block2;
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-2.0-flash";
-    req.messages = msgs;
-    req.message_count = 2;
-    req.tool_count = 0;
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *contents = yyjson_obj_get(root, "contents");
-    ck_assert_ptr_nonnull(contents);
-    ck_assert_uint_eq(yyjson_arr_size(contents), 2);
-    yyjson_doc_free(doc);
+ ik_content_block_t blocks[2] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"1st"},
+  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"2nd"}};
+ ik_message_t msgs[2] = {{.role = IK_ROLE_USER, .content_count = 1, .content_blocks = &blocks[0]},
+  {.role = IK_ROLE_ASSISTANT, .content_count = 1, .content_blocks = &blocks[1]}};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .messages = msgs, .message_count = 2};
+ char *json = NULL; res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r)); ck_assert_ptr_nonnull(json);
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+ ck_assert_uint_eq(yyjson_arr_size(yyjson_obj_get(yyjson_doc_get_root(doc), "contents")), 2);
+ yyjson_doc_free(doc);
 }
 END_TEST
 
 START_TEST(test_serialize_first_assistant_message)
 {
-    ik_message_t msgs[3];
-    msgs[0].role = IK_ROLE_USER;
-    msgs[0].content_count = 1;
-    ik_content_block_t block1 = {0};
-    block1.type = IK_CONTENT_TEXT;
-    block1.data.text.text = (char *)"User";
-    msgs[0].content_blocks = &block1;
-    msgs[1].role = IK_ROLE_ASSISTANT;
-    msgs[1].content_count = 1;
-    ik_content_block_t block2 = {0};
-    block2.type = IK_CONTENT_TEXT;
-    block2.data.text.text = (char *)"First";
-    msgs[1].content_blocks = &block2;
-    msgs[2].role = IK_ROLE_ASSISTANT;
-    msgs[2].content_count = 1;
-    ik_content_block_t block3 = {0};
-    block3.type = IK_CONTENT_TEXT;
-    block3.data.text.text = (char *)"Second";
-    msgs[2].content_blocks = &block3;
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-2.0-flash";
-    req.messages = msgs;
-    req.message_count = 3;
-    req.tool_count = 0;
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
+ ik_content_block_t b[3] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"U"},
+  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"1"},
+  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"2"}};
+ ik_message_t msgs[3] = {{.role = IK_ROLE_USER, .content_count = 1, .content_blocks = &b[0]},
+  {.role = IK_ROLE_ASSISTANT, .content_count = 1, .content_blocks = &b[1]},
+  {.role = IK_ROLE_ASSISTANT, .content_count = 1, .content_blocks = &b[2]}};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .messages = msgs, .message_count = 3};
+ char *json = NULL; res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r)); ck_assert_ptr_nonnull(json);
 }
 END_TEST
 
 START_TEST(test_serialize_assistant_then_user)
 {
-    ik_message_t msgs[2];
-    msgs[0].role = IK_ROLE_ASSISTANT;
-    msgs[0].content_count = 1;
-    ik_content_block_t block1 = {0};
-    block1.type = IK_CONTENT_TEXT;
-    block1.data.text.text = (char *)"Asst";
-    msgs[0].content_blocks = &block1;
-    msgs[1].role = IK_ROLE_USER;
-    msgs[1].content_count = 1;
-    ik_content_block_t block2 = {0};
-    block2.type = IK_CONTENT_TEXT;
-    block2.data.text.text = (char *)"User";
-    msgs[1].content_blocks = &block2;
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-2.0-flash";
-    req.messages = msgs;
-    req.message_count = 2;
-    req.tool_count = 0;
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
+ ik_content_block_t b[2] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"A"},
+  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"U"}};
+ ik_message_t msgs[2] = {{.role = IK_ROLE_ASSISTANT, .content_count = 1, .content_blocks = &b[0]},
+  {.role = IK_ROLE_USER, .content_count = 1, .content_blocks = &b[1]}};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .messages = msgs, .message_count = 2};
+ char *json = NULL; res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r)); ck_assert_ptr_nonnull(json);
 }
 END_TEST
 
 START_TEST(test_serialize_multiple_tools)
 {
-    ik_tool_def_t tools[3];
-    tools[0].name = (char *)"t1";
-    tools[0].description = (char *)"T1";
-    tools[0].parameters = (char *)"{\"type\":\"object\",\"properties\":{}}";
-    tools[1].name = (char *)"t2";
-    tools[1].description = (char *)"T2";
-    tools[1].parameters = (char *)"{\"type\":\"object\",\"properties\":{}}";
-    tools[2].name = (char *)"t3";
-    tools[2].description = (char *)"T3";
-    tools[2].parameters = (char *)"{\"type\":\"object\",\"properties\":{}}";
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-2.0-flash";
-    req.message_count = 0;
-    req.tools = tools;
-    req.tool_count = 3;
-    req.tool_choice_mode = 0;
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *tools_val = yyjson_obj_get(root, "tools");
-    ck_assert_ptr_nonnull(tools_val);
-    ck_assert(yyjson_is_arr(tools_val));
-    yyjson_val *tool_obj = yyjson_arr_get_first(tools_val);
-    yyjson_val *func_decls = yyjson_obj_get(tool_obj, "functionDeclarations");
-    ck_assert_ptr_nonnull(func_decls);
-    ck_assert_uint_eq(yyjson_arr_size(func_decls), 3);
-    yyjson_doc_free(doc);
+ ik_tool_def_t tools[3] = {
+  {.name = (char *)"t1", .description = (char *)"T1", .parameters = (char *)"{\"type\":\"object\"}"},
+  {.name = (char *)"t2", .description = (char *)"T2", .parameters = (char *)"{\"type\":\"object\"}"},
+  {.name = (char *)"t3", .description = (char *)"T3", .parameters = (char *)"{\"type\":\"object\"}"}};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .tools = tools, .tool_count = 3};
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r)); ck_assert_ptr_nonnull(json);
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0); ck_assert_ptr_nonnull(doc);
+ yyjson_val *func_decls = yyjson_obj_get(yyjson_arr_get_first(
+  yyjson_obj_get(yyjson_doc_get_root(doc), "tools")), "functionDeclarations");
+ ck_assert_uint_eq(yyjson_arr_size(func_decls), 3);
+ yyjson_doc_free(doc);
 }
 END_TEST
 
@@ -267,32 +196,20 @@ START_TEST(test_thinking_model_variations)
 END_TEST
 START_TEST(test_generation_config_combinations)
 {
- ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- char *json = NULL;
-
- req.max_output_tokens = 2048;
- req.thinking.level = IK_THINKING_NONE;
- res_t r = ik_google_serialize_request(test_ctx, &req, &json);
- ck_assert(is_ok(&r));
- yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *gen_config = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
- ck_assert_ptr_nonnull(gen_config);
- ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gen_config, "maxOutputTokens")), 2048);
- ck_assert_ptr_null(yyjson_obj_get(gen_config, "thinkingConfig"));
- yyjson_doc_free(doc);
-
- req.model = (char *)"gemini-3.0-flash";
- req.max_output_tokens = 1024;
- req.thinking.level = IK_THINKING_LOW;
- r = ik_google_serialize_request(test_ctx, &req, &json);
- ck_assert(is_ok(&r));
+ char *json = NULL; res_t r; yyjson_doc *doc; yyjson_val *gc;
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .max_output_tokens = 2048};
+ r = ik_google_serialize_request(test_ctx, &req, &json); ck_assert(is_ok(&r));
  doc = yyjson_read(json, strlen(json), 0);
- gen_config = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
- ck_assert_ptr_nonnull(gen_config);
- ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gen_config, "maxOutputTokens")), 1024);
- ck_assert_ptr_nonnull(yyjson_obj_get(gen_config, "thinkingConfig"));
- yyjson_doc_free(doc);
+ gc = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
+ ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gc, "maxOutputTokens")), 2048);
+ ck_assert_ptr_null(yyjson_obj_get(gc, "thinkingConfig")); yyjson_doc_free(doc);
+ req.model = (char *)"gemini-3.0-flash"; req.max_output_tokens = 1024;
+ req.thinking.level = IK_THINKING_LOW;
+ r = ik_google_serialize_request(test_ctx, &req, &json); ck_assert(is_ok(&r));
+ doc = yyjson_read(json, strlen(json), 0);
+ gc = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
+ ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gc, "maxOutputTokens")), 1024);
+ ck_assert_ptr_nonnull(yyjson_obj_get(gc, "thinkingConfig")); yyjson_doc_free(doc);
 }
 END_TEST
 START_TEST(test_system_instruction_cases)
@@ -357,6 +274,35 @@ START_TEST(test_content_blocks_and_errors)
  res = ik_google_serialize_request(test_ctx, &r3, &json); ck_assert(is_err(&res));
 }
 END_TEST
+START_TEST(test_thinking_only_no_max_tokens)
+{
+ ik_request_t req = {.model = (char *)"gemini-2.5-flash", .thinking.level = IK_THINKING_HIGH};
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+ yyjson_val *gc = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
+ ck_assert_ptr_nonnull(gc);
+ ck_assert_ptr_null(yyjson_obj_get(gc, "maxOutputTokens"));
+ ck_assert_ptr_nonnull(yyjson_obj_get(gc, "thinkingConfig"));
+ yyjson_doc_free(doc);
+}
+END_TEST
+START_TEST(test_tool_additional_properties_removed)
+{
+ ik_tool_def_t tool = {.name = (char *)"t", .description = (char *)"T",
+  .parameters = (char *)"{\"type\":\"object\",\"additionalProperties\":false}"};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .tools = &tool, .tool_count = 1};
+ char *json = NULL; res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+ yyjson_val *params = yyjson_obj_get(yyjson_arr_get_first(yyjson_obj_get(
+  yyjson_arr_get_first(yyjson_obj_get(yyjson_doc_get_root(doc), "tools")),
+  "functionDeclarations")), "parameters");
+ ck_assert_ptr_null(yyjson_obj_get(params, "additionalProperties"));
+ yyjson_doc_free(doc);
+}
+END_TEST
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -392,6 +338,8 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_system_instruction_cases);
  tcase_add_test(tc_misc, test_edge_cases);
  tcase_add_test(tc_misc, test_content_blocks_and_errors);
+ tcase_add_test(tc_misc, test_thinking_only_no_max_tokens);
+ tcase_add_test(tc_misc, test_tool_additional_properties_removed);
  suite_add_tcase(s, tc_misc);
  return s;
 }
