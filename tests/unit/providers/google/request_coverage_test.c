@@ -276,54 +276,55 @@ START_TEST(test_tool_choice_modes)
  test_tool_choice_mode_helper(999, "AUTO");  // default case
 }
 END_TEST
-START_TEST(test_thinking_gemini_25_positive_budget)
+START_TEST(test_thinking_model_variations)
 {
- // Test Gemini 2.5 with positive thinking budget
  ik_request_t req = {0};
- req.model = (char *)"gemini-2.5-flash";
- req.message_count = 0;
- req.tool_count = 0;
- req.max_output_tokens = 0;
- req.thinking.level = IK_THINKING_HIGH; // Should result in positive budget
  char *json = NULL;
+ // Gemini 2.5 with positive budget
+ req.model = (char *)"gemini-2.5-flash";
+ req.thinking.level = IK_THINKING_HIGH;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
  yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *root = yyjson_doc_get_root(doc);
- yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
- ck_assert_ptr_nonnull(gen_config);
- yyjson_val *thinking_config = yyjson_obj_get(gen_config, "thinkingConfig");
- ck_assert_ptr_nonnull(thinking_config);
- yyjson_val *budget = yyjson_obj_get(thinking_config, "thinkingBudget");
- ck_assert_ptr_nonnull(budget);
- ck_assert(yyjson_get_int(budget) > 0);
+ yyjson_val *cfg = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
+ ck_assert(yyjson_get_int(yyjson_obj_get(yyjson_obj_get(cfg, "thinkingConfig"), "thinkingBudget")) > 0);
+ yyjson_doc_free(doc);
+ // Non-thinking model (should skip thinking config)
+ req.model = (char *)"gemini-1.5-pro";
+ r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ doc = yyjson_read(json, strlen(json), 0);
+ ck_assert_ptr_null(yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig"));
  yyjson_doc_free(doc);
 }
 END_TEST
-START_TEST(test_max_output_tokens_only)
+START_TEST(test_generation_config_combinations)
 {
- // Test max_output_tokens without thinking
  ik_request_t req = {0};
  req.model = (char *)"gemini-2.0-flash";
- req.message_count = 0;
- req.tool_count = 0;
+ char *json = NULL;
+ // Test max_output_tokens only (no thinking)
  req.max_output_tokens = 2048;
  req.thinking.level = IK_THINKING_NONE;
- char *json = NULL;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
  yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *root = yyjson_doc_get_root(doc);
- yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
+ yyjson_val *gen_config = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
  ck_assert_ptr_nonnull(gen_config);
- yyjson_val *max_tokens = yyjson_obj_get(gen_config, "maxOutputTokens");
- ck_assert_ptr_nonnull(max_tokens);
- ck_assert_int_eq(yyjson_get_int(max_tokens), 2048);
- // Should not have thinking config
- yyjson_val *thinking_config = yyjson_obj_get(gen_config, "thinkingConfig");
- ck_assert_ptr_null(thinking_config);
+ ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gen_config, "maxOutputTokens")), 2048);
+ ck_assert_ptr_null(yyjson_obj_get(gen_config, "thinkingConfig"));
+ yyjson_doc_free(doc);
+ // Test max_output_tokens + thinking (Gemini 3)
+ req.model = (char *)"gemini-3.0-flash";
+ req.max_output_tokens = 1024;
+ req.thinking.level = IK_THINKING_LOW;
+ r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ doc = yyjson_read(json, strlen(json), 0);
+ gen_config = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
+ ck_assert_ptr_nonnull(gen_config);
+ ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gen_config, "maxOutputTokens")), 1024);
+ ck_assert_ptr_nonnull(yyjson_obj_get(gen_config, "thinkingConfig"));
  yyjson_doc_free(doc);
 }
 END_TEST
@@ -397,7 +398,7 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_thinking, test_serialize_thinking_gemini_3_null_level);
  tcase_add_test(tc_thinking, test_serialize_thinking_gemini_3_with_level);
  tcase_add_test(tc_thinking, test_serialize_thinking_gemini_25_negative_budget);
- tcase_add_test(tc_thinking, test_thinking_gemini_25_positive_budget);
+ tcase_add_test(tc_thinking, test_thinking_model_variations);
  suite_add_tcase(s, tc_thinking);
  TCase *tc_misc = tcase_create("Miscellaneous Coverage");
  tcase_set_timeout(tc_misc, 30);
@@ -406,7 +407,7 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_build_url_streaming);
  tcase_add_test(tc_misc, test_build_headers_non_streaming);
  tcase_add_test(tc_misc, test_build_headers_streaming);
- tcase_add_test(tc_misc, test_max_output_tokens_only);
+ tcase_add_test(tc_misc, test_generation_config_combinations);
  tcase_add_test(tc_misc, test_system_instruction_cases);
  tcase_add_test(tc_misc, test_edge_cases);
  suite_add_tcase(s, tc_misc);
