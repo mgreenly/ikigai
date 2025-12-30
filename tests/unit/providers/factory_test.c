@@ -167,48 +167,34 @@ START_TEST(test_create_credentials_load_error)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
-    FILE *f = NULL;
 
-    // Get home directory and create bad credentials
+    // Save current HOME value
     const char *home = getenv("HOME");
-    if (home == NULL) {
-        talloc_free(ctx);
-        ck_abort_msg("HOME not set");
+    char *saved_home = NULL;
+    if (home != NULL) {
+        saved_home = strdup(home);
     }
 
-    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
-    char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
-
-    // Backup existing credentials if any
-    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
-    rename(creds_path, backup_path);  // OK if this fails (no existing file)
-
-    // Create directory if it doesn't exist
-    mkdir(config_dir, 0700);
-
-    // Create malformed credentials file (not valid JSON at all)
-    f = fopen(creds_path, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "this is not json at all");
-    fclose(f);
-    chmod(creds_path, 0600);
+    // Unset HOME to trigger expand_tilde error in ik_credentials_load
+    unsetenv("HOME");
 
     // Clear environment variables so it must use the file
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    // Now try to create provider - should fail due to malformed JSON
+    // Now try to create provider - should fail because HOME is not set
     res_t res = ik_provider_create(ctx, "openai", &provider);
 
     ck_assert(is_err(&res));
-    // The error could be either parse error or missing credentials depending on implementation
-    // Just verify it fails
     ck_assert_ptr_nonnull(res.err);
+    ck_assert_str_contains(error_message(res.err), "HOME");
 
-    // Restore credentials
-    unlink(creds_path);
-    rename(backup_path, creds_path);  // OK if this fails
+    // Restore HOME
+    if (saved_home != NULL) {
+        setenv("HOME", saved_home, 1);
+        free(saved_home);
+    }
 
     talloc_free(ctx);
 }
