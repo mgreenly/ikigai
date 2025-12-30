@@ -190,24 +190,8 @@ static void setup_tool_completion(const char *finish_reason)
     agent->tool_thread_complete = true;
 }
 
-/**
- * Test: ik_repl_handle_tool_completion calls handle_agent_tool_completion
- */
-START_TEST(test_handle_tool_completion_delegates_to_current) {
-    setup_tool_completion("stop");
-    int32_t initial_count = agent->tool_iteration_count;
-    repl->current = NULL;
-    ik_repl_handle_agent_tool_completion(repl, agent);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert_uint_eq(agent->message_count, 2);
-    ck_assert_int_eq(agent->tool_iteration_count, initial_count);
-}
-
-END_TEST
-/**
- * Test: ik_repl_handle_tool_completion calls the underlying function with current agent
- */
-START_TEST(test_handle_tool_completion_calls_handler)
+/* Test: handle_agent_tool_completion transitions to idle */
+START_TEST(test_handle_agent_tool_completion_stop)
 {
     setup_tool_completion("stop");
     repl->current = NULL;
@@ -215,11 +199,8 @@ START_TEST(test_handle_tool_completion_calls_handler)
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert_uint_eq(agent->message_count, 2);
 }
-
 END_TEST
-/**
- * Test: ik_repl_handle_agent_tool_completion with tool loop continuation
- */
+/* Test: tool loop continuation */
 START_TEST(test_handle_agent_tool_completion_continues_loop)
 {
     setup_tool_completion("tool_calls");
@@ -229,11 +210,9 @@ START_TEST(test_handle_agent_tool_completion_continues_loop)
     ck_assert_int_eq(agent->tool_iteration_count, 1);
     ck_assert_uint_eq(agent->message_count, 2);
 }
-
 END_TEST
-/**
- * Test: ik_repl_handle_agent_tool_completion renders when agent is current
- */
+
+/* Test: renders when agent is current */
 START_TEST(test_handle_agent_tool_completion_renders_current)
 {
     setup_tool_completion("stop");
@@ -241,11 +220,9 @@ START_TEST(test_handle_agent_tool_completion_renders_current)
     ik_repl_handle_agent_tool_completion(repl, agent);
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
 }
-
 END_TEST
-/**
- * Test: ik_repl_poll_tool_completions with agent in agents array
- */
+
+/* Test: poll with agent in agents array */
 START_TEST(test_poll_tool_completions_agents_array)
 {
     setup_tool_completion("stop");
@@ -262,37 +239,26 @@ START_TEST(test_poll_tool_completions_agents_array)
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert_uint_eq(agent->message_count, 2);
 }
-
 END_TEST
-/**
- * Test: ik_repl_poll_tool_completions with current agent not executing
- */
+
+/* Test: poll with current agent not executing */
 START_TEST(test_poll_tool_completions_current_not_executing)
 {
-    /* Set up current agent in IDLE state */
     repl->agent_count = 0;
     repl->current = agent;
-
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     agent->state = IK_AGENT_STATE_IDLE;
     agent->tool_thread_complete = false;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
     size_t initial_count = agent->message_count;
-
-    /* Call the function */
     res_t result = ik_repl_poll_tool_completions(repl);
-
-    /* Verify success but no tool completion */
     ck_assert(is_ok(&result));
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert_uint_eq(agent->message_count, initial_count);
 }
-
 END_TEST
-/**
- * Test: ik_repl_poll_tool_completions with current agent executing
- */
+
+/* Test: poll with current agent executing */
 START_TEST(test_poll_tool_completions_current_executing)
 {
     setup_tool_completion("stop");
@@ -301,17 +267,15 @@ START_TEST(test_poll_tool_completions_current_executing)
     agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
     agent->tool_thread_complete = true;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
-    repl->current = NULL;
-    ik_repl_handle_agent_tool_completion(repl, agent);
+    repl->current = agent;
+    res_t result = ik_repl_poll_tool_completions(repl);
+    ck_assert(is_ok(&result));
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert_uint_eq(agent->message_count, 2);
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_handle_tool_completion wrapper function
- */
+/* Test: wrapper function */
 START_TEST(test_handle_tool_completion_wrapper)
 {
     setup_tool_completion("stop");
@@ -320,115 +284,72 @@ START_TEST(test_handle_tool_completion_wrapper)
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert_uint_eq(agent->message_count, 2);
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_submit_tool_loop_continuation with request build error
- */
+/* Test: submit with request build error */
 START_TEST(test_submit_tool_loop_continuation_request_error)
 {
-    /* Set up state for tool loop continuation */
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
     agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-
-    /* Configure mocks: provider succeeds, request fails */
     mock_provider_should_fail = false;
     mock_request_should_fail = true;
     mock_stream_should_fail = false;
-
     size_t initial_scrollback_count = agent->scrollback->count;
-
-    /* Call the function */
     ik_repl_submit_tool_loop_continuation(repl, agent);
-
-    /* Verify error was handled - agent should be IDLE, error in scrollback */
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert(agent->scrollback->count > initial_scrollback_count);
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_submit_tool_loop_continuation with start_stream error
- */
+/* Test: submit with start_stream error */
 START_TEST(test_submit_tool_loop_continuation_stream_error)
 {
-    /* Set up state for tool loop continuation */
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
     agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-
-    /* Configure mocks: provider succeeds, request succeeds, stream fails */
     mock_provider_should_fail = false;
     mock_request_should_fail = false;
     mock_stream_should_fail = true;
-
     size_t initial_scrollback_count = agent->scrollback->count;
-
-    /* Call the function */
     ik_repl_submit_tool_loop_continuation(repl, agent);
-
-    /* Verify error was handled - agent should be IDLE, error in scrollback */
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
     ck_assert(agent->scrollback->count > initial_scrollback_count);
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_submit_tool_loop_continuation with full success
- */
+/* Test: submit with success */
 START_TEST(test_submit_tool_loop_continuation_success)
 {
-    /* Set up state for tool loop continuation */
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
     agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
     agent->curl_still_running = 0;
-
-    /* Configure mocks: all succeed */
     mock_provider_should_fail = false;
     mock_request_should_fail = false;
     mock_stream_should_fail = false;
-
-    /* Call the function */
     ik_repl_submit_tool_loop_continuation(repl, agent);
-
-    /* Verify success - curl_still_running should be set */
     ck_assert_int_eq(agent->curl_still_running, 1);
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_poll_tool_completions with no agents
- */
+/* Test: poll with no agents */
 START_TEST(test_poll_tool_completions_no_agents)
 {
-    /* Set up empty REPL with no agents */
     repl->agent_count = 0;
     repl->current = NULL;
-
-    /* Call the function */
     res_t result = ik_repl_poll_tool_completions(repl);
-
-    /* Verify success with no action */
     ck_assert(is_ok(&result));
 }
-
 END_TEST
 
-/**
- * Test: ik_repl_poll_tool_completions with agent not complete
- */
+/* Test: poll with agent not complete */
 START_TEST(test_poll_tool_completions_agent_not_complete)
 {
     setup_tool_completion("stop");
@@ -446,7 +367,44 @@ START_TEST(test_poll_tool_completions_agent_not_complete)
     ck_assert_uint_eq(agent->message_count, initial_count);
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
 }
+END_TEST
 
+/* Test: poll with agent in wrong state */
+START_TEST(test_poll_tool_completions_agent_wrong_state)
+{
+    setup_tool_completion("stop");
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->agent_count = 1;
+    repl->current = NULL;
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->state = IK_AGENT_STATE_IDLE;
+    agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    size_t initial_count = agent->message_count;
+    res_t result = ik_repl_poll_tool_completions(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_uint_eq(agent->message_count, initial_count);
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+}
+END_TEST
+
+/* Test: poll current executing not complete */
+START_TEST(test_poll_tool_completions_current_executing_not_complete)
+{
+    setup_tool_completion("stop");
+    repl->agent_count = 0;
+    repl->current = agent;
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    agent->tool_thread_complete = false;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    size_t initial_count = agent->message_count;
+    res_t result = ik_repl_poll_tool_completions(repl);
+    ck_assert(is_ok(&result));
+    ck_assert_uint_eq(agent->message_count, initial_count);
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+}
 END_TEST
 
 /**
@@ -459,8 +417,7 @@ static Suite *repl_tool_completion_suite(void)
     TCase *tc_core = tcase_create("core");
     tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
-    tcase_add_test(tc_core, test_handle_tool_completion_delegates_to_current);
-    tcase_add_test(tc_core, test_handle_tool_completion_calls_handler);
+    tcase_add_test(tc_core, test_handle_agent_tool_completion_stop);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_continues_loop);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_renders_current);
     tcase_add_test(tc_core, test_poll_tool_completions_agents_array);
@@ -472,6 +429,8 @@ static Suite *repl_tool_completion_suite(void)
     tcase_add_test(tc_core, test_submit_tool_loop_continuation_success);
     tcase_add_test(tc_core, test_poll_tool_completions_no_agents);
     tcase_add_test(tc_core, test_poll_tool_completions_agent_not_complete);
+    tcase_add_test(tc_core, test_poll_tool_completions_agent_wrong_state);
+    tcase_add_test(tc_core, test_poll_tool_completions_current_executing_not_complete);
     suite_add_tcase(s, tc_core);
 
     return s;
