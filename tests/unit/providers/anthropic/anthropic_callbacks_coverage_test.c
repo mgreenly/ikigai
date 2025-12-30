@@ -455,6 +455,55 @@ START_TEST(test_anthropic_cleanup)
 
 END_TEST
 
+/* start_stream Error Path Tests */
+
+static res_t dummy_stream_cb_test(const ik_stream_event_t *event, void *ctx)
+{
+    (void)event;
+    (void)ctx;
+    return OK(NULL);
+}
+
+START_TEST(test_start_stream_null_model_error)
+{
+    // Test that start_stream properly handles serialization failure
+    // when model is NULL (covers lines 305-307)
+    ik_provider_t *provider = NULL;
+    res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
+    ck_assert(is_ok(&r));
+
+    // Create a request with NULL model
+    ik_message_t msg = {
+        .role = IK_ROLE_USER,
+        .content_blocks = NULL,
+        .content_count = 0,
+        .provider_metadata = NULL
+    };
+
+    ik_request_t req = {
+        .system_prompt = NULL,
+        .messages = &msg,
+        .message_count = 1,
+        .model = NULL,  // NULL model triggers serialization error
+        .thinking = {.level = IK_THINKING_NONE, .include_summary = false},
+        .tools = NULL,
+        .tool_count = 0,
+        .max_output_tokens = 100,
+        .tool_choice_mode = 0,
+        .tool_choice_name = NULL
+    };
+
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb_test, NULL,
+                                    test_completion_cb, NULL);
+
+    // Should return error from serialization
+    ck_assert(is_err(&r));
+    ck_assert_ptr_nonnull(r.err);
+    ck_assert_str_eq(r.err->msg, "Model cannot be NULL");
+}
+
+END_TEST
+
 /* Test Suite Setup */
 
 static Suite *anthropic_callbacks_coverage_suite(void)
@@ -514,6 +563,12 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_vtable, test_anthropic_timeout);
     tcase_add_test(tc_vtable, test_anthropic_cleanup);
     suite_add_tcase(s, tc_vtable);
+
+    TCase *tc_start_stream_errors = tcase_create("start_stream Error Paths");
+    tcase_set_timeout(tc_start_stream_errors, 30);
+    tcase_add_unchecked_fixture(tc_start_stream_errors, setup, teardown);
+    tcase_add_test(tc_start_stream_errors, test_start_stream_null_model_error);
+    suite_add_tcase(s, tc_start_stream_errors);
 
     return s;
 }
