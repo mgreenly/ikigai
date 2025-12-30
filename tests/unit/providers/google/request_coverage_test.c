@@ -373,6 +373,27 @@ START_TEST(test_edge_cases)
  ck_assert(is_ok(&r));
 }
 END_TEST
+START_TEST(test_invalid_tool_call_json)
+{
+ // Test that invalid JSON in tool call arguments causes serialization to fail
+ ik_message_t msg = {0};
+ msg.role = IK_ROLE_ASSISTANT;
+ msg.content_count = 1;
+ ik_content_block_t block = {0};
+ block.type = IK_CONTENT_TOOL_CALL;
+ block.data.tool_call.id = (char *)"call_123";
+ block.data.tool_call.name = (char *)"test_tool";
+ block.data.tool_call.arguments = (char *)"{invalid json}";  // Invalid JSON
+ msg.content_blocks = &block;
+ ik_request_t req = {0};
+ req.model = (char *)"gemini-2.0-flash";
+ req.messages = &msg;
+ req.message_count = 1;
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_err(&r));
+}
+END_TEST
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -410,6 +431,7 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_generation_config_combinations);
  tcase_add_test(tc_misc, test_system_instruction_cases);
  tcase_add_test(tc_misc, test_edge_cases);
+ tcase_add_test(tc_misc, test_invalid_tool_call_json);
  suite_add_tcase(s, tc_misc);
  return s;
 }
