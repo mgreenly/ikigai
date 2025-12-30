@@ -255,32 +255,25 @@ START_TEST(test_build_headers_streaming)
  ck_assert_ptr_null(headers[2]);
 }
 END_TEST
-START_TEST(test_tool_choice_default)
-{
- // Test default case in tool_choice_mode switch (invalid value)
- ik_tool_def_t tool;
- tool.name = (char *)"test_tool";
- tool.description = (char *)"A test tool";
- tool.parameters = (char *)"{\"type\":\"object\",\"properties\":{}}";
- ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- req.message_count = 0;
- req.tools = &tool;
- req.tool_count = 1;
- req.tool_choice_mode = 999; // Invalid value - should default to AUTO
+static void test_tool_choice_mode_helper(int mode, const char *expected) {
+ ik_tool_def_t tool = {.name = (char *)"t", .description = (char *)"T",
+  .parameters = (char *)"{\"type\":\"object\",\"properties\":{}}"};
+ ik_request_t req = {.model = (char *)"gemini-2.0-flash", .tools = &tool, .tool_count = 1,
+  .tool_choice_mode = mode};
  char *json = NULL;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
- // Verify it defaults to AUTO
  yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *root = yyjson_doc_get_root(doc);
- yyjson_val *tool_config = yyjson_obj_get(root, "toolConfig");
- ck_assert_ptr_nonnull(tool_config);
- yyjson_val *func_config = yyjson_obj_get(tool_config, "functionCallingConfig");
- yyjson_val *mode = yyjson_obj_get(func_config, "mode");
- ck_assert_str_eq(yyjson_get_str(mode), "AUTO");
+ yyjson_val *m = yyjson_obj_get(yyjson_obj_get(yyjson_obj_get(
+  yyjson_doc_get_root(doc), "toolConfig"), "functionCallingConfig"), "mode");
+ ck_assert_str_eq(yyjson_get_str(m), expected);
  yyjson_doc_free(doc);
+}
+START_TEST(test_tool_choice_modes)
+{
+ test_tool_choice_mode_helper(1, "NONE");    // IK_TOOL_NONE
+ test_tool_choice_mode_helper(2, "ANY");     // IK_TOOL_REQUIRED
+ test_tool_choice_mode_helper(999, "AUTO");  // default case
 }
 END_TEST
 START_TEST(test_thinking_gemini_25_positive_budget)
@@ -396,7 +389,7 @@ static Suite *request_coverage_suite(void)
  tcase_set_timeout(tc_tools, 30);
  tcase_add_checked_fixture(tc_tools, setup, teardown);
  tcase_add_test(tc_tools, test_serialize_multiple_tools);
- tcase_add_test(tc_tools, test_tool_choice_default);
+ tcase_add_test(tc_tools, test_tool_choice_modes);
  suite_add_tcase(s, tc_tools);
  TCase *tc_thinking = tcase_create("Thinking Edge Cases");
  tcase_set_timeout(tc_thinking, 30);
