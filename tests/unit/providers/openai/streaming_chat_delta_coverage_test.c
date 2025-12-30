@@ -372,6 +372,111 @@ START_TEST(test_delta_finish_reason)
 
 END_TEST
 
+START_TEST(test_delta_emit_start_already_started)
+{
+    /* Line 51: Test false branch - sctx->started already true */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* First content will trigger START */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"content\":\"First\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    size_t first_count = events->count;
+
+    /* Second content should NOT emit another START */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"content\":\"Second\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should have additional TEXT_DELTA but not another START */
+    ck_assert_int_gt((int)events->count, (int)first_count);
+
+    /* Count START events - should only be 1 */
+    size_t start_count = 0;
+    for (size_t i = 0; i < events->count; i++) {
+        if (events->items[i].type == IK_STREAM_START) {
+            start_count++;
+        }
+    }
+    ck_assert_int_eq((int)start_count, 1);
+}
+
+END_TEST
+
+START_TEST(test_delta_tool_call_arguments_delta)
+{
+    /* Line 164-181: Test tool call arguments delta (both conditions true) */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* First, start a tool call */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    size_t count_after_start = events->count;
+
+    /* Now send arguments delta */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"city\\\":\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should have emitted TOOL_CALL_DELTA */
+    ck_assert_int_gt((int)events->count, (int)count_after_start);
+
+    /* Find TOOL_CALL_DELTA event */
+    bool found_delta = false;
+    for (size_t i = 0; i < events->count; i++) {
+        if (events->items[i].type == IK_STREAM_TOOL_CALL_DELTA) {
+            found_delta = true;
+            ck_assert_str_eq(events->items[i].data.tool_delta.arguments, "{\"city\":");
+        }
+    }
+    ck_assert(found_delta);
+}
+
+END_TEST
+
+START_TEST(test_delta_tool_call_then_text)
+{
+    /* Line 53 + 90: Test ending tool call when text comes in */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Start a tool call */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"test\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Send arguments to ensure we're in_tool_call */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{}\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Now send text content - this should end the tool call */
+    const char *data3 = "{\"choices\":[{\"delta\":{\"content\":\"Some text\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data3);
+
+    /* Should have emitted TOOL_CALL_DONE before TEXT_DELTA */
+    bool found_done = false;
+    bool found_text = false;
+    size_t done_index = 0;
+    size_t text_index = 0;
+
+    for (size_t i = 0; i < events->count; i++) {
+        if (events->items[i].type == IK_STREAM_TOOL_CALL_DONE) {
+            found_done = true;
+            done_index = i;
+        }
+        if (events->items[i].type == IK_STREAM_TEXT_DELTA) {
+            found_text = true;
+            text_index = i;
+        }
+    }
+
+    ck_assert(found_done);
+    ck_assert(found_text);
+    ck_assert_int_lt((int)done_index, (int)text_index);
+}
+
+END_TEST
+
 
 /* ================================================================
  * Test Suite
@@ -389,6 +494,7 @@ static Suite *streaming_chat_delta_coverage_suite(void)
     tcase_add_test(tc_content, test_delta_content_string);
     tcase_add_test(tc_content, test_delta_role_field);
     tcase_add_test(tc_content, test_delta_finish_reason);
+    tcase_add_test(tc_content, test_delta_emit_start_already_started);
     suite_add_tcase(s, tc_content);
 
     TCase *tc_tool_calls = tcase_create("ToolCallsEdgeCases");
@@ -405,6 +511,8 @@ static Suite *streaming_chat_delta_coverage_suite(void)
     tcase_add_test(tc_tool_calls, test_delta_tool_call_function_not_object);
     tcase_add_test(tc_tool_calls, test_delta_tool_call_null_id_string);
     tcase_add_test(tc_tool_calls, test_delta_tool_call_null_name_string);
+    tcase_add_test(tc_tool_calls, test_delta_tool_call_arguments_delta);
+    tcase_add_test(tc_tool_calls, test_delta_tool_call_then_text);
     suite_add_tcase(s, tc_tool_calls);
 
     return s;
