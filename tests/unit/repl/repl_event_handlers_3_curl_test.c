@@ -24,6 +24,7 @@
 #include "../../../src/tool.h"
 #include "../../../src/message.h"
 #include "../../../src/wrapper.h"
+#include "../../../src/repl_tool_completion.h"
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>
@@ -353,6 +354,63 @@ START_TEST(test_curl_events_is_current_agent_triggers_render)
 
 END_TEST
 
+START_TEST(test_curl_events_with_null_current)
+{
+    /* No agents in array, current is NULL */
+    repl->agent_count = 0;
+    repl->agents = NULL;
+    repl->current = NULL;
+
+    /* Should handle gracefully - just returns OK */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+}
+
+END_TEST
+
+START_TEST(test_curl_events_state_not_waiting_for_llm)
+{
+    /* Create mock provider instance */
+    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
+    instance->vt = &mock_vt;
+    instance->ctx = NULL;
+    agent->provider_instance = instance;
+    agent->curl_still_running = 1;
+    agent->state = IK_AGENT_STATE_IDLE;  /* Not WAITING_FOR_LLM */
+
+    /* Add agent to repl */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->current = agent;
+
+    /* Mock perform will set still_running to 0, but state check will skip transition */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+}
+
+END_TEST
+
+START_TEST(test_curl_events_no_provider_instance)
+{
+    /* No provider instance - should just skip processing */
+    agent->provider_instance = NULL;
+    agent->curl_still_running = 0;
+    agent->state = IK_AGENT_STATE_IDLE;
+
+    /* Add agent to repl */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->current = agent;
+
+    /* Should handle gracefully */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+}
+
+END_TEST
+
 /* ========== Test Suite Setup ========== */
 
 static Suite *repl_event_handlers_curl_suite(void)
@@ -367,6 +425,9 @@ static Suite *repl_event_handlers_curl_suite(void)
     tcase_add_test(tc_curl_error, test_curl_events_with_running_curl_success);
     tcase_add_test(tc_curl_error, test_curl_events_not_current_agent);
     tcase_add_test(tc_curl_error, test_curl_events_is_current_agent_triggers_render);
+    tcase_add_test(tc_curl_error, test_curl_events_with_null_current);
+    tcase_add_test(tc_curl_error, test_curl_events_state_not_waiting_for_llm);
+    tcase_add_test(tc_curl_error, test_curl_events_no_provider_instance);
     suite_add_tcase(s, tc_curl_error);
 
     return s;

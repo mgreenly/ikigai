@@ -145,6 +145,21 @@ static ik_provider_vtable_t mock_vt_200 = {
     .cleanup = NULL
 };
 
+static res_t mock_timeout_negative(void *provider_ctx, long *timeout)
+{
+    (void)provider_ctx;
+    *timeout = -1;  /* No timeout available */
+    return OK(NULL);
+}
+
+static ik_provider_vtable_t mock_vt_timeout_negative = {
+    .fdset = mock_fdset,
+    .timeout = mock_timeout_negative,
+    .perform = mock_perform,
+    .info_read = mock_info_read,
+    .cleanup = NULL
+};
+
 static res_t mock_timeout_fails(void *provider_ctx, long *timeout)
 {
     (void)provider_ctx;
@@ -436,6 +451,28 @@ END_TEST START_TEST(test_curl_min_timeout_provider_error)
 
 END_TEST
 
+START_TEST(test_curl_min_timeout_negative_timeout)
+{
+    /* Create mock provider instance that returns -1 for timeout */
+    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
+    instance->vt = &mock_vt_timeout_negative;
+    instance->ctx = NULL;
+    agent->provider_instance = instance;
+
+    /* Add agent to repl */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+
+    long timeout = 999;  /* Set to non-negative to verify it stays -1 */
+
+    res_t result = ik_repl_calculate_curl_min_timeout(repl, &timeout);
+    ck_assert(is_ok(&result));
+    ck_assert_int_eq(timeout, -1);  /* Should remain -1 since provider returned -1 */
+}
+
+END_TEST
+
 START_TEST(test_setup_fd_sets_agent_fd_not_higher)
 {
     /* Create mock provider instance that returns a lower fd than terminal */
@@ -493,6 +530,7 @@ static Suite *repl_event_handlers_suite(void)
     tcase_add_test(tc_timeout, test_curl_min_timeout_with_provider);
     tcase_add_test(tc_timeout, test_curl_min_timeout_chooses_minimum);
     tcase_add_test(tc_timeout, test_curl_min_timeout_provider_error);
+    tcase_add_test(tc_timeout, test_curl_min_timeout_negative_timeout);
     tcase_add_test(tc_timeout, test_select_timeout_default);
     tcase_add_test(tc_timeout, test_select_timeout_with_spinner);
     tcase_add_test(tc_timeout, test_select_timeout_with_executing_tool);
