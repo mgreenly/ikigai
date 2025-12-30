@@ -154,6 +154,23 @@ START_TEST(test_stream_write_cb_with_complete_event)
 
 END_TEST
 
+START_TEST(test_stream_write_cb_with_null_event_fields)
+{
+    ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
+    stream->sse_parser = ik_sse_parser_create(stream);
+
+    res_t r = ik_anthropic_stream_ctx_create(stream, dummy_stream_cb, NULL, &stream->stream_ctx);
+    ck_assert(is_ok(&r));
+
+    // SSE comment line creates event with NULL fields
+    const char *sse_data = ":\n\n";
+    size_t result = ik_anthropic_stream_write_cb(sse_data, strlen(sse_data), stream);
+
+    ck_assert_uint_eq(result, strlen(sse_data));
+}
+
+END_TEST
+
 /* Info Read Tests */
 
 // We need to expose the internal context structure for testing
@@ -204,27 +221,23 @@ START_TEST(test_info_read_success_http_status)
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
 
-    // Get internal context
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)provider->ctx;
 
-    // Create active stream with success status
+    // Create active stream with 299 status (edge of 2xx range)
     ik_anthropic_active_stream_t *stream = talloc_zero_(impl_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->completed = true;
-    stream->http_status = 200;
+    stream->http_status = 299;
     stream->completion_cb = test_completion_cb;
     stream->completion_ctx = NULL;
     impl_ctx->active_stream = stream;
 
-    // Reset tracker
     g_completion_called = false;
-
-    // Call info_read
     provider->vt->info_read(provider->ctx, NULL);
 
     // Verify completion callback was invoked with success
     ck_assert(g_completion_called);
     ck_assert(g_last_completion.success);
-    ck_assert_int_eq(g_last_completion.http_status, 200);
+    ck_assert_int_eq(g_last_completion.http_status, 299);
 }
 
 END_TEST
@@ -278,6 +291,12 @@ END_TEST
 START_TEST(test_info_read_unknown_error_400)
 {
     test_error_status(400, IK_ERR_CAT_UNKNOWN);
+}
+END_TEST
+
+START_TEST(test_info_read_informational_status_100)
+{
+    test_error_status(100, IK_ERR_CAT_UNKNOWN);
 }
 END_TEST
 
@@ -449,6 +468,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_write, test_stream_write_cb_with_null_sse_parser);
     tcase_add_test(tc_write, test_stream_write_cb_with_valid_context);
     tcase_add_test(tc_write, test_stream_write_cb_with_complete_event);
+    tcase_add_test(tc_write, test_stream_write_cb_with_null_event_fields);
     suite_add_tcase(s, tc_write);
 
     TCase *tc_completion = tcase_create("Stream Completion Callback");
@@ -474,6 +494,7 @@ static Suite *anthropic_callbacks_coverage_suite(void)
     tcase_add_test(tc_info_read, test_info_read_rate_limit_429);
     tcase_add_test(tc_info_read, test_info_read_server_error_500);
     tcase_add_test(tc_info_read, test_info_read_unknown_error_400);
+    tcase_add_test(tc_info_read, test_info_read_informational_status_100);
     tcase_add_test(tc_info_read, test_info_read_no_completion_callback);
     tcase_add_test(tc_info_read, test_info_read_stream_not_completed);
     suite_add_tcase(s, tc_info_read);
