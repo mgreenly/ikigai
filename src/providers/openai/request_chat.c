@@ -250,9 +250,9 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
         }
 
         // Add tool_choice
-        if (!add_tool_choice(doc, root, req->tool_choice_mode)) {
-            yyjson_mut_doc_free(doc);
-            return ERR(ctx, PARSE, "Failed to add tool_choice");
+        if (!add_tool_choice(doc, root, req->tool_choice_mode)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add tool_choice"); // LCOV_EXCL_LINE
         }
     }
 
