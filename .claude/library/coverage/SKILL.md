@@ -26,6 +26,16 @@ Coverage gaps reveal design opportunities. They tell you:
 
 Fix the design, don't silence the messenger.
 
+## Incremental Progress
+
+While 100% is the goal, **progress toward 100% is valid work**. When working on coverage:
+
+1. **Easy wins first** - Tackle simple branches before complex edge cases
+2. **Commit incrementally** - Each improvement captured is better than none
+3. **Respect context limits** - A partial improvement committed beats exhausting context with nothing saved
+
+The policy is 100%. The practice is steady, committed progress toward it.
+
 ## Exclusion Rules
 
 ### Allowed Exclusions

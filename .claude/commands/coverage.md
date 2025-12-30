@@ -55,12 +55,30 @@ Load these skills:
 
 ## Task
 
-Fix coverage gaps in: src/{FILE_PATH}
+Improve coverage in: src/{FILE_PATH}
 
 Current coverage:
 - Lines: {LINE_RATE}
 - Functions: {FUNC_RATE}
 - Branches: {BRANCH_RATE}
+
+## Success Criteria
+
+**Your goal is PROGRESS, not perfection.** A committed 10% improvement is infinitely more valuable than an uncommitted 50% improvement that exhausts your context.
+
+Prioritize:
+1. **Easy wins first** - Simple branches, obvious test cases, low-hanging fruit
+2. **Commit early, commit often** - After each meaningful improvement, commit it
+3. **Diminishing returns awareness** - When gains slow down, wrap up what you have
+
+## Context Budget
+
+You have ~200K tokens total. **At 140K usage, stop new work and wrap up:**
+1. Commit any uncommitted improvements
+2. Run `make lint` and `make check` to validate
+3. Report your gains and stop
+
+**DO NOT** burn remaining context chasing difficult edge cases. Capture your wins.
 
 ## Resources
 
@@ -81,15 +99,16 @@ This generates: `reports/coverage/unit/<test_path>.coverage.txt`
 
 ## Process
 
-1. Check coverage map for existing tests that touch this file
-2. Read the source file to understand what's not covered
-3. Decide: modify existing test OR create new test
-4. Run targeted coverage to verify your changes improve the specific file
-5. Iterate until coverage improves
-6. Run `make lint` and `make check` to validate
-7. Commit the changes (follow git skill conventions)
+1. Read the source file and identify uncovered code
+2. **Triage branches by difficulty** - mark easy vs hard
+3. Check coverage map for existing tests
+4. **Start with easiest wins** - implement and verify
+5. Run targeted coverage after each change
+6. **Commit after each successful improvement** (follow git skill conventions)
+7. Repeat steps 4-6 for next-easiest wins
+8. When gains slow OR context reaches 140K: run `make lint && make check`, commit remaining work, report and stop
 
-Report what you fixed and final coverage for this file.
+Report: starting coverage → final coverage → what you fixed → what remains (if any)
 ```
 
 ### 4. Verify Results
