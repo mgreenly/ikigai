@@ -64,6 +64,13 @@ PARALLEL ?= 0
 # Build directory (can be overridden for parallel builds)
 BUILDDIR ?= build
 
+# Report subdirectory (derived from BUILDDIR: build->check, build-X->X)
+ifeq ($(BUILDDIR),build)
+  REPORT_SUBDIR = check
+else
+  REPORT_SUBDIR = $(patsubst build-%,%,$(BUILDDIR))
+endif
+
 ifeq ($(BUILD),release)
   CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(RELEASE_FLAGS)
 else ifeq ($(BUILD),sanitize)
@@ -97,7 +104,7 @@ MAX_FILE_BYTES = 16000
 # work reliably in static functions (see rel-06/docs/lcov-static-fn-findings.md).
 # When using exclusion markers: avoid mentioning marker keywords in nearby comments
 # to prevent LCOV comment parsing issues.
-COVERAGE_DIR = coverage
+COVERAGE_DIR = reports/coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
@@ -158,36 +165,36 @@ release:
 	@$(MAKE) all BUILD=release
 
 $(CLIENT_TARGET): $(CLIENT_OBJ) $(VCR_STUBS_OBJ) | bin
-	$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Vendor files compile with relaxed warnings (no -Werror, disable conversion warnings)
 $(BUILDDIR)/vendor/%.o: src/vendor/%.c | $(BUILDDIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -Wno-error -Wno-conversion -Wno-sign-conversion -Wno-double-promotion -Wno-missing-prototypes -c -o $@ $<
+	@$(CC) $(CFLAGS) -Wno-error -Wno-conversion -Wno-sign-conversion -Wno-double-promotion -Wno-missing-prototypes -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special case: http_multi_coverage_test includes http_multi.c directly
 # so it must exclude http_multi.o from MODULE_OBJ to avoid duplicate symbols
 $(BUILDDIR)/tests/unit/providers/common/http_multi_coverage_test: $(BUILDDIR)/tests/unit/providers/common/http_multi_coverage_test.o $(filter-out $(BUILDDIR)/providers/common/http_multi.o,$(MODULE_OBJ)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special case: http_multi_info_test includes http_multi_info.c directly
 # so it must exclude http_multi_info.o from MODULE_OBJ to avoid duplicate symbols
 $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test: $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test.o $(filter-out $(BUILDDIR)/providers/common/http_multi_info.o,$(MODULE_OBJ)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Note: Provider factory test no longer needs separate stubs since stubs.c
 # is now part of MODULE_OBJ and will be replaced when actual providers are implemented
@@ -197,217 +204,217 @@ OPENAI_SERIALIZE_HELPERS_SRC = $(wildcard tests/unit/providers/openai/helpers/*.
 OPENAI_SERIALIZE_HELPERS_OBJ = $(patsubst tests/unit/providers/openai/helpers/%.c,$(BUILDDIR)/tests/unit/providers/openai/helpers/%.o,$(OPENAI_SERIALIZE_HELPERS_SRC))
 
 $(BUILDDIR)/tests/unit/providers/openai/helpers/%.o: tests/unit/providers/openai/helpers/%.c | $(BUILDDIR)/tests/unit/providers/openai/helpers
-	$(CC) $(CFLAGS) -I tests/unit/providers/openai -c -o $@ $<
+	@$(CC) $(CFLAGS) -I tests/unit/providers/openai -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/openai/helpers:
 	@mkdir -p $@
 
 $(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test: $(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test.o $(OPENAI_SERIALIZE_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Mock verification helper compilation
 $(BUILDDIR)/tests/integration/google_mock_verification_helpers.o: tests/integration/google_mock_verification_helpers.c tests/integration/google_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/google_mock_verification_test: $(BUILDDIR)/tests/integration/google_mock_verification_test.o $(BUILDDIR)/tests/integration/google_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o: tests/integration/anthropic_mock_verification_helpers.c tests/integration/anthropic_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/anthropic_mock_verification_test: $(BUILDDIR)/tests/integration/anthropic_mock_verification_test.o $(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # DB integration test compilation
 $(BUILDDIR)/tests/integration/db/%_test.o: tests/integration/db/%_test.c | $(BUILDDIR)/tests/integration/db
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/integration/db/%_test: $(BUILDDIR)/tests/integration/db/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration/db
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/helpers/test_contexts.o: tests/helpers/test_contexts.c tests/helpers/test_contexts.h | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/helpers/vcr.o: tests/helpers/vcr.c tests/helpers/vcr.h | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/helpers/vcr_stubs.o: tests/helpers/vcr_stubs.c | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_run_common.o: tests/unit/repl/repl_run_common.c tests/unit/repl/repl_run_common.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_streaming_test_common.c tests/unit/repl/repl_streaming_test_common.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 # Equivalence test support objects
 $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o: tests/unit/providers/openai/equivalence_fixtures.c tests/unit/providers/openai/equivalence_fixtures.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o: tests/unit/providers/openai/equivalence_compare_basic.c tests/unit/providers/openai/equivalence_compare.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o: tests/unit/providers/openai/equivalence_compare_complex.c tests/unit/providers/openai/equivalence_compare.h
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for equivalence_test that needs fixtures and compare objects
 $(BUILDDIR)/tests/unit/providers/openai/equivalence_test: $(BUILDDIR)/tests/unit/providers/openai/equivalence_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(EQUIVALENCE_FIXTURES_OBJ) $(EQUIVALENCE_COMPARE_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rules for repl_run tests that need the run common object
 $(BUILDDIR)/tests/unit/repl/repl_run_basic_test: $(BUILDDIR)/tests/unit/repl/repl_run_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_io_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test: $(BUILDDIR)/tests/unit/repl/repl_run_curl_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test: $(BUILDDIR)/tests/unit/repl/repl_run_render_misc_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_RUN_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_agent_lookup_test that needs test_contexts
 $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test: $(BUILDDIR)/tests/unit/repl/repl_agent_lookup_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rules for repl streaming/completion tests that need the streaming common object
 $(BUILDDIR)/tests/unit/repl/repl_streaming_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_completion_test: $(BUILDDIR)/tests/unit/repl/repl_completion_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/handle_request_error_test: $(BUILDDIR)/tests/unit/repl/handle_request_error_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test: $(BUILDDIR)/tests/unit/repl/handle_request_success_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_basic_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_streaming_advanced_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REPL_STREAMING_COMMON_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_actions_db_error_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_error_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_actions_db_advanced_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_advanced_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_actions_db_basic_test (uses mocks, excludes DB modules)
 $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_db_basic_test.o $(MODULE_OBJ_NO_DB) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_actions_llm_basic_test (uses mocks, excludes DB modules, agent_provider, request_tools)
 $(BUILDDIR)/tests/unit/repl/repl_actions_llm_basic_test: $(BUILDDIR)/tests/unit/repl/repl_actions_llm_basic_test.o $(filter-out $(BUILDDIR)/agent_provider.o $(BUILDDIR)/providers/request_tools.o,$(MODULE_OBJ_NO_DB)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_actions_llm_errors_test (uses mocks, excludes DB modules, agent_provider, request_tools)
 $(BUILDDIR)/tests/unit/repl/repl_actions_llm_errors_test: $(BUILDDIR)/tests/unit/repl/repl_actions_llm_errors_test.o $(filter-out $(BUILDDIR)/agent_provider.o $(BUILDDIR)/providers/request_tools.o,$(MODULE_OBJ_NO_DB)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) -lgcov && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_init_db_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
 $(BUILDDIR)/tests/unit/repl/repl_init_db_test: $(BUILDDIR)/tests/unit/repl/repl_init_db_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for repl_session_test (uses mocks, excludes src/db/agent.c and src/repl/agent_restore.c)
 $(BUILDDIR)/tests/unit/repl/repl_session_test: $(BUILDDIR)/tests/unit/repl/repl_session_test.o $(filter-out $(BUILDDIR)/repl/agent_restore.o,$(MODULE_OBJ_NO_DB_AGENT)) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for test_contexts_test (needs test_contexts helper)
 $(BUILDDIR)/tests/unit/helpers/test_contexts_test: $(BUILDDIR)/tests/unit/helpers/test_contexts_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(TEST_CONTEXTS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for vcr_test (needs vcr helper, no module objects needed)
 $(BUILDDIR)/tests/unit/helpers/vcr_test: $(BUILDDIR)/tests/unit/helpers/vcr_test.o $(VCR_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for vcr_advanced_test (needs vcr helper, no module objects needed)
 $(BUILDDIR)/tests/unit/helpers/vcr_advanced_test: $(BUILDDIR)/tests/unit/helpers/vcr_advanced_test.o $(VCR_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rule for vcr_mock_integration_test (needs vcr helper and module objects)
 $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test: $(BUILDDIR)/tests/unit/helpers/vcr_mock_integration_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rules for anthropic streaming tests (need vcr helper for fixture playback)
 $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_async_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_async_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_basic_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_basic_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_advanced_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_advanced_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_unit_test: $(BUILDDIR)/tests/unit/providers/anthropic/anthropic_streaming_unit_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rules for google streaming tests (need vcr helper for fixture playback)
 $(BUILDDIR)/tests/unit/providers/google/google_streaming_async_test: $(BUILDDIR)/tests/unit/providers/google/google_streaming_async_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/google/google_streaming_content_test: $(BUILDDIR)/tests/unit/providers/google/google_streaming_content_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/google/google_streaming_advanced_test: $(BUILDDIR)/tests/unit/providers/google/google_streaming_advanced_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/google/google_vtable_test: $(BUILDDIR)/tests/unit/providers/google/google_vtable_test.o $(VCR_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special rules for openai streaming tests (parser test doesn't need VCR, vtable test doesn't either)
 # Both use internal context, not VCR fixtures
@@ -415,25 +422,25 @@ $(BUILDDIR)/tests/unit/providers/google/google_vtable_test: $(BUILDDIR)/tests/un
 # Special rule for repl_full_viewport_test
 $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test: $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 bin:
-	mkdir -p bin
+	@mkdir -p bin && echo "📁 bin"
 
 $(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
 
 $(BUILDDIR)/tests: | $(BUILDDIR)
-	mkdir -p $(BUILDDIR)/tests
+	@mkdir -p $(BUILDDIR)/tests && echo "📁 $(BUILDDIR)/tests"
 
 $(BUILDDIR)/tests/unit: | $(BUILDDIR)/tests
-	mkdir -p $(BUILDDIR)/tests/unit
+	@mkdir -p $(BUILDDIR)/tests/unit && echo "📁 $(BUILDDIR)/tests/unit"
 
 $(BUILDDIR)/tests/integration: | $(BUILDDIR)/tests
-	mkdir -p $(BUILDDIR)/tests/integration
+	@mkdir -p $(BUILDDIR)/tests/integration && echo "📁 $(BUILDDIR)/tests/integration"
 
 $(BUILDDIR)/tests/integration/db: | $(BUILDDIR)/tests/integration
-	mkdir -p $(BUILDDIR)/tests/integration/db
+	@mkdir -p $(BUILDDIR)/tests/integration/db && echo "📁 $(BUILDDIR)/tests/integration/db"
 
 # Include dependency files (auto-generated by -MMD -MP)
 # The '-' prefix means don't error if files don't exist yet
@@ -472,22 +479,22 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 # Reports are written to reports/check/ mirroring the test structure
 # Test stdout/stderr redirected to /dev/null - results are in XML
 %.run: %
-	@mkdir -p $(dir $(patsubst build/tests/%,reports/check/%,$<))
+	@mkdir -p $(dir $(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<))
 ifeq ($(BUILD),sanitize)
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),tsan)
-	@CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),valgrind)
-	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else
-	@CK_XML_LOG_FILE_NAME=$(patsubst build/tests/%,reports/check/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 endif
 
 check:
 ifdef TEST
 	@$(MAKE) $(FILTERED_TEST)
 	@for test in $(FILTERED_TEST); do \
-		report_path=$$(echo "$$test" | sed 's|build/tests/|reports/check/|').xml; \
+		report_path=$$(echo "$$test" | sed 's|$(BUILDDIR)/tests/|reports/$(REPORT_SUBDIR)/|').xml; \
 		mkdir -p $$(dirname "$$report_path"); \
 		CK_XML_LOG_FILE_NAME="$$report_path" $$test >/dev/null 2>&1 && echo "🟢 $$test" || (echo "🔴 $$test" && exit 1); \
 	done
@@ -936,28 +943,43 @@ coverage:
 	@echo "Building with coverage instrumentation..."
 	@$(MAKE) clean
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
-	@mkdir -p build/tests/unit build/tests/integration
-	@find tests/unit -type d | sed 's|tests/unit|build/tests/unit|' | xargs mkdir -p
-	@$(MAKE) -j$(MAKE_JOBS) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
-	@echo "Generating coverage report..."
+	@mkdir -p build-coverage/tests/unit build-coverage/tests/integration
+	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p
+	@BUILDDIR=build-coverage $(MAKE) -j$(MAKE_JOBS) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
+	@echo "🤔 Generating coverage report..."
+ifdef TEST
+	@for test in $(FILTERED_TEST); do \
+		report_base=$$(echo "$$test" | sed 's|build[^/]*/tests/|reports/coverage/|'); \
+		mkdir -p $$(dirname "$$report_base"); \
+		lcov --capture --directory . --output-file "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --rc lcov_branch_coverage=1 --quiet >/dev/null 2>&1; \
+		lcov --extract "$${report_base}.coverage.info" '*/src/*' --output-file "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1; \
+		lcov --remove "$${report_base}.coverage.info" '*/src/vendor/*' --output-file "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1; \
+		echo "=== Coverage by File ===" > "$${report_base}.coverage.txt"; \
+		{ lcov --list "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "warning messages" | grep -v "ignore messages" | grep -v "coverpoints" | grep -v "instances" | grep -v "deprecated:" | grep -v "inconsistent:" | grep -v "negative:" | grep -v "region:" | grep -v "branch_region:" >> "$${report_base}.coverage.txt"; \
+		echo "" >> "$${report_base}.coverage.txt"; \
+		echo "=== Coverage Summary ===" >> "$${report_base}.coverage.txt"; \
+		{ lcov --summary "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "Filter" >> "$${report_base}.coverage.txt"; \
+		cat "$${report_base}.coverage.txt"; \
+		echo ""; \
+		echo "Coverage report: $${report_base}.coverage.txt"; \
+	done
+else
 	@mkdir -p $(COVERAGE_DIR)
-	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --rc lcov_branch_coverage=1 --quiet
-	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet
-	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet
-	@echo ""
+	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --rc lcov_branch_coverage=1 --quiet >/dev/null 2>&1
+	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1
+	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1
 	@echo "=== Coverage by File ===" > $(COVERAGE_DIR)/summary.txt
-	@lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 >> $(COVERAGE_DIR)/summary.txt
+	@{ lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "warning messages" | grep -v "ignore messages" | grep -v "coverpoints" | grep -v "instances" | grep -v "deprecated:" | grep -v "inconsistent:" | grep -v "negative:" | grep -v "region:" | grep -v "branch_region:" >> $(COVERAGE_DIR)/summary.txt
 	@echo "" >> $(COVERAGE_DIR)/summary.txt
 	@echo "=== Coverage Summary ===" >> $(COVERAGE_DIR)/summary.txt
-	@lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 >> $(COVERAGE_DIR)/summary.txt
+	@{ lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "Filter" >> $(COVERAGE_DIR)/summary.txt
 	@echo "" >> $(COVERAGE_DIR)/summary.txt
 	@cat $(COVERAGE_DIR)/summary.txt
-	@echo "Coverage report saved to $(COVERAGE_DIR)/summary.txt"
 	@echo ""
 	@echo "Checking coverage thresholds (lines, functions, branches: $(COVERAGE_THRESHOLD)%)..."
-	@LINE_COV=$$(grep "lines\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	FUNC_COV=$$(grep "functions\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	BRANCH_COV=$$(grep "branches\.\.*:" $(COVERAGE_DIR)/summary.txt | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	@LINE_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "lines\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	FUNC_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "functions\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
+	BRANCH_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "branches\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
 	echo "  Lines: $${LINE_COV}%, Functions: $${FUNC_COV}%, Branches: $${BRANCH_COV}%"; \
 	if [ "$$(echo "$$LINE_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
 	   [ "$$(echo "$$FUNC_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
@@ -978,6 +1000,7 @@ coverage:
 	else \
 		echo "🟢 LCOV exclusion count within limit"; \
 	fi
+endif
 
 # Default package manager and package list (Debian)
 PKG_UPDATE ?= apt-get update
