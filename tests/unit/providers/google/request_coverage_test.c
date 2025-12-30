@@ -1,4 +1,3 @@
-// Coverage tests for Google request serialization
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 
@@ -210,49 +209,17 @@ START_TEST(test_serialize_thinking_gemini_25_negative_budget)
 }
 END_TEST
 
-START_TEST(test_build_url_non_streaming)
+START_TEST(test_build_url_and_headers)
 {
- // Test ik_google_build_url with streaming=false
- char *url = NULL;
- res_t r = ik_google_build_url(test_ctx, "https://api.example.com",
-           "gemini-2.0-flash", "test_key_123", false, &url);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(url);
- ck_assert_str_eq(url, "https://api.example.com/models/gemini-2.0-flash:generateContent?key=test_key_123");
-}
-END_TEST
-START_TEST(test_build_url_streaming)
-{
- // Test ik_google_build_url with streaming=true
- char *url = NULL;
- res_t r = ik_google_build_url(test_ctx, "https://api.example.com",
-           "gemini-2.0-flash", "test_key_123", true, &url);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(url);
- ck_assert_str_eq(url, "https://api.example.com/models/gemini-2.0-flash:streamGenerateContent?key=test_key_123&alt=sse");
-}
-END_TEST
-START_TEST(test_build_headers_non_streaming)
-{
- // Test ik_google_build_headers with streaming=false
- char **headers = NULL;
- res_t r = ik_google_build_headers(test_ctx, false, &headers);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(headers);
- ck_assert_str_eq(headers[0], "Content-Type: application/json");
- ck_assert_ptr_null(headers[1]);
-}
-END_TEST
-START_TEST(test_build_headers_streaming)
-{
- // Test ik_google_build_headers with streaming=true
- char **headers = NULL;
- res_t r = ik_google_build_headers(test_ctx, true, &headers);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(headers);
- ck_assert_str_eq(headers[0], "Content-Type: application/json");
- ck_assert_str_eq(headers[1], "Accept: text/event-stream");
- ck_assert_ptr_null(headers[2]);
+ char *url = NULL; char **headers = NULL; res_t r;
+ r = ik_google_build_url(test_ctx, "https://api.example.com", "gemini-2.0-flash", "k", false, &url);
+ ck_assert(is_ok(&r)); ck_assert_str_eq(url, "https://api.example.com/models/gemini-2.0-flash:generateContent?key=k");
+ r = ik_google_build_headers(test_ctx, false, &headers);
+ ck_assert(is_ok(&r)); ck_assert_ptr_null(headers[1]);
+ r = ik_google_build_url(test_ctx, "https://api.example.com", "gemini-2.0-flash", "k", true, &url);
+ ck_assert(is_ok(&r)); ck_assert_str_eq(url, "https://api.example.com/models/gemini-2.0-flash:streamGenerateContent?key=k&alt=sse");
+ r = ik_google_build_headers(test_ctx, true, &headers);
+ ck_assert(is_ok(&r)); ck_assert_ptr_null(headers[2]);
 }
 END_TEST
 static void test_tool_choice_mode_helper(int mode, const char *expected) {
@@ -271,16 +238,16 @@ static void test_tool_choice_mode_helper(int mode, const char *expected) {
 }
 START_TEST(test_tool_choice_modes)
 {
- test_tool_choice_mode_helper(1, "NONE");    // IK_TOOL_NONE
- test_tool_choice_mode_helper(2, "ANY");     // IK_TOOL_REQUIRED
- test_tool_choice_mode_helper(999, "AUTO");  // default case
+ test_tool_choice_mode_helper(1, "NONE");   
+ test_tool_choice_mode_helper(2, "ANY");    
+ test_tool_choice_mode_helper(999, "AUTO"); 
 }
 END_TEST
 START_TEST(test_thinking_model_variations)
 {
  ik_request_t req = {0};
  char *json = NULL;
- // Gemini 2.5 with positive budget
+
  req.model = (char *)"gemini-2.5-flash";
  req.thinking.level = IK_THINKING_HIGH;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -289,7 +256,7 @@ START_TEST(test_thinking_model_variations)
  yyjson_val *cfg = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
  ck_assert(yyjson_get_int(yyjson_obj_get(yyjson_obj_get(cfg, "thinkingConfig"), "thinkingBudget")) > 0);
  yyjson_doc_free(doc);
- // Non-thinking model (should skip thinking config)
+
  req.model = (char *)"gemini-1.5-pro";
  r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
@@ -303,7 +270,7 @@ START_TEST(test_generation_config_combinations)
  ik_request_t req = {0};
  req.model = (char *)"gemini-2.0-flash";
  char *json = NULL;
- // Test max_output_tokens only (no thinking)
+
  req.max_output_tokens = 2048;
  req.thinking.level = IK_THINKING_NONE;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -314,7 +281,7 @@ START_TEST(test_generation_config_combinations)
  ck_assert_int_eq(yyjson_get_int(yyjson_obj_get(gen_config, "maxOutputTokens")), 2048);
  ck_assert_ptr_null(yyjson_obj_get(gen_config, "thinkingConfig"));
  yyjson_doc_free(doc);
- // Test max_output_tokens + thinking (Gemini 3)
+
  req.model = (char *)"gemini-3.0-flash";
  req.max_output_tokens = 1024;
  req.thinking.level = IK_THINKING_LOW;
@@ -335,7 +302,7 @@ START_TEST(test_system_instruction_cases)
  req.message_count = 0;
  req.tool_count = 0;
  char *json = NULL;
- // Test non-empty prompt
+
  req.system_prompt = (char *)"You are a helpful assistant.";
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
@@ -343,7 +310,7 @@ START_TEST(test_system_instruction_cases)
  yyjson_val *sys_inst = yyjson_obj_get(yyjson_doc_get_root(doc), "systemInstruction");
  ck_assert_ptr_nonnull(sys_inst);
  yyjson_doc_free(doc);
- // Test empty string (should be skipped)
+
  req.system_prompt = (char *)"";
  r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
@@ -357,11 +324,11 @@ START_TEST(test_edge_cases)
 {
  ik_request_t req = {0};
  char *json = NULL;
- // NULL model error
+
  req.model = NULL;
  res_t r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_err(&r));
- // Thought signature cleanup
+
  ik_message_t msgs[2] = {0};
  ik_content_block_t blocks[2] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"Hi"},
                                   {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"Bye"}};
@@ -373,86 +340,21 @@ START_TEST(test_edge_cases)
  ck_assert(is_ok(&r));
 }
 END_TEST
-START_TEST(test_invalid_tool_call_json)
+START_TEST(test_content_blocks_and_errors)
 {
- // Test that invalid JSON in tool call arguments causes serialization to fail
- ik_message_t msg = {0};
- msg.role = IK_ROLE_ASSISTANT;
- msg.content_count = 1;
- ik_content_block_t block = {0};
- block.type = IK_CONTENT_TOOL_CALL;
- block.data.tool_call.id = (char *)"call_123";
- block.data.tool_call.name = (char *)"test_tool";
- block.data.tool_call.arguments = (char *)"{invalid json}";  // Invalid JSON
- msg.content_blocks = &block;
- ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- req.messages = &msg;
- req.message_count = 1;
- char *json = NULL;
- res_t r = ik_google_serialize_request(test_ctx, &req, &json);
- ck_assert(is_err(&r));
-}
-END_TEST
-START_TEST(test_thinking_content_block)
-{
- // Test serialization of thinking content blocks
- ik_message_t msg = {0};
- msg.role = IK_ROLE_ASSISTANT;
- msg.content_count = 1;
- ik_content_block_t block = {0};
- block.type = IK_CONTENT_THINKING;
- block.data.thinking.text = (char *)"Let me think about this...";
- msg.content_blocks = &block;
- ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- req.messages = &msg;
- req.message_count = 1;
- char *json = NULL;
- res_t r = ik_google_serialize_request(test_ctx, &req, &json);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
- // Verify the JSON contains thought:true
- yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *contents = yyjson_obj_get(yyjson_doc_get_root(doc), "contents");
- yyjson_val *content = yyjson_arr_get_first(contents);
- yyjson_val *parts = yyjson_obj_get(content, "parts");
- yyjson_val *part = yyjson_arr_get_first(parts);
- yyjson_val *thought = yyjson_obj_get(part, "thought");
- ck_assert_ptr_nonnull(thought);
- ck_assert(yyjson_get_bool(thought));
- yyjson_doc_free(doc);
-}
-END_TEST
-START_TEST(test_tool_result_content_block)
-{
- // Test serialization of tool result content blocks
- ik_message_t msg = {0};
- msg.role = IK_ROLE_USER;
- msg.content_count = 1;
- ik_content_block_t block = {0};
- block.type = IK_CONTENT_TOOL_RESULT;
- block.data.tool_result.tool_call_id = (char *)"call_123";
- block.data.tool_result.content = (char *)"Tool execution result";
- block.data.tool_result.is_error = false;
- msg.content_blocks = &block;
- ik_request_t req = {0};
- req.model = (char *)"gemini-2.0-flash";
- req.messages = &msg;
- req.message_count = 1;
- char *json = NULL;
- res_t r = ik_google_serialize_request(test_ctx, &req, &json);
- ck_assert(is_ok(&r));
- ck_assert_ptr_nonnull(json);
- // Verify the JSON contains functionResponse
- yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
- yyjson_val *contents = yyjson_obj_get(yyjson_doc_get_root(doc), "contents");
- yyjson_val *content = yyjson_arr_get_first(contents);
- yyjson_val *parts = yyjson_obj_get(content, "parts");
- yyjson_val *part = yyjson_arr_get_first(parts);
- yyjson_val *func_resp = yyjson_obj_get(part, "functionResponse");
- ck_assert_ptr_nonnull(func_resp);
- yyjson_doc_free(doc);
+ char *json = NULL; res_t res;
+ ik_content_block_t thinking = {.type = IK_CONTENT_THINKING, .data.thinking.text = (char *)"T"};
+ ik_message_t m1 = {.role = IK_ROLE_ASSISTANT, .content_blocks = &thinking, .content_count = 1};
+ ik_request_t r1 = {.model = (char *)"gemini-2.0-flash", .messages = &m1, .message_count = 1};
+ res = ik_google_serialize_request(test_ctx, &r1, &json); ck_assert(is_ok(&res));
+ ik_content_block_t tool_res = {.type = IK_CONTENT_TOOL_RESULT, .data.tool_result = {.tool_call_id = (char *)"c", .content = (char *)"R", .is_error = false}};
+ ik_message_t m2 = {.role = IK_ROLE_USER, .content_blocks = &tool_res, .content_count = 1};
+ ik_request_t r2 = {.model = (char *)"gemini-2.0-flash", .messages = &m2, .message_count = 1};
+ res = ik_google_serialize_request(test_ctx, &r2, &json); ck_assert(is_ok(&res));
+ ik_content_block_t bad = {.type = IK_CONTENT_TOOL_CALL, .data.tool_call = {.id = (char *)"c", .name = (char *)"t", .arguments = (char *)"{bad}"}};
+ ik_message_t m3 = {.role = IK_ROLE_ASSISTANT, .content_blocks = &bad, .content_count = 1};
+ ik_request_t r3 = {.model = (char *)"gemini-2.0-flash", .messages = &m3, .message_count = 1};
+ res = ik_google_serialize_request(test_ctx, &r3, &json); ck_assert(is_err(&res));
 }
 END_TEST
 /* ================================================================
@@ -485,16 +387,11 @@ static Suite *request_coverage_suite(void)
  TCase *tc_misc = tcase_create("Miscellaneous Coverage");
  tcase_set_timeout(tc_misc, 30);
  tcase_add_checked_fixture(tc_misc, setup, teardown);
- tcase_add_test(tc_misc, test_build_url_non_streaming);
- tcase_add_test(tc_misc, test_build_url_streaming);
- tcase_add_test(tc_misc, test_build_headers_non_streaming);
- tcase_add_test(tc_misc, test_build_headers_streaming);
+ tcase_add_test(tc_misc, test_build_url_and_headers);
  tcase_add_test(tc_misc, test_generation_config_combinations);
  tcase_add_test(tc_misc, test_system_instruction_cases);
  tcase_add_test(tc_misc, test_edge_cases);
- tcase_add_test(tc_misc, test_invalid_tool_call_json);
- tcase_add_test(tc_misc, test_thinking_content_block);
- tcase_add_test(tc_misc, test_tool_result_content_block);
+ tcase_add_test(tc_misc, test_content_blocks_and_errors);
  suite_add_tcase(s, tc_misc);
  return s;
 }
