@@ -240,6 +240,28 @@ START_TEST(test_parse_part_without_thought_flag)
 }
 END_TEST
 
+START_TEST(test_parse_part_with_thought_string)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-3\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":["
+                       "{\"text\":\"Text with string thought\",\"thought\":\"yes\"}"
+                       "]},"
+                       "\"finishReason\":\"STOP\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Text with string thought");
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -261,6 +283,7 @@ static Suite *google_response_parts_coverage_suite(void)
     tcase_add_test(tc_parts, test_parse_part_without_text_or_function_call);
     tcase_add_test(tc_parts, test_parse_part_text_not_string);
     tcase_add_test(tc_parts, test_parse_part_without_thought_flag);
+    tcase_add_test(tc_parts, test_parse_part_with_thought_string);
     suite_add_tcase(s, tc_parts);
 
     return s;
