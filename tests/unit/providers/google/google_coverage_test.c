@@ -305,6 +305,20 @@ START_TEST(test_google_stream_write_cb_with_valid_data)
 }
 END_TEST
 
+// Test line 125: NULL event->data branch (empty data field)
+START_TEST(test_google_stream_write_cb_null_event_data)
+{
+    ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
+    res_t r = ik_google_stream_ctx_create(stream, noop_stream_cb, NULL, &stream->stream_ctx);
+    ck_assert(!is_err(&r));
+    stream->sse_parser = ik_sse_parser_create(stream);
+    // Send SSE event without data field - parser will create event with NULL data
+    const char *data = ": comment\n\n";
+    ck_assert_uint_eq(ik_google_stream_write_cb(data, strlen(data), stream), strlen(data));
+    talloc_free(stream);
+}
+END_TEST
+
 // Test lines 149-150: Stream completion with non-NULL stream
 START_TEST(test_google_stream_completion_cb_with_valid_stream)
 {
@@ -377,6 +391,25 @@ START_TEST(test_google_cleanup)
 
     // Call cleanup - should not crash
     provider->vt->cleanup(provider->ctx);
+}
+END_TEST
+
+// Test google_start_request vtable method (wrapper - line 246-255)
+START_TEST(test_google_start_request)
+{
+    ik_provider_t *provider = NULL;
+    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
+    ck_assert(!is_err(&result));
+
+    // Create minimal request
+    ik_request_t req = {0};
+    req.model = talloc_strdup(test_ctx, "gemini-2.5-flash");
+
+    // Call start_request - delegates to ik_google_start_request (which is a stub)
+    res_t r = provider->vt->start_request(provider->ctx, &req, test_completion_cb, NULL);
+
+    // Should succeed (stub returns OK)
+    ck_assert(!is_err(&r));
 }
 END_TEST
 
@@ -480,6 +513,7 @@ static Suite *google_coverage_suite(void)
     tcase_add_test(tc_coverage, test_google_perform);
     tcase_add_test(tc_coverage, test_google_timeout);
     tcase_add_test(tc_coverage, test_google_cleanup);
+    tcase_add_test(tc_coverage, test_google_start_request);
 
     // Success path and error message cleanup
     tcase_add_test(tc_coverage, test_google_info_read_success_status);
@@ -487,6 +521,7 @@ static Suite *google_coverage_suite(void)
 
     // Streaming with valid data (lines 118-134, 149-150)
     tcase_add_test(tc_coverage, test_google_stream_write_cb_with_valid_data);
+    tcase_add_test(tc_coverage, test_google_stream_write_cb_null_event_data);
     tcase_add_test(tc_coverage, test_google_stream_completion_cb_with_valid_stream);
 
     suite_add_tcase(s, tc_coverage);
