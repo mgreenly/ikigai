@@ -279,6 +279,272 @@ START_TEST(test_parse_response_incomplete_details_reason_null) {
 
 END_TEST
 
+START_TEST(test_map_status_null) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status(NULL, NULL);
+    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
+}
+
+END_TEST
+
+START_TEST(test_map_status_failed) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status("failed", NULL);
+    ck_assert_int_eq(reason, IK_FINISH_ERROR);
+}
+
+END_TEST
+
+START_TEST(test_map_status_cancelled) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status("cancelled", NULL);
+    ck_assert_int_eq(reason, IK_FINISH_STOP);
+}
+
+END_TEST
+
+START_TEST(test_map_status_incomplete_content_filter) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "content_filter");
+    ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
+}
+
+END_TEST
+
+START_TEST(test_parse_function_call_with_call_id) {
+    const char *json = "{"
+                       "\"id\":\"resp-func\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"function_call\","
+                       "\"id\":\"old-id\","
+                       "\"call_id\":\"new-id\","
+                       "\"name\":\"test_func\","
+                       "\"arguments\":\"{}\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.id, "new-id");
+}
+
+END_TEST
+
+START_TEST(test_parse_response_model_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-no-model\","
+                       "\"model\":null,"
+                       "\"status\":\"completed\","
+                       "\"output\":[]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_status_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-no-status\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":null,"
+                       "\"output\":[]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_output_not_array) {
+    const char *json = "{"
+                       "\"id\":\"resp-bad-output\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":\"not an array\""
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_output_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-null-output\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":null"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_response_invalid_json) {
+    const char *json = "{not valid json}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
+START_TEST(test_parse_response_error_without_message) {
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"code\":\"test_error\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
+START_TEST(test_parse_response_error_message_null) {
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"message\":null,"
+                       "\"code\":\"test_error\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
+START_TEST(test_map_status_incomplete_max_tokens) {
+    ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "max_output_tokens");
+    ck_assert_int_eq(reason, IK_FINISH_LENGTH);
+}
+
+END_TEST
+
+START_TEST(test_parse_usage_tokens_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-usage\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":null,"
+                       "\"completion_tokens\":null,"
+                       "\"total_tokens\":null"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->usage.input_tokens, 0);
+    ck_assert_int_eq(resp->usage.output_tokens, 0);
+    ck_assert_int_eq(resp->usage.total_tokens, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_usage_reasoning_tokens_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-usage\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":10,"
+                       "\"total_tokens\":15,"
+                       "\"completion_tokens_details\":{"
+                       "\"reasoning_tokens\":null"
+                       "}"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq(resp->usage.thinking_tokens, 0);
+}
+
+END_TEST
+
+START_TEST(test_parse_function_call_name_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-func\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"function_call\","
+                       "\"id\":\"test-id\","
+                       "\"name\":null,"
+                       "\"arguments\":\"{}\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
+START_TEST(test_parse_function_call_arguments_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-func\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"function_call\","
+                       "\"id\":\"test-id\","
+                       "\"name\":\"test_func\","
+                       "\"arguments\":null"
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -294,12 +560,16 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_usage, test_parse_usage_completion_tokens_not_int);
     tcase_add_test(tc_usage, test_parse_usage_total_tokens_not_int);
     tcase_add_test(tc_usage, test_parse_usage_reasoning_tokens_not_int);
+    tcase_add_test(tc_usage, test_parse_usage_tokens_null);
+    tcase_add_test(tc_usage, test_parse_usage_reasoning_tokens_null);
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_function = tcase_create("Function Call Coverage");
     tcase_set_timeout(tc_function, 30);
     tcase_add_checked_fixture(tc_function, setup, teardown);
     tcase_add_test(tc_function, test_parse_function_call_id_null);
+    tcase_add_test(tc_function, test_parse_function_call_name_null);
+    tcase_add_test(tc_function, test_parse_function_call_arguments_null);
     suite_add_tcase(s, tc_function);
 
     TCase *tc_count = tcase_create("Count Blocks Coverage");
@@ -316,7 +586,29 @@ static Suite *response_responses_coverage_suite(void)
     tcase_add_test(tc_main, test_parse_response_error_with_message);
     tcase_add_test(tc_main, test_parse_response_error_message_not_string);
     tcase_add_test(tc_main, test_parse_response_incomplete_details_reason_null);
+    tcase_add_test(tc_main, test_parse_response_model_null);
+    tcase_add_test(tc_main, test_parse_response_status_null);
+    tcase_add_test(tc_main, test_parse_response_output_not_array);
+    tcase_add_test(tc_main, test_parse_response_output_null);
+    tcase_add_test(tc_main, test_parse_response_invalid_json);
+    tcase_add_test(tc_main, test_parse_response_error_without_message);
+    tcase_add_test(tc_main, test_parse_response_error_message_null);
     suite_add_tcase(s, tc_main);
+
+    TCase *tc_status = tcase_create("Status Mapping Coverage");
+    tcase_set_timeout(tc_status, 30);
+    tcase_add_test(tc_status, test_map_status_null);
+    tcase_add_test(tc_status, test_map_status_failed);
+    tcase_add_test(tc_status, test_map_status_cancelled);
+    tcase_add_test(tc_status, test_map_status_incomplete_content_filter);
+    tcase_add_test(tc_status, test_map_status_incomplete_max_tokens);
+    suite_add_tcase(s, tc_status);
+
+    TCase *tc_call_id = tcase_create("Call ID Coverage");
+    tcase_set_timeout(tc_call_id, 30);
+    tcase_add_checked_fixture(tc_call_id, setup, teardown);
+    tcase_add_test(tc_call_id, test_parse_function_call_with_call_id);
+    suite_add_tcase(s, tc_call_id);
 
     return s;
 }
