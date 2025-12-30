@@ -97,6 +97,32 @@ START_TEST(test_model_switch_without_db) {
 
 END_TEST
 
+// Test: Multiple model switches to trigger talloc_free branches (lines 151, 159)
+START_TEST(test_model_multiple_switches_talloc_free) {
+    // First switch - initial allocation
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "claude-sonnet-4-5");
+    ck_assert_str_eq(repl->current->provider, "anthropic");
+
+    // Second switch - triggers talloc_free on lines 152 and 160
+    res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gpt-4");
+    ck_assert_str_eq(repl->current->provider, "openai");
+
+    // Third switch - again triggers talloc_free
+    res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->model, "gemini-2.5-flash");
+    ck_assert_str_eq(repl->current->provider, "google");
+
+    // Verify all confirmations in scrollback
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+}
+
+END_TEST
+
 // Suite definition
 static Suite *commands_model_coverage_suite(void)
 {
@@ -107,6 +133,7 @@ static Suite *commands_model_coverage_suite(void)
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
     tcase_add_test(tc_core, test_model_switch_without_db);
+    tcase_add_test(tc_core, test_model_multiple_switches_talloc_free);
 
     suite_add_tcase(s, tc_core);
 
