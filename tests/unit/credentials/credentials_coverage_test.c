@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <talloc.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "../../../src/credentials.h"
@@ -31,7 +32,6 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-// Helper to create a temporary credentials file
 static char *create_temp_credentials(const char *content)
 {
     char *path = talloc_asprintf(test_ctx, "/tmp/ikigai_creds_cov_%d.json", getpid());
@@ -45,7 +45,6 @@ static char *create_temp_credentials(const char *content)
     return path;
 }
 
-// Test: Path without tilde (tests expand_tilde non-tilde branch)
 START_TEST(test_non_tilde_path)
 {
     unsetenv("OPENAI_API_KEY");
@@ -71,7 +70,6 @@ START_TEST(test_non_tilde_path)
 
 END_TEST
 
-// Test: Successfully parse valid JSON with all providers
 START_TEST(test_successful_json_parsing)
 {
     unsetenv("OPENAI_API_KEY");
@@ -99,7 +97,6 @@ START_TEST(test_successful_json_parsing)
 
 END_TEST
 
-// Test: Empty string values in API keys (tests empty string branch)
 START_TEST(test_empty_string_api_keys)
 {
     unsetenv("OPENAI_API_KEY");
@@ -127,7 +124,6 @@ START_TEST(test_empty_string_api_keys)
 
 END_TEST
 
-// Test: File has credentials, env vars override (tests override branches)
 START_TEST(test_file_then_env_override)
 {
     // File has all three providers
@@ -160,7 +156,6 @@ START_TEST(test_file_then_env_override)
 
 END_TEST
 
-// Test: Insecure permissions warning path
 START_TEST(test_insecure_permissions_warning)
 {
     const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
@@ -186,7 +181,6 @@ START_TEST(test_insecure_permissions_warning)
 
 END_TEST
 
-// Test: HOME environment variable not set (expand_tilde error)
 START_TEST(test_home_not_set)
 {
     // Save and unset HOME
@@ -214,7 +208,6 @@ START_TEST(test_home_not_set)
 
 END_TEST
 
-// Test: Invalid JSON - root is not an object
 START_TEST(test_invalid_json_root_not_object)
 {
     unsetenv("OPENAI_API_KEY");
@@ -236,7 +229,6 @@ START_TEST(test_invalid_json_root_not_object)
 
 END_TEST
 
-// Test: Provider value is not an object (e.g., string instead of object)
 START_TEST(test_provider_not_object)
 {
     unsetenv("OPENAI_API_KEY");
@@ -265,7 +257,6 @@ START_TEST(test_provider_not_object)
 
 END_TEST
 
-// Test: api_key field is not a string (e.g., number or object)
 START_TEST(test_api_key_not_string)
 {
     unsetenv("OPENAI_API_KEY");
@@ -294,7 +285,6 @@ START_TEST(test_api_key_not_string)
 
 END_TEST
 
-// Test: Environment variable with empty string (should be treated as unset)
 START_TEST(test_env_empty_string)
 {
     unsetenv("OPENAI_API_KEY");
@@ -323,7 +313,6 @@ START_TEST(test_env_empty_string)
 
 END_TEST
 
-// Test: Override when file credential is NULL (tests creds->*_api_key NULL branch)
 START_TEST(test_env_override_null_file_credential)
 {
     unsetenv("OPENAI_API_KEY");
@@ -356,7 +345,6 @@ START_TEST(test_env_override_null_file_credential)
 
 END_TEST
 
-// Test: Missing api_key field entirely (tests yyjson_get_str_ returning NULL)
 START_TEST(test_missing_api_key_field)
 {
     unsetenv("OPENAI_API_KEY");
@@ -385,7 +373,6 @@ START_TEST(test_missing_api_key_field)
 
 END_TEST
 
-// Test: Corrupted JSON file (parse error)
 START_TEST(test_corrupted_json_file)
 {
     unsetenv("OPENAI_API_KEY");
@@ -407,7 +394,6 @@ START_TEST(test_corrupted_json_file)
 
 END_TEST
 
-// Test: Secure permissions check (file with 0600)
 START_TEST(test_secure_permissions_no_warning)
 {
     const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
@@ -436,7 +422,6 @@ START_TEST(test_secure_permissions_no_warning)
 
 END_TEST
 
-// Test: Check permissions on non-existent file
 START_TEST(test_insecure_permissions_nonexistent_file)
 {
     // Check permissions on file that doesn't exist
@@ -450,7 +435,6 @@ START_TEST(test_insecure_permissions_nonexistent_file)
 
 END_TEST
 
-// Test: Various permission modes
 START_TEST(test_various_permission_modes)
 {
     const char *json = "{ \"openai\": { \"api_key\": \"test\" } }";
@@ -482,10 +466,24 @@ START_TEST(test_various_permission_modes)
     ck_assert(ik_credentials_insecure_permissions(path3));
     unlink(path3);
 }
-
 END_TEST
 
-// Test Suite Configuration
+START_TEST(test_file_not_found)
+{
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    char *path = talloc_asprintf(test_ctx, "/tmp/ikigai_nonexistent_%d_%ld.json", getpid(), (long)time(NULL));
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(creds);
+    ck_assert_ptr_null(creds->openai_api_key);
+    ck_assert_ptr_null(creds->anthropic_api_key);
+    ck_assert_ptr_null(creds->google_api_key);
+}
+END_TEST
+
 static Suite *credentials_coverage_suite(void)
 {
     Suite *s = suite_create("Credentials Coverage");
@@ -510,6 +508,7 @@ static Suite *credentials_coverage_suite(void)
     tcase_add_test(tc_core, test_secure_permissions_no_warning);
     tcase_add_test(tc_core, test_insecure_permissions_nonexistent_file);
     tcase_add_test(tc_core, test_various_permission_modes);
+    tcase_add_test(tc_core, test_file_not_found);
 
     suite_add_tcase(s, tc_core);
 
