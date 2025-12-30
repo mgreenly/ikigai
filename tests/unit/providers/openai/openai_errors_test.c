@@ -201,6 +201,86 @@ END_TEST START_TEST(test_parse_service_unavailable_503)
     ck_assert_ptr_nonnull(message);
 }
 
+END_TEST START_TEST(test_parse_error_message_only)
+{
+    // Test error object with only message field (line 376)
+    const char *error_json =
+        "{"
+        "  \"error\": {"
+        "    \"message\": \"Something went wrong\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_openai_parse_error(test_ctx, 500, error_json, strlen(error_json),
+                                    &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "Something went wrong");
+}
+
+END_TEST START_TEST(test_parse_error_type_only)
+{
+    // Test error object with only type field (line 378)
+    const char *error_json =
+        "{"
+        "  \"error\": {"
+        "    \"type\": \"server_error\""
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_openai_parse_error(test_ctx, 500, error_json, strlen(error_json),
+                                    &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "server_error");
+}
+
+END_TEST START_TEST(test_parse_error_no_fields)
+{
+    // Test error object with no type, code, or message fields (line 381)
+    const char *error_json =
+        "{"
+        "  \"error\": {"
+        "    \"param\": null"
+        "  }"
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_openai_parse_error(test_ctx, 500, error_json, strlen(error_json),
+                                    &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "HTTP 500");
+}
+
+END_TEST START_TEST(test_parse_error_http_502)
+{
+    // Test HTTP 502 status code (line 334)
+    ik_error_category_t category;
+    char *message = NULL;
+
+    res_t r = ik_openai_parse_error(test_ctx, 502, NULL, 0, &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    ck_assert_str_eq(message, "HTTP 502");
+}
+
 END_TEST
 /* ================================================================
  * Retry-After Header Tests
@@ -264,6 +344,10 @@ static Suite *openai_errors_suite(void)
     tcase_add_test(tc_errors, test_map_errors_to_correct_categories);
     tcase_add_test(tc_errors, test_parse_server_error_500);
     tcase_add_test(tc_errors, test_parse_service_unavailable_503);
+    tcase_add_test(tc_errors, test_parse_error_message_only);
+    tcase_add_test(tc_errors, test_parse_error_type_only);
+    tcase_add_test(tc_errors, test_parse_error_no_fields);
+    tcase_add_test(tc_errors, test_parse_error_http_502);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After");
