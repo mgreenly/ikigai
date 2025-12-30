@@ -306,6 +306,66 @@ START_TEST(test_google_cancel_with_active_stream)
 }
 END_TEST
 
+// Helper callback for testing streaming with valid data
+static int stream_cb_called = 0;
+static res_t test_stream_callback(const ik_stream_event_t *event, void *ctx)
+{
+    (void)event;
+    (void)ctx;
+    stream_cb_called++;
+    return OK(NULL);
+}
+
+// Test lines 118-134: Normal streaming path with valid data
+START_TEST(test_google_stream_write_cb_with_valid_data)
+{
+    // Create a minimal stream context with valid parser
+    ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
+
+    // Create streaming context
+    res_t r = ik_google_stream_ctx_create(stream, test_stream_callback, NULL, &stream->stream_ctx);
+    ck_assert(!is_err(&r));
+
+    // Create SSE parser
+    stream->sse_parser = ik_sse_parser_create(stream);
+    ck_assert(stream->sse_parser != NULL);
+
+    // Feed some SSE data
+    const char *test_data = "data: {\"test\": \"data\"}\n\n";
+    size_t result = ik_google_stream_write_cb(test_data, strlen(test_data), stream);
+
+    // Should return the full length
+    ck_assert_uint_eq(result, strlen(test_data));
+
+    // Clean up
+    talloc_free(stream);
+}
+END_TEST
+
+// Test lines 149-150: Stream completion with non-NULL stream
+START_TEST(test_google_stream_completion_cb_with_valid_stream)
+{
+    // Create a stream context
+    ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
+    stream->completed = false;
+    stream->http_status = 0;
+
+    // Create completion info
+    ik_http_completion_t completion = {0};
+    completion.http_code = 200;
+
+    // Call completion callback
+    ik_google_stream_completion_cb(&completion, stream);
+
+    // Should have set completed and status
+    ck_assert(stream->completed);
+    ck_assert_int_eq(stream->http_status, 200);
+
+    // Clean up
+    talloc_free(stream);
+}
+END_TEST
+
 // Test google_fdset vtable method
 START_TEST(test_google_fdset)
 {
@@ -472,6 +532,10 @@ static Suite *google_coverage_suite(void)
     // Success path and error message cleanup
     tcase_add_test(tc_coverage, test_google_info_read_success_status);
     tcase_add_test(tc_coverage, test_google_info_read_error_message_cleanup);
+
+    // Streaming with valid data (lines 118-134, 149-150)
+    tcase_add_test(tc_coverage, test_google_stream_write_cb_with_valid_data);
+    tcase_add_test(tc_coverage, test_google_stream_completion_cb_with_valid_stream);
 
     suite_add_tcase(s, tc_coverage);
 
