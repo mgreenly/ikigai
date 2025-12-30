@@ -2,7 +2,7 @@
 
 **UNATTENDED EXECUTION:** This task runs automatically without human oversight. Diagnose and fix the issue autonomously. Do not stop to ask for confirmation or clarification.
 
-You have ONE job: fix the failing test described below. Do not fix other tests. Do not refactor unrelated code. Fix this ONE issue and stop.
+You have ONE job: fix the failing test function described below. Do not fix other tests. Do not refactor unrelated code. Fix this ONE issue and stop.
 
 ## Load Required Skills
 
@@ -18,20 +18,15 @@ Before starting, load these skills for context:
 ## The Failure
 
 **File:** {{file}}
+**Function:** {{function}}
 **Line:** {{line}}
 **Error:** {{message}}
 
-## Make Output (tail)
-
-```
-{{make_output}}
-```
-
 ## Instructions
 
-1. Read the failing test file to understand what it's testing
+1. Read the failing test file, focusing on the `{{function}}` function
 2. Read the source file(s) being tested
-3. Identify the root cause of the failure
+3. Identify the root cause of the failure from the error message
 4. Fix the issue - prefer fixing the source code over modifying test expectations
 5. Only modify test expectations if they are clearly incorrect
 6. Verify your fix by running: `make check TEST={{file}}`

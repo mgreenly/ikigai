@@ -13,10 +13,10 @@ import argparse
 import subprocess
 import sys
 import os
-import re
 import json
 import threading
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +33,7 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+REPORTS_DIR = PROJECT_ROOT / "reports" / "check"
 DEFAULT_TIMEOUT = 600
 
 
@@ -123,31 +124,54 @@ def run_single_test(test_file: str) -> tuple[bool, str]:
     return code == 0, stdout + stderr
 
 
-def parse_failures(output: str) -> list[dict]:
+def parse_failures_from_xml() -> list[dict]:
     """
-    Parse make check output to extract failing tests.
-    Returns list of {file, line, message} dicts.
+    Parse XML reports from reports/check/ to extract failing tests.
+    Returns list of {file, function, line, message} dicts sorted by (file, function).
     """
     failures = []
-    seen_files = set()
 
-    # Match make target failures for test executables only:
-    # make[1]: *** [Makefile:215: build/tests/unit/foo/bar_test] Error 1
-    # Only match targets ending with _test (no extension) to skip .o files etc.
-    pattern = re.compile(r'make\[\d+\]: \*\*\* \[Makefile:\d+:(build/tests/[^\]]+_test)\] Error', re.MULTILINE)
+    if not REPORTS_DIR.exists():
+        return failures
 
-    for match in pattern.finditer(output):
-        target = match.group(1)  # build/tests/unit/providers/openai/openai_serialize_test
-        # Convert to source: tests/unit/providers/openai/openai_serialize_test.c
-        source_file = target.replace("build/", "") + ".c"
-        if source_file not in seen_files and Path(PROJECT_ROOT / source_file).exists():
-            seen_files.add(source_file)
-            failures.append({
-                "file": source_file,
-                "line": "1",
-                "message": "build/test failure",
-            })
+    # XML namespace used by check framework
+    ns = {"check": "http://check.sourceforge.net/ns"}
 
+    for xml_file in REPORTS_DIR.rglob("*.xml"):
+        try:
+            tree = ET.parse(xml_file)
+            root = tree.getroot()
+
+            for test in root.findall(".//check:test[@result='failure']", ns):
+                path_elem = test.find("check:path", ns)
+                fn_elem = test.find("check:fn", ns)
+                id_elem = test.find("check:id", ns)
+                msg_elem = test.find("check:message", ns)
+
+                if path_elem is None or fn_elem is None or id_elem is None:
+                    continue
+
+                # fn format: "basic_test.c:156"
+                fn_parts = fn_elem.text.split(":")
+                filename = fn_parts[0]
+                line = fn_parts[1] if len(fn_parts) > 1 else "1"
+
+                # Build full file path: path + filename
+                file_path = f"{path_elem.text}/{filename}"
+
+                failures.append({
+                    "file": file_path,
+                    "function": id_elem.text,
+                    "line": line,
+                    "message": msg_elem.text if msg_elem is not None else "test failure",
+                })
+
+        except ET.ParseError as e:
+            log(f"Warning: Failed to parse {xml_file}: {e}")
+            continue
+
+    # Sort by (file, function) for consistent ordering
+    failures.sort(key=lambda f: (f["file"], f["function"]))
     return failures
 
 
@@ -159,15 +183,15 @@ def load_prompt_template() -> str:
     return FIX_PROMPT_TEMPLATE.read_text()
 
 
-def build_prompt(failure: dict, make_output: str) -> str:
+def build_prompt(failure: dict) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
     # Simple placeholder replacement
     prompt = template.replace("{{file}}", failure["file"])
+    prompt = prompt.replace("{{function}}", failure["function"])
     prompt = prompt.replace("{{line}}", failure["line"])
     prompt = prompt.replace("{{message}}", failure["message"])
-    prompt = prompt.replace("{{make_output}}", make_output[-4000:])  # Last 4k chars
 
     return prompt
 
@@ -251,7 +275,8 @@ def git_commit(failure: dict, model_name: str, attempt: int, files_before: set[s
         run_cmd(["git", "add", f])
 
     file_name = Path(failure["file"]).name
-    msg = f"fix: {file_name}\n\nharness/check | {model_name} | attempt {attempt}"
+    func_name = failure["function"]
+    msg = f"fix: {file_name}::{func_name}\n\nharness/check | {model_name} | attempt {attempt}"
 
     code, _, _ = run_cmd(["git", "commit", "-m", msg])
     return code == 0
@@ -276,12 +301,13 @@ def git_revert(files_before: set[str] | None = None) -> None:
         run_cmd(["git", "clean", "-fd"])
 
 
-def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
+def try_fix_failure(failure: dict, timeout: int) -> bool:
     """
-    Attempt to fix a single failing test.
+    Attempt to fix a single failing test function.
     Returns True if fixed, False if exhausted attempts.
     """
     file = failure["file"]
+    func = failure["function"]
 
     # Capture files before any fix attempts
     files_before = git_get_modified_files()
@@ -291,26 +317,60 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
 
         log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
 
-        prompt = build_prompt(failure, make_output)
+        prompt = build_prompt(failure)
         success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
         if not success:
             log(f"{model_name} invocation FAILED: {response[:200]}")
             continue
 
-        # Verify the fix
+        # Verify the fix by running the test and checking XML for this specific function
         test_passed, _ = run_single_test(file)
 
         if test_passed:
             log(f"{model_name} SUCCESS")
             git_commit(failure, model_name, attempt, files_before)
             return True
-        else:
-            log(f"{model_name} FAILED (test still failing)")
+
+        # Check if this specific function now passes (even if others still fail)
+        if check_function_passes(file, func):
+            log(f"{model_name} SUCCESS (function fixed)")
+            git_commit(failure, model_name, attempt, files_before)
+            return True
+
+        log(f"{model_name} FAILED (test still failing)")
 
     # Exhausted all attempts - revert only changes from this fix attempt
     log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
     git_revert(files_before)
+    return False
+
+
+def check_function_passes(file: str, function: str) -> bool:
+    """Check if a specific test function now passes by examining its XML report."""
+    # Derive XML path from file path
+    # file: tests/unit/array/basic_test.c -> reports/check/unit/array/basic_test.xml
+    file_path = Path(file)
+    relative = file_path.relative_to("tests")
+    xml_path = REPORTS_DIR / relative.with_suffix(".xml")
+
+    if not xml_path.exists():
+        return False
+
+    ns = {"check": "http://check.sourceforge.net/ns"}
+
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+
+        for test in root.findall(".//check:test", ns):
+            id_elem = test.find("check:id", ns)
+            if id_elem is not None and id_elem.text == function:
+                return test.get("result") == "success"
+
+    except ET.ParseError:
+        pass
+
     return False
 
 
@@ -397,24 +457,24 @@ def main() -> int:
         log(f"All tests pass! (elapsed: {format_elapsed(time.time() - start_time)})")
         return 0
 
-    # Parse failures
-    failures = parse_failures(output)
+    # Parse failures from XML reports
+    failures = parse_failures_from_xml()
 
     if not failures:
-        log("make check failed but couldn't parse failures")
+        log("make check failed but couldn't parse failures from XML")
         log("Output tail:")
         for line in output.split('\n')[-20:]:
             log(f"  {line}")
         log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
         return 1
 
-    log(f"Found {len(failures)} failing tests")
+    log(f"Found {len(failures)} failing test functions")
 
     # Dry-run: just list failures and exit
     if args.dry_run:
-        log("Files needing fixes:")
+        log("Test functions needing fixes:")
         for failure in failures:
-            log(f"  - {failure['file']}:{failure['line']} - {failure['message'][:50]}")
+            log(f"  - {failure['file']}:{failure['line']} {failure['function']} - {failure['message'][:40]}")
         log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
         return 0
 
@@ -432,38 +492,39 @@ def main() -> int:
                 log(f"All tests pass! (elapsed: {format_elapsed(time.time() - start_time)})")
                 return 0
 
-            failures = parse_failures(output)
+            failures = parse_failures_from_xml()
 
             if not failures:
-                log("make check failed but couldn't parse failures")
+                log("make check failed but couldn't parse failures from XML")
                 log("Output tail:")
                 for line in output.split('\n')[-20:]:
                     log(f"  {line}")
                 log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
                 return 1
 
-            log(f"Found {len(failures)} failing tests")
+            log(f"Found {len(failures)} failing test functions")
 
         fixed_count = 0
         skipped = []
-        file_times: list[float] = []
+        fix_times: list[float] = []
 
         for i, failure in enumerate(failures, 1):
             file = failure["file"]
-            msg = failure["message"][:50]
-            log(f"[file {i}/{len(failures)}] {file}:{failure['line']} - {msg}")
+            func = failure["function"]
+            msg = failure["message"][:40]
+            log(f"[{i}/{len(failures)}] {file}:{failure['line']} {func} - {msg}")
 
-            file_start = time.time()
-            if try_fix_file(failure, output, args.time_out):
+            fix_start = time.time()
+            if try_fix_failure(failure, args.time_out):
                 fixed_count += 1
             else:
-                skipped.append(file)
-            file_elapsed = time.time() - file_start
-            file_times.append(file_elapsed)
-            avg_time = sum(file_times) / len(file_times)
+                skipped.append(f"{file}::{func}")
+            fix_elapsed = time.time() - fix_start
+            fix_times.append(fix_elapsed)
+            avg_time = sum(fix_times) / len(fix_times)
             remaining = len(failures) - i
             eta = avg_time * remaining
-            log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
+            log(f"elapsed: {format_elapsed(fix_elapsed)} | ETA: {format_elapsed(eta)}")
 
         log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
 
@@ -474,7 +535,7 @@ def main() -> int:
         if fixed_count == 0:
             log("No progress made. Stopping.")
             if skipped:
-                log("Skipped files:")
+                log("Skipped test functions:")
                 for f in skipped:
                     log(f"  - {f}")
             log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
