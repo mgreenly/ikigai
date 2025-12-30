@@ -270,6 +270,125 @@ START_TEST(test_add_tool_choice_fails) {
 END_TEST
 
 /* ================================================================
+ * Reasoning Invalid Level Test
+ * ================================================================ */
+
+START_TEST(test_reasoning_invalid_level) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+	// Set an invalid thinking level (not 0, 1, 2, or 3)
+	req->thinking.level = 999;
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should succeed but reasoning block should be omitted
+	ck_assert(!is_err(&result));
+	ck_assert_ptr_nonnull(json);
+
+	// Verify no reasoning field in JSON
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_nonnull(doc);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
+	ck_assert_ptr_null(reasoning);
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Single User Message with Non-Text Content
+ * ================================================================ */
+
+START_TEST(test_single_message_with_non_text_content) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	// Create a user message with mixed text and non-text content
+	// This tests the branches where content_blocks[i].type != IK_CONTENT_TEXT
+	ik_message_t *msg = talloc(req, ik_message_t);
+	msg->role = IK_ROLE_USER;
+	msg->content_count = 2;
+	msg->content_blocks = talloc_array(msg, ik_content_block_t, 2);
+
+	// First block: text
+	msg->content_blocks[0].type = IK_CONTENT_TEXT;
+	msg->content_blocks[0].data.text.text = talloc_strdup(msg, "Hello");
+
+	// Second block: thinking (non-text)
+	msg->content_blocks[1].type = IK_CONTENT_THINKING;
+	msg->content_blocks[1].data.thinking.text = talloc_strdup(msg, "Some reasoning");
+
+	req->message_count = 1;
+	req->messages = talloc_array(req, ik_message_t, 1);
+	req->messages[0] = *msg;
+	talloc_free(msg);
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should succeed - non-text blocks are simply skipped in string concatenation
+	ck_assert(!is_err(&result));
+	ck_assert_ptr_nonnull(json);
+
+	// Verify input field contains only the text content
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_nonnull(doc);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *input = yyjson_obj_get(root, "input");
+	ck_assert_ptr_nonnull(input);
+	const char *input_str = yyjson_get_str(input);
+	ck_assert_str_eq(input_str, "Hello");
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_single_message_only_non_text_content) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	// Create a message with NO text content - only non-text blocks
+	ik_message_t *msg = talloc(req, ik_message_t);
+	msg->role = IK_ROLE_USER;
+	msg->content_count = 1;
+	msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+	msg->content_blocks[0].type = IK_CONTENT_THINKING;
+	msg->content_blocks[0].data.thinking.text = talloc_strdup(msg, "Thinking only");
+
+	req->message_count = 1;
+	req->messages = talloc_array(req, ik_message_t, 1);
+	req->messages[0] = *msg;
+	talloc_free(msg);
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should succeed with empty input string (total_len == 0 case)
+	ck_assert(!is_err(&result));
+	ck_assert_ptr_nonnull(json);
+
+	// Verify input field is empty string
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_nonnull(doc);
+	yyjson_val *root = yyjson_doc_get_root(doc);
+	yyjson_val *input = yyjson_obj_get(root, "input");
+	ck_assert_ptr_nonnull(input);
+	const char *input_str = yyjson_get_str(input);
+	ck_assert_str_eq(input_str, "");
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * Test Suite
  * ================================================================ */
 
@@ -294,6 +413,19 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_add_checked_fixture(tc_tool_choice, setup, teardown);
 	tcase_add_test(tc_tool_choice, test_add_tool_choice_fails);
 	suite_add_tcase(s, tc_tool_choice);
+
+	TCase *tc_reasoning = tcase_create("Reasoning Edge Cases");
+    tcase_set_timeout(tc_reasoning, 30);
+	tcase_add_checked_fixture(tc_reasoning, setup, teardown);
+	tcase_add_test(tc_reasoning, test_reasoning_invalid_level);
+	suite_add_tcase(s, tc_reasoning);
+
+	TCase *tc_content = tcase_create("Non-Text Content Blocks");
+    tcase_set_timeout(tc_content, 30);
+	tcase_add_checked_fixture(tc_content, setup, teardown);
+	tcase_add_test(tc_content, test_single_message_with_non_text_content);
+	tcase_add_test(tc_content, test_single_message_only_non_text_content);
+	suite_add_tcase(s, tc_content);
 
 	return s;
 }
