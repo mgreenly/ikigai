@@ -1,11 +1,11 @@
 build/
 build-*/
 /bin/
-reports/
+/reports/
 dist/
 /demo.md
 /banner.md
-coverage/
+/coverage/
 .envrc
 tags
 
