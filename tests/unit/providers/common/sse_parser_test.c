@@ -467,6 +467,25 @@ START_TEST(test_event_with_short_line)
 }
 END_TEST
 
+/* Test: Data field without space after colon */
+START_TEST(test_data_no_space)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
+
+    /* Use data: without space */
+    const char *input = "data:content\n\n";
+    ik_sse_parser_feed(parser, input, strlen(input));
+
+    ik_sse_event_t *event = ik_sse_parser_next(parser, ctx);
+    ck_assert_ptr_nonnull(event);
+    ck_assert_ptr_nonnull(event->data);
+    ck_assert_str_eq(event->data, "content");
+
+    talloc_free(ctx);
+}
+END_TEST
+
 /* Test suite */
 static Suite *sse_parser_suite(void)
 {
@@ -496,6 +515,7 @@ static Suite *sse_parser_suite(void)
     tcase_add_test(tc_core, test_is_done_null_data);
     tcase_add_test(tc_core, test_lf_before_crlf);
     tcase_add_test(tc_core, test_event_with_short_line);
+    tcase_add_test(tc_core, test_data_no_space);
     suite_add_tcase(s, tc_core);
 
     return s;

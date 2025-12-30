@@ -126,7 +126,7 @@ ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx) {
     char *line = event_text;
     char *line_end;
 
-    while (line && *line) {
+    while (line && *line) { // LCOV_EXCL_BR_LINE: line cannot be NULL here
         /* Find end of line */
         line_end = strchr(line, '\n');
         size_t current_line_len;
