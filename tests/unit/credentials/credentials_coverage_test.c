@@ -407,6 +407,84 @@ START_TEST(test_corrupted_json_file)
 
 END_TEST
 
+// Test: Secure permissions check (file with 0600)
+START_TEST(test_secure_permissions_no_warning)
+{
+    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    char *path = create_temp_credentials(json);
+
+    // Set secure permissions (0600) - should not trigger warning
+    chmod(path, 0600);
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, path, &creds);
+
+    // Should succeed without warning
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    // Also test direct insecure_permissions check
+    bool is_insecure = ik_credentials_insecure_permissions(path);
+    ck_assert(!is_insecure);
+
+    unlink(path);
+}
+
+END_TEST
+
+// Test: Check permissions on non-existent file
+START_TEST(test_insecure_permissions_nonexistent_file)
+{
+    // Check permissions on file that doesn't exist
+    char *path = talloc_asprintf(test_ctx, "/tmp/ikigai_nonexistent_%d.json", getpid());
+
+    bool is_insecure = ik_credentials_insecure_permissions(path);
+
+    // Non-existent file should not be considered insecure
+    ck_assert(!is_insecure);
+}
+
+END_TEST
+
+// Test: Various permission modes
+START_TEST(test_various_permission_modes)
+{
+    const char *json = "{ \"openai\": { \"api_key\": \"test\" } }";
+
+    // Test 0640 (group readable)
+    char *path1 = talloc_asprintf(test_ctx, "/tmp/ikigai_perms_640_%d.json", getpid());
+    FILE *f1 = fopen(path1, "w");
+    fprintf(f1, "%s", json);
+    fclose(f1);
+    chmod(path1, 0640);
+    ck_assert(ik_credentials_insecure_permissions(path1));
+    unlink(path1);
+
+    // Test 0604 (other readable)
+    char *path2 = talloc_asprintf(test_ctx, "/tmp/ikigai_perms_604_%d.json", getpid());
+    FILE *f2 = fopen(path2, "w");
+    fprintf(f2, "%s", json);
+    fclose(f2);
+    chmod(path2, 0604);
+    ck_assert(ik_credentials_insecure_permissions(path2));
+    unlink(path2);
+
+    // Test 0700 (owner execute)
+    char *path3 = talloc_asprintf(test_ctx, "/tmp/ikigai_perms_700_%d.json", getpid());
+    FILE *f3 = fopen(path3, "w");
+    fprintf(f3, "%s", json);
+    fclose(f3);
+    chmod(path3, 0700);
+    ck_assert(ik_credentials_insecure_permissions(path3));
+    unlink(path3);
+}
+
+END_TEST
+
 // Test Suite Configuration
 static Suite *credentials_coverage_suite(void)
 {
@@ -429,6 +507,9 @@ static Suite *credentials_coverage_suite(void)
     tcase_add_test(tc_core, test_env_override_null_file_credential);
     tcase_add_test(tc_core, test_missing_api_key_field);
     tcase_add_test(tc_core, test_corrupted_json_file);
+    tcase_add_test(tc_core, test_secure_permissions_no_warning);
+    tcase_add_test(tc_core, test_insecure_permissions_nonexistent_file);
+    tcase_add_test(tc_core, test_various_permission_modes);
 
     suite_add_tcase(s, tc_core);
 
