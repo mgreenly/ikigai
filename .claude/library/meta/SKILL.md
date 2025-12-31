@@ -7,7 +7,7 @@ description: Meta - Agent System infrastructure for the ikigai project
 
 Expert on the `.claude/` directory structure and agent infrastructure. Use this skillset when improving or extending the agent system, skills, skillsets, or commands.
 
-**Depends on:** `rpi` skill for pipeline workflow knowledge.
+**Depends on:** `cdd` skill for pipeline workflow knowledge.
 
 ## Directory Structure
 
@@ -106,4 +106,4 @@ The agent system is designed for token efficiency:
 3. **Skills are focused** - One domain, ~20-100 lines
 4. **Reference vs working knowledge** - Large docs in separate skills
 
-See `rpi` skill for pipeline-specific efficiency principles.
+See `cdd` skill for pipeline-specific efficiency principles.

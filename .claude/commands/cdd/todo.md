@@ -14,6 +14,6 @@ Process the first incomplete item in `$ARGUMENTS`.
 7. Suggest the next incomplete item in the file
 
 **Validation:**
-- If `$ARGUMENTS` is empty: "Usage: /rpi:todo <filepath>"
+- If `$ARGUMENTS` is empty: "Usage: /cdd:todo <filepath>"
 - If file doesn't exist: "Error: File not found: <filepath>"
 - If no incomplete items: "All items complete in <filepath>"

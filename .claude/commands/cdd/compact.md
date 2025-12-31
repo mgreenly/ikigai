@@ -21,7 +21,7 @@ Compact the file at `$ARGUMENTS` to reduce token usage while preserving informat
 8. Commit the change with message: `chore(scratch): compact <filename>`
 
 **Validation:**
-- If `$ARGUMENTS` is empty, respond with: "Usage: /rpi:compact <filepath>"
+- If `$ARGUMENTS` is empty, respond with: "Usage: /cdd:compact <filepath>"
 - If file is not in scratch/, respond with: "Error: File must be within scratch/ directory"
 - If file doesn't exist, respond with: "Error: File not found: <filepath>"
 

@@ -40,7 +40,7 @@ projects/ikigai/              # bare repo
 **The release/ Folder**:
 - Gitignored everywhere
 - Only exists in release worktree during active development
-- Contains: plan, tasks, user-stories, research artifacts (RPI pipeline)
+- Contains: plan, tasks, user-stories, research artifacts (CDD pipeline)
 - Deleted after FF-merge to main (ephemeral planning artifact)
 - Optionally archived outside git if preservation needed
 

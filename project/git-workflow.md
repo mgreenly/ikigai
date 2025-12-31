@@ -27,7 +27,7 @@ cd projects/ikigai
 git worktree add rel-NN -b rel-NN main
 cd rel-NN
 
-# Build release/ folder with RPI pipeline
+# Build release/ folder with CDD pipeline
 # (research → plan → verify → tasks)
 ```
 

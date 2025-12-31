@@ -1,11 +1,11 @@
 ---
-name: rpi
-description: Research-Plan-Implement pipeline for release workflows
+name: cdd
+description: Context Driven Development pipeline for release workflows
 ---
 
-# RPI Pipeline
+# CDD Pipeline
 
-This project calls it's release workflow Research-Plan-Implement (RPI)
+This project calls its release workflow Context Driven Development (CDD)
 
 ## Core Philosophy
 

@@ -1,7 +1,7 @@
 {
   "preload": [
     "meta",
-    "rpi",
+    "cdd",
     "task",
     "align",
     "git",

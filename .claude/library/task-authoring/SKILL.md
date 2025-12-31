@@ -37,7 +37,7 @@ Task authoring happens ONCE. Task execution happens N times (once per task in th
 
 ## Prerequisites
 
-- `/load rpi` - For release directory structure and abstraction levels (plan vs tasks)
+- `/load cdd` - For release directory structure and abstraction levels (plan vs tasks)
 - `/load task` - For order.json format and task state machine
 
 ## Process
