@@ -55,21 +55,9 @@ size_t ik_ansi_skip_csi(const char *text, size_t len, size_t pos);
 size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color);
 
 /**
- * Initialize color state from environment variables.
- *
- * Call once at startup to detect whether colors should be enabled based on:
- * - NO_COLOR environment variable (https://no-color.org/) - disables colors if set
- * - TERM environment variable - disables colors if set to "dumb"
- *
- * This function should be called before any color rendering occurs.
- */
-void ik_ansi_init(void);
-
-/**
  * Check if colors are enabled.
  *
- * Returns the current color enablement state, which is set by ik_ansi_init().
- * If ik_ansi_init() has not been called, colors are enabled by default.
+ * Returns the current color enablement state.
  *
  * @return true if colors should be used, false otherwise
  */
