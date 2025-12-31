@@ -365,6 +365,23 @@ START_TEST(test_handle_error_code_nonstring_type_content_filter)
 }
 END_TEST
 
+/**
+ * Test: Both code and type fields are non-strings
+ * Covers line 78-79: both ternary false branches simultaneously
+ */
+START_TEST(test_handle_error_both_code_and_type_nonstring)
+{
+    // Both code and type are numbers (non-strings)
+    const char *json = "{\"error\": {\"message\": \"Error\", \"code\": 123, \"type\": 456}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 500, json, &category);
+    ck_assert(!is_err(&r));
+    // Should fall back to status-based category
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -384,6 +401,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_handle, test_handle_error_code_no_match);
     tcase_add_test(tc_handle, test_handle_error_both_null_for_content_filter);
     tcase_add_test(tc_handle, test_handle_error_code_nonstring_type_content_filter);
+    tcase_add_test(tc_handle, test_handle_error_both_code_and_type_nonstring);
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
