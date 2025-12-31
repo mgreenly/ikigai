@@ -258,7 +258,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
                 ik_agent_transition_to_idle_(agent);
             }
             if (agent == repl->current) {
-                CHECK(ik_repl_render_frame(repl));
+                CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
             }
         }
     }
