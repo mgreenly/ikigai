@@ -117,26 +117,17 @@ END_TEST
 
 START_TEST(test_multi_turn_input_array) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
-	// Add multiple messages to trigger array format
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "First message");
 	ik_request_add_message(req, IK_ROLE_ASSISTANT, "Response");
 	ik_request_add_message(req, IK_ROLE_USER, "Second message");
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
-	// Verify input is an array
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *input = yyjson_obj_get(root, "input");
-	ck_assert_ptr_nonnull(input);
+	yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
 	ck_assert(yyjson_is_arr(input));
 	ck_assert_uint_eq((unsigned int)yyjson_arr_size(input), 3U);
 	yyjson_doc_free(doc);
@@ -150,24 +141,16 @@ END_TEST
 
 START_TEST(test_system_prompt) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	req->system_prompt = talloc_strdup(req, "You are a helpful assistant");
 	ik_request_add_message(req, IK_ROLE_USER, "Hello");
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
-	// Verify instructions field is present
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *instructions = yyjson_obj_get(root, "instructions");
-	ck_assert_ptr_nonnull(instructions);
+	yyjson_val *instructions = yyjson_obj_get(yyjson_doc_get_root(doc), "instructions");
 	ck_assert_str_eq(yyjson_get_str(instructions), "You are a helpful assistant");
 	yyjson_doc_free(doc);
 }
@@ -250,41 +233,50 @@ START_TEST(test_streaming) {
 
 END_TEST
 
+START_TEST(test_single_assistant_message_array) {
+	ik_request_t *req = NULL;
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
+
+	// Single assistant message should use array format, not string
+	ik_request_add_message(req, IK_ROLE_ASSISTANT, "Response");
+
+	char *json = NULL;
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
+
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+	ck_assert(yyjson_is_arr(input));
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * Multiple Text Blocks Test
  * ================================================================ */
 
 START_TEST(test_multiple_text_blocks) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
-	// Add first text block using standard API
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "First block");
 
-	// Add second text block to the same message
+	// Add second text block to same message
 	ik_message_t *msg = &req->messages[0];
-	size_t old_count = msg->content_count;
-	msg->content_blocks = talloc_realloc(req, msg->content_blocks, ik_content_block_t, (unsigned int)(old_count + 1U));
-	msg->content_count = old_count + 1U;
-
-	msg->content_blocks[old_count].type = IK_CONTENT_TEXT;
-	msg->content_blocks[old_count].data.text.text = talloc_strdup(req, "Second block");
+	size_t n = msg->content_count;
+	msg->content_blocks = talloc_realloc(req, msg->content_blocks, ik_content_block_t, (unsigned int)(n + 1U));
+	msg->content_count = n + 1U;
+	msg->content_blocks[n].type = IK_CONTENT_TEXT;
+	msg->content_blocks[n].data.text.text = talloc_strdup(req, "Second block");
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
-	// Verify blocks are concatenated with \n\n
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *input = yyjson_obj_get(root, "input");
-	ck_assert_ptr_nonnull(input);
-	const char *input_str = yyjson_get_str(input);
-	ck_assert_str_eq(input_str, "First block\n\nSecond block");
+	yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+	ck_assert_str_eq(yyjson_get_str(input), "First block\n\nSecond block");
 	yyjson_doc_free(doc);
 }
 
@@ -420,6 +412,7 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_set_timeout(tc_input, 30);
 	tcase_add_checked_fixture(tc_input, request_responses_setup, request_responses_teardown);
 	tcase_add_test(tc_input, test_multi_turn_input_array);
+	tcase_add_test(tc_input, test_single_assistant_message_array);
 	tcase_add_test(tc_input, test_multiple_text_blocks);
 	suite_add_tcase(s, tc_input);
 
