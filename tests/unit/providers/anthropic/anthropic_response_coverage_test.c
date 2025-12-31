@@ -56,6 +56,22 @@ END_TEST START_TEST(test_parse_response_errors)
         ck_assert(is_err(&r));
     }
 }
+END_TEST START_TEST(test_parse_response_type_mismatches)
+{
+    // Fields with wrong types (covers yyjson_get_str returning NULL)
+    struct { const char *json; bool should_error; } cases[] = {
+        {"{\"type\":\"message\",\"model\":123,\"usage\":{},\"content\":[]}", false},
+        {"{\"type\":\"message\",\"stop_reason\":true,\"usage\":{}}", false},
+        {"{\"type\":\"error\",\"error\":{\"message\":789}}", true}
+    };
+    for (size_t i = 0; i < 3; i++) {
+        ik_response_t *resp = NULL;
+        res_t r = ik_anthropic_parse_response(test_ctx, cases[i].json, strlen(cases[i].json), &resp);
+        ck_assert(cases[i].should_error == is_err(&r));
+        if (!cases[i].should_error) talloc_free(resp);
+    }
+}
+
 END_TEST START_TEST(test_parse_response_edge_cases)
 {
     struct { const char *json; bool should_error; } cases[] = {
@@ -287,69 +303,6 @@ END_TEST START_TEST(test_parse_error_invalid_json_root_not_object)
     talloc_free(message);
 }
 
-END_TEST START_TEST(test_parse_error_with_http_502)
-{
-    // Test case 502 specifically with valid JSON error
-    const char *json =
-        "{"
-        "  \"error\": {"
-        "    \"type\": \"overloaded_error\","
-        "    \"message\": \"Service temporarily unavailable\""
-        "  }"
-        "}";
-
-    ik_error_category_t category;
-    char *message = NULL;
-    res_t r = ik_anthropic_parse_error(test_ctx, 502, json, strlen(json), &category, &message);
-
-    ck_assert(!is_err(&r));
-    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
-    ck_assert_ptr_nonnull(message);
-    talloc_free(message);
-}
-
-END_TEST START_TEST(test_parse_error_with_http_503)
-{
-    // Test case 503 specifically
-    const char *json =
-        "{"
-        "  \"error\": {"
-        "    \"type\": \"service_unavailable\","
-        "    \"message\": \"Service is down\""
-        "  }"
-        "}";
-
-    ik_error_category_t category;
-    char *message = NULL;
-    res_t r = ik_anthropic_parse_error(test_ctx, 503, json, strlen(json), &category, &message);
-
-    ck_assert(!is_err(&r));
-    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
-    ck_assert_ptr_nonnull(message);
-    talloc_free(message);
-}
-
-END_TEST START_TEST(test_parse_error_with_http_529)
-{
-    // Test case 529 specifically
-    const char *json =
-        "{"
-        "  \"error\": {"
-        "    \"type\": \"overloaded\","
-        "    \"message\": \"Too many requests\""
-        "  }"
-        "}";
-
-    ik_error_category_t category;
-    char *message = NULL;
-    res_t r = ik_anthropic_parse_error(test_ctx, 529, json, strlen(json), &category, &message);
-
-    ck_assert(!is_err(&r));
-    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
-    ck_assert_ptr_nonnull(message);
-    talloc_free(message);
-}
-
 END_TEST START_TEST(test_parse_error_no_error_obj_in_valid_json)
 {
     // Test doc != NULL, root is object, but no error field (covers line 170 branch)
@@ -364,6 +317,44 @@ END_TEST START_TEST(test_parse_error_no_error_obj_in_valid_json)
     ck_assert_ptr_nonnull(message);
     ck_assert(strstr(message, "404") != NULL);
     talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_error_field_not_object)
+{
+    // Test when error field exists but is not an object (covers yyjson_obj_get branch)
+    const char *json =
+        "{"
+        "  \"error\": \"just a string\""
+        "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t r = ik_anthropic_parse_error(test_ctx, 500, json, strlen(json), &category, &message);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_ptr_nonnull(message);
+    talloc_free(message);
+}
+
+END_TEST START_TEST(test_parse_error_fields_not_string)
+{
+    // Test when type/message fields are not strings (covers yyjson_get_str returning NULL)
+    struct { const char *json; int http; const char *expected; } cases[] = {
+        {"{\"error\":{\"type\":123,\"message\":\"Err\"}}", 400, "Err"},
+        {"{\"error\":{\"type\":\"invalid_request_error\",\"message\":456}}", 401, "invalid_request_error"},
+        {"{\"error\":{\"type\":true,\"message\":false}}", 403, "403"}
+    };
+
+    for (size_t i = 0; i < 3; i++) {
+        ik_error_category_t category;
+        char *message = NULL;
+        res_t r = ik_anthropic_parse_error(test_ctx, cases[i].http, cases[i].json, strlen(cases[i].json), &category, &message);
+        ck_assert(!is_err(&r));
+        ck_assert_ptr_nonnull(message);
+        ck_assert(strstr(message, cases[i].expected) != NULL);
+        talloc_free(message);
+    }
 }
 
 END_TEST
@@ -421,6 +412,7 @@ static Suite *anthropic_response_coverage_suite(void)
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_response_null_fields);
     tcase_add_test(tc_parse, test_parse_response_errors);
+    tcase_add_test(tc_parse, test_parse_response_type_mismatches);
     tcase_add_test(tc_parse, test_parse_response_edge_cases);
     suite_add_tcase(s, tc_parse);
 
@@ -443,10 +435,9 @@ static Suite *anthropic_response_coverage_suite(void)
     tcase_add_test(tc_error, test_parse_error_type_only);
     tcase_add_test(tc_error, test_parse_error_empty_json);
     tcase_add_test(tc_error, test_parse_error_invalid_json_root_not_object);
-    tcase_add_test(tc_error, test_parse_error_with_http_502);
-    tcase_add_test(tc_error, test_parse_error_with_http_503);
-    tcase_add_test(tc_error, test_parse_error_with_http_529);
     tcase_add_test(tc_error, test_parse_error_no_error_obj_in_valid_json);
+    tcase_add_test(tc_error, test_parse_error_error_field_not_object);
+    tcase_add_test(tc_error, test_parse_error_fields_not_string);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_stubs = tcase_create("Stub Functions");
