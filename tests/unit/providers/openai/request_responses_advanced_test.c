@@ -351,6 +351,89 @@ END_TEST START_TEST(test_serialize_tool_choice_unknown)
 END_TEST
 
 /* ================================================================
+ * Instructions (System Prompt) Tests
+ * ================================================================ */
+
+START_TEST(test_serialize_with_system_prompt)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    res_t sys_result = ik_request_set_system(req, "You are a helpful assistant.");
+    ck_assert(!is_err(&sys_result));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *instructions = yyjson_obj_get(root, "instructions");
+    ck_assert_ptr_nonnull(instructions);
+    ck_assert_str_eq(yyjson_get_str(instructions), "You are a helpful assistant.");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_without_system_prompt)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // No instructions field when system_prompt is NULL
+    yyjson_val *instructions = yyjson_obj_get(root, "instructions");
+    ck_assert_ptr_null(instructions);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_with_empty_system_prompt)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    res_t sys_result = ik_request_set_system(req, "");
+    ck_assert(!is_err(&sys_result));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // No instructions field when system_prompt is empty string
+    yyjson_val *instructions = yyjson_obj_get(root, "instructions");
+    ck_assert_ptr_null(instructions);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * Streaming and Output Tests
  * ================================================================ */
 
@@ -501,6 +584,14 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_test(tc_tools, test_serialize_tool_choice_required);
     tcase_add_test(tc_tools, test_serialize_tool_choice_unknown);
     suite_add_tcase(s, tc_tools);
+
+    TCase *tc_instructions = tcase_create("Instructions");
+    tcase_set_timeout(tc_instructions, 30);
+    tcase_add_checked_fixture(tc_instructions, setup, teardown);
+    tcase_add_test(tc_instructions, test_serialize_with_system_prompt);
+    tcase_add_test(tc_instructions, test_serialize_without_system_prompt);
+    tcase_add_test(tc_instructions, test_serialize_with_empty_system_prompt);
+    suite_add_tcase(s, tc_instructions);
 
     TCase *tc_streaming = tcase_create("Streaming and Output");
     tcase_set_timeout(tc_streaming, 30);
