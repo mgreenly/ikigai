@@ -274,9 +274,9 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
     // Create streaming context for event processing
     res_t r = ik_google_stream_ctx_create(active_stream, stream_cb, stream_ctx,
                                            &active_stream->stream_ctx);
-    if (is_err(&r)) {
-        talloc_free(active_stream);
-        return r;
+    if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_stream_ctx_create only fails on OOM (PANIC)
+        talloc_free(active_stream); // LCOV_EXCL_LINE
+        return r; // LCOV_EXCL_LINE
     }
 
     // Create SSE parser
@@ -290,17 +290,17 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
     char *url = NULL;
     r = ik_google_build_url(active_stream, impl_ctx->base_url, req->model,
                             impl_ctx->api_key, true, &url);
-    if (is_err(&r)) {
-        talloc_free(active_stream);
-        return r;
+    if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_build_url only fails on OOM (PANIC)
+        talloc_free(active_stream); // LCOV_EXCL_LINE
+        return r; // LCOV_EXCL_LINE
     }
 
     // Serialize request JSON
     char *body = NULL;
     r = ik_google_serialize_request(active_stream, req, &body);
-    if (is_err(&r)) {
-        talloc_free(active_stream);
-        return r;
+    if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_serialize_request only fails on OOM (PANIC) or req->model==NULL (excluded by assert in build_url)
+        talloc_free(active_stream); // LCOV_EXCL_LINE
+        return r; // LCOV_EXCL_LINE
     }
 
     // Build headers (Google uses API key in URL, so headers are simpler)
