@@ -145,7 +145,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         if (response_val != NULL && yyjson_is_obj(response_val)) {
             yyjson_val *model_val = yyjson_obj_get(response_val, "model");
             if (model_val != NULL) {
-                const char *model = yyjson_get_str(model_val);
+                const char *model = yyjson_get_str_(model_val);
                 if (model != NULL) {
                     stream_ctx->model = talloc_strdup(stream_ctx, model);
                     if (stream_ctx->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -158,7 +158,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
     else if (strcmp(event_name, "response.output_text.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
-            const char *delta = yyjson_get_str(delta_val);
+            const char *delta = yyjson_get_str_(delta_val);
             if (delta != NULL) {
                 yyjson_val *content_index_val = yyjson_obj_get(root, "content_index");
                 int32_t content_index = 0;
@@ -180,7 +180,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
     else if (strcmp(event_name, "response.reasoning_summary_text.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
-            const char *delta = yyjson_get_str(delta_val);
+            const char *delta = yyjson_get_str_(delta_val);
             if (delta != NULL) {
                 yyjson_val *summary_index_val = yyjson_obj_get(root, "summary_index");
                 int32_t summary_index = 0;
@@ -203,7 +203,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         yyjson_val *item_val = yyjson_obj_get(root, "item");
         if (item_val != NULL && yyjson_is_obj(item_val)) {
             yyjson_val *type_val = yyjson_obj_get(item_val, "type");
-            const char *item_type = yyjson_get_str(type_val);
+            const char *item_type = yyjson_get_str_(type_val);
 
             if (item_type != NULL && strcmp(item_type, "function_call") == 0) {
                 yyjson_val *output_index_val = yyjson_obj_get(root, "output_index");
@@ -215,8 +215,8 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                 yyjson_val *call_id_val = yyjson_obj_get(item_val, "call_id");
                 yyjson_val *name_val = yyjson_obj_get(item_val, "name");
 
-                const char *call_id = yyjson_get_str(call_id_val);
-                const char *name = yyjson_get_str(name_val);
+                const char *call_id = yyjson_get_str_(call_id_val);
+                const char *name = yyjson_get_str_(name_val);
 
                 if (call_id != NULL && name != NULL) {
                     maybe_end_tool_call(stream_ctx);
@@ -244,7 +244,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
     else if (strcmp(event_name, "response.function_call_arguments.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
-            const char *delta = yyjson_get_str(delta_val);
+            const char *delta = yyjson_get_str_(delta_val);
             if (delta != NULL && stream_ctx->in_tool_call) {
                 yyjson_val *output_index_val = yyjson_obj_get(root, "output_index");
                 int32_t output_index = stream_ctx->tool_call_index;
@@ -288,13 +288,13 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         yyjson_val *response_val = yyjson_obj_get(root, "response");
         if (response_val != NULL && yyjson_is_obj(response_val)) {
             yyjson_val *status_val = yyjson_obj_get(response_val, "status");
-            const char *status = yyjson_get_str(status_val);
+            const char *status = yyjson_get_str_(status_val);
 
             const char *incomplete_reason = NULL;
             yyjson_val *incomplete_details_val = yyjson_obj_get(response_val, "incomplete_details");
             if (incomplete_details_val != NULL && yyjson_is_obj(incomplete_details_val)) {
                 yyjson_val *reason_val = yyjson_obj_get(incomplete_details_val, "reason");
-                incomplete_reason = yyjson_get_str(reason_val);
+                incomplete_reason = yyjson_get_str_(reason_val);
             }
 
             if (status != NULL) {
@@ -322,8 +322,8 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
             yyjson_val *message_val = yyjson_obj_get(error_val, "message");
             yyjson_val *type_val = yyjson_obj_get(error_val, "type");
 
-            const char *message = yyjson_get_str(message_val);
-            const char *type = yyjson_get_str(type_val);
+            const char *message = yyjson_get_str_(message_val);
+            const char *type = yyjson_get_str_(type_val);
 
             ik_error_category_t category = IK_ERR_CAT_UNKNOWN;
             if (type != NULL) {
