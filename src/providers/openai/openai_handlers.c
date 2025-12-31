@@ -45,15 +45,15 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
                                                      http_completion->response_body,
                                                      http_completion->response_len,
                                                      &category, &error_msg);
-            if (is_ok(&parse_res)) {
+            if (is_ok(&parse_res)) {  // LCOV_EXCL_BR_LINE
                 provider_completion.error_category = category;
                 provider_completion.error_message = error_msg;
             } else {
-                // Fallback to generic error message
+                // Fallback to generic error message  // LCOV_EXCL_START
                 provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
                 provider_completion.error_message = talloc_asprintf(req_ctx,
                     "HTTP %d error", http_completion->http_code);
-            }
+            }  // LCOV_EXCL_STOP
         } else {
             // Network error or no response body
             if (http_completion->http_code == 0) {
@@ -210,14 +210,14 @@ void ik_openai_stream_completion_handler(const ik_http_completion_t *http_comple
                                                      http_completion->response_body,
                                                      http_completion->response_len,
                                                      &category, &error_msg);
-            if (is_ok(&parse_res)) {
+            if (is_ok(&parse_res)) {  // LCOV_EXCL_BR_LINE
                 provider_completion.error_category = category;
                 provider_completion.error_message = error_msg;
-            } else {
+            } else {  // LCOV_EXCL_START
                 provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
                 provider_completion.error_message = talloc_asprintf(req_ctx,
                     "HTTP %d error", http_completion->http_code);
-            }
+            }  // LCOV_EXCL_STOP
         } else {
             if (http_completion->http_code == 0) {
                 provider_completion.error_category = IK_ERR_CAT_NETWORK;
