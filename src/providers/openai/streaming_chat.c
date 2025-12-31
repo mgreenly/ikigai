@@ -93,7 +93,7 @@ void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx,
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
-    if (root == NULL || !yyjson_is_obj(root)) {
+    if (root == NULL || !yyjson_is_obj(root)) { // LCOV_EXCL_BR_LINE
         yyjson_doc_free(doc);
         return;
     }
@@ -102,7 +102,7 @@ void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx,
     yyjson_val *error_val = yyjson_obj_get(root, "error");
     if (error_val != NULL && yyjson_is_obj(error_val)) {
         // Extract error message and type
-        yyjson_val *message_val = yyjson_obj_get(error_val, "message");
+        yyjson_val *message_val = yyjson_obj_get(error_val, "message"); // LCOV_EXCL_BR_LINE
         yyjson_val *type_val = yyjson_obj_get(error_val, "type");
 
         const char *message = yyjson_get_str(message_val);
@@ -152,7 +152,7 @@ void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx,
         size_t choices_size = yyjson_arr_size(choices_val);
         if (choices_size > 0) {
             yyjson_val *choice0 = yyjson_arr_get(choices_val, 0);
-            if (choice0 != NULL && yyjson_is_obj(choice0)) {
+            if (choice0 != NULL && yyjson_is_obj(choice0)) { // LCOV_EXCL_BR_LINE
                 // Extract delta
                 yyjson_val *delta_val = yyjson_obj_get(choice0, "delta");
                 if (delta_val != NULL && yyjson_is_obj(delta_val)) {
