@@ -21,7 +21,6 @@ res_t ik_byte_array_insert(ik_byte_array_t *array, size_t index, uint8_t byte);
 
 // Modification operations (No IO - Direct return with asserts)
 void ik_byte_array_delete(ik_byte_array_t *array, size_t index);
-void ik_byte_array_set(ik_byte_array_t *array, size_t index, uint8_t byte);
 void ik_byte_array_clear(ik_byte_array_t *array);
 
 // Access operations (No IO - Direct return with asserts)
