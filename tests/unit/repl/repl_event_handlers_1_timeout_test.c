@@ -1,8 +1,8 @@
 /**
- * @file repl_event_handlers_test_1.c
- * @brief Unit tests for REPL event handler functions (Part 1)
+ * @file repl_event_handlers_1_timeout_test.c
+ * @brief Unit tests for REPL event handler timeout functions
  *
- * Tests fd_set setup and timeout calculation functions.
+ * Tests timeout calculation functions.
  */
 
 #include "repl_event_handlers.h"
@@ -66,49 +66,6 @@ static void mock_info_read(void *provider_ctx, ik_logger_t *logger)
 
 static ik_provider_vtable_t mock_vt = {
     .fdset = mock_fdset,
-    .timeout = mock_timeout,
-    .perform = mock_perform,
-    .info_read = mock_info_read,
-    .cleanup = NULL
-};
-
-/* Additional mocks for error testing */
-static res_t mock_fdset_fails(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
-                              fd_set *exc_fds, int *max_fd)
-{
-    (void)provider_ctx;
-    (void)read_fds;
-    (void)write_fds;
-    (void)exc_fds;
-    (void)max_fd;
-    /* Need a context for ERR macro - create a temporary one */
-    void *tmp = talloc_new(NULL);
-    res_t result = ERR(tmp, IO, "Mock fdset error");
-    /* The error is owned by tmp, which we return - caller must free */
-    return result;
-}
-
-static ik_provider_vtable_t mock_vt_fails = {
-    .fdset = mock_fdset_fails,
-    .timeout = mock_timeout,
-    .perform = mock_perform,
-    .info_read = mock_info_read,
-    .cleanup = NULL
-};
-
-static res_t mock_fdset_high_fd(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
-                                fd_set *exc_fds, int *max_fd)
-{
-    (void)provider_ctx;
-    (void)read_fds;
-    (void)write_fds;
-    (void)exc_fds;
-    *max_fd = 100;
-    return OK(NULL);
-}
-
-static ik_provider_vtable_t mock_vt_high = {
-    .fdset = mock_fdset_high_fd,
     .timeout = mock_timeout,
     .perform = mock_perform,
     .info_read = mock_info_read,
@@ -235,39 +192,6 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-/* ========== ik_repl_setup_fd_sets Tests ========== */
-
-START_TEST(test_setup_fd_sets_no_agents) {
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = -1;
-
-    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
-    ck_assert(is_ok(&result));
-    ck_assert_int_eq(max_fd, 0);
-    ck_assert(FD_ISSET(0, &read_fds));
-}
-END_TEST START_TEST(test_setup_fd_sets_with_provider_instance)
-{
-    /* Create mock provider instance */
-    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
-    instance->vt = &mock_vt;
-    instance->ctx = NULL;
-    agent->provider_instance = instance;
-
-    /* Add agent to repl */
-    repl->agent_count = 1;
-    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
-    repl->agents[0] = agent;
-
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = -1;
-
-    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
-    ck_assert(is_ok(&result));
-    ck_assert_int_eq(max_fd, 10);  /* Mock returns 10 */
-}
-
-END_TEST
 /* ========== ik_repl_calculate_curl_min_timeout Tests ========== */
 
 START_TEST(test_curl_min_timeout_no_agents)
@@ -279,7 +203,9 @@ START_TEST(test_curl_min_timeout_no_agents)
     ck_assert_int_eq(timeout, -1);
 }
 
-END_TEST START_TEST(test_curl_min_timeout_with_provider)
+END_TEST
+
+START_TEST(test_curl_min_timeout_with_provider)
 {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
@@ -300,104 +226,8 @@ END_TEST START_TEST(test_curl_min_timeout_with_provider)
 }
 
 END_TEST
-/* ========== ik_repl_calculate_select_timeout_ms Tests ========== */
 
-START_TEST(test_select_timeout_default)
-{
-    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
-    ck_assert_int_eq(timeout, 1000);  /* Default when no timeouts active */
-}
-
-END_TEST START_TEST(test_select_timeout_with_spinner)
-{
-    agent->spinner_state.visible = true;
-
-    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
-    ck_assert_int_eq(timeout, 80);  /* Spinner timeout */
-}
-
-END_TEST START_TEST(test_select_timeout_with_executing_tool)
-{
-    /* Add agent to repl */
-    repl->agent_count = 1;
-    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
-    repl->agents[0] = agent;
-
-    /* Set agent to executing tool state */
-    pthread_mutex_lock(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    pthread_mutex_unlock(&agent->tool_thread_mutex);
-
-    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
-    ck_assert_int_eq(timeout, 50);  /* Tool poll timeout */
-}
-
-END_TEST START_TEST(test_select_timeout_with_scroll_detector)
-{
-    /* Create scroll detector */
-    repl->scroll_det = ik_scroll_detector_create(repl);
-    ck_assert_ptr_nonnull(repl->scroll_det);
-
-    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
-    /* Timeout will depend on scroll detector state, just verify it's calculated */
-    ck_assert(timeout > 0 || timeout == -1);
-}
-
-END_TEST START_TEST(test_select_timeout_prefers_minimum)
-{
-    /* Set multiple timeouts and verify minimum is returned */
-    agent->spinner_state.visible = true;  /* 80ms */
-
-    long timeout = ik_repl_calculate_select_timeout_ms(repl, 100);  /* curl: 100ms */
-    ck_assert_int_eq(timeout, 80);  /* Should pick spinner (minimum) */
-
-    timeout = ik_repl_calculate_select_timeout_ms(repl, 50);  /* curl: 50ms */
-    ck_assert_int_eq(timeout, 50);  /* Should pick curl (minimum) */
-}
-
-END_TEST START_TEST(test_setup_fd_sets_provider_returns_error)
-{
-    /* Create mock provider instance */
-    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
-    instance->vt = &mock_vt_fails;
-    instance->ctx = NULL;
-    agent->provider_instance = instance;
-
-    /* Add agent to repl */
-    repl->agent_count = 1;
-    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
-    repl->agents[0] = agent;
-
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = -1;
-
-    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
-    ck_assert(is_err(&result));
-    talloc_free(result.err);
-}
-
-END_TEST START_TEST(test_setup_fd_sets_updates_max_fd)
-{
-    /* Create mock provider instance */
-    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
-    instance->vt = &mock_vt_high;
-    instance->ctx = NULL;
-    agent->provider_instance = instance;
-
-    /* Add agent to repl */
-    repl->agent_count = 1;
-    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
-    repl->agents[0] = agent;
-
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = -1;
-
-    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
-    ck_assert(is_ok(&result));
-    ck_assert_int_eq(max_fd, 100);  /* Should be updated to higher value */
-}
-
-END_TEST START_TEST(test_curl_min_timeout_chooses_minimum)
+START_TEST(test_curl_min_timeout_chooses_minimum)
 {
     /* Create first agent with 500ms timeout */
     struct ik_provider *instance1 = talloc_zero(agent, struct ik_provider);
@@ -429,7 +259,9 @@ END_TEST START_TEST(test_curl_min_timeout_chooses_minimum)
     pthread_mutex_destroy(&agent2->tool_thread_mutex);
 }
 
-END_TEST START_TEST(test_curl_min_timeout_provider_error)
+END_TEST
+
+START_TEST(test_curl_min_timeout_provider_error)
 {
     /* Create mock provider instance that returns error from timeout */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
@@ -473,57 +305,78 @@ START_TEST(test_curl_min_timeout_negative_timeout)
 
 END_TEST
 
-START_TEST(test_setup_fd_sets_agent_fd_not_higher)
-{
-    /* Create mock provider instance that returns a lower fd than terminal */
-    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
-    instance->vt = &mock_vt;  /* Returns max_fd=10 */
-    instance->ctx = NULL;
-    agent->provider_instance = instance;
+/* ========== ik_repl_calculate_select_timeout_ms Tests ========== */
 
+START_TEST(test_select_timeout_default)
+{
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
+    ck_assert_int_eq(timeout, 1000);  /* Default when no timeouts active */
+}
+
+END_TEST
+
+START_TEST(test_select_timeout_with_spinner)
+{
+    agent->spinner_state.visible = true;
+
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
+    ck_assert_int_eq(timeout, 80);  /* Spinner timeout */
+}
+
+END_TEST
+
+START_TEST(test_select_timeout_with_executing_tool)
+{
     /* Add agent to repl */
     repl->agent_count = 1;
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
     repl->agents[0] = agent;
 
-    /* Set terminal fd higher than what provider returns */
-    shared->term->tty_fd = 50;
+    /* Set agent to executing tool state */
+    pthread_mutex_lock(&agent->tool_thread_mutex);
+    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    pthread_mutex_unlock(&agent->tool_thread_mutex);
 
-    fd_set read_fds, write_fds, exc_fds;
-    int max_fd = -1;
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
+    ck_assert_int_eq(timeout, 50);  /* Tool poll timeout */
+}
 
-    res_t result = ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd);
-    ck_assert(is_ok(&result));
-    ck_assert_int_eq(max_fd, 50);  /* Should remain at terminal_fd since it's higher */
+END_TEST
+
+START_TEST(test_select_timeout_with_scroll_detector)
+{
+    /* Create scroll detector */
+    repl->scroll_det = ik_scroll_detector_create(repl);
+    ck_assert_ptr_nonnull(repl->scroll_det);
+
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
+    /* Timeout will depend on scroll detector state, just verify it's calculated */
+    ck_assert(timeout > 0 || timeout == -1);
+}
+
+END_TEST
+
+START_TEST(test_select_timeout_prefers_minimum)
+{
+    /* Set multiple timeouts and verify minimum is returned */
+    agent->spinner_state.visible = true;  /* 80ms */
+
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, 100);  /* curl: 100ms */
+    ck_assert_int_eq(timeout, 80);  /* Should pick spinner (minimum) */
+
+    timeout = ik_repl_calculate_select_timeout_ms(repl, 50);  /* curl: 50ms */
+    ck_assert_int_eq(timeout, 50);  /* Should pick curl (minimum) */
 }
 
 END_TEST
 
 /* ========== Test Suite Setup ========== */
 
-static Suite *repl_event_handlers_suite(void)
+static Suite *repl_event_handlers_timeout_suite(void)
 {
-    Suite *s = suite_create("repl_event_handlers_1");
-
-    TCase *tc_fd_sets = tcase_create("fd_sets");
-    tcase_set_timeout(tc_fd_sets, 30);
-    tcase_set_timeout(tc_fd_sets, 30);
-    tcase_set_timeout(tc_fd_sets, 30);
-    tcase_set_timeout(tc_fd_sets, 30);
-    tcase_set_timeout(tc_fd_sets, 30);
-    tcase_add_checked_fixture(tc_fd_sets, setup, teardown);
-    tcase_add_test(tc_fd_sets, test_setup_fd_sets_no_agents);
-    tcase_add_test(tc_fd_sets, test_setup_fd_sets_with_provider_instance);
-    tcase_add_test(tc_fd_sets, test_setup_fd_sets_provider_returns_error);
-    tcase_add_test(tc_fd_sets, test_setup_fd_sets_updates_max_fd);
-    tcase_add_test(tc_fd_sets, test_setup_fd_sets_agent_fd_not_higher);
-    suite_add_tcase(s, tc_fd_sets);
+    Suite *s = suite_create("repl_event_handlers_1_timeout");
 
     TCase *tc_timeout = tcase_create("timeout");
-    tcase_set_timeout(tc_timeout, 30);
-    tcase_set_timeout(tc_timeout, 30);
-    tcase_set_timeout(tc_timeout, 30);
-    tcase_set_timeout(tc_timeout, 30);
     tcase_set_timeout(tc_timeout, 30);
     tcase_add_checked_fixture(tc_timeout, setup, teardown);
     tcase_add_test(tc_timeout, test_curl_min_timeout_no_agents);
@@ -544,7 +397,7 @@ static Suite *repl_event_handlers_suite(void)
 int main(void)
 {
     int number_failed;
-    Suite *s = repl_event_handlers_suite();
+    Suite *s = repl_event_handlers_timeout_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

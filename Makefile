@@ -152,6 +152,7 @@ REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_common.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
 EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
 EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
+REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -277,6 +278,24 @@ $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o: tests/uni
 
 # Special rule for equivalence_test that needs fixtures and compare objects
 $(BUILDDIR)/tests/unit/providers/openai/equivalence_test: $(BUILDDIR)/tests/unit/providers/openai/equivalence_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(EQUIVALENCE_FIXTURES_OBJ) $(EQUIVALENCE_COMPARE_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+# Request responses test helper compilation
+$(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o: tests/unit/providers/openai/request_responses_test_helpers.c tests/unit/providers/openai/request_responses_test_helpers.h
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+# Special rules for request_responses tests that need the test helpers
+$(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/openai/request_responses_content_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_content_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/openai/request_responses_tool_errors_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_tool_errors_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 

@@ -1,6 +1,6 @@
 /**
- * @file response_parse_test.c
- * @brief Unit tests for Google response parsing
+ * @file response_parse_basic_test.c
+ * @brief Unit tests for Google response parsing - basic cases
  */
 
 #include <check.h>
@@ -22,7 +22,7 @@ static void teardown(void)
 }
 
 /* ================================================================
- * Response Parsing Tests
+ * Basic Response Parsing Tests
  * ================================================================ */
 
 START_TEST(test_parse_simple_text_response) {
@@ -130,40 +130,6 @@ END_TEST START_TEST(test_parse_function_call_response)
     ck_assert_ptr_nonnull(strstr(resp->content_blocks[0].data.tool_call.arguments, "metric"));
 }
 
-END_TEST START_TEST(test_parse_error_response)
-{
-    const char *json = "{"
-                       "\"error\":{"
-                       "\"code\":403,"
-                       "\"message\":\"API key invalid\","
-                       "\"status\":\"PERMISSION_DENIED\""
-                       "}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_nonnull(strstr(result.err->msg, "API key invalid"));
-    talloc_free(result.err);
-}
-
-END_TEST START_TEST(test_parse_blocked_prompt)
-{
-    const char *json = "{"
-                       "\"promptFeedback\":{"
-                       "\"blockReason\":\"SAFETY\""
-                       "}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_nonnull(strstr(result.err->msg, "SAFETY"));
-    talloc_free(result.err);
-}
-
 END_TEST START_TEST(test_parse_empty_candidates)
 {
     const char *json = "{"
@@ -194,17 +160,6 @@ END_TEST START_TEST(test_parse_no_candidates)
     ck_assert(!is_err(&result));
     ck_assert_uint_eq((unsigned int)resp->content_count, 0);
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST START_TEST(test_parse_invalid_json)
-{
-    const char *json = "not valid json";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    talloc_free(result.err);
 }
 
 END_TEST START_TEST(test_parse_empty_parts_array)
@@ -273,98 +228,6 @@ END_TEST START_TEST(test_parse_function_call_no_args)
     ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{}");
 }
 
-END_TEST START_TEST(test_parse_part_without_text_or_function)
-{
-    const char *json = "{"
-                       "\"modelVersion\":\"gemini-2.5-flash\","
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":["
-                       "{\"someOtherField\":\"value\"},"
-                       "{\"text\":\"Hello world\"}"
-                       "]},"
-                       "\"finishReason\":\"STOP\""
-                       "}],"
-                       "\"usageMetadata\":{\"totalTokenCount\":10}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&result));
-    // First part is skipped, only second part should be present
-    ck_assert_uint_eq((unsigned int)resp->content_count, 2);
-    ck_assert_int_eq(resp->content_blocks[1].type, IK_CONTENT_TEXT);
-    ck_assert_str_eq(resp->content_blocks[1].data.text.text, "Hello world");
-}
-
-END_TEST START_TEST(test_parse_function_call_missing_name)
-{
-    const char *json = "{"
-                       "\"modelVersion\":\"gemini-2.5-pro\","
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{"
-                       "\"functionCall\":{"
-                       "\"args\":{\"key\":\"value\"}"
-                       "}"
-                       "}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}],"
-                       "\"usageMetadata\":{\"totalTokenCount\":10}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_nonnull(strstr(result.err->msg, "missing 'name' field"));
-    talloc_free(result.err);
-}
-
-END_TEST START_TEST(test_parse_function_call_name_not_string)
-{
-    const char *json = "{"
-                       "\"modelVersion\":\"gemini-2.5-pro\","
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{"
-                       "\"functionCall\":{"
-                       "\"name\":123,"
-                       "\"args\":{\"key\":\"value\"}"
-                       "}"
-                       "}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}],"
-                       "\"usageMetadata\":{\"totalTokenCount\":10}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_nonnull(strstr(result.err->msg, "not a string"));
-    talloc_free(result.err);
-}
-
-END_TEST START_TEST(test_parse_text_not_string)
-{
-    const char *json = "{"
-                       "\"modelVersion\":\"gemini-2.5-flash\","
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{"
-                       "\"text\":42"
-                       "}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}],"
-                       "\"usageMetadata\":{\"totalTokenCount\":10}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(is_err(&result));
-    ck_assert_ptr_nonnull(strstr(result.err->msg, "not a string"));
-    talloc_free(result.err);
-}
-
 END_TEST START_TEST(test_parse_thought_signature)
 {
     const char *json = "{"
@@ -410,28 +273,21 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *google_response_parse_suite(void)
+static Suite *google_response_parse_basic_suite(void)
 {
-    Suite *s = suite_create("Google Response Parsing");
+    Suite *s = suite_create("Google Response Parsing - Basic");
 
-    TCase *tc_parse = tcase_create("Response Parsing");
+    TCase *tc_parse = tcase_create("Basic Parsing");
     tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_simple_text_response);
     tcase_add_test(tc_parse, test_parse_thinking_response);
     tcase_add_test(tc_parse, test_parse_function_call_response);
-    tcase_add_test(tc_parse, test_parse_error_response);
-    tcase_add_test(tc_parse, test_parse_blocked_prompt);
     tcase_add_test(tc_parse, test_parse_empty_candidates);
     tcase_add_test(tc_parse, test_parse_no_candidates);
-    tcase_add_test(tc_parse, test_parse_invalid_json);
     tcase_add_test(tc_parse, test_parse_empty_parts_array);
     tcase_add_test(tc_parse, test_parse_thought_flag_false);
     tcase_add_test(tc_parse, test_parse_function_call_no_args);
-    tcase_add_test(tc_parse, test_parse_part_without_text_or_function);
-    tcase_add_test(tc_parse, test_parse_function_call_missing_name);
-    tcase_add_test(tc_parse, test_parse_function_call_name_not_string);
-    tcase_add_test(tc_parse, test_parse_text_not_string);
     tcase_add_test(tc_parse, test_parse_thought_signature);
     tcase_add_test(tc_parse, test_parse_no_thought_signature);
     suite_add_tcase(s, tc_parse);
@@ -441,7 +297,7 @@ static Suite *google_response_parse_suite(void)
 
 int main(void)
 {
-    Suite *s = google_response_parse_suite();
+    Suite *s = google_response_parse_basic_suite();
     SRunner *sr = srunner_create(s);
 
     srunner_run_all(sr, CK_NORMAL);

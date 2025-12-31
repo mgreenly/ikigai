@@ -161,9 +161,10 @@ static void test_tool_choice_mode_helper(int mode, const char *expected) {
 }
 START_TEST(test_tool_choice_modes)
 {
- test_tool_choice_mode_helper(1, "NONE");   
- test_tool_choice_mode_helper(2, "ANY");    
- test_tool_choice_mode_helper(999, "AUTO"); 
+ test_tool_choice_mode_helper(0, "AUTO");
+ test_tool_choice_mode_helper(1, "NONE");
+ test_tool_choice_mode_helper(2, "ANY");
+ test_tool_choice_mode_helper(999, "AUTO");
 }
 END_TEST
 START_TEST(test_thinking_model_variations)
@@ -221,6 +222,14 @@ START_TEST(test_system_instruction_cases)
  yyjson_doc_free(doc);
 
  req.system_prompt = (char *)"";
+ r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ doc = yyjson_read(json, strlen(json), 0);
+ sys_inst = yyjson_obj_get(yyjson_doc_get_root(doc), "systemInstruction");
+ ck_assert_ptr_null(sys_inst);
+ yyjson_doc_free(doc);
+
+ req.system_prompt = NULL;
  r = ik_google_serialize_request(test_ctx, &req, &json);
  ck_assert(is_ok(&r));
  doc = yyjson_read(json, strlen(json), 0);
@@ -295,6 +304,20 @@ START_TEST(test_tool_additional_properties_removed)
  yyjson_doc_free(doc);
 }
 END_TEST
+START_TEST(test_thought_signature_doc_cleanup)
+{
+ ik_content_block_t b[2] = {{.type = IK_CONTENT_TEXT, .data.text.text = (char *)"Q"},
+  {.type = IK_CONTENT_TEXT, .data.text.text = (char *)"A"}};
+ ik_message_t msgs[2] = {{.role = IK_ROLE_USER, .content_count = 1, .content_blocks = &b[0]},
+  {.role = IK_ROLE_ASSISTANT, .content_count = 1, .content_blocks = &b[1]}};
+ msgs[1].provider_metadata = (char *)"{\"thought_signature\":\"test_sig_123\"}";
+ ik_request_t req = {.model = (char *)"gemini-3.0-flash-exp", .messages = msgs, .message_count = 2};
+ char *json = NULL;
+ res_t r = ik_google_serialize_request(test_ctx, &req, &json);
+ ck_assert(is_ok(&r));
+ ck_assert_ptr_nonnull(json);
+}
+END_TEST
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -332,6 +355,7 @@ static Suite *request_coverage_suite(void)
  tcase_add_test(tc_misc, test_content_blocks_and_errors);
  tcase_add_test(tc_misc, test_thinking_only_no_max_tokens);
  tcase_add_test(tc_misc, test_tool_additional_properties_removed);
+ tcase_add_test(tc_misc, test_thought_signature_doc_cleanup);
  suite_add_tcase(s, tc_misc);
  return s;
 }
