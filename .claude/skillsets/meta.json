@@ -1,0 +1,12 @@
+{
+  "preload": [
+    "meta",
+    "rpi",
+    "task",
+    "align",
+    "git",
+    "principles",
+    "harness"
+  ],
+  "advertise": []
+}

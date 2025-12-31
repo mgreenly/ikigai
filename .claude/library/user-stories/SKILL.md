@@ -92,6 +92,29 @@ Full JSON payloads referenced in the walkthrough. Use H3 headings with anchor-fr
 ```
 ```
 
+## Output Location
+
+User stories are stored in `release/user-stories/`:
+
+```
+release/
+├── README.md           # High-level description of release features
+├── user-stories/
+│   ├── README.md       # Index/overview of user stories
+│   ├── story-1.md      # Individual user story (user actions and system responses)
+│   ├── story-2.md
+│   └── ...
+└── ...                 # Other files/directories (ignored by this skill)
+```
+
+**Note:** The `release/` directory may contain other files and directories beyond those listed above. This skill only works with `release/user-stories/` and may reference `release/README.md`. Other content is permitted and will be ignored.
+
+- `release/README.md` - High-level description of release features
+- `release/user-stories/README.md` - Index/overview with brief descriptions
+- Individual story files - User actions and system responses with transcript and walkthrough
+
+Update the README.md as you add user stories to keep the overview current.
+
 ## Rules
 
 - One user story per document

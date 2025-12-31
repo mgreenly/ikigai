@@ -1,15 +1,22 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run
+#!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * Mark a task as in_progress and log session start
+ * Mark a task as in_progress
  *
- * Usage: deno run ... start.ts <name>
+ * Usage: deno run --allow-read --allow-write start.ts <name>
  *
- * Sets status to 'in_progress', records started_at, and logs session event.
+ * Moves task from pending/ to in_progress/ and logs to history.
  */
 
-import { getDb, initSchema, closeDb } from "./db.ts";
-import { success, error, output, iso, getCurrentBranch } from "./mod.ts";
+import {
+  success,
+  error,
+  output,
+  iso,
+  findTaskLocation,
+  moveTask,
+  appendHistory,
+} from "./mod.ts";
 
 async function main() {
   const name = Deno.args[0];
@@ -18,53 +25,35 @@ async function main() {
     return;
   }
 
-  let branch: string;
   try {
-    branch = await getCurrentBranch();
-  } catch (e) {
-    output(error(
-      `Failed to get git branch: ${e instanceof Error ? e.message : String(e)}`,
-      "GIT_ERROR"
-    ));
-    return;
-  }
+    const location = await findTaskLocation(name);
 
-  try {
-    initSchema();
-    const db = getDb();
-    const now = iso();
-
-    const task = db.prepare(`
-      SELECT id, status FROM tasks WHERE branch = ? AND name = ?
-    `).get<{ id: number; status: string }>(branch, name);
-
-    if (!task) {
-      closeDb();
-      output(error(`Task '${name}' not found on branch '${branch}'`, "NOT_FOUND"));
+    if (!location) {
+      output(error(`Task '${name}' not found`, "NOT_FOUND"));
       return;
     }
 
-    if (task.status !== "pending") {
-      closeDb();
+    if (location !== "pending") {
       output(error(
-        `Task '${name}' is '${task.status}', expected 'pending'`,
+        `Task '${name}' is '${location}', expected 'pending'`,
         "INVALID_STATUS"
       ));
       return;
     }
 
-    // Update task status
-    db.prepare(`
-      UPDATE tasks SET status = 'in_progress', started_at = ?, updated_at = ?
-      WHERE id = ?
-    `).run(now, now, task.id);
+    const now = iso();
 
-    // Log session event
-    db.prepare(`
-      INSERT INTO sessions (task_id, event, timestamp) VALUES (?, 'start', ?)
-    `).run(task.id, now);
+    // Move task file
+    await moveTask(name, "pending", "in_progress");
 
-    closeDb();
+    // Log to history
+    await appendHistory({
+      timestamp: now,
+      action: "start",
+      task: name,
+      from: "pending",
+      to: "in_progress",
+    });
 
     output(success({
       name,
@@ -72,10 +61,9 @@ async function main() {
       started_at: now,
     }));
   } catch (e) {
-    closeDb();
     output(error(
-      `Database error: ${e instanceof Error ? e.message : String(e)}`,
-      "DB_ERROR"
+      `Failed to start task: ${e instanceof Error ? e.message : String(e)}`,
+      "START_ERROR"
     ));
   }
 }

@@ -59,10 +59,10 @@ loop:
 ## Context
 
 **For lint, check, sanitize, tsan, valgrind, helgrind steps:**
-Use `/persona developer` to load the developer skill set.
+Use `/skillset developer` to load the developer skill set.
 
 **For coverage step:**
-Use `/persona coverage` to load the coverage skill set.
+Use `/skillset coverage` to load the coverage skill set.
 
 ## Task
 

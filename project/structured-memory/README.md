@@ -60,20 +60,20 @@ Each layer has distinct characteristics, management strategies, and value optimi
 ### Context
 
 - **[comparison.md](comparison.md)** - vs RAG, vs traditional context windows
-- **[inspiration.md](inspiration.md)** - Letta memory blocks and influences
+- **[inspiration.md](inspiration.md)** - Letta and influences
 
 ## Key Principles
 
 **Purpose-driven allocation**: Each layer serves a specific purpose with appropriate budget
 **Active management**: User and agent collaborate to curate what's valuable
 **Graceful degradation**: Information flows: conversation → blocks → summary → archival
-**Unified interface**: Same tools work on filesystem and memory blocks (ikigai:// URIs)
+**Unified interface**: Same tools work on filesystem and StoredAssets (ikigai:// URIs)
 **Zero loss**: Everything stored forever in archival, searchable on-demand
 
 ## Quick Start (Future)
 
 ```bash
-# Pin a memory block (always visible)
+# Pin a StoredAsset (always visible)
 /pin skills/ddd
 
 # Extract learning from conversation
@@ -92,7 +92,7 @@ Each layer has distinct characteristics, management strategies, and value optimi
 
 ## Related Documents
 
-- [memory-documents.md](../memory-documents.md) - ikigai:// URI scheme and database storage
+- [stored-assets.md](../stored-assets.md) - ikigai:// URI scheme and database storage
 - [context-management.md](../context-management.md) - /forget, /mark, /rewind commands
 - [autonomous-agents.md](../autonomous-agents.md) - Background agents for summary maintenance
 

@@ -10,7 +10,7 @@ Claude Code configuration and skills for the ikigai project. This directory is c
 ├── data/          # Runtime data (gitignored)
 ├── hooks/         # Event-triggered hooks
 ├── library/       # Skill library (manual load only via /load)
-├── personas/      # Composite skill sets
+├── skillsets/     # Composite skill sets
 └── settings.json  # Claude Code configuration
 ```
 
@@ -42,11 +42,11 @@ Load one or more skills from the library.
 /load tdd database mocking     # Load multiple skills
 ```
 
-### `/persona <name>`
+### `/skillset <name>`
 
-Load a persona (composite skill set).
+Load a skillset (composite skill set).
 
-**Available personas:**
+**Available skillsets:**
 - `architect` - Architectural decisions (DDD, DI, patterns)
 - `coverage` - Test coverage enforcement
 - `debugger` - Debugging workflows
@@ -112,9 +112,9 @@ Content...
 /load refactoring/techniques   # Load refactoring skill
 ```
 
-## Personas
+## Skillsets
 
-Personas are JSON arrays listing skills to load together.
+Skillsets are JSON arrays listing skills to load together.
 
 **Format:**
 ```json
@@ -197,7 +197,7 @@ All skills converted from flat `.md` files to directory format with YAML frontma
 2. **Use `/load` explicitly** - Manual loading gives you control
 3. **Organize by category** - Use nested paths for related skills
 4. **Update skill frontmatter** - Ensure `name` and `description` fields are accurate
-5. **Use personas for workflows** - Bundle commonly-used skills together
+5. **Use skillsets for workflows** - Bundle commonly-used skills together
 6. **Keep skills focused** - One domain per skill, concise content
 
 ## Quick Reference
@@ -212,9 +212,9 @@ All skills converted from flat `.md` files to directory format with YAML frontma
 /load database
 ```
 
-**Load developer persona:**
+**Load developer skillset:**
 ```bash
-/persona developer
+/skillset developer
 ```
 
 **Update auto-generated skills:**

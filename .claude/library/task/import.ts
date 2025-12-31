@@ -1,43 +1,34 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run
+#!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
- * Import tasks from existing order.json + task files
+ * Import tasks from a source order.json + task files
  *
- * Usage: deno run ... import.ts [tasks-directory]
+ * Usage: deno run --allow-read --allow-write import.ts [tasks-directory]
  *
- * Defaults to scratch/tasks if no directory specified.
- * Reads order.json from the directory and imports all tasks from the todo array.
- * Task completion state is tracked in the database, not in order.json.
+ * Defaults to release/tasks if no directory specified.
+ * Reads source order.json, copies it to release/tasks/order.json,
+ * and moves all task files to pending/ directory.
  */
 
-import { getDb, initSchema, closeDb } from "./db.ts";
-import { success, error, output, iso, getCurrentBranch } from "./mod.ts";
+import {
+  success,
+  error,
+  output,
+  iso,
+  appendHistory,
+  writeOrder,
+  getTaskPath,
+  type TaskEntry,
+} from "./mod.ts";
 import { join } from "jsr:@std/path@1";
 
-interface TaskEntry {
-  task: string;
-  group: string;
-  model: string;
-  thinking: string;
-}
-
 interface OrderFile {
-  todo: TaskEntry[];
+  tasks?: TaskEntry[];
+  todo?: TaskEntry[];  // Deprecated, use 'tasks'
 }
 
 async function main() {
-  const tasksDir = Deno.args[0] || "scratch/tasks";
-
-  let branch: string;
-  try {
-    branch = await getCurrentBranch();
-  } catch (e) {
-    output(error(
-      `Failed to get git branch: ${e instanceof Error ? e.message : String(e)}`,
-      "GIT_ERROR"
-    ));
-    return;
-  }
+  const tasksDir = Deno.args[0] || "release/tasks";
 
   // Read order.json
   const orderPath = join(tasksDir, "order.json");
@@ -53,55 +44,66 @@ async function main() {
     return;
   }
 
-  if (!Array.isArray(order.todo)) {
-    output(error("order.json must have a 'todo' array", "INVALID_FORMAT"));
+  // Accept 'tasks' (preferred) or 'todo' (deprecated)
+  const entries = order.tasks || order.todo;
+  if (!Array.isArray(entries)) {
+    output(error("order.json must have a 'tasks' array", "INVALID_FORMAT"));
     return;
   }
 
   try {
-    initSchema();
-    const db = getDb();
-    const now = iso();
-
     const imported: { name: string; status: string }[] = [];
     const errors: { name: string; error: string }[] = [];
+    const now = iso();
 
-    // Import todo tasks
-    for (const entry of order.todo) {
-      const taskPath = join(tasksDir, entry.task);
+    // Move each task file to pending/ and log to history
+    // (Skip stop entries - they have no files)
+    for (const entry of entries) {
+      // Skip stop entries
+      if ('stop' in entry) {
+        continue;
+      }
+
+      const sourcePath = join(tasksDir, entry.task);
+      const destPath = getTaskPath("pending", entry.task);
+
       try {
-        const content = await Deno.readTextFile(taskPath);
-        db.prepare(`
-          INSERT INTO tasks (branch, name, content, task_group, model, thinking, status, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
-        `).run(branch, entry.task, content, entry.group || null, entry.model, entry.thinking, now, now);
+        // Check if file exists
+        await Deno.stat(sourcePath);
+
+        // Move to pending
+        await Deno.rename(sourcePath, destPath);
+
+        // Log to history
+        await appendHistory({
+          timestamp: now,
+          action: "import",
+          task: entry.task,
+          to: "pending",
+        });
+
         imported.push({ name: entry.task, status: "pending" });
       } catch (e) {
-        if (e instanceof Error && e.message.includes("UNIQUE constraint")) {
-          errors.push({ name: entry.task, error: "Already exists" });
-        } else {
-          errors.push({
-            name: entry.task,
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
+        errors.push({
+          name: entry.task,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     }
 
-    closeDb();
+    // Write order.json with ordered task list
+    await writeOrder({ tasks: entries });
 
     output(success({
-      branch,
       imported_count: imported.length,
       error_count: errors.length,
       imported,
       errors: errors.length > 0 ? errors : undefined,
     }));
   } catch (e) {
-    closeDb();
     output(error(
-      `Database error: ${e instanceof Error ? e.message : String(e)}`,
-      "DB_ERROR"
+      `Import error: ${e instanceof Error ? e.message : String(e)}`,
+      "IMPORT_ERROR"
     ));
   }
 }

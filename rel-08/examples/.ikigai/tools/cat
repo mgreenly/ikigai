@@ -1,0 +1,60 @@
+#!/bin/sh
+# cat tool - Read file contents
+#
+# Demonstrates the external tool protocol:
+# 1. --schema flag returns tool schema as JSON
+# 2. Normal invocation accepts JSON params via stdin, returns JSON result
+#
+# Exit codes:
+# - 0: Tool executed (check JSON for operation success/failure)
+# - non-zero: Tool itself failed (crash, invalid input)
+
+if [ "$1" = "--schema" ]; then
+    cat <<'EOF'
+{
+  "name": "cat",
+  "description": "Read file contents",
+  "parameters": {
+    "path": {
+      "type": "string",
+      "description": "Path to file",
+      "required": true
+    }
+  },
+  "returns": {
+    "type": "object",
+    "properties": {
+      "content": {"type": "string", "description": "File contents"},
+      "error": {"type": "string", "description": "Error message if failed"}
+    }
+  }
+}
+EOF
+    exit 0
+fi
+
+# Read JSON from stdin
+input=$(cat)
+
+# Extract path using jq
+path=$(printf '%s' "$input" | jq -r '.path // empty')
+
+if [ -z "$path" ]; then
+    printf '{"error": "missing required parameter: path", "error_code": "MISSING_PARAM"}\n'
+    exit 0
+fi
+
+if [ ! -f "$path" ]; then
+    printf '{"error": "file not found: %s", "error_code": "FILE_NOT_FOUND"}\n' "$path"
+    exit 0
+fi
+
+if [ ! -r "$path" ]; then
+    printf '{"error": "permission denied: %s", "error_code": "PERMISSION_DENIED"}\n' "$path"
+    exit 0
+fi
+
+# Read file and escape for JSON
+content=$(cat "$path" | jq -Rs .)
+printf '{"content": %s}\n' "$content"
+exit 0

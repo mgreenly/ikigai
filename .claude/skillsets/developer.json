@@ -1,0 +1,19 @@
+{
+  "preload": [
+    "ctags",
+    "database",
+    "errors",
+    "git",
+    "log",
+    "makefile",
+    "naming",
+    "quality",
+    "scm",
+    "source-code",
+    "style",
+    "tdd",
+    "align",
+    "principles"
+  ],
+  "advertise": []
+}

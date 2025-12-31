@@ -3,7 +3,7 @@ Run lint checks and fix issues using sub-agents.
 **Usage:**
 - `/lint` - Run make lint and dispatch sub-agents to fix lint issues
 
-**Action:** Executes `make lint` and uses sub-agents with the coverage persona to fix any lint errors found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
+**Action:** Executes `make lint` and uses sub-agents with the coverage skillset to fix any lint errors found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
 
 ---
 
@@ -33,7 +33,7 @@ For each file with issues:
 - `model`: `sonnet`
 
 **Prompt must include:**
-- The persona to load: `coverage`
+- The skillset to load: `coverage`
 - The specific file to fix
 - All lint errors found in that file
 - **File size violations:** If file exceeds size limit, the preferred approach is to split it into multiple files using logical structure separation (e.g., group related tests, separate helper functions, split by functionality)

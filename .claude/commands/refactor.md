@@ -2,13 +2,13 @@ Autonomous refactoring pipeline that finds and executes ONE high-impact, behavio
 
 **Usage:** `/refactor`
 
-Analyzes `src/`, identifies the SINGLE most impactful refactoring target, generates tasks in scratch/tasks/, and executes. Run again for more - each run handles one target.
+Analyzes `src/`, identifies the SINGLE most impactful refactoring target, generates tasks in release/tasks/, and executes. Run again for more - each run handles one target.
 
 ## CRITICAL CONSTRAINTS
 
 1. **Behavior-preserving only** - No test changes. `make check` must pass.
 2. **Sequential execution** - One task at a time.
-3. **Uses scratch/** - Plan in scratch/plan/, tasks in scratch/tasks/, logs in scratch/details.log.
+3. **Uses release/** - Plan in release/plan/, tasks in release/tasks/, logs in release/details.log.
 
 ---
 
@@ -19,15 +19,15 @@ You are the refactoring orchestrator.
 Run in order. If ANY fails, report and **STOP**:
 
 1. `git status --porcelain` - abort if uncommitted changes
-2. Check scratch/tasks/order.json - abort if pending tasks exist
+2. Check release/tasks/order.json - abort if pending tasks exist
 3. `make lint` - abort if fails
 4. `make check` - abort if fails
 
 ## PHASE 1: SETUP
 
 ```bash
-mkdir -p scratch/plan scratch/tasks scratch/tmp
-echo "[$(date -Iseconds)] REFACTOR START: commit=$(git rev-parse HEAD)" > scratch/details.log
+mkdir -p release/plan release/tasks release/tmp
+echo "[$(date -Iseconds)] REFACTOR START: commit=$(git rev-parse HEAD)" > release/details.log
 .claude/library/task/init.ts
 ```
 
@@ -47,14 +47,14 @@ CONSTRAINTS:
 - No public API changes
 - Focus on: naming, style, memory patterns, code smells
 
-Select ONE target only. Write scratch/plan/README.md with:
+Select ONE target only. Write release/plan/README.md with:
 - **Target**: One-line description
 - **What**: Exactly what changes (files, patterns)
 - **How**: Transformation approach
 - **Why**: Why highest-impact
 - **Files**: List of files to modify
 
-Log decisions to scratch/details.log.
+Log decisions to release/details.log.
 Return {"ok": true} when complete.
 ```
 
@@ -65,8 +65,8 @@ Spawn ONE sub-agent (opus):
 ```
 Load skills: /load task-authoring, /load refactoring/techniques
 
-Read scratch/plan/README.md. Generate ONE TASK PER FILE in scratch/tasks/.
-Create scratch/tasks/order.json with model=sonnet, thinking=none.
+Read release/plan/README.md. Generate ONE TASK PER FILE in release/tasks/.
+Create release/tasks/order.json with model=sonnet, thinking=none.
 
 Return {"ok": true} when complete.
 ```
@@ -76,7 +76,7 @@ Return {"ok": true} when complete.
 Spawn ONE sub-agent (sonnet):
 
 ```
-Review scratch/tasks/*.md for:
+Review release/tasks/*.md for:
 - Self-contained with all context
 - Correct order in order.json
 - Appropriate model/thinking levels
@@ -96,13 +96,13 @@ Then follow the same execution loop as /orchestrate (get next, start, spawn agen
 
 ## COMPLETION
 
-Log summary to scratch/details.log. Show stats. Report:
+Log summary to release/details.log. Show stats. Report:
 
 ```
 Refactoring complete.
 - Completed: X tasks
 - Failed: Y tasks
-- Log: scratch/details.log
+- Log: release/details.log
 
 Validate with: make check && make lint
 ```

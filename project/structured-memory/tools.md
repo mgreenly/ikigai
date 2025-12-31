@@ -1,6 +1,6 @@
 # Tool Interface
 
-Structured Memory uses a unified tool interface where operations work identically on filesystem and memory blocks.
+Structured Memory uses a unified tool interface where operations work identically on filesystem and StoredAssets.
 
 ## Unified File Operations
 
@@ -10,19 +10,19 @@ From the LLM's perspective, these are identical:
 // Read filesystem file
 {"tool": "file_read", "path": "src/main.c"}
 
-// Read memory block
+// Read StoredAsset
 {"tool": "file_read", "path": "ikigai:///blocks/decisions.md"}
 
 // Write filesystem file
 {"tool": "file_write", "path": "docs/api.md", "content": "..."}
 
-// Write memory block
+// Write StoredAsset
 {"tool": "file_write", "path": "ikigai:///blocks/patterns.md", "content": "..."}
 
 // Edit filesystem file
 {"tool": "file_edit", "path": "config.json", "old": "...", "new": "..."}
 
-// Edit memory block
+// Edit StoredAsset
 {"tool": "file_edit", "path": "ikigai:///blocks/prefs.md", "old": "...", "new": "..."}
 ```
 
@@ -120,12 +120,12 @@ ik_result_t storage_db_read(ik_agent_ctx_t *agent, const char *uri) {
 
     // Query database
     ik_pg_result_t *res = db_query(
-        "SELECT content FROM memory_documents WHERE path = $1",
+        "SELECT content FROM stored_assets WHERE path = $1",
         path
     );
 
     if (PQntuples(res) == 0) {
-        return ERR("Memory block not found: %s", path);
+        return ERR("StoredAsset not found: %s", path);
     }
 
     const char *content = PQgetvalue(res, 0, 0);
@@ -140,7 +140,7 @@ ik_result_t storage_db_write(ik_agent_ctx_t *agent,
 
     // Upsert (insert or update)
     ik_pg_result_t *res = db_query(
-        "INSERT INTO memory_documents (path, content, updated_at) "
+        "INSERT INTO stored_assets (path, content, updated_at) "
         "VALUES ($1, $2, NOW()) "
         "ON CONFLICT (path) DO UPDATE "
         "SET content = $2, updated_at = NOW()",
@@ -148,7 +148,7 @@ ik_result_t storage_db_write(ik_agent_ctx_t *agent,
     );
 
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        return ERR("Failed to write memory block: %s",
+        return ERR("Failed to write StoredAsset: %s",
                    PQerrorMessage(agent->db));
     }
 
@@ -196,7 +196,7 @@ ik_result_t storage_db_check_budget(ik_agent_ctx_t *agent,
 
 ## Tool Error Handling
 
-When a memory block write fails due to budget:
+When a StoredAsset write fails due to budget:
 
 ```json
 // Agent tries write
@@ -245,20 +245,20 @@ You have file_read, file_write, and file_edit tools that work on paths.
 - tests/test_db.c
 - README.md
 
-**Memory blocks**: ikigai:// URIs
+**StoredAssets**: ikigai:// URIs
 - ikigai:///blocks/decisions.md
 - ikigai:///skills/ddd.md
 - ikigai:///blocks/user-preferences.md
 
 Operations work identically on both storage backends.
 
-**Memory block budget**: 100k tokens total
+**StoredAsset budget**: 100k tokens total
 - Writes fail with error if budget exceeded
 - Use /compact to compress blocks
 - Use /unpin to remove from context
 
-**When to use memory blocks vs filesystem:**
-- Memory blocks: Cross-project patterns, frequently referenced, want pinned
+**When to use StoredAssets vs filesystem:**
+- StoredAssets: Cross-project patterns, frequently referenced, want pinned
 - Filesystem: Project code/docs, version controlled, tool integration
 
 When in doubt, ask the user where to save.
@@ -266,9 +266,9 @@ When in doubt, ask the user where to save.
 
 ## Cross-References
 
-Memory blocks can reference files, files can reference blocks:
+StoredAssets can reference files, files can reference StoredAssets:
 
-**Memory block referencing file**:
+**StoredAsset referencing file**:
 ```markdown
 <!-- ikigai:///blocks/architecture.md -->
 # Architecture Decisions
@@ -280,7 +280,7 @@ Schema: src/db/schema.sql
 See also: ikigai:///blocks/error-patterns.md
 ```
 
-**File referencing memory block**:
+**File referencing StoredAsset**:
 ```markdown
 <!-- README.md (filesystem) -->
 # Project Guidelines
@@ -307,17 +307,17 @@ Expanded before sending to LLM:
 
 **Expansion rules**:
 - `@path` → Filesystem file content
-- `@@path` → Memory block content (strips ikigai:// prefix)
+- `@@path` → StoredAsset content (strips ikigai:// prefix)
 - Both expand transparently at submit time
 
 **Fuzzy finders**:
 - `@` triggers filesystem file finder
-- `@@` triggers memory block finder
+- `@@` triggers StoredAsset finder
 - User selects from matches, path inserted
 
 ## Agent Workflows
 
-### Creating New Memory Block
+### Creating New StoredAsset
 
 ```json
 // Agent decides to create block
@@ -404,4 +404,4 @@ Same tools. Just different intent.
 
 ---
 
-The unified interface makes memory blocks feel like "just another filesystem" to the agent, while providing entirely different backend capabilities (budget enforcement, pinning, auto-summary integration).
+The unified interface makes StoredAssets feel like "just another filesystem" to the agent, while providing entirely different backend capabilities (budget enforcement, pinning, auto-summary integration).

@@ -81,7 +81,7 @@ Commands:
 
 **Output**:
 ```
-Available Memory Blocks:
+Available StoredAssets:
 
 Pinned (auto-included):
   skills/ddd                    12k  [ro]
@@ -220,7 +220,7 @@ Same logic, compresses regular files.
 # From conversation (existing behavior)
 /forget database migration discussion
 
-# From memory block (new)
+# From StoredAsset (new)
 /forget GraphQL designs --from blocks/api-decisions
 ```
 
@@ -267,7 +267,7 @@ Block budget: 85k/100k (freed 1.4k)
 /refresh docs/architecture.md
 ```
 
-**Workflow (memory block)**:
+**Workflow (StoredAsset)**:
 ```
 User: /refresh blocks/error-patterns
 

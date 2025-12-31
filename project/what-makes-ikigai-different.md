@@ -47,7 +47,7 @@ Ikigai treats agents as processes:
 - Signals for lifecycle control (`/kill`, `--cascade`)
 - Registry tracks all agents across restarts
 
-Parent continues working while child handles its task. Agents coordinate through messages or shared memory documents. The database is the source of truth - agents survive restarts.
+Parent continues working while child handles its task. Agents coordinate through messages or shared StoredAssets. The database is the source of truth - agents survive restarts.
 
 Inspired by Unix (fork, signals, process table) and Erlang (lightweight processes, mailboxes).
 

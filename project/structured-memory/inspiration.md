@@ -136,7 +136,7 @@ RAM               → Archival Memory (unlimited, slower access)
 **Atomic Notes**:
 - One concept per note
 - Links between notes
-- Similar to focused memory blocks with cross-references
+- Similar to focused StoredAssets with cross-references
 
 **Progressive Summarization**:
 - Highlight important parts

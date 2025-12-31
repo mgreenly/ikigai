@@ -2,12 +2,12 @@
 
 Database schema and persistence for Structured Memory.
 
-## Memory Documents Table
+## StoredAssets Table
 
-Stores all memory blocks (both system skills and user blocks):
+Stores all StoredAssets (both system skills and user blocks):
 
 ```sql
-CREATE TABLE memory_documents (
+CREATE TABLE stored_assets (
   id SERIAL PRIMARY KEY,
   path TEXT UNIQUE NOT NULL,  -- "blocks/decisions.md", "skills/ddd.md"
   content TEXT,
@@ -23,50 +23,50 @@ CREATE TABLE memory_documents (
   category TEXT               -- "skill", "block", "preference"
 );
 
-CREATE INDEX idx_memory_documents_path ON memory_documents(path);
-CREATE INDEX idx_memory_documents_category ON memory_documents(category);
+CREATE INDEX idx_stored_assets_path ON stored_assets(path);
+CREATE INDEX idx_stored_assets_category ON stored_assets(category);
 ```
 
 **Examples**:
 ```sql
-INSERT INTO memory_documents (path, content, read_only, category) VALUES
+INSERT INTO stored_assets (path, content, read_only, category) VALUES
   ('skills/ddd.md', '[skill content]', TRUE, 'skill'),
   ('blocks/decisions.md', '[decisions]', FALSE, 'block'),
   ('blocks/user-prefs.md', 'K&R style...', FALSE, 'preference');
 ```
 
-## Memory Pins Table
+## Asset Pins Table
 
 Tracks which blocks are pinned (auto-included) per agent:
 
 ```sql
-CREATE TABLE memory_pins (
+CREATE TABLE asset_pins (
   agent_id UUID REFERENCES agents(id),
-  doc_path TEXT REFERENCES memory_documents(path),
+  asset_path TEXT REFERENCES stored_assets(path),
   pinned_at TIMESTAMP DEFAULT NOW(),
 
-  PRIMARY KEY (agent_id, doc_path)
+  PRIMARY KEY (agent_id, asset_path)
 );
 
-CREATE INDEX idx_memory_pins_agent ON memory_pins(agent_id);
+CREATE INDEX idx_asset_pins_agent ON asset_pins(agent_id);
 ```
 
 **Queries**:
 ```sql
 -- Get pinned blocks for agent
-SELECT md.*
-FROM memory_documents md
-JOIN memory_pins mp ON md.path = mp.doc_path
-WHERE mp.agent_id = $1
-ORDER BY mp.pinned_at;
+SELECT sa.*
+FROM stored_assets sa
+JOIN asset_pins ap ON sa.path = ap.asset_path
+WHERE ap.agent_id = $1
+ORDER BY ap.pinned_at;
 
 -- Pin a block
-INSERT INTO memory_pins (agent_id, doc_path) VALUES ($1, $2)
+INSERT INTO asset_pins (agent_id, asset_path) VALUES ($1, $2)
 ON CONFLICT DO NOTHING;
 
 -- Unpin a block
-DELETE FROM memory_pins
-WHERE agent_id = $1 AND doc_path = $2;
+DELETE FROM asset_pins
+WHERE agent_id = $1 AND asset_path = $2;
 ```
 
 ## Session Summaries Table
@@ -242,12 +242,12 @@ Useful views for monitoring budget usage:
 -- Pinned block budget per agent
 CREATE VIEW v_block_budget AS
 SELECT
-  mp.agent_id,
-  SUM(md.token_count) as total_tokens,
+  ap.agent_id,
+  SUM(sa.token_count) as total_tokens,
   COUNT(*) as block_count
-FROM memory_pins mp
-JOIN memory_documents md ON mp.doc_path = md.path
-GROUP BY mp.agent_id;
+FROM asset_pins ap
+JOIN stored_assets sa ON ap.asset_path = sa.path
+GROUP BY ap.agent_id;
 
 -- Sliding window usage per agent
 CREATE VIEW v_sliding_window_budget AS
@@ -293,8 +293,8 @@ Schema evolution:
 
 ```sql
 -- V1: Initial schema
-CREATE TABLE memory_documents (...);
-CREATE TABLE memory_pins (...);
+CREATE TABLE stored_assets (...);
+CREATE TABLE asset_pins (...);
 
 -- V2: Add summaries
 CREATE TABLE session_summaries (...);
@@ -312,8 +312,8 @@ CREATE TABLE summary_update_queue (...);
 Critical data to backup:
 
 ```sql
--- Backup memory documents (user knowledge)
-COPY memory_documents TO '/backup/memory_documents.csv' CSV HEADER;
+-- Backup StoredAssets (user knowledge)
+COPY stored_assets TO '/backup/stored_assets.csv' CSV HEADER;
 
 -- Backup messages (conversation history)
 COPY messages TO '/backup/messages.csv' CSV HEADER;
@@ -323,7 +323,7 @@ COPY session_summaries TO '/backup/summaries.csv' CSV HEADER;
 ```
 
 **Restore process**:
-1. Restore memory_documents (knowledge base)
+1. Restore stored_assets (knowledge base)
 2. Restore messages (history)
 3. Regenerate exchanges from messages
 4. Regenerate summaries via background agents
@@ -331,8 +331,8 @@ COPY session_summaries TO '/backup/summaries.csv' CSV HEADER;
 ## Performance Considerations
 
 **Indexes**:
-- `memory_documents(path)` - Fast lookups by URI
-- `memory_pins(agent_id)` - Fast pinned block queries
+- `stored_assets(path)` - Fast lookups by URI
+- `asset_pins(agent_id)` - Fast pinned block queries
 - `messages(agent_id, in_sliding_window)` - Fast window queries
 - `exchanges(agent_id, in_sliding_window)` - Fast eviction
 
@@ -361,7 +361,7 @@ ON messages(agent_id, created_at);
 Typical storage requirements:
 
 ```
-Memory Documents:
+StoredAssets:
   - 50 blocks × 10k tokens × 4 bytes/token = 2MB per agent
 
 Messages:

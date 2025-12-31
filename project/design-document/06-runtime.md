@@ -394,18 +394,18 @@ await platform.context.summarize({ olderThan: "1h" });
 **Low-level API** (direct control):
 
 ```typescript
-// Memory blocks - named, persistent context sections
-await platform.memory.blocks.create({
+// StoredAssets - named, persistent context sections
+await platform.storedAssets.create({
     label: "working_state",
     value: "Currently processing batch #1234",
     limit: 2000,
 });
 
-await platform.memory.blocks.update("working_state", {
+await platform.storedAssets.update("working_state", {
     value: "Batch #1234 complete, 47 items processed",
 });
 
-const block = await platform.memory.blocks.get("working_state");
+const asset = await platform.storedAssets.get("working_state");
 
 // Conversation history management
 const messages = await platform.conversation.list({ limit: 50 });

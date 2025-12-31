@@ -31,13 +31,11 @@ You are the task orchestrator for the current branch.
 
 ## PRE-FLIGHT CHECKS
 
-Run these in order using Bash tool. If ANY fails, report and **STOP**:
+Run these in order. If ANY fails, report and **STOP**:
 
 1. `git status --porcelain` - abort if any output (uncommitted changes)
-2. `make lint >/dev/null 2>&1` - abort if exit code != 0
-3. `make check >/dev/null 2>&1` - abort if exit code != 0
-
-Only exit codes matter - suppress all output to keep context clean.
+2. `make lint` - abort if fails
+3. `make check` - abort if fails
 
 ## INITIALIZE
 
@@ -49,8 +47,18 @@ Only exit codes matter - suppress all output to keep context clean.
 ## EXECUTION LOOP
 
 1. **Check context limit**: If token usage ≥ 140,000, run `.claude/library/task/stats.ts` and stop with message: `⚠ Stopped at 140k token limit. Resume with /orchestrate to continue.`
-2. `.claude/library/task/next.ts` - get next task
-3. If `data.task` is null → run `.claude/library/task/stats.ts` and stop
+2. `.claude/library/task/next.ts` - get next task or stop
+3. Check response type:
+   - If `data.type` is `"stop"` → report stop message and exit:
+     ```
+     ⏸ STOP: <data.stop>
+
+     <data.message>
+
+     Run this to continue: .claude/library/task/continue.ts <data.stop>
+     ```
+   - If `data.type` is `"task"` and `data.task` is null → run `.claude/library/task/stats.ts` and stop
+   - If `data.type` is `"task"` and `data.task` exists → continue to step 4
 4. `.claude/library/task/start.ts <task.name>` - mark in_progress
 5. Spawn ONE sub-agent (NOT in background):
    ```
@@ -61,7 +69,7 @@ Only exit codes matter - suppress all output to keep context clean.
    Return ONLY JSON: {"ok": true} or {"ok": false, "reason": "..."}
    ```
 6. On success: `.claude/library/task/done.ts <task.name>`
-   Report: `✓ <task.name> [elapsed] | Remaining: N` → loop to step 1
+   Report: `✓ <data.name> [<data.elapsed>] | To stop: <data.remaining_to_stop> (<data.eta_to_stop>) | Total: <data.remaining_total> (<data.eta_total>)` → loop to step 1
 7. On failure: `.claude/library/task/escalate.ts <task.name> "<reason>"`
    - If escalated: loop to step 1
    - If at max level: mark failed, report `✗ <task.name> failed. Human review needed.`, stop

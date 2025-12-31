@@ -38,7 +38,7 @@ Ikigai's approach shares conceptual ground but differs in philosophy:
 - **Letta**: Memory as the central abstraction; agents as server-side entities created via API
 - **Ikigai**: Platform coordination as the central abstraction; agents as Linux processes consuming platform services
 
-Where the underlying problems converge (context control, persistent memory, multi-turn reasoning), Ikigai's APIs will naturally resemble others solving the same problems. That's not imitation; it's recognition that these are the correct primitives for stateful agents.
+Where the underlying problems converge (context control, StoredAssets, multi-turn reasoning), Ikigai's APIs will naturally resemble others solving the same problems. That's not imitation; it's recognition that these are the correct primitives for stateful agents.
 
 ---
 

@@ -38,9 +38,9 @@ You work in the ikigai terminal - an interactive environment for designing agent
 
 **2. Process Model**
 
-Agents are processes. They fork children (`/fork`), send messages via mailboxes (`/send`), receive signals (`/kill`), and share state through memory documents. Like Unix processes, but for AI agents. Like Erlang actors, but with structured memory.
+Agents are processes. They fork children (`/fork`), send messages via mailboxes (`/send`), receive signals (`/kill`), and share state through StoredAssets. Like Unix processes, but for AI agents. Like Erlang actors, but with structured memory.
 
-A parent agent delegates work by forking children with specific prompts. Children inherit the parent's conversation history and memory blocks. They work autonomously, coordinate through messages, and report back.
+A parent agent delegates work by forking children with specific prompts. Children inherit the parent's conversation history and StoredAssets. They work autonomously, coordinate through messages, and report back.
 
 **3. Structured Memory**
 
@@ -60,15 +60,15 @@ Deploy agents to iki-genba to run continuously: monitoring logs, processing queu
 
 **5. Unified Interface**
 
-The same tools work everywhere. `ikigai:///blocks/decisions.md` is a memory block in the database. `src/auth.c` is a file on disk. Same read/write/edit tools for both. Agents don't care about storage backends - paths are paths.
+The same tools work everywhere. `ikigai:///blocks/decisions.md` is a StoredAsset in the database. `src/auth.c` is a file on disk. Same read/write/edit tools for both. Agents don't care about storage backends - paths are paths.
 
-Commands work on both too: `/compact` compresses memory blocks or filesystem files. `/remember` extracts knowledge to blocks or docs. `/forget` removes content from either. Same operations, different storage.
+Commands work on both too: `/compact` compresses StoredAssets or filesystem files. `/remember` extracts knowledge to blocks or docs. `/forget` removes content from either. Same operations, different storage.
 
 **6. Continuous Evolution**
 
 There's no single "launch day" for your agent system. You build it incrementally. You start with one agent in the terminal, fork children for specific tasks, pin knowledge they discover, deploy some to iki-genba for continuous operation.
 
-As the system grows, agents accumulate knowledge in memory blocks. Parent agents delegate more to children. Autonomous agents handle routine work. You guide the system, refine agent prompts, curate memory blocks. The agent capabilities compound.
+As the system grows, agents accumulate knowledge in StoredAssets. Parent agents delegate more to children. Autonomous agents handle routine work. You guide the system, refine agent prompts, curate StoredAssets. The agent capabilities compound.
 
 ---
 
@@ -110,11 +110,11 @@ When you build with ikigai, you're not just building software. You're building a
 
 Traditional development is linear: you put in effort, you get output, repeat. Agent platform development is compounding: you build agents, those agents produce output, you refine their memory and capabilities, they fork children for specialized work, they accumulate knowledge, they coordinate autonomously. Your efforts multiply through the agent tree.
 
-Over time, your agent system develops institutional knowledge through structured memory. Pinned blocks contain patterns and decisions. Auto-summary indexes what fell off the sliding window. Archival stores everything forever. Agents `/remember` important learnings, `/compact` knowledge as it accumulates, `/recall` old discussions when relevant.
+Over time, your agent system develops institutional knowledge through structured memory. Pinned blocks contain patterns and decisions. Auto-summary indexes what fell off the sliding window. Archival stores everything forever. Agents `/remember` important learnings, `/compact` knowledge as it accumulates, `/recall` old discussions when relevant. StoredAssets grow and evolve as agents learn.
 
 Parent agents delegate to children through forking. Children coordinate through mailboxes. Some agents run in the terminal with you. Others run autonomously in iki-genba, processing queues or monitoring systems. The agent tree evolves to match your project's needs.
 
-You stay in control. You design agents in the terminal. You curate what gets pinned in memory. You decide what runs autonomously. But the coordination, the delegation, the knowledge management, the continuous operation - that's handled by the agent system.
+You stay in control. You design agents in the terminal. You curate what gets pinned as StoredAssets. You decide what runs autonomously. But the coordination, the delegation, the knowledge management, the continuous operation - that's handled by the agent system.
 
 Ikigai amplifies expertise. An expert builds better agent systems than a novice. The platform extends what you already know how to do - it doesn't replace the need to know it. Your domain knowledge becomes the agent system's domain knowledge, compounding over time.
 

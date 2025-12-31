@@ -11,7 +11,7 @@ An agent platform combining:
 - **iki-genba** (runtime): Autonomous agent deployment environment
 - **Structured Memory**: 4-layer context system (pinned blocks, auto-summary, sliding window, archival)
 - **Agent Process Model**: Fork, signals, mailbox communication, process tree
-- **Unified Interface**: `ikigai://` URIs, same tools for files and memory blocks
+- **Unified Interface**: `ikigai://` URIs, same tools for files and StoredAssets
 
 ## Quick Start
 
@@ -27,10 +27,12 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
+- **[context-driven-development.md](context-driven-development.md)** - CDD: What Ikigai is and why context engineering matters
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 
 ### Development Standards
+- **[git-workflow.md](git-workflow.md)** - Git workflow with release branches and worktrees
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns
 - **[error_handling.md](error_handling.md)** - Error handling philosophy and decision framework
@@ -49,11 +51,29 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 ### Internal Analysis
 - **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
 
-## Roadmap
+## Roadmap to MVP
 
-### rel-01: REPL Terminal Foundation
+### Tool Coverage by Release
 
-**Objective**: Production-ready terminal interface with direct rendering and UTF-8 support
+| Release | ikigai | Claude Code Equivalent |
+|---------|--------|------------------------|
+| **rel-08: External Tools** |||
+|| `bash`, `file_read`, `file_write`, `file_edit`, `glob`, `grep` | `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep` |
+| **rel-09: Web Tools** |||
+|| `web-fetch`, `web-search-brave`, `web-search-google` | `WebFetch`, `WebSearch` |
+| **rel-10: Internal Tools** |||
+|| `fork`, `check-mail`, `kill` | `Task`, `TaskOutput`, `KillShell` |
+|| `send`, `mark`, `rewind`, `model` | — (ikigai-specific) |
+| **rel-13: Agent State Documents** |||
+|| `todo` | `TodoWrite` |
+| **rel-15: System prompts, skills, tools** |||
+|| `/mode`, `!` prefix commands | `EnterPlanMode`, `ExitPlanMode`, `Skill` |
+| **Far Future** |||
+|| `bash_interactive`, `LSP`, `Notebook` | —, `LSP`, `NotebookEdit` |
+
+### rel-01: REPL Terminal Foundation (complete)
+
+**Objective**: Terminal interface with direct rendering and UTF-8 support
 
 **Features**:
 - Direct terminal rendering (single write per frame)
@@ -63,7 +83,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Viewport scrolling (Page Up/Down, auto-scroll)
 - 100% test coverage
 
-### rel-02: LLM Integration
+
+### rel-02: LLM Integration (complete)
 
 **Objective**: Stream LLM responses directly to the terminal
 
@@ -77,7 +98,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - In-memory conversation state with checkpoint/rollback
 - Mock verification test suite
 
-### rel-03: Database Integration (PostgreSQL)
+
+### rel-03: Database Integration (complete)
 
 **Objective**: Persistent conversation history with optional database mode
 
@@ -91,7 +113,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Session restoration on launch
 - Memory-only fallback mode
 
-### rel-04: Local Tool Execution
+
+### rel-04: Local Tool Execution (complete)
 
 **Objective**: Enable file operations and shell commands
 
@@ -101,7 +124,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Shell command execution
 - Results flow back to conversation
 
-### rel-05: Agent Process Foundation
+
+### rel-05: Agent Process Foundation (complete)
 
 **Objective**: Prepare architecture for multi-agent support with per-agent state isolation
 
@@ -111,7 +135,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - CSI u keyboard protocol (Kitty) with XKB layout-aware key translation
 - Scroll detector state machine with burst absorption for smooth scrolling
 
-### Future: Background Agents
+
+### rel-06: Background Agents (complete)
 
 **Objective**: Support multiple concurrent agents with human and LLM spawning
 
@@ -125,9 +150,8 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Visual indicator showing current agent and status of all agents
 - Inter-agent communication (optional: message passing between agents)
 
-**Rationale**: Complex tasks benefit from parallel execution. Human users may want multiple conversations active simultaneously. LLMs can delegate subtasks to specialized sub-agents, improving throughput and enabling divide-and-conquer workflows.
 
-### Future: Multi-LLM Provider Support
+### rel-07: Multi-LLM Provider Support (pending)
 
 **Objective**: Abstract support for multiple AI providers with unified internal interface
 
@@ -138,98 +162,54 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Per-message provider/model tracking in event history for cost and replay
 - Separate config.json (settings) and credentials.json (API keys)
 
-**Deferred**: xAI, Meta, OpenRouter, multimodal, RAG, prompt caching.
 
-### Future: Web Search Tool/Interface
+### rel-08: External Tool Architecture (future)
 
-**Objective**: Enable agents to search the web with zero-setup defaults and flexible provider support
+**Objective**: Zero-overhead custom tools via JSON protocol
 
 **Features**:
-- Abstract search interface (`ik_web_search()`) with structured results
-- DuckDuckGo as default provider (no API key required)
-- Additional providers: Brave (free tier), Tavily (AI-optimized), Google (paid)
-- Provider configuration with credentials separated from config
-- No silent fallback - explicit error handling on provider failure
-- WebFetch tool for fetching and processing web content (docs, APIs)
+- External executables as first-class tools (same efficiency as built-in)
+- Self-describing via `--schema`, JSON in/out protocol
+- Auto-discovery from system and user directories
+- Migrate all built-in tools to external: bash, file_read, file_write, file_edit, glob, grep
+- `/tool` and `/refresh` commands for inspection and reload
 
-**Rationale**: Web search is essential for agents to access current information. DuckDuckGo default ensures zero-friction setup, while additional providers support different needs (privacy, AI-optimization, coverage). Explicit configuration prevents unexpected behavior or costs.
 
-### Future: Minimal Tool Architecture
+### rel-09: Web Tools (future)
 
-**Objective**: Small set of internal tools; everything else via bash
+**Objective**: Web access as external tools following rel-08 architecture
 
-**Internal tools** (privileged operations only):
-- Shell: `bash`
-- Platform: `web_search`, `slash_command`
-- Sub-agents: `fork`, `send`, `check-mail`, `kill` ([design](sub-agent-tools.md))
-- Task list: Redis-style deque operations ([design](todo-tools.md))
+**Features**:
+- `web-fetch` - Fetch URL content, convert HTML to markdown
+- `web-search-brave` - Brave Search API (2,000 free queries/month)
+- `web-search-google` - Google Custom Search (100 free/day)
+- Each tool manages its own credentials
 
-**Everything else through bash**: file ops, search, git, builds. System prompt teaches patterns; output limit (~10KB) prevents context flooding.
+### rel-10: Internal Tools (future)
 
-**Extension model**: Skills + external scripts replace MCP. Progressive discovery from system prompt → skills → project tools.
+**Objective**: Expose orchestration primitives as agent-callable tools
 
-**Rationale**: LLMs already excel at bash. See [minimal-tool-architecture.md](minimal-tool-architecture.md).
+**Features**:
+- `mark` / `rewind` - Conversation checkpoints and rollback
+- `fork` / `kill` - Child agent lifecycle
+- `send` / `check-mail` - Inter-agent messaging
+- `model` - Switch LLM model mid-conversation
+- Slash commands become thin wrappers over internal tools
+- User-defined prompt commands use `!` prefix (distinct from `/` tools)
 
-### Future: Memory Documents
+### rel-11: StoredAssets (future)
 
 **Objective**: Database-backed document storage accessible to users and agents
 
 **Features**:
 - `ikigai:///` URI scheme for database-stored documents
-- Slash commands for user access (`/memory edit|list|delete`)
+- Schema validation via `foo.schema.json` alongside `foo.json`
+- Slash commands for user access (`/assets edit|list|delete`)
 - External editor integration ($EDITOR workflow)
-- Prompt expansion with `@` (files) and `@@` (memory) markers
-- Fuzzy finder for file and memory document selection
-- Background file list with configurable include patterns
+- Prompt expansion with `@` (files) and `@@` (assets) markers
 
-**Rationale**: Agents need persistent storage for research, patterns, and decisions that shouldn't clutter the git workspace. Users need intuitive access to reference this knowledge in prompts. See [memory-documents.md](memory-documents.md).
 
-### Future: Codebase Refactor
-
-**Objective**: Improve code organization, reduce complexity, and clean up technical debt
-
-**Features**:
-- Reorganize source into subfolder-per-module structure with one public header each
-- Standardize naming conventions and design patterns across modules
-- Remove unnecessary abstractions (e.g., `layer_wrappers.c`)
-- Consolidate and clean up test structure
-- Improve dependency injection consistency
-
-### Future: Agent Configuration & Prompts
-
-**Objective**: Clean up .ikigai/.agents structure and system prompt handling
-
-**Features**:
-- System prompts: defaults in code, user overrides stored in database
-- Standardize directory structure: `personas/`, `skills/`, `commands/`, `scripts/`
-- Adopt Claude Code patterns for skills and commands, keep personas concept
-- Clear separation between ikigai system-provided and user-defined values
-
-### Future: Docker Compose Deployment
-
-**Objective**: Enable cross-platform evaluation and development via containerized environment
-
-**Features**:
-- Dockerfile with build dependencies and PostgreSQL client
-- Docker Compose configuration with ikigai and postgres services
-- Volume-mounted config for secrets, named volumes for persistence
-- Setup and usage documentation
-
-**Rationale**: Currently builds only on Debian. Docker enables evaluation on macOS/Windows and supports contributors on unsupported platforms. See [docker-compose.md](docker-compose.md).
-
-### Future: Token Estimation
-
-**Objective**: Local token counting for pre-send estimates and context window warnings
-
-**Features**:
-- Implement `libikigai-tokenizer` library with BPE algorithm
-- Embed vocabularies for OpenAI, Google, Meta, xAI (~15-20MB)
-- Fallback estimation for Anthropic (cl100k_base, ~80-90% accuracy)
-- Display `~NUMBER` during composition, exact count after response
-
-**Rationale**: Currently token counts only appear after API response. Local estimation enables real-time feedback while typing and warnings before hitting context limits. See [project/tokens/](tokens/) for research.
-
-### Future: Tool Sets
+### rel-12: Tool Sets (future)
 
 **Objective**: Named collections of tools for task-specific and model-optimized configurations
 
@@ -240,9 +220,43 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Per-model defaults (match tools to model training data)
 - Per-task profiles (coding, research, file-heavy workflows)
 
-**Rationale**: Builds on Minimal Tool Architecture. Different models perform better with different tool presentations. Task context varies widely - a coding task needs different tools than research. Named sets allow tuning for model training alignment and controlling context usage.
 
-### Future: User Experience
+### rel-13: Agent State Documents (future)
+
+**Objective**: Reserved StoredAssets for agent state with schema-enforced structure
+
+**Features**:
+- `ikigai:///agent/{self}/todos.json` - Task tracking (TodoWrite equivalent)
+- `ikigai:///agent/{self}/inbox.json` - Message queue for `check-mail`
+- `ikigai:///agent/{self}/config.json` - Agent settings (model, toolset)
+- System-provided schemas, user-extensible
+- `todo` internal tool wrapping todos.json with structured operations
+
+
+### rel-14: Token Estimation (future)
+
+**Objective**: Local token counting for pre-send estimates and context window warnings
+
+**Features**:
+- Implement `libikigai-tokenizer` library with BPE algorithm
+- Embed vocabularies for OpenAI, Google, Meta, xAI (~15-20MB)
+- Fallback estimation for Anthropic (cl100k_base, ~80-90% accuracy)
+- Display `~NUMBER` during composition, exact count after response
+
+
+### rel-15: System prompts, skills and tools (future)
+
+**Objective**: Layered primitives for tool/prompt configuration
+
+**Features**:
+- `/toolset` - Control which tools are available to agents
+- `/skillset` - Control which prompts/memory are pinned
+- `/mode` - Named bundles of toolset + skillset (e.g., planning, research, review)
+- User-defined modes in `~/.ikigai/modes/` or `.ikigai/modes/`
+- `!` prefix for user-defined prompt commands (distinct from `/` tools)
+
+
+### rel-16: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -251,14 +265,32 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Layered resolution for commands, skills, and personas ([design](backlog/agents-layered-resolution.md))
 - Status bar showing live agent count and total memory usage (via `talloc_total_size`)
 
+
+### rel-17: Codebase Refactor & MVP Release (future)
+
+**Objective**: Improve code organization, reduce complexity, and clean up technical debt
+
+**Features**:
+- Reorganize source into subfolder-per-module structure with one public header each
+- Standardize naming conventions and design patterns across modules
+- Remove unnecessary abstractions (e.g., `layer_wrappers.c`)
+- Consolidate and clean up test structure
+- Improve dependency injection consistency
+
+### Far Future: Vision
+
+Intelligent context management through comprehensive RAG infrastructure. Automated indexing and summarization will maintain conversation history, with retrieval systems constructing optimal context for each LLM request. The model gains tools to search and retrieve historical messages, while the architecture introduces concurrency foundations for background processing of RAG operations.
+
 ### Far Future: Interactive Shell
 
 `bash_interactive` tool for long-running interactive shell sessions. PTY management, streaming I/O, session persistence. Enables REPL workflows, debugging sessions, and processes requiring ongoing input.
 
-### Far Future: Vision
+### Far Future: LSP Integration
 
-v2.0 focuses on intelligent context management through comprehensive RAG infrastructure. Automated indexing and summarization will maintain conversation history, with retrieval systems constructing optimal context for each LLM request. The model gains tools to search and retrieve historical messages, while the architecture introduces concurrency foundations for background processing of RAG operations.
+Language Server Protocol support for code intelligence. Go to definition, find references, hover info, workspace symbols. Enables precise code navigation without regex guessing.
+
+### Far Future: Notebook Support
+
+Jupyter notebook editing with cell-level operations. Read, replace, insert, and delete cells. Enables data science and scientific computing workflows.
 
 ---
-
-**Note**: This documentation is maintained for AI agents and developers. Keep it concise, accurate, and current.

@@ -3,7 +3,7 @@ Run ThreadSanitizer tests and fix failures using sub-agents.
 **Usage:**
 - `/tsan` - Run check-tsan and dispatch sub-agents to fix failures
 
-**Action:** Executes `make check-tsan` and uses sub-agents with the coverage persona to fix any ThreadSanitizer errors (data races, thread leaks, lock order violations) found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
+**Action:** Executes `make check-tsan` and uses sub-agents with the coverage skillset to fix any ThreadSanitizer errors (data races, thread leaks, lock order violations) found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
 
 ---
 
@@ -33,7 +33,7 @@ For each file with issues:
 - `model`: `sonnet`
 
 **Prompt must include:**
-- The persona to load: `coverage`
+- The skillset to load: `coverage`
 - The specific file to fix
 - All ThreadSanitizer errors found in that file
 - Validation: run prerequisite commands before reporting done

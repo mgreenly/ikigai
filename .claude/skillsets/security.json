@@ -1,0 +1,18 @@
+{
+  "preload": [
+    "errors",
+    "naming",
+    "style",
+    "security/filesystem",
+    "security/input-validation",
+    "security/memory-safety",
+    "security/review",
+    "security/secrets",
+    "security/secure-c",
+    "security/terminal",
+    "security/threat-model",
+    "align",
+    "principles"
+  ],
+  "advertise": []
+}

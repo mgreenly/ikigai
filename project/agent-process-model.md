@@ -119,7 +119,7 @@ Properties:
 
 Future consideration: Push notifications (inject mail arrival into agent context).
 
-## Shared State: Memory Documents
+## Shared State: StoredAssets
 
 Markdown documents in the database that agents can create, read, and delete.
 

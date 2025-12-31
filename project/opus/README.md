@@ -10,7 +10,7 @@ Design documents for the next phase of ikigai. These describe the user experienc
 | [agent-queues.md](agent-queues.md) | Queue and inbox primitives for orchestration |
 | [architecture.md](architecture.md) | Database schema and threading model |
 | [prompt-processing.md](prompt-processing.md) | Slash command pre-processing, personas |
-| [memory-documents.md](memory-documents.md) | Database-backed files via `.memory/` path |
+| [stored-assets.md](stored-assets.md) | Database-backed files via `ikigai://` URIs |
 | [git-integration.md](git-integration.md) | Worktrees, branch isolation for helper agents |
 | [keybindings.md](keybindings.md) | Keyboard shortcuts |
 

@@ -41,7 +41,7 @@ How Structured Memory compares to traditional context management strategies.
 - Graceful degradation (conversation → blocks → summary → archival)
 
 **Advantages**:
-- ✅ Persistent knowledge in pinned blocks
+- ✅ Persistent knowledge in pinned StoredAssets
 - ✅ User controls what's important
 - ✅ Graceful degradation (no hard failures)
 - ✅ Different treatment by value
@@ -114,14 +114,14 @@ How Structured Memory compares to traditional context management strategies.
 
 ---
 
-## vs. Letta Memory Blocks
+## vs. Letta MemoryBlocks
 
 ### Letta Approach
 
 ```
 ┌─────────────────────────────────────────────┐
 │ System Prompt                               │
-│ Memory Blocks (persona, human, custom)      │
+│ MemoryBlocks (persona, human, custom)       │
 │   - Small (~2k chars each)                  │
 │   - Always visible                          │
 │   - Agent can edit via tools                │

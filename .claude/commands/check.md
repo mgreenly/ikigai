@@ -3,7 +3,7 @@ Run tests and fix failures using sub-agents.
 **Usage:**
 - `/check` - Run make check and dispatch sub-agents to fix test failures
 
-**Action:** Executes `make check` and uses sub-agents with the coverage persona to fix any test failures found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
+**Action:** Executes `make check` and uses sub-agents with the coverage skillset to fix any test failures found. Sub-agents run sequentially (one per file) and continue until all issues are resolved.
 
 ---
 
@@ -33,7 +33,7 @@ For each file with issues:
 - `model`: `sonnet`
 
 **Prompt must include:**
-- The persona to load: `coverage`
+- The skillset to load: `coverage`
 - The specific file to fix
 - All test failures found in that file
 - Validation: run prerequisite commands before reporting done

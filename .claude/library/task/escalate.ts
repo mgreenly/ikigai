@@ -1,12 +1,12 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-ffi --allow-env --allow-net --allow-run
+#!/usr/bin/env -S deno run --allow-read --allow-write
 
 /**
  * Escalate a task to the next model/thinking level
  *
- * Usage: deno run ... escalate.ts <name> [reason]
+ * Usage: deno run --allow-read --allow-write escalate.ts <name> [reason]
  *
- * Bumps the task to the next escalation level and resets status to pending.
- * Returns null data if already at max level.
+ * Bumps the task to the next escalation level in order.json, resets status to pending,
+ * and logs to history. Returns null data if already at max level.
  *
  * Escalation ladder:
  *   Level 1: sonnet + thinking (default)
@@ -15,57 +15,52 @@
  *   Level 4: opus + ultrathink
  */
 
-import { getDb, initSchema, closeDb } from "./db.ts";
 import {
   success,
   error,
   output,
   iso,
-  getCurrentBranch,
+  findTaskLocation,
+  moveTask,
+  appendHistory,
+  readOrder,
+  writeOrder,
+  getTaskMetadata,
+  updateTaskMetadata,
   getNextEscalation,
-  findEscalationLevel,
   ESCALATION_LADDER,
 } from "./mod.ts";
 
 async function main() {
   const name = Deno.args[0];
-  const reason = Deno.args.slice(1).join(" ") || null;
+  const reason = Deno.args.slice(1).join(" ") || undefined;
 
   if (!name) {
     output(error("Usage: escalate.ts <name> [reason]", "INVALID_ARGS"));
     return;
   }
 
-  let branch: string;
   try {
-    branch = await getCurrentBranch();
-  } catch (e) {
-    output(error(
-      `Failed to get git branch: ${e instanceof Error ? e.message : String(e)}`,
-      "GIT_ERROR"
-    ));
-    return;
-  }
+    const location = await findTaskLocation(name);
 
-  try {
-    initSchema();
-    const db = getDb();
-    const now = iso();
-
-    const task = db.prepare(`
-      SELECT id, model, thinking, status FROM tasks WHERE branch = ? AND name = ?
-    `).get<{ id: number; model: string; thinking: string; status: string }>(branch, name);
-
-    if (!task) {
-      closeDb();
-      output(error(`Task '${name}' not found on branch '${branch}'`, "NOT_FOUND"));
+    if (!location) {
+      output(error(`Task '${name}' not found`, "NOT_FOUND"));
       return;
     }
 
-    const nextLevel = getNextEscalation(task.model, task.thinking);
+    // Read current task metadata
+    const order = await readOrder();
+    const taskMeta = getTaskMetadata(order, name);
+
+    if (!taskMeta) {
+      output(error(`Task '${name}' not found in order.json`, "NOT_FOUND"));
+      return;
+    }
+
+    // Get next escalation level
+    const nextLevel = getNextEscalation(taskMeta.model, taskMeta.thinking);
 
     if (!nextLevel) {
-      closeDb();
       output(success({
         escalated: false,
         at_max_level: true,
@@ -75,39 +70,52 @@ async function main() {
       return;
     }
 
-    // Record escalation
-    db.prepare(`
-      INSERT INTO escalations (task_id, from_model, from_thinking, to_model, to_thinking, reason, escalated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(task.id, task.model, task.thinking, nextLevel.model, nextLevel.thinking, reason, now);
+    const now = iso();
 
-    // Update task - reset to pending with new model/thinking
-    db.prepare(`
-      UPDATE tasks
-      SET model = ?, thinking = ?, status = 'pending', started_at = NULL, updated_at = ?
-      WHERE id = ?
-    `).run(nextLevel.model, nextLevel.thinking, now, task.id);
+    // Update order.json with new model/thinking
+    const updatedOrder = updateTaskMetadata(order, name, {
+      model: nextLevel.model,
+      thinking: nextLevel.thinking,
+    });
+    await writeOrder(updatedOrder);
 
-    // Log retry event
-    db.prepare(`
-      INSERT INTO sessions (task_id, event, timestamp) VALUES (?, 'retry', ?)
-    `).run(task.id, now);
+    // Log escalation to history
+    await appendHistory({
+      timestamp: now,
+      action: "escalate",
+      task: name,
+      from_model: taskMeta.model,
+      from_thinking: taskMeta.thinking,
+      to_model: nextLevel.model,
+      to_thinking: nextLevel.thinking,
+      reason,
+    });
 
-    closeDb();
+    // If task is in_progress or failed, move back to pending
+    if (location === "in_progress" || location === "failed") {
+      await moveTask(name, location, "pending");
+
+      await appendHistory({
+        timestamp: now,
+        action: "reset",
+        task: name,
+        from: location,
+        to: "pending",
+      });
+    }
 
     output(success({
       escalated: true,
       name,
-      from: { model: task.model, thinking: task.thinking },
+      from: { model: taskMeta.model, thinking: taskMeta.thinking },
       to: { model: nextLevel.model, thinking: nextLevel.thinking },
       level: nextLevel.level,
       max_level: ESCALATION_LADDER.length,
     }));
   } catch (e) {
-    closeDb();
     output(error(
-      `Database error: ${e instanceof Error ? e.message : String(e)}`,
-      "DB_ERROR"
+      `Failed to escalate task: ${e instanceof Error ? e.message : String(e)}`,
+      "ESCALATE_ERROR"
     ));
   }
 }
