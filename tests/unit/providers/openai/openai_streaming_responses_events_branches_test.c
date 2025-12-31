@@ -132,8 +132,8 @@ static Suite *openai_streaming_responses_events_branches_suite(void)
     tcase_add_test(tc, test_error_message_null);
     tcase_add_test(tc, test_output_item_added_missing_fields);
     tcase_add_test(tc, test_function_call_args_when_not_in_tool_call);
-    tcase_add_test(tc, test_text_delta_with_number_value);
-    tcase_add_test(tc, test_thinking_delta_with_number_value);
+    tcase_add_test(tc, test_text_delta_with_empty_string);
+    tcase_add_test(tc, test_thinking_delta_with_empty_string);
     suite_add_tcase(s, tc);
 
     return s;

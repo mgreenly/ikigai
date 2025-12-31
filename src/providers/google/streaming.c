@@ -119,6 +119,7 @@ static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *func
     if (!sctx->in_tool_call) {
         // Generate tool call ID (22-char base64url)
         sctx->current_tool_id = ik_google_generate_tool_id(sctx);
+        if (sctx->current_tool_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
         // Extract function name
         yyjson_val *name_val = yyjson_obj_get(function_call, "name");
