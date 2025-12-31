@@ -351,6 +351,22 @@ END_TEST START_TEST(test_serialize_tool_choice_unknown)
 END_TEST
 
 /* ================================================================
+ * URL Building Tests
+ * ================================================================ */
+
+START_TEST(test_build_responses_url)
+{
+    char *url = NULL;
+    res_t result = ik_openai_build_responses_url(test_ctx, "https://api.openai.com", &url);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(url);
+    ck_assert_str_eq(url, "https://api.openai.com/v1/responses");
+}
+
+END_TEST
+
+/* ================================================================
  * Test Suite
  * ================================================================ */
 
@@ -378,6 +394,12 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_test(tc_tools, test_serialize_tool_choice_required);
     tcase_add_test(tc_tools, test_serialize_tool_choice_unknown);
     suite_add_tcase(s, tc_tools);
+
+    TCase *tc_url = tcase_create("URL Building");
+    tcase_set_timeout(tc_url, 30);
+    tcase_add_checked_fixture(tc_url, setup, teardown);
+    tcase_add_test(tc_url, test_build_responses_url);
+    suite_add_tcase(s, tc_url);
 
     return s;
 }
