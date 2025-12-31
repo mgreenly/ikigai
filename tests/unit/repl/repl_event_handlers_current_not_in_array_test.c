@@ -66,6 +66,42 @@ res_t ik_repl_render_frame_(void *repl_ctx)
     return OK(NULL);
 }
 
+/* Mock agent add message */
+res_t ik_agent_add_message_(void *agent_ctx, void *msg)
+{
+    (void)agent_ctx;
+    (void)msg;
+    return OK(NULL);
+}
+
+/* Mock agent should continue tool loop - return false to avoid tool loop */
+int ik_agent_should_continue_tool_loop_(const void *agent_ctx)
+{
+    (void)agent_ctx;
+    return 0;
+}
+
+/* Mock repl submit tool loop continuation */
+void ik_repl_submit_tool_loop_continuation_(void *repl_ctx, void *agent_ctx)
+{
+    (void)repl_ctx;
+    (void)agent_ctx;
+}
+
+/* Mock agent transition to idle */
+void ik_agent_transition_to_idle_(void *agent_ctx)
+{
+    ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
+    agent_local->state = IK_AGENT_STATE_IDLE;
+}
+
+/* Mock agent start tool execution */
+void ik_agent_start_tool_execution_(void *agent_ctx)
+{
+    ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
+    agent_local->state = IK_AGENT_STATE_EXECUTING_TOOL;
+}
+
 /* Mock provider vtable */
 static res_t mock_fdset(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
                         fd_set *exc_fds, int *max_fd)
@@ -289,6 +325,63 @@ START_TEST(test_curl_events_current_not_in_array_perform_error)
 
 END_TEST
 
+START_TEST(test_curl_events_background_agent_completes)
+{
+    /* Create a background agent that IS in the array but NOT current */
+    ik_agent_ctx_t *background_agent = talloc_zero(repl, ik_agent_ctx_t);
+    background_agent->shared = shared;
+    background_agent->scrollback = ik_scrollback_create(background_agent, 80);
+    background_agent->input_buffer = ik_input_buffer_create(background_agent);
+    background_agent->curl_still_running = 1;
+    background_agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    background_agent->assistant_response = talloc_strdup(background_agent, "Background agent response");
+    background_agent->spinner_state.visible = false;
+    background_agent->spinner_state.frame_index = 0;
+    pthread_mutex_init(&background_agent->tool_thread_mutex, NULL);
+
+    /* Initialize message array */
+    background_agent->uuid = talloc_strdup(background_agent, "background-test-uuid");
+    background_agent->provider = NULL;
+    background_agent->response_model = NULL;
+    background_agent->response_finish_reason = NULL;
+    background_agent->response_input_tokens = 0;
+    background_agent->response_output_tokens = 0;
+    background_agent->response_thinking_tokens = 0;
+    background_agent->thinking_level = 0;
+    background_agent->messages = NULL;
+    background_agent->message_count = 0;
+    background_agent->message_capacity = 0;
+    background_agent->pending_tool_call = NULL;
+    background_agent->tool_iteration_count = 0;
+
+    /* Create mock provider for background agent */
+    struct ik_provider *background_instance = talloc_zero(background_agent, struct ik_provider);
+    background_instance->vt = &mock_vt;
+    background_instance->ctx = NULL;
+    background_agent->provider_instance = background_instance;
+
+    /* Set up agents array with background_agent */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = background_agent;  /* background_agent is in array */
+    repl->current = agent;  /* agent is current, background_agent is NOT current */
+
+    /* No provider for current agent */
+    agent->provider_instance = NULL;
+    agent->curl_still_running = 0;
+
+    /* This should process background_agent and NOT call render (because it's not current) */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+
+    /* Background agent response should be freed */
+    ck_assert_ptr_null(background_agent->assistant_response);
+
+    pthread_mutex_destroy(&background_agent->tool_thread_mutex);
+}
+
+END_TEST
+
 /* ========== Test Suite Setup ========== */
 
 static Suite *repl_event_handlers_current_not_in_array_suite(void)
@@ -300,6 +393,7 @@ static Suite *repl_event_handlers_current_not_in_array_suite(void)
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_curl_events_current_not_in_array);
     tcase_add_test(tc_core, test_curl_events_current_not_in_array_perform_error);
+    tcase_add_test(tc_core, test_curl_events_background_agent_completes);
     suite_add_tcase(s, tc_core);
 
     return s;
