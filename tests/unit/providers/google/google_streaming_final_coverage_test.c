@@ -222,6 +222,98 @@ START_TEST(test_root_is_number) {
 END_TEST
 
 /* ================================================================
+ * Parts Thought Field Additional Coverage
+ * ================================================================ */
+
+START_TEST(test_thought_field_number_zero) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Reset to focus on content events */
+    captured_count = 0;
+    memset(captured_events, 0, sizeof(captured_events));
+
+    /* Process part with thought field as number 0 - covers line 234 branch 5 */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\",\"thought\":0}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify events emitted */
+    ck_assert_int_gt((int)captured_count, 0);
+}
+END_TEST
+
+START_TEST(test_thought_field_number_nonzero) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Reset to focus on content events */
+    captured_count = 0;
+    memset(captured_events, 0, sizeof(captured_events));
+
+    /* Process part with thought field as nonzero number - covers line 234 branch 5 */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\",\"thought\":1}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify events emitted */
+    ck_assert_int_gt((int)captured_count, 0);
+}
+END_TEST
+
+START_TEST(test_thought_field_array) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Reset to focus on content events */
+    captured_count = 0;
+    memset(captured_events, 0, sizeof(captured_events));
+
+    /* Process part with thought field as array - covers line 234 additional branch */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\",\"thought\":[]}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify events emitted */
+    ck_assert_int_gt((int)captured_count, 0);
+}
+END_TEST
+
+START_TEST(test_thought_field_object) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Reset to focus on content events */
+    captured_count = 0;
+    memset(captured_events, 0, sizeof(captured_events));
+
+    /* Process part with thought field as object - covers line 234 additional branch */
+    const char *chunk =
+        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\",\"thought\":{}}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify events emitted */
+    ck_assert_int_gt((int)captured_count, 0);
+}
+END_TEST
+
+/* ================================================================
  * Test Suite Setup
  * ================================================================ */
 
@@ -245,6 +337,15 @@ static Suite *google_streaming_final_coverage_suite(void)
     tcase_add_test(tc_json, test_root_is_string);
     tcase_add_test(tc_json, test_root_is_number);
     suite_add_tcase(s, tc_json);
+
+    TCase *tc_thought = tcase_create("Thought Field Additional Coverage");
+    tcase_set_timeout(tc_thought, 30);
+    tcase_add_checked_fixture(tc_thought, setup, teardown);
+    tcase_add_test(tc_thought, test_thought_field_number_zero);
+    tcase_add_test(tc_thought, test_thought_field_number_nonzero);
+    tcase_add_test(tc_thought, test_thought_field_array);
+    tcase_add_test(tc_thought, test_thought_field_object);
+    suite_add_tcase(s, tc_thought);
 
     return s;
 }
