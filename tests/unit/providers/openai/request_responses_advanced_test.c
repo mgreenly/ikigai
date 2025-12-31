@@ -412,6 +412,39 @@ START_TEST(test_serialize_non_user_message)
 
 END_TEST
 
+START_TEST(test_serialize_multiple_content_blocks_with_separator)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    // Create multiple text content blocks
+    ik_content_block_t *blocks = talloc_array(test_ctx, ik_content_block_t, 2);
+    blocks[0] = *ik_content_block_text(test_ctx, "First block");
+    blocks[1] = *ik_content_block_text(test_ctx, "Second block");
+
+    res_t result = ik_request_add_message_blocks(req, IK_ROLE_USER, blocks, 2);
+    ck_assert(!is_err(&result));
+
+    char *json = NULL;
+    res_t serialize_result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&serialize_result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Single user message with multiple text blocks should use string format with \n\n separator
+    yyjson_val *input = yyjson_obj_get(root, "input");
+    ck_assert_ptr_nonnull(input);
+    ck_assert(yyjson_is_str(input));
+    ck_assert_str_eq(yyjson_get_str(input), "First block\n\nSecond block");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * Instructions (System Prompt) Tests
  * ================================================================ */
@@ -652,6 +685,7 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_checked_fixture(tc_input, setup, teardown);
     tcase_add_test(tc_input, test_serialize_multi_turn_conversation);
     tcase_add_test(tc_input, test_serialize_non_user_message);
+    tcase_add_test(tc_input, test_serialize_multiple_content_blocks_with_separator);
     suite_add_tcase(s, tc_input);
 
     TCase *tc_instructions = tcase_create("Instructions");
