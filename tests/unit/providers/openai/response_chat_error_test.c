@@ -180,6 +180,92 @@ END_TEST START_TEST(test_parse_error_malformed_json)
     ck_assert_str_eq(message, "HTTP 500");
 }
 
+END_TEST START_TEST(test_parse_error_non_string_type)
+{
+    /* Error with non-string type field - tests yyjson_get_str returning NULL for type */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"type\":123,"
+                       "\"message\":\"Test error\""
+                       "}"
+                       "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t result = ik_openai_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    ck_assert_str_eq(message, "Test error");
+}
+
+END_TEST START_TEST(test_parse_error_non_string_code)
+{
+    /* Error with non-string code field - tests yyjson_get_str returning NULL for code */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"type\":\"api_error\","
+                       "\"code\":404,"
+                       "\"message\":\"Not found\""
+                       "}"
+                       "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t result = ik_openai_parse_error(test_ctx, 404, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
+    /* Falls back to type: message format since code_str is NULL */
+    ck_assert_str_eq(message, "api_error: Not found");
+}
+
+END_TEST START_TEST(test_parse_error_non_string_message)
+{
+    /* Error with non-string message field - tests yyjson_get_str returning NULL for message */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"type\":\"server_error\","
+                       "\"code\":\"internal\","
+                       "\"message\":999"
+                       "}"
+                       "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t result = ik_openai_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    /* Falls back to type only since msg_str is NULL */
+    ck_assert_str_eq(message, "server_error");
+}
+
+END_TEST START_TEST(test_parse_error_all_non_string)
+{
+    /* Error with all non-string fields - tests all NULL from yyjson_get_str */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"type\":[],"
+                       "\"code\":{},"
+                       "\"message\":null"
+                       "}"
+                       "}";
+
+    ik_error_category_t category;
+    char *message = NULL;
+    res_t result = ik_openai_parse_error(test_ctx, 500, json, strlen(json),
+                                         &category, &message);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+    /* Falls back to HTTP status */
+    ck_assert_str_eq(message, "HTTP 500");
+}
+
 END_TEST
 
 /* ================================================================
@@ -208,6 +294,10 @@ static Suite *response_chat_error_suite(void)
     tcase_add_test(tc_error_parse, test_parse_error_not_found);
     tcase_add_test(tc_error_parse, test_parse_error_unknown);
     tcase_add_test(tc_error_parse, test_parse_error_malformed_json);
+    tcase_add_test(tc_error_parse, test_parse_error_non_string_type);
+    tcase_add_test(tc_error_parse, test_parse_error_non_string_code);
+    tcase_add_test(tc_error_parse, test_parse_error_non_string_message);
+    tcase_add_test(tc_error_parse, test_parse_error_all_non_string);
     suite_add_tcase(s, tc_error_parse);
 
     return s;

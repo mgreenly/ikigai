@@ -114,6 +114,38 @@ START_TEST(test_parse_message_null)
 
 END_TEST
 
+START_TEST(test_parse_model_non_string)
+{
+    /* Model field exists but is not a string - line 187 branch */
+    const char *json = "{"
+                       "\"id\":\"chatcmpl-test\","
+                       "\"model\":123,"
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"Test\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    /* model should be NULL when not a string */
+    ck_assert_ptr_null(resp->model);
+}
+
+END_TEST
+
 /* ================================================================
  * Error Parsing Coverage Tests
  * ================================================================ */
@@ -235,6 +267,7 @@ static Suite *response_chat_structure_suite(void)
     tcase_add_test(tc_structure, test_parse_choices_not_array);
     tcase_add_test(tc_structure, test_parse_choice_null);
     tcase_add_test(tc_structure, test_parse_message_null);
+    tcase_add_test(tc_structure, test_parse_model_non_string);
     suite_add_tcase(s, tc_structure);
 
     TCase *tc_error_coverage = tcase_create("Error Parsing Coverage");
