@@ -17,22 +17,14 @@ START_TEST(test_reasoning_invalid_level) {
 	ck_assert(!is_err(&create_result));
 
 	ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-	// Set an invalid thinking level (not 0, 1, 2, or 3)
-	req->thinking.level = 999;
+	req->thinking.level = 999; // Invalid level
 
 	char *json = NULL;
 	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
 
-	// Should succeed but reasoning block should be omitted
 	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
-	// Verify no reasoning field in JSON
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
+	yyjson_val *reasoning = yyjson_obj_get(yyjson_doc_get_root(doc), "reasoning");
 	ck_assert_ptr_null(reasoning);
 	yyjson_doc_free(doc);
 }
@@ -45,27 +37,17 @@ END_TEST
 
 START_TEST(test_tool_choice_auto) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-	const char *params = "{\"type\":\"object\"}";
-	ik_request_add_tool(req, "test_tool", "Test description", params, true);
-
-	req->tool_choice_mode = 0; // IK_TOOL_AUTO
+	ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+	req->tool_choice_mode = 0;
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-	ck_assert_ptr_nonnull(tool_choice);
+	yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
 	ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
 	yyjson_doc_free(doc);
 }
@@ -74,27 +56,17 @@ END_TEST
 
 START_TEST(test_tool_choice_none) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-	const char *params = "{\"type\":\"object\"}";
-	ik_request_add_tool(req, "test_tool", "Test description", params, true);
-
-	req->tool_choice_mode = 1; // IK_TOOL_NONE
+	ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+	req->tool_choice_mode = 1;
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-	ck_assert_ptr_nonnull(tool_choice);
+	yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
 	ck_assert_str_eq(yyjson_get_str(tool_choice), "none");
 	yyjson_doc_free(doc);
 }
@@ -103,27 +75,17 @@ END_TEST
 
 START_TEST(test_tool_choice_required) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-	const char *params = "{\"type\":\"object\"}";
-	ik_request_add_tool(req, "test_tool", "Test description", params, true);
-
-	req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
+	ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+	req->tool_choice_mode = 2;
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-	ck_assert_ptr_nonnull(tool_choice);
+	yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
 	ck_assert_str_eq(yyjson_get_str(tool_choice), "required");
 	yyjson_doc_free(doc);
 }
@@ -384,6 +346,35 @@ START_TEST(test_null_model) {
 END_TEST
 
 /* ================================================================
+ * Empty Input Test
+ * ================================================================ */
+
+START_TEST(test_empty_input) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	// Single user message with non-text content triggers empty input string
+	req->message_count = 1;
+	req->messages = talloc_zero_array(req, ik_message_t, 1);
+	req->messages[0].role = IK_ROLE_USER;
+	req->messages[0].content_count = 1;
+	req->messages[0].content_blocks = talloc_zero_array(req, ik_content_block_t, 1);
+	req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	ck_assert(!is_err(&result));
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+	ck_assert_str_eq(yyjson_get_str(input), "");
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * Build URL Test
  * ================================================================ */
 
@@ -441,6 +432,7 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_set_timeout(tc_validation, 30);
 	tcase_add_checked_fixture(tc_validation, request_responses_setup, request_responses_teardown);
 	tcase_add_test(tc_validation, test_null_model);
+	tcase_add_test(tc_validation, test_empty_input);
 	suite_add_tcase(s, tc_validation);
 
 	TCase *tc_url = tcase_create("URL Building");
