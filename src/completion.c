@@ -194,33 +194,6 @@ ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
     return comp;
 }
 
-void ik_completion_clear(ik_completion_t *completion)
-{
-    assert(completion != NULL);     // LCOV_EXCL_BR_LINE
-
-    // Reset all state fields to indicate no active completion
-    completion->count = 0;
-    completion->current = 0;
-
-    // Free and clear candidate array
-    if (completion->candidates != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->candidates);
-        completion->candidates = NULL;
-    }
-
-    // Free and clear prefix
-    if (completion->prefix != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->prefix);
-        completion->prefix = NULL;
-    }
-
-    // Free and clear original_input if it exists
-    if (completion->original_input != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->original_input);
-        completion->original_input = NULL;
-    }
-}
-
 const char *ik_completion_get_current(const ik_completion_t *comp)
 {
     assert(comp != NULL);  // LCOV_EXCL_BR_LINE
