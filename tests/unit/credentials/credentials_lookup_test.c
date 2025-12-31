@@ -454,6 +454,32 @@ END_TEST START_TEST(test_json_empty_api_key)
     unlink(tmpfile);
 }
 
+END_TEST START_TEST(test_tilde_expansion_no_home)
+{
+    /* Save original HOME value */
+    char *original_home = getenv("HOME");
+    char *home_copy = NULL;
+    if (original_home) {
+        home_copy = strdup(original_home);
+    }
+
+    /* Unset HOME to trigger error */
+    unsetenv("HOME");
+
+    /* Try to load with default path (uses tilde) */
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, NULL, &creds);
+
+    /* Should fail because HOME is not set */
+    ck_assert(is_err(&result));
+
+    /* Restore HOME */
+    if (home_copy) {
+        setenv("HOME", home_copy, 1);
+        free(home_copy);
+    }
+}
+
 END_TEST
 
 /**
@@ -486,6 +512,7 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_json_missing_api_key_field);
     tcase_add_test(tc_core, test_json_api_key_not_string);
     tcase_add_test(tc_core, test_json_empty_api_key);
+    tcase_add_test(tc_core, test_tilde_expansion_no_home);
     suite_add_tcase(s, tc_core);
 
     return s;
