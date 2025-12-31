@@ -217,13 +217,15 @@ res_t ik_openai_parse_chat_response(TALLOC_CTX *ctx, const char *json,
 
     // Get first choice (we only use choices[0])
     yyjson_val *choice = yyjson_arr_get_first(choices_arr);
-    if (choice == NULL) { // LCOV_EXCL_BR_LINE - defensive: arr_get_first only returns NULL if size==0, already checked
+    // LCOV_EXCL_START - defensive: arr_get_first only returns NULL if size==0, already checked
+    if (choice == NULL) {
         resp->content_blocks = NULL;
         resp->content_count = 0;
         resp->finish_reason = IK_FINISH_UNKNOWN;
         *out_resp = resp;
         return OK(resp);
     }
+    // LCOV_EXCL_STOP
 
     // Extract finish_reason
     yyjson_val *finish_reason_val = yyjson_obj_get(choice, "finish_reason");
