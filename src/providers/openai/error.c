@@ -72,7 +72,7 @@ res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
     yyjson_val *error_obj = yyjson_obj_get(root, "error");
     if (error_obj != NULL && yyjson_is_obj(error_obj)) {
         // Extract error.code and error.type
-        yyjson_val *code_val = yyjson_obj_get(error_obj, "code");
+        yyjson_val *code_val = yyjson_obj_get(error_obj, "code"); // LCOV_EXCL_BR_LINE - inline key null check unreachable with string literal
         yyjson_val *type_val = yyjson_obj_get(error_obj, "type");
 
         const char *code = yyjson_is_str(code_val) ? yyjson_get_str(code_val) : NULL;

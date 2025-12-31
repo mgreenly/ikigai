@@ -411,6 +411,22 @@ START_TEST(test_handle_error_both_code_and_type_nonstring)
 }
 END_TEST
 
+/**
+ * Test: Error object with fields in different order to exercise yyjson_obj_get differently
+ * The order of fields affects the internal iteration in yyjson_obj_get
+ */
+START_TEST(test_handle_error_field_order_variation)
+{
+    // Fields in order: type, message, code (different from other tests)
+    const char *json = "{\"error\": {\"type\": \"error\", \"message\": \"Test\", \"code\": \"test_code\"}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 500, json, &category);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -431,6 +447,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_handle, test_handle_error_both_null_for_content_filter);
     tcase_add_test(tc_handle, test_handle_error_code_nonstring_type_content_filter);
     tcase_add_test(tc_handle, test_handle_error_both_code_and_type_nonstring);
+    tcase_add_test(tc_handle, test_handle_error_field_order_variation);
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
