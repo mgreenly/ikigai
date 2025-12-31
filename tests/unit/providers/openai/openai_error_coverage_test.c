@@ -315,6 +315,40 @@ START_TEST(test_retry_after_requests_greater_than_tokens)
 }
 END_TEST
 
+/**
+ * Test: Duration string with number but no unit
+ * Covers line 127-137: else branch when unit is not m, s, or h
+ */
+START_TEST(test_retry_after_number_no_unit)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: 30",  // No unit suffix
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // parse_duration should return -1 for number without unit
+    ck_assert_int_eq(retry_after, -1);
+}
+END_TEST
+
+/**
+ * Test: Code field is non-string but type field contains content_filter
+ * Covers line 78: false branch of yyjson_is_str(code_val) ternary
+ * Combined with line 82: is_content_filter(type) when is_content_filter(code) is false
+ */
+START_TEST(test_handle_error_code_nonstring_type_content_filter)
+{
+    // code is a number (non-string), type contains content_filter
+    const char *json = "{\"error\": {\"message\": \"Filtered\", \"code\": 123, \"type\": \"content_filter\"}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -333,6 +367,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_handle, test_handle_error_content_filter_type_only);
     tcase_add_test(tc_handle, test_handle_error_code_no_match);
     tcase_add_test(tc_handle, test_handle_error_both_null_for_content_filter);
+    tcase_add_test(tc_handle, test_handle_error_code_nonstring_type_content_filter);
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
@@ -348,6 +383,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_retry, test_retry_after_non_matching_header);
     tcase_add_test(tc_retry, test_retry_after_equal_values);
     tcase_add_test(tc_retry, test_retry_after_requests_greater_than_tokens);
+    tcase_add_test(tc_retry, test_retry_after_number_no_unit);
     suite_add_tcase(s, tc_retry);
 
     return s;
