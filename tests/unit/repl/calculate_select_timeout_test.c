@@ -308,6 +308,28 @@ START_TEST(test_calculate_timeout_zero_curl)
 }
 
 END_TEST
+/*
+ * Test: scroll_det is NULL (no scroll detector timeout)
+ * Covers: repl->scroll_det != NULL being false
+ */
+START_TEST(test_calculate_timeout_no_scroll_detector)
+{
+    /* Free scroll detector to test NULL case */
+    talloc_free(repl->scroll_det);
+    repl->scroll_det = NULL;
+
+    /* Only spinner timeout active */
+    repl->current->spinner_state.visible = true;   // spinner_timeout = 80
+    repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
+    long curl_timeout_ms = -1;
+
+    long timeout = ik_repl_calculate_select_timeout_ms(repl, curl_timeout_ms);
+
+    /* Should return spinner timeout (80ms) without crash */
+    ck_assert_int_eq(timeout, 80);
+}
+
+END_TEST
 
 /*
  * Test suite
@@ -354,6 +376,7 @@ static Suite *calculate_select_timeout_suite(void)
 
     /* Edge cases */
     tcase_add_test(tc_core, test_calculate_timeout_zero_curl);
+    tcase_add_test(tc_core, test_calculate_timeout_no_scroll_detector);
 
     suite_add_tcase(s, tc_core);
 
