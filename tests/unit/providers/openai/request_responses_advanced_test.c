@@ -351,6 +351,68 @@ END_TEST START_TEST(test_serialize_tool_choice_unknown)
 END_TEST
 
 /* ================================================================
+ * Input Format Tests
+ * ================================================================ */
+
+START_TEST(test_serialize_multi_turn_conversation)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    // Add multiple messages
+    ik_request_add_message(req, IK_ROLE_USER, "First message");
+    ik_request_add_message(req, IK_ROLE_ASSISTANT, "First response");
+    ik_request_add_message(req, IK_ROLE_USER, "Second message");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Multi-turn should use array format
+    yyjson_val *input = yyjson_obj_get(root, "input");
+    ck_assert_ptr_nonnull(input);
+    ck_assert(yyjson_is_arr(input));
+    ck_assert_int_eq((int)yyjson_arr_size(input), 3);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_non_user_message)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    // Single assistant message should use array format (not string)
+    ik_request_add_message(req, IK_ROLE_ASSISTANT, "Assistant message");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Non-user message should use array format
+    yyjson_val *input = yyjson_obj_get(root, "input");
+    ck_assert_ptr_nonnull(input);
+    ck_assert(yyjson_is_arr(input));
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * Instructions (System Prompt) Tests
  * ================================================================ */
 
@@ -584,6 +646,13 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_test(tc_tools, test_serialize_tool_choice_required);
     tcase_add_test(tc_tools, test_serialize_tool_choice_unknown);
     suite_add_tcase(s, tc_tools);
+
+    TCase *tc_input = tcase_create("Input Format");
+    tcase_set_timeout(tc_input, 30);
+    tcase_add_checked_fixture(tc_input, setup, teardown);
+    tcase_add_test(tc_input, test_serialize_multi_turn_conversation);
+    tcase_add_test(tc_input, test_serialize_non_user_message);
+    suite_add_tcase(s, tc_input);
 
     TCase *tc_instructions = tcase_create("Instructions");
     tcase_set_timeout(tc_instructions, 30);
