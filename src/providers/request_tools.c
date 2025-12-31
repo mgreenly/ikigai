@@ -181,7 +181,7 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
         ik_content_block_t *dst = &copy->content_blocks[i];
         dst->type = src->type;
 
-        switch (src->type) {
+        switch (src->type) {  // LCOV_EXCL_BR_LINE
         case IK_CONTENT_TEXT:
             dst->data.text.text = talloc_strdup(copy, src->data.text.text);
             if (dst->data.text.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -211,10 +211,8 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
             if (dst->data.thinking.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             break;
 
-        // LCOV_EXCL_START
-        default:
+        default: // LCOV_EXCL_LINE
             PANIC("Unknown content type");
-        // LCOV_EXCL_STOP
         }
     }
 
