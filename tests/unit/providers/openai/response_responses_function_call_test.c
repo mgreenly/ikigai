@@ -157,6 +157,31 @@ START_TEST(test_parse_function_call_with_call_id) {
 
 END_TEST
 
+START_TEST(test_parse_function_call_call_id_null) {
+    const char *json = "{"
+                       "\"id\":\"resp-func\","
+                       "\"model\":\"gpt-4o\","
+                       "\"status\":\"completed\","
+                       "\"output\":[{"
+                       "\"type\":\"function_call\","
+                       "\"id\":\"fallback-id\","
+                       "\"call_id\":null,"
+                       "\"name\":\"test_func\","
+                       "\"arguments\":\"{}\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_responses_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.id, "fallback-id");
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -174,6 +199,7 @@ static Suite *response_responses_function_call_suite(void)
     tcase_add_test(tc_function, test_parse_function_call_missing_name);
     tcase_add_test(tc_function, test_parse_function_call_missing_arguments);
     tcase_add_test(tc_function, test_parse_function_call_with_call_id);
+    tcase_add_test(tc_function, test_parse_function_call_call_id_null);
     suite_add_tcase(s, tc_function);
 
     return s;
