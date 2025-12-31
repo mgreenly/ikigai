@@ -351,6 +351,61 @@ END_TEST START_TEST(test_serialize_tool_choice_unknown)
 END_TEST
 
 /* ================================================================
+ * Streaming and Output Tests
+ * ================================================================ */
+
+START_TEST(test_serialize_streaming_enabled)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test streaming");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, true, &json);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(json);
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *stream = yyjson_obj_get(root, "stream");
+    ck_assert_ptr_nonnull(stream);
+    ck_assert(yyjson_get_bool(stream));
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_streaming_disabled)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test no streaming");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // No stream field when streaming is disabled
+    yyjson_val *stream = yyjson_obj_get(root, "stream");
+    ck_assert_ptr_null(stream);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
  * URL Building Tests
  * ================================================================ */
 
@@ -394,6 +449,13 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_test(tc_tools, test_serialize_tool_choice_required);
     tcase_add_test(tc_tools, test_serialize_tool_choice_unknown);
     suite_add_tcase(s, tc_tools);
+
+    TCase *tc_streaming = tcase_create("Streaming and Output");
+    tcase_set_timeout(tc_streaming, 30);
+    tcase_add_checked_fixture(tc_streaming, setup, teardown);
+    tcase_add_test(tc_streaming, test_serialize_streaming_enabled);
+    tcase_add_test(tc_streaming, test_serialize_streaming_disabled);
+    suite_add_tcase(s, tc_streaming);
 
     TCase *tc_url = tcase_create("URL Building");
     tcase_set_timeout(tc_url, 30);
