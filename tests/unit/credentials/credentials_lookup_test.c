@@ -170,6 +170,142 @@ END_TEST START_TEST(test_insecure_permissions_secure)
     unlink(tmpfile);
 }
 
+END_TEST START_TEST(test_load_with_insecure_permissions)
+{
+    /* Create a file with insecure permissions to trigger warning in load */
+    const char *tmpfile = "/tmp/test_creds_warning.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{}");
+    fclose(f);
+    chmod(tmpfile, 0644);
+
+    /* Load will warn about insecure permissions but succeed */
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    unlink(tmpfile);
+}
+
+END_TEST START_TEST(test_env_var_overrides_file)
+{
+    /* Create a credentials file with API keys */
+    const char *tmpfile = "/tmp/test_creds_override.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"openai\":{\"api_key\":\"file-key-openai\"},"
+               "\"anthropic\":{\"api_key\":\"file-key-anthropic\"},"
+               "\"google\":{\"api_key\":\"file-key-google\"}}");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    /* Set env vars - these should override the file values */
+    setenv("OPENAI_API_KEY", "env-key-openai", 1);
+    setenv("ANTHROPIC_API_KEY", "env-key-anthropic", 1);
+    setenv("GOOGLE_API_KEY", "env-key-google", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    /* Verify env vars took precedence */
+    const char *openai_key = ik_credentials_get(creds, "openai");
+    ck_assert_ptr_nonnull(openai_key);
+    ck_assert_str_eq(openai_key, "env-key-openai");
+
+    const char *anthropic_key = ik_credentials_get(creds, "anthropic");
+    ck_assert_ptr_nonnull(anthropic_key);
+    ck_assert_str_eq(anthropic_key, "env-key-anthropic");
+
+    const char *google_key = ik_credentials_get(creds, "google");
+    ck_assert_ptr_nonnull(google_key);
+    ck_assert_str_eq(google_key, "env-key-google");
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    unlink(tmpfile);
+}
+
+END_TEST START_TEST(test_file_based_credentials)
+{
+    /* Ensure no env vars interfere */
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+
+    /* Create a credentials file with API keys */
+    const char *tmpfile = "/tmp/test_creds_file.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"openai\":{\"api_key\":\"file-openai-key\"},"
+               "\"anthropic\":{\"api_key\":\"file-anthropic-key\"},"
+               "\"google\":{\"api_key\":\"file-google-key\"}}");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    /* Verify file values were loaded */
+    const char *openai_key = ik_credentials_get(creds, "openai");
+    ck_assert_ptr_nonnull(openai_key);
+    ck_assert_str_eq(openai_key, "file-openai-key");
+
+    const char *anthropic_key = ik_credentials_get(creds, "anthropic");
+    ck_assert_ptr_nonnull(anthropic_key);
+    ck_assert_str_eq(anthropic_key, "file-anthropic-key");
+
+    const char *google_key = ik_credentials_get(creds, "google");
+    ck_assert_ptr_nonnull(google_key);
+    ck_assert_str_eq(google_key, "file-google-key");
+
+    unlink(tmpfile);
+}
+
+END_TEST START_TEST(test_invalid_json_file)
+{
+    /* Create a file with invalid JSON */
+    const char *tmpfile = "/tmp/test_creds_invalid.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{this is not valid json}");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    /* Load should succeed with warning but return empty credentials */
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    unlink(tmpfile);
+}
+
+END_TEST START_TEST(test_json_root_not_object)
+{
+    /* Create a file where JSON root is an array, not object */
+    const char *tmpfile = "/tmp/test_creds_array.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "[\"not\", \"an\", \"object\"]");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    /* Load should succeed with warning but return empty credentials */
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    unlink(tmpfile);
+}
+
 END_TEST
 
 /**
@@ -192,6 +328,11 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_insecure_permissions_missing_file);
     tcase_add_test(tc_core, test_insecure_permissions_bad_perms);
     tcase_add_test(tc_core, test_insecure_permissions_secure);
+    tcase_add_test(tc_core, test_load_with_insecure_permissions);
+    tcase_add_test(tc_core, test_env_var_overrides_file);
+    tcase_add_test(tc_core, test_file_based_credentials);
+    tcase_add_test(tc_core, test_invalid_json_file);
+    tcase_add_test(tc_core, test_json_root_not_object);
     suite_add_tcase(s, tc_core);
 
     return s;
