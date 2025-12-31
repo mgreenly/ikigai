@@ -192,7 +192,7 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
             }
 
             if (!yyjson_mut_obj_add_strcpy(doc, root, "input", input_text)) { // LCOV_EXCL_BR_LINE
-                free(input_text);
+                free(input_text); // LCOV_EXCL_LINE
                 yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
                 return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
             }
