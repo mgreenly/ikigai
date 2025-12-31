@@ -333,6 +333,22 @@ START_TEST(test_retry_after_number_no_unit)
 END_TEST
 
 /**
+ * Test: Header with mixed whitespace (spaces and tabs)
+ * Covers line 163-165: while loop with both space and tab conditions
+ */
+START_TEST(test_retry_after_mixed_whitespace)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests:  \t \t30s",  // Mixed spaces and tabs
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    ck_assert_int_eq(retry_after, 30);
+}
+END_TEST
+
+/**
  * Test: Code field is non-string but type field contains content_filter
  * Covers line 78: false branch of yyjson_is_str(code_val) ternary
  * Combined with line 82: is_content_filter(type) when is_content_filter(code) is false
@@ -384,6 +400,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_retry, test_retry_after_equal_values);
     tcase_add_test(tc_retry, test_retry_after_requests_greater_than_tokens);
     tcase_add_test(tc_retry, test_retry_after_number_no_unit);
+    tcase_add_test(tc_retry, test_retry_after_mixed_whitespace);
     suite_add_tcase(s, tc_retry);
 
     return s;
