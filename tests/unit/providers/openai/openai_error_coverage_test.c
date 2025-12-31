@@ -159,6 +159,109 @@ START_TEST(test_retry_after_tokens_with_tab)
 }
 END_TEST
 
+/**
+ * Test: Content filter detected via type when code doesn't match
+ * Covers line 82: is_content_filter(type) when is_content_filter(code) is false
+ */
+START_TEST(test_handle_error_content_filter_type_only)
+{
+    // JSON with content_filter in type but not in code
+    const char *json = "{\"error\": {\"message\": \"Filtered\", \"type\": \"content_filter\", \"code\": \"other_code\"}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(category, IK_ERR_CAT_CONTENT_FILTER);
+}
+END_TEST
+
+/**
+ * Test: Code field present but doesn't match any specific error codes
+ * Covers line 86: else if (code != NULL) path with no matches
+ */
+START_TEST(test_handle_error_code_no_match)
+{
+    // JSON with a code that doesn't match any specific patterns
+    const char *json = "{\"error\": {\"message\": \"Error\", \"type\": \"error\", \"code\": \"unknown_error_code\"}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 500, json, &category);
+    ck_assert(!is_err(&r));
+    // Should fall back to status-based category
+    ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
+}
+END_TEST
+
+/**
+ * Test: Both headers present, requests is valid but tokens is invalid
+ * Covers line 180-186: reset_requests >= 0 && reset_tokens >= 0 is false
+ */
+START_TEST(test_retry_after_requests_valid_tokens_invalid)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: 30s",
+        "x-ratelimit-reset-tokens: invalid",
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // Only requests is valid, so return it (line 182-183)
+    ck_assert_int_eq(retry_after, 30);
+}
+END_TEST
+
+/**
+ * Test: Both headers present, requests is invalid but tokens is valid
+ * Covers line 184-185: reset_tokens >= 0 when reset_requests < 0
+ */
+START_TEST(test_retry_after_requests_invalid_tokens_valid)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: invalid",
+        "x-ratelimit-reset-tokens: 60s",
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // Only tokens is valid, so return it (line 184-185)
+    ck_assert_int_eq(retry_after, 60);
+}
+END_TEST
+
+/**
+ * Test: Header with minutes unit in parse_duration
+ * Covers line 128-129: unit == 'm' branch
+ */
+START_TEST(test_retry_after_minutes_unit)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: 5m",
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    ck_assert_int_eq(retry_after, 300);
+}
+END_TEST
+
+/**
+ * Test: Non-matching header that starts similarly
+ * Covers the negative branch of strncasecmp comparisons
+ */
+START_TEST(test_retry_after_non_matching_header)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset: 30s",  // Missing -requests or -tokens suffix
+        "x-ratelimit-reset-other: 45s",  // Different suffix
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // No matching headers, should return -1
+    ck_assert_int_eq(retry_after, -1);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -174,6 +277,8 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_handle, test_handle_error_missing_type_field);
     tcase_add_test(tc_handle, test_handle_error_missing_code_and_type);
     tcase_add_test(tc_handle, test_handle_error_code_null_ternary);
+    tcase_add_test(tc_handle, test_handle_error_content_filter_type_only);
+    tcase_add_test(tc_handle, test_handle_error_code_no_match);
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
@@ -183,6 +288,10 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_retry, test_retry_after_tokens_no_whitespace);
     tcase_add_test(tc_retry, test_retry_after_with_tab);
     tcase_add_test(tc_retry, test_retry_after_tokens_with_tab);
+    tcase_add_test(tc_retry, test_retry_after_requests_valid_tokens_invalid);
+    tcase_add_test(tc_retry, test_retry_after_requests_invalid_tokens_valid);
+    tcase_add_test(tc_retry, test_retry_after_minutes_unit);
+    tcase_add_test(tc_retry, test_retry_after_non_matching_header);
     suite_add_tcase(s, tc_retry);
 
     return s;
