@@ -291,6 +291,133 @@ START_TEST(test_current_agent_in_array)
 
 END_TEST
 
+/**
+ * Test: State changes during request but agent is NOT current
+ * Covers: Line 261 branch 0 (agent != repl->current after state change)
+ */
+START_TEST(test_state_changes_but_not_current_agent)
+{
+    /* Create a dummy tool call structure */
+    ik_tool_call_t *dummy_tool_call = talloc_zero(agent, ik_tool_call_t);
+    dummy_tool_call->id = talloc_strdup(dummy_tool_call, "call_123");
+    dummy_tool_call->name = talloc_strdup(dummy_tool_call, "test_tool");
+    dummy_tool_call->arguments = talloc_strdup(dummy_tool_call, "{}");
+
+    /* Create mock provider instance */
+    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
+    instance->vt = &mock_vt;
+    instance->ctx = NULL;
+    agent->provider_instance = instance;
+    agent->curl_still_running = 1;
+    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    agent->assistant_response = talloc_strdup(agent, "Response text");
+    agent->pending_tool_call = dummy_tool_call;  /* This will trigger tool execution and state change */
+
+    /* Create a different current agent */
+    ik_agent_ctx_t *other_agent = talloc_zero(repl, ik_agent_ctx_t);
+    other_agent->shared = shared;
+    other_agent->scrollback = ik_scrollback_create(other_agent, 80);
+    other_agent->input_buffer = ik_input_buffer_create(other_agent);
+    other_agent->curl_still_running = 0;
+    other_agent->provider_instance = NULL;
+    other_agent->state = IK_AGENT_STATE_IDLE;
+    pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
+
+    /* Add agent to repl but set different agent as current */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->current = other_agent;  /* Different agent is current */
+
+    /* Mock perform will set still_running to 0, state will change, but no render since not current */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+
+    /* Verify that start_tool_execution was called */
+    ck_assert(start_tool_execution_called);
+
+    /* Verify state changed to EXECUTING_TOOL */
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+
+    /* Response should be freed */
+    ck_assert_ptr_null(agent->assistant_response);
+
+    pthread_mutex_destroy(&other_agent->tool_thread_mutex);
+    start_tool_execution_called = false;  /* Reset for next test */
+}
+
+END_TEST
+
+/**
+ * Test: Current agent NOT in agents array (needs separate processing)
+ * Covers: Line 284 branch 0 (current_in_array is false, so enter if statement)
+ */
+START_TEST(test_current_agent_not_in_array)
+{
+    /* Create mock provider for current agent */
+    struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
+    instance->vt = &mock_vt;
+    instance->ctx = NULL;
+    agent->provider_instance = instance;
+    agent->curl_still_running = 1;
+    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    agent->assistant_response = talloc_strdup(agent, "Response text");
+
+    /* Create a different agent for the array */
+    ik_agent_ctx_t *other_agent = talloc_zero(repl, ik_agent_ctx_t);
+    other_agent->shared = shared;
+    other_agent->scrollback = ik_scrollback_create(other_agent, 80);
+    other_agent->input_buffer = ik_input_buffer_create(other_agent);
+    other_agent->curl_still_running = 0;
+    other_agent->provider_instance = NULL;
+    other_agent->state = IK_AGENT_STATE_IDLE;
+    pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
+
+    /* Put OTHER agent in array, but set AGENT as current */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = other_agent;  /* Different agent in array */
+    repl->current = agent;  /* Current is NOT in array */
+
+    /* Should process both: other_agent in loop, and agent separately */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+
+    /* Response should be freed */
+    ck_assert_ptr_null(agent->assistant_response);
+
+    pthread_mutex_destroy(&other_agent->tool_thread_mutex);
+}
+
+END_TEST
+
+/**
+ * Test: curl_still_running > 0 BUT provider_instance == NULL
+ * Covers: Line 241 branch 3 (A true, B false - unusual but possible edge case)
+ */
+START_TEST(test_curl_running_but_no_provider)
+{
+    /* Edge case: curl thinks it's running but provider was cleaned up */
+    agent->provider_instance = NULL;
+    agent->curl_still_running = 1;  /* > 0 but no provider */
+    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+
+    /* Add agent to repl array */
+    repl->agent_count = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
+    repl->agents[0] = agent;
+    repl->current = agent;
+
+    /* Should handle gracefully - just skip processing since no provider */
+    res_t result = ik_repl_handle_curl_events(repl, 1);
+    ck_assert(is_ok(&result));
+
+    /* State should remain unchanged */
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
+}
+
+END_TEST
+
 /* ========== Test Suite Setup ========== */
 
 static Suite *repl_event_handlers_state_transition_suite(void)
@@ -301,7 +428,10 @@ static Suite *repl_event_handlers_state_transition_suite(void)
     tcase_set_timeout(tc_state, 30);
     tcase_add_checked_fixture(tc_state, setup, teardown);
     tcase_add_test(tc_state, test_state_changes_to_executing_tool);
+    tcase_add_test(tc_state, test_state_changes_but_not_current_agent);
     tcase_add_test(tc_state, test_current_agent_in_array);
+    tcase_add_test(tc_state, test_current_agent_not_in_array);
+    tcase_add_test(tc_state, test_curl_running_but_no_provider);
     suite_add_tcase(s, tc_state);
 
     return s;
