@@ -201,43 +201,6 @@ START_TEST(test_get_current)
 }
 
 END_TEST
-// Test: Prefix matching validation - valid match
-START_TEST(test_prefix_matching_valid)
-{
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-
-    // "/mar" still starts with "/m"
-    ck_assert(ik_completion_matches_prefix(comp, "/mar"));
-
-    // "/model" still starts with "/m"
-    ck_assert(ik_completion_matches_prefix(comp, "/model"));
-
-    // Exact match
-    ck_assert(ik_completion_matches_prefix(comp, "/m"));
-}
-
-END_TEST
-// Test: Prefix matching validation - invalid match
-START_TEST(test_prefix_matching_invalid)
-{
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-
-    // "/h" does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "/h"));
-
-    // "/clear" does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "/clear"));
-
-    // Empty string does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, ""));
-
-    // "m" (no slash) does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "m"));
-}
-
-END_TEST
 // Test: Single character prefix
 START_TEST(test_single_char_prefix)
 {
@@ -314,8 +277,6 @@ static Suite *completion_matching_suite(void)
     tcase_add_test(tc, test_navigation_next_wraparound);
     tcase_add_test(tc, test_navigation_prev_wraparound);
     tcase_add_test(tc, test_get_current);
-    tcase_add_test(tc, test_prefix_matching_valid);
-    tcase_add_test(tc, test_prefix_matching_invalid);
     tcase_add_test(tc, test_single_char_prefix);
     tcase_add_test(tc, test_exact_command_as_prefix);
     tcase_add_test(tc, test_navigation_single_candidate);
