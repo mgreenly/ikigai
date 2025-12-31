@@ -211,6 +211,40 @@ START_TEST(test_parse_finish_reason_non_string)
 
 END_TEST
 
+START_TEST(test_parse_tool_calls_not_array)
+{
+    /* tool_calls field exists but is not an array - line 262 branch */
+    const char *json = "{"
+                       "\"id\":\"chatcmpl-test\","
+                       "\"model\":\"gpt-4\","
+                       "\"choices\":[{"
+                       "\"index\":0,"
+                       "\"message\":{"
+                       "\"role\":\"assistant\","
+                       "\"content\":\"Test\","
+                       "\"tool_calls\":\"not_an_array\""
+                       "},"
+                       "\"finish_reason\":\"stop\""
+                       "}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":5,"
+                       "\"completion_tokens\":0,"
+                       "\"total_tokens\":5"
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(resp);
+    /* Should have text content but no tool calls */
+    ck_assert_int_eq((int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
+}
+
+END_TEST
+
 /* ================================================================
  * Error Parsing Coverage Tests
  * ================================================================ */
@@ -335,6 +369,7 @@ static Suite *response_chat_structure_suite(void)
     tcase_add_test(tc_structure, test_parse_model_non_string);
     tcase_add_test(tc_structure, test_parse_content_non_string);
     tcase_add_test(tc_structure, test_parse_finish_reason_non_string);
+    tcase_add_test(tc_structure, test_parse_tool_calls_not_array);
     suite_add_tcase(s, tc_structure);
 
     TCase *tc_error_coverage = tcase_create("Error Parsing Coverage");

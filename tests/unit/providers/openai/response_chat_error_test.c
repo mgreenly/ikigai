@@ -45,6 +45,42 @@ START_TEST(test_parse_error_response) {
     ck_assert_int_eq(result.err->code, ERR_PROVIDER);
 }
 
+END_TEST START_TEST(test_parse_error_response_no_message)
+{
+    /* Error object with no message field - line 170 branch */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"type\":\"api_error\","
+                       "\"code\":\"test_code\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_PROVIDER);
+    /* Should use default "Unknown error" message */
+}
+
+END_TEST START_TEST(test_parse_error_response_non_string_message)
+{
+    /* Error object with non-string message - line 172 branch */
+    const char *json = "{"
+                       "\"error\":{"
+                       "\"message\":999,"
+                       "\"type\":\"api_error\""
+                       "}"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_PROVIDER);
+    /* Should use default "Unknown error" message when msg is NULL */
+}
+
 END_TEST START_TEST(test_parse_malformed_json)
 {
     const char *json = "{invalid json";
@@ -280,6 +316,8 @@ static Suite *response_chat_error_suite(void)
     tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_parse_error_response);
+    tcase_add_test(tc_errors, test_parse_error_response_no_message);
+    tcase_add_test(tc_errors, test_parse_error_response_non_string_message);
     tcase_add_test(tc_errors, test_parse_malformed_json);
     tcase_add_test(tc_errors, test_parse_not_object);
     suite_add_tcase(s, tc_errors);
