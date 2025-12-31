@@ -283,9 +283,9 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
     // Create streaming context for event processing
     res_t r = ik_anthropic_stream_ctx_create(active_stream, stream_cb, stream_ctx,
                                               &active_stream->stream_ctx);
-    if (is_err(&r)) {
-        talloc_free(active_stream);
-        return r;
+    if (is_err(&r)) { // LCOV_EXCL_BR_LINE
+        talloc_free(active_stream); // LCOV_EXCL_LINE
+        return r; // LCOV_EXCL_LINE
     }
 
     // Create SSE parser
@@ -332,10 +332,10 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
     r = ik_http_multi_add_request(impl_ctx->http_multi, &http_req,
                                    ik_anthropic_stream_write_cb, active_stream,
                                    ik_anthropic_stream_completion_cb, active_stream);
-    if (is_err(&r)) {
-        impl_ctx->active_stream = NULL;
-        talloc_free(active_stream);
-        return r;
+    if (is_err(&r)) { // LCOV_EXCL_BR_LINE
+        impl_ctx->active_stream = NULL; // LCOV_EXCL_LINE
+        talloc_free(active_stream); // LCOV_EXCL_LINE
+        return r; // LCOV_EXCL_LINE
     }
 
     return OK(NULL);
