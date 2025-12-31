@@ -212,8 +212,8 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                     output_index = (int32_t)yyjson_get_int(output_index_val);
                 }
 
-                yyjson_val *call_id_val = yyjson_obj_get(item_val, "call_id");
-                yyjson_val *name_val = yyjson_obj_get(item_val, "name");
+                yyjson_val *call_id_val = yyjson_obj_get_(item_val, "call_id");
+                yyjson_val *name_val = yyjson_obj_get_(item_val, "name");
 
                 const char *call_id = yyjson_get_str_(call_id_val);
                 const char *name = yyjson_get_str_(name_val);
@@ -291,9 +291,9 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
             const char *status = yyjson_get_str_(status_val);
 
             const char *incomplete_reason = NULL;
-            yyjson_val *incomplete_details_val = yyjson_obj_get(response_val, "incomplete_details");
+            yyjson_val *incomplete_details_val = yyjson_obj_get_(response_val, "incomplete_details");
             if (incomplete_details_val != NULL && yyjson_is_obj(incomplete_details_val)) {
-                yyjson_val *reason_val = yyjson_obj_get(incomplete_details_val, "reason");
+                yyjson_val *reason_val = yyjson_obj_get_(incomplete_details_val, "reason");
                 incomplete_reason = yyjson_get_str_(reason_val);
             }
 
@@ -317,10 +317,10 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         emit_event(stream_ctx, &event);
     }
     else if (strcmp(event_name, "error") == 0) {
-        yyjson_val *error_val = yyjson_obj_get(root, "error");
+        yyjson_val *error_val = yyjson_obj_get_(root, "error");
         if (error_val != NULL && yyjson_is_obj(error_val)) {
-            yyjson_val *message_val = yyjson_obj_get(error_val, "message");
-            yyjson_val *type_val = yyjson_obj_get(error_val, "type");
+            yyjson_val *message_val = yyjson_obj_get_(error_val, "message");
+            yyjson_val *type_val = yyjson_obj_get_(error_val, "type");
 
             const char *message = yyjson_get_str_(message_val);
             const char *type = yyjson_get_str_(type_val);
