@@ -341,6 +341,34 @@ START_TEST(test_delta_new_tool_call_missing_name)
 
 END_TEST
 
+START_TEST(test_delta_multiple_tool_calls_different_indices)
+{
+    /* Test switching between different tool call indices */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Start tool call at index 0 */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc0\",\"function\":{\"name\":\"fn0\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Send arguments for index 0 */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"a\\\":\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Start NEW tool call at index 1 */
+    const char *data3 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{\"name\":\"fn1\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data3);
+
+    /* Send arguments for index 1 */
+    const char *data4 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"arguments\":\"{\\\"b\\\":\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data4);
+
+    /* Should have 2 START events and 2 DELTA events, plus 1 DONE for ending index 0 */
+    ck_assert_int_ge((int)events->count, 5);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -364,6 +392,7 @@ static Suite *streaming_chat_delta_edge_suite(void)
     tcase_add_test(tc_arguments, test_delta_function_not_object_on_arguments);
     tcase_add_test(tc_arguments, test_delta_new_tool_call_missing_id);
     tcase_add_test(tc_arguments, test_delta_new_tool_call_missing_name);
+    tcase_add_test(tc_arguments, test_delta_multiple_tool_calls_different_indices);
     suite_add_tcase(s, tc_arguments);
 
     return s;
