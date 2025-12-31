@@ -191,9 +191,9 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
             dst->data.tool_call.id = talloc_strdup(copy, src->data.tool_call.id);
             dst->data.tool_call.name = talloc_strdup(copy, src->data.tool_call.name);
             dst->data.tool_call.arguments = talloc_strdup(copy, src->data.tool_call.arguments);
-            if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL ||
-                dst->data.tool_call.arguments == NULL) {
-                PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL ||  // LCOV_EXCL_BR_LINE
+                dst->data.tool_call.arguments == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
             }
             break;
 
@@ -201,8 +201,8 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
             dst->data.tool_result.tool_call_id = talloc_strdup(copy, src->data.tool_result.tool_call_id);
             dst->data.tool_result.content = talloc_strdup(copy, src->data.tool_result.content);
             dst->data.tool_result.is_error = src->data.tool_result.is_error;
-            if (dst->data.tool_result.tool_call_id == NULL || dst->data.tool_result.content == NULL) {
-                PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            if (dst->data.tool_result.tool_call_id == NULL || dst->data.tool_result.content == NULL) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
             }
             break;
 
@@ -211,8 +211,10 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
             if (dst->data.thinking.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             break;
 
+        // LCOV_EXCL_START
         default:
-            PANIC("Unknown content type");  // LCOV_EXCL_LINE
+            PANIC("Unknown content type");
+        // LCOV_EXCL_STOP
         }
     }
 
