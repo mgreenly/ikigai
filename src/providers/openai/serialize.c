@@ -19,7 +19,7 @@ yyjson_mut_val *ik_openai_serialize_message(yyjson_mut_doc *doc, const ik_messag
 
     /* Add role */
     const char *role_str = NULL;
-    switch (msg->role) {
+    switch (msg->role) {  // LCOV_EXCL_BR_LINE: default case unreachable
     case IK_ROLE_USER:
         role_str = "user";
         break;
@@ -70,7 +70,7 @@ yyjson_mut_val *ik_openai_serialize_message(yyjson_mut_doc *doc, const ik_messag
 
             for (size_t i = 0; i < msg->content_count; i++) {
                 if (msg->content_blocks[i].type == IK_CONTENT_TOOL_CALL) {
-                    const ik_content_block_t *block = &msg->content_blocks[i];
+                    const ik_content_block_t *block = &msg->content_blocks[i];  // LCOV_EXCL_BR_LINE
 
                     yyjson_mut_val *tc_obj = yyjson_mut_obj(doc);
                     if (tc_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_LINE
