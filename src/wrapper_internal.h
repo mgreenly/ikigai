@@ -80,6 +80,31 @@ MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req
                                       completion_ctx);
 }
 
+MOCKABLE void ik_agent_start_tool_execution_(void *agent)
+{
+    ik_agent_start_tool_execution((ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent)
+{
+    return ik_agent_should_continue_tool_loop((const ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent)
+{
+    ik_repl_submit_tool_loop_continuation((ik_repl_ctx_t *)repl, (ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg)
+{
+    return ik_agent_add_message((ik_agent_ctx_t *)agent, (ik_message_t *)msg);
+}
+
+MOCKABLE void ik_agent_transition_to_idle_(void *agent)
+{
+    ik_agent_transition_to_idle((ik_agent_ctx_t *)agent);
+}
+
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
@@ -101,6 +126,11 @@ MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
 MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
                                           void *write_cb, void *write_ctx,
                                           void *completion_cb, void *completion_ctx);
+MOCKABLE void ik_agent_start_tool_execution_(void *agent);
+MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent);
+MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent);
+MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg);
+MOCKABLE void ik_agent_transition_to_idle_(void *agent);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

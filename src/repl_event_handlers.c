@@ -218,7 +218,7 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
 {
     if (agent->assistant_response != NULL && strlen(agent->assistant_response) > 0) {
         ik_message_t *assistant_msg = ik_message_create_text(agent, IK_ROLE_ASSISTANT, agent->assistant_response);
-        res_t result = ik_agent_add_message(agent, assistant_msg);
+        res_t result = ik_agent_add_message_(agent, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
         persist_assistant_msg(repl);
     }
@@ -227,12 +227,12 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
         agent->assistant_response = NULL;
     }
     if (agent->pending_tool_call != NULL) {
-        ik_agent_start_tool_execution(agent);
+        ik_agent_start_tool_execution_(agent);
         return;
     }
-    if (ik_agent_should_continue_tool_loop(agent)) {
+    if (ik_agent_should_continue_tool_loop_(agent)) {
         agent->tool_iteration_count++;
-        ik_repl_submit_tool_loop_continuation(repl, agent);
+        ik_repl_submit_tool_loop_continuation_(repl, agent);
     }
 }
 
@@ -255,7 +255,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
             current_state = agent->state;
             pthread_mutex_unlock_(&agent->tool_thread_mutex);
             if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-                ik_agent_transition_to_idle(agent);
+                ik_agent_transition_to_idle_(agent);
             }
             if (agent == repl->current) {
                 CHECK(ik_repl_render_frame(repl));
