@@ -405,6 +405,58 @@ START_TEST(test_serialize_streaming_disabled)
 
 END_TEST
 
+START_TEST(test_serialize_max_output_tokens)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    req->max_output_tokens = 1024;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_output_tokens");
+    ck_assert_ptr_nonnull(max_tokens);
+    ck_assert_int_eq((int)yyjson_get_int(max_tokens), 1024);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_no_max_output_tokens)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    // max_output_tokens defaults to 0 (not set)
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // No max_output_tokens field when not set
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_output_tokens");
+    ck_assert_ptr_null(max_tokens);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * URL Building Tests
  * ================================================================ */
@@ -455,6 +507,8 @@ static Suite *request_responses_advanced_suite(void)
     tcase_add_checked_fixture(tc_streaming, setup, teardown);
     tcase_add_test(tc_streaming, test_serialize_streaming_enabled);
     tcase_add_test(tc_streaming, test_serialize_streaming_disabled);
+    tcase_add_test(tc_streaming, test_serialize_max_output_tokens);
+    tcase_add_test(tc_streaming, test_serialize_no_max_output_tokens);
     suite_add_tcase(s, tc_streaming);
 
     TCase *tc_url = tcase_create("URL Building");
