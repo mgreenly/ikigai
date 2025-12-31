@@ -212,7 +212,7 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
             break;
 
         default: // LCOV_EXCL_LINE
-            PANIC("Unknown content type");
+            PANIC("Unknown content type"); // LCOV_EXCL_LINE
         }
     }
 
