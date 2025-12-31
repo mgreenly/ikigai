@@ -218,6 +218,26 @@ START_TEST(test_delta_tool_call_name_not_string)
 
 END_TEST
 
+START_TEST(test_delta_arguments_empty_string)
+{
+    /* Line 169: Test ternary with current_tool_args as empty string */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Start a tool call */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Send empty arguments string */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should handle empty string gracefully */
+    ck_assert_int_ge((int)events->count, 1);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -235,6 +255,7 @@ static Suite *streaming_chat_delta_edge_suite(void)
     tcase_add_test(tc_arguments, test_delta_arguments_not_in_tool_call);
     tcase_add_test(tc_arguments, test_delta_tool_call_id_not_string);
     tcase_add_test(tc_arguments, test_delta_tool_call_name_not_string);
+    tcase_add_test(tc_arguments, test_delta_arguments_empty_string);
     suite_add_tcase(s, tc_arguments);
 
     return s;
