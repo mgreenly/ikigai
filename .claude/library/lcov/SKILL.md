@@ -12,20 +12,20 @@ Coverage tooling: finding gaps, reading coverage.info, using exclusion markers.
 
 Run coverage build first:
 ```bash
-make BUILD=coverage check
+make coverage
 ```
 
 Then find gaps:
 
 ```bash
 # Uncovered lines (DA = data line)
-grep "^DA:" coverage/coverage.info | grep ",0$"
+grep "^DA:" reports/coverage/coverage.info | grep ",0$"
 
 # Uncovered branches (BRDA = branch data)
-grep "^BRDA:" coverage/coverage.info | grep ",0$"
+grep "^BRDA:" reports/coverage/coverage.info | grep ",0$"
 
 # Uncovered functions (FN = function)
-grep "^FNDA:0," coverage/coverage.info
+grep "^FNDA:0," reports/coverage/coverage.info
 ```
 
 ## Understanding coverage.info Format
@@ -48,10 +48,18 @@ Key patterns:
 
 ## Coverage Files
 
+### Full Coverage (`make coverage`)
+
 | File | Purpose |
 |------|---------|
-| `coverage/coverage.info` | Primary data (parse with grep) |
-| `coverage/summary.txt` | Human-readable summary |
+| `reports/coverage/coverage.info` | Primary data (parse with grep) |
+| `reports/coverage/summary.txt` | Human-readable summary |
+
+### Per-Test Coverage (`make coverage TEST=<test_path>`)
+
+Example: `make coverage TEST=unit/agent/agent_test` produces:
+- `reports/coverage/unit/agent/agent_test.coverage.info` - LCOV data
+- `reports/coverage/unit/agent/agent_test.coverage.txt` - Summary
 
 **Do NOT generate HTML reports** - slow and unnecessary.
 
@@ -88,17 +96,17 @@ If it can happen at runtime, test it.
 
 ```bash
 # 1. Run coverage
-make BUILD=coverage check
+make coverage
 
 # 2. Check summary
-cat coverage/summary.txt
+cat reports/coverage/summary.txt
 
 # 3. Find specific gaps
-grep "^DA:" coverage/coverage.info | grep ",0$" | head -20
+grep "^DA:" reports/coverage/coverage.info | grep ",0$" | head -20
 
 # 4. Find file with most gaps
-grep "^SF:" coverage/coverage.info   # List all files
-grep -A 1000 "SF:.*myfile.c" coverage/coverage.info | grep -m 1 -B 1000 "end_of_record" | grep ",0$"
+grep "^SF:" reports/coverage/coverage.info   # List all files
+grep -A 1000 "SF:.*myfile.c" reports/coverage/coverage.info | grep -m 1 -B 1000 "end_of_record" | grep ",0$"
 ```
 
 ## References
