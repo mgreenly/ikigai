@@ -120,6 +120,17 @@ START_TEST(test_thinking_delta_with_empty_string)
 }
 END_TEST
 
+START_TEST(test_output_item_done_not_in_tool_call)
+{
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    // Send output_item.done when NOT in a tool call - covers line 273 branch 1 (in_tool_call FALSE)
+    ik_openai_responses_stream_process_event(ctx, "response.output_item.done", "{\"output_index\":0}");
+    ck_assert_int_eq((int)events->count, 0); // No event should be emitted
+}
+END_TEST
+
 static Suite *openai_streaming_responses_events_branches_suite(void)
 {
     Suite *s = suite_create("OpenAI Streaming Responses Events Branches");
@@ -134,6 +145,7 @@ static Suite *openai_streaming_responses_events_branches_suite(void)
     tcase_add_test(tc, test_function_call_args_when_not_in_tool_call);
     tcase_add_test(tc, test_text_delta_with_empty_string);
     tcase_add_test(tc, test_thinking_delta_with_empty_string);
+    tcase_add_test(tc, test_output_item_done_not_in_tool_call);
     suite_add_tcase(s, tc);
 
     return s;
