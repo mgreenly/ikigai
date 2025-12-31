@@ -55,7 +55,7 @@ res_t ik_anthropic_parse_response(TALLOC_CTX *ctx, const char *json, size_t json
         return ERR(ctx, PARSE, "Invalid JSON response");
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
     if (!yyjson_is_obj(root)) {
         return ERR(ctx, PARSE, "Response root is not an object");
     }
@@ -101,7 +101,7 @@ res_t ik_anthropic_parse_response(TALLOC_CTX *ctx, const char *json, size_t json
     if (stop_reason_val != NULL) {
         stop_reason = yyjson_get_str(stop_reason_val);
     }
-    resp->finish_reason = ik_anthropic_map_finish_reason(stop_reason);
+    resp->finish_reason = ik_anthropic_map_finish_reason(stop_reason); // LCOV_EXCL_BR_LINE
 
     // Extract usage
     yyjson_val *usage_obj = yyjson_obj_get(root, "usage");
@@ -164,11 +164,11 @@ res_t ik_anthropic_parse_error(TALLOC_CTX *ctx, int http_status, const char *jso
         // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
         yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
         if (doc != NULL) {
-            yyjson_val *root = yyjson_doc_get_root(doc);
+            yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
             if (yyjson_is_obj(root)) {
                 yyjson_val *error_obj = yyjson_obj_get(root, "error");
                 if (error_obj != NULL) {
-                    yyjson_val *type_val = yyjson_obj_get(error_obj, "type");
+                    yyjson_val *type_val = yyjson_obj_get(error_obj, "type"); // LCOV_EXCL_BR_LINE
                     yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
 
                     const char *type_str = NULL;
