@@ -366,6 +366,7 @@ START_TEST(test_poll_tool_completions_agent_not_complete)
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(agent->message_count, initial_count);
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+    pthread_join_(agent->tool_thread, NULL);
 }
 END_TEST
 
@@ -386,6 +387,7 @@ START_TEST(test_poll_tool_completions_agent_wrong_state)
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(agent->message_count, initial_count);
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    pthread_join_(agent->tool_thread, NULL);
 }
 END_TEST
 
@@ -404,6 +406,7 @@ START_TEST(test_poll_tool_completions_current_executing_not_complete)
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(agent->message_count, initial_count);
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+    pthread_join_(agent->tool_thread, NULL);
 }
 END_TEST
 
