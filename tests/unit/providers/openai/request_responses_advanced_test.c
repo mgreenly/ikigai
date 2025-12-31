@@ -28,6 +28,29 @@ static void teardown(void)
 }
 
 /* ================================================================
+ * Error Handling Tests
+ * ================================================================ */
+
+START_TEST(test_serialize_null_model)
+{
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    // Set model to NULL to test validation
+    req->model = NULL;
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    // Should return an error when model is NULL
+    ck_assert(is_err(&result));
+}
+
+END_TEST
+
+/* ================================================================
  * Reasoning Configuration Tests
  * ================================================================ */
 
@@ -658,6 +681,12 @@ END_TEST
 static Suite *request_responses_advanced_suite(void)
 {
     Suite *s = suite_create("OpenAI Responses API Advanced Serialization");
+
+    TCase *tc_errors = tcase_create("Error Handling");
+    tcase_set_timeout(tc_errors, 30);
+    tcase_add_checked_fixture(tc_errors, setup, teardown);
+    tcase_add_test(tc_errors, test_serialize_null_model);
+    suite_add_tcase(s, tc_errors);
 
     TCase *tc_reasoning = tcase_create("Reasoning Configuration");
     tcase_set_timeout(tc_reasoning, 30);
