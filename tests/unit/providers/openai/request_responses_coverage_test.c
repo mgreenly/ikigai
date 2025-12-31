@@ -94,32 +94,18 @@ END_TEST
 
 START_TEST(test_tool_choice_default_case) {
 	ik_request_t *req = NULL;
-	res_t create_result = ik_request_create(test_ctx, "o1", &req);
-	ck_assert(!is_err(&create_result));
-
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
 	ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-	const char *params = "{\"type\":\"object\"}";
-	ik_request_add_tool(req, "test_tool", "Test description", params, true);
-
-	// Set an invalid tool_choice_mode to trigger default case
+	ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
 	req->tool_choice_mode = 999;
 
 	char *json = NULL;
-	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-	// Should succeed with "auto" as the default
-	ck_assert(!is_err(&result));
-	ck_assert_ptr_nonnull(json);
-
-	// Verify tool_choice is "auto"
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
 	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-	ck_assert_ptr_nonnull(doc);
-	yyjson_val *root = yyjson_doc_get_root(doc);
-	yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
-	ck_assert_ptr_nonnull(tool_choice);
-	const char *choice_val = yyjson_get_str(tool_choice);
-	ck_assert_str_eq(choice_val, "auto");
+	yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+	ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
 	yyjson_doc_free(doc);
 }
 
@@ -183,6 +169,23 @@ START_TEST(test_system_prompt) {
 	yyjson_val *instructions = yyjson_obj_get(root, "instructions");
 	ck_assert_ptr_nonnull(instructions);
 	ck_assert_str_eq(yyjson_get_str(instructions), "You are a helpful assistant");
+	yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_empty_system_prompt) {
+	ik_request_t *req = NULL;
+	res_t r = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&r));
+	req->system_prompt = talloc_strdup(req, "");
+	ik_request_add_message(req, IK_ROLE_USER, "Hello");
+
+	char *json = NULL;
+	r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+	ck_assert(!is_err(&r));
+	yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+	ck_assert_ptr_null(yyjson_obj_get(yyjson_doc_get_root(doc), "instructions"));
 	yyjson_doc_free(doc);
 }
 
@@ -424,6 +427,7 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_set_timeout(tc_fields, 30);
 	tcase_add_checked_fixture(tc_fields, request_responses_setup, request_responses_teardown);
 	tcase_add_test(tc_fields, test_system_prompt);
+	tcase_add_test(tc_fields, test_empty_system_prompt);
 	tcase_add_test(tc_fields, test_max_output_tokens);
 	tcase_add_test(tc_fields, test_streaming);
 	suite_add_tcase(s, tc_fields);
