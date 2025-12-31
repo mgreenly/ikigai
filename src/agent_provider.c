@@ -29,37 +29,6 @@ static int parse_thinking_level(const char *level_str)
     return IK_THINKING_NONE;
 }
 
-res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, void *config_ptr)
-{
-    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
-
-    if (config_ptr == NULL) {
-        return ERR(agent, INVALID_ARG, "Config is NULL");
-    }
-
-    ik_config_t *config = (ik_config_t *)config_ptr;
-
-    // Get default provider from config
-    const char *provider = ik_config_get_default_provider(config);
-
-    // Set provider (allocated on agent context)
-    agent->provider = talloc_strdup(agent, provider);
-    if (agent->provider == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    // For now, use openai_model as the default model
-    // TODO: This will be replaced with provider-specific defaults in future tasks
-    agent->model = talloc_strdup(agent, config->openai_model);
-    if (agent->model == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    // Default thinking level to medium
-    agent->thinking_level = IK_THINKING_MED;
-
-    // Provider instance is lazy-loaded, leave it NULL
-    agent->provider_instance = NULL;
-
-    return OK(NULL);
-}
-
 res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, const void *row_ptr)
 {
     assert(agent != NULL);  // LCOV_EXCL_BR_LINE
