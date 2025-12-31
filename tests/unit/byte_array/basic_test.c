@@ -15,7 +15,6 @@ START_TEST(test_byte_array_create_success) {
     ik_byte_array_t *array = res.ok;
     ck_assert_ptr_nonnull(array);
     ck_assert_uint_eq(ik_byte_array_size(array), 0);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 0);
 
     talloc_free(ctx);
 }
@@ -53,14 +52,13 @@ START_TEST(test_byte_array_clear)
     ik_byte_array_clear(array);
 
     ck_assert_uint_eq(ik_byte_array_size(array), 0);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 10); // Capacity unchanged
 
     talloc_free(ctx);
 }
 
 END_TEST
-// Test size and capacity queries
-START_TEST(test_byte_array_size_capacity)
+// Test size query
+START_TEST(test_byte_array_size)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -69,7 +67,6 @@ START_TEST(test_byte_array_size_capacity)
     ik_byte_array_t *array = res.ok;
 
     ck_assert_uint_eq(ik_byte_array_size(array), 0);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 0);
 
     // Add elements
     for (uint8_t i = 0; i < 7; i++) {
@@ -78,7 +75,6 @@ START_TEST(test_byte_array_size_capacity)
     }
 
     ck_assert_uint_eq(ik_byte_array_size(array), 7);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 10); // 5 -> 10
 
     talloc_free(ctx);
 }
@@ -90,13 +86,6 @@ END_TEST
 START_TEST(test_byte_array_size_null_asserts)
 {
     ik_byte_array_size(NULL);
-}
-
-END_TEST
-// Test assertion on NULL array for capacity
-START_TEST(test_byte_array_capacity_null_asserts)
-{
-    ik_byte_array_capacity(NULL);
 }
 
 END_TEST
@@ -118,7 +107,7 @@ static Suite *byte_array_basic_suite(void)
     tcase_add_test(tc_core, test_byte_array_clear);
 
     // Query tests
-    tcase_add_test(tc_core, test_byte_array_size_capacity);
+    tcase_add_test(tc_core, test_byte_array_size);
 
     suite_add_tcase(s, tc_core);
 
@@ -131,7 +120,6 @@ static Suite *byte_array_basic_suite(void)
     tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_size_null_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_byte_array_capacity_null_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif
 

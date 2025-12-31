@@ -17,7 +17,6 @@ START_TEST(test_byte_array_append_first) {
 
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(ik_byte_array_size(array), 1);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 10);
 
     ck_assert_uint_eq(ik_byte_array_get(array, 0), 42);
 
@@ -41,7 +40,6 @@ START_TEST(test_byte_array_append_no_growth)
     }
 
     ck_assert_uint_eq(ik_byte_array_size(array), 5);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 10);
 
     // Verify values
     for (uint8_t i = 0; i < 5; i++) {
@@ -68,7 +66,6 @@ START_TEST(test_byte_array_append_with_growth)
     }
 
     ck_assert_uint_eq(ik_byte_array_size(array), 5);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 8);
 
     // Verify values survived growth
     for (uint8_t i = 0; i < 5; i++) {
@@ -189,7 +186,6 @@ START_TEST(test_byte_array_insert_with_growth)
 
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(ik_byte_array_size(array), 3);
-    ck_assert_uint_eq(ik_byte_array_capacity(array), 4);
 
     // Verify order: [0, 99, 1]
     ck_assert_uint_eq(ik_byte_array_get(array, 0), 0);
