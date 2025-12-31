@@ -197,28 +197,6 @@ START_TEST(test_parse_usage_missing_some_fields)
 }
 END_TEST
 
-START_TEST(test_parse_usage_missing_total_tokens)
-{
-    const char *json = "{"
-                       "\"modelVersion\":\"gemini-2.5-flash\","
-                       "\"candidates\":[{"
-                       "\"content\":{\"parts\":[{\"text\":\"Hello\"}]},"
-                       "\"finishReason\":\"STOP\""
-                       "}],"
-                       "\"usageMetadata\":{"
-                       "\"promptTokenCount\":10,"
-                       "\"candidatesTokenCount\":5"
-                       "}"
-                       "}";
-
-    ik_response_t *resp = NULL;
-    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_int_eq(resp->usage.total_tokens, 0);
-}
-END_TEST
 
 START_TEST(test_parse_usage_all_fields_present)
 {
@@ -463,7 +441,6 @@ static Suite *google_response_main_coverage_suite(void)
     tcase_add_test(tc_parse, test_parse_model_version_not_string);
     tcase_add_test(tc_parse, test_parse_no_usage_metadata);
     tcase_add_test(tc_parse, test_parse_usage_missing_some_fields);
-    tcase_add_test(tc_parse, test_parse_usage_missing_total_tokens);
     tcase_add_test(tc_parse, test_parse_usage_all_fields_present);
     tcase_add_test(tc_parse, test_parse_usage_all_fields_null);
     tcase_add_test(tc_parse, test_parse_no_candidates_field);

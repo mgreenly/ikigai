@@ -262,6 +262,59 @@ START_TEST(test_parse_part_with_thought_string)
 }
 END_TEST
 
+START_TEST(test_parse_multiple_parts_mixed)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-3\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":["
+                       "{\"text\":\"First part\"},"
+                       "{\"text\":\"Second part\",\"thought\":true},"
+                       "{\"functionCall\":{\"name\":\"test_tool\",\"args\":{\"x\":1}}},"
+                       "{\"text\":\"Third part\"}"
+                       "]},"
+                       "\"finishReason\":\"STOP\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 4);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[0].data.text.text, "First part");
+    ck_assert_int_eq(resp->content_blocks[1].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(resp->content_blocks[1].data.thinking.text, "Second part");
+    ck_assert_int_eq(resp->content_blocks[2].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(resp->content_blocks[2].data.tool_call.name, "test_tool");
+    ck_assert_int_eq(resp->content_blocks[3].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[3].data.text.text, "Third part");
+}
+END_TEST
+
+START_TEST(test_parse_part_with_thought_null_value)
+{
+    const char *json = "{"
+                       "\"modelVersion\":\"gemini-3\","
+                       "\"candidates\":[{"
+                       "\"content\":{\"parts\":["
+                       "{\"text\":\"Normal text\",\"thought\":null}"
+                       "]},"
+                       "\"finishReason\":\"STOP\""
+                       "}]"
+                       "}";
+
+    ik_response_t *resp = NULL;
+    res_t result = ik_google_parse_response(test_ctx, json, strlen(json), &resp);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq((unsigned int)resp->content_count, 1);
+    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Normal text");
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -284,6 +337,8 @@ static Suite *google_response_parts_coverage_suite(void)
     tcase_add_test(tc_parts, test_parse_part_text_not_string);
     tcase_add_test(tc_parts, test_parse_part_without_thought_flag);
     tcase_add_test(tc_parts, test_parse_part_with_thought_string);
+    tcase_add_test(tc_parts, test_parse_multiple_parts_mixed);
+    tcase_add_test(tc_parts, test_parse_part_with_thought_null_value);
     suite_add_tcase(s, tc_parts);
 
     return s;
