@@ -49,19 +49,19 @@ static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *ro
     if (!part_obj) return false; // LCOV_EXCL_BR_LINE
 
     if (!yyjson_mut_obj_add_str(doc, part_obj, "text", req->system_prompt)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_arr_add_val(parts_arr, part_obj)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, sys_obj, "parts", parts_arr)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "systemInstruction", sys_obj)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -91,7 +91,7 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
         // Add role
         const char *role_str = ik_google_role_to_string(msg->role);
         if (!yyjson_mut_obj_add_str(doc, content_obj, "role", role_str)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         // Determine if this is the first assistant message for thought signature
@@ -106,12 +106,12 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
         }
 
         if (!yyjson_mut_arr_add_val(contents_arr, content_obj)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "contents", contents_arr)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -147,11 +147,11 @@ static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
         if (!func_obj) return false; // LCOV_EXCL_BR_LINE
 
         if (!yyjson_mut_obj_add_str(doc, func_obj, "name", tool->name)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         if (!yyjson_mut_obj_add_str(doc, func_obj, "description", tool->description)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         // Parse parameters JSON string and add as object
@@ -167,24 +167,24 @@ static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
         yyjson_mut_obj_remove_key(params_mut, "additionalProperties");
 
         if (!yyjson_mut_obj_add_val(doc, func_obj, "parameters", params_mut)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         if (!yyjson_mut_arr_add_val(func_decls_arr, func_obj)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, tool_obj, "functionDeclarations", func_decls_arr)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_arr_add_val(tools_arr, tool_obj)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -228,15 +228,15 @@ static bool serialize_tool_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
     if (!func_config) return false; // LCOV_EXCL_BR_LINE
 
     if (!yyjson_mut_obj_add_str(doc, func_config, "mode", mode_str)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, tool_config, "functionCallingConfig", func_config)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "toolConfig", tool_config)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -267,7 +267,7 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
     // Add max tokens if specified
     if (need_max_tokens) {
         if (!yyjson_mut_obj_add_int(doc, gen_config, "maxOutputTokens", req->max_output_tokens)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
@@ -277,7 +277,7 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
         if (!thinking_config) return false; // LCOV_EXCL_BR_LINE
 
         if (!yyjson_mut_obj_add_bool(doc, thinking_config, "includeThoughts", true)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
 
         ik_gemini_series_t series = ik_google_model_series(req->model);
@@ -286,7 +286,7 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
             int32_t budget = ik_google_thinking_budget(req->model, req->thinking.level);
             if (budget >= 0) { // LCOV_EXCL_BR_LINE - budget is always >= 0 for IK_GEMINI_2_5
                 if (!yyjson_mut_obj_add_int(doc, thinking_config, "thinkingBudget", budget)) {
-                    return false; // LCOV_EXCL_BR_LINE
+                    return false; // LCOV_EXCL_LINE
                 }
             }
         } else if (series == IK_GEMINI_3) { // LCOV_EXCL_BR_LINE - else unreachable (supports_thinking ensures 2.5 or 3)
@@ -294,18 +294,18 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
             const char *level_str = ik_google_thinking_level_str(req->thinking.level);
             if (level_str != NULL) { // LCOV_EXCL_BR_LINE - NULL unreachable (need_thinking ensures level != NONE)
                 if (!yyjson_mut_obj_add_str(doc, thinking_config, "thinkingLevel", level_str)) {
-                    return false; // LCOV_EXCL_BR_LINE
+                    return false; // LCOV_EXCL_LINE
                 }
             }
         }
 
         if (!yyjson_mut_obj_add_val(doc, gen_config, "thinkingConfig", thinking_config)) { // LCOV_EXCL_BR_LINE
-            return false; // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "generationConfig", gen_config)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
