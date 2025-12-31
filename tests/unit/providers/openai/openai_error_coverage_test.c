@@ -333,6 +333,19 @@ START_TEST(test_retry_after_number_no_unit)
 END_TEST
 
 /**
+ * Test: Empty header array (just NULL terminator)
+ * Covers line 156: loop doesn't execute when first element is NULL
+ */
+START_TEST(test_retry_after_empty_array)
+{
+    const char *headers[] = {NULL};
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    ck_assert_int_eq(retry_after, -1);
+}
+END_TEST
+
+/**
  * Test: Header with mixed whitespace (spaces and tabs)
  * Covers line 163-165: while loop with both space and tab conditions
  */
@@ -423,6 +436,7 @@ static Suite *openai_error_coverage_suite(void)
     TCase *tc_retry = tcase_create("Retry After Coverage");
     tcase_set_timeout(tc_retry, 30);
     tcase_add_unchecked_fixture(tc_retry, setup, teardown);
+    tcase_add_test(tc_retry, test_retry_after_empty_array);
     tcase_add_test(tc_retry, test_retry_after_no_whitespace);
     tcase_add_test(tc_retry, test_retry_after_tokens_no_whitespace);
     tcase_add_test(tc_retry, test_retry_after_with_tab);
