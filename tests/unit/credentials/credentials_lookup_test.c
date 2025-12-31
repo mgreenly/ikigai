@@ -306,152 +306,38 @@ END_TEST START_TEST(test_json_root_not_object)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_json_missing_provider_objects)
+END_TEST START_TEST(test_json_malformed_credentials)
 {
-    /* Ensure no env vars interfere */
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    /* Create a file with valid JSON but missing provider objects */
-    const char *tmpfile = "/tmp/test_creds_missing_providers.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"other_field\":\"value\"}");
-    fclose(f);
-    chmod(tmpfile, 0600);
+    /* Test missing providers, non-object providers, missing/invalid api_keys */
+    const char *test_cases[][2] = {
+        {"/tmp/creds1.json", "{\"other\":\"value\"}"},  /* missing providers */
+        {"/tmp/creds2.json", "{\"openai\":\"str\",\"anthropic\":123,\"google\":[]}"},  /* not objects */
+        {"/tmp/creds3.json", "{\"openai\":{},\"anthropic\":{\"x\":1},\"google\":{}}"},  /* missing api_key */
+        {"/tmp/creds4.json", "{\"openai\":{\"api_key\":1},\"anthropic\":{\"api_key\":true},\"google\":{\"api_key\":null}}"},  /* not strings */
+        {"/tmp/creds5.json", "{\"openai\":{\"api_key\":\"\"},\"anthropic\":{\"api_key\":\"\"},\"google\":{\"api_key\":\"\"}}"},  /* empty */
+    };
 
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(creds);
+    for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+        FILE *f = fopen(test_cases[i][0], "w");
+        ck_assert_ptr_nonnull(f);
+        fprintf(f, "%s", test_cases[i][1]);
+        fclose(f);
+        chmod(test_cases[i][0], 0600);
 
-    /* All credentials should be NULL */
-    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
+        ik_credentials_t *creds = NULL;
+        res_t result = ik_credentials_load(test_ctx, test_cases[i][0], &creds);
+        ck_assert(is_ok(&result));
+        ck_assert_ptr_nonnull(creds);
+        ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
+        ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
+        ck_assert_ptr_null(ik_credentials_get(creds, "google"));
 
-    unlink(tmpfile);
-}
-
-END_TEST START_TEST(test_json_provider_not_object)
-{
-    /* Ensure no env vars interfere */
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    /* Create a file where provider fields are not objects */
-    const char *tmpfile = "/tmp/test_creds_provider_string.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai\":\"not_an_object\","
-               "\"anthropic\":123,"
-               "\"google\":[]}");
-    fclose(f);
-    chmod(tmpfile, 0600);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(creds);
-
-    /* All credentials should be NULL since providers aren't objects */
-    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
-
-    unlink(tmpfile);
-}
-
-END_TEST START_TEST(test_json_missing_api_key_field)
-{
-    /* Ensure no env vars interfere */
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    /* Create a file with provider objects but missing api_key fields */
-    const char *tmpfile = "/tmp/test_creds_no_api_key.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai\":{\"other\":\"field\"},"
-               "\"anthropic\":{\"foo\":\"bar\"},"
-               "\"google\":{}}");
-    fclose(f);
-    chmod(tmpfile, 0600);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(creds);
-
-    /* All credentials should be NULL */
-    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
-
-    unlink(tmpfile);
-}
-
-END_TEST START_TEST(test_json_api_key_not_string)
-{
-    /* Ensure no env vars interfere */
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    /* Create a file where api_key fields are not strings */
-    const char *tmpfile = "/tmp/test_creds_api_key_number.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai\":{\"api_key\":123},"
-               "\"anthropic\":{\"api_key\":true},"
-               "\"google\":{\"api_key\":null}}");
-    fclose(f);
-    chmod(tmpfile, 0600);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(creds);
-
-    /* All credentials should be NULL since api_keys aren't strings */
-    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
-
-    unlink(tmpfile);
-}
-
-END_TEST START_TEST(test_json_empty_api_key)
-{
-    /* Ensure no env vars interfere */
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-
-    /* Create a file with empty string api_keys */
-    const char *tmpfile = "/tmp/test_creds_empty_keys.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai\":{\"api_key\":\"\"},"
-               "\"anthropic\":{\"api_key\":\"\"},"
-               "\"google\":{\"api_key\":\"\"}}");
-    fclose(f);
-    chmod(tmpfile, 0600);
-
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(creds);
-
-    /* All credentials should be NULL since empty strings are ignored */
-    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
-    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
-
-    unlink(tmpfile);
+        unlink(test_cases[i][0]);
+    }
 }
 
 END_TEST START_TEST(test_tilde_expansion_no_home)
@@ -568,11 +454,7 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_file_based_credentials);
     tcase_add_test(tc_core, test_invalid_json_file);
     tcase_add_test(tc_core, test_json_root_not_object);
-    tcase_add_test(tc_core, test_json_missing_provider_objects);
-    tcase_add_test(tc_core, test_json_provider_not_object);
-    tcase_add_test(tc_core, test_json_missing_api_key_field);
-    tcase_add_test(tc_core, test_json_api_key_not_string);
-    tcase_add_test(tc_core, test_json_empty_api_key);
+    tcase_add_test(tc_core, test_json_malformed_credentials);
     tcase_add_test(tc_core, test_tilde_expansion_no_home);
     tcase_add_test(tc_core, test_empty_env_var_ignored);
     tcase_add_test(tc_core, test_env_var_without_file_credentials);
