@@ -193,6 +193,23 @@ START_TEST(test_handle_error_code_no_match)
 END_TEST
 
 /**
+ * Test: Both code and type are NULL (neither field present)
+ * Covers line 43-44: is_content_filter(NULL) returning false
+ */
+START_TEST(test_handle_error_both_null_for_content_filter)
+{
+    // JSON with error object but neither code nor type
+    const char *json = "{\"error\": {\"message\": \"Error\"}}";
+    ik_error_category_t category;
+
+    res_t r = ik_openai_handle_error(test_ctx, 400, json, &category);
+    ck_assert(!is_err(&r));
+    // Should use status-based category (400 -> INVALID_ARG)
+    ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
+}
+END_TEST
+
+/**
  * Test: Both headers present, requests is valid but tokens is invalid
  * Covers line 180-186: reset_requests >= 0 && reset_tokens >= 0 is false
  */
@@ -262,6 +279,42 @@ START_TEST(test_retry_after_non_matching_header)
 }
 END_TEST
 
+/**
+ * Test: Both headers with equal values
+ * Covers line 181: ternary operator when reset_requests >= reset_tokens
+ */
+START_TEST(test_retry_after_equal_values)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: 30s",
+        "x-ratelimit-reset-tokens: 30s",
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // When equal, should return reset_tokens (the second operand of ternary)
+    ck_assert_int_eq(retry_after, 30);
+}
+END_TEST
+
+/**
+ * Test: Requests header greater than tokens
+ * Covers line 181: ternary operator false branch (reset_requests >= reset_tokens)
+ */
+START_TEST(test_retry_after_requests_greater_than_tokens)
+{
+    const char *headers[] = {
+        "x-ratelimit-reset-requests: 90s",
+        "x-ratelimit-reset-tokens: 30s",
+        NULL
+    };
+
+    int32_t retry_after = ik_openai_get_retry_after(headers);
+    // Should return the minimum (tokens)
+    ck_assert_int_eq(retry_after, 30);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -279,6 +332,7 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_handle, test_handle_error_code_null_ternary);
     tcase_add_test(tc_handle, test_handle_error_content_filter_type_only);
     tcase_add_test(tc_handle, test_handle_error_code_no_match);
+    tcase_add_test(tc_handle, test_handle_error_both_null_for_content_filter);
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
@@ -292,6 +346,8 @@ static Suite *openai_error_coverage_suite(void)
     tcase_add_test(tc_retry, test_retry_after_requests_invalid_tokens_valid);
     tcase_add_test(tc_retry, test_retry_after_minutes_unit);
     tcase_add_test(tc_retry, test_retry_after_non_matching_header);
+    tcase_add_test(tc_retry, test_retry_after_equal_values);
+    tcase_add_test(tc_retry, test_retry_after_requests_greater_than_tokens);
     suite_add_tcase(s, tc_retry);
 
     return s;
