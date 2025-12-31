@@ -480,6 +480,67 @@ END_TEST START_TEST(test_tilde_expansion_no_home)
     }
 }
 
+END_TEST START_TEST(test_empty_env_var_ignored)
+{
+    /* Set env vars to empty strings - should be treated as unset */
+    setenv("OPENAI_API_KEY", "", 1);
+    setenv("ANTHROPIC_API_KEY", "", 1);
+    setenv("GOOGLE_API_KEY", "", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, "/tmp/nonexistent.json", &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    /* Empty env vars should be ignored, credentials should be NULL */
+    ck_assert_ptr_null(ik_credentials_get(creds, "openai"));
+    ck_assert_ptr_null(ik_credentials_get(creds, "anthropic"));
+    ck_assert_ptr_null(ik_credentials_get(creds, "google"));
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+}
+
+END_TEST START_TEST(test_env_var_without_file_credentials)
+{
+    /* Create a file with empty provider objects (no api_key fields) */
+    const char *tmpfile = "/tmp/test_creds_empty_providers.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"openai\":{},\"anthropic\":{},\"google\":{}}");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    /* Set env vars - these provide credentials when file doesn't */
+    setenv("OPENAI_API_KEY", "env-only-openai", 1);
+    setenv("ANTHROPIC_API_KEY", "env-only-anthropic", 1);
+    setenv("GOOGLE_API_KEY", "env-only-google", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    /* Verify env vars were used (no file credentials to free) */
+    const char *openai_key = ik_credentials_get(creds, "openai");
+    ck_assert_ptr_nonnull(openai_key);
+    ck_assert_str_eq(openai_key, "env-only-openai");
+
+    const char *anthropic_key = ik_credentials_get(creds, "anthropic");
+    ck_assert_ptr_nonnull(anthropic_key);
+    ck_assert_str_eq(anthropic_key, "env-only-anthropic");
+
+    const char *google_key = ik_credentials_get(creds, "google");
+    ck_assert_ptr_nonnull(google_key);
+    ck_assert_str_eq(google_key, "env-only-google");
+
+    unsetenv("OPENAI_API_KEY");
+    unsetenv("ANTHROPIC_API_KEY");
+    unsetenv("GOOGLE_API_KEY");
+    unlink(tmpfile);
+}
+
 END_TEST
 
 /**
@@ -513,6 +574,8 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_json_api_key_not_string);
     tcase_add_test(tc_core, test_json_empty_api_key);
     tcase_add_test(tc_core, test_tilde_expansion_no_home);
+    tcase_add_test(tc_core, test_empty_env_var_ignored);
+    tcase_add_test(tc_core, test_env_var_without_file_credentials);
     suite_add_tcase(s, tc_core);
 
     return s;
