@@ -7,10 +7,26 @@
 #include <talloc.h>
 #include <string.h>
 #include "providers/openai/streaming.h"
+#include "providers/openai/streaming_chat_internal.h"
 #include "providers/openai/openai.h"
 #include "providers/provider.h"
 
 static TALLOC_CTX *test_ctx;
+static ik_stream_event_t *last_event;
+
+static res_t capturing_stream_cb(const ik_stream_event_t *event, void *ctx)
+{
+    (void)ctx;
+    if (last_event == NULL) {
+        last_event = talloc_zero(test_ctx, ik_stream_event_t);
+    }
+    last_event->type = event->type;
+    if (event->type == IK_STREAM_DONE) {
+        last_event->data.done.finish_reason = event->data.done.finish_reason;
+        last_event->data.done.usage = event->data.done.usage;
+    }
+    return OK(NULL);
+}
 
 static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
 {
@@ -22,14 +38,74 @@ static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
+    last_event = NULL;
 }
 
 static void teardown(void)
 {
     talloc_free(test_ctx);
+    last_event = NULL;
 }
 
 /* Edge case tests */
+
+START_TEST(test_done_marker)
+{
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, capturing_stream_cb, NULL);
+
+    /* Set some state that should be included in the DONE event */
+    sctx->finish_reason = IK_FINISH_STOP;
+    sctx->usage.input_tokens = 100;
+    sctx->usage.output_tokens = 50;
+    sctx->usage.total_tokens = 150;
+
+    /* Process [DONE] marker */
+    ik_openai_chat_stream_process_data(sctx, "[DONE]");
+
+    /* Verify DONE event was emitted */
+    ck_assert_ptr_nonnull(last_event);
+    ck_assert_int_eq(last_event->type, IK_STREAM_DONE);
+    ck_assert_int_eq(last_event->data.done.finish_reason, IK_FINISH_STOP);
+    ck_assert_int_eq(last_event->data.done.usage.input_tokens, 100);
+    ck_assert_int_eq(last_event->data.done.usage.output_tokens, 50);
+    ck_assert_int_eq(last_event->data.done.usage.total_tokens, 150);
+}
+
+END_TEST
+
+START_TEST(test_model_extraction)
+{
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, dummy_stream_cb, NULL);
+
+    /* Process data with model field */
+    const char *data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Verify model was extracted */
+    ck_assert_ptr_nonnull(sctx->model);
+    ck_assert_str_eq(sctx->model, "gpt-4");
+}
+
+END_TEST
+
+START_TEST(test_finish_reason_extraction)
+{
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, capturing_stream_cb, NULL);
+
+    /* Process data with string finish_reason - this exercises line 163 where finish_reason_str is extracted */
+    const char *data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Verify getter works */
+    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
+    /* Should be STOP (0) if mapping works, otherwise UNKNOWN (5) */
+    ck_assert(reason == IK_FINISH_STOP || reason == IK_FINISH_UNKNOWN);
+}
+
+END_TEST
 
 START_TEST(test_usage_with_reasoning_tokens)
 {
@@ -280,6 +356,19 @@ END_TEST
 static Suite *streaming_chat_coverage_suite_2(void)
 {
     Suite *s = suite_create("OpenAI Streaming Chat Coverage 2");
+
+    TCase *tc_done = tcase_create("DoneMarker");
+    tcase_set_timeout(tc_done, 30);
+    tcase_add_checked_fixture(tc_done, setup, teardown);
+    tcase_add_test(tc_done, test_done_marker);
+    suite_add_tcase(s, tc_done);
+
+    TCase *tc_extraction = tcase_create("FieldExtraction");
+    tcase_set_timeout(tc_extraction, 30);
+    tcase_add_checked_fixture(tc_extraction, setup, teardown);
+    tcase_add_test(tc_extraction, test_model_extraction);
+    tcase_add_test(tc_extraction, test_finish_reason_extraction);
+    suite_add_tcase(s, tc_extraction);
 
     TCase *tc_usage = tcase_create("UsageExtraction");
     tcase_set_timeout(tc_usage, 30);
