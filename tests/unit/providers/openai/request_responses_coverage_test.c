@@ -360,6 +360,30 @@ START_TEST(test_valid_reasoning_effort) {
 END_TEST
 
 /* ================================================================
+ * NULL Model Test
+ * ================================================================ */
+
+START_TEST(test_null_model) {
+	ik_request_t *req = NULL;
+	res_t create_result = ik_request_create(test_ctx, "o1", &req);
+	ck_assert(!is_err(&create_result));
+
+	ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+	// Set model to NULL to trigger validation error
+	req->model = NULL;
+
+	char *json = NULL;
+	res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+	// Should fail with ERR_INVALID_ARG error
+	ck_assert(is_err(&result));
+	ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+}
+
+END_TEST
+
+/* ================================================================
  * Build URL Test
  * ================================================================ */
 
@@ -412,6 +436,12 @@ static Suite *request_responses_coverage_suite(void)
 	tcase_add_test(tc_fields, test_max_output_tokens);
 	tcase_add_test(tc_fields, test_streaming);
 	suite_add_tcase(s, tc_fields);
+
+	TCase *tc_validation = tcase_create("Validation");
+	tcase_set_timeout(tc_validation, 30);
+	tcase_add_checked_fixture(tc_validation, request_responses_setup, request_responses_teardown);
+	tcase_add_test(tc_validation, test_null_model);
+	suite_add_tcase(s, tc_validation);
 
 	TCase *tc_url = tcase_create("URL Building");
 	tcase_set_timeout(tc_url, 30);
