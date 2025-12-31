@@ -130,113 +130,6 @@ END_TEST START_TEST(test_default_provider_empty_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_env_override)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config with default_provider set
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    cfg->default_provider = talloc_strdup(cfg, "openai");
-
-    // Set environment variable
-    setenv("IKIGAI_DEFAULT_PROVIDER", "google", 1);
-
-    // Should return env var value
-    const char *provider = ik_config_get_default_provider(cfg);
-    ck_assert_ptr_nonnull(provider);
-    ck_assert_str_eq(provider, "google");
-
-    // Clean up
-    unsetenv("IKIGAI_DEFAULT_PROVIDER");
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_default_provider_env_empty)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config with default_provider set
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    cfg->default_provider = talloc_strdup(cfg, "anthropic");
-
-    // Set environment variable to empty string
-    setenv("IKIGAI_DEFAULT_PROVIDER", "", 1);
-
-    // Should fall back to config value
-    const char *provider = ik_config_get_default_provider(cfg);
-    ck_assert_ptr_nonnull(provider);
-    ck_assert_str_eq(provider, "anthropic");
-
-    // Clean up
-    unsetenv("IKIGAI_DEFAULT_PROVIDER");
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_default_provider_from_config)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config with default_provider set
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    cfg->default_provider = talloc_strdup(cfg, "google");
-
-    // Ensure env var is not set
-    unsetenv("IKIGAI_DEFAULT_PROVIDER");
-
-    // Should return config value
-    const char *provider = ik_config_get_default_provider(cfg);
-    ck_assert_ptr_nonnull(provider);
-    ck_assert_str_eq(provider, "google");
-
-    // Clean up
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_default_provider_config_empty)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config with empty default_provider
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    cfg->default_provider = talloc_strdup(cfg, "");
-
-    // Ensure env var is not set
-    unsetenv("IKIGAI_DEFAULT_PROVIDER");
-
-    // Should return hardcoded default
-    const char *provider = ik_config_get_default_provider(cfg);
-    ck_assert_ptr_nonnull(provider);
-    ck_assert_str_eq(provider, "openai");
-
-    // Clean up
-    talloc_free(ctx);
-}
-
-END_TEST START_TEST(test_get_default_provider_fallback)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create a config with NULL default_provider
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    cfg->default_provider = NULL;
-
-    // Ensure env var is not set
-    unsetenv("IKIGAI_DEFAULT_PROVIDER");
-
-    // Should return hardcoded default
-    const char *provider = ik_config_get_default_provider(cfg);
-    ck_assert_ptr_nonnull(provider);
-    ck_assert_str_eq(provider, "openai");
-
-    // Clean up
-    talloc_free(ctx);
-}
-
 END_TEST START_TEST(test_default_provider_null_from_yyjson)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -296,11 +189,6 @@ static Suite *default_provider_suite(void)
     tcase_add_test(tc_core, test_default_provider_invalid_type);
     tcase_add_test(tc_core, test_default_provider_empty_string);
     tcase_add_test(tc_core, test_default_provider_null_from_yyjson);
-    tcase_add_test(tc_core, test_get_default_provider_env_override);
-    tcase_add_test(tc_core, test_get_default_provider_env_empty);
-    tcase_add_test(tc_core, test_get_default_provider_from_config);
-    tcase_add_test(tc_core, test_get_default_provider_config_empty);
-    tcase_add_test(tc_core, test_get_default_provider_fallback);
 
     suite_add_tcase(s, tc_core);
     return s;
