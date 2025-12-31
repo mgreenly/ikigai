@@ -81,11 +81,15 @@ static void process_error(ik_google_stream_ctx_t *sctx, yyjson_val *error_obj)
 
     // Extract message
     const char *message = "Unknown error"; // LCOV_EXCL_BR_LINE (compiler artifact from yyjson_obj_get on next line)
+    char *message_copy = NULL; // LCOV_EXCL_BR_LINE (unexecutable initialization)
     yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
     if (msg_val != NULL) {
         const char *msg_str = yyjson_get_str(msg_val);
         if (msg_str != NULL) {
-            message = msg_str;
+            // Copy message before doc is freed
+            message_copy = talloc_strdup(sctx, msg_str);
+            if (message_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            message = message_copy;
         }
     }
 
@@ -105,6 +109,10 @@ static void process_error(ik_google_stream_ctx_t *sctx, yyjson_val *error_obj)
         .data.error.message = message
     };
     sctx->user_cb(&event, sctx->user_ctx);
+
+    // message_copy is parented to sctx - it will be freed when sctx is freed
+    // Do not free it here as callbacks may store a reference to the message
+    (void)message_copy;
 }
 
 /**

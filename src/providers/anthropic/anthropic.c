@@ -303,6 +303,7 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
     char *body = NULL;
     r = ik_anthropic_serialize_request_stream(active_stream, req, &body);
     if (is_err(&r)) {
+        talloc_steal(impl_ctx, r.err);
         talloc_free(active_stream);
         return r;
     }

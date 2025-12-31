@@ -340,18 +340,25 @@ res_t ik_google_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char
     yyjson_doc *sig_doc = NULL;
     const char *thought_sig = ik_google_find_latest_thought_signature(req, &sig_doc);
 
-    // Serialize components
-    bool success = true;
-    success = success && serialize_system_instruction(doc, root, req); // LCOV_EXCL_BR_LINE
-    success = success && serialize_contents(doc, root, req, thought_sig); // LCOV_EXCL_BR_LINE
-    success = success && serialize_tools(doc, root, req); // LCOV_EXCL_BR_LINE
-    success = success && serialize_tool_config(doc, root, req); // LCOV_EXCL_BR_LINE
-    success = success && serialize_generation_config(doc, root, req); // LCOV_EXCL_BR_LINE
+    // Copy thought signature before freeing doc
+    char *thought_sig_copy = NULL;
+    if (thought_sig != NULL) {
+        thought_sig_copy = talloc_strdup(ctx, thought_sig);
+        if (thought_sig_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
 
     // Free thought signature doc if allocated
     if (sig_doc != NULL) {
         yyjson_doc_free(sig_doc); // LCOV_EXCL_BR_LINE - vendor lib internal check
     }
+
+    // Serialize components
+    bool success = true;
+    success = success && serialize_system_instruction(doc, root, req); // LCOV_EXCL_BR_LINE
+    success = success && serialize_contents(doc, root, req, thought_sig_copy); // LCOV_EXCL_BR_LINE
+    success = success && serialize_tools(doc, root, req); // LCOV_EXCL_BR_LINE
+    success = success && serialize_tool_config(doc, root, req); // LCOV_EXCL_BR_LINE
+    success = success && serialize_generation_config(doc, root, req); // LCOV_EXCL_BR_LINE
 
     if (!success) {
         yyjson_mut_doc_free(doc);

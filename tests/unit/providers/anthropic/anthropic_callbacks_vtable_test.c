@@ -9,6 +9,7 @@
 #include "providers/anthropic/anthropic.h"
 #include "providers/anthropic/anthropic_internal.h"
 #include "providers/common/http_multi.h"
+#include "providers/common/http_multi_internal.h"
 #include "providers/common/sse_parser.h"
 #include "wrapper.h"
 #include "wrapper_internal.h"
@@ -40,8 +41,8 @@ typedef struct {
 // Mock for ik_http_multi_create_
 res_t ik_http_multi_create_(void *parent, void **out)
 {
-    // Success case - create a dummy http_multi
-    void *http_multi = talloc_zero_(parent, 1);  // Minimal allocation
+    // Success case - create a properly-sized http_multi
+    ik_http_multi_t *http_multi = talloc_zero(parent, ik_http_multi_t);
     *out = http_multi;
     return OK(http_multi);
 }
