@@ -238,6 +238,109 @@ START_TEST(test_delta_arguments_empty_string)
 
 END_TEST
 
+START_TEST(test_delta_no_content_field)
+{
+    /* Line 86: content_val == NULL (no content field) */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Send delta without content field */
+    const char *data = "{\"choices\":[{\"delta\":{}}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Should not crash or emit events */
+    ck_assert_int_eq((int)events->count, 0);
+}
+
+END_TEST
+
+START_TEST(test_delta_same_tool_call_index)
+{
+    /* Line 121: tc_index == sctx->tool_call_index (same index, not new tool call) */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Start a tool call with index 0 */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    size_t count_after_start = events->count;
+
+    /* Send another delta with same index 0 (continuation, not new call) */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{}\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should emit arguments delta but not another START */
+    ck_assert_int_gt((int)events->count, (int)count_after_start);
+
+    /* Count START events - should only be 1 */
+    size_t start_count = 0;
+    for (size_t i = 0; i < events->count; i++) {
+        if (events->items[i].type == IK_STREAM_TOOL_CALL_START) {
+            start_count++;
+        }
+    }
+    ck_assert_int_eq((int)start_count, 1);
+}
+
+END_TEST
+
+START_TEST(test_delta_function_not_object_on_arguments)
+{
+    /* Line 162: function_val is not an object when checking arguments */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Send delta with function as non-object */
+    const char *data = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":\"not_object\"}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+
+    /* Should not crash */
+    ck_assert_int_eq((int)events->count, 0);
+}
+
+END_TEST
+
+START_TEST(test_delta_new_tool_call_missing_id)
+{
+    /* Line 126: new tool call (different index) but id_val is NULL */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* First, start a tool call at index 0 */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc0\",\"function\":{\"name\":\"test0\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Now send a new tool call at index 1 but without id field */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"test1\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should emit first tool call start but not second */
+    ck_assert_int_ge((int)events->count, 1);
+}
+
+END_TEST
+
+START_TEST(test_delta_new_tool_call_missing_name)
+{
+    /* Line 131: new tool call but name field doesn't exist in function */
+    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* First, start a tool call at index 0 */
+    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc0\",\"function\":{\"name\":\"test0\"}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data1);
+
+    /* Now send a new tool call at index 1 with id but function has no name field */
+    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{}}]}}]}";
+    ik_openai_chat_stream_process_data(sctx, data2);
+
+    /* Should emit first tool call start but not second */
+    ck_assert_int_ge((int)events->count, 1);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -256,6 +359,11 @@ static Suite *streaming_chat_delta_edge_suite(void)
     tcase_add_test(tc_arguments, test_delta_tool_call_id_not_string);
     tcase_add_test(tc_arguments, test_delta_tool_call_name_not_string);
     tcase_add_test(tc_arguments, test_delta_arguments_empty_string);
+    tcase_add_test(tc_arguments, test_delta_no_content_field);
+    tcase_add_test(tc_arguments, test_delta_same_tool_call_index);
+    tcase_add_test(tc_arguments, test_delta_function_not_object_on_arguments);
+    tcase_add_test(tc_arguments, test_delta_new_tool_call_missing_id);
+    tcase_add_test(tc_arguments, test_delta_new_tool_call_missing_name);
     suite_add_tcase(s, tc_arguments);
 
     return s;
