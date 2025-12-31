@@ -37,189 +37,99 @@ static void teardown(void)
  * Branch Coverage Tests
  * ================================================================ */
 
-/**
- * Test: error field exists but is not an object
- * Covers line 103: error_val != NULL && yyjson_is_obj(error_val) false branch
- */
+/* Test: error field type variations - line 103 branches */
 START_TEST(test_error_not_object)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Error field is a string, not an object */
-    const char *data = "{\"error\":\"string error\"}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit error event since error is not an object */
+    ik_openai_chat_stream_process_data(sctx, "{\"error\":\"string error\"}");
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
-/**
- * Test: error field is an array, not an object
- * Covers line 103: another false branch case
- */
 START_TEST(test_error_is_array)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Error field is an array, not an object */
-    const char *data = "{\"error\":[\"error1\", \"error2\"]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit error event since error is not an object */
+    ik_openai_chat_stream_process_data(sctx, "{\"error\":[\"error1\", \"error2\"]}");
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
-/**
- * Test: error field is null
- * Covers line 103: error_val != NULL false branch
- */
 START_TEST(test_error_is_null)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Error field is explicitly null */
-    const char *data = "{\"error\":null}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should not emit error event */
+    ik_openai_chat_stream_process_data(sctx, "{\"error\":null}");
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
-/**
- * Test: choices field is null
- * Covers line 151: choices_val != NULL false branch
- */
+/* Test: null field variations */
 START_TEST(test_choices_is_null)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    const char *data = "{\"choices\":null}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Should handle gracefully */
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":null}");
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
-/**
- * Test: usage field is null
- * Covers line 175: usage_val != NULL false branch
- */
 START_TEST(test_usage_is_null)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    const char *data = "{\"usage\":null}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
+    ik_openai_chat_stream_process_data(sctx, "{\"usage\":null}");
     ik_usage_t usage = ik_openai_chat_stream_get_usage(sctx);
     ck_assert_int_eq(usage.input_tokens, 0);
 }
-
 END_TEST
 
-/**
- * Test: finish_reason field is null
- * Covers line 162: finish_reason_val != NULL false branch
- */
 START_TEST(test_finish_reason_is_null)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
     const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}";
     ik_openai_chat_stream_process_data(sctx, data);
-
-    /* finish_reason should remain UNKNOWN */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
+    ck_assert_int_eq(ik_openai_chat_stream_get_finish_reason(sctx), IK_FINISH_UNKNOWN);
 }
-
 END_TEST
 
-/**
- * Test: delta without finish_reason field at all
- * Covers line 160: yyjson_obj_get returns NULL when field doesn't exist
- */
 START_TEST(test_delta_without_finish_reason_field)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* finish_reason should remain UNKNOWN */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
+    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
+    ck_assert_int_eq(ik_openai_chat_stream_get_finish_reason(sctx), IK_FINISH_UNKNOWN);
 }
-
 END_TEST
 
-/**
- * Test: [DONE] marker triggers DONE event
- * Covers line 72: strcmp(data, "[DONE]") == 0 true branch
- */
+/* Test: special data cases */
 START_TEST(test_done_marker)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Send [DONE] marker */
     ik_openai_chat_stream_process_data(sctx, "[DONE]");
-
-    /* Should emit DONE event */
     ck_assert_int_eq(event_count, 1);
 }
-
 END_TEST
 
-/**
- * Test: malformed JSON is silently ignored
- * Covers line 90: doc == NULL branch
- */
 START_TEST(test_malformed_json)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Send malformed JSON */
     ik_openai_chat_stream_process_data(sctx, "{invalid json}");
-
-    /* Should not emit any events */
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
-/**
- * Test: root is not an object (array instead)
- * Covers line 96: !yyjson_is_obj(root) branch
- */
 START_TEST(test_root_is_array)
 {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
-
-    /* Send JSON array instead of object */
     ik_openai_chat_stream_process_data(sctx, "[1, 2, 3]");
-
-    /* Should not emit any events */
     ck_assert_int_eq(event_count, 0);
 }
-
 END_TEST
 
 /**
@@ -456,6 +366,32 @@ START_TEST(test_edge_cases)
 
 END_TEST
 
+/**
+ * Test: additional edge cases for rare branches
+ * Covers remaining uncovered branches (line 162 branch 2)
+ */
+START_TEST(test_additional_edge_cases)
+{
+    ik_openai_chat_stream_ctx_t *sctx;
+
+    /* Root is null (degenerate JSON case) */
+    event_count = 0;
+    sctx = ik_openai_chat_stream_ctx_create(test_ctx, dummy_stream_cb, NULL);
+    ik_openai_chat_stream_process_data(sctx, "null");
+    ck_assert_int_eq(event_count, 0);
+
+    /* Choices array with valid string finish_reason - exercises line 162 branch 2 */
+    event_count = 0;
+    sctx = ik_openai_chat_stream_ctx_create(test_ctx, dummy_stream_cb, NULL);
+    const char *data = "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
+    ik_openai_chat_stream_process_data(sctx, data);
+    /* Should extract finish_reason successfully */
+    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
+    ck_assert_int_eq(reason, IK_FINISH_STOP);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -485,6 +421,7 @@ static Suite *streaming_chat_branch_coverage_suite(void)
     tcase_add_test(tc_branches, test_field_type_mismatches);
     tcase_add_test(tc_branches, test_usage_invalid_types);
     tcase_add_test(tc_branches, test_edge_cases);
+    tcase_add_test(tc_branches, test_additional_edge_cases);
     suite_add_tcase(s, tc_branches);
 
     return s;
