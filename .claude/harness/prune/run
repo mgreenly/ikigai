@@ -36,7 +36,10 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 FIX_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "fix-tests.prompt.md"
+CREATE_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "create-helper.prompt.md"
+REFACTOR_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-test.prompt.md"
 FALSE_POSITIVES_FILE = PROJECT_ROOT / ".claude" / "data" / "dead-code-false-positives.txt"
+TEST_HELPERS_DIR = PROJECT_ROOT / "tests" / "helpers"
 DEFAULT_TIMEOUT = 600
 
 
@@ -222,6 +225,32 @@ def build_fix_tests_prompt(function: str, test_file: str, tests_to_delete: list[
     return prompt
 
 
+def build_create_helper_prompt(function: str, source_file: str) -> str:
+    """Build prompt to create a test helper from removed function."""
+    if not CREATE_HELPER_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {CREATE_HELPER_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = CREATE_HELPER_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", function)
+    prompt = prompt.replace("{{source_file}}", source_file)
+    prompt = prompt.replace("{{helpers_dir}}", str(TEST_HELPERS_DIR))
+    return prompt
+
+
+def build_refactor_test_prompt(function: str, test_file: str, helper_header: str) -> str:
+    """Build prompt to refactor test to use helper instead of removed function."""
+    if not REFACTOR_TEST_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {REFACTOR_TEST_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = REFACTOR_TEST_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", function)
+    prompt = template.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{helper_header}}", helper_header)
+    return prompt
+
+
 def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
     """
     Invoke Claude CLI with the prompt via stdin.
@@ -334,6 +363,13 @@ def finalize_removal(function: str, modified_files: set[str]) -> None:
 
 def find_broken_tests() -> list[str]:
     """Run make build-tests and find which test files fail to compile/link."""
+    log("Cleaning test build cache...")
+    spinner = Spinner("Cleaning")
+    spinner.start()
+    # Remove test object files to force full rebuild
+    run_cmd(["rm", "-rf", "build/tests"])
+    spinner.stop()
+
     log("Finding broken tests...")
     spinner = Spinner("Compiling tests")
     spinner.start()
@@ -526,18 +562,47 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
             test_files_deleted.append(test_file)
             continue
 
-        # Partial: some tests use function, others don't - need LLM
-        log(f"  Partial ({tests_using}/{total_tests}) - using LLM to remove specific tests")
+        # Partial: some tests use function, others don't
+        # Create a test helper and refactor the tests to use it
+        log(f"  Partial ({tests_using}/{total_tests}) - creating test helper")
 
         file_fixed = False
         files_before_fix = git_get_modified_files()
+        helper_header = f"tests/helpers/{function}.h"
 
+        # Step 1: Create the test helper (if not already created for another test file)
+        if not Path(helper_header).exists():
+            for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+                log(f"  Creating helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+
+                prompt = build_create_helper_prompt(function, file)
+                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+                if not success:
+                    log(f"  LLM invocation failed: {error}")
+                    continue
+
+                if Path(helper_header).exists():
+                    log(f"  Created: {helper_header}")
+                    break
+
+                log(f"  Helper not created - reverting")
+                files_after_fix = git_get_modified_files()
+                for f in files_after_fix - files_before_fix:
+                    run_cmd(["git", "checkout", f])
+            else:
+                log(f"  FAILED: Could not create helper")
+                all_tests_fixed = False
+                break
+
+        # Step 2: Refactor the test to use the helper
+        files_before_refactor = git_get_modified_files()
         for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
             model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-            log(f"  Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+            log(f"  Refactoring test attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
 
-            # Build prompt for this specific file and tests
-            prompt = build_fix_tests_prompt(function, test_file, test_names)
+            prompt = build_refactor_test_prompt(function, test_file, helper_header)
             success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
             if not success:
@@ -546,20 +611,19 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
             # Verify this specific test file compiles and passes
             if build_single_test(test_file) and run_single_test(test_file):
-                log(f"  Fixed: {test_file}")
+                log(f"  Refactored: {test_file}")
                 test_files_modified.append(test_file)
                 final_model_name = model_name
                 file_fixed = True
                 break
 
             log(f"  Still failing - reverting")
-            # Revert changes to this file only
-            files_after_fix = git_get_modified_files()
-            for f in files_after_fix - files_before_fix:
+            files_after_refactor = git_get_modified_files()
+            for f in files_after_refactor - files_before_refactor:
                 run_cmd(["git", "checkout", f])
 
         if not file_fixed:
-            log(f"  FAILED: Could not fix {test_file}")
+            log(f"  FAILED: Could not refactor {test_file}")
             all_tests_fixed = False
             break
 
