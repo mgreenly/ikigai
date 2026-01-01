@@ -70,35 +70,3 @@ res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *bod
     yyjson_doc_free(doc);
     return OK(NULL);
 }
-
-int32_t ik_anthropic_get_retry_after(const char **headers)
-{
-    if (headers == NULL) {
-        return -1;
-    }
-
-    // Scan headers for "retry-after: N" (case-insensitive)
-    for (size_t i = 0; headers[i] != NULL; i++) {
-        const char *header = headers[i];
-
-        // Check if header starts with "retry-after:" (case-insensitive)
-        if (strncasecmp(header, "retry-after:", 12) == 0) {
-            // Skip "retry-after:" prefix and whitespace
-            const char *value = header + 12;
-            while (*value == ' ' || *value == '\t') {
-                value++;
-            }
-
-            // Parse integer value
-            char *endptr;
-            long parsed = strtol(value, &endptr, 10);
-
-            // Validate: must have parsed some digits and result is positive
-            if (endptr != value && parsed > 0) {
-                return (int32_t)parsed;
-            }
-        }
-    }
-
-    return -1;
-}

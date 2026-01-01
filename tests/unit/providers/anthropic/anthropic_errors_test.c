@@ -420,113 +420,6 @@ END_TEST
  * Retry-After Header Tests
  * ================================================================ */
 
-START_TEST(test_retry_after_found) {
-    const char *headers[] = {
-        "content-type: application/json",
-        "retry-after: 60",
-        "anthropic-ratelimit-requests-remaining: 0",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, 60);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_missing) {
-    const char *headers[] = {
-        "content-type: application/json",
-        "anthropic-ratelimit-requests-remaining: 0",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_null_headers) {
-    int32_t retry_after = ik_anthropic_get_retry_after(NULL);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_case_insensitive) {
-    const char *headers[] = {
-        "Retry-After: 120",
-        "RETRY-AFTER: 240",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, 120);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_with_whitespace) {
-    const char *headers[] = {
-        "retry-after:   \t  300",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, 300);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_invalid_value) {
-    const char *headers[] = {
-        "retry-after: not-a-number",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_negative_value) {
-    const char *headers[] = {
-        "retry-after: -5",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_zero_value) {
-    const char *headers[] = {
-        "retry-after: 0",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_empty_value) {
-    const char *headers[] = {
-        "retry-after: ",
-        NULL
-    };
-
-    int32_t retry_after = ik_anthropic_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -561,20 +454,6 @@ static Suite *anthropic_errors_suite(void)
     tcase_add_test(tc_errors, test_handle_error_with_reversed_field_order);
     tcase_add_test(tc_errors, test_handle_error_with_many_fields);
     suite_add_tcase(s, tc_errors);
-
-    TCase *tc_retry = tcase_create("Retry-After Headers");
-    tcase_set_timeout(tc_retry, 30);
-    tcase_add_unchecked_fixture(tc_retry, setup, teardown);
-    tcase_add_test(tc_retry, test_retry_after_found);
-    tcase_add_test(tc_retry, test_retry_after_missing);
-    tcase_add_test(tc_retry, test_retry_after_null_headers);
-    tcase_add_test(tc_retry, test_retry_after_case_insensitive);
-    tcase_add_test(tc_retry, test_retry_after_with_whitespace);
-    tcase_add_test(tc_retry, test_retry_after_invalid_value);
-    tcase_add_test(tc_retry, test_retry_after_negative_value);
-    tcase_add_test(tc_retry, test_retry_after_zero_value);
-    tcase_add_test(tc_retry, test_retry_after_empty_value);
-    suite_add_tcase(s, tc_retry);
 
     return s;
 }

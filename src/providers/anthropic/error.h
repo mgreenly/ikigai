@@ -42,15 +42,4 @@
 res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
                                  ik_error_category_t *out_category);
 
-/**
- * Extract retry-after header value
- *
- * @param headers NULL-terminated array of header strings
- * @return        Retry delay in seconds, or -1 if not present
- *
- * Searches for "retry-after: N" header (case-insensitive).
- * Returns parsed integer value or -1 if header not found.
- */
-int32_t ik_anthropic_get_retry_after(const char **headers);
-
 #endif /* IK_PROVIDERS_ANTHROPIC_ERROR_H */
