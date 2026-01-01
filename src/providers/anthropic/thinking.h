@@ -44,19 +44,4 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
  */
 bool ik_anthropic_supports_thinking(const char *model);
 
-/**
- * Validate thinking level for model
- *
- * @param ctx   Talloc context for error allocation
- * @param model Model identifier
- * @param level Thinking level to validate
- * @return      OK if valid, ERR with message if invalid
- *
- * Validation rules:
- * - Claude models: All levels valid (NONE/LOW/MED/HIGH)
- * - Non-Claude models: Only NONE is valid
- * - NULL model: ERR(INVALID_ARG)
- */
-res_t ik_anthropic_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level);
-
 #endif /* IK_PROVIDERS_ANTHROPIC_THINKING_H */

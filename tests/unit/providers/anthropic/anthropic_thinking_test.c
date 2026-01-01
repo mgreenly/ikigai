@@ -184,65 +184,6 @@ END_TEST
  * Thinking Validation Tests
  * ================================================================ */
 
-START_TEST(test_validate_thinking_null_model) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, NULL, IK_THINKING_LOW);
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_none_always_valid) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "any-model", IK_THINKING_NONE);
-    ck_assert(!is_err(&result));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_non_claude_low) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_LOW);
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_non_claude_med) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_MED);
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_non_claude_high) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_HIGH);
-    ck_assert(is_err(&result));
-    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_claude_low) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_LOW);
-    ck_assert(!is_err(&result));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_claude_med) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_MED);
-    ck_assert(!is_err(&result));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_claude_high) {
-    res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_HIGH);
-    ck_assert(!is_err(&result));
-}
-
-END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -295,19 +236,6 @@ static Suite *anthropic_thinking_suite(void)
     tcase_add_test(tc_budget_non_claude, test_thinking_budget_non_claude);
     tcase_add_test(tc_budget_non_claude, test_thinking_budget_null_model);
     suite_add_tcase(s, tc_budget_non_claude);
-
-    TCase *tc_validate = tcase_create("Thinking Validation");
-    tcase_set_timeout(tc_validate, 30);
-    tcase_add_unchecked_fixture(tc_validate, setup, teardown);
-    tcase_add_test(tc_validate, test_validate_thinking_null_model);
-    tcase_add_test(tc_validate, test_validate_thinking_none_always_valid);
-    tcase_add_test(tc_validate, test_validate_thinking_non_claude_low);
-    tcase_add_test(tc_validate, test_validate_thinking_non_claude_med);
-    tcase_add_test(tc_validate, test_validate_thinking_non_claude_high);
-    tcase_add_test(tc_validate, test_validate_thinking_claude_low);
-    tcase_add_test(tc_validate, test_validate_thinking_claude_med);
-    tcase_add_test(tc_validate, test_validate_thinking_claude_high);
-    suite_add_tcase(s, tc_validate);
 
     return s;
 }

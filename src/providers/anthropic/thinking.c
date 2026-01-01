@@ -83,26 +83,3 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
     }
 }
 
-res_t ik_anthropic_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-
-    if (model == NULL) {
-        return ERR(ctx, INVALID_ARG, "Model cannot be NULL");
-    }
-
-    // NONE is always valid for any model
-    if (level == IK_THINKING_NONE) {
-        return OK(NULL);
-    }
-
-    // Non-NONE levels require thinking support
-    if (!ik_anthropic_supports_thinking(model)) {
-        return ERR(ctx, INVALID_ARG,
-                   "Model '%s' does not support Anthropic thinking (only Claude models support thinking)",
-                   model);
-    }
-
-    // All Claude models support all thinking levels
-    return OK(NULL);
-}
