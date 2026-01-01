@@ -537,7 +537,9 @@ def find_tests_using_function(function: str) -> list[str]:
     # Filter to only .c files
     result = sorted([f for f in stdout.strip().split('\n') if f.endswith('.c')])
     if result:
-        log(f"Tests using function: {', '.join(result)}")
+        log(f"Tests using function ({len(result)} file(s)):")
+        for test_file in result:
+            log(f"  - {test_file}")
     return result
 
 
