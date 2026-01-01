@@ -132,6 +132,33 @@ START_TEST(test_serialize_request_max_tokens_exceeds_budget) {
 
 END_TEST
 
+START_TEST(test_serialize_request_message_with_invalid_tool_call_json) {
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(req, "claude-3-5-sonnet-20241022");
+    req->max_output_tokens = 1024;
+    req->thinking.level = IK_THINKING_NONE;
+
+    // Add a message with a tool_call content block containing invalid JSON
+    req->message_count = 1;
+    req->messages = talloc_array(req, ik_message_t, 1);
+    req->messages[0].role = IK_ROLE_ASSISTANT;
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks = talloc_array(req, ik_content_block_t, 1);
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    req->messages[0].content_blocks[0].data.tool_call.id = talloc_strdup(req, "call_123");
+    req->messages[0].content_blocks[0].data.tool_call.name = talloc_strdup(req, "test_tool");
+    req->messages[0].content_blocks[0].data.tool_call.arguments = talloc_strdup(req, "{invalid json}");
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    // Should fail because of invalid JSON in tool_call arguments
+    ck_assert(is_err(&r));
+    ck_assert_str_eq(r.err->msg, "Failed to serialize messages");
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -146,6 +173,7 @@ static Suite *anthropic_request_suite_2(void)
     tcase_add_test(tc_branch, test_serialize_request_no_stream);
     tcase_add_test(tc_branch, test_serialize_request_thinking_budget_negative);
     tcase_add_test(tc_branch, test_serialize_request_max_tokens_exceeds_budget);
+    tcase_add_test(tc_branch, test_serialize_request_message_with_invalid_tool_call_json);
     suite_add_tcase(s, tc_branch);
 
     return s;
