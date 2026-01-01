@@ -361,42 +361,28 @@ def finalize_removal(function: str, modified_files: set[str]) -> None:
         log(f"Finalized: {file_path}")
 
 
-def find_broken_tests() -> list[str]:
-    """Run make build-tests and find which test files fail to compile/link."""
-    log("Cleaning test build cache...")
-    spinner = Spinner("Cleaning")
+def find_tests_using_function(function: str) -> list[str]:
+    """Find all test files that reference the function using grep."""
+    log(f"Searching for tests using {function}...")
+    spinner = Spinner("Searching")
     spinner.start()
-    # Remove test object files to force full rebuild
-    run_cmd(["rm", "-rf", "build/tests"])
+
+    # Grep for function calls in test files
+    code, stdout, _ = run_cmd([
+        "grep", "-rl",
+        f"\\b{function}\\s*(",
+        "tests/"
+    ])
     spinner.stop()
 
-    log("Finding broken tests...")
-    spinner = Spinner("Compiling tests")
-    spinner.start()
-    code, stdout, stderr = run_cmd(["make", "build-tests"])
-    spinner.stop()
-
-    if code == 0:
-        log("All tests compile")
+    if code != 0 or not stdout.strip():
+        log("No tests use this function")
         return []
 
-    # Parse compile/link errors to find affected test files
-    # Compile error format: tests/unit/foo/bar_test.c:123:45: error: ...
-    # Link error format: /full/path/tests/unit/foo/bar_test.c:123: undefined reference to ...
-    broken = set()
-    import re
-    for line in (stdout + stderr).split('\n'):
-        # Look for .c files in tests/ directory with error indicators
-        if 'error:' in line or 'undefined reference' in line:
-            # Extract test file path - could be relative or absolute
-            match = re.search(r'(/?(?:[^/:]*/)*(tests/[^:]+\.c))', line)
-            if match:
-                test_file = match.group(2)  # Get just the tests/... part
-                broken.add(test_file)
-
-    result = sorted(broken)
+    # Filter to only .c files
+    result = sorted([f for f in stdout.strip().split('\n') if f.endswith('.c')])
     if result:
-        log(f"Broken tests: {', '.join(result)}")
+        log(f"Tests using function: {', '.join(result)}")
     return result
 
 
@@ -525,8 +511,8 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         record_false_positive(function)
         return False, "false positive"
 
-    # Find tests that fail to compile after function removal
-    broken_tests = find_broken_tests()
+    # Find tests that use the removed function
+    broken_tests = find_tests_using_function(function)
     if not broken_tests:
         # No tests broken - finalize and commit
         log("Finalizing: deleting commented code")
