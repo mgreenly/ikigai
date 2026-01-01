@@ -10,11 +10,13 @@ Remove `{{function}}` from `{{file}}` (line {{line}}).
 
 1. Read the file and locate the function
 2. Delete the function and any preceding doc comment
-3. If the header declares it, remove that too
-4. Do NOT remove other functions or includes
+3. If the header declares it, remove the declaration too
 
-## If Tests Fail
+## Rules
 
-If removing this function breaks tests, those tests are also dead code. Remove or fix them.
+- ONLY modify `{{file}}` and its corresponding header (if any)
+- Do NOT modify test files
+- Do NOT modify other source files
+- Do NOT remove other functions or includes
 
-The harness will verify build and tests after you finish.
+The harness verifies build and tests after you finish.
