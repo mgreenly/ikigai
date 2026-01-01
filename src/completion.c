@@ -194,6 +194,33 @@ ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
     return comp;
 }
 
+void ik_completion_clear(ik_completion_t *completion)
+{
+    assert(completion != NULL);     // LCOV_EXCL_BR_LINE
+
+    // Reset all state fields to indicate no active completion
+    completion->count = 0;
+    completion->current = 0;
+
+    // Free and clear candidate array
+    if (completion->candidates != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(completion->candidates);
+        completion->candidates = NULL;
+    }
+
+    // Free and clear prefix
+    if (completion->prefix != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(completion->prefix);
+        completion->prefix = NULL;
+    }
+
+    // Free and clear original_input if it exists
+    if (completion->original_input != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(completion->original_input);
+        completion->original_input = NULL;
+    }
+}
+
 const char *ik_completion_get_current(const ik_completion_t *comp)
 {
     assert(comp != NULL);  // LCOV_EXCL_BR_LINE
@@ -222,6 +249,24 @@ void ik_completion_prev(ik_completion_t *comp)
     } else {
         comp->current--;
     }
+}
+
+bool ik_completion_matches_prefix(const ik_completion_t *comp,
+                                  const char *current_input)
+{
+    assert(comp != NULL);          // LCOV_EXCL_BR_LINE
+    assert(current_input != NULL); // LCOV_EXCL_BR_LINE
+
+    size_t prefix_len = strlen(comp->prefix);
+    size_t input_len = strlen(current_input);
+
+    // Current input must be at least as long as the prefix
+    if (input_len < prefix_len) {     // LCOV_EXCL_BR_LINE
+        return false;
+    }
+
+    // Check if current input starts with the stored prefix
+    return strncmp(current_input, comp->prefix, prefix_len) == 0;     // LCOV_EXCL_BR_LINE
 }
 
 ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,

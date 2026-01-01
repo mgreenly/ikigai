@@ -166,6 +166,35 @@ START_TEST(test_clear_no_color)
 }
 
 END_TEST
+// Test: colors disabled - no escape sequences in output
+START_TEST(test_colors_disabled)
+{
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    // Initialize ANSI with NO_COLOR set
+    setenv("NO_COLOR", "1", 1);
+    ik_ansi_init();
+
+    res_t result = ik_event_render(scrollback, "assistant", "Response text", NULL);
+    ck_assert(!is_err(&result));
+
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
+
+    // Verify no ANSI escape sequences when colors are disabled
+    ck_assert_ptr_null(strstr(text, "\x1b["));
+    ck_assert_mem_eq(text, "Response text", 13);
+
+    // Clean up
+    unsetenv("NO_COLOR");
+    ik_ansi_init();
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: verify scrollback line contains expected escape sequences
 START_TEST(test_scrollback_contains_escapes)
 {
@@ -211,6 +240,7 @@ static Suite *event_render_styling_suite(void)
     tcase_add_test(tc_colors, test_mark_no_color);
     tcase_add_test(tc_colors, test_rewind_no_color);
     tcase_add_test(tc_colors, test_clear_no_color);
+    tcase_add_test(tc_colors, test_colors_disabled);
     tcase_add_test(tc_colors, test_scrollback_contains_escapes);
     suite_add_tcase(s, tc_colors);
 

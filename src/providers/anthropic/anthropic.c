@@ -34,25 +34,18 @@ typedef struct {
 
 static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
                               fd_set *exc_fds, int *max_fd);
-#if 0  // dead code: anthropic_perform
 static res_t anthropic_perform(void *ctx, int *running_handles);
-#endif
 static res_t anthropic_timeout(void *ctx, long *timeout_ms);
-#if 0  // dead code: anthropic_info_read
 static void anthropic_info_read(void *ctx, ik_logger_t *logger);
-#endif
-#if 0  // dead code: anthropic_start_request
 static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
                                       ik_provider_completion_cb_t completion_cb,
                                       void *completion_ctx);
-#endif
 static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
                                      ik_stream_cb_t stream_cb, void *stream_ctx,
                                      ik_provider_completion_cb_t completion_cb,
                                      void *completion_ctx);
-#if 0  // dead code: anthropic_cleanup
 static void anthropic_cleanup(void *ctx);
-#endif
+static void anthropic_cancel(void *ctx);
 
 /* ================================================================
  * Vtable
@@ -66,6 +59,7 @@ static const ik_provider_vtable_t ANTHROPIC_VTABLE = {
     .start_request = anthropic_start_request,
     .start_stream = anthropic_start_stream,
     .cleanup = anthropic_cleanup,
+    .cancel = anthropic_cancel,
 };
 
 /* ================================================================
@@ -169,7 +163,6 @@ void ik_anthropic_stream_completion_cb(const ik_http_completion_t *completion, v
  * Vtable Method Implementations
  * ================================================================ */
 
-#if 0  // dead code: anthropic_fdset
 static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
                               fd_set *exc_fds, int *max_fd)
 {
@@ -182,9 +175,7 @@ static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
     return ik_http_multi_fdset(impl_ctx->http_multi, read_fds, write_fds, exc_fds, max_fd);
 }
-#endif
 
-#if 0  // dead code: anthropic_perform
 static res_t anthropic_perform(void *ctx, int *running_handles)
 {
     assert(ctx != NULL);              // LCOV_EXCL_BR_LINE
@@ -193,7 +184,6 @@ static res_t anthropic_perform(void *ctx, int *running_handles)
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
     return ik_http_multi_perform(impl_ctx->http_multi, running_handles);
 }
-#endif
 
 static res_t anthropic_timeout(void *ctx, long *timeout_ms)
 {
@@ -204,7 +194,6 @@ static res_t anthropic_timeout(void *ctx, long *timeout_ms)
     return ik_http_multi_timeout(impl_ctx->http_multi, timeout_ms);
 }
 
-#if 0  // dead code: anthropic_info_read
 static void anthropic_info_read(void *ctx, ik_logger_t *logger)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -262,9 +251,7 @@ static void anthropic_info_read(void *ctx, ik_logger_t *logger)
         impl_ctx->active_stream = NULL;
     }
 }
-#endif
 
-#if 0  // dead code: anthropic_start_request
 static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
                                       ik_provider_completion_cb_t completion_cb,
                                       void *completion_ctx)
@@ -276,7 +263,6 @@ static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
     // Delegate to response module (non-streaming)
     return ik_anthropic_start_request(ctx, req, completion_cb, completion_ctx);
 }
-#endif
 
 static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
                                      ik_stream_cb_t stream_cb, void *stream_ctx,
@@ -356,7 +342,6 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
     return OK(NULL);
 }
 
-#if 0  // dead code: anthropic_cleanup
 static void anthropic_cleanup(void *ctx)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -364,5 +349,15 @@ static void anthropic_cleanup(void *ctx)
     // talloc handles cleanup automatically since http_multi is a child of impl_ctx
     (void)ctx;
 }
-#endif
 
+static void anthropic_cancel(void *ctx)
+{
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+
+    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
+
+    // Clear active stream (no malloc in signal handler)
+    if (impl_ctx->active_stream != NULL) {
+        impl_ctx->active_stream->completed = true;
+    }
+}

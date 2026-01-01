@@ -192,6 +192,51 @@ START_TEST(test_completion_empty_command_name)
 }
 
 END_TEST
+// Test: Clear completion state
+START_TEST(test_completion_clear)
+{
+    // Create a completion with multiple candidates
+    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
+    ck_assert_ptr_nonnull(comp);
+    ck_assert_uint_ge(comp->count, 2);
+    ck_assert_ptr_nonnull(comp->candidates);
+    ck_assert_ptr_nonnull(comp->prefix);
+
+    // Clear the completion
+    ik_completion_clear(comp);
+
+    // Verify all state is cleared
+    ck_assert_uint_eq(comp->count, 0);
+    ck_assert_uint_eq(comp->current, 0);
+    ck_assert_ptr_null(comp->candidates);
+    ck_assert_ptr_null(comp->prefix);
+    ck_assert_ptr_null(comp->original_input);
+}
+
+END_TEST
+// Test: Clear completion with original_input set
+START_TEST(test_completion_clear_with_original_input)
+{
+    // Create a completion and set original_input
+    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
+    ck_assert_ptr_nonnull(comp);
+
+    // Manually set original_input (this would normally be set during completion cycling)
+    comp->original_input = talloc_strdup(comp, "/m");
+    ck_assert_ptr_nonnull(comp->original_input);
+
+    // Clear the completion
+    ik_completion_clear(comp);
+
+    // Verify all state is cleared, including original_input
+    ck_assert_uint_eq(comp->count, 0);
+    ck_assert_uint_eq(comp->current, 0);
+    ck_assert_ptr_null(comp->candidates);
+    ck_assert_ptr_null(comp->prefix);
+    ck_assert_ptr_null(comp->original_input);
+}
+
+END_TEST
 
 static Suite *completion_matching_args_suite(void)
 {
@@ -210,6 +255,10 @@ static Suite *completion_matching_args_suite(void)
     tcase_add_test(tc, test_completion_argument_case_sensitive);
     tcase_add_test(tc, test_completion_no_space_in_input);
     tcase_add_test(tc, test_completion_empty_command_name);
+
+    // Completion clear tests
+    tcase_add_test(tc, test_completion_clear);
+    tcase_add_test(tc, test_completion_clear_with_original_input);
 
     suite_add_tcase(s, tc);
     return s;

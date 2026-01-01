@@ -69,6 +69,27 @@ size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color)
 // Global color state
 static bool g_colors_enabled = true;
 
+void ik_ansi_init(void)
+{
+    // Start with colors enabled
+    g_colors_enabled = true;
+
+    // Check NO_COLOR environment variable
+    // According to https://no-color.org/, any value (including empty) means disable
+    const char *no_color = getenv("NO_COLOR");
+    if (no_color != NULL) {
+        g_colors_enabled = false;
+        return;
+    }
+
+    // Check TERM environment variable
+    const char *term = getenv("TERM");
+    if (term != NULL && strcmp(term, "dumb") == 0) {
+        g_colors_enabled = false;
+        return;
+    }
+}
+
 bool ik_ansi_colors_enabled(void)
 {
     return g_colors_enabled;
