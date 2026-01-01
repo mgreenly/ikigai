@@ -14,31 +14,6 @@
 #include "providers/provider.h"
 
 /**
- * Parse Anthropic JSON response to internal format
- *
- * @param ctx      Talloc context for response allocation
- * @param json     JSON string from Anthropic API
- * @param json_len Length of JSON string
- * @param out_resp Output: parsed response (allocated on ctx)
- * @return         OK with response, ERR on parse error
- *
- * Extracts:
- * - Model name
- * - Stop reason (mapped to finish reason)
- * - Content blocks (text, thinking, tool_use)
- * - Usage statistics (input/output/thinking/cached tokens)
- *
- * Returns ERR(PARSE) if:
- * - JSON is invalid
- * - Root is not an object
- *
- * Returns ERR(PROVIDER) if:
- * - Response type is "error"
- */
-res_t ik_anthropic_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len,
-                                   ik_response_t **out_resp);
-
-/**
  * Map Anthropic stop_reason to internal finish reason
  *
  * @param stop_reason Anthropic stop_reason string (may be NULL)

@@ -22,90 +22,6 @@ static void teardown(void)
 }
 
 /* ================================================================
- * Additional Response Parsing Coverage Tests
- * ================================================================ */
-
-START_TEST(test_parse_response_null_fields) {
-    const char *jsons[] = {
-        "{\"type\":null,\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
-        "{\"type\":\"message\",\"model\":null,\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
-        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":null,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
-        "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":123,\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}"
-    };
-    for (size_t i = 0; i < 4; i++) {
-        ik_response_t *resp = NULL;
-        res_t r = ik_anthropic_parse_response(test_ctx, jsons[i], strlen(jsons[i]), &resp);
-        ck_assert(!is_err(&r));
-        ck_assert_ptr_nonnull(resp);
-        talloc_free(resp);
-    }
-}
-END_TEST
-
-START_TEST(test_parse_response_errors) {
-    const char *jsons[] = {
-        "{\"type\":\"error\",\"model\":\"claude\"}",
-        "{\"type\":\"error\",\"error\":{\"message\":null}}",
-        "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":null}}",
-        "{\"type\":\"error\",\"error\":{\"type\":\"server_error\",\"message\":\"Error occurred\"}}",
-        "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\"}}"
-    };
-    for (size_t i = 0; i < 5; i++) {
-        ik_response_t *resp = NULL;
-        res_t r = ik_anthropic_parse_response(test_ctx, jsons[i], strlen(jsons[i]), &resp);
-        ck_assert(is_err(&r));
-    }
-}
-END_TEST
-
-START_TEST(test_parse_response_type_mismatches) {
-    // Fields with wrong types (covers yyjson_get_str returning NULL)
-    struct { const char *json; bool should_error; } cases[] = {
-        {"{\"type\":\"message\",\"model\":123,\"usage\":{},\"content\":[]}", false},
-        {"{\"type\":\"message\",\"stop_reason\":true,\"usage\":{}}", false},
-        {"{\"type\":\"error\",\"error\":{\"message\":789}}", true}
-    };
-    for (size_t i = 0; i < 3; i++) {
-        ik_response_t *resp = NULL;
-        res_t r = ik_anthropic_parse_response(test_ctx, cases[i].json, strlen(cases[i].json), &resp);
-        ck_assert(cases[i].should_error == is_err(&r));
-        if (!cases[i].should_error) talloc_free(resp);
-    }
-}
-
-END_TEST
-
-START_TEST(test_parse_response_edge_cases) {
-    struct { const char *json; bool should_error; } cases[] = {
-        {
-            "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":\"not array\"}",
-            false
-        },
-        {"{ invalid json }", true},
-        {"[1, 2, 3]", true},
-        {
-            "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}",
-            true
-        },
-        {"{\"type\":\"message\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false},
-        {"{\"type\":\"message\",\"model\":\"claude\",\"usage\":{},\"content\":[]}", false},
-        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false},
-        {"{\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false}
-    };
-    for (size_t i = 0; i < 8; i++) {
-        ik_response_t *resp = NULL;
-        res_t r = ik_anthropic_parse_response(test_ctx, cases[i].json, strlen(cases[i].json), &resp);
-        if (cases[i].should_error) {
-            ck_assert(is_err(&r));
-        } else {
-            ck_assert(!is_err(&r));
-            talloc_free(resp);
-        }
-    }
-}
-END_TEST
-
-/* ================================================================
  * Finish Reason Mapping Coverage Tests
  * ================================================================ */
 
@@ -178,15 +94,6 @@ END_TEST
 static Suite *anthropic_response_coverage_suite(void)
 {
     Suite *s = suite_create("Anthropic Response Coverage");
-
-    TCase *tc_parse = tcase_create("Response Parsing Coverage");
-    tcase_set_timeout(tc_parse, 30);
-    tcase_add_unchecked_fixture(tc_parse, setup, teardown);
-    tcase_add_test(tc_parse, test_parse_response_null_fields);
-    tcase_add_test(tc_parse, test_parse_response_errors);
-    tcase_add_test(tc_parse, test_parse_response_type_mismatches);
-    tcase_add_test(tc_parse, test_parse_response_edge_cases);
-    suite_add_tcase(s, tc_parse);
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
     tcase_set_timeout(tc_finish, 30);
