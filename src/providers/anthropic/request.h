@@ -45,20 +45,4 @@ res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, c
  */
 res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json);
 
-/**
- * Build HTTP headers for Anthropic API
- *
- * @param ctx        Talloc context for header allocation
- * @param api_key    API key for x-api-key header
- * @param out_headers Output: NULL-terminated array of header strings
- * @return           OK with headers, ERR on failure
- *
- * Returns array of 4 strings:
- * - "x-api-key: <api_key>"
- * - "anthropic-version: 2023-06-01"
- * - "content-type: application/json"
- * - NULL
- */
-res_t ik_anthropic_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_headers);
-
 #endif /* IK_PROVIDERS_ANTHROPIC_REQUEST_H */

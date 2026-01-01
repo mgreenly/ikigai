@@ -236,32 +236,3 @@ res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t 
 {
     return serialize_request_internal(ctx, req, true, out_json);
 }
-
-res_t ik_anthropic_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_headers)
-{
-    assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
-    assert(api_key != NULL);    // LCOV_EXCL_BR_LINE
-    assert(out_headers != NULL); // LCOV_EXCL_BR_LINE
-
-    // Allocate array of 4 strings (3 headers + NULL)
-    char **headers = talloc_array(ctx, char *, 4);
-    if (!headers) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // Build x-api-key header
-    headers[0] = talloc_asprintf(headers, "x-api-key: %s", api_key);
-    if (!headers[0]) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // Build anthropic-version header
-    headers[1] = talloc_strdup(headers, "anthropic-version: 2023-06-01");
-    if (!headers[1]) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // Build content-type header
-    headers[2] = talloc_strdup(headers, "content-type: application/json");
-    if (!headers[2]) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // NULL terminator
-    headers[3] = NULL;
-
-    *out_headers = headers;
-    return OK(headers);
-}

@@ -237,32 +237,6 @@ END_TEST
  * Header Building Tests
  * ================================================================ */
 
-START_TEST(test_build_headers) {
-    char **headers = NULL;
-    res_t r = ik_anthropic_build_headers(test_ctx, "test-api-key", &headers);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(headers);
-
-    // Check all 3 headers
-    ck_assert_str_eq(headers[0], "x-api-key: test-api-key");
-    ck_assert_str_eq(headers[1], "anthropic-version: 2023-06-01");
-    ck_assert_str_eq(headers[2], "content-type: application/json");
-    ck_assert_ptr_null(headers[3]);
-}
-
-END_TEST
-
-START_TEST(test_build_headers_different_key) {
-    char **headers = NULL;
-    res_t r = ik_anthropic_build_headers(test_ctx, "another-key", &headers);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(headers);
-    ck_assert_str_eq(headers[0], "x-api-key: another-key");
-}
-
-END_TEST
 /* ================================================================
  * Error Case Tests
  * ================================================================ */
@@ -322,13 +296,6 @@ static Suite *anthropic_request_suite_4(void)
     tcase_add_test(tc_tools, test_tool_choice_required);
     tcase_add_test(tc_tools, test_tool_choice_default);
     suite_add_tcase(s, tc_tools);
-
-    TCase *tc_headers = tcase_create("Header Building");
-    tcase_set_timeout(tc_headers, 30);
-    tcase_add_unchecked_fixture(tc_headers, setup, teardown);
-    tcase_add_test(tc_headers, test_build_headers);
-    tcase_add_test(tc_headers, test_build_headers_different_key);
-    suite_add_tcase(s, tc_headers);
 
     TCase *tc_errors = tcase_create("Error Cases");
     tcase_set_timeout(tc_errors, 30);

@@ -191,33 +191,6 @@ START_TEST(test_build_request_without_optional_fields) {
 
 END_TEST
 
-START_TEST(test_verify_correct_headers) {
-    const char *api_key = "sk-ant-test-key-12345";
-    char **headers = NULL;
-
-    res_t r = ik_anthropic_build_headers(test_ctx, api_key, &headers);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(headers);
-
-    // Verify headers (exact format may vary, but should contain key components)
-    bool has_api_key = false;
-    bool has_version = false;
-    bool has_content_type = false;
-
-    for (int i = 0; headers[i] != NULL; i++) {
-        if (strstr(headers[i], "x-api-key:") != NULL) has_api_key = true;
-        if (strstr(headers[i], "anthropic-version:") != NULL) has_version = true;
-        if (strstr(headers[i], "content-type:") != NULL) has_content_type = true;
-    }
-
-    ck_assert(has_api_key);
-    ck_assert(has_version);
-    ck_assert(has_content_type);
-}
-
-END_TEST
-
 START_TEST(test_verify_json_structure_matches_api_spec) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
@@ -264,7 +237,6 @@ static Suite *anthropic_client_suite(void)
     tcase_add_test(tc_request, test_build_request_with_thinking_budget);
     tcase_add_test(tc_request, test_build_request_with_tool_definitions);
     tcase_add_test(tc_request, test_build_request_without_optional_fields);
-    tcase_add_test(tc_request, test_verify_correct_headers);
     tcase_add_test(tc_request, test_verify_json_structure_matches_api_spec);
     suite_add_tcase(s, tc_request);
 
