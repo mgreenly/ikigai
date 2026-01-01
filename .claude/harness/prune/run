@@ -118,8 +118,9 @@ def git_get_modified_files() -> set[str]:
     """Get set of currently modified/untracked files."""
     code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
     files = set()
-    for line in stdout.strip().split('\n'):
-        if line.strip():
+    for line in stdout.split('\n'):
+        if len(line) >= 4:  # XY + space + at least 1 char filename
+            # Format: XY PATH or XY ORIG -> PATH (for renames)
             parts = line[3:].split(' -> ')
             files.add(parts[-1])
     return files
