@@ -35,6 +35,7 @@ TEST_FIX_LADDER = {
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+ANALYZE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-tests.prompt.md"
 DELETE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-tests.prompt.md"
 REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
 JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
@@ -198,6 +199,45 @@ def build_prompt(template_path: Path, candidate: dict) -> str:
     prompt = template.replace("{{file}}", candidate["file"])
     prompt = prompt.replace("{{line}}", candidate["line"])
     return prompt
+
+
+def build_analyze_tests_prompt(function: str, test_file: str, tests_to_analyze: list[str]) -> str:
+    """Build prompt to analyze which tests are testing vs using the function."""
+    if not ANALYZE_TESTS_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {ANALYZE_TESTS_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = ANALYZE_TESTS_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", function)
+    prompt = prompt.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{tests_to_analyze}}", "\n".join(f"- {t}" for t in tests_to_analyze))
+    return prompt
+
+
+def parse_analyze_output(output: str) -> tuple[list[str], list[str]]:
+    """
+    Parse the analyze-tests output.
+    Returns (testing_list, using_list).
+    """
+    testing = []
+    using = []
+    current_section = None
+
+    for line in output.split('\n'):
+        line = line.strip()
+        if line.upper().startswith('TESTING:'):
+            current_section = 'testing'
+        elif line.upper().startswith('USING:'):
+            current_section = 'using'
+        elif line.startswith('- ') and current_section:
+            test_name = line[2:].strip()
+            if test_name:
+                if current_section == 'testing':
+                    testing.append(test_name)
+                else:
+                    using.append(test_name)
+
+    return testing, using
 
 
 def build_delete_tests_prompt(function: str, test_file: str, tests_to_delete: list[str]) -> str:
@@ -631,45 +671,70 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
             continue
 
         # Partial: some tests use function, others don't
-        # Try deletion first, then refactor, then justify helper
-        log(f"  Partial ({tests_using}/{total_tests}) - trying deletion first")
+        # First analyze which tests are TESTING vs USING the function
+        log(f"  Partial ({tests_using}/{total_tests}) - analyzing test purposes")
 
         file_fixed = False
 
-        # Step 1: Try deleting just the tests that use the function
-        log(f"  Step 1: Delete tests that use {function}")
-        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-            log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+        # Step 1: Analyze which tests are testing the function vs using it
+        log(f"  Step 1: Analyze which tests are TESTING vs USING {function}")
+        model, thinking_budget, model_name = TEST_FIX_LADDER[1]  # sonnet:think for analysis
+        prompt = build_analyze_tests_prompt(function, test_file, test_names)
+        success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
 
-            prompt = build_delete_tests_prompt(function, test_file, test_names)
-            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+        if not success:
+            log(f"    LLM invocation failed: {error}")
+            log(f"  SKIPPED - could not analyze tests")
+            all_tests_fixed = False
+            break
 
-            if not success:
-                log(f"    LLM invocation failed: {error}")
-                continue
+        tests_testing, tests_using_func = parse_analyze_output(output)
+        log(f"    TESTING ({len(tests_testing)}): {', '.join(tests_testing) if tests_testing else 'none'}")
+        log(f"    USING ({len(tests_using_func)}): {', '.join(tests_using_func) if tests_using_func else 'none'}")
 
-            # Verify the test file still compiles and passes
-            if build_single_test(test_file) and run_single_test(test_file):
-                log(f"    Deleted tests from: {test_file}")
-                test_files_modified.append(test_file)
-                final_model_name = model_name
-                file_fixed = True
-                break
+        # Step 2: Delete tests that are TESTING the function (if any)
+        if tests_testing:
+            log(f"  Step 2: Delete {len(tests_testing)} tests that TEST {function}")
+            for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+                log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
 
-            log(f"    Still failing - reverting")
-            git_revert()
+                prompt = build_delete_tests_prompt(function, test_file, tests_testing)
+                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+                if not success:
+                    log(f"    LLM invocation failed: {error}")
+                    continue
+
+                # Verify the test file still compiles and passes
+                if build_single_test(test_file) and run_single_test(test_file):
+                    log(f"    Deleted {len(tests_testing)} tests from: {test_file}")
+                    test_files_modified.append(test_file)
+                    final_model_name = model_name
+                    # If no USING tests remain, we're done with this file
+                    if not tests_using_func:
+                        file_fixed = True
+                    break
+
+                log(f"    Still failing - reverting")
+                git_revert()
 
         if file_fixed:
             continue
 
-        # Step 2: Try refactoring tests to not call the function
-        log(f"  Step 2: Refactor tests to remove {function} calls")
+        # If no USING tests, but deletion failed, skip
+        if not tests_using_func:
+            log(f"  SKIPPED - deletion failed and no USING tests to refactor")
+            all_tests_fixed = False
+            break
+
+        # Step 3: Try refactoring USING tests to not call the function
+        log(f"  Step 3: Refactor {len(tests_using_func)} tests to remove {function} calls")
         for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
             model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
             log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
 
-            prompt = build_refactor_remove_call_prompt(function, test_file, test_names)
+            prompt = build_refactor_remove_call_prompt(function, test_file, tests_using_func)
             success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
             if not success:
@@ -690,8 +755,8 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         if file_fixed:
             continue
 
-        # Step 3: Ask for justification before creating helper
-        log(f"  Step 3: Checking if helper is justified")
+        # Step 4: Ask for justification before creating helper
+        log(f"  Step 4: Checking if helper is justified for USING tests")
         model, thinking_budget, model_name = TEST_FIX_LADDER[1]  # Use sonnet:think for analysis
         prompt = build_justify_helper_prompt(function, test_file)
         success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
@@ -708,12 +773,12 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
         if decision != "APPROVE":
             # No justification for helper - skip this candidate
-            log(f"  SKIPPED - no justification for helper (tests should be deleted)")
+            log(f"  SKIPPED - no justification for helper")
             all_tests_fixed = False
             break
 
-        # Step 4: Helper is justified - create it and refactor
-        log(f"  Step 4: Creating justified helper")
+        # Step 5: Helper is justified - create it and refactor
+        log(f"  Step 5: Creating justified helper")
         helper_header = f"tests/helpers/{function}.h"
 
         if not Path(helper_header).exists():
@@ -739,7 +804,7 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                 all_tests_fixed = False
                 break
 
-        # Refactor the test to use the helper
+        # Refactor the USING tests to use the helper
         for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
             model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
             log(f"    Refactoring to use helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
