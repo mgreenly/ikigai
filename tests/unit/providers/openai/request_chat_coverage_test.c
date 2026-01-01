@@ -64,9 +64,7 @@ static void add_message(ik_request_t *req, ik_role_t role, const char *text)
     req->messages[idx].content_blocks[0].data.text.text = talloc_strdup(ctx, text);
 }
 
-/**
- * Test: Serialize request with tools to cover tool serialization branches
- */
+/* Test: Serialize request with tools */
 START_TEST(test_serialize_with_tools) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
@@ -93,9 +91,7 @@ START_TEST(test_serialize_with_tools) {
 
 END_TEST
 
-/**
- * Test: Serialize with tool_choice_mode = 1 (IK_TOOL_NONE) to cover line 100
- */
+/* Test: tool_choice_mode = 1 (IK_TOOL_NONE) */
 START_TEST(test_tool_choice_none) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
@@ -114,9 +110,7 @@ START_TEST(test_tool_choice_none) {
 
 END_TEST
 
-/**
- * Test: Serialize with tool_choice_mode = 2 (IK_TOOL_REQUIRED) to cover line 106
- */
+/* Test: tool_choice_mode = 2 (IK_TOOL_REQUIRED) */
 START_TEST(test_tool_choice_required) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
@@ -135,9 +129,7 @@ START_TEST(test_tool_choice_required) {
 
 END_TEST
 
-/**
- * Test: Serialize with invalid tool_choice_mode to cover default case (line 110)
- */
+/* Test: Invalid tool_choice_mode (default case) */
 START_TEST(test_tool_choice_invalid) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
@@ -156,9 +148,7 @@ START_TEST(test_tool_choice_invalid) {
 
 END_TEST
 
-/**
- * Test: Serialize with system_prompt to cover lines 161-182
- */
+/* Test: Serialize with system_prompt */
 START_TEST(test_serialize_with_system_prompt) {
     ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
@@ -178,9 +168,7 @@ START_TEST(test_serialize_with_system_prompt) {
 
 END_TEST
 
-/**
- * Test: Serialize with streaming=true to cover lines 208-230
- */
+/* Test: Serialize with streaming=true */
 START_TEST(test_serialize_with_streaming) {
     ik_request_t *req = create_minimal_request();
 
@@ -197,9 +185,7 @@ START_TEST(test_serialize_with_streaming) {
 
 END_TEST
 
-/**
- * Test: Serialize with invalid tool parameters JSON to cover error path (line 62)
- */
+/* Test: Invalid tool parameters JSON */
 START_TEST(test_tool_invalid_json_parameters) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool", "{invalid json}"); /* Invalid JSON */
@@ -413,6 +399,27 @@ START_TEST(test_serialize_full_featured_request) {
 
 END_TEST
 
+/**
+ * Test: Tool with properties as array (malformed) to cover !yyjson_mut_is_obj() branch
+ */
+START_TEST(test_tool_properties_as_array) {
+    ik_request_t *req = create_minimal_request();
+    /* Properties is an array instead of object - malformed but shouldn't crash */
+    add_tool(req, "bad_tool", "Tool with array properties",
+             "{\"type\":\"object\",\"properties\":[],\"additionalProperties\":false}");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
+
+    /* Should succeed - ensure_all_properties_required returns true early */
+    ck_assert(is_ok(&result));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 static Suite *request_chat_coverage_suite(void)
 {
     Suite *s = suite_create("request_chat_coverage");
@@ -425,6 +432,7 @@ static Suite *request_chat_coverage_suite(void)
     tcase_add_test(tc_tools, test_tool_choice_required);
     tcase_add_test(tc_tools, test_tool_choice_invalid);
     tcase_add_test(tc_tools, test_tool_invalid_json_parameters);
+    tcase_add_test(tc_tools, test_tool_properties_as_array);
     suite_add_tcase(s, tc_tools);
 
     TCase *tc_basic = tcase_create("basic_serialization");
