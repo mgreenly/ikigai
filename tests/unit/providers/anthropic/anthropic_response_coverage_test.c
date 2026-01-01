@@ -85,7 +85,8 @@ START_TEST(test_parse_response_edge_cases) {
         {"[1, 2, 3]", true},
         {
             "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}",
-            true},
+            true
+        },
         {"{\"type\":\"message\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false},
         {"{\"type\":\"message\",\"model\":\"claude\",\"usage\":{},\"content\":[]}", false},
         {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false},
