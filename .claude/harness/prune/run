@@ -268,19 +268,29 @@ def record_false_positive(function: str) -> None:
 
 def run_build() -> bool:
     """Run make bin/ikigai and return success."""
-    spinner = Spinner("Verifying build")
+    log("Verifying build...")
+    spinner = Spinner("Building")
     spinner.start()
     code, _, _ = run_cmd(["make", "bin/ikigai"])
     spinner.stop()
+    if code == 0:
+        log("Build: PASS")
+    else:
+        log("Build: FAIL")
     return code == 0
 
 
 def run_tests() -> bool:
     """Run make check and return success."""
-    spinner = Spinner("Verifying tests")
+    log("Verifying tests...")
+    spinner = Spinner("Testing")
     spinner.start()
     code, _, _ = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
     spinner.stop()
+    if code == 0:
+        log("Tests: PASS")
+    else:
+        log("Tests: FAIL")
     return code == 0
 
 
@@ -306,25 +316,27 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
         # Verify outcome directly
         files_after = git_get_modified_files()
-        if files_after == files_before:
-            log(f"{model_name} made no changes")
+        changed = files_after - files_before
+        if not changed:
+            log(f"Agent made no changes")
             continue
+
+        log(f"Files changed: {', '.join(sorted(changed))}")
 
         # Check build
         if not run_build():
-            log(f"{model_name} broke build (false positive)")
+            log(f"False positive - function is used")
             git_revert(files_before)
             record_false_positive(function)
             return False, "false positive"
 
         # Check tests
         if run_tests():
-            log(f"{model_name} SUCCESS")
+            log(f"SUCCESS - removed {function}")
             git_commit(function, file, model_name, attempt, files_before)
             return True, "removed"
 
-        log(f"{model_name} tests failed")
-        # Revert before trying next escalation level
+        log(f"Tests failed - reverting")
         git_revert(files_before)
 
     # Exhausted all attempts
