@@ -731,10 +731,10 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
 
             classification = output.strip().upper()
             if "TESTING" in classification:
-                log(f"      TESTING - deleting")
+                log(f"      CLASSIFYING: delete")
                 action = "delete"
             elif "USING" in classification:
-                log(f"      USING - refactoring")
+                log(f"      CLASSIFYING: refactor")
                 action = "refactor"
             else:
                 log(f"      Unknown classification: {classification}")
