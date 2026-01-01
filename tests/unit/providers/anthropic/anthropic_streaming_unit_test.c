@@ -72,37 +72,6 @@ static void teardown(void)
  * Getter Tests
  * ================================================================ */
 
-START_TEST(test_get_usage_initial) {
-    /* Get usage from fresh context */
-    ik_usage_t usage = ik_anthropic_stream_get_usage(stream_ctx);
-
-    /* Should be all zeros initially */
-    ck_assert_int_eq(usage.input_tokens, 0);
-    ck_assert_int_eq(usage.output_tokens, 0);
-    ck_assert_int_eq(usage.thinking_tokens, 0);
-    ck_assert_int_eq(usage.total_tokens, 0);
-}
-END_TEST
-
-START_TEST(test_get_usage_after_update) {
-    /* Manually update usage to simulate stream processing */
-    stream_ctx->usage.input_tokens = 100;
-    stream_ctx->usage.output_tokens = 50;
-    stream_ctx->usage.thinking_tokens = 25;
-    stream_ctx->usage.total_tokens = 175;
-
-    /* Get usage */
-    ik_usage_t usage = ik_anthropic_stream_get_usage(stream_ctx);
-
-    /* Should return the updated values */
-    ck_assert_int_eq(usage.input_tokens, 100);
-    ck_assert_int_eq(usage.output_tokens, 50);
-    ck_assert_int_eq(usage.thinking_tokens, 25);
-    ck_assert_int_eq(usage.total_tokens, 175);
-}
-
-END_TEST
-
 /* ================================================================
  * Event Processing Edge Case Tests
  * ================================================================ */
@@ -207,13 +176,6 @@ END_TEST
 static Suite *anthropic_streaming_unit_suite(void)
 {
     Suite *s = suite_create("Anthropic Streaming Unit");
-
-    TCase *tc_getters = tcase_create("Getter Functions");
-    tcase_set_timeout(tc_getters, 30);
-    tcase_add_unchecked_fixture(tc_getters, setup, teardown);
-    tcase_add_test(tc_getters, test_get_usage_initial);
-    tcase_add_test(tc_getters, test_get_usage_after_update);
-    suite_add_tcase(s, tc_getters);
 
     TCase *tc_edge_cases = tcase_create("Event Processing Edge Cases");
     tcase_set_timeout(tc_edge_cases, 30);

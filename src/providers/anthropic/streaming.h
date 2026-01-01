@@ -83,18 +83,4 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
 void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
                                         const char *event, const char *data);
 
-/**
- * Get accumulated usage statistics
- *
- * @param stream_ctx Streaming context
- * @return           Usage statistics
- *
- * Returns accumulated token counts from message_start and message_delta events:
- * - input_tokens from message_start
- * - output_tokens from message_delta
- * - thinking_tokens from message_delta
- * - total_tokens calculated
- */
-ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx);
-
 #endif /* IK_PROVIDERS_ANTHROPIC_STREAMING_H */

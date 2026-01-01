@@ -51,16 +51,6 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
 }
 
 /* ================================================================
- * Getters
- * ================================================================ */
-
-ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx)
-{
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    return stream_ctx->usage;
-}
-
-/* ================================================================
  * Main Event Processing
  * ================================================================ */
 
