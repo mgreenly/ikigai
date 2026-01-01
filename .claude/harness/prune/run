@@ -441,7 +441,7 @@ def invoke_claude_with_output(prompt: str, model: str, thinking_budget: str, mod
             "claude", "-p", "-",
             "--model", model,
             "--allowedTools", "Read",  # Read-only for analysis
-            "--max-turns", "5",
+            "--max-turns", "10",
         ]
         env = os.environ.copy()
         if thinking_budget and thinking_budget != "0":
