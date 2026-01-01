@@ -557,7 +557,7 @@ def build_single_test(test_file: str) -> tuple[bool, str]:
     """Build a single test file. Returns (success, error_output)."""
     spinner = Spinner(f"Building {Path(test_file).name}")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", f"bin/{test_file.replace('.c', '')}"])
+    code, stdout, stderr = run_cmd(["make", f"build/{test_file.replace('.c', '')}"])
     spinner.stop()
     return code == 0, stderr or stdout
 
