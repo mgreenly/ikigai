@@ -35,7 +35,9 @@ TEST_FIX_LADDER = {
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-FIX_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "fix-tests.prompt.md"
+DELETE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-tests.prompt.md"
+REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
+JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
 CREATE_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "create-helper.prompt.md"
 REFACTOR_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-test.prompt.md"
 FALSE_POSITIVES_FILE = PROJECT_ROOT / ".claude" / "data" / "dead-code-false-positives.txt"
@@ -198,16 +200,41 @@ def build_prompt(template_path: Path, candidate: dict) -> str:
     return prompt
 
 
-def build_fix_tests_prompt(function: str, test_file: str, tests_to_delete: list[str]) -> str:
-    """Build fix-tests prompt for a single test file."""
-    if not FIX_TESTS_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {FIX_TESTS_PROMPT_TEMPLATE}")
+def build_delete_tests_prompt(function: str, test_file: str, tests_to_delete: list[str]) -> str:
+    """Build prompt to delete specific tests from a file."""
+    if not DELETE_TESTS_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {DELETE_TESTS_PROMPT_TEMPLATE}")
         sys.exit(1)
 
-    template = FIX_TESTS_PROMPT_TEMPLATE.read_text()
+    template = DELETE_TESTS_PROMPT_TEMPLATE.read_text()
     prompt = template.replace("{{function}}", function)
     prompt = prompt.replace("{{test_file}}", test_file)
     prompt = prompt.replace("{{tests_to_delete}}", "\n".join(f"- {t}" for t in tests_to_delete))
+    return prompt
+
+
+def build_refactor_remove_call_prompt(function: str, test_file: str, tests_to_refactor: list[str]) -> str:
+    """Build prompt to refactor tests to not call the function."""
+    if not REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", function)
+    prompt = prompt.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{tests_to_refactor}}", "\n".join(f"- {t}" for t in tests_to_refactor))
+    return prompt
+
+
+def build_justify_helper_prompt(function: str, test_file: str) -> str:
+    """Build prompt to justify whether a helper should be created."""
+    if not JUSTIFY_HELPER_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {JUSTIFY_HELPER_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = JUSTIFY_HELPER_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", function)
+    prompt = prompt.replace("{{test_file}}", test_file)
     return prompt
 
 
@@ -282,6 +309,70 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
         return False, f"timeout after {timeout}s"
     finally:
         Path(prompt_file).unlink(missing_ok=True)
+
+
+def invoke_claude_with_output(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str, str]:
+    """
+    Invoke Claude CLI and capture output.
+    Returns (success, output, error_message).
+    """
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        f.write(prompt)
+        prompt_file = f.name
+
+    spinner = Spinner(f"Waiting for {model_name}")
+    try:
+        cmd = [
+            "claude", "-p", "-",
+            "--model", model,
+            "--allowedTools", "Read",  # Read-only for analysis
+            "--max-turns", "5",
+        ]
+        env = os.environ.copy()
+        if thinking_budget and thinking_budget != "0":
+            env["MAX_THINKING_TOKENS"] = thinking_budget
+
+        with open(prompt_file, 'r') as pf:
+            spinner.start()
+            result = subprocess.run(
+                cmd,
+                stdin=pf,
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+                timeout=timeout,
+                env=env,
+            )
+            spinner.stop()
+
+        if result.returncode != 0:
+            error = result.stderr.strip() if result.stderr else "unknown error"
+            return False, "", error[:200]
+        return True, result.stdout, ""
+    except subprocess.TimeoutExpired:
+        spinner.stop()
+        return False, "", f"timeout after {timeout}s"
+    finally:
+        Path(prompt_file).unlink(missing_ok=True)
+
+
+def parse_justify_decision(output: str) -> tuple[str, str]:
+    """
+    Parse the justify-helper output.
+    Returns (decision, reason) where decision is 'APPROVE', 'REJECT', or 'UNKNOWN'.
+    """
+    import re
+
+    # Look for DECISION: APPROVE or DECISION: REJECT
+    decision_match = re.search(r'DECISION:\s*(APPROVE|REJECT)', output, re.IGNORECASE)
+    reason_match = re.search(r'REASON:\s*(.+?)(?:\n|$)', output, re.IGNORECASE)
+
+    decision = decision_match.group(1).upper() if decision_match else "UNKNOWN"
+    reason = reason_match.group(1).strip() if reason_match else "No reason provided"
+
+    return decision, reason
 
 
 def record_false_positive(function: str) -> None:
@@ -540,64 +631,136 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
             continue
 
         # Partial: some tests use function, others don't
-        # Create a test helper and refactor the tests to use it
-        log(f"  Partial ({tests_using}/{total_tests}) - creating test helper")
+        # Try deletion first, then refactor, then justify helper
+        log(f"  Partial ({tests_using}/{total_tests}) - trying deletion first")
 
         file_fixed = False
-        files_before_fix = git_get_modified_files()
-        helper_header = f"tests/helpers/{function}.h"
 
-        # Step 1: Create the test helper (if not already created for another test file)
-        if not Path(helper_header).exists():
-            for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-                log(f"  Creating helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
-
-                prompt = build_create_helper_prompt(function, file)
-                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-
-                if not success:
-                    log(f"  LLM invocation failed: {error}")
-                    continue
-
-                if Path(helper_header).exists():
-                    log(f"  Created: {helper_header}")
-                    break
-
-                log(f"  Helper not created - reverting")
-                files_after_fix = git_get_modified_files()
-                for f in files_after_fix - files_before_fix:
-                    run_cmd(["git", "checkout", f])
-            else:
-                log(f"  FAILED: Could not create helper")
-                all_tests_fixed = False
-                break
-
-        # Step 2: Refactor the test to use the helper
-        files_before_refactor = git_get_modified_files()
+        # Step 1: Try deleting just the tests that use the function
+        log(f"  Step 1: Delete tests that use {function}")
         for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
             model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-            log(f"  Refactoring test attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+            log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
 
-            prompt = build_refactor_test_prompt(function, test_file, helper_header)
+            prompt = build_delete_tests_prompt(function, test_file, test_names)
             success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
             if not success:
-                log(f"  LLM invocation failed: {error}")
+                log(f"    LLM invocation failed: {error}")
                 continue
 
-            # Verify this specific test file compiles and passes
+            # Verify the test file still compiles and passes
             if build_single_test(test_file) and run_single_test(test_file):
-                log(f"  Refactored: {test_file}")
+                log(f"    Deleted tests from: {test_file}")
                 test_files_modified.append(test_file)
                 final_model_name = model_name
                 file_fixed = True
                 break
 
-            log(f"  Still failing - reverting")
-            files_after_refactor = git_get_modified_files()
-            for f in files_after_refactor - files_before_refactor:
-                run_cmd(["git", "checkout", f])
+            log(f"    Still failing - reverting")
+            git_revert()
+
+        if file_fixed:
+            continue
+
+        # Step 2: Try refactoring tests to not call the function
+        log(f"  Step 2: Refactor tests to remove {function} calls")
+        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+            log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+
+            prompt = build_refactor_remove_call_prompt(function, test_file, test_names)
+            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+            if not success:
+                log(f"    LLM invocation failed: {error}")
+                continue
+
+            # Verify the test file still compiles and passes
+            if build_single_test(test_file) and run_single_test(test_file):
+                log(f"    Refactored: {test_file}")
+                test_files_modified.append(test_file)
+                final_model_name = model_name
+                file_fixed = True
+                break
+
+            log(f"    Still failing - reverting")
+            git_revert()
+
+        if file_fixed:
+            continue
+
+        # Step 3: Ask for justification before creating helper
+        log(f"  Step 3: Checking if helper is justified")
+        model, thinking_budget, model_name = TEST_FIX_LADDER[1]  # Use sonnet:think for analysis
+        prompt = build_justify_helper_prompt(function, test_file)
+        success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
+
+        if not success:
+            log(f"    LLM invocation failed: {error}")
+            log(f"  SKIPPED - could not determine justification")
+            all_tests_fixed = False
+            break
+
+        decision, reason = parse_justify_decision(output)
+        log(f"    Decision: {decision}")
+        log(f"    Reason: {reason}")
+
+        if decision != "APPROVE":
+            # No justification for helper - skip this candidate
+            log(f"  SKIPPED - no justification for helper (tests should be deleted)")
+            all_tests_fixed = False
+            break
+
+        # Step 4: Helper is justified - create it and refactor
+        log(f"  Step 4: Creating justified helper")
+        helper_header = f"tests/helpers/{function}.h"
+
+        if not Path(helper_header).exists():
+            for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+                log(f"    Creating helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+
+                prompt = build_create_helper_prompt(function, file)
+                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+                if not success:
+                    log(f"    LLM invocation failed: {error}")
+                    continue
+
+                if Path(helper_header).exists():
+                    log(f"    Created: {helper_header}")
+                    break
+
+                log(f"    Helper not created - reverting")
+                git_revert()
+            else:
+                log(f"  FAILED: Could not create helper")
+                all_tests_fixed = False
+                break
+
+        # Refactor the test to use the helper
+        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+            log(f"    Refactoring to use helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+
+            prompt = build_refactor_test_prompt(function, test_file, helper_header)
+            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+            if not success:
+                log(f"    LLM invocation failed: {error}")
+                continue
+
+            # Verify this specific test file compiles and passes
+            if build_single_test(test_file) and run_single_test(test_file):
+                log(f"    Refactored: {test_file}")
+                test_files_modified.append(test_file)
+                final_model_name = model_name
+                file_fixed = True
+                break
+
+            log(f"    Still failing - reverting")
+            git_revert()
 
         if not file_fixed:
             log(f"  FAILED: Could not refactor {test_file}")
