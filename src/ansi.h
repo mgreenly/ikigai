@@ -63,6 +63,7 @@ size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color);
  *
  * This function should be called before any color rendering occurs.
  */
+void ik_ansi_init(void);
 
 /**
  * Check if colors are enabled.
