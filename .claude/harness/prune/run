@@ -326,13 +326,14 @@ def build_cleanup_unused_static_prompt(test_file: str, function_name: str) -> st
 
 def parse_unused_function_errors(build_output: str) -> list[str]:
     """
-    Parse build output for unused function errors.
+    Parse build output for unused function/variable errors.
     Returns list of function names that are unused.
     """
     import re
 
-    # Match: error: 'function_name' defined but not used [-Werror=unused-function]
-    pattern = re.compile(r"error: '(\w+)' defined but not used \[-Werror=unused-function\]")
+    # Match: error: 'name' defined but not used [-Werror=unused-function] or [-Werror=unused-variable]
+    # (START_TEST macro creates variables, not functions)
+    pattern = re.compile(r"error: '(\w+)' defined but not used \[-Werror=unused-(?:function|variable)\]")
     return pattern.findall(build_output)
 
 
@@ -356,8 +357,8 @@ def find_empty_tcases(test_file: str) -> list[str]:
     # For each TCase, check if it has any tcase_add_test calls
     empty_tcases = []
     for tcase_name in all_tcases:
-        # Look for tcase_add_test(tcase_name, ...)
-        add_test_pattern = re.compile(rf'tcase_add_test\s*\(\s*{re.escape(tcase_name)}\s*,')
+        # Look for tcase_add_test(tcase_name, ...) or tcase_add_test_raise_signal(tcase_name, ...)
+        add_test_pattern = re.compile(rf'tcase_add_test(?:_raise_signal)?\s*\(\s*{re.escape(tcase_name)}\s*,')
         if not add_test_pattern.search(content):
             empty_tcases.append(tcase_name)
 
