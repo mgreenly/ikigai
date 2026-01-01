@@ -1,69 +1,20 @@
 # Remove Dead Code
 
-**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Remove the function autonomously. Do not stop to ask for confirmation or clarification.
+**UNATTENDED EXECUTION:** This task runs automatically. Do not ask for confirmation.
 
-You have ONE job: remove the dead code function described below and ensure the build and tests pass.
+## Task
 
-## Load Required Skills
+Remove `{{function}}` from `{{file}}` (line {{line}}).
 
-Before starting, load these skills for context:
-- /load git
+## Steps
 
-## The Function
+1. Read the file and locate the function
+2. Delete the function and any preceding doc comment
+3. If the header declares it, remove that too
+4. Do NOT remove other functions or includes
 
-**Function:** {{function}}
-**File:** {{file}}
-**Line:** {{line}}
+## If Tests Fail
 
-## Instructions
+If removing this function breaks tests, those tests are also dead code. Remove or fix them.
 
-1. Read the file and locate the function `{{function}}` at line {{line}}
-2. Remove the function completely, including:
-   - The function body
-   - Any preceding doc comment block (comments immediately before the function)
-   - The function declaration/signature
-3. If tests depend on this dead code function:
-   - Remove or refactor the tests that call it
-   - Dead code should not have test coverage - the tests are also dead
-4. Do NOT remove:
-   - Other production functions
-   - Unrelated comments
-   - Header includes (even if they appear unused)
-
-## Verification
-
-After removing the function:
-
-1. Run `make bin/ikigai`
-   - If build FAILS: this is a false positive (function is actually used)
-   - Report: `SKIPPED: {{function}} - false positive`
-
-2. Run `make check`
-   - If tests PASS: done
-   - If tests FAIL: fix/remove the failing tests, then run `make check` again
-
-3. If tests still fail after fixing:
-   - Report: `SKIPPED: {{function}} - test fixes failed`
-
-## Constraints
-
-- Do NOT modify production code beyond removing the target function
-- Do NOT remove header includes
-- Keep production changes minimal: just delete the function and its doc comment
-- Tests may be modified/removed as needed to eliminate dead code dependencies
-
-## REQUIRED: Final Output
-
-After completing all steps, output a JSON object with your result:
-
-```json
-{"status": "SUCCESS", "function": "{{function}}", "reason": "removed"}
-```
-
-or
-
-```json
-{"status": "SKIPPED", "function": "{{function}}", "reason": "<why it was skipped>"}
-```
-
-The harness enforces this schema. Your final output MUST be valid JSON matching this format.
+The harness will verify build and tests after you finish.
