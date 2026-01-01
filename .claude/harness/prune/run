@@ -34,9 +34,10 @@ TEST_FIX_LADDER = {
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-ANALYZE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-tests.prompt.md"
+COMMENT_OUT_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-single-test.prompt.md"
 DELETE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-test.prompt.md"
+DELETE_FUNCTION_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-function.prompt.md"
 CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE = SCRIPT_DIR / "cleanup-empty-tcase.prompt.md"
 REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
 JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
@@ -189,56 +190,42 @@ def get_dead_code_candidates() -> list[dict]:
     return candidates
 
 
-def build_prompt(template_path: Path, candidate: dict) -> str:
-    """Build a prompt from template."""
-    if not template_path.exists():
-        log(f"ERROR: Missing {template_path}")
+def build_comment_out_prompt(candidate: dict) -> str:
+    """Build prompt to comment out a function with #if 0."""
+    if not COMMENT_OUT_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {COMMENT_OUT_PROMPT_TEMPLATE}")
         sys.exit(1)
 
-    template = template_path.read_text()
+    template = COMMENT_OUT_PROMPT_TEMPLATE.read_text()
     prompt = template.replace("{{function}}", candidate["function"])
-    prompt = template.replace("{{file}}", candidate["file"])
+    prompt = prompt.replace("{{file}}", candidate["file"])
     prompt = prompt.replace("{{line}}", candidate["line"])
     return prompt
 
 
-def build_analyze_tests_prompt(function: str, test_file: str, tests_to_analyze: list[str]) -> str:
-    """Build prompt to analyze which tests are testing vs using the function."""
-    if not ANALYZE_TESTS_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {ANALYZE_TESTS_PROMPT_TEMPLATE}")
+def build_analyze_single_test_prompt(function: str, test_file: str, test_name: str) -> str:
+    """Build prompt to analyze a single test (TESTING vs USING)."""
+    if not ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE}")
         sys.exit(1)
 
-    template = ANALYZE_TESTS_PROMPT_TEMPLATE.read_text()
+    template = ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE.read_text()
     prompt = template.replace("{{function}}", function)
     prompt = prompt.replace("{{test_file}}", test_file)
-    prompt = prompt.replace("{{tests_to_analyze}}", "\n".join(f"- {t}" for t in tests_to_analyze))
+    prompt = prompt.replace("{{test_name}}", test_name)
     return prompt
 
 
-def parse_analyze_output(output: str) -> tuple[list[str], list[str]]:
-    """
-    Parse the analyze-tests output.
-    Returns (testing_list, using_list).
-    """
-    testing = []
-    using = []
-    current_section = None
+def build_delete_function_prompt(candidate: dict) -> str:
+    """Build prompt to delete a function entirely."""
+    if not DELETE_FUNCTION_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {DELETE_FUNCTION_PROMPT_TEMPLATE}")
+        sys.exit(1)
 
-    for line in output.split('\n'):
-        line = line.strip()
-        if line.upper().startswith('TESTING:'):
-            current_section = 'testing'
-        elif line.upper().startswith('USING:'):
-            current_section = 'using'
-        elif line.startswith('- ') and current_section:
-            test_name = line[2:].strip()
-            if test_name:
-                if current_section == 'testing':
-                    testing.append(test_name)
-                else:
-                    using.append(test_name)
-
-    return testing, using
+    template = DELETE_FUNCTION_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", candidate["function"])
+    prompt = prompt.replace("{{file}}", candidate["file"])
+    return prompt
 
 
 def build_delete_test_prompt(test_file: str, test_name: str) -> str:
@@ -495,41 +482,6 @@ def run_build() -> bool:
     return code == 0
 
 
-def finalize_removal(function: str, modified_files: set[str]) -> None:
-    """Delete #if 0 blocks that were used to comment out the function."""
-    import re
-
-    marker = f"#if 0  // dead code: {function}"
-
-    for file_path in modified_files:
-        path = Path(file_path)
-        if not path.exists():
-            continue
-
-        content = path.read_text()
-        if marker not in content:
-            continue
-
-        # Remove #if 0 ... #endif blocks with our marker
-        # Pattern: #if 0  // dead code: func_name ... #endif
-        lines = content.split('\n')
-        new_lines = []
-        in_block = False
-
-        for line in lines:
-            if marker in line:
-                in_block = True
-                continue
-            if in_block and line.strip() == '#endif':
-                in_block = False
-                continue
-            if not in_block:
-                new_lines.append(line)
-
-        path.write_text('\n'.join(new_lines))
-        log(f"Finalized: {file_path}")
-
-
 def find_tests_using_function(function: str) -> list[str]:
     """Find all test files that reference the function using grep."""
     log(f"Searching for tests using {function}...")
@@ -659,6 +611,20 @@ def run_tests(test_files: list[str] | None = None) -> bool:
 def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> tuple[bool, str]:
     """
     Attempt to remove a dead code function.
+
+    Flow:
+    1. Comment out function, verify production builds (confirms dead)
+    2. REVERT - function exists again
+    3. For each test using the function:
+       - Analyze: TESTING or USING?
+       - If TESTING: delete test
+       - If USING: refactor test
+       - Verify build after each change
+    4. Cleanup empty TCases
+    5. Delete function from src/
+    6. Verify build + tests
+    7. Commit or revert
+
     Returns (success, reason).
     """
     function = candidate["function"]
@@ -672,332 +638,218 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
             log("ERROR: Could not clean workspace")
             return False, "dirty workspace"
 
-    # Phase 1: Remove the function (Haiku - mechanical task)
+    # ============================================================
+    # Phase 1: Verify function is truly dead (comment out, build, revert)
+    # ============================================================
     model, thinking_budget, model_name = REMOVE_MODEL
-    log(f"Phase 1: Remove function ({model_name})")
+    log(f"Phase 1: Verify dead code ({model_name})")
 
-    prompt = build_prompt(REMOVE_PROMPT_TEMPLATE, candidate)
+    prompt = build_comment_out_prompt(candidate)
     success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
     if not success:
-        log(f"{model_name} invocation FAILED: {error}")
+        log(f"  {model_name} invocation FAILED: {error}")
         git_revert()
-        return False, "removal failed"
+        return False, "comment out failed"
 
-    # Verify changes were made
     if git_is_clean():
-        log(f"Agent made no changes")
+        log(f"  Agent made no changes")
         return False, "no changes made"
 
-    log(f"Files changed: {', '.join(sorted(git_get_modified_files()))}")
+    log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
 
-    # Check build (production code only)
+    # Check production build
     if not run_build():
-        log(f"False positive - function is used in production")
+        log(f"  False positive - function is used in production")
         git_revert()
         record_false_positive(function)
         return False, "false positive"
 
-    # Find tests that use the removed function
+    log(f"  Confirmed: {function} is dead code")
+
+    # REVERT - function exists again so tests can build
+    log(f"  Reverting #if 0 - function restored for test fixes")
+    git_revert()
+
+    # ============================================================
+    # Phase 2: Find and process tests one at a time
+    # ============================================================
     broken_tests = find_tests_using_function(function)
     if not broken_tests:
-        # No tests broken - finalize and commit
-        log("Finalizing: deleting commented code")
-        finalize_removal(function, git_get_modified_files())
+        # No tests use this function - just delete it
+        log(f"Phase 2: No tests to fix")
+        log(f"Phase 3: Delete function")
+        prompt = build_delete_function_prompt(candidate)
+        success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+        if not success:
+            log(f"  Delete failed: {error}")
+            git_revert()
+            return False, "delete failed"
+        if not run_build():
+            log(f"  Build failed after delete")
+            git_revert()
+            return False, "build failed"
         log(f"SUCCESS - removed {function}")
         git_commit(function, model_name)
         return True, "removed"
 
-    # Phase 2: Fix broken tests (one file at a time)
-    log(f"Phase 2: Fixing {len(broken_tests)} broken test file(s)")
+    log(f"Phase 2: Fix {len(broken_tests)} test file(s)")
 
-    all_tests_fixed = True
     test_files_deleted = []
     test_files_modified = []
-    final_model_name = model_name  # Track which model succeeded
+    final_model_name = model_name
 
     for test_file in broken_tests:
-        log(f"Analyzing: {test_file}")
+        log(f"  Processing: {test_file}")
 
-        # Analyze the test file deterministically
+        # Get list of tests that use the function
         tests_using, total_tests, test_names = analyze_test_file(test_file, function)
-        log(f"  {tests_using}/{total_tests} tests use {function}")
+        log(f"    {tests_using}/{total_tests} tests use {function}")
 
         if tests_using == 0:
-            # File doesn't actually use the function - might be indirect dependency
-            log(f"  No direct usage found - skipping")
+            log(f"    No direct usage found - skipping")
             continue
 
         if tests_using == total_tests:
-            # ALL tests use the function - delete entire file (no LLM needed)
-            log(f"  All tests affected - deleting file")
+            # ALL tests use the function - delete entire file
+            log(f"    All tests affected - deleting file")
             delete_test_file(test_file)
             test_files_deleted.append(test_file)
             continue
 
-        # Partial: some tests use function, others don't
-        # First analyze which tests are TESTING vs USING the function
-        log(f"  Partial ({tests_using}/{total_tests}) - analyzing test purposes")
+        # Process each test individually
+        for i, test_name in enumerate(test_names, 1):
+            log(f"    [{i}/{len(test_names)}] {test_name}")
 
-        file_fixed = False
-
-        # Step 1: Analyze which tests are testing the function vs using it
-        log(f"  Step 1: Analyze which tests are TESTING vs USING {function}")
-        model, thinking_budget, model_name = TEST_FIX_LADDER[1]  # sonnet:think for analysis
-        prompt = build_analyze_tests_prompt(function, test_file, test_names)
-        success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
-
-        if not success:
-            log(f"    LLM invocation failed: {error}")
-            log(f"  SKIPPED - could not analyze tests")
-            all_tests_fixed = False
-            break
-
-        tests_testing, tests_using_func = parse_analyze_output(output)
-        log(f"    TESTING ({len(tests_testing)}): {', '.join(tests_testing) if tests_testing else 'none'}")
-        log(f"    USING ({len(tests_using_func)}): {', '.join(tests_using_func) if tests_using_func else 'none'}")
-
-        # Step 2: Delete tests that are TESTING the function (one at a time)
-        if tests_testing:
-            log(f"  Step 2: Delete {len(tests_testing)} tests that TEST {function}")
-            deletion_success = True
-
-            for i, test_name in enumerate(tests_testing, 1):
-                log(f"    [{i}/{len(tests_testing)}] {test_name}")
-                test_deleted = False
-
-                for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-                    model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-                    if attempt > 1:
-                        log(f"      Escalating to {model_name}")
-
-                    prompt = build_delete_test_prompt(test_file, test_name)
-                    success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-
-                    if not success:
-                        log(f"      LLM invocation failed: {error}")
-                        continue
-
-                    # Verify the test file still compiles
-                    build_ok, build_output = build_single_test(test_file)
-                    if build_ok:
-                        test_deleted = True
-                        final_model_name = model_name
-                        break
-
-                    if debug:
-                        abort_with_debug(test_file, build_output)
-
-                    log(f"      Build failed - reverting")
-                    git_revert()
-
-                if not test_deleted:
-                    log(f"      FAILED to delete {test_name}")
-                    deletion_success = False
-                    break
-
-            if not deletion_success:
-                log(f"  SKIPPED - could not delete all TESTING tests")
-                git_revert()
-                all_tests_fixed = False
-                break
-
-            # Verify all tests pass after all deletions
-            if not run_single_test(test_file):
-                log(f"  Tests fail after deletion - reverting")
-                git_revert()
-                all_tests_fixed = False
-                break
-
-            log(f"  Deleted {len(tests_testing)} tests from: {test_file}")
-            test_files_modified.append(test_file)
-
-            # Phase 2b: Cleanup any empty TCases
-            empty_tcases = find_empty_tcases(test_file)
-            if empty_tcases:
-                log(f"  Step 2b: Cleanup {len(empty_tcases)} empty TCase(s)")
-                for tcase_name in empty_tcases:
-                    log(f"    Cleaning up: {tcase_name}")
-                    cleanup_prompt = build_cleanup_empty_tcase_prompt(test_file, tcase_name)
-                    # Use haiku for mechanical cleanup
-                    cleanup_model, cleanup_thinking, cleanup_name = REMOVE_MODEL
-                    cleanup_success, error = invoke_claude(cleanup_prompt, cleanup_model, cleanup_thinking, cleanup_name, timeout)
-                    if not cleanup_success:
-                        log(f"    WARNING: Failed to cleanup {tcase_name}: {error}")
-
-                # Verify file still compiles after TCase cleanup
-                build_ok, build_output = build_single_test(test_file)
-                if not build_ok:
-                    if debug:
-                        abort_with_debug(test_file, build_output)
-                    log(f"    TCase cleanup broke build - reverting all")
-                    git_revert()
-                    all_tests_fixed = False
-                    break
-
-            # Check if file is now empty (no TCases left)
-            if file_has_no_tcases(test_file):
-                log(f"  File has no remaining TCases - deleting")
-                delete_test_file(test_file)
-                test_files_deleted.append(test_file)
-                # Remove from modified since we deleted it
-                if test_file in test_files_modified:
-                    test_files_modified.remove(test_file)
-
-            # If no USING tests remain, we're done with this file
-            if not tests_using_func:
-                file_fixed = True
-
-        # If TCase cleanup failed, exit test_file loop entirely
-        if not all_tests_fixed:
-            break
-
-        if file_fixed:
-            continue
-
-        # If no USING tests, but deletion failed, skip
-        if not tests_using_func:
-            log(f"  SKIPPED - deletion failed and no USING tests to refactor")
-            all_tests_fixed = False
-            break
-
-        # Step 3: Try refactoring USING tests to not call the function
-        log(f"  Step 3: Refactor {len(tests_using_func)} tests to remove {function} calls")
-        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-            log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
-
-            prompt = build_refactor_remove_call_prompt(function, test_file, tests_using_func)
-            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+            # Analyze: TESTING or USING?
+            prompt = build_analyze_single_test_prompt(function, test_file, test_name)
+            success, output, error = invoke_claude_with_output(prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
 
             if not success:
-                log(f"    LLM invocation failed: {error}")
-                continue
+                log(f"      Analysis failed: {error}")
+                git_revert()
+                return False, f"analysis failed for {test_name}"
 
-            # Verify the test file still compiles and passes
-            build_ok, build_output = build_single_test(test_file)
-            if build_ok and run_single_test(test_file):
-                log(f"    Refactored: {test_file}")
-                test_files_modified.append(test_file)
-                final_model_name = model_name
-                file_fixed = True
-                break
+            classification = output.strip().upper()
+            if "TESTING" in classification:
+                log(f"      TESTING - deleting")
+                action = "delete"
+            elif "USING" in classification:
+                log(f"      USING - refactoring")
+                action = "refactor"
+            else:
+                log(f"      Unknown classification: {classification}")
+                git_revert()
+                return False, f"unknown classification for {test_name}"
 
-            if debug and not build_ok:
-                abort_with_debug(test_file, build_output)
-            log(f"    Still failing - reverting")
-            git_revert()
-
-        if file_fixed:
-            continue
-
-        # Step 4: Ask for justification before creating helper
-        log(f"  Step 4: Checking if helper is justified for USING tests")
-        model, thinking_budget, model_name = TEST_FIX_LADDER[1]  # Use sonnet:think for analysis
-        prompt = build_justify_helper_prompt(function, test_file)
-        success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
-
-        if not success:
-            log(f"    LLM invocation failed: {error}")
-            log(f"  SKIPPED - could not determine justification")
-            all_tests_fixed = False
-            break
-
-        decision, reason = parse_justify_decision(output)
-        log(f"    Decision: {decision}")
-        log(f"    Reason: {reason}")
-
-        if decision != "APPROVE":
-            # No justification for helper - skip this candidate
-            log(f"  SKIPPED - no justification for helper")
-            all_tests_fixed = False
-            break
-
-        # Step 5: Helper is justified - create it and refactor
-        log(f"  Step 5: Creating justified helper")
-        helper_header = f"tests/helpers/{function}.h"
-
-        if not Path(helper_header).exists():
+            # Perform action with escalation
+            test_fixed = False
             for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-                log(f"    Creating helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+                attempt_model, attempt_thinking, attempt_name = TEST_FIX_LADDER[attempt]
+                if attempt > 1:
+                    log(f"      Escalating to {attempt_name}")
 
-                prompt = build_create_helper_prompt(function, file)
-                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+                if action == "delete":
+                    prompt = build_delete_test_prompt(test_file, test_name)
+                else:
+                    prompt = build_refactor_remove_call_prompt(function, test_file, [test_name])
+
+                success, error = invoke_claude(prompt, attempt_model, attempt_thinking, attempt_name, timeout)
 
                 if not success:
-                    log(f"    LLM invocation failed: {error}")
+                    log(f"      LLM failed: {error}")
                     continue
 
-                if Path(helper_header).exists():
-                    log(f"    Created: {helper_header}")
+                # Verify build
+                build_ok, build_output = build_single_test(test_file)
+                if build_ok:
+                    test_fixed = True
+                    final_model_name = attempt_name
                     break
 
-                log(f"    Helper not created - reverting")
+                if debug:
+                    abort_with_debug(test_file, build_output)
+
+                log(f"      Build failed - reverting")
                 git_revert()
-            else:
-                log(f"  FAILED: Could not create helper")
-                all_tests_fixed = False
-                break
 
-        # Refactor the USING tests to use the helper
-        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-            log(f"    Refactoring to use helper attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+            if not test_fixed:
+                log(f"      FAILED to {action} {test_name}")
+                git_revert()
+                return False, f"could not {action} {test_name}"
 
-            prompt = build_refactor_test_prompt(function, test_file, helper_header)
-            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+        test_files_modified.append(test_file)
 
-            if not success:
-                log(f"    LLM invocation failed: {error}")
-                continue
+        # Cleanup empty TCases in this file
+        empty_tcases = find_empty_tcases(test_file)
+        if empty_tcases:
+            log(f"    Cleanup {len(empty_tcases)} empty TCase(s)")
+            for tcase_name in empty_tcases:
+                cleanup_prompt = build_cleanup_empty_tcase_prompt(test_file, tcase_name)
+                invoke_claude(cleanup_prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
 
-            # Verify this specific test file compiles and passes
             build_ok, build_output = build_single_test(test_file)
-            if build_ok and run_single_test(test_file):
-                log(f"    Refactored: {test_file}")
-                test_files_modified.append(test_file)
-                final_model_name = model_name
-                file_fixed = True
-                break
+            if not build_ok:
+                if debug:
+                    abort_with_debug(test_file, build_output)
+                log(f"    TCase cleanup broke build")
+                git_revert()
+                return False, "tcase cleanup failed"
 
-            if debug and not build_ok:
-                abort_with_debug(test_file, build_output)
-            log(f"    Still failing - reverting")
-            git_revert()
+        # Delete file if empty
+        if file_has_no_tcases(test_file):
+            log(f"    File empty - deleting")
+            delete_test_file(test_file)
+            test_files_deleted.append(test_file)
+            if test_file in test_files_modified:
+                test_files_modified.remove(test_file)
 
-        if not file_fixed:
-            log(f"  FAILED: Could not refactor {test_file}")
-            all_tests_fixed = False
-            break
-
-    if not all_tests_fixed:
-        log(f"SKIPPED - could not fix all test files")
-        git_revert()
-        return False, "test fixes exhausted"
-
-    # Verify all tests pass together
+    # Verify all remaining tests pass
     remaining_tests = [t for t in broken_tests if t not in test_files_deleted]
     if remaining_tests:
-        log(f"Final verification: {len(remaining_tests)} test file(s)")
+        log(f"  Verify tests: {len(remaining_tests)} file(s)")
         if not run_tests(remaining_tests):
-            log(f"SKIPPED - final verification failed")
+            log(f"  Tests failed")
             git_revert()
-            return False, "final verification failed"
+            return False, "tests failed"
 
-    # All tests fixed - finalize and commit
-    log("Finalizing: deleting commented code")
-    finalize_removal(function, git_get_modified_files())
+    # ============================================================
+    # Phase 3: Delete function from source
+    # ============================================================
+    log(f"Phase 3: Delete function from source")
+    prompt = build_delete_function_prompt(candidate)
+    success, error = invoke_claude(prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
+    if not success:
+        log(f"  Delete failed: {error}")
+        git_revert()
+        return False, "delete function failed"
 
+    # Final verification
+    log(f"  Final build verification")
+    if not run_build():
+        log(f"  Build failed after function deletion")
+        git_revert()
+        return False, "final build failed"
+
+    if remaining_tests:
+        log(f"  Final test verification")
+        if not run_tests(remaining_tests):
+            log(f"  Tests failed after function deletion")
+            git_revert()
+            return False, "final tests failed"
+
+    # ============================================================
+    # Success - commit
+    # ============================================================
     summary_parts = []
     if test_files_deleted:
         summary_parts.append(f"deleted {len(test_files_deleted)} test file(s)")
     if test_files_modified:
         summary_parts.append(f"modified {len(test_files_modified)} test file(s)")
-    summary = ", ".join(summary_parts) if summary_parts else "no test changes needed"
+    summary = ", ".join(summary_parts) if summary_parts else "no test changes"
 
     log(f"SUCCESS - removed {function} ({summary})")
     git_commit(function, final_model_name)
-    return True, "removed with test fixes"
+    return True, "removed"
 
 
 def main() -> int:
