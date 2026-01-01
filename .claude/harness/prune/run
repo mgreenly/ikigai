@@ -601,13 +601,25 @@ def delete_test_file(test_file: str) -> bool:
     return False
 
 
-def build_single_test(test_file: str) -> bool:
-    """Build a single test file. Returns True if successful."""
+def build_single_test(test_file: str) -> tuple[bool, str]:
+    """Build a single test file. Returns (success, error_output)."""
     spinner = Spinner(f"Building {Path(test_file).name}")
     spinner.start()
-    code, _, _ = run_cmd(["make", f"bin/{test_file.replace('.c', '')}"])
+    code, stdout, stderr = run_cmd(["make", f"bin/{test_file.replace('.c', '')}"])
     spinner.stop()
-    return code == 0
+    return code == 0, stderr or stdout
+
+
+def abort_with_debug(test_file: str, build_output: str) -> None:
+    """Show debug info and abort for investigation."""
+    log("ABORTING FOR INVESTIGATION:")
+    log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+    log(f"  Build errors:")
+    for line in build_output.strip().split('\n')[-20:]:
+        log(f"    {line}")
+    log("")
+    log("Workspace left dirty for investigation. Run 'git diff' to see changes.")
+    sys.exit(1)
 
 
 def run_single_test(test_file: str) -> bool:
@@ -644,7 +656,7 @@ def run_tests(test_files: list[str] | None = None) -> bool:
     return code == 0
 
 
-def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
+def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> tuple[bool, str]:
     """
     Attempt to remove a dead code function.
     Returns (success, reason).
@@ -766,10 +778,14 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                         continue
 
                     # Verify the test file still compiles
-                    if build_single_test(test_file):
+                    build_ok, build_output = build_single_test(test_file)
+                    if build_ok:
                         test_deleted = True
                         final_model_name = model_name
                         break
+
+                    if debug:
+                        abort_with_debug(test_file, build_output)
 
                     log(f"      Build failed - reverting")
                     git_revert()
@@ -809,7 +825,10 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                         log(f"    WARNING: Failed to cleanup {tcase_name}: {error}")
 
                 # Verify file still compiles after TCase cleanup
-                if not build_single_test(test_file):
+                build_ok, build_output = build_single_test(test_file)
+                if not build_ok:
+                    if debug:
+                        abort_with_debug(test_file, build_output)
                     log(f"    TCase cleanup broke build - reverting all")
                     git_revert()
                     all_tests_fixed = False
@@ -855,13 +874,16 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                 continue
 
             # Verify the test file still compiles and passes
-            if build_single_test(test_file) and run_single_test(test_file):
+            build_ok, build_output = build_single_test(test_file)
+            if build_ok and run_single_test(test_file):
                 log(f"    Refactored: {test_file}")
                 test_files_modified.append(test_file)
                 final_model_name = model_name
                 file_fixed = True
                 break
 
+            if debug and not build_ok:
+                abort_with_debug(test_file, build_output)
             log(f"    Still failing - reverting")
             git_revert()
 
@@ -930,13 +952,16 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                 continue
 
             # Verify this specific test file compiles and passes
-            if build_single_test(test_file) and run_single_test(test_file):
+            build_ok, build_output = build_single_test(test_file)
+            if build_ok and run_single_test(test_file):
                 log(f"    Refactored: {test_file}")
                 test_files_modified.append(test_file)
                 final_model_name = model_name
                 file_fixed = True
                 break
 
+            if debug and not build_ok:
+                abort_with_debug(test_file, build_output)
             log(f"    Still failing - reverting")
             git_revert()
 
@@ -988,6 +1013,8 @@ def main() -> int:
                         help="Disable spinner animation (useful for non-interactive output)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--debug", action="store_true",
+                        help="On first failure, show details and abort without reverting")
     args = parser.parse_args()
 
     if args.no_spinner:
@@ -1000,6 +1027,8 @@ def main() -> int:
         opts.append(f"function={args.function}")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
+    if args.debug:
+        opts.append("debug")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
@@ -1045,7 +1074,7 @@ def main() -> int:
         log(f"[{i}/{len(candidates)}] {function} at {file}:{line}")
 
         fix_start = time.time()
-        success, reason = try_remove_function(candidate, args.time_out)
+        success, reason = try_remove_function(candidate, args.time_out, args.debug)
         fix_elapsed = time.time() - fix_start
         fix_times.append(fix_elapsed)
 
