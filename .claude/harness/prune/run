@@ -209,21 +209,10 @@ def build_prompt(candidate: dict) -> str:
     return prompt
 
 
-RESULT_SCHEMA = json.dumps({
-    "type": "object",
-    "properties": {
-        "status": {"type": "string", "enum": ["SUCCESS", "SKIPPED"]},
-        "function": {"type": "string"},
-        "reason": {"type": "string"}
-    },
-    "required": ["status", "function"]
-})
-
-
 def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, dict | str]:
     """
     Invoke Claude CLI with the prompt via stdin.
-    Returns (success, response_dict or error_string).
+    Returns (success, response_dict or prose_string).
     """
     import tempfile
 
@@ -239,7 +228,6 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
             "--allowedTools", "Read,Edit,Write,Bash,Glob,Grep",
             "--output-format", "json",
             "--max-turns", "20",
-            "--json-schema", RESULT_SCHEMA,
         ]
         env = os.environ.copy()
         env["MAX_THINKING_TOKENS"] = thinking_budget
@@ -314,8 +302,9 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
     try:
         result_obj = json.loads(result_str)
         return True, result_obj
-    except json.JSONDecodeError as e:
-        return False, f"JSON parse error: {e}\nRaw result: {result_str[:300]}"
+    except json.JSONDecodeError:
+        # JSON parse failed - return the prose for keyword parsing
+        return True, result_str
 
 
 def record_false_positive(function: str) -> None:
@@ -347,8 +336,39 @@ def parse_response(response: dict | str) -> tuple[bool, str]:
             return False, reason or "unknown reason"
         return False, f"unexpected status: {status}"
 
-    # Fallback for string responses (errors, etc.)
-    return False, str(response)[:100]
+    # Fallback: parse prose response for keywords
+    text = str(response).lower()
+
+    # Check for false positive indicators
+    if "false positive" in text:
+        return False, "false positive"
+
+    # Check for success indicators
+    if any(phrase in text for phrase in [
+        "successfully removed",
+        "has been removed",
+        "function removed",
+        "removed the function",
+        "deletion complete",
+        "task is complete",
+    ]):
+        # But not if it also mentions failure
+        if "fail" not in text and "error" not in text and "cannot" not in text:
+            return True, "removed (inferred from prose)"
+
+    # Check for skip/failure indicators
+    if any(phrase in text for phrase in [
+        "cannot remove",
+        "could not remove",
+        "still failing",
+        "test fixes failed",
+        "build failed",
+        "skipped",
+    ]):
+        return False, "skipped (inferred from prose)"
+
+    # No clear indicator
+    return False, f"unclear status: {str(response)[:100]}"
 
 
 def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
