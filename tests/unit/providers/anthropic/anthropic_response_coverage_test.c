@@ -76,16 +76,6 @@ START_TEST(test_start_request_stub) {
 
 END_TEST
 
-START_TEST(test_start_stream_stub) {
-    ik_request_t req = {0};
-    int32_t dummy_ctx = 42;
-
-    res_t r = ik_anthropic_start_stream(&dummy_ctx, &req, dummy_stream_cb, NULL, dummy_completion_cb, NULL);
-
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -104,7 +94,6 @@ static Suite *anthropic_response_coverage_suite(void)
     tcase_set_timeout(tc_stubs, 30);
     tcase_add_unchecked_fixture(tc_stubs, setup, teardown);
     tcase_add_test(tc_stubs, test_start_request_stub);
-    tcase_add_test(tc_stubs, test_start_stream_stub);
     suite_add_tcase(s, tc_stubs);
 
     return s;

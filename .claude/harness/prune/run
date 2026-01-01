@@ -47,6 +47,7 @@ ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-single-test.prompt.m
 DELETE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-test.prompt.md"
 DELETE_FUNCTION_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-function.prompt.md"
 CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE = SCRIPT_DIR / "cleanup-empty-tcase.prompt.md"
+CLEANUP_UNUSED_STATICS_PROMPT_TEMPLATE = SCRIPT_DIR / "cleanup-unused-statics.prompt.md"
 REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
 JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
 CREATE_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "create-helper.prompt.md"
@@ -309,6 +310,30 @@ def build_cleanup_empty_tcase_prompt(test_file: str, tcase_name: str) -> str:
     prompt = template.replace("{{test_file}}", test_file)
     prompt = prompt.replace("{{tcase_name}}", tcase_name)
     return prompt
+
+
+def build_cleanup_unused_static_prompt(test_file: str, function_name: str) -> str:
+    """Build prompt to delete a specific unused static function."""
+    if not CLEANUP_UNUSED_STATICS_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {CLEANUP_UNUSED_STATICS_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = CLEANUP_UNUSED_STATICS_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{function_name}}", function_name)
+    return prompt
+
+
+def parse_unused_function_errors(build_output: str) -> list[str]:
+    """
+    Parse build output for unused function errors.
+    Returns list of function names that are unused.
+    """
+    import re
+
+    # Match: error: 'function_name' defined but not used [-Werror=unused-function]
+    pattern = re.compile(r"error: '(\w+)' defined but not used \[-Werror=unused-function\]")
+    return pattern.findall(build_output)
 
 
 def find_empty_tcases(test_file: str) -> list[str]:
@@ -786,6 +811,21 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
                     test_fixed = True
                     final_model_name = attempt_name
                     break
+
+                # Check for unused function errors - clean them up
+                unused_funcs = parse_unused_function_errors(build_output)
+                if unused_funcs:
+                    log(f"      Cleaning up {len(unused_funcs)} unused static(s): {', '.join(unused_funcs)}")
+                    for unused_func in unused_funcs:
+                        cleanup_prompt = build_cleanup_unused_static_prompt(test_file, unused_func)
+                        invoke_claude(cleanup_prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
+
+                    # Retry build after cleanup
+                    build_ok, build_output = build_single_test(test_file)
+                    if build_ok:
+                        test_fixed = True
+                        final_model_name = attempt_name
+                        break
 
                 if debug:
                     abort_with_debug(test_file, build_output)
