@@ -209,17 +209,16 @@ def build_prompt(template_path: Path, candidate: dict) -> str:
     return prompt
 
 
-def build_fix_tests_prompt(candidate: dict, broken_tests: list[str]) -> str:
-    """Build fix-tests prompt with list of broken test files."""
+def build_fix_tests_prompt(function: str, test_file: str, tests_to_delete: list[str]) -> str:
+    """Build fix-tests prompt for a single test file."""
     if not FIX_TESTS_PROMPT_TEMPLATE.exists():
         log(f"ERROR: Missing {FIX_TESTS_PROMPT_TEMPLATE}")
         sys.exit(1)
 
     template = FIX_TESTS_PROMPT_TEMPLATE.read_text()
-    prompt = template.replace("{{function}}", candidate["function"])
-    prompt = prompt.replace("{{file}}", candidate["file"])
-    prompt = prompt.replace("{{line}}", candidate["line"])
-    prompt = prompt.replace("{{broken_tests}}", "\n".join(f"- {t}" for t in broken_tests))
+    prompt = template.replace("{{function}}", function)
+    prompt = prompt.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{tests_to_delete}}", "\n".join(f"- {t}" for t in tests_to_delete))
     return prompt
 
 
@@ -365,6 +364,70 @@ def find_broken_tests() -> list[str]:
     return result
 
 
+def analyze_test_file(test_file: str, function: str) -> tuple[int, int, list[str]]:
+    """
+    Analyze a test file to count tests using the function.
+    Returns (tests_using_function, total_tests, test_names_using_function).
+    """
+    import re
+
+    path = Path(test_file)
+    if not path.exists():
+        return 0, 0, []
+
+    content = path.read_text()
+
+    # Find all START_TEST(test_name) declarations
+    test_pattern = re.compile(r'START_TEST\s*\(\s*(\w+)\s*\)')
+    all_tests = test_pattern.findall(content)
+    total_tests = len(all_tests)
+
+    # Find tests that use the function
+    # Parse each test block and check if it contains the function call
+    tests_using = []
+    for match in test_pattern.finditer(content):
+        test_name = match.group(1)
+        start_pos = match.start()
+
+        # Find the END_TEST for this test
+        end_match = re.search(r'\bEND_TEST\b', content[start_pos:])
+        if end_match:
+            test_block = content[start_pos:start_pos + end_match.end()]
+            # Check if this test block contains the function
+            if re.search(rf'\b{re.escape(function)}\s*\(', test_block):
+                tests_using.append(test_name)
+
+    return len(tests_using), total_tests, tests_using
+
+
+def delete_test_file(test_file: str) -> bool:
+    """Delete a test file. Returns True if successful."""
+    path = Path(test_file)
+    if path.exists():
+        path.unlink()
+        log(f"Deleted: {test_file}")
+        return True
+    return False
+
+
+def build_single_test(test_file: str) -> bool:
+    """Build a single test file. Returns True if successful."""
+    spinner = Spinner(f"Building {Path(test_file).name}")
+    spinner.start()
+    code, _, _ = run_cmd(["make", f"bin/{test_file.replace('.c', '')}"])
+    spinner.stop()
+    return code == 0
+
+
+def run_single_test(test_file: str) -> bool:
+    """Run a single test file. Returns True if successful."""
+    spinner = Spinner(f"Testing {Path(test_file).name}")
+    spinner.start()
+    code, _, _ = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check", f"TEST={test_file}"])
+    spinner.stop()
+    return code == 0
+
+
 def run_tests(test_files: list[str] | None = None) -> bool:
     """Run make check, optionally for specific test files."""
     if test_files:
@@ -436,44 +499,98 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         git_commit(function, file, model_name, 1, files_before)
         return True, "removed"
 
-    # Phase 2: Fix broken tests (escalation ladder)
-    files_after_phase1 = git_get_modified_files()
+    # Phase 2: Fix broken tests (one file at a time)
+    log(f"Phase 2: Fixing {len(broken_tests)} broken test file(s)")
 
-    for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-        model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-        log(f"Phase 2: Fix tests ({model_name}, attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS})")
+    all_tests_fixed = True
+    test_files_deleted = []
+    test_files_modified = []
+    final_model_name = model_name  # Track which model succeeded
 
-        # Build prompt with list of broken test files
-        prompt = build_fix_tests_prompt(candidate, broken_tests)
-        success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-        if not success:
-            log(f"{model_name} test fix invocation FAILED: {error}")
+    for test_file in broken_tests:
+        log(f"Analyzing: {test_file}")
+
+        # Analyze the test file deterministically
+        tests_using, total_tests, test_names = analyze_test_file(test_file, function)
+        log(f"  {tests_using}/{total_tests} tests use {function}")
+
+        if tests_using == 0:
+            # File doesn't actually use the function - might be indirect dependency
+            log(f"  No direct usage found - skipping")
             continue
 
-        # Show what test files changed
-        files_after_phase2 = git_get_modified_files()
-        test_changes = files_after_phase2 - files_after_phase1
-        if test_changes:
-            log(f"Test files changed: {', '.join(sorted(test_changes))}")
+        if tests_using == total_tests:
+            # ALL tests use the function - delete entire file (no LLM needed)
+            log(f"  All tests affected - deleting file")
+            delete_test_file(test_file)
+            test_files_deleted.append(test_file)
+            continue
 
-        # Verify broken tests now compile and pass
-        if run_tests(broken_tests):
-            # Finalize: delete the commented code
-            log("Finalizing: deleting commented code")
-            finalize_removal(function, changed)
-            log(f"SUCCESS - removed {function} (with test fixes)")
-            git_commit(function, file, model_name, attempt, files_before)
-            return True, "removed with test fixes"
+        # Partial: some tests use function, others don't - need LLM
+        log(f"  Partial ({tests_using}/{total_tests}) - using LLM to remove specific tests")
 
-        log(f"Tests still failing")
-        # Revert test changes only, keep function removal
-        for f in test_changes:
-            run_cmd(["git", "checkout", f])
+        file_fixed = False
+        files_before_fix = git_get_modified_files()
 
-    # Exhausted all test fix attempts - revert everything
-    log(f"SKIPPED - exhausted test fix attempts")
-    git_revert(files_before)
-    return False, "test fixes exhausted"
+        for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+            model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+            log(f"  Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+
+            # Build prompt for this specific file and tests
+            prompt = build_fix_tests_prompt(function, test_file, test_names)
+            success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+
+            if not success:
+                log(f"  LLM invocation failed: {error}")
+                continue
+
+            # Verify this specific test file compiles and passes
+            if build_single_test(test_file) and run_single_test(test_file):
+                log(f"  Fixed: {test_file}")
+                test_files_modified.append(test_file)
+                final_model_name = model_name
+                file_fixed = True
+                break
+
+            log(f"  Still failing - reverting")
+            # Revert changes to this file only
+            files_after_fix = git_get_modified_files()
+            for f in files_after_fix - files_before_fix:
+                run_cmd(["git", "checkout", f])
+
+        if not file_fixed:
+            log(f"  FAILED: Could not fix {test_file}")
+            all_tests_fixed = False
+            break
+
+    if not all_tests_fixed:
+        log(f"SKIPPED - could not fix all test files")
+        git_revert(files_before)
+        return False, "test fixes exhausted"
+
+    # Verify all tests pass together
+    remaining_tests = [t for t in broken_tests if t not in test_files_deleted]
+    if remaining_tests:
+        log(f"Final verification: {len(remaining_tests)} test file(s)")
+        if not run_tests(remaining_tests):
+            log(f"SKIPPED - final verification failed")
+            git_revert(files_before)
+            return False, "final verification failed"
+
+    # All tests fixed - finalize and commit
+    log("Finalizing: deleting commented code")
+    finalize_removal(function, changed)
+
+    summary_parts = []
+    if test_files_deleted:
+        summary_parts.append(f"deleted {len(test_files_deleted)} test file(s)")
+    if test_files_modified:
+        summary_parts.append(f"modified {len(test_files_modified)} test file(s)")
+    summary = ", ".join(summary_parts) if summary_parts else "no test changes needed"
+
+    log(f"SUCCESS - removed {function} ({summary})")
+    git_commit(function, file, final_model_name, 1, files_before)
+    return True, "removed with test fixes"
 
 
 def main() -> int:
