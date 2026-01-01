@@ -25,6 +25,7 @@ struct ik_google_stream_ctx {
     bool in_tool_call;                 /* true when processing tool call */
     char *current_tool_id;             /* Current tool call ID (generated) */
     char *current_tool_name;           /* Current tool call name */
+    char *current_tool_args;           /* Accumulated tool call arguments (JSON) */
     int32_t part_index;                /* Current part index for events */
 };
 
@@ -34,6 +35,9 @@ struct ik_google_stream_ctx {
 
 /**
  * End any open tool call
+ *
+ * NOTE: This function marks the tool call as complete but preserves the
+ * accumulated tool data (id, name, args) for the response builder.
  */
 static void end_tool_call_if_needed(ik_google_stream_ctx_t *sctx)
 {
@@ -46,8 +50,7 @@ static void end_tool_call_if_needed(ik_google_stream_ctx_t *sctx)
         };
         sctx->user_cb(&event, sctx->user_ctx);
         sctx->in_tool_call = false;
-        sctx->current_tool_id = NULL;
-        sctx->current_tool_name = NULL;
+        // Do NOT clear tool data here - it's needed by the response builder
     }
 }
 
@@ -139,6 +142,10 @@ static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *func
             }
         }
 
+        // Initialize arguments accumulator
+        sctx->current_tool_args = talloc_strdup(sctx, "");
+        if (sctx->current_tool_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
         // Emit IK_STREAM_TOOL_CALL_START
         ik_stream_event_t event = {
             .type = IK_STREAM_TOOL_CALL_START,
@@ -158,6 +165,14 @@ static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *func
         size_t json_len;
         char *args_json = yyjson_val_write_opts(args_val, flg, NULL, &json_len, NULL);
         if (args_json != NULL) { // LCOV_EXCL_BR_LINE (only fails on extreme OOM, event skipped)
+            // Accumulate arguments
+            char *new_args = talloc_asprintf(sctx, "%s%s",
+                sctx->current_tool_args ? sctx->current_tool_args : "", // LCOV_EXCL_BR_LINE
+                args_json);
+            if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            talloc_free(sctx->current_tool_args);
+            sctx->current_tool_args = new_args;
+
             // Emit IK_STREAM_TOOL_CALL_DELTA
             ik_stream_event_t event = {
                 .type = IK_STREAM_TOOL_CALL_DELTA,
@@ -300,6 +315,60 @@ static void process_usage(ik_google_stream_ctx_t *sctx, yyjson_val *usage_obj)
 }
 
 /* ================================================================
+ * Response Builder
+ * ================================================================ */
+
+ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
+                                                 ik_google_stream_ctx_t *sctx)
+{
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
+
+    // Allocate response structure
+    ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+    if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Copy model
+    if (sctx->model != NULL) {
+        resp->model = talloc_strdup(resp, sctx->model);
+        if (resp->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Copy finish reason and usage
+    resp->finish_reason = sctx->finish_reason;
+    resp->usage = sctx->usage;
+
+    // Check if we have a tool call to include
+    if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
+        // Override finish_reason: Google returns "STOP" even for tool calls,
+        // but we need IK_FINISH_TOOL_USE so the tool loop continues
+        resp->finish_reason = IK_FINISH_TOOL_USE;
+
+        // Allocate content blocks array with one tool call
+        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        resp->content_count = 1;
+
+        // Populate tool call content block
+        ik_content_block_t *block = &resp->content_blocks[0];
+        block->type = IK_CONTENT_TOOL_CALL;
+        block->data.tool_call.id = talloc_strdup(resp->content_blocks, sctx->current_tool_id);
+        if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
+        if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
+            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+        if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        // No tool call - empty content
+        resp->content_blocks = NULL;
+        resp->content_count = 0;
+    }
+
+    return resp;
+}
+
+/* ================================================================
  * Context Creation
  * ================================================================ */
 
@@ -327,6 +396,7 @@ res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_c
     sctx->in_tool_call = false;
     sctx->current_tool_id = NULL;
     sctx->current_tool_name = NULL;
+    sctx->current_tool_args = NULL;
     sctx->part_index = 0;
 
     *out_stream_ctx = sctx;

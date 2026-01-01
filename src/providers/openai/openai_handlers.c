@@ -135,6 +135,15 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
     ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)userdata;
     assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
 
+    // Responses API has its own SSE parser - delegate to its write callback
+    if (req_ctx->use_responses_api) {
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wcast-qual"
+        return ik_openai_responses_stream_write_callback((void *)data, 1, len, req_ctx->parser_ctx);
+        #pragma GCC diagnostic pop
+    }
+
+    // Chat Completions API: Parse SSE manually
     // Append to buffer (handles incomplete lines across chunks)
     char *new_buffer = talloc_realloc(req_ctx, req_ctx->sse_buffer,
                                        char, (unsigned int)(req_ctx->sse_buffer_len + len + 1));
@@ -157,7 +166,8 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
             const char *json_data = line_start + 6;
 
             // Feed to parser - this invokes user's stream_cb
-            ik_openai_chat_stream_process_data(req_ctx->parser_ctx, json_data);
+            ik_openai_chat_stream_process_data(
+                (ik_openai_chat_stream_ctx_t *)req_ctx->parser_ctx, json_data);
         }
 
         // Move to next line
@@ -235,8 +245,19 @@ void ik_openai_stream_completion_handler(const ik_http_completion_t *http_comple
     }
 
     // Success - stream events were already delivered during perform()
+    // Build response from accumulated streaming data (if parser context exists)
     provider_completion.success = true;
-    provider_completion.response = NULL;
+    if (req_ctx->parser_ctx != NULL) {
+        if (req_ctx->use_responses_api) {
+            provider_completion.response = ik_openai_responses_stream_build_response(
+                req_ctx, (ik_openai_responses_stream_ctx_t *)req_ctx->parser_ctx);
+        } else {
+            provider_completion.response = ik_openai_chat_stream_build_response(
+                req_ctx, (ik_openai_chat_stream_ctx_t *)req_ctx->parser_ctx);
+        }
+    } else {
+        provider_completion.response = NULL;
+    }
     provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
     provider_completion.error_message = NULL;
     provider_completion.retry_after_ms = -1;

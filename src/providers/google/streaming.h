@@ -95,4 +95,23 @@ ik_usage_t ik_google_stream_get_usage(ik_google_stream_ctx_t *stream_ctx);
  */
 ik_finish_reason_t ik_google_stream_get_finish_reason(ik_google_stream_ctx_t *stream_ctx);
 
+/**
+ * Build response from accumulated streaming data
+ *
+ * @param ctx        Talloc context for response allocation
+ * @param stream_ctx Streaming context with accumulated data
+ * @return           Response structure (allocated on ctx)
+ *
+ * Builds an ik_response_t from the accumulated streaming data including:
+ * - model (from modelVersion)
+ * - finish_reason (from finishReason)
+ * - usage (from usageMetadata)
+ * - content_blocks with tool call if present (from current_tool_*)
+ *
+ * Used by completion callback to provide a consistent response
+ * for both streaming and non-streaming requests.
+ */
+ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
+                                                 ik_google_stream_ctx_t *stream_ctx);
+
 #endif /* IK_PROVIDERS_GOOGLE_STREAMING_H */

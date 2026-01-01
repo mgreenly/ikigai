@@ -31,6 +31,7 @@ struct ik_anthropic_stream_ctx {
     ik_content_type_t current_block_type; /* Current block type */
     char *current_tool_id;             /* Current tool call ID */
     char *current_tool_name;           /* Current tool call name */
+    char *current_tool_args;           /* Accumulated tool call arguments */
 };
 
 typedef struct ik_anthropic_stream_ctx ik_anthropic_stream_ctx_t;
@@ -82,5 +83,24 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
  */
 void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
                                         const char *event, const char *data);
+
+/**
+ * Build response from accumulated streaming data
+ *
+ * @param ctx  Talloc context for allocation
+ * @param sctx Streaming context with accumulated data
+ * @return     Populated ik_response_t (owned by ctx)
+ *
+ * Builds a complete response from the streaming context's accumulated data:
+ * - model: From message_start event
+ * - finish_reason: From message_delta event
+ * - usage: From message_delta event
+ * - content_blocks: Tool call if present (from current_tool_*)
+ *
+ * This allows streaming responses to be treated identically to non-streaming
+ * responses by the REPL layer.
+ */
+ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
+                                                   ik_anthropic_stream_ctx_t *sctx);
 
 #endif /* IK_PROVIDERS_ANTHROPIC_STREAMING_H */

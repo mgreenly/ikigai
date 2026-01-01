@@ -45,6 +45,7 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
     sctx->current_block_type = IK_CONTENT_TEXT;
     sctx->current_tool_id = NULL;
     sctx->current_tool_name = NULL;
+    sctx->current_tool_args = NULL;
 
     *out = sctx;
     return OK(sctx);
@@ -112,4 +113,54 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
         ik_anthropic_process_error(stream_ctx, root);
     }
     // Unknown events are ignored
+}
+
+/* ================================================================
+ * Response Builder
+ * ================================================================ */
+
+ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
+                                                   ik_anthropic_stream_ctx_t *sctx)
+{
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
+
+    // Allocate response structure
+    ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+    if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Copy model
+    if (sctx->model != NULL) {
+        resp->model = talloc_strdup(resp, sctx->model);
+        if (resp->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Copy finish reason and usage
+    resp->finish_reason = sctx->finish_reason;
+    resp->usage = sctx->usage;
+
+    // Check if we have a tool call to include
+    if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
+        // Allocate content blocks array with one tool call
+        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        resp->content_count = 1;
+
+        // Populate tool call content block
+        ik_content_block_t *block = &resp->content_blocks[0];
+        block->type = IK_CONTENT_TOOL_CALL;
+        block->data.tool_call.id = talloc_strdup(resp->content_blocks, sctx->current_tool_id);
+        if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
+        if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
+            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+        if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        // No tool call - empty content
+        resp->content_blocks = NULL;
+        resp->content_count = 0;
+    }
+
+    return resp;
 }

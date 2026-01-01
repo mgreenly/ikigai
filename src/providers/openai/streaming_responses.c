@@ -42,6 +42,7 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
     sctx->tool_call_index = -1;
     sctx->current_tool_id = NULL;
     sctx->current_tool_name = NULL;
+    sctx->current_tool_args = NULL;
 
     sctx->sse_parser = ik_sse_parser_create(sctx);
     if (sctx->sse_parser == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -112,4 +113,58 @@ size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t 
     talloc_free(tmp_ctx);
 
     return total;
+}
+
+/* ================================================================
+ * Response Builder
+ * ================================================================ */
+
+ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx,
+                                                           ik_openai_responses_stream_ctx_t *sctx)
+{
+    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
+
+    // Allocate response structure
+    ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+    if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Copy model
+    if (sctx->model != NULL) {
+        resp->model = talloc_strdup(resp, sctx->model);
+        if (resp->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Copy finish reason and usage
+    resp->finish_reason = sctx->finish_reason;
+    resp->usage = sctx->usage;
+
+    // Check if we have a tool call to include
+    if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
+        // Override finish_reason: Responses API returns "completed" even for tool calls,
+        // but we need IK_FINISH_TOOL_USE so the tool loop continues
+        resp->finish_reason = IK_FINISH_TOOL_USE;
+
+        // Allocate content blocks array with one tool call
+        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        resp->content_count = 1;
+
+        // Populate tool call content block
+        ik_content_block_t *block = &resp->content_blocks[0];
+        block->type = IK_CONTENT_TOOL_CALL;
+        block->data.tool_call.id = talloc_strdup(resp->content_blocks, sctx->current_tool_id);
+        if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
+        if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
+            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+        if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        // No tool call - empty content
+        resp->content_blocks = NULL;
+        resp->content_count = 0;
+    }
+
+    return resp;
 }

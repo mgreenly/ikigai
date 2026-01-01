@@ -201,7 +201,7 @@ START_TEST(test_handle_agent_tool_completion_stop) {
 END_TEST
 /* Test: tool loop continuation */
 START_TEST(test_handle_agent_tool_completion_continues_loop) {
-    setup_tool_completion("tool_calls");
+    setup_tool_completion("tool_use");
     agent->tool_iteration_count = 0;
     repl->current = NULL;
     ik_repl_handle_agent_tool_completion(repl, agent);

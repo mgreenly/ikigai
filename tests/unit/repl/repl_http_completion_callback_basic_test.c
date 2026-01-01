@@ -88,16 +88,17 @@ START_TEST(test_completion_flushes_streaming_buffer) {
     /* Simulate partial streaming content in buffer */
     repl->current->streaming_line_buffer = talloc_strdup(repl, "Partial line content");
 
-    /* Create successful completion */
+    /* Create successful completion (without response - edge case) */
     ik_provider_completion_t completion = make_success_completion();
 
     /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
-    /* Verify buffer was flushed to scrollback (content + blank line) and cleared */
+    /* Verify buffer was flushed to scrollback and cleared */
+    /* Note: After streaming tool fix, no usage rendering when response == NULL */
     ck_assert_ptr_null(repl->current->streaming_line_buffer);
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
 /* Test: Completion clears previous error message */

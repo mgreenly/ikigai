@@ -283,10 +283,16 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
 
-    // Create streaming parser context
-    ik_openai_chat_stream_ctx_t *parser_ctx =
-        ik_openai_chat_stream_ctx_create(req_ctx, stream_cb, stream_ctx);
-    req_ctx->parser_ctx = parser_ctx;
+    // Create streaming parser context (different for Chat vs Responses API)
+    if (use_responses_api) {
+        ik_openai_responses_stream_ctx_t *parser_ctx =
+            ik_openai_responses_stream_ctx_create(req_ctx, stream_cb, stream_ctx);
+        req_ctx->parser_ctx = parser_ctx;
+    } else {
+        ik_openai_chat_stream_ctx_t *parser_ctx =
+            ik_openai_chat_stream_ctx_create(req_ctx, stream_cb, stream_ctx);
+        req_ctx->parser_ctx = parser_ctx;
+    }
 
     // Serialize request with stream=true
     char *json_body = NULL;

@@ -117,7 +117,7 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
         case IK_STREAM_TOOL_CALL_START:
         case IK_STREAM_TOOL_CALL_DELTA:
         case IK_STREAM_TOOL_CALL_DONE:
-            // Tool call handling not implemented yet
+            // No-op: provider accumulates tool calls and builds response
             break;
 
         case IK_STREAM_DONE:
@@ -268,11 +268,6 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         ik_scrollback_append_line(agent->scrollback, agent->streaming_line_buffer, buffer_len);
         talloc_free(agent->streaming_line_buffer);
         agent->streaming_line_buffer = NULL;
-    }
-
-    // For streaming (response == NULL), render usage from stored token counts
-    if (completion->success && completion->response == NULL) {
-        render_usage_event(agent);
     }
 
     // Clear any previous error

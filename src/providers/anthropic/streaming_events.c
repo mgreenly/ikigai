@@ -189,6 +189,14 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
         if (json_val != NULL) {
             const char *partial_json = yyjson_get_str(json_val);
             if (partial_json != NULL) {
+                // Accumulate arguments (like OpenAI does)
+                char *new_args = talloc_asprintf(sctx, "%s%s",
+                    sctx->current_tool_args ? sctx->current_tool_args : "",
+                    partial_json);
+                if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                talloc_free(sctx->current_tool_args);
+                sctx->current_tool_args = new_args;
+
                 // Emit IK_STREAM_TOOL_CALL_DELTA
                 ik_stream_event_t event = {
                     .type = IK_STREAM_TOOL_CALL_DELTA,
@@ -223,6 +231,8 @@ void ik_anthropic_process_content_block_stop(ik_anthropic_stream_ctx_t *sctx, yy
             .index = index
         };
         sctx->stream_cb(&event, sctx->stream_ctx);
+
+        // NOTE: Do NOT clear tool data here - response builder needs it later
     }
 
     // Reset current block tracking

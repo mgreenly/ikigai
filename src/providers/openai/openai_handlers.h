@@ -33,7 +33,7 @@ typedef struct {
     void *stream_ctx;
     ik_provider_completion_cb_t completion_cb;
     void *completion_ctx;
-    ik_openai_chat_stream_ctx_t *parser_ctx;
+    void *parser_ctx;  /* Chat: ik_openai_chat_stream_ctx_t*, Responses: ik_openai_responses_stream_ctx_t* */
     char *sse_buffer;
     size_t sse_buffer_len;
 } ik_openai_stream_request_ctx_t;

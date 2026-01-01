@@ -188,12 +188,12 @@ bool ik_agent_should_continue_tool_loop(const ik_agent_ctx_t *agent)
 {
     assert(agent != NULL);   /* LCOV_EXCL_BR_LINE */
 
-    /* Check if finish_reason is "tool_calls" */
+    /* Check if finish_reason is "tool_use" */
     if (agent->response_finish_reason == NULL) {
         return false;
     }
 
-    if (strcmp(agent->response_finish_reason, "tool_calls") != 0) {
+    if (strcmp(agent->response_finish_reason, "tool_use") != 0) {
         return false;
     }
 

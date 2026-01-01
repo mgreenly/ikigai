@@ -94,6 +94,25 @@ ik_usage_t ik_openai_chat_stream_get_usage(ik_openai_chat_stream_ctx_t *stream_c
 ik_finish_reason_t ik_openai_chat_stream_get_finish_reason(ik_openai_chat_stream_ctx_t *stream_ctx);
 
 /**
+ * Build response from accumulated streaming data
+ *
+ * @param ctx  Talloc context for allocation
+ * @param sctx Streaming context with accumulated data
+ * @return     Response structure (PANICs on OOM)
+ *
+ * Creates an ik_response_t by extracting accumulated data from the streaming context:
+ * - model from sctx->model
+ * - finish_reason from sctx->finish_reason
+ * - usage from sctx->usage
+ * - content_blocks with tool call if present (from current_tool_*)
+ *
+ * Call this after streaming completes to get a response suitable for the
+ * completion callback.
+ */
+ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
+                                                      ik_openai_chat_stream_ctx_t *sctx);
+
+/**
  * OpenAI Responses API streaming context
  *
  * Tracks streaming state, accumulated metadata, and user callbacks.
@@ -189,5 +208,24 @@ ik_finish_reason_t ik_openai_responses_stream_get_finish_reason(ik_openai_respon
  * as data arrives. SSE parser invokes process_event for each complete event.
  */
 size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata);
+
+/**
+ * Build response from accumulated Responses API streaming data
+ *
+ * @param ctx  Talloc context for allocation
+ * @param sctx Streaming context with accumulated data
+ * @return     Response structure (PANICs on OOM)
+ *
+ * Creates an ik_response_t by extracting accumulated data from the streaming context:
+ * - model from sctx->model
+ * - finish_reason from sctx->finish_reason
+ * - usage from sctx->usage
+ * - content_blocks with tool call if present (from current_tool_*)
+ *
+ * Call this after streaming completes to get a response suitable for the
+ * completion callback.
+ */
+ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx,
+                                                           ik_openai_responses_stream_ctx_t *sctx);
 
 #endif /* IK_PROVIDERS_OPENAI_STREAMING_H */

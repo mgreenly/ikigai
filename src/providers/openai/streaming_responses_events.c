@@ -252,6 +252,14 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                     output_index = (int32_t)yyjson_get_int(output_index_val);
                 }
 
+                // Accumulate arguments
+                char *new_args = talloc_asprintf(stream_ctx, "%s%s",
+                    stream_ctx->current_tool_args ? stream_ctx->current_tool_args : "",
+                    delta);
+                if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                talloc_free(stream_ctx->current_tool_args);
+                stream_ctx->current_tool_args = new_args;
+
                 ik_stream_event_t event = {
                     .type = IK_STREAM_TOOL_CALL_DELTA,
                     .index = output_index,
@@ -262,6 +270,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         }
     }
     else if (strcmp(event_name, "response.function_call_arguments.done") == 0) {
+        // No-op: arguments already accumulated via delta events
     }
     else if (strcmp(event_name, "response.output_item.done") == 0) {
         yyjson_val *output_index_val = yyjson_obj_get(root, "output_index");
@@ -278,8 +287,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
             emit_event(stream_ctx, &event);
             stream_ctx->in_tool_call = false;
 
-            stream_ctx->current_tool_id = NULL;
-            stream_ctx->current_tool_name = NULL;
+            // NOTE: Do NOT clear tool data here - response builder needs it later
         }
     }
     else if (strcmp(event_name, "response.completed") == 0) {

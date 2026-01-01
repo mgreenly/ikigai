@@ -23,6 +23,7 @@ struct ik_openai_responses_stream_ctx {
     int32_t tool_call_index;           /* Current tool call index (output_index) */
     char *current_tool_id;             /* Current tool call ID */
     char *current_tool_name;           /* Current tool call name */
+    char *current_tool_args;           /* Accumulated tool call arguments */
     ik_sse_parser_t *sse_parser;       /* SSE parser for processing chunks */
 };
 

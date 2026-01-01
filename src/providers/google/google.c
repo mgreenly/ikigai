@@ -204,7 +204,12 @@ static void google_info_read(void *ctx, ik_logger_t *logger)
         if (stream->http_status >= 200 && stream->http_status < 300) {
             completion.success = true;
             completion.http_status = stream->http_status;
-            completion.response = NULL; // Streaming doesn't build full response
+            // Build response from accumulated streaming data (if stream context exists)
+            if (stream->stream_ctx != NULL) {
+                completion.response = ik_google_stream_build_response(stream, stream->stream_ctx);
+            } else {
+                completion.response = NULL;
+            }
             completion.error_category = IK_ERR_CAT_UNKNOWN;
             completion.error_message = NULL;
             completion.retry_after_ms = -1;

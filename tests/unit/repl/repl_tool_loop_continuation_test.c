@@ -48,11 +48,11 @@ static void teardown(void)
 }
 
 /*
- * Test: Should continue when finish_reason is "tool_calls"
+ * Test: Should continue when finish_reason is "tool_use"
  */
 START_TEST(test_should_continue_with_tool_calls) {
-    /* Set finish_reason to "tool_calls" */
-    repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
+    /* Set finish_reason to "tool_use" (normalized internal value) */
+    repl->current->response_finish_reason = talloc_strdup(repl, "tool_use");
 
     /* Should return true */
     bool should_continue = ik_agent_should_continue_tool_loop(repl->current);
