@@ -148,6 +148,68 @@ START_TEST(test_serialize_request_with_system_prompt) {
 
 END_TEST
 
+START_TEST(test_serialize_request_with_thinking_low) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->thinking.level = IK_THINKING_LOW;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
+    ck_assert_ptr_nonnull(thinking);
+
+    yyjson_val *type = yyjson_obj_get(thinking, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "enabled");
+
+    yyjson_val *budget = yyjson_obj_get(thinking, "budget_tokens");
+    ck_assert_ptr_nonnull(budget);
+    ck_assert(yyjson_get_int(budget) > 0);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_request_with_thinking_high) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->thinking.level = IK_THINKING_HIGH;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
+    ck_assert_ptr_nonnull(thinking);
+
+    yyjson_val *type = yyjson_obj_get(thinking, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "enabled");
+
+    yyjson_val *budget = yyjson_obj_get(thinking, "budget_tokens");
+    ck_assert_ptr_nonnull(budget);
+    ck_assert(yyjson_get_int(budget) > 0);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -163,6 +225,8 @@ static Suite *anthropic_request_suite_1(void)
     tcase_add_test(tc_basic, test_serialize_request_null_model);
     tcase_add_test(tc_basic, test_serialize_request_default_max_tokens);
     tcase_add_test(tc_basic, test_serialize_request_with_system_prompt);
+    tcase_add_test(tc_basic, test_serialize_request_with_thinking_low);
+    tcase_add_test(tc_basic, test_serialize_request_with_thinking_high);
     suite_add_tcase(s, tc_basic);
 
     return s;
