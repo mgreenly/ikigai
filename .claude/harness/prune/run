@@ -36,7 +36,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 ANALYZE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-tests.prompt.md"
-DELETE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-tests.prompt.md"
+DELETE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-test.prompt.md"
 CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE = SCRIPT_DIR / "cleanup-empty-tcase.prompt.md"
 REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
 JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
@@ -241,16 +241,15 @@ def parse_analyze_output(output: str) -> tuple[list[str], list[str]]:
     return testing, using
 
 
-def build_delete_tests_prompt(function: str, test_file: str, tests_to_delete: list[str]) -> str:
-    """Build prompt to delete specific tests from a file."""
-    if not DELETE_TESTS_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {DELETE_TESTS_PROMPT_TEMPLATE}")
+def build_delete_test_prompt(test_file: str, test_name: str) -> str:
+    """Build prompt to delete a single test from a file."""
+    if not DELETE_TEST_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {DELETE_TEST_PROMPT_TEMPLATE}")
         sys.exit(1)
 
-    template = DELETE_TESTS_PROMPT_TEMPLATE.read_text()
-    prompt = template.replace("{{function}}", function)
-    prompt = prompt.replace("{{test_file}}", test_file)
-    prompt = prompt.replace("{{tests_to_delete}}", "\n".join(f"- {t}" for t in tests_to_delete))
+    template = DELETE_TEST_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{test_name}}", test_name)
     return prompt
 
 
@@ -745,63 +744,89 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         log(f"    TESTING ({len(tests_testing)}): {', '.join(tests_testing) if tests_testing else 'none'}")
         log(f"    USING ({len(tests_using_func)}): {', '.join(tests_using_func) if tests_using_func else 'none'}")
 
-        # Step 2: Delete tests that are TESTING the function (if any)
+        # Step 2: Delete tests that are TESTING the function (one at a time)
         if tests_testing:
             log(f"  Step 2: Delete {len(tests_testing)} tests that TEST {function}")
-            for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
-                model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
-                log(f"    Attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS} ({model_name})")
+            deletion_success = True
 
-                prompt = build_delete_tests_prompt(function, test_file, tests_testing)
-                success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+            for i, test_name in enumerate(tests_testing, 1):
+                log(f"    [{i}/{len(tests_testing)}] {test_name}")
+                test_deleted = False
 
-                if not success:
-                    log(f"    LLM invocation failed: {error}")
-                    continue
+                for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+                    model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+                    if attempt > 1:
+                        log(f"      Escalating to {model_name}")
 
-                # Verify the test file still compiles and passes
-                if build_single_test(test_file) and run_single_test(test_file):
-                    log(f"    Deleted {len(tests_testing)} tests from: {test_file}")
-                    test_files_modified.append(test_file)
-                    final_model_name = model_name
+                    prompt = build_delete_test_prompt(test_file, test_name)
+                    success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
 
-                    # Phase 2: Cleanup any empty TCases
-                    empty_tcases = find_empty_tcases(test_file)
-                    if empty_tcases:
-                        log(f"  Step 2b: Cleanup {len(empty_tcases)} empty TCase(s)")
-                        for tcase_name in empty_tcases:
-                            log(f"    Cleaning up empty TCase: {tcase_name}")
-                            cleanup_prompt = build_cleanup_empty_tcase_prompt(test_file, tcase_name)
-                            # Use haiku for mechanical cleanup
-                            cleanup_model, cleanup_thinking, cleanup_name = REMOVE_MODEL
-                            cleanup_success, error = invoke_claude(cleanup_prompt, cleanup_model, cleanup_thinking, cleanup_name, timeout)
-                            if not cleanup_success:
-                                log(f"    WARNING: Failed to cleanup {tcase_name}: {error}")
+                    if not success:
+                        log(f"      LLM invocation failed: {error}")
+                        continue
 
-                        # Verify file still compiles after TCase cleanup
-                        if not build_single_test(test_file):
-                            log(f"    TCase cleanup broke build - reverting all")
-                            git_revert()
-                            all_tests_fixed = False
-                            file_fixed = False
-                            break
+                    # Verify the test file still compiles
+                    if build_single_test(test_file):
+                        test_deleted = True
+                        final_model_name = model_name
+                        break
 
-                    # Check if file is now empty (no TCases left)
-                    if file_has_no_tcases(test_file):
-                        log(f"    File has no remaining TCases - deleting")
-                        delete_test_file(test_file)
-                        test_files_deleted.append(test_file)
-                        # Remove from modified since we deleted it
-                        if test_file in test_files_modified:
-                            test_files_modified.remove(test_file)
+                    log(f"      Build failed - reverting")
+                    git_revert()
 
-                    # If no USING tests remain, we're done with this file
-                    if not tests_using_func:
-                        file_fixed = True
+                if not test_deleted:
+                    log(f"      FAILED to delete {test_name}")
+                    deletion_success = False
                     break
 
-                log(f"    Still failing - reverting")
+            if not deletion_success:
+                log(f"  SKIPPED - could not delete all TESTING tests")
                 git_revert()
+                all_tests_fixed = False
+                break
+
+            # Verify all tests pass after all deletions
+            if not run_single_test(test_file):
+                log(f"  Tests fail after deletion - reverting")
+                git_revert()
+                all_tests_fixed = False
+                break
+
+            log(f"  Deleted {len(tests_testing)} tests from: {test_file}")
+            test_files_modified.append(test_file)
+
+            # Phase 2b: Cleanup any empty TCases
+            empty_tcases = find_empty_tcases(test_file)
+            if empty_tcases:
+                log(f"  Step 2b: Cleanup {len(empty_tcases)} empty TCase(s)")
+                for tcase_name in empty_tcases:
+                    log(f"    Cleaning up: {tcase_name}")
+                    cleanup_prompt = build_cleanup_empty_tcase_prompt(test_file, tcase_name)
+                    # Use haiku for mechanical cleanup
+                    cleanup_model, cleanup_thinking, cleanup_name = REMOVE_MODEL
+                    cleanup_success, error = invoke_claude(cleanup_prompt, cleanup_model, cleanup_thinking, cleanup_name, timeout)
+                    if not cleanup_success:
+                        log(f"    WARNING: Failed to cleanup {tcase_name}: {error}")
+
+                # Verify file still compiles after TCase cleanup
+                if not build_single_test(test_file):
+                    log(f"    TCase cleanup broke build - reverting all")
+                    git_revert()
+                    all_tests_fixed = False
+                    break
+
+            # Check if file is now empty (no TCases left)
+            if file_has_no_tcases(test_file):
+                log(f"  File has no remaining TCases - deleting")
+                delete_test_file(test_file)
+                test_files_deleted.append(test_file)
+                # Remove from modified since we deleted it
+                if test_file in test_files_modified:
+                    test_files_modified.remove(test_file)
+
+            # If no USING tests remain, we're done with this file
+            if not tests_using_func:
+                file_fixed = True
 
         # If TCase cleanup failed, exit test_file loop entirely
         if not all_tests_fixed:
