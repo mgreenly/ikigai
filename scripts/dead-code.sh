@@ -55,21 +55,6 @@ if [ -f "$FALSE_POSITIVES_FILE" ]; then
   mv /tmp/cflow_orphans_filtered.txt /tmp/cflow_orphans.txt
 fi
 
-# Filter out functions that are referenced elsewhere (grep-based sanity check)
-# If a function name appears in src/ files beyond its definition, it's probably used
-> /tmp/cflow_truly_dead.txt
-while read -r fn; do
-  # Count occurrences of the function name (as a word) in all source files
-  # Exclude the definition line itself by looking for references
-  count=$(grep -rw "$fn" src/ --include='*.c' --include='*.h' 2>/dev/null | wc -l)
-  # If only 1-2 occurrences (definition + maybe declaration), it's likely dead
-  # More than 2 suggests it's actually used somewhere
-  if [ "$count" -le 2 ]; then
-    echo "$fn" >> /tmp/cflow_truly_dead.txt
-  fi
-done < /tmp/cflow_orphans.txt
-mv /tmp/cflow_truly_dead.txt /tmp/cflow_orphans.txt
-
 # Output results (format: function:file:line)
 count=$(wc -l < /tmp/cflow_orphans.txt)
 if [ "$count" -eq 0 ]; then
