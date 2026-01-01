@@ -31,8 +31,7 @@ static void teardown(void)
  * Edge Case Branch Coverage Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_empty_json_len)
-{
+START_TEST(test_parse_error_empty_json_len) {
     /* Line 344 branch 3: json != NULL but json_len == 0 */
     const char *json = "{\"error\":{\"message\":\"test\"}}";
 
@@ -49,8 +48,7 @@ START_TEST(test_parse_error_empty_json_len)
 
 END_TEST
 
-START_TEST(test_parse_error_null_type_val)
-{
+START_TEST(test_parse_error_null_type_val) {
     /* Line 361 branch: type_val is NULL (missing type field) */
     const char *json = "{"
                        "\"error\":{"
@@ -72,8 +70,7 @@ START_TEST(test_parse_error_null_type_val)
 
 END_TEST
 
-START_TEST(test_parse_error_null_code_val)
-{
+START_TEST(test_parse_error_null_code_val) {
     /* Line 364 branch: code_val is NULL (missing code field) */
     const char *json = "{"
                        "\"error\":{"
@@ -95,8 +92,7 @@ START_TEST(test_parse_error_null_code_val)
 
 END_TEST
 
-START_TEST(test_parse_error_null_msg_val)
-{
+START_TEST(test_parse_error_null_msg_val) {
     /* Line 367 branch: msg_val is NULL (missing message field) */
     const char *json = "{"
                        "\"error\":{"
@@ -118,8 +114,7 @@ START_TEST(test_parse_error_null_msg_val)
 
 END_TEST
 
-START_TEST(test_parse_multiple_tool_calls_second_invalid)
-{
+START_TEST(test_parse_multiple_tool_calls_second_invalid) {
     /* Line 295 branches: foreach loop with error on second iteration */
     /* This tests the error return path inside the tool_calls foreach loop */
     const char *json = "{"

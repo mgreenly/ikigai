@@ -149,8 +149,7 @@ START_TEST(test_lower_separator_renders_with_layers) {
 
 END_TEST
 /* Test: Lower separator visibility flag controls rendering */
-START_TEST(test_lower_separator_visibility_flag)
-{
+START_TEST(test_lower_separator_visibility_flag) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -223,8 +222,7 @@ START_TEST(test_lower_separator_visibility_flag)
 
 END_TEST
 /* Test: Layer order is correct with lower separator */
-START_TEST(test_lower_separator_layer_order)
-{
+START_TEST(test_lower_separator_layer_order) {
     void *ctx = talloc_new(NULL);
     res_t res;
 

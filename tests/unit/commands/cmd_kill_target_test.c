@@ -174,8 +174,7 @@ START_TEST(test_kill_target_terminates_specific_agent) {
 }
 END_TEST
 // Test: partial UUID matching works
-START_TEST(test_kill_target_partial_uuid_match)
-{
+START_TEST(test_kill_target_partial_uuid_match) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -200,8 +199,7 @@ START_TEST(test_kill_target_partial_uuid_match)
 
 END_TEST
 // Test: ambiguous UUID shows error
-START_TEST(test_kill_target_ambiguous_uuid_error)
-{
+START_TEST(test_kill_target_ambiguous_uuid_error) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -229,8 +227,7 @@ START_TEST(test_kill_target_ambiguous_uuid_error)
 
 END_TEST
 // Test: non-existent UUID shows error
-START_TEST(test_kill_target_nonexistent_uuid_error)
-{
+START_TEST(test_kill_target_nonexistent_uuid_error) {
     ik_agent_ctx_t *parent = repl->current;
 
     ik_scrollback_clear(parent->scrollback);
@@ -254,8 +251,7 @@ START_TEST(test_kill_target_nonexistent_uuid_error)
 
 END_TEST
 // Test: killing current agent via UUID switches to parent
-START_TEST(test_kill_target_current_switches_to_parent)
-{
+START_TEST(test_kill_target_current_switches_to_parent) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -272,8 +268,7 @@ START_TEST(test_kill_target_current_switches_to_parent)
 
 END_TEST
 // Test: killing root via UUID shows error
-START_TEST(test_kill_target_root_shows_error)
-{
+START_TEST(test_kill_target_root_shows_error) {
     const char *root_uuid = repl->current->uuid;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -302,8 +297,7 @@ START_TEST(test_kill_target_root_shows_error)
 
 END_TEST
 // Test: user stays on current agent after targeted kill
-START_TEST(test_kill_target_user_stays_on_current)
-{
+START_TEST(test_kill_target_user_stays_on_current) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -322,8 +316,7 @@ START_TEST(test_kill_target_user_stays_on_current)
 
 END_TEST
 // Test: registry ended_at is set for targeted kill
-START_TEST(test_kill_target_sets_ended_at)
-{
+START_TEST(test_kill_target_sets_ended_at) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -353,8 +346,7 @@ START_TEST(test_kill_target_sets_ended_at)
 
 END_TEST
 // Test: agent_killed event recorded in current agent's history for targeted kill
-START_TEST(test_kill_target_records_event_in_current_history)
-{
+START_TEST(test_kill_target_records_event_in_current_history) {
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 
@@ -385,8 +377,7 @@ START_TEST(test_kill_target_records_event_in_current_history)
 
 END_TEST
 // Test: agent_killed event has correct target UUID in metadata
-START_TEST(test_kill_target_event_has_target_uuid)
-{
+START_TEST(test_kill_target_event_has_target_uuid) {
     ik_agent_ctx_t *parent = repl->current;
     const char *parent_uuid = parent->uuid;
 

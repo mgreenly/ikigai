@@ -61,8 +61,7 @@ START_TEST(test_repl_run_initial_render_error) {
 
 END_TEST
 /* Test: Render error during event loop */
-START_TEST(test_repl_run_render_error_in_loop)
-{
+START_TEST(test_repl_run_render_error_in_loop) {
     void *ctx = talloc_new(NULL);
 
     res_t res;
@@ -119,8 +118,7 @@ START_TEST(test_repl_run_render_error_in_loop)
 
 END_TEST
 /* Test: Render error during spinner timeout */
-START_TEST(test_repl_run_spinner_render_error)
-{
+START_TEST(test_repl_run_spinner_render_error) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -197,8 +195,7 @@ START_TEST(test_repl_run_spinner_render_error)
 
 END_TEST
 /* Test: Spinner advance and render on timeout (success case) */
-START_TEST(test_repl_run_spinner_timeout_success)
-{
+START_TEST(test_repl_run_spinner_timeout_success) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -275,8 +272,7 @@ START_TEST(test_repl_run_spinner_timeout_success)
 
 END_TEST
 /* Test: process_action returns error for invalid Unicode codepoint (unit test) */
-START_TEST(test_repl_process_action_invalid_codepoint)
-{
+START_TEST(test_repl_process_action_invalid_codepoint) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -329,8 +325,7 @@ START_TEST(test_repl_process_action_invalid_codepoint)
 
 END_TEST
 /* Test: ik_repl_handle_terminal_input processes character successfully (integration test) */
-START_TEST(test_handle_terminal_input_success)
-{
+START_TEST(test_handle_terminal_input_success) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

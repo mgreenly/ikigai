@@ -232,8 +232,9 @@ START_TEST(test_thinking_level_enum_values) {
     ck_assert_int_eq(IK_THINKING_HIGH, 3);
 }
 
-END_TEST START_TEST(test_model_supports_thinking)
-{
+END_TEST
+
+START_TEST(test_model_supports_thinking) {
     bool supports = false;
     ik_model_supports_thinking("claude-sonnet-4-5", &supports); ck_assert(supports);
     ik_model_supports_thinking("claude-opus-4-5", &supports); ck_assert(supports);
@@ -248,8 +249,9 @@ END_TEST START_TEST(test_model_supports_thinking)
     ik_model_supports_thinking("unknown-model", &supports); ck_assert(!supports);
 }
 
-END_TEST START_TEST(test_thinking_level_preserved_on_switch)
-{
+END_TEST
+
+START_TEST(test_thinking_level_preserved_on_switch) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -273,8 +275,9 @@ END_TEST START_TEST(test_thinking_level_preserved_on_switch)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_thinking_level_change_after_switch)
-{
+END_TEST
+
+START_TEST(test_thinking_level_change_after_switch) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);

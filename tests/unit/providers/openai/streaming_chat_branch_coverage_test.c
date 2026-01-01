@@ -38,8 +38,7 @@ static void teardown(void)
  * ================================================================ */
 
 /* Test: error field type variations - line 103 branches */
-START_TEST(test_error_not_object)
-{
+START_TEST(test_error_not_object) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"error\":\"string error\"}");
@@ -47,8 +46,7 @@ START_TEST(test_error_not_object)
 }
 END_TEST
 
-START_TEST(test_error_is_array)
-{
+START_TEST(test_error_is_array) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"error\":[\"error1\", \"error2\"]}");
@@ -56,8 +54,7 @@ START_TEST(test_error_is_array)
 }
 END_TEST
 
-START_TEST(test_error_is_null)
-{
+START_TEST(test_error_is_null) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"error\":null}");
@@ -66,8 +63,7 @@ START_TEST(test_error_is_null)
 END_TEST
 
 /* Test: null field variations */
-START_TEST(test_choices_is_null)
-{
+START_TEST(test_choices_is_null) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"choices\":null}");
@@ -75,8 +71,7 @@ START_TEST(test_choices_is_null)
 }
 END_TEST
 
-START_TEST(test_usage_is_null)
-{
+START_TEST(test_usage_is_null) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"usage\":null}");
@@ -85,8 +80,7 @@ START_TEST(test_usage_is_null)
 }
 END_TEST
 
-START_TEST(test_finish_reason_is_null)
-{
+START_TEST(test_finish_reason_is_null) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}";
@@ -95,8 +89,7 @@ START_TEST(test_finish_reason_is_null)
 }
 END_TEST
 
-START_TEST(test_delta_without_finish_reason_field)
-{
+START_TEST(test_delta_without_finish_reason_field) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
@@ -105,8 +98,7 @@ START_TEST(test_delta_without_finish_reason_field)
 END_TEST
 
 /* Test: special data cases */
-START_TEST(test_done_marker)
-{
+START_TEST(test_done_marker) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "[DONE]");
@@ -114,8 +106,7 @@ START_TEST(test_done_marker)
 }
 END_TEST
 
-START_TEST(test_malformed_json)
-{
+START_TEST(test_malformed_json) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{invalid json}");
@@ -123,8 +114,7 @@ START_TEST(test_malformed_json)
 }
 END_TEST
 
-START_TEST(test_root_is_array)
-{
+START_TEST(test_root_is_array) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "[1, 2, 3]");
@@ -136,8 +126,7 @@ END_TEST
  * Test: error types - authentication, permission, rate_limit, invalid_request, server, service, unknown
  * Covers lines 103-135: all error type mappings
  */
-START_TEST(test_error_types)
-{
+START_TEST(test_error_types) {
     const char *test_cases[] = {
         "{\"error\":{\"message\":\"msg\",\"type\":\"authentication_error\"}}",
         "{\"error\":{\"message\":\"msg\",\"type\":\"permission_error\"}}",
@@ -163,8 +152,7 @@ END_TEST
  * Test: error object without message field
  * Covers line 108, 130: message_val is NULL, uses default message
  */
-START_TEST(test_error_no_message)
-{
+START_TEST(test_error_no_message) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -181,8 +169,7 @@ END_TEST
  * Test: error object without type field
  * Covers line 109, 113: type_val is NULL, category is UNKNOWN
  */
-START_TEST(test_error_no_type)
-{
+START_TEST(test_error_no_type) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -199,8 +186,7 @@ END_TEST
  * Test: model extraction when model is already set
  * Covers line 140: model_val != NULL false branch (model already set)
  */
-START_TEST(test_model_already_set)
-{
+START_TEST(test_model_already_set) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -222,21 +208,20 @@ END_TEST
  * Test: usage object with all fields including thinking tokens
  * Covers lines 175-201: usage extraction with completion_tokens_details
  */
-START_TEST(test_usage_complete)
-{
+START_TEST(test_usage_complete) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
     const char *data = "{"
-        "\"usage\":{"
-            "\"prompt_tokens\":100,"
-            "\"completion_tokens\":50,"
-            "\"total_tokens\":150,"
-            "\"completion_tokens_details\":{"
-                "\"reasoning_tokens\":10"
-            "}"
-        "}"
-    "}";
+                       "\"usage\":{"
+                       "\"prompt_tokens\":100,"
+                       "\"completion_tokens\":50,"
+                       "\"total_tokens\":150,"
+                       "\"completion_tokens_details\":{"
+                       "\"reasoning_tokens\":10"
+                       "}"
+                       "}"
+                       "}";
     ik_openai_chat_stream_process_data(sctx, data);
 
     ik_usage_t usage = ik_openai_chat_stream_get_usage(sctx);
@@ -252,8 +237,7 @@ END_TEST
  * Test: various field type mismatches (model, choices, delta, finish_reason)
  * Covers lines 142, 153, 155, 158, 162: type validation branches
  */
-START_TEST(test_field_type_mismatches)
-{
+START_TEST(test_field_type_mismatches) {
     ik_openai_chat_stream_ctx_t *sctx;
 
     /* Model not string */
@@ -292,8 +276,7 @@ END_TEST
  * Test: usage fields with invalid types (non-int tokens, non-obj details)
  * Covers lines 178, 184, 190, 196, 198: type check branches
  */
-START_TEST(test_usage_invalid_types)
-{
+START_TEST(test_usage_invalid_types) {
     ik_openai_chat_stream_ctx_t *sctx;
     ik_usage_t usage;
 
@@ -323,7 +306,8 @@ START_TEST(test_usage_invalid_types)
 
     /* Non-int reasoning_tokens */
     sctx = ik_openai_chat_stream_ctx_create(test_ctx, dummy_stream_cb, NULL);
-    ik_openai_chat_stream_process_data(sctx, "{\"usage\":{\"completion_tokens_details\":{\"reasoning_tokens\":\"x\"}}}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"usage\":{\"completion_tokens_details\":{\"reasoning_tokens\":\"x\"}}}");
     usage = ik_openai_chat_stream_get_usage(sctx);
     ck_assert_int_eq(usage.thinking_tokens, 0);
 }
@@ -334,8 +318,7 @@ END_TEST
  * Test: edge cases - missing/null fields, non-string message
  * Covers lines 105, 155, 158, 198: NULL/missing field branches
  */
-START_TEST(test_edge_cases)
-{
+START_TEST(test_edge_cases) {
     ik_openai_chat_stream_ctx_t *sctx;
     ik_usage_t usage;
 
@@ -370,8 +353,7 @@ END_TEST
  * Test: additional edge cases for rare branches
  * Covers remaining uncovered branches (line 162 branch 2)
  */
-START_TEST(test_additional_edge_cases)
-{
+START_TEST(test_additional_edge_cases) {
     ik_openai_chat_stream_ctx_t *sctx;
 
     /* Root is null (degenerate JSON case) */

@@ -45,8 +45,7 @@ START_TEST(test_find_line_defensive_error) {
 }
 END_TEST
 // Test: Defensive error with multiple lines where sum doesn't match
-START_TEST(test_find_line_defensive_error_multiple_lines)
-{
+START_TEST(test_find_line_defensive_error_multiple_lines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -78,8 +77,7 @@ START_TEST(test_find_line_defensive_error_multiple_lines)
 
 END_TEST
 // Test: Defensive error with wrapped lines
-START_TEST(test_find_line_defensive_error_wrapped)
-{
+START_TEST(test_find_line_defensive_error_wrapped) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 40);
@@ -109,8 +107,7 @@ START_TEST(test_find_line_defensive_error_wrapped)
 
 END_TEST
 // Test: Verify defensive error with edge case: zero physical lines per line
-START_TEST(test_find_line_defensive_error_zero_lines)
-{
+START_TEST(test_find_line_defensive_error_zero_lines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);

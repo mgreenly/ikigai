@@ -222,8 +222,7 @@ END_TEST
  *
  * This test verifies that the document height calculation includes the lower separator.
  */
-START_TEST(test_document_height_includes_lower_separator)
-{
+START_TEST(test_document_height_includes_lower_separator) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL with small terminal (10 rows x 80 cols)
@@ -271,8 +270,7 @@ END_TEST
  * When the viewport is filled with content, the bottom separator should still be visible
  * (not pushed off-screen).
  */
-START_TEST(test_bottom_separator_visible_when_viewport_full)
-{
+START_TEST(test_bottom_separator_visible_when_viewport_full) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL with 20 rows x 80 cols

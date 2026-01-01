@@ -119,8 +119,7 @@ START_TEST(test_migration_invalid_filenames_skipped) {
 
 END_TEST
 // Test: Non-existent migrations directory
-START_TEST(test_migration_nonexistent_directory)
-{
+START_TEST(test_migration_nonexistent_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -137,8 +136,7 @@ START_TEST(test_migration_nonexistent_directory)
 
 END_TEST
 // Test: Legacy 3-digit migration format
-START_TEST(test_migration_legacy_three_digit_format)
-{
+START_TEST(test_migration_legacy_three_digit_format) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -171,8 +169,7 @@ START_TEST(test_migration_legacy_three_digit_format)
 
 END_TEST
 // Test: Migration files sorted by number, not alphabetically
-START_TEST(test_migration_sorting_by_number)
-{
+START_TEST(test_migration_sorting_by_number) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -216,8 +213,7 @@ START_TEST(test_migration_sorting_by_number)
 
 END_TEST
 // Test: Array growth when many migration files (>10)
-START_TEST(test_migration_array_growth)
-{
+START_TEST(test_migration_array_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);

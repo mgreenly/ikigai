@@ -140,8 +140,7 @@ END_TEST
  *
  * Similar to above, but specifically checks that input buffer content is scrolled off.
  */
-START_TEST(test_input_buffer_scrolls_offscreen)
-{
+START_TEST(test_input_buffer_scrolls_offscreen) {
     reset_mock();
     void *ctx = talloc_new(NULL);
     res_t res;
@@ -210,8 +209,7 @@ END_TEST
  * This verifies the key invariant: the last line of scrollback is ALWAYS adjacent
  * to the separator line when both are visible.
  */
-START_TEST(test_scrollback_adjacent_to_separator)
-{
+START_TEST(test_scrollback_adjacent_to_separator) {
     reset_mock();
     void *ctx = talloc_new(NULL);
     res_t res;

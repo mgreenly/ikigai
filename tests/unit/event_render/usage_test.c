@@ -17,8 +17,7 @@ START_TEST(test_renders_visible_usage) {
 
 END_TEST
 // Test: Render usage event with all token types
-START_TEST(test_render_usage_event_all_tokens)
-{
+START_TEST(test_render_usage_event_all_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -45,8 +44,7 @@ START_TEST(test_render_usage_event_all_tokens)
 
 END_TEST
 // Test: Render usage event without thinking tokens
-START_TEST(test_render_usage_event_no_thinking)
-{
+START_TEST(test_render_usage_event_no_thinking) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -72,8 +70,7 @@ START_TEST(test_render_usage_event_no_thinking)
 
 END_TEST
 // Test: Render usage event with NULL data_json
-START_TEST(test_render_usage_event_null_json)
-{
+START_TEST(test_render_usage_event_null_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -92,8 +89,7 @@ START_TEST(test_render_usage_event_null_json)
 
 END_TEST
 // Test: Render usage event with invalid JSON
-START_TEST(test_render_usage_event_invalid_json)
-{
+START_TEST(test_render_usage_event_invalid_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -112,8 +108,7 @@ START_TEST(test_render_usage_event_invalid_json)
 
 END_TEST
 // Test: Render usage event with zero tokens
-START_TEST(test_render_usage_event_zero_tokens)
-{
+START_TEST(test_render_usage_event_zero_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -133,8 +128,7 @@ START_TEST(test_render_usage_event_zero_tokens)
 
 END_TEST
 // Test: Render usage event with non-integer token values
-START_TEST(test_render_usage_event_non_integer_tokens)
-{
+START_TEST(test_render_usage_event_non_integer_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -154,8 +148,7 @@ START_TEST(test_render_usage_event_non_integer_tokens)
 
 END_TEST
 // Test: Render usage event with missing token fields
-START_TEST(test_render_usage_event_missing_fields)
-{
+START_TEST(test_render_usage_event_missing_fields) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -175,8 +168,7 @@ START_TEST(test_render_usage_event_missing_fields)
 
 END_TEST
 // Test: Render usage event with null output_tokens
-START_TEST(test_render_usage_event_null_output_tokens)
-{
+START_TEST(test_render_usage_event_null_output_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -196,8 +188,7 @@ START_TEST(test_render_usage_event_null_output_tokens)
 
 END_TEST
 // Test: Render usage event with null thinking_tokens
-START_TEST(test_render_usage_event_null_thinking_tokens)
-{
+START_TEST(test_render_usage_event_null_thinking_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -218,8 +209,7 @@ START_TEST(test_render_usage_event_null_thinking_tokens)
 
 END_TEST
 // Test: Render usage event with boolean output_tokens
-START_TEST(test_render_usage_event_boolean_output_tokens)
-{
+START_TEST(test_render_usage_event_boolean_output_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -239,8 +229,7 @@ START_TEST(test_render_usage_event_boolean_output_tokens)
 
 END_TEST
 // Test: Render usage event with boolean thinking_tokens
-START_TEST(test_render_usage_event_boolean_thinking_tokens)
-{
+START_TEST(test_render_usage_event_boolean_thinking_tokens) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 

@@ -27,8 +27,7 @@ static void teardown(void)
  * Assistant Message Tests
  * ================================================================ */
 
-START_TEST(test_serialize_assistant_message_text)
-{
+START_TEST(test_serialize_assistant_message_text) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 1;
@@ -54,8 +53,7 @@ START_TEST(test_serialize_assistant_message_text)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_with_tool_calls)
-{
+START_TEST(test_serialize_assistant_message_with_tool_calls) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 1;
@@ -102,8 +100,7 @@ START_TEST(test_serialize_assistant_message_with_tool_calls)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_multiple_tool_calls)
-{
+START_TEST(test_serialize_assistant_message_multiple_tool_calls) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 2;
@@ -133,8 +130,7 @@ START_TEST(test_serialize_assistant_message_multiple_tool_calls)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
-{
+START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 2;
@@ -166,8 +162,7 @@ START_TEST(test_serialize_assistant_message_mixed_content_and_tool_calls)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_empty_content)
-{
+START_TEST(test_serialize_assistant_message_empty_content) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 0;
@@ -191,8 +186,7 @@ START_TEST(test_serialize_assistant_message_empty_content)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_non_text_blocks)
-{
+START_TEST(test_serialize_assistant_message_non_text_blocks) {
     // Message with blocks that are neither text nor tool calls (e.g., tool_result)
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
@@ -216,8 +210,7 @@ START_TEST(test_serialize_assistant_message_non_text_blocks)
 
 END_TEST
 
-START_TEST(test_serialize_assistant_message_tool_call_with_non_tool_block)
-{
+START_TEST(test_serialize_assistant_message_tool_call_with_non_tool_block) {
     // Message with tool call followed by non-tool-call block
     // This covers the false branch of line 72 (type != TOOL_CALL) in serialize.c
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);

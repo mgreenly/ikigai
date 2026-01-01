@@ -175,8 +175,7 @@ START_TEST(test_debug_output_response_success) {
 
 END_TEST
 /* Test: Debug output for error response */
-START_TEST(test_debug_output_response_error)
-{
+START_TEST(test_debug_output_response_error) {
     /* Create error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
     ik_provider_completion_t completion = {
@@ -221,8 +220,7 @@ START_TEST(test_debug_output_response_error)
 
 END_TEST
 /* Test: Debug output with tool_call information */
-START_TEST(test_debug_output_response_with_tool_call)
-{
+START_TEST(test_debug_output_response_with_tool_call) {
     /* Create response with tool call content block */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = talloc_strdup(response, "gpt-4o");
@@ -291,8 +289,7 @@ START_TEST(test_debug_output_response_with_tool_call)
 
 END_TEST
 /* Test: Debug output with NULL model */
-START_TEST(test_debug_output_null_metadata)
-{
+START_TEST(test_debug_output_null_metadata) {
     /* Create response with NULL model */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;  /* NULL model */
@@ -350,8 +347,7 @@ START_TEST(test_debug_output_null_metadata)
 
 END_TEST
 /* Test: No debug output when logger is NULL */
-START_TEST(test_debug_output_no_logger)
-{
+START_TEST(test_debug_output_no_logger) {
     /* Set logger to NULL */
     repl->shared->logger = NULL;
 

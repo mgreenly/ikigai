@@ -34,50 +34,58 @@ START_TEST(test_map_responses_status_null) {
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_map_responses_status_completed)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_completed) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("completed", NULL);
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_map_responses_status_failed)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_failed) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("failed", NULL);
     ck_assert_int_eq(reason, IK_FINISH_ERROR);
 }
 
-END_TEST START_TEST(test_map_responses_status_cancelled)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_cancelled) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("cancelled", NULL);
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_map_responses_status_incomplete_max_tokens)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_incomplete_max_tokens) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "max_output_tokens");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_responses_status_incomplete_content_filter)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_incomplete_content_filter) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "content_filter");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_responses_status_incomplete_null_reason)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_incomplete_null_reason) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", NULL);
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_responses_status_incomplete_unknown_reason)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_incomplete_unknown_reason) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("incomplete", "other_reason");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_responses_status_unknown)
-{
+END_TEST
+
+START_TEST(test_map_responses_status_unknown) {
     ik_finish_reason_t reason = ik_openai_map_responses_status("unknown_status", NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }

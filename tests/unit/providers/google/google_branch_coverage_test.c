@@ -41,8 +41,15 @@ static void teardown(void)
  * ================================================================ */
 
 // Helper for stream tests
-static res_t noop_stream_cb(const ik_stream_event_t *e, void *c) { (void)e; (void)c; return OK(NULL); }
-static res_t noop_completion_cb(const ik_provider_completion_t *c, void *ctx) { (void)c; (void)ctx; return OK(NULL); }
+static res_t noop_stream_cb(const ik_stream_event_t *e, void *c)
+{
+    (void)e; (void)c; return OK(NULL);
+}
+
+static res_t noop_completion_cb(const ik_provider_completion_t *c, void *ctx)
+{
+    (void)c; (void)ctx; return OK(NULL);
+}
 
 /* ================================================================
  * Mock for curl_easy_init to test http_multi_add_request failure
@@ -50,7 +57,8 @@ static res_t noop_completion_cb(const ik_provider_completion_t *c, void *ctx) { 
 
 static bool g_curl_easy_init_should_fail = false;
 
-CURL *curl_easy_init_(void) {
+CURL *curl_easy_init_(void)
+{
     if (g_curl_easy_init_should_fail) {
         return NULL;
     }
@@ -58,8 +66,7 @@ CURL *curl_easy_init_(void) {
 }
 
 // Test line 125: NULL data field in event (branch 1)
-START_TEST(test_google_stream_write_cb_null_event_data)
-{
+START_TEST(test_google_stream_write_cb_null_event_data) {
     ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
     res_t r = ik_google_stream_ctx_create(stream, noop_stream_cb, NULL, &stream->stream_ctx);
     ck_assert(!is_err(&r));
@@ -73,8 +80,7 @@ START_TEST(test_google_stream_write_cb_null_event_data)
 END_TEST
 
 // Test line 198 branch 3: active_stream exists but not completed
-START_TEST(test_google_info_read_active_stream_not_completed)
-{
+START_TEST(test_google_info_read_active_stream_not_completed) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -101,8 +107,7 @@ START_TEST(test_google_info_read_active_stream_not_completed)
 END_TEST
 
 // Test line 328-331: ik_http_multi_add_request failure in google_start_stream
-START_TEST(test_google_start_stream_http_multi_add_request_failure)
-{
+START_TEST(test_google_start_stream_http_multi_add_request_failure) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));

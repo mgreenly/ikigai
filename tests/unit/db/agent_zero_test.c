@@ -121,8 +121,7 @@ START_TEST(test_ensure_agent_zero_creates_on_empty) {
 }
 END_TEST
 // Test: Returns existing Agent 0 UUID if present
-START_TEST(test_ensure_agent_zero_returns_existing)
-{
+START_TEST(test_ensure_agent_zero_returns_existing) {
     SKIP_IF_NO_DB();
 
     // First call creates Agent 0
@@ -141,8 +140,7 @@ START_TEST(test_ensure_agent_zero_returns_existing)
 
 END_TEST
 // Test: Agent 0 has parent_uuid = NULL
-START_TEST(test_agent_zero_has_null_parent)
-{
+START_TEST(test_agent_zero_has_null_parent) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
@@ -163,8 +161,7 @@ START_TEST(test_agent_zero_has_null_parent)
 
 END_TEST
 // Test: Agent 0 has status = 'running'
-START_TEST(test_agent_zero_status_running)
-{
+START_TEST(test_agent_zero_status_running) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
@@ -187,8 +184,7 @@ START_TEST(test_agent_zero_status_running)
 
 END_TEST
 // Test: Upgrade scenario - adopts orphan messages
-START_TEST(test_ensure_agent_zero_adopts_orphans)
-{
+START_TEST(test_ensure_agent_zero_adopts_orphans) {
     SKIP_IF_NO_DB();
 
     // Check if agent_uuid column exists (pre-condition from messages-agent-uuid.md task)
@@ -252,8 +248,7 @@ START_TEST(test_ensure_agent_zero_adopts_orphans)
 
 END_TEST
 // Test: Idempotent - multiple calls return same UUID
-START_TEST(test_ensure_agent_zero_idempotent)
-{
+START_TEST(test_ensure_agent_zero_idempotent) {
     SKIP_IF_NO_DB();
 
     // Call three times

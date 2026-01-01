@@ -51,8 +51,7 @@ START_TEST(test_tool_call_null_root) {
 }
 END_TEST
 // Test: yyjson_doc_get_root_ returns NULL for tool_result
-START_TEST(test_tool_result_null_root)
-{
+START_TEST(test_tool_result_null_root) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,

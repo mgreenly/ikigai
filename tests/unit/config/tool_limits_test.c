@@ -41,8 +41,9 @@ START_TEST(test_config_with_valid_max_tool_turns) {
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_config_missing_max_tool_turns)
-{
+END_TEST
+
+START_TEST(test_config_missing_max_tool_turns) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -72,8 +73,9 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_max_output_size)
-{
+END_TEST
+
+START_TEST(test_config_missing_max_output_size) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -103,8 +105,9 @@ END_TEST START_TEST(test_config_missing_max_output_size)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
-{
+END_TEST
+
+START_TEST(test_config_max_tool_turns_out_of_range_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -135,8 +138,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
-{
+END_TEST
+
+START_TEST(test_config_max_tool_turns_out_of_range_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -167,8 +171,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
-{
+END_TEST
+
+START_TEST(test_config_max_output_size_out_of_range_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -199,8 +204,9 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
-{
+END_TEST
+
+START_TEST(test_config_max_output_size_out_of_range_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

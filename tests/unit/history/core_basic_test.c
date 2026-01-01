@@ -41,8 +41,7 @@ START_TEST(test_create_history) {
 }
 END_TEST
 // Test: Add entries within capacity
-START_TEST(test_add_entries_within_capacity)
-{
+START_TEST(test_add_entries_within_capacity) {
     hist = ik_history_create(ctx, 5);
 
     res_t res = ik_history_add(hist, "command1");
@@ -63,8 +62,7 @@ START_TEST(test_add_entries_within_capacity)
 
 END_TEST
 // Test: Add entries exceeding capacity (oldest removed)
-START_TEST(test_add_entries_exceeds_capacity)
-{
+START_TEST(test_add_entries_exceeds_capacity) {
     hist = ik_history_create(ctx, 3);
 
     // Fill to capacity
@@ -84,8 +82,7 @@ START_TEST(test_add_entries_exceeds_capacity)
 
 END_TEST
 // Test: Empty string not added to history
-START_TEST(test_empty_string_not_added)
-{
+START_TEST(test_empty_string_not_added) {
     hist = ik_history_create(ctx, 5);
 
     res_t res = ik_history_add(hist, "");

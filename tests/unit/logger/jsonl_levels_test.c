@@ -75,8 +75,7 @@ START_TEST(test_log_info_has_info_level) {
 }
 END_TEST
 // Test: ik_log_warn_json writes "warn" level
-START_TEST(test_log_warn_has_warn_level)
-{
+START_TEST(test_log_warn_has_warn_level) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -104,8 +103,7 @@ START_TEST(test_log_warn_has_warn_level)
 
 END_TEST
 // Test: ik_log_error_json writes "error" level
-START_TEST(test_log_error_has_error_level)
-{
+START_TEST(test_log_error_has_error_level) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -133,8 +131,7 @@ START_TEST(test_log_error_has_error_level)
 
 END_TEST
 // Test: ik_log_fatal_json calls exit(1)
-START_TEST(test_log_fatal_calls_exit)
-{
+START_TEST(test_log_fatal_calls_exit) {
     setup_logger();
 
     // Fork to test exit behavior

@@ -55,8 +55,9 @@ START_TEST(test_parse_response_refusal_no_field) {
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_refusal_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_refusal_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-refusalnotstr\","
                        "\"model\":\"gpt-4o\","
@@ -83,8 +84,9 @@ END_TEST START_TEST(test_parse_response_refusal_not_string)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_usage_non_int_values)
-{
+END_TEST
+
+START_TEST(test_parse_response_usage_non_int_values) {
     const char *json = "{"
                        "\"id\":\"resp-badusage\","
                        "\"model\":\"gpt-4o\","
@@ -117,8 +119,9 @@ END_TEST START_TEST(test_parse_response_usage_non_int_values)
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
 
-END_TEST START_TEST(test_parse_response_model_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_model_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-modelnum\","
                        "\"model\":123,"
@@ -145,8 +148,9 @@ END_TEST START_TEST(test_parse_response_model_not_string)
     ck_assert_ptr_null(resp->model);
 }
 
-END_TEST START_TEST(test_parse_response_status_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_status_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-statusnum\","
                        "\"model\":\"gpt-4o\","
@@ -173,8 +177,9 @@ END_TEST START_TEST(test_parse_response_status_not_string)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_response_incomplete_reason_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_incomplete_reason_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-reasonnum\","
                        "\"model\":\"gpt-4o\","
@@ -204,8 +209,9 @@ END_TEST START_TEST(test_parse_response_incomplete_reason_not_string)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_parse_response_function_call_call_id_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_call_id_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-callidnotstr\","
                        "\"model\":\"gpt-4o\","

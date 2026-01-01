@@ -139,8 +139,7 @@ START_TEST(test_db_message_insert_tool_call_event) {
 
 END_TEST
 // Test: Insert tool_result event with execution result
-START_TEST(test_db_message_insert_tool_result_event)
-{
+START_TEST(test_db_message_insert_tool_result_event) {
     SKIP_IF_NO_DB();
 
     const char *tool_result_content = "3 files found";
@@ -169,8 +168,7 @@ START_TEST(test_db_message_insert_tool_result_event)
 
 END_TEST
 // Test: Multiple inserts maintain chronological order
-START_TEST(test_db_message_insert_multiple_events)
-{
+START_TEST(test_db_message_insert_multiple_events) {
     SKIP_IF_NO_DB();
 
     res_t res1 = ik_db_message_insert(db, session_id, NULL, "clear", NULL, NULL);
@@ -196,8 +194,7 @@ START_TEST(test_db_message_insert_multiple_events)
 
 END_TEST
 // Test: Insert command event for slash command persistence
-START_TEST(test_db_message_insert_command_event)
-{
+START_TEST(test_db_message_insert_command_event) {
     SKIP_IF_NO_DB();
 
     const char *command_content = "/help";
@@ -223,8 +220,7 @@ START_TEST(test_db_message_insert_command_event)
 
 END_TEST
 // Test: Insert fork event for recording fork operations
-START_TEST(test_db_message_insert_fork_event)
-{
+START_TEST(test_db_message_insert_fork_event) {
     SKIP_IF_NO_DB();
 
     const char *fork_content = "Forked to agent_uuid_123";

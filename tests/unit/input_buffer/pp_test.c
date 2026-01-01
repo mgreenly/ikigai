@@ -39,8 +39,7 @@ START_TEST(test_pp_input_buffer_empty) {
 }
 END_TEST
 /* Test: Pretty-print input_buffer with single-line text */
-START_TEST(test_pp_input_buffer_single_line)
-{
+START_TEST(test_pp_input_buffer_single_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -73,8 +72,7 @@ START_TEST(test_pp_input_buffer_single_line)
 
 END_TEST
 /* Test: Pretty-print input_buffer with multi-line text */
-START_TEST(test_pp_input_buffer_multiline)
-{
+START_TEST(test_pp_input_buffer_multiline) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -113,8 +111,7 @@ START_TEST(test_pp_input_buffer_multiline)
 
 END_TEST
 /* Test: Pretty-print input_buffer with UTF-8 text */
-START_TEST(test_pp_input_buffer_utf8)
-{
+START_TEST(test_pp_input_buffer_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -144,8 +141,7 @@ START_TEST(test_pp_input_buffer_utf8)
 
 END_TEST
 /* Test: Pretty-print input_buffer with indentation */
-START_TEST(test_pp_input_buffer_indented)
-{
+START_TEST(test_pp_input_buffer_indented) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -185,8 +181,7 @@ START_TEST(test_pp_input_buffer_indented)
 
 END_TEST
 /* Test: Pretty-print input_buffer with cursor in middle */
-START_TEST(test_pp_input_buffer_cursor_middle)
-{
+START_TEST(test_pp_input_buffer_cursor_middle) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -226,8 +221,7 @@ START_TEST(test_pp_input_buffer_cursor_middle)
 
 END_TEST
 /* Test: Pretty-print input_buffer with target_column set */
-START_TEST(test_pp_input_buffer_target_column)
-{
+START_TEST(test_pp_input_buffer_target_column) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;
@@ -254,8 +248,7 @@ START_TEST(test_pp_input_buffer_target_column)
 
 END_TEST
 /* Test: Pretty-print input_buffer with special characters */
-START_TEST(test_pp_input_buffer_special_chars)
-{
+START_TEST(test_pp_input_buffer_special_chars) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     ik_format_buffer_t *buf = NULL;

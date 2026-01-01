@@ -67,8 +67,7 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
     return OK(NULL);
 }
 
-START_TEST(test_info_read_no_active_stream)
-{
+START_TEST(test_info_read_no_active_stream) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -81,8 +80,7 @@ START_TEST(test_info_read_no_active_stream)
 
 END_TEST
 
-START_TEST(test_info_read_success_http_status)
-{
+START_TEST(test_info_read_success_http_status) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -130,44 +128,37 @@ static void test_error_status(int http_status, ik_error_category_t expected_cat)
     ck_assert_int_eq(g_last_completion.error_category, expected_cat);
 }
 
-START_TEST(test_info_read_auth_error_401)
-{
+START_TEST(test_info_read_auth_error_401) {
     test_error_status(401, IK_ERR_CAT_AUTH);
 }
 END_TEST
 
-START_TEST(test_info_read_auth_error_403)
-{
+START_TEST(test_info_read_auth_error_403) {
     test_error_status(403, IK_ERR_CAT_AUTH);
 }
 END_TEST
 
-START_TEST(test_info_read_rate_limit_429)
-{
+START_TEST(test_info_read_rate_limit_429) {
     test_error_status(429, IK_ERR_CAT_RATE_LIMIT);
 }
 END_TEST
 
-START_TEST(test_info_read_server_error_500)
-{
+START_TEST(test_info_read_server_error_500) {
     test_error_status(500, IK_ERR_CAT_SERVER);
 }
 END_TEST
 
-START_TEST(test_info_read_unknown_error_400)
-{
+START_TEST(test_info_read_unknown_error_400) {
     test_error_status(400, IK_ERR_CAT_UNKNOWN);
 }
 END_TEST
 
-START_TEST(test_info_read_informational_status_100)
-{
+START_TEST(test_info_read_informational_status_100) {
     test_error_status(100, IK_ERR_CAT_UNKNOWN);
 }
 END_TEST
 
-START_TEST(test_info_read_no_completion_callback)
-{
+START_TEST(test_info_read_no_completion_callback) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -187,8 +178,7 @@ START_TEST(test_info_read_no_completion_callback)
 
 END_TEST
 
-START_TEST(test_info_read_stream_not_completed)
-{
+START_TEST(test_info_read_stream_not_completed) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -215,8 +205,7 @@ END_TEST
 
 /* Cancel Tests */
 
-START_TEST(test_cancel_with_active_stream)
-{
+START_TEST(test_cancel_with_active_stream) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -239,8 +228,7 @@ START_TEST(test_cancel_with_active_stream)
 
 END_TEST
 
-START_TEST(test_cancel_without_active_stream)
-{
+START_TEST(test_cancel_without_active_stream) {
     // Test cancel when no active stream exists
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
@@ -254,8 +242,7 @@ END_TEST
 
 /* Vtable Method Tests - fdset, perform, timeout, cleanup */
 
-START_TEST(test_anthropic_fdset)
-{
+START_TEST(test_anthropic_fdset) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -275,8 +262,7 @@ START_TEST(test_anthropic_fdset)
 
 END_TEST
 
-START_TEST(test_anthropic_perform)
-{
+START_TEST(test_anthropic_perform) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -292,8 +278,7 @@ START_TEST(test_anthropic_perform)
 
 END_TEST
 
-START_TEST(test_anthropic_timeout)
-{
+START_TEST(test_anthropic_timeout) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -309,8 +294,7 @@ START_TEST(test_anthropic_timeout)
 
 END_TEST
 
-START_TEST(test_anthropic_cleanup)
-{
+START_TEST(test_anthropic_cleanup) {
     ik_provider_t *provider = NULL;
     res_t r = ik_anthropic_create(test_ctx, "test-key", &provider);
     ck_assert(is_ok(&r));
@@ -330,8 +314,7 @@ static res_t dummy_stream_cb_test(const ik_stream_event_t *event, void *ctx)
     return OK(NULL);
 }
 
-START_TEST(test_start_stream_null_model_error)
-{
+START_TEST(test_start_stream_null_model_error) {
     // Test that start_stream properly handles serialization failure
     // when model is NULL (covers lines 305-307)
     ik_provider_t *provider = NULL;
@@ -360,7 +343,7 @@ START_TEST(test_start_stream_null_model_error)
     };
 
     r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb_test, NULL,
-                                    test_completion_cb, NULL);
+                                   test_completion_cb, NULL);
 
     // Should return error from serialization
     ck_assert(is_err(&r));

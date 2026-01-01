@@ -149,8 +149,7 @@ START_TEST(test_fork_records_fork_message_id_no_messages) {
 }
 END_TEST
 // Test: Fork stores fork_message_id in registry
-START_TEST(test_fork_registry_has_fork_message_id)
-{
+START_TEST(test_fork_registry_has_fork_message_id) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -166,8 +165,7 @@ START_TEST(test_fork_registry_has_fork_message_id)
 
 END_TEST
 // Test: Fork sync barrier - fork with no running tools proceeds immediately
-START_TEST(test_fork_no_running_tools_proceeds)
-{
+START_TEST(test_fork_no_running_tools_proceeds) {
     // Ensure no running tools
     ck_assert(!repl->current->tool_thread_running);
 
@@ -180,16 +178,14 @@ START_TEST(test_fork_no_running_tools_proceeds)
 
 END_TEST
 // Test: Fork sync barrier - ik_agent_has_running_tools returns false when no tools
-START_TEST(test_has_running_tools_false_when_idle)
-{
+START_TEST(test_has_running_tools_false_when_idle) {
     repl->current->tool_thread_running = false;
     ck_assert(!ik_agent_has_running_tools(repl->current));
 }
 
 END_TEST
 // Test: Fork sync barrier - ik_agent_has_running_tools returns true when tool running
-START_TEST(test_has_running_tools_true_when_running)
-{
+START_TEST(test_has_running_tools_true_when_running) {
     repl->current->tool_thread_running = true;
     ck_assert(ik_agent_has_running_tools(repl->current));
     // Reset for cleanup
@@ -198,8 +194,7 @@ START_TEST(test_has_running_tools_true_when_running)
 
 END_TEST
 // Test: Fork sync barrier - waiting message displayed when tools running
-START_TEST(test_fork_waiting_message_when_tools_running)
-{
+START_TEST(test_fork_waiting_message_when_tools_running) {
     // Set up a running tool
     repl->current->tool_thread_running = true;
     repl->current->tool_thread_complete = false;
@@ -215,8 +210,7 @@ START_TEST(test_fork_waiting_message_when_tools_running)
 
 END_TEST
 // Test: Fork sync barrier - tool_thread_complete is respected
-START_TEST(test_has_running_tools_respects_complete_flag)
-{
+START_TEST(test_has_running_tools_respects_complete_flag) {
     // Thread running but not complete
     repl->current->tool_thread_running = true;
     repl->current->tool_thread_complete = false;
@@ -229,8 +223,7 @@ START_TEST(test_has_running_tools_respects_complete_flag)
 
 END_TEST
 // Test: Child inherits parent's scrollback
-START_TEST(test_fork_child_inherits_scrollback)
-{
+START_TEST(test_fork_child_inherits_scrollback) {
     // Add some lines to parent's scrollback before forking
     res_t res1 = ik_scrollback_append_line(repl->current->scrollback, "Line 1 from parent", 18);
     ck_assert(is_ok(&res1));

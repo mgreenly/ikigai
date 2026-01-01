@@ -18,8 +18,7 @@ static void suite_setup(void)
 }
 
 /* Test: Page Down scrolling decreases viewport_offset */
-START_TEST(test_page_down_scrolling)
-{
+START_TEST(test_page_down_scrolling) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with scrollback
@@ -54,8 +53,7 @@ START_TEST(test_page_down_scrolling)
 END_TEST
 
 /* Test: Page Down at bottom stays at 0 */
-START_TEST(test_page_down_at_bottom)
-{
+START_TEST(test_page_down_at_bottom) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with scrollback
@@ -90,8 +88,7 @@ START_TEST(test_page_down_at_bottom)
 END_TEST
 
 /* Test: Page Down with small offset goes to 0 */
-START_TEST(test_page_down_small_offset)
-{
+START_TEST(test_page_down_small_offset) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with scrollback
@@ -126,8 +123,7 @@ START_TEST(test_page_down_small_offset)
 END_TEST
 
 /* Test: Page Up scrolling increases viewport_offset */
-START_TEST(test_page_up_scrolling)
-{
+START_TEST(test_page_up_scrolling) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with scrollback
@@ -170,8 +166,7 @@ START_TEST(test_page_up_scrolling)
 END_TEST
 
 /* Test: Page Up with empty scrollback stays at 0 */
-START_TEST(test_page_up_empty_scrollback)
-{
+START_TEST(test_page_up_empty_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with empty scrollback
@@ -209,8 +204,7 @@ START_TEST(test_page_up_empty_scrollback)
 END_TEST
 
 /* Test: Page Up clamping at max scrollback */
-START_TEST(test_page_up_clamping)
-{
+START_TEST(test_page_up_clamping) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL with scrollback (terminal is 24 rows from ik_repl_init)

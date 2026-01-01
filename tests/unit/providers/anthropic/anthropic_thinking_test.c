@@ -29,26 +29,30 @@ START_TEST(test_supports_thinking_sonnet_4_5) {
     bool supports = ik_anthropic_supports_thinking("claude-sonnet-4-5");
     ck_assert(supports);
 }
-END_TEST START_TEST(test_supports_thinking_haiku_4_5)
-{
+END_TEST
+
+START_TEST(test_supports_thinking_haiku_4_5) {
     bool supports = ik_anthropic_supports_thinking("claude-haiku-4-5");
     ck_assert(supports);
 }
 
-END_TEST START_TEST(test_supports_thinking_opus)
-{
+END_TEST
+
+START_TEST(test_supports_thinking_opus) {
     bool supports = ik_anthropic_supports_thinking("claude-opus-3-5");
     ck_assert(supports);
 }
 
-END_TEST START_TEST(test_supports_thinking_non_claude)
-{
+END_TEST
+
+START_TEST(test_supports_thinking_non_claude) {
     bool supports = ik_anthropic_supports_thinking("gpt-4");
     ck_assert(!supports);
 }
 
-END_TEST START_TEST(test_supports_thinking_null)
-{
+END_TEST
+
+START_TEST(test_supports_thinking_null) {
     bool supports = ik_anthropic_supports_thinking(NULL);
     ck_assert(!supports);
 }
@@ -58,30 +62,32 @@ END_TEST
  * Thinking Budget Calculation Tests - Sonnet 4.5
  * ================================================================ */
 
-START_TEST(test_thinking_budget_sonnet_none)
-{
+START_TEST(test_thinking_budget_sonnet_none) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_NONE);
     ck_assert_int_eq(budget, 1024); // minimum
 }
 
-END_TEST START_TEST(test_thinking_budget_sonnet_low)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_sonnet_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_LOW);
     // min=1024, max=64000, range=62976
     // LOW = 1024 + 62976/3 = 1024 + 20992 = 22016
     ck_assert_int_eq(budget, 22016);
 }
 
-END_TEST START_TEST(test_thinking_budget_sonnet_med)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_sonnet_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_MED);
     // min=1024, max=64000, range=62976
     // MED = 1024 + 2*62976/3 = 1024 + 41984 = 43008
     ck_assert_int_eq(budget, 43008);
 }
 
-END_TEST START_TEST(test_thinking_budget_sonnet_high)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_sonnet_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_HIGH);
     ck_assert_int_eq(budget, 64000); // maximum
 }
@@ -91,30 +97,32 @@ END_TEST
  * Thinking Budget Calculation Tests - Haiku 4.5
  * ================================================================ */
 
-START_TEST(test_thinking_budget_haiku_none)
-{
+START_TEST(test_thinking_budget_haiku_none) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_NONE);
     ck_assert_int_eq(budget, 1024); // minimum
 }
 
-END_TEST START_TEST(test_thinking_budget_haiku_low)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_haiku_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_LOW);
     // min=1024, max=32000, range=30976
     // LOW = 1024 + 30976/3 = 1024 + 10325 = 11349
     ck_assert_int_eq(budget, 11349);
 }
 
-END_TEST START_TEST(test_thinking_budget_haiku_med)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_haiku_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_MED);
     // min=1024, max=32000, range=30976
     // MED = 1024 + 2*30976/3 = 1024 + 20650 = 21674
     ck_assert_int_eq(budget, 21674);
 }
 
-END_TEST START_TEST(test_thinking_budget_haiku_high)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_haiku_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_HIGH);
     ck_assert_int_eq(budget, 32000); // maximum
 }
@@ -124,30 +132,32 @@ END_TEST
  * Thinking Budget Calculation Tests - Unknown Claude Model
  * ================================================================ */
 
-START_TEST(test_thinking_budget_unknown_claude_none)
-{
+START_TEST(test_thinking_budget_unknown_claude_none) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_NONE);
     ck_assert_int_eq(budget, 1024); // default minimum
 }
 
-END_TEST START_TEST(test_thinking_budget_unknown_claude_low)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_unknown_claude_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_LOW);
     // min=1024, max=32000, range=30976
     // LOW = 1024 + 30976/3 = 1024 + 10325 = 11349
     ck_assert_int_eq(budget, 11349);
 }
 
-END_TEST START_TEST(test_thinking_budget_unknown_claude_med)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_unknown_claude_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_MED);
     // min=1024, max=32000, range=30976
     // MED = 1024 + 2*30976/3 = 1024 + 20650 = 21674
     ck_assert_int_eq(budget, 21674);
 }
 
-END_TEST START_TEST(test_thinking_budget_unknown_claude_high)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_unknown_claude_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_HIGH);
     ck_assert_int_eq(budget, 32000); // default maximum
 }
@@ -157,14 +167,14 @@ END_TEST
  * Thinking Budget Calculation Tests - Non-Claude Models
  * ================================================================ */
 
-START_TEST(test_thinking_budget_non_claude)
-{
+START_TEST(test_thinking_budget_non_claude) {
     int32_t budget = ik_anthropic_thinking_budget("gpt-4", IK_THINKING_LOW);
     ck_assert_int_eq(budget, -1); // unsupported
 }
 
-END_TEST START_TEST(test_thinking_budget_null_model)
-{
+END_TEST
+
+START_TEST(test_thinking_budget_null_model) {
     int32_t budget = ik_anthropic_thinking_budget(NULL, IK_THINKING_LOW);
     ck_assert_int_eq(budget, -1); // unsupported
 }
@@ -174,54 +184,60 @@ END_TEST
  * Thinking Validation Tests
  * ================================================================ */
 
-START_TEST(test_validate_thinking_null_model)
-{
+START_TEST(test_validate_thinking_null_model) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, NULL, IK_THINKING_LOW);
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_validate_thinking_none_always_valid)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_none_always_valid) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "any-model", IK_THINKING_NONE);
     ck_assert(!is_err(&result));
 }
 
-END_TEST START_TEST(test_validate_thinking_non_claude_low)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_non_claude_low) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_LOW);
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_validate_thinking_non_claude_med)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_non_claude_med) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_MED);
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_validate_thinking_non_claude_high)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_non_claude_high) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "gpt-4", IK_THINKING_HIGH);
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_validate_thinking_claude_low)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_claude_low) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_LOW);
     ck_assert(!is_err(&result));
 }
 
-END_TEST START_TEST(test_validate_thinking_claude_med)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_claude_med) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_MED);
     ck_assert(!is_err(&result));
 }
 
-END_TEST START_TEST(test_validate_thinking_claude_high)
-{
+END_TEST
+
+START_TEST(test_validate_thinking_claude_high) {
     res_t result = ik_anthropic_validate_thinking(test_ctx, "claude-sonnet-4-5", IK_THINKING_HIGH);
     ck_assert(!is_err(&result));
 }

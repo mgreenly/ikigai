@@ -91,8 +91,9 @@ START_TEST(test_stream_write_callback_single_line) {
     ck_assert_uint_eq(req_ctx->sse_buffer_len, 0);
     ck_assert_ptr_null(req_ctx->sse_buffer);
 }
-END_TEST START_TEST(test_stream_write_callback_partial_line)
-{
+END_TEST
+
+START_TEST(test_stream_write_callback_partial_line) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
@@ -109,8 +110,9 @@ END_TEST START_TEST(test_stream_write_callback_partial_line)
     ck_assert_str_eq(req_ctx->sse_buffer, data);
 }
 
-END_TEST START_TEST(test_stream_write_callback_continuation)
-{
+END_TEST
+
+START_TEST(test_stream_write_callback_continuation) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = talloc_strdup(req_ctx, "data: {\"id\":\"");
     req_ctx->sse_buffer_len = strlen(req_ctx->sse_buffer);
@@ -126,8 +128,9 @@ END_TEST START_TEST(test_stream_write_callback_continuation)
     ck_assert_ptr_null(req_ctx->sse_buffer);
 }
 
-END_TEST START_TEST(test_stream_write_callback_multiple_lines)
-{
+END_TEST
+
+START_TEST(test_stream_write_callback_multiple_lines) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
@@ -142,8 +145,9 @@ END_TEST START_TEST(test_stream_write_callback_multiple_lines)
     ck_assert_uint_eq(req_ctx->sse_buffer_len, 0);
 }
 
-END_TEST START_TEST(test_stream_write_callback_non_data_line)
-{
+END_TEST
+
+START_TEST(test_stream_write_callback_non_data_line) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
@@ -163,8 +167,7 @@ END_TEST
  * Stream Completion Handler Tests
  * ================================================================ */
 
-START_TEST(test_stream_completion_success)
-{
+START_TEST(test_stream_completion_success) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -190,8 +193,9 @@ START_TEST(test_stream_completion_success)
     ck_assert_ptr_null(cb_state.completion.error_message);
 }
 
-END_TEST START_TEST(test_stream_completion_error_with_json)
-{
+END_TEST
+
+START_TEST(test_stream_completion_error_with_json) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -218,8 +222,9 @@ END_TEST START_TEST(test_stream_completion_error_with_json)
     ck_assert_ptr_nonnull(cb_state.error_msg_copy);
 }
 
-END_TEST START_TEST(test_stream_completion_error_parse_fails)
-{
+END_TEST
+
+START_TEST(test_stream_completion_error_parse_fails) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -247,8 +252,9 @@ END_TEST START_TEST(test_stream_completion_error_parse_fails)
 
 }
 
-END_TEST START_TEST(test_stream_completion_error_no_body)
-{
+END_TEST
+
+START_TEST(test_stream_completion_error_no_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -274,8 +280,9 @@ END_TEST START_TEST(test_stream_completion_error_no_body)
     ck_assert_ptr_nonnull(cb_state.error_msg_copy);
 }
 
-END_TEST START_TEST(test_stream_completion_network_error)
-{
+END_TEST
+
+START_TEST(test_stream_completion_network_error) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -302,8 +309,9 @@ END_TEST START_TEST(test_stream_completion_network_error)
     ck_assert(strstr(cb_state.error_msg_copy, "connect") != NULL);
 }
 
-END_TEST START_TEST(test_stream_completion_network_error_no_message)
-{
+END_TEST
+
+START_TEST(test_stream_completion_network_error_no_message) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -329,8 +337,9 @@ END_TEST START_TEST(test_stream_completion_network_error_no_message)
     ck_assert_ptr_nonnull(cb_state.error_msg_copy);
 }
 
-END_TEST START_TEST(test_stream_completion_error_parse_error_invalid_json)
-{
+END_TEST
+
+START_TEST(test_stream_completion_error_parse_error_invalid_json) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 

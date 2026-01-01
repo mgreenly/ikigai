@@ -61,8 +61,9 @@ START_TEST(test_create_openai_provider) {
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST START_TEST(test_create_anthropic_provider)
-{
+END_TEST
+
+START_TEST(test_create_anthropic_provider) {
     setenv("ANTHROPIC_API_KEY", "test-key-anthropic", 1);
 
     ik_provider_t *provider = NULL;
@@ -82,8 +83,9 @@ END_TEST START_TEST(test_create_anthropic_provider)
     unsetenv("ANTHROPIC_API_KEY");
 }
 
-END_TEST START_TEST(test_create_google_provider)
-{
+END_TEST
+
+START_TEST(test_create_google_provider) {
     setenv("GOOGLE_API_KEY", "test-key-google", 1);
 
     ik_provider_t *provider = NULL;
@@ -102,8 +104,9 @@ END_TEST START_TEST(test_create_google_provider)
     unsetenv("GOOGLE_API_KEY");
 }
 
-END_TEST START_TEST(test_create_unknown_provider_fails)
-{
+END_TEST
+
+START_TEST(test_create_unknown_provider_fails) {
     ik_provider_t *provider = NULL;
     res_t result = ik_provider_create(test_ctx, "unknown", &provider);
 
@@ -111,8 +114,9 @@ END_TEST START_TEST(test_create_unknown_provider_fails)
     ck_assert_int_eq(error_code(result.err), ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_create_provider_missing_credentials)
-{
+END_TEST
+
+START_TEST(test_create_provider_missing_credentials) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -142,8 +146,7 @@ END_TEST
  * even when no active requests are in flight.
  */
 
-START_TEST(test_provider_fdset_returns_ok)
-{
+START_TEST(test_provider_fdset_returns_ok) {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
     ik_provider_t *provider = NULL;
@@ -168,8 +171,9 @@ START_TEST(test_provider_fdset_returns_ok)
     unsetenv("OPENAI_API_KEY");
 }
 
-END_TEST START_TEST(test_provider_perform_returns_ok)
-{
+END_TEST
+
+START_TEST(test_provider_perform_returns_ok) {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
     ik_provider_t *provider = NULL;
@@ -190,8 +194,9 @@ END_TEST START_TEST(test_provider_perform_returns_ok)
     unsetenv("OPENAI_API_KEY");
 }
 
-END_TEST START_TEST(test_provider_timeout_returns_value)
-{
+END_TEST
+
+START_TEST(test_provider_timeout_returns_value) {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
     ik_provider_t *provider = NULL;
@@ -212,8 +217,9 @@ END_TEST START_TEST(test_provider_timeout_returns_value)
     unsetenv("OPENAI_API_KEY");
 }
 
-END_TEST START_TEST(test_provider_info_read_no_crash)
-{
+END_TEST
+
+START_TEST(test_provider_info_read_no_crash) {
     setenv("OPENAI_API_KEY", "test-key", 1);
 
     ik_provider_t *provider = NULL;
@@ -243,8 +249,7 @@ END_TEST
  * These will be added in integration tests once providers are implemented.
  */
 
-START_TEST(test_async_vtable_complete_after_implementation)
-{
+START_TEST(test_async_vtable_complete_after_implementation) {
     /* Placeholder test documenting async flow tests to be added:
      *
      * test_provider_async_request_flow - Tests complete request lifecycle:
@@ -263,8 +268,9 @@ START_TEST(test_async_vtable_complete_after_implementation)
     ck_assert(true);  /* Placeholder - always passes */
 }
 
-END_TEST START_TEST(test_async_pattern_documented)
-{
+END_TEST
+
+START_TEST(test_async_pattern_documented) {
     /* This test documents the expected async pattern for providers:
      *
      * CORRECT (async/non-blocking):

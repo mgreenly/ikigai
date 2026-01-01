@@ -68,8 +68,7 @@ static res_t provider_completion_cb(const ik_provider_completion_t *completion, 
  * Streaming Write Callback Tests
  * ================================================================ */
 
-START_TEST(test_stream_write_callback_non_data_line)
-{
+START_TEST(test_stream_write_callback_non_data_line) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
@@ -89,8 +88,7 @@ START_TEST(test_stream_write_callback_non_data_line)
 
 END_TEST
 
-START_TEST(test_stream_write_callback_incomplete_line)
-{
+START_TEST(test_stream_write_callback_incomplete_line) {
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(test_ctx, ik_openai_stream_request_ctx_t);
     req_ctx->sse_buffer = NULL;
     req_ctx->sse_buffer_len = 0;
@@ -114,8 +112,7 @@ END_TEST
  * Streaming Completion Handler Tests
  * ================================================================ */
 
-START_TEST(test_stream_completion_success)
-{
+START_TEST(test_stream_completion_success) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -141,8 +138,7 @@ START_TEST(test_stream_completion_success)
 
 END_TEST
 
-START_TEST(test_stream_completion_error_with_json_body)
-{
+START_TEST(test_stream_completion_error_with_json_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -170,8 +166,7 @@ START_TEST(test_stream_completion_error_with_json_body)
 
 END_TEST
 
-START_TEST(test_stream_completion_error_parse_fails)
-{
+START_TEST(test_stream_completion_error_parse_fails) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -200,8 +195,7 @@ START_TEST(test_stream_completion_error_parse_fails)
 
 END_TEST
 
-START_TEST(test_stream_completion_error_no_body)
-{
+START_TEST(test_stream_completion_error_no_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -229,8 +223,7 @@ START_TEST(test_stream_completion_error_no_body)
 
 END_TEST
 
-START_TEST(test_stream_completion_network_error)
-{
+START_TEST(test_stream_completion_network_error) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -258,8 +251,7 @@ START_TEST(test_stream_completion_network_error)
 
 END_TEST
 
-START_TEST(test_stream_completion_error_with_empty_body)
-{
+START_TEST(test_stream_completion_error_with_empty_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 

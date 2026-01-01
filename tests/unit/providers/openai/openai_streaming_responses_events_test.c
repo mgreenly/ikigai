@@ -23,8 +23,9 @@ START_TEST(test_invalid_json) {
     ik_openai_responses_stream_process_event(ctx, "response.created", "[]");
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST START_TEST(test_response_created_edge_cases)
-{
+END_TEST
+
+START_TEST(test_response_created_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -51,8 +52,9 @@ END_TEST START_TEST(test_response_created_edge_cases)
     ck_assert_int_eq((int)events->count, 1);
 }
 
-END_TEST START_TEST(test_text_delta_edge_cases)
-{
+END_TEST
+
+START_TEST(test_text_delta_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -75,8 +77,9 @@ END_TEST START_TEST(test_text_delta_edge_cases)
     ck_assert_int_eq(events->items[0].index, 0);
 }
 
-END_TEST START_TEST(test_thinking_delta_edge_cases)
-{
+END_TEST
+
+START_TEST(test_thinking_delta_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -100,8 +103,9 @@ END_TEST START_TEST(test_thinking_delta_edge_cases)
     ck_assert_int_eq(events->items[0].index, 0);
 }
 
-END_TEST START_TEST(test_output_item_added_edge_cases)
-{
+END_TEST
+
+START_TEST(test_output_item_added_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -141,24 +145,28 @@ END_TEST START_TEST(test_output_item_added_edge_cases)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_output_item_added_ends_previous_tool_call)
-{
+END_TEST
+
+START_TEST(test_output_item_added_ends_previous_tool_call) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
-    ik_openai_responses_stream_process_event(ctx, "response.output_item.added",
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.output_item.added",
                                              "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test1\"},\"output_index\":0}");
     ck_assert_int_eq((int)events->count, 2);
 
-    ik_openai_responses_stream_process_event(ctx, "response.output_item.added",
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.output_item.added",
                                              "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_2\",\"name\":\"test2\"},\"output_index\":1}");
     ck_assert_int_eq((int)events->count, 4);
     ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DONE);
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TOOL_CALL_START);
 }
 
-END_TEST START_TEST(test_function_call_arguments_delta_edge_cases)
-{
+END_TEST
+
+START_TEST(test_function_call_arguments_delta_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -174,7 +182,8 @@ END_TEST START_TEST(test_function_call_arguments_delta_edge_cases)
     ik_openai_responses_stream_process_event(ctx, "response.function_call_arguments.delta", "{\"delta\":\"{}\"}");
     ck_assert_int_eq((int)events->count, 0);
 
-    ik_openai_responses_stream_process_event(ctx, "response.output_item.added",
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.output_item.added",
                                              "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test\"},\"output_index\":5}");
     ik_openai_responses_stream_process_event(ctx, "response.function_call_arguments.delta", "{\"delta\":\"{}\"}");
     ck_assert_int_eq((int)events->count, 3);

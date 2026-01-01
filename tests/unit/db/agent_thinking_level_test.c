@@ -137,8 +137,7 @@ START_TEST(test_insert_agent_thinking_level_low) {
 }
 END_TEST
 // Test: Insert agent with thinking_level = 99 (default/invalid -> "none")
-START_TEST(test_insert_agent_thinking_level_default)
-{
+START_TEST(test_insert_agent_thinking_level_default) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent = {0};
@@ -170,8 +169,7 @@ END_TEST
 // ========== Update Provider Tests ==========
 
 // Test: update_provider succeeds with valid data
-START_TEST(test_update_provider_success)
-{
+START_TEST(test_update_provider_success) {
     SKIP_IF_NO_DB();
 
     // Insert an agent first
@@ -211,8 +209,7 @@ START_TEST(test_update_provider_success)
 
 END_TEST
 // Test: update_provider on nonexistent agent succeeds (0 rows affected)
-START_TEST(test_update_provider_nonexistent)
-{
+START_TEST(test_update_provider_nonexistent) {
     SKIP_IF_NO_DB();
 
     // Try to update a nonexistent agent (should succeed per spec)

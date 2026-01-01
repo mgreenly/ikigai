@@ -164,8 +164,9 @@ START_TEST(test_terminal_init_enters_alt_screen) {
     ik_term_cleanup(term);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_terminal_cleanup_exits_alt_screen)
-{
+END_TEST
+
+START_TEST(test_terminal_cleanup_exits_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;

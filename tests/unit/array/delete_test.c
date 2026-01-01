@@ -33,8 +33,7 @@ START_TEST(test_array_delete_from_beginning) {
 
 END_TEST
 // Test delete from middle
-START_TEST(test_array_delete_from_middle)
-{
+START_TEST(test_array_delete_from_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -62,8 +61,7 @@ START_TEST(test_array_delete_from_middle)
 
 END_TEST
 // Test delete from end
-START_TEST(test_array_delete_from_end)
-{
+START_TEST(test_array_delete_from_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -89,8 +87,7 @@ START_TEST(test_array_delete_from_end)
 
 END_TEST
 // Security test: Delete all elements one by one (check for size underflow)
-START_TEST(test_array_delete_all_elements_no_underflow)
-{
+START_TEST(test_array_delete_all_elements_no_underflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -120,8 +117,7 @@ START_TEST(test_array_delete_all_elements_no_underflow)
 
 END_TEST
 // Security test: Complex interleaved insert/delete sequence
-START_TEST(test_array_interleaved_insert_delete_stress)
-{
+START_TEST(test_array_interleaved_insert_delete_stress) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -180,8 +176,7 @@ START_TEST(test_array_interleaved_insert_delete_stress)
 
 END_TEST
 // Security test: Repeated insert/delete at same position
-START_TEST(test_array_repeated_insert_delete_same_position)
-{
+START_TEST(test_array_repeated_insert_delete_same_position) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -218,8 +213,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: delete with invalid index
-START_TEST(test_array_delete_invalid_index_asserts)
-{
+START_TEST(test_array_delete_invalid_index_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
     ik_array_t *array = res.ok;

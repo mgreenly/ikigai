@@ -105,8 +105,7 @@ START_TEST(test_render_frame_empty_scrollback) {
 }
 END_TEST
 /* Test: Render frame with scrollback content */
-START_TEST(test_render_frame_with_scrollback)
-{
+START_TEST(test_render_frame_with_scrollback) {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
     res_t res;

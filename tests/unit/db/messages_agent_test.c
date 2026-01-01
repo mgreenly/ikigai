@@ -134,8 +134,7 @@ START_TEST(test_messages_has_agent_uuid_column) {
 }
 END_TEST
 // Test: agent_uuid references agents(uuid) with FK constraint
-START_TEST(test_agent_uuid_fk_constraint)
-{
+START_TEST(test_agent_uuid_fk_constraint) {
     SKIP_IF_NO_DB();
 
     // Query pg_constraint to check for FK
@@ -164,8 +163,7 @@ START_TEST(test_agent_uuid_fk_constraint)
 
 END_TEST
 // Test: idx_messages_agent index exists
-START_TEST(test_idx_messages_agent_exists)
-{
+START_TEST(test_idx_messages_agent_exists) {
     SKIP_IF_NO_DB();
 
     // Query pg_indexes to check for index
@@ -184,8 +182,7 @@ END_TEST
 // ========== Insert Tests ==========
 
 // Test: message insert with agent_uuid succeeds
-START_TEST(test_message_insert_with_agent_uuid)
-{
+START_TEST(test_message_insert_with_agent_uuid) {
     SKIP_IF_NO_DB();
 
     // First insert an agent into agents table
@@ -217,8 +214,7 @@ START_TEST(test_message_insert_with_agent_uuid)
 
 END_TEST
 // Test: message insert with NULL agent_uuid succeeds (backward compatibility)
-START_TEST(test_message_insert_null_agent_uuid)
-{
+START_TEST(test_message_insert_null_agent_uuid) {
     SKIP_IF_NO_DB();
 
     // Insert message with NULL agent_uuid
@@ -241,8 +237,7 @@ START_TEST(test_message_insert_null_agent_uuid)
 
 END_TEST
 // Test: query by agent_uuid returns correct subset
-START_TEST(test_query_by_agent_uuid)
-{
+START_TEST(test_query_by_agent_uuid) {
     SKIP_IF_NO_DB();
 
     // Insert two agents
@@ -284,8 +279,7 @@ START_TEST(test_query_by_agent_uuid)
 
 END_TEST
 // Test: query with agent_uuid and id range works (replay algorithm)
-START_TEST(test_query_agent_uuid_with_range)
-{
+START_TEST(test_query_agent_uuid_with_range) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -344,8 +338,7 @@ END_TEST
 // ========== Event Kind Tests ==========
 
 // Test: "agent_killed" is valid event kind
-START_TEST(test_agent_killed_is_valid_kind)
-{
+START_TEST(test_agent_killed_is_valid_kind) {
     SKIP_IF_NO_DB();
 
     ck_assert(ik_db_message_is_valid_kind("agent_killed"));
@@ -353,8 +346,7 @@ START_TEST(test_agent_killed_is_valid_kind)
 
 END_TEST
 // Test: message insert with kind="agent_killed" succeeds
-START_TEST(test_message_insert_agent_killed)
-{
+START_TEST(test_message_insert_agent_killed) {
     SKIP_IF_NO_DB();
 
     // Insert an agent

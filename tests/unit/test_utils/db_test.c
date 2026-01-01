@@ -22,8 +22,7 @@ START_TEST(test_db_name_from_file_path) {
 }
 END_TEST
 // Test: ik_test_db_name handles nested paths
-START_TEST(test_db_name_from_nested_path)
-{
+START_TEST(test_db_name_from_nested_path) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     const char *name = ik_test_db_name(ctx, "tests/unit/commands/mark_db_test.c");
@@ -34,8 +33,7 @@ START_TEST(test_db_name_from_nested_path)
 
 END_TEST
 // Test: ik_test_db_name handles simple filename
-START_TEST(test_db_name_simple_file)
-{
+START_TEST(test_db_name_simple_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     const char *name = ik_test_db_name(ctx, "foo_test.c");
@@ -46,8 +44,7 @@ START_TEST(test_db_name_simple_file)
 
 END_TEST
 // Test: Full lifecycle - create, migrate, connect, begin, rollback, destroy
-START_TEST(test_db_full_lifecycle)
-{
+START_TEST(test_db_full_lifecycle) {
     const char *skip_live = getenv("SKIP_LIVE_DB_TESTS");
     if (skip_live && strcmp(skip_live, "1") == 0) {
         return;  // Skip if DB not available
@@ -99,8 +96,7 @@ START_TEST(test_db_full_lifecycle)
 
 END_TEST
 // Test: Truncate all tables
-START_TEST(test_db_truncate_all)
-{
+START_TEST(test_db_truncate_all) {
     const char *skip_live = getenv("SKIP_LIVE_DB_TESTS");
     if (skip_live && strcmp(skip_live, "1") == 0) {
         return;  // Skip if DB not available
@@ -144,8 +140,7 @@ START_TEST(test_db_truncate_all)
 
 END_TEST
 // Test: Create without migrate (for migration tests)
-START_TEST(test_db_create_without_migrate)
-{
+START_TEST(test_db_create_without_migrate) {
     const char *skip_live = getenv("SKIP_LIVE_DB_TESTS");
     if (skip_live && strcmp(skip_live, "1") == 0) {
         return;  // Skip if DB not available

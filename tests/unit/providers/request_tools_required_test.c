@@ -35,8 +35,7 @@ static void teardown(void)
  * glob has: pattern (required), path (optional)
  * The "required" array should only contain "pattern"
  */
-START_TEST(test_glob_required_parameters)
-{
+START_TEST(test_glob_required_parameters) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -86,8 +85,7 @@ END_TEST
  * grep has: pattern (required), path (optional), glob (optional)
  * The "required" array should only contain "pattern"
  */
-START_TEST(test_grep_required_parameters)
-{
+START_TEST(test_grep_required_parameters) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -135,8 +133,7 @@ END_TEST
  * Test that file_write tool has all required parameters
  * file_write has: path (required), content (required)
  */
-START_TEST(test_file_write_required_parameters)
-{
+START_TEST(test_file_write_required_parameters) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");

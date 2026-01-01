@@ -72,8 +72,7 @@ START_TEST(test_debug_mgr_handle_ready_adds_blank_lines) {
 
 END_TEST
 /* Test: handle_ready with debug disabled reads but discards (no blank lines) */
-START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines)
-{
+START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */

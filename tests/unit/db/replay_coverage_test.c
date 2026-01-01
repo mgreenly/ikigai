@@ -210,8 +210,7 @@ START_TEST(test_mark_with_invalid_json_data) {
 END_TEST
 // Test: Mark with valid JSON but label is not a string (line 168, branch coverage)
 // This tests the case where label field exists but is not a string type
-START_TEST(test_mark_with_non_string_label)
-{
+START_TEST(test_mark_with_non_string_label) {
     SKIP_IF_NO_DB();
 
     // Insert clear

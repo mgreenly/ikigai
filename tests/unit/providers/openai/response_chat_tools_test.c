@@ -66,8 +66,9 @@ START_TEST(test_parse_tool_call_response) {
                      "{\"path\":\"/etc/hosts\"}");
 }
 
-END_TEST START_TEST(test_parse_multiple_tool_calls)
-{
+END_TEST
+
+START_TEST(test_parse_multiple_tool_calls) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-multi\","
                        "\"model\":\"gpt-4\","
@@ -116,8 +117,9 @@ END_TEST START_TEST(test_parse_multiple_tool_calls)
     ck_assert_str_eq(resp->content_blocks[1].data.tool_call.name, "grep");
 }
 
-END_TEST START_TEST(test_parse_text_with_tool_calls)
-{
+END_TEST
+
+START_TEST(test_parse_text_with_tool_calls) {
     /* Some models may include both content and tool_calls */
     const char *json = "{"
                        "\"id\":\"chatcmpl-mixed\","
@@ -160,8 +162,7 @@ END_TEST
  * Empty and Edge Case Tests
  * ================================================================ */
 
-START_TEST(test_parse_empty_choices)
-{
+START_TEST(test_parse_empty_choices) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-empty\","
                        "\"model\":\"gpt-4\","
@@ -183,8 +184,9 @@ START_TEST(test_parse_empty_choices)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_no_choices)
-{
+END_TEST
+
+START_TEST(test_parse_no_choices) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-nochoices\","
                        "\"model\":\"gpt-4\","
@@ -203,8 +205,9 @@ END_TEST START_TEST(test_parse_no_choices)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_null_content)
-{
+END_TEST
+
+START_TEST(test_parse_null_content) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-null\","
                        "\"model\":\"gpt-4\","
@@ -231,8 +234,9 @@ END_TEST START_TEST(test_parse_null_content)
     ck_assert_ptr_null(resp->content_blocks);
 }
 
-END_TEST START_TEST(test_parse_empty_string_content)
-{
+END_TEST
+
+START_TEST(test_parse_empty_string_content) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-empty\","
                        "\"model\":\"gpt-4\","

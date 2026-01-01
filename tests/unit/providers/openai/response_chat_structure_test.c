@@ -31,8 +31,7 @@ static void teardown(void)
  * Response Structure Tests
  * ================================================================ */
 
-START_TEST(test_parse_choices_not_array)
-{
+START_TEST(test_parse_choices_not_array) {
     /* choices field exists but is not an array - line 199 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -57,8 +56,7 @@ START_TEST(test_parse_choices_not_array)
 
 END_TEST
 
-START_TEST(test_parse_choice_null)
-{
+START_TEST(test_parse_choice_null) {
     /* First choice is null - line 220 branch (choice == NULL) */
     /* Note: yyjson_arr_get_first returns NULL for empty array, not for null element */
     /* This test covers the defensive check even though it may be unreachable */
@@ -86,8 +84,7 @@ START_TEST(test_parse_choice_null)
 
 END_TEST
 
-START_TEST(test_parse_message_null)
-{
+START_TEST(test_parse_message_null) {
     /* Message field missing from choice - line 238 branch (message == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -114,8 +111,7 @@ START_TEST(test_parse_message_null)
 
 END_TEST
 
-START_TEST(test_parse_model_non_string)
-{
+START_TEST(test_parse_model_non_string) {
     /* Model field exists but is not a string - line 187 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -146,8 +142,7 @@ START_TEST(test_parse_model_non_string)
 
 END_TEST
 
-START_TEST(test_parse_content_non_string)
-{
+START_TEST(test_parse_content_non_string) {
     /* Content field exists but is not a string - line 252 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -179,8 +174,7 @@ START_TEST(test_parse_content_non_string)
 
 END_TEST
 
-START_TEST(test_parse_finish_reason_non_string)
-{
+START_TEST(test_parse_finish_reason_non_string) {
     /* finish_reason field exists but is not a string - line 232 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -211,8 +205,7 @@ START_TEST(test_parse_finish_reason_non_string)
 
 END_TEST
 
-START_TEST(test_parse_tool_calls_not_array)
-{
+START_TEST(test_parse_tool_calls_not_array) {
     /* tool_calls field exists but is not an array - line 262 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -249,8 +242,7 @@ END_TEST
  * Error Parsing Coverage Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_403_forbidden)
-{
+START_TEST(test_parse_error_403_forbidden) {
     /* Test 403 Forbidden - maps to AUTH category */
     ik_error_category_t category;
     char *message = NULL;
@@ -264,8 +256,7 @@ START_TEST(test_parse_error_403_forbidden)
 
 END_TEST
 
-START_TEST(test_parse_error_502_bad_gateway)
-{
+START_TEST(test_parse_error_502_bad_gateway) {
     /* Test 502 Bad Gateway - maps to SERVER category */
     ik_error_category_t category;
     char *message = NULL;
@@ -279,8 +270,7 @@ START_TEST(test_parse_error_502_bad_gateway)
 
 END_TEST
 
-START_TEST(test_parse_error_503_service_unavailable)
-{
+START_TEST(test_parse_error_503_service_unavailable) {
     /* Test 503 Service Unavailable - maps to SERVER category */
     ik_error_category_t category;
     char *message = NULL;
@@ -294,8 +284,7 @@ START_TEST(test_parse_error_503_service_unavailable)
 
 END_TEST
 
-START_TEST(test_parse_error_only_type)
-{
+START_TEST(test_parse_error_only_type) {
     /* Error with only type field - line 378 branch */
     const char *json = "{"
                        "\"error\":{"
@@ -315,8 +304,7 @@ START_TEST(test_parse_error_only_type)
 
 END_TEST
 
-START_TEST(test_parse_error_root_not_object)
-{
+START_TEST(test_parse_error_root_not_object) {
     /* JSON root is not an object - line 350 branch */
     const char *json = "[\"not\", \"an\", \"object\"]";
 
@@ -332,8 +320,7 @@ START_TEST(test_parse_error_root_not_object)
 
 END_TEST
 
-START_TEST(test_parse_error_no_error_object)
-{
+START_TEST(test_parse_error_no_error_object) {
     /* Valid JSON but no error object - line 352 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","

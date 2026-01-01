@@ -88,8 +88,9 @@ START_TEST(test_playback_delivers_chunks) {
 
     curl_easy_cleanup_(curl);
 }
-END_TEST START_TEST(test_playback_sets_running_handles)
-{
+END_TEST
+
+START_TEST(test_playback_sets_running_handles) {
     // Test that curl_multi_perform_ correctly manages running_handles
     CURLM *multi = curl_multi_init_();
     ck_assert_ptr_nonnull(multi);
@@ -114,8 +115,9 @@ END_TEST START_TEST(test_playback_sets_running_handles)
     curl_multi_cleanup_(multi);
 }
 
-END_TEST START_TEST(test_playback_provides_status)
-{
+END_TEST
+
+START_TEST(test_playback_provides_status) {
     // Test that HTTP status is available via getinfo
     CURL *curl = curl_easy_init_();
     ck_assert_ptr_nonnull(curl);
@@ -134,8 +136,7 @@ END_TEST
 // Record Mode Tests
 // ============================================================================
 
-START_TEST(test_record_preserves_callback)
-{
+START_TEST(test_record_preserves_callback) {
     // Set VCR_RECORD to enable recording mode
     setenv("VCR_RECORD", "1", 1);
 
@@ -165,8 +166,7 @@ END_TEST
 // Mode Tests
 // ============================================================================
 
-START_TEST(test_vcr_inactive_uses_real_curl)
-{
+START_TEST(test_vcr_inactive_uses_real_curl) {
     // Without vcr_init, VCR should be inactive
     ck_assert(!vcr_is_active());
 
@@ -180,8 +180,9 @@ START_TEST(test_vcr_inactive_uses_real_curl)
     curl_easy_cleanup_(curl);
 }
 
-END_TEST START_TEST(test_vcr_get_response_status)
-{
+END_TEST
+
+START_TEST(test_vcr_get_response_status) {
     // Test vcr_get_response_status function
     // Without active VCR, should return 0
     ck_assert_int_eq(vcr_get_response_status(), 0);
@@ -192,8 +193,9 @@ END_TEST START_TEST(test_vcr_get_response_status)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_vcr_is_active)
-{
+END_TEST
+
+START_TEST(test_vcr_is_active) {
     // Test vcr_is_active function
     ck_assert(!vcr_is_active());
 

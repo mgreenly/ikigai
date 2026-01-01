@@ -131,14 +131,16 @@ START_TEST(test_autoscroll_on_char_insert) {
     ik_input_action_t action = { .type = IK_INPUT_CHAR, .codepoint = 'x' };
     test_action_autoscrolls(&action, true);
 }
-END_TEST START_TEST(test_autoscroll_on_insert_newline)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_insert_newline) {
     ik_input_action_t action = { .type = IK_INPUT_INSERT_NEWLINE };
     test_action_autoscrolls(&action, true);
 }
 
-END_TEST START_TEST(test_autoscroll_on_backspace)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_backspace) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 10);
@@ -156,8 +158,9 @@ END_TEST START_TEST(test_autoscroll_on_backspace)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_autoscroll_on_delete)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_delete) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 10);
@@ -178,8 +181,9 @@ END_TEST START_TEST(test_autoscroll_on_delete)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_cursor_navigation) {
     // Arrow left/right should autoscroll (not affected by scroll detector)
     ik_input_action_t left_right_actions[] = {
         { .type = IK_INPUT_ARROW_LEFT },
@@ -203,8 +207,9 @@ END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
     }
 }
 
-END_TEST START_TEST(test_autoscroll_on_ctrl_shortcuts)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_ctrl_shortcuts) {
     ik_input_action_t actions[] = {
         { .type = IK_INPUT_CTRL_A },  // Jump to line start
         { .type = IK_INPUT_CTRL_E },  // Jump to line end
@@ -217,14 +222,16 @@ END_TEST START_TEST(test_autoscroll_on_ctrl_shortcuts)
     }
 }
 
-END_TEST START_TEST(test_no_autoscroll_on_page_up)
-{
+END_TEST
+
+START_TEST(test_no_autoscroll_on_page_up) {
     ik_input_action_t action = { .type = IK_INPUT_PAGE_UP };
     test_action_autoscrolls(&action, false);
 }
 
-END_TEST START_TEST(test_no_autoscroll_on_page_down)
-{
+END_TEST
+
+START_TEST(test_no_autoscroll_on_page_down) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 20);

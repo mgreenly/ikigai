@@ -13,8 +13,9 @@ START_TEST(test_thinking_level_enum_values) {
     ck_assert_int_eq(IK_THINKING_MED, 2);
     ck_assert_int_eq(IK_THINKING_HIGH, 3);
 }
-END_TEST START_TEST(test_finish_reason_enum_values)
-{
+END_TEST
+
+START_TEST(test_finish_reason_enum_values) {
     ck_assert_int_eq(IK_FINISH_STOP, 0);
     ck_assert_int_eq(IK_FINISH_LENGTH, 1);
     ck_assert_int_eq(IK_FINISH_TOOL_USE, 2);
@@ -23,16 +24,18 @@ END_TEST START_TEST(test_finish_reason_enum_values)
     ck_assert_int_eq(IK_FINISH_UNKNOWN, 5);
 }
 
-END_TEST START_TEST(test_content_type_enum_values)
-{
+END_TEST
+
+START_TEST(test_content_type_enum_values) {
     ck_assert_int_eq(IK_CONTENT_TEXT, 0);
     ck_assert_int_eq(IK_CONTENT_TOOL_CALL, 1);
     ck_assert_int_eq(IK_CONTENT_TOOL_RESULT, 2);
     ck_assert_int_eq(IK_CONTENT_THINKING, 3);
 }
 
-END_TEST START_TEST(test_role_enum_values)
-{
+END_TEST
+
+START_TEST(test_role_enum_values) {
     ck_assert_int_eq(IK_ROLE_USER, 0);
     ck_assert_int_eq(IK_ROLE_ASSISTANT, 1);
     ck_assert_int_eq(IK_ROLE_TOOL, 2);
@@ -53,8 +56,7 @@ END_TEST
    END_TEST
  */
 
-START_TEST(test_error_category_enum_values)
-{
+START_TEST(test_error_category_enum_values) {
     ck_assert_int_eq(IK_ERR_CAT_AUTH, 0);
     ck_assert_int_eq(IK_ERR_CAT_RATE_LIMIT, 1);
     ck_assert_int_eq(IK_ERR_CAT_INVALID_ARG, 2);
@@ -66,8 +68,9 @@ START_TEST(test_error_category_enum_values)
     ck_assert_int_eq(IK_ERR_CAT_UNKNOWN, 8);
 }
 
-END_TEST START_TEST(test_stream_event_type_enum_values)
-{
+END_TEST
+
+START_TEST(test_stream_event_type_enum_values) {
     ck_assert_int_eq(IK_STREAM_START, 0);
     ck_assert_int_eq(IK_STREAM_TEXT_DELTA, 1);
     ck_assert_int_eq(IK_STREAM_THINKING_DELTA, 2);
@@ -83,8 +86,7 @@ END_TEST
  * Struct Size Validation
  * ================================================================ */
 
-START_TEST(test_struct_sizes)
-{
+START_TEST(test_struct_sizes) {
     // Verify structs have expected sizes (no unexpected padding)
     ck_assert(sizeof(ik_usage_t) > 0);
     ck_assert(sizeof(ik_thinking_config_t) > 0);
@@ -105,8 +107,7 @@ END_TEST
  * Talloc Allocation
  * ================================================================ */
 
-START_TEST(test_talloc_allocation_request)
-{
+START_TEST(test_talloc_allocation_request) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -124,8 +125,9 @@ START_TEST(test_talloc_allocation_request)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_talloc_allocation_response)
-{
+END_TEST
+
+START_TEST(test_talloc_allocation_response) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -150,20 +152,21 @@ END_TEST
  * Error Codes
  * ================================================================ */
 
-START_TEST(test_error_code_provider)
-{
+START_TEST(test_error_code_provider) {
     ck_assert_int_eq(ERR_PROVIDER, 9);
     ck_assert_str_eq(error_code_str(ERR_PROVIDER), "Provider error");
 }
 
-END_TEST START_TEST(test_error_code_missing_credentials)
-{
+END_TEST
+
+START_TEST(test_error_code_missing_credentials) {
     ck_assert_int_eq(ERR_MISSING_CREDENTIALS, 10);
     ck_assert_str_eq(error_code_str(ERR_MISSING_CREDENTIALS), "Missing credentials");
 }
 
-END_TEST START_TEST(test_error_code_not_implemented)
-{
+END_TEST
+
+START_TEST(test_error_code_not_implemented) {
     ck_assert_int_eq(ERR_NOT_IMPLEMENTED, 11);
     ck_assert_str_eq(error_code_str(ERR_NOT_IMPLEMENTED), "Not implemented");
 }
@@ -210,55 +213,61 @@ END_TEST
  * Provider Inference
  * ================================================================ */
 
-START_TEST(test_infer_provider_openai_gpt)
-{
+START_TEST(test_infer_provider_openai_gpt) {
     const char *provider = ik_infer_provider("gpt-5-mini");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
 
-END_TEST START_TEST(test_infer_provider_openai_o1)
-{
+END_TEST
+
+START_TEST(test_infer_provider_openai_o1) {
     const char *provider = ik_infer_provider("o1-preview");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
 
-END_TEST START_TEST(test_infer_provider_openai_o3)
-{
+END_TEST
+
+START_TEST(test_infer_provider_openai_o3) {
     const char *provider = ik_infer_provider("o3-mini");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
 }
 
-END_TEST START_TEST(test_infer_provider_anthropic)
-{
+END_TEST
+
+START_TEST(test_infer_provider_anthropic) {
     const char *provider = ik_infer_provider("claude-sonnet-4-5");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "anthropic");
 }
 
-END_TEST START_TEST(test_infer_provider_google)
-{
+END_TEST
+
+START_TEST(test_infer_provider_google) {
     const char *provider = ik_infer_provider("gemini-3.0-flash");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "google");
 }
 
-END_TEST START_TEST(test_infer_provider_unknown)
-{
+END_TEST
+
+START_TEST(test_infer_provider_unknown) {
     const char *provider = ik_infer_provider("unknown-model");
     ck_assert_ptr_null(provider);
 }
 
-END_TEST START_TEST(test_infer_provider_null)
-{
+END_TEST
+
+START_TEST(test_infer_provider_null) {
     const char *provider = ik_infer_provider(NULL);
     ck_assert_ptr_null(provider);
 }
 
-END_TEST START_TEST(test_infer_provider_openai_o3_exact)
-{
+END_TEST
+
+START_TEST(test_infer_provider_openai_o3_exact) {
     const char *provider = ik_infer_provider("o3");
     ck_assert_ptr_nonnull(provider);
     ck_assert_str_eq(provider, "openai");
@@ -270,8 +279,7 @@ END_TEST
  * Model Thinking Support
  * ================================================================ */
 
-START_TEST(test_model_supports_thinking_null_model)
-{
+START_TEST(test_model_supports_thinking_null_model) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -283,8 +291,9 @@ START_TEST(test_model_supports_thinking_null_model)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_model_supports_thinking_null_supports)
-{
+END_TEST
+
+START_TEST(test_model_supports_thinking_null_supports) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -295,24 +304,27 @@ END_TEST START_TEST(test_model_supports_thinking_null_supports)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_model_supports_thinking_known_model)
-{
+END_TEST
+
+START_TEST(test_model_supports_thinking_known_model) {
     bool supports = false;
     res_t r = ik_model_supports_thinking("gpt-5", &supports);
     ck_assert(is_ok(&r));
     ck_assert(supports == true);
 }
 
-END_TEST START_TEST(test_model_supports_thinking_non_thinking_model)
-{
+END_TEST
+
+START_TEST(test_model_supports_thinking_non_thinking_model) {
     bool supports = true;
     res_t r = ik_model_supports_thinking("gpt-4", &supports);
     ck_assert(is_ok(&r));
     ck_assert(supports == false);
 }
 
-END_TEST START_TEST(test_model_supports_thinking_unknown_model)
-{
+END_TEST
+
+START_TEST(test_model_supports_thinking_unknown_model) {
     bool supports = true;
     res_t r = ik_model_supports_thinking("unknown-model", &supports);
     ck_assert(is_ok(&r));
@@ -325,8 +337,7 @@ END_TEST
  * Model Thinking Budget
  * ================================================================ */
 
-START_TEST(test_model_get_thinking_budget_null_model)
-{
+START_TEST(test_model_get_thinking_budget_null_model) {
     int32_t budget = 0;
     res_t r = ik_model_get_thinking_budget(NULL, &budget);
     ck_assert(is_err(&r));
@@ -334,32 +345,36 @@ START_TEST(test_model_get_thinking_budget_null_model)
     talloc_free(r.err);
 }
 
-END_TEST START_TEST(test_model_get_thinking_budget_null_budget)
-{
+END_TEST
+
+START_TEST(test_model_get_thinking_budget_null_budget) {
     res_t r = ik_model_get_thinking_budget("claude-sonnet-4-5", NULL);
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
     talloc_free(r.err);
 }
 
-END_TEST START_TEST(test_model_get_thinking_budget_anthropic_model)
-{
+END_TEST
+
+START_TEST(test_model_get_thinking_budget_anthropic_model) {
     int32_t budget = 0;
     res_t r = ik_model_get_thinking_budget("claude-sonnet-4-5", &budget);
     ck_assert(is_ok(&r));
     ck_assert_int_eq(budget, 64000);
 }
 
-END_TEST START_TEST(test_model_get_thinking_budget_openai_model)
-{
+END_TEST
+
+START_TEST(test_model_get_thinking_budget_openai_model) {
     int32_t budget = -1;
     res_t r = ik_model_get_thinking_budget("gpt-5", &budget);
     ck_assert(is_ok(&r));
     ck_assert_int_eq(budget, 0);
 }
 
-END_TEST START_TEST(test_model_get_thinking_budget_unknown_model)
-{
+END_TEST
+
+START_TEST(test_model_get_thinking_budget_unknown_model) {
     int32_t budget = -1;
     res_t r = ik_model_get_thinking_budget("unknown-model", &budget);
     ck_assert(is_ok(&r));

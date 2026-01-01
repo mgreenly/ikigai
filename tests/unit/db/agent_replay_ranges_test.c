@@ -169,8 +169,7 @@ START_TEST(test_build_ranges_root_agent) {
 }
 END_TEST
 // Test: range building for child (two ranges)
-START_TEST(test_build_ranges_child)
-{
+START_TEST(test_build_ranges_child) {
     SKIP_IF_NO_DB();
 
     // Insert root agent
@@ -213,8 +212,7 @@ START_TEST(test_build_ranges_child)
 
 END_TEST
 // Test: range building for grandchild (three ranges)
-START_TEST(test_build_ranges_grandchild)
-{
+START_TEST(test_build_ranges_grandchild) {
     SKIP_IF_NO_DB();
 
     // Insert grandparent
@@ -252,8 +250,7 @@ START_TEST(test_build_ranges_grandchild)
 
 END_TEST
 // Test: range building stops at clear event
-START_TEST(test_build_ranges_stops_at_clear)
-{
+START_TEST(test_build_ranges_stops_at_clear) {
     SKIP_IF_NO_DB();
 
     // Insert root agent with a clear in history

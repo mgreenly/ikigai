@@ -25,8 +25,7 @@ static void teardown(void)
  * parse_content_parts Edge Cases
  * ================================================================ */
 
-START_TEST(test_parse_empty_parts_array)
-{
+START_TEST(test_parse_empty_parts_array) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -45,8 +44,7 @@ START_TEST(test_parse_empty_parts_array)
 }
 END_TEST
 
-START_TEST(test_parse_function_call_missing_name)
-{
+START_TEST(test_parse_function_call_missing_name) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -66,8 +64,7 @@ START_TEST(test_parse_function_call_missing_name)
 }
 END_TEST
 
-START_TEST(test_parse_function_call_name_not_string)
-{
+START_TEST(test_parse_function_call_name_not_string) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -87,8 +84,7 @@ START_TEST(test_parse_function_call_name_not_string)
 }
 END_TEST
 
-START_TEST(test_parse_function_call_with_args)
-{
+START_TEST(test_parse_function_call_with_args) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -110,8 +106,7 @@ START_TEST(test_parse_function_call_with_args)
 }
 END_TEST
 
-START_TEST(test_parse_function_call_no_args)
-{
+START_TEST(test_parse_function_call_no_args) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -133,8 +128,7 @@ START_TEST(test_parse_function_call_no_args)
 }
 END_TEST
 
-START_TEST(test_parse_part_with_thought_flag_true)
-{
+START_TEST(test_parse_part_with_thought_flag_true) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -155,8 +149,7 @@ START_TEST(test_parse_part_with_thought_flag_true)
 }
 END_TEST
 
-START_TEST(test_parse_part_with_thought_flag_false)
-{
+START_TEST(test_parse_part_with_thought_flag_false) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -177,8 +170,7 @@ START_TEST(test_parse_part_with_thought_flag_false)
 }
 END_TEST
 
-START_TEST(test_parse_part_without_text_or_function_call)
-{
+START_TEST(test_parse_part_without_text_or_function_call) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -197,8 +189,7 @@ START_TEST(test_parse_part_without_text_or_function_call)
 }
 END_TEST
 
-START_TEST(test_parse_part_text_not_string)
-{
+START_TEST(test_parse_part_text_not_string) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -218,8 +209,7 @@ START_TEST(test_parse_part_text_not_string)
 }
 END_TEST
 
-START_TEST(test_parse_part_without_thought_flag)
-{
+START_TEST(test_parse_part_without_thought_flag) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -240,8 +230,7 @@ START_TEST(test_parse_part_without_thought_flag)
 }
 END_TEST
 
-START_TEST(test_parse_part_with_thought_string)
-{
+START_TEST(test_parse_part_with_thought_string) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -262,8 +251,7 @@ START_TEST(test_parse_part_with_thought_string)
 }
 END_TEST
 
-START_TEST(test_parse_multiple_parts_mixed)
-{
+START_TEST(test_parse_multiple_parts_mixed) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -293,8 +281,7 @@ START_TEST(test_parse_multiple_parts_mixed)
 }
 END_TEST
 
-START_TEST(test_parse_part_with_thought_null_value)
-{
+START_TEST(test_parse_part_with_thought_null_value) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"

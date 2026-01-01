@@ -105,8 +105,7 @@ START_TEST(test_tool_build_glob_schema_structure) {
 }
 END_TEST
 // Test: ik_tool_build_file_read_schema returns non-NULL and has correct structure
-START_TEST(test_tool_build_file_read_schema_structure)
-{
+START_TEST(test_tool_build_file_read_schema_structure) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -127,8 +126,7 @@ START_TEST(test_tool_build_file_read_schema_structure)
 
 END_TEST
 // Test: ik_tool_build_grep_schema returns non-NULL and has correct structure
-START_TEST(test_tool_build_grep_schema_structure)
-{
+START_TEST(test_tool_build_grep_schema_structure) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -151,8 +149,7 @@ START_TEST(test_tool_build_grep_schema_structure)
 
 END_TEST
 // Test: ik_tool_build_file_write_schema returns non-NULL and has correct structure
-START_TEST(test_tool_build_file_write_schema_structure)
-{
+START_TEST(test_tool_build_file_write_schema_structure) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -174,8 +171,7 @@ START_TEST(test_tool_build_file_write_schema_structure)
 
 END_TEST
 // Test: ik_tool_build_bash_schema returns non-NULL and has correct structure
-START_TEST(test_tool_build_bash_schema_structure)
-{
+START_TEST(test_tool_build_bash_schema_structure) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -196,8 +192,7 @@ START_TEST(test_tool_build_bash_schema_structure)
 
 END_TEST
 // Test: ik_tool_build_all returns array with all 5 tools
-START_TEST(test_tool_build_all)
-{
+START_TEST(test_tool_build_all) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 

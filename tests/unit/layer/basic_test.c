@@ -43,8 +43,9 @@ START_TEST(test_output_buffer_create) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_output_buffer_append_simple)
-{
+END_TEST
+
+START_TEST(test_output_buffer_append_simple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
@@ -56,8 +57,9 @@ END_TEST START_TEST(test_output_buffer_append_simple)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_output_buffer_append_multiple)
-{
+END_TEST
+
+START_TEST(test_output_buffer_append_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
@@ -72,8 +74,9 @@ END_TEST START_TEST(test_output_buffer_append_multiple)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_output_buffer_append_grow)
-{
+END_TEST
+
+START_TEST(test_output_buffer_append_grow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 10); // Small initial capacity
@@ -90,8 +93,9 @@ END_TEST START_TEST(test_output_buffer_append_grow)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_output_buffer_append_empty)
-{
+END_TEST
+
+START_TEST(test_output_buffer_append_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 100);
@@ -102,8 +106,9 @@ END_TEST START_TEST(test_output_buffer_append_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_create)
-{
+END_TEST
+
+START_TEST(test_layer_create) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     int dummy_data = 42;
@@ -120,8 +125,9 @@ END_TEST START_TEST(test_layer_create)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_callbacks)
-{
+END_TEST
+
+START_TEST(test_layer_callbacks) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_t *layer = ik_layer_create(ctx, "test", NULL, test_layer_visible, test_layer_height, test_layer_render);
@@ -143,8 +149,9 @@ END_TEST START_TEST(test_layer_callbacks)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_output_buffer_grow_1_5x)
-{
+END_TEST
+
+START_TEST(test_output_buffer_grow_1_5x) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_output_buffer_t *buf = ik_output_buffer_create(ctx, 10);

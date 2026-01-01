@@ -81,8 +81,7 @@ END_TEST
 /*
  * Test: Execute glob tool and add tool_result message
  */
-START_TEST(test_execute_tool_and_add_result_message)
-{
+START_TEST(test_execute_tool_and_add_result_message) {
     /* Start with a user message and tool_call message */
     ik_message_t *user_msg = ik_message_create_text(ctx, IK_ROLE_USER, "Find all C files");
     ik_agent_add_message(repl->current, user_msg);
@@ -126,8 +125,7 @@ END_TEST
 /*
  * Test: Verify message ordering is preserved
  */
-START_TEST(test_message_ordering_preserved)
-{
+START_TEST(test_message_ordering_preserved) {
     /* Build complete conversation: user -> tool_call -> tool_result */
 
     /* 1. User message */

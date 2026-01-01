@@ -189,8 +189,7 @@ START_TEST(test_filter_mail_timestamp_seconds) {
 }
 END_TEST
 // Test: filter with messages - minutes timestamp
-START_TEST(test_filter_mail_timestamp_minutes)
-{
+START_TEST(test_filter_mail_timestamp_minutes) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -222,8 +221,7 @@ START_TEST(test_filter_mail_timestamp_minutes)
 
 END_TEST
 // Test: filter with messages - hours timestamp
-START_TEST(test_filter_mail_timestamp_hours)
-{
+START_TEST(test_filter_mail_timestamp_hours) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -255,8 +253,7 @@ START_TEST(test_filter_mail_timestamp_hours)
 
 END_TEST
 // Test: filter with messages - days timestamp
-START_TEST(test_filter_mail_timestamp_days)
-{
+START_TEST(test_filter_mail_timestamp_days) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -288,8 +285,7 @@ START_TEST(test_filter_mail_timestamp_days)
 
 END_TEST
 // Test: filter with short body
-START_TEST(test_filter_mail_short_body)
-{
+START_TEST(test_filter_mail_short_body) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -324,8 +320,7 @@ START_TEST(test_filter_mail_short_body)
 
 END_TEST
 // Test: filter with single message (singular form in summary)
-START_TEST(test_filter_mail_single_message)
-{
+START_TEST(test_filter_mail_single_message) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -356,8 +351,7 @@ START_TEST(test_filter_mail_single_message)
 
 END_TEST
 // Test: filter with messages - 1 hour timestamp (singular)
-START_TEST(test_filter_mail_timestamp_one_hour)
-{
+START_TEST(test_filter_mail_timestamp_one_hour) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -389,8 +383,7 @@ START_TEST(test_filter_mail_timestamp_one_hour)
 
 END_TEST
 // Test: filter with messages - 1 day timestamp (singular)
-START_TEST(test_filter_mail_timestamp_one_day)
-{
+START_TEST(test_filter_mail_timestamp_one_day) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

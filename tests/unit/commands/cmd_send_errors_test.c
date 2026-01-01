@@ -164,8 +164,7 @@ START_TEST(test_send_missing_args) {
 }
 END_TEST
 // Test: empty args shows error
-START_TEST(test_send_empty_args)
-{
+START_TEST(test_send_empty_args) {
     res_t res = ik_cmd_send(test_ctx, repl, "");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -173,8 +172,7 @@ START_TEST(test_send_empty_args)
 
 END_TEST
 // Test: only whitespace shows error
-START_TEST(test_send_only_whitespace)
-{
+START_TEST(test_send_only_whitespace) {
     res_t res = ik_cmd_send(test_ctx, repl, "   ");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -182,8 +180,7 @@ START_TEST(test_send_only_whitespace)
 
 END_TEST
 // Test: leading whitespace before UUID (coverage for line 49)
-START_TEST(test_send_leading_whitespace)
-{
+START_TEST(test_send_leading_whitespace) {
     res_t res = ik_cmd_send(test_ctx, repl, "  some-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -191,8 +188,7 @@ START_TEST(test_send_leading_whitespace)
 
 END_TEST
 // Test: missing message part shows error
-START_TEST(test_send_missing_message)
-{
+START_TEST(test_send_missing_message) {
     res_t res = ik_cmd_send(test_ctx, repl, "some-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -200,8 +196,7 @@ START_TEST(test_send_missing_message)
 
 END_TEST
 // Test: UUID too long shows error
-START_TEST(test_send_uuid_too_long)
-{
+START_TEST(test_send_uuid_too_long) {
     char long_uuid[300];
     memset(long_uuid, 'x', sizeof(long_uuid) - 10);
     strcpy(long_uuid + sizeof(long_uuid) - 10, " \"msg\"");
@@ -213,8 +208,7 @@ START_TEST(test_send_uuid_too_long)
 
 END_TEST
 // Test: missing opening quote shows error
-START_TEST(test_send_missing_opening_quote)
-{
+START_TEST(test_send_missing_opening_quote) {
     res_t res = ik_cmd_send(test_ctx, repl, "uuid-123 message\"");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -222,8 +216,7 @@ START_TEST(test_send_missing_opening_quote)
 
 END_TEST
 // Test: missing closing quote shows error
-START_TEST(test_send_missing_closing_quote)
-{
+START_TEST(test_send_missing_closing_quote) {
     res_t res = ik_cmd_send(test_ctx, repl, "uuid-123 \"message");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -231,8 +224,7 @@ START_TEST(test_send_missing_closing_quote)
 
 END_TEST
 // Test: message too long shows error
-START_TEST(test_send_message_too_long)
-{
+START_TEST(test_send_message_too_long) {
     char long_msg[5000];
     memset(long_msg, 'x', sizeof(long_msg) - 20);
     strcpy(long_msg, "uuid-123 \"");

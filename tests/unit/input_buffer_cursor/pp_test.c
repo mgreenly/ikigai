@@ -37,8 +37,7 @@ START_TEST(test_pp_cursor_at_start) {
 }
 END_TEST
 // Test: ik_pp_input_buffer_cursor with cursor in middle
-START_TEST(test_pp_cursor_in_middle)
-{
+START_TEST(test_pp_cursor_in_middle) {
     void *tmp_ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = ik_input_buffer_create(tmp_ctx);
 
@@ -65,8 +64,7 @@ START_TEST(test_pp_cursor_in_middle)
 
 END_TEST
 // Test: ik_pp_input_buffer_cursor with indentation
-START_TEST(test_pp_cursor_with_indent)
-{
+START_TEST(test_pp_cursor_with_indent) {
     void *tmp_ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(tmp_ctx);
@@ -88,8 +86,7 @@ START_TEST(test_pp_cursor_with_indent)
 
 END_TEST
 // Test: ik_pp_input_buffer_cursor with UTF-8 text
-START_TEST(test_pp_cursor_utf8)
-{
+START_TEST(test_pp_cursor_utf8) {
     void *tmp_ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = ik_input_buffer_create(tmp_ctx);
 

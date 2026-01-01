@@ -165,8 +165,7 @@ START_TEST(test_delete_mail_missing_args) {
 }
 END_TEST
 // Test: empty args shows error
-START_TEST(test_delete_mail_empty_args)
-{
+START_TEST(test_delete_mail_empty_args) {
     res_t res = ik_cmd_delete_mail(test_ctx, repl, "");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -174,8 +173,7 @@ START_TEST(test_delete_mail_empty_args)
 
 END_TEST
 // Test: invalid ID format shows error
-START_TEST(test_delete_mail_invalid_id_format)
-{
+START_TEST(test_delete_mail_invalid_id_format) {
     res_t res = ik_cmd_delete_mail(test_ctx, repl, "abc");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);

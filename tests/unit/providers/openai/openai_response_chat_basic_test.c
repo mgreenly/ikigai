@@ -28,50 +28,43 @@ static void teardown(void)
  * ik_openai_map_chat_finish_reason Tests
  * ================================================================ */
 
-START_TEST(test_map_finish_reason_null)
-{
+START_TEST(test_map_finish_reason_null) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason(NULL);
     ck_assert_int_eq(result, IK_FINISH_UNKNOWN);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_stop)
-{
+START_TEST(test_map_finish_reason_stop) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("stop");
     ck_assert_int_eq(result, IK_FINISH_STOP);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_length)
-{
+START_TEST(test_map_finish_reason_length) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("length");
     ck_assert_int_eq(result, IK_FINISH_LENGTH);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_tool_calls)
-{
+START_TEST(test_map_finish_reason_tool_calls) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("tool_calls");
     ck_assert_int_eq(result, IK_FINISH_TOOL_USE);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_content_filter)
-{
+START_TEST(test_map_finish_reason_content_filter) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("content_filter");
     ck_assert_int_eq(result, IK_FINISH_CONTENT_FILTER);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_error)
-{
+START_TEST(test_map_finish_reason_error) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("error");
     ck_assert_int_eq(result, IK_FINISH_ERROR);
 }
 END_TEST
 
-START_TEST(test_map_finish_reason_unknown)
-{
+START_TEST(test_map_finish_reason_unknown) {
     ik_finish_reason_t result = ik_openai_map_chat_finish_reason("unknown_reason");
     ck_assert_int_eq(result, IK_FINISH_UNKNOWN);
 }
@@ -81,8 +74,7 @@ END_TEST
  * ik_openai_parse_chat_response Basic Tests
  * ================================================================ */
 
-START_TEST(test_parse_chat_invalid_json)
-{
+START_TEST(test_parse_chat_invalid_json) {
     ik_response_t *resp = NULL;
     res_t r = ik_openai_parse_chat_response(test_ctx, "not valid json", 14, &resp);
 
@@ -92,8 +84,7 @@ START_TEST(test_parse_chat_invalid_json)
 }
 END_TEST
 
-START_TEST(test_parse_chat_not_object)
-{
+START_TEST(test_parse_chat_not_object) {
     const char *json = "[1, 2, 3]";
     ik_response_t *resp = NULL;
     res_t r = ik_openai_parse_chat_response(test_ctx, json, strlen(json), &resp);
@@ -104,8 +95,7 @@ START_TEST(test_parse_chat_not_object)
 }
 END_TEST
 
-START_TEST(test_parse_chat_error_response)
-{
+START_TEST(test_parse_chat_error_response) {
     const char *json =
         "{"
         "  \"error\": {"
@@ -122,8 +112,7 @@ START_TEST(test_parse_chat_error_response)
 }
 END_TEST
 
-START_TEST(test_parse_chat_error_response_no_message)
-{
+START_TEST(test_parse_chat_error_response_no_message) {
     const char *json =
         "{"
         "  \"error\": {"
@@ -140,8 +129,7 @@ START_TEST(test_parse_chat_error_response_no_message)
 }
 END_TEST
 
-START_TEST(test_parse_chat_no_choices)
-{
+START_TEST(test_parse_chat_no_choices) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\""
@@ -158,8 +146,7 @@ START_TEST(test_parse_chat_no_choices)
 }
 END_TEST
 
-START_TEST(test_parse_chat_empty_choices)
-{
+START_TEST(test_parse_chat_empty_choices) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -177,8 +164,7 @@ START_TEST(test_parse_chat_empty_choices)
 }
 END_TEST
 
-START_TEST(test_parse_chat_no_message)
-{
+START_TEST(test_parse_chat_no_message) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -201,8 +187,7 @@ START_TEST(test_parse_chat_no_message)
 }
 END_TEST
 
-START_TEST(test_parse_chat_empty_content)
-{
+START_TEST(test_parse_chat_empty_content) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -227,8 +212,7 @@ START_TEST(test_parse_chat_empty_content)
 }
 END_TEST
 
-START_TEST(test_parse_chat_null_content)
-{
+START_TEST(test_parse_chat_null_content) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -253,8 +237,7 @@ START_TEST(test_parse_chat_null_content)
 }
 END_TEST
 
-START_TEST(test_parse_chat_text_content)
-{
+START_TEST(test_parse_chat_text_content) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -290,8 +273,7 @@ START_TEST(test_parse_chat_text_content)
 }
 END_TEST
 
-START_TEST(test_parse_chat_usage_with_reasoning_tokens)
-{
+START_TEST(test_parse_chat_usage_with_reasoning_tokens) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","

@@ -27,8 +27,7 @@ START_TEST(test_agent_parent_uuid_null_for_root) {
 }
 END_TEST
 // Test agent->parent_uuid matches input when provided
-START_TEST(test_agent_parent_uuid_matches_input)
-{
+START_TEST(test_agent_parent_uuid_matches_input) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -49,8 +48,7 @@ START_TEST(test_agent_parent_uuid_matches_input)
 
 END_TEST
 // Test ik_agent_copy_conversation succeeds with messages
-START_TEST(test_agent_copy_conversation)
-{
+START_TEST(test_agent_copy_conversation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

@@ -90,8 +90,7 @@ START_TEST(test_history_load_empty_file) {
 }
 END_TEST
 // Test: Load valid JSONL entries
-START_TEST(test_history_load_valid_entries)
-{
+START_TEST(test_history_load_valid_entries) {
     // Create directory and file with valid entries
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -115,8 +114,7 @@ START_TEST(test_history_load_valid_entries)
 
 END_TEST
 // Test: Load respects capacity limit
-START_TEST(test_history_load_respects_capacity)
-{
+START_TEST(test_history_load_respects_capacity) {
     // Create directory and file with more entries than capacity
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -141,8 +139,7 @@ START_TEST(test_history_load_respects_capacity)
 
 END_TEST
 // Test: Load skips malformed lines
-START_TEST(test_history_load_malformed_line)
-{
+START_TEST(test_history_load_malformed_line) {
     // Create directory and file with mix of valid and malformed entries
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -168,8 +165,7 @@ START_TEST(test_history_load_malformed_line)
 
 END_TEST
 // Test: Save writes atomic JSONL file
-START_TEST(test_history_save_atomic_write)
-{
+START_TEST(test_history_save_atomic_write) {
     // Add entries to history
     ik_history_add(hist, "/clear");
     ik_history_add(hist, "hello\nworld");
@@ -215,8 +211,7 @@ START_TEST(test_history_save_atomic_write)
 
 END_TEST
 // Test: Append entry to file
-START_TEST(test_history_append_entry)
-{
+START_TEST(test_history_append_entry) {
     // Create directory and file with initial entries
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -250,8 +245,7 @@ START_TEST(test_history_append_entry)
 
 END_TEST
 // Test: Load when file missing creates empty history
-START_TEST(test_history_load_file_missing)
-{
+START_TEST(test_history_load_file_missing) {
     // Don't create file - load should succeed with empty history
     res_t res = ik_history_load(ctx, hist, NULL);
     ck_assert(is_ok(&res));
@@ -268,8 +262,7 @@ START_TEST(test_history_load_file_missing)
 
 END_TEST
 // Test: Append creates file if missing
-START_TEST(test_history_append_creates_file)
-{
+START_TEST(test_history_append_creates_file) {
     // Append when file doesn't exist
     res_t res = ik_history_append_entry("first entry");
     ck_assert(is_ok(&res));
@@ -291,8 +284,7 @@ START_TEST(test_history_append_creates_file)
 
 END_TEST
 // Test: Save empty history
-START_TEST(test_history_save_empty)
-{
+START_TEST(test_history_save_empty) {
     // Save empty history
     res_t res = ik_history_save(hist);
     ck_assert(is_ok(&res));
@@ -305,8 +297,7 @@ START_TEST(test_history_save_empty)
 
 END_TEST
 // Test: Load from file with size 0 (truly empty file)
-START_TEST(test_history_load_file_size_zero)
-{
+START_TEST(test_history_load_file_size_zero) {
     // Create directory and empty file (0 bytes)
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -329,8 +320,7 @@ START_TEST(test_history_load_file_size_zero)
 
 END_TEST
 // Test: Load from file with last line without newline
-START_TEST(test_history_load_last_line_no_newline)
-{
+START_TEST(test_history_load_last_line_no_newline) {
     // Create directory and file with entries where last line has no newline
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -352,8 +342,7 @@ START_TEST(test_history_load_last_line_no_newline)
 
 END_TEST
 // Test: Load from file with empty lines
-START_TEST(test_history_load_empty_lines)
-{
+START_TEST(test_history_load_empty_lines) {
     // Create directory and file with blank lines between entries
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -380,8 +369,7 @@ START_TEST(test_history_load_empty_lines)
 
 END_TEST
 // Test: Load from file with non-object JSON
-START_TEST(test_history_load_non_object_json)
-{
+START_TEST(test_history_load_non_object_json) {
     // Create directory and file with valid JSON that is not an object
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -406,8 +394,7 @@ START_TEST(test_history_load_non_object_json)
 
 END_TEST
 // Test: Load from file with cmd field that is not a string
-START_TEST(test_history_load_cmd_not_string)
-{
+START_TEST(test_history_load_cmd_not_string) {
     // Create directory and file with cmd field that is not a string
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 

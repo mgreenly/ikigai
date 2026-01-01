@@ -18,8 +18,7 @@ START_TEST(test_trim_trailing_null_returns_empty) {
 }
 END_TEST
 /* Test: Empty string returns empty string */
-START_TEST(test_trim_trailing_empty_returns_empty)
-{
+START_TEST(test_trim_trailing_empty_returns_empty) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "", 0);
     ck_assert_str_eq(result, "");
@@ -28,8 +27,7 @@ START_TEST(test_trim_trailing_empty_returns_empty)
 
 END_TEST
 /* Test: String with no trailing whitespace */
-START_TEST(test_trim_trailing_no_whitespace)
-{
+START_TEST(test_trim_trailing_no_whitespace) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "hello", 5);
     ck_assert_str_eq(result, "hello");
@@ -38,8 +36,7 @@ START_TEST(test_trim_trailing_no_whitespace)
 
 END_TEST
 /* Test: String with single trailing newline */
-START_TEST(test_trim_trailing_single_newline)
-{
+START_TEST(test_trim_trailing_single_newline) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "hello\n", 6);
     ck_assert_str_eq(result, "hello");
@@ -48,8 +45,7 @@ START_TEST(test_trim_trailing_single_newline)
 
 END_TEST
 /* Test: String with multiple trailing newlines */
-START_TEST(test_trim_trailing_multiple_newlines)
-{
+START_TEST(test_trim_trailing_multiple_newlines) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "hello\n\n\n", 8);
     ck_assert_str_eq(result, "hello");
@@ -58,8 +54,7 @@ START_TEST(test_trim_trailing_multiple_newlines)
 
 END_TEST
 /* Test: String with mixed trailing whitespace */
-START_TEST(test_trim_trailing_mixed_whitespace)
-{
+START_TEST(test_trim_trailing_mixed_whitespace) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "hello \t\n\r\n", 10);
     ck_assert_str_eq(result, "hello");
@@ -68,8 +63,7 @@ START_TEST(test_trim_trailing_mixed_whitespace)
 
 END_TEST
 /* Test: String with internal whitespace is preserved */
-START_TEST(test_trim_trailing_preserves_internal_whitespace)
-{
+START_TEST(test_trim_trailing_preserves_internal_whitespace) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "hello\nworld\n", 12);
     ck_assert_str_eq(result, "hello\nworld");
@@ -78,8 +72,7 @@ START_TEST(test_trim_trailing_preserves_internal_whitespace)
 
 END_TEST
 /* Test: String with only whitespace returns empty */
-START_TEST(test_trim_trailing_all_whitespace)
-{
+START_TEST(test_trim_trailing_all_whitespace) {
     void *ctx = talloc_new(NULL);
     char *result = ik_scrollback_trim_trailing(ctx, "\n\n\n", 3);
     ck_assert_str_eq(result, "");

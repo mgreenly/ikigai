@@ -28,8 +28,7 @@ static void teardown(void)
  * Tool Call Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_chat_tool_calls)
-{
+START_TEST(test_parse_chat_tool_calls) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -68,8 +67,7 @@ START_TEST(test_parse_chat_tool_calls)
 }
 END_TEST
 
-START_TEST(test_parse_chat_text_and_tool_calls)
-{
+START_TEST(test_parse_chat_text_and_tool_calls) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -111,8 +109,7 @@ START_TEST(test_parse_chat_text_and_tool_calls)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_missing_id)
-{
+START_TEST(test_parse_chat_tool_call_missing_id) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -143,8 +140,7 @@ START_TEST(test_parse_chat_tool_call_missing_id)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_id_not_string)
-{
+START_TEST(test_parse_chat_tool_call_id_not_string) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -176,8 +172,7 @@ START_TEST(test_parse_chat_tool_call_id_not_string)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_missing_function)
-{
+START_TEST(test_parse_chat_tool_call_missing_function) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -205,8 +200,7 @@ START_TEST(test_parse_chat_tool_call_missing_function)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_missing_name)
-{
+START_TEST(test_parse_chat_tool_call_missing_name) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -237,8 +231,7 @@ START_TEST(test_parse_chat_tool_call_missing_name)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_name_not_string)
-{
+START_TEST(test_parse_chat_tool_call_name_not_string) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -270,8 +263,7 @@ START_TEST(test_parse_chat_tool_call_name_not_string)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_missing_arguments)
-{
+START_TEST(test_parse_chat_tool_call_missing_arguments) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","
@@ -302,8 +294,7 @@ START_TEST(test_parse_chat_tool_call_missing_arguments)
 }
 END_TEST
 
-START_TEST(test_parse_chat_tool_call_arguments_not_string)
-{
+START_TEST(test_parse_chat_tool_call_arguments_not_string) {
     const char *json =
         "{"
         "  \"model\": \"gpt-4\","

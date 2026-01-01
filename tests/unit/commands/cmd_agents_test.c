@@ -164,8 +164,7 @@ START_TEST(test_agents_single_root) {
 }
 END_TEST
 // Test: current agent marked with *
-START_TEST(test_agents_current_marked)
-{
+START_TEST(test_agents_current_marked) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -175,8 +174,7 @@ START_TEST(test_agents_current_marked)
 
 END_TEST
 // Test: shows status (running/dead)
-START_TEST(test_agents_shows_status)
-{
+START_TEST(test_agents_shows_status) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -186,8 +184,7 @@ START_TEST(test_agents_shows_status)
 
 END_TEST
 // Test: root labeled
-START_TEST(test_agents_root_labeled)
-{
+START_TEST(test_agents_root_labeled) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -197,8 +194,7 @@ START_TEST(test_agents_root_labeled)
 
 END_TEST
 // Test: indentation reflects depth
-START_TEST(test_agents_indentation_depth)
-{
+START_TEST(test_agents_indentation_depth) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -244,8 +240,7 @@ START_TEST(test_agents_indentation_depth)
 
 END_TEST
 // Test: non-current root alignment
-START_TEST(test_agents_root_alignment)
-{
+START_TEST(test_agents_root_alignment) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -283,8 +278,7 @@ START_TEST(test_agents_root_alignment)
 
 END_TEST
 // Test: depth > 1 (grandchild indentation)
-START_TEST(test_agents_grandchild_indentation)
-{
+START_TEST(test_agents_grandchild_indentation) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -329,8 +323,7 @@ START_TEST(test_agents_grandchild_indentation)
 
 END_TEST
 // Test: summary count correct
-START_TEST(test_agents_summary_count)
-{
+START_TEST(test_agents_summary_count) {
     // Create child agents - one running, one dead
     ik_agent_ctx_t *child1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child1);

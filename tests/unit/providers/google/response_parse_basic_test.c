@@ -55,8 +55,9 @@ START_TEST(test_parse_simple_text_response) {
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
     ck_assert_int_eq(resp->usage.total_tokens, 15);
 }
-END_TEST START_TEST(test_parse_thinking_response)
-{
+END_TEST
+
+START_TEST(test_parse_thinking_response) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -93,8 +94,9 @@ END_TEST START_TEST(test_parse_thinking_response)
     ck_assert_int_eq(resp->usage.output_tokens, 12);
 }
 
-END_TEST START_TEST(test_parse_function_call_response)
-{
+END_TEST
+
+START_TEST(test_parse_function_call_response) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -130,8 +132,9 @@ END_TEST START_TEST(test_parse_function_call_response)
     ck_assert_ptr_nonnull(strstr(resp->content_blocks[0].data.tool_call.arguments, "metric"));
 }
 
-END_TEST START_TEST(test_parse_empty_candidates)
-{
+END_TEST
+
+START_TEST(test_parse_empty_candidates) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[],"
@@ -147,8 +150,9 @@ END_TEST START_TEST(test_parse_empty_candidates)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_no_candidates)
-{
+END_TEST
+
+START_TEST(test_parse_no_candidates) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"usageMetadata\":{\"totalTokenCount\":5}"
@@ -162,8 +166,9 @@ END_TEST START_TEST(test_parse_no_candidates)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_empty_parts_array)
-{
+END_TEST
+
+START_TEST(test_parse_empty_parts_array) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -181,8 +186,9 @@ END_TEST START_TEST(test_parse_empty_parts_array)
     ck_assert_ptr_null(resp->content_blocks);
 }
 
-END_TEST START_TEST(test_parse_thought_flag_false)
-{
+END_TEST
+
+START_TEST(test_parse_thought_flag_false) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -203,8 +209,9 @@ END_TEST START_TEST(test_parse_thought_flag_false)
     ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Normal text");
 }
 
-END_TEST START_TEST(test_parse_function_call_no_args)
-{
+END_TEST
+
+START_TEST(test_parse_function_call_no_args) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -228,8 +235,9 @@ END_TEST START_TEST(test_parse_function_call_no_args)
     ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{}");
 }
 
-END_TEST START_TEST(test_parse_thought_signature)
-{
+END_TEST
+
+START_TEST(test_parse_thought_signature) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -249,8 +257,9 @@ END_TEST START_TEST(test_parse_thought_signature)
     ck_assert_ptr_nonnull(strstr(resp->provider_data, "enc_sig_abc123"));
 }
 
-END_TEST START_TEST(test_parse_no_thought_signature)
-{
+END_TEST
+
+START_TEST(test_parse_no_thought_signature) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"

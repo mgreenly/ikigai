@@ -40,8 +40,9 @@ START_TEST(test_build_url_non_streaming) {
     ck_assert_ptr_nonnull(url);
     ck_assert_str_eq(url, "https://api.test.com/models/gemini-2.0-flash:generateContent?key=test-key");
 }
-END_TEST START_TEST(test_build_url_streaming)
-{
+END_TEST
+
+START_TEST(test_build_url_streaming) {
     char *url = NULL;
     res_t r = ik_google_build_url(test_ctx, "https://api.test.com",
                                   "gemini-2.0-flash", "test-key", true, &url);
@@ -56,8 +57,7 @@ END_TEST
  * Header Building Tests
  * ================================================================ */
 
-START_TEST(test_build_headers_non_streaming)
-{
+START_TEST(test_build_headers_non_streaming) {
     char **headers = NULL;
     res_t r = ik_google_build_headers(test_ctx, false, &headers);
 
@@ -67,8 +67,9 @@ START_TEST(test_build_headers_non_streaming)
     ck_assert_ptr_null(headers[1]);
 }
 
-END_TEST START_TEST(test_build_headers_streaming)
-{
+END_TEST
+
+START_TEST(test_build_headers_streaming) {
     char **headers = NULL;
     res_t r = ik_google_build_headers(test_ctx, true, &headers);
 

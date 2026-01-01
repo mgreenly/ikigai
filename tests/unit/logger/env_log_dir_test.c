@@ -118,8 +118,7 @@ START_TEST(test_env_log_dir_overrides_default) {
 }
 END_TEST
 // Test: when IKIGAI_LOG_DIR is not set, logger uses default location
-START_TEST(test_no_env_uses_default_location)
-{
+START_TEST(test_no_env_uses_default_location) {
     setup_without_env();
 
     // Write a log entry
@@ -138,8 +137,7 @@ START_TEST(test_no_env_uses_default_location)
 
 END_TEST
 // Test: when IKIGAI_LOG_DIR is empty string, logger uses default location
-START_TEST(test_empty_env_uses_default_location)
-{
+START_TEST(test_empty_env_uses_default_location) {
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_env_test_%d", getpid());
     mkdir(test_dir, 0755);
 

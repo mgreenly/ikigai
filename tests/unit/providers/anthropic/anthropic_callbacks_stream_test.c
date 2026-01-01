@@ -36,8 +36,9 @@ START_TEST(test_stream_write_cb_with_null_context) {
     // Should return len even with NULL context
     ck_assert_uint_eq(result, 9);
 }
-END_TEST START_TEST(test_stream_write_cb_with_null_sse_parser)
-{
+END_TEST
+
+START_TEST(test_stream_write_cb_with_null_sse_parser) {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = NULL;
 
@@ -48,8 +49,9 @@ END_TEST START_TEST(test_stream_write_cb_with_null_sse_parser)
     ck_assert_uint_eq(result, 9);
 }
 
-END_TEST START_TEST(test_stream_write_cb_with_valid_context)
-{
+END_TEST
+
+START_TEST(test_stream_write_cb_with_valid_context) {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
     stream->stream_ctx = talloc_zero_(stream, 1); // Mock - won't be dereferenced with no events
@@ -64,8 +66,7 @@ END_TEST START_TEST(test_stream_write_cb_with_valid_context)
 END_TEST
 /* Stream Completion Callback Tests */
 
-START_TEST(test_stream_completion_cb_with_null_context)
-{
+START_TEST(test_stream_completion_cb_with_null_context) {
     ik_http_completion_t completion = {
         .http_code = 200,
         .curl_code = 0
@@ -75,8 +76,9 @@ START_TEST(test_stream_completion_cb_with_null_context)
     ik_anthropic_stream_completion_cb(&completion, NULL);
 }
 
-END_TEST START_TEST(test_stream_completion_cb_with_valid_context)
-{
+END_TEST
+
+START_TEST(test_stream_completion_cb_with_valid_context) {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->completed = false;
     stream->http_status = 0;
@@ -111,8 +113,7 @@ res_t ik_http_multi_create_(void *parent, void **out)
     return OK(http_multi);
 }
 
-START_TEST(test_anthropic_create_http_multi_failure)
-{
+START_TEST(test_anthropic_create_http_multi_failure) {
     g_http_multi_create_should_fail = true;
 
     ik_provider_t *provider = NULL;
@@ -136,8 +137,7 @@ static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
     return OK(NULL);
 }
 
-START_TEST(test_stream_write_cb_with_complete_event)
-{
+START_TEST(test_stream_write_cb_with_complete_event) {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
 
@@ -154,8 +154,7 @@ START_TEST(test_stream_write_cb_with_complete_event)
 
 END_TEST
 
-START_TEST(test_stream_write_cb_with_null_event_fields)
-{
+START_TEST(test_stream_write_cb_with_null_event_fields) {
     ik_anthropic_active_stream_t *stream = talloc_zero_(test_ctx, sizeof(ik_anthropic_active_stream_t));
     stream->sse_parser = ik_sse_parser_create(stream);
 

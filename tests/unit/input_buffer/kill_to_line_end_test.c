@@ -61,8 +61,7 @@ START_TEST(test_kill_to_line_end_basic) {
 }
 END_TEST
 /* Test: kill_to_line_end when cursor is at newline */
-START_TEST(test_kill_to_line_end_at_newline)
-{
+START_TEST(test_kill_to_line_end_at_newline) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -113,8 +112,7 @@ START_TEST(test_kill_to_line_end_at_newline)
 
 END_TEST
 /* Test: kill_to_line_end when already at line end */
-START_TEST(test_kill_to_line_end_already_at_end)
-{
+START_TEST(test_kill_to_line_end_already_at_end) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -154,8 +152,7 @@ START_TEST(test_kill_to_line_end_already_at_end)
 
 END_TEST
 /* Test: kill_to_line_end in multiline text */
-START_TEST(test_kill_to_line_end_multiline)
-{
+START_TEST(test_kill_to_line_end_multiline) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -216,8 +213,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL input_buffer should assert */
-START_TEST(test_kill_to_line_end_null_input_buffer_asserts)
-{
+START_TEST(test_kill_to_line_end_null_input_buffer_asserts) {
     /* input_buffer cannot be NULL - should abort */
     ik_input_buffer_kill_to_line_end(NULL);
 }

@@ -220,8 +220,7 @@ static void teardown(void)
  * Test: State changes from WAITING_FOR_LLM to EXECUTING_TOOL after successful request
  * Covers: Line 257 branch where current_state != WAITING_FOR_LLM after handling request
  */
-START_TEST(test_state_changes_to_executing_tool)
-{
+START_TEST(test_state_changes_to_executing_tool) {
     /* Create a dummy tool call structure */
     ik_tool_call_t *dummy_tool_call = talloc_zero(agent, ik_tool_call_t);
     dummy_tool_call->id = talloc_strdup(dummy_tool_call, "call_123");
@@ -264,8 +263,7 @@ END_TEST
  * Test: Current agent is in the agents array (normal case)
  * Covers: Line 284 branch where current IS in array
  */
-START_TEST(test_current_agent_in_array)
-{
+START_TEST(test_current_agent_in_array) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -295,8 +293,7 @@ END_TEST
  * Test: State changes during request but agent is NOT current
  * Covers: Line 261 branch 0 (agent != repl->current after state change)
  */
-START_TEST(test_state_changes_but_not_current_agent)
-{
+START_TEST(test_state_changes_but_not_current_agent) {
     /* Create a dummy tool call structure */
     ik_tool_call_t *dummy_tool_call = talloc_zero(agent, ik_tool_call_t);
     dummy_tool_call->id = talloc_strdup(dummy_tool_call, "call_123");
@@ -352,8 +349,7 @@ END_TEST
  * Test: Current agent NOT in agents array (needs separate processing)
  * Covers: Line 284 branch 0 (current_in_array is false, so enter if statement)
  */
-START_TEST(test_current_agent_not_in_array)
-{
+START_TEST(test_current_agent_not_in_array) {
     /* Create mock provider for current agent */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -395,8 +391,7 @@ END_TEST
  * Test: curl_still_running > 0 BUT provider_instance == NULL
  * Covers: Line 241 branch 3 (A true, B false - unusual but possible edge case)
  */
-START_TEST(test_curl_running_but_no_provider)
-{
+START_TEST(test_curl_running_but_no_provider) {
     /* Edge case: curl thinks it's running but provider was cleaned up */
     agent->provider_instance = NULL;
     agent->curl_still_running = 1;  /* > 0 but no provider */

@@ -40,14 +40,16 @@ static void setup(void)
     memset(captured_events, 0, sizeof(captured_events));
 }
 
-static void teardown(void) { talloc_free(test_ctx); }
+static void teardown(void)
+{
+    talloc_free(test_ctx);
+}
 
 /* ================================================================
  * Branch coverage completion tests
  * ================================================================ */
 
-START_TEST(test_delta_with_null_index)
-{
+START_TEST(test_delta_with_null_index) {
     /* Ensure we hit the NULL branch for index_val in content_block_delta (line 134) */
     const char *json = "{\"delta\": {\"type\": \"text_delta\", \"text\": \"test\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -59,8 +61,7 @@ START_TEST(test_delta_with_null_index)
 }
 END_TEST
 
-START_TEST(test_error_with_valid_type_val)
-{
+START_TEST(test_error_with_valid_type_val) {
     /* Ensure we hit the non-NULL branch for type_val (line 321) */
     const char *json = "{\"error\": {\"type\": \"some_error\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -72,8 +73,7 @@ START_TEST(test_error_with_valid_type_val)
 }
 END_TEST
 
-START_TEST(test_error_with_valid_msg_val)
-{
+START_TEST(test_error_with_valid_msg_val) {
     /* Ensure we hit the non-NULL branch for msg_val (line 328) */
     const char *json = "{\"error\": {\"message\": \"test error\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

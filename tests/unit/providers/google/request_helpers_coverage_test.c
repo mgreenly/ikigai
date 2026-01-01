@@ -111,8 +111,7 @@ static void reset_mocks(void)
  * Content Block Serialization Error Path Tests
  * ================================================================ */
 
-START_TEST(test_serialize_content_text_add_str_fail)
-{
+START_TEST(test_serialize_content_text_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -131,8 +130,7 @@ START_TEST(test_serialize_content_text_add_str_fail)
 
 END_TEST
 
-START_TEST(test_serialize_content_thinking_add_str_fail)
-{
+START_TEST(test_serialize_content_thinking_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -151,8 +149,7 @@ START_TEST(test_serialize_content_thinking_add_str_fail)
 
 END_TEST
 
-START_TEST(test_serialize_content_thinking_add_bool_fail)
-{
+START_TEST(test_serialize_content_thinking_add_bool_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -171,8 +168,7 @@ START_TEST(test_serialize_content_thinking_add_bool_fail)
 
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_name_fail)
-{
+START_TEST(test_serialize_content_tool_call_add_name_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -189,8 +185,7 @@ START_TEST(test_serialize_content_tool_call_add_name_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_copy_fail)
-{
+START_TEST(test_serialize_content_tool_call_copy_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -207,8 +202,7 @@ START_TEST(test_serialize_content_tool_call_copy_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_args_fail)
-{
+START_TEST(test_serialize_content_tool_call_add_args_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -225,8 +219,7 @@ START_TEST(test_serialize_content_tool_call_add_args_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_function_call_fail)
-{
+START_TEST(test_serialize_content_tool_call_add_function_call_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -243,8 +236,7 @@ START_TEST(test_serialize_content_tool_call_add_function_call_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_name_fail)
-{
+START_TEST(test_serialize_content_tool_result_add_name_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -260,8 +252,7 @@ START_TEST(test_serialize_content_tool_result_add_name_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_content_fail)
-{
+START_TEST(test_serialize_content_tool_result_add_content_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -277,8 +268,7 @@ START_TEST(test_serialize_content_tool_result_add_content_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_response_fail)
-{
+START_TEST(test_serialize_content_tool_result_add_response_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -294,8 +284,7 @@ START_TEST(test_serialize_content_tool_result_add_response_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_function_response_fail)
-{
+START_TEST(test_serialize_content_tool_result_add_function_response_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -311,8 +300,7 @@ START_TEST(test_serialize_content_tool_result_add_function_response_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_arr_add_fail)
-{
+START_TEST(test_serialize_message_parts_arr_add_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -331,8 +319,7 @@ START_TEST(test_serialize_message_parts_arr_add_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_thought_sig_add_str_fail)
-{
+START_TEST(test_serialize_message_parts_thought_sig_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -351,8 +338,7 @@ START_TEST(test_serialize_message_parts_thought_sig_add_str_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail)
-{
+START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -371,8 +357,7 @@ START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_add_parts_fail)
-{
+START_TEST(test_serialize_message_parts_add_parts_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -391,8 +376,7 @@ START_TEST(test_serialize_message_parts_add_parts_fail)
 }
 END_TEST
 
-START_TEST(test_extract_thought_signature_null_root)
-{
+START_TEST(test_extract_thought_signature_null_root) {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("   ", &doc);
     ck_assert(sig == NULL);
@@ -400,8 +384,7 @@ START_TEST(test_extract_thought_signature_null_root)
 }
 END_TEST
 
-START_TEST(test_find_latest_thought_no_signature_found)
-{
+START_TEST(test_find_latest_thought_no_signature_found) {
     ik_message_t messages[2];
     memset(messages, 0, sizeof(messages));
     messages[0].role = IK_ROLE_ASSISTANT;

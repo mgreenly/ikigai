@@ -33,8 +33,7 @@ START_TEST(test_input_parse_regular_char) {
 
 END_TEST
 // Test: parse non-printable characters return UNKNOWN
-START_TEST(test_input_parse_nonprintable)
-{
+START_TEST(test_input_parse_nonprintable) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -54,8 +53,7 @@ START_TEST(test_input_parse_nonprintable)
 
 END_TEST
 // Test: parse Ctrl+J (insert newline without submitting)
-START_TEST(test_input_parse_newline)
-{
+START_TEST(test_input_parse_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -70,8 +68,7 @@ START_TEST(test_input_parse_newline)
 
 END_TEST
 // Test: parse carriage return (Enter key in raw mode)
-START_TEST(test_input_parse_carriage_return)
-{
+START_TEST(test_input_parse_carriage_return) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -86,8 +83,7 @@ START_TEST(test_input_parse_carriage_return)
 
 END_TEST
 // Test: parse backspace character
-START_TEST(test_input_parse_backspace)
-{
+START_TEST(test_input_parse_backspace) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -102,8 +98,7 @@ START_TEST(test_input_parse_backspace)
 
 END_TEST
 // Test: parse Ctrl+C character
-START_TEST(test_input_parse_ctrl_c)
-{
+START_TEST(test_input_parse_ctrl_c) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -118,8 +113,7 @@ START_TEST(test_input_parse_ctrl_c)
 
 END_TEST
 // Test: parse Ctrl+A character (beginning of line)
-START_TEST(test_input_parse_ctrl_a)
-{
+START_TEST(test_input_parse_ctrl_a) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -134,8 +128,7 @@ START_TEST(test_input_parse_ctrl_a)
 
 END_TEST
 // Test: parse Ctrl+E character (end of line)
-START_TEST(test_input_parse_ctrl_e)
-{
+START_TEST(test_input_parse_ctrl_e) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -150,8 +143,7 @@ START_TEST(test_input_parse_ctrl_e)
 
 END_TEST
 // Test: parse Ctrl+K character (kill to end of line)
-START_TEST(test_input_parse_ctrl_k)
-{
+START_TEST(test_input_parse_ctrl_k) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -166,8 +158,7 @@ START_TEST(test_input_parse_ctrl_k)
 
 END_TEST
 // Test: parse Ctrl+U character (kill line)
-START_TEST(test_input_parse_ctrl_u)
-{
+START_TEST(test_input_parse_ctrl_u) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -182,8 +173,7 @@ START_TEST(test_input_parse_ctrl_u)
 
 END_TEST
 // Test: parse Ctrl+W character (delete word backward)
-START_TEST(test_input_parse_ctrl_w)
-{
+START_TEST(test_input_parse_ctrl_w) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

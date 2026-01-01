@@ -197,8 +197,7 @@ static void teardown(void)
 
 /* ========== curl events with error handling Tests ========== */
 
-START_TEST(test_curl_events_with_http_error)
-{
+START_TEST(test_curl_events_with_http_error) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -235,8 +234,7 @@ START_TEST(test_curl_events_with_http_error)
 
 END_TEST
 
-START_TEST(test_curl_events_with_http_error_and_assistant_response)
-{
+START_TEST(test_curl_events_with_http_error_and_assistant_response) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -275,8 +273,7 @@ START_TEST(test_curl_events_with_http_error_and_assistant_response)
 
 END_TEST
 
-START_TEST(test_curl_events_with_running_curl_success)
-{
+START_TEST(test_curl_events_with_running_curl_success) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -313,8 +310,7 @@ START_TEST(test_curl_events_with_running_curl_success)
 
 END_TEST
 
-START_TEST(test_curl_events_not_current_agent)
-{
+START_TEST(test_curl_events_not_current_agent) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -348,8 +344,7 @@ START_TEST(test_curl_events_not_current_agent)
 
 END_TEST
 
-START_TEST(test_curl_events_is_current_agent_triggers_render)
-{
+START_TEST(test_curl_events_is_current_agent_triggers_render) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -375,8 +370,7 @@ START_TEST(test_curl_events_is_current_agent_triggers_render)
 
 END_TEST
 
-START_TEST(test_curl_events_with_null_current)
-{
+START_TEST(test_curl_events_with_null_current) {
     /* No agents in array, current is NULL */
     repl->agent_count = 0;
     repl->agents = NULL;
@@ -389,8 +383,7 @@ START_TEST(test_curl_events_with_null_current)
 
 END_TEST
 
-START_TEST(test_curl_events_state_not_waiting_for_llm)
-{
+START_TEST(test_curl_events_state_not_waiting_for_llm) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -412,8 +405,7 @@ START_TEST(test_curl_events_state_not_waiting_for_llm)
 
 END_TEST
 
-START_TEST(test_curl_events_no_provider_instance)
-{
+START_TEST(test_curl_events_no_provider_instance) {
     /* No provider instance - should just skip processing */
     agent->provider_instance = NULL;
     agent->curl_still_running = 0;
@@ -432,8 +424,7 @@ START_TEST(test_curl_events_no_provider_instance)
 
 END_TEST
 
-START_TEST(test_curl_events_perform_error)
-{
+START_TEST(test_curl_events_perform_error) {
     /* Create mock provider instance with error vtable */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt_error;

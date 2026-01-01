@@ -110,8 +110,9 @@ START_TEST(test_handle_malformed_json_chunk) {
     ck_assert_int_eq((int)captured_count, 0);
 }
 
-END_TEST START_TEST(test_handle_empty_data_chunk)
-{
+END_TEST
+
+START_TEST(test_handle_empty_data_chunk) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -124,8 +125,9 @@ END_TEST START_TEST(test_handle_empty_data_chunk)
     ck_assert_int_eq((int)captured_count, 0);
 }
 
-END_TEST START_TEST(test_handle_error_object_in_chunk)
-{
+END_TEST
+
+START_TEST(test_handle_error_object_in_chunk) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -146,8 +148,7 @@ END_TEST
  * Usage Statistics Tests
  * ================================================================ */
 
-START_TEST(test_usage_excludes_thinking_from_output_tokens)
-{
+START_TEST(test_usage_excludes_thinking_from_output_tokens) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -168,8 +169,9 @@ START_TEST(test_usage_excludes_thinking_from_output_tokens)
     ck_assert_int_eq(usage.total_tokens, 300);
 }
 
-END_TEST START_TEST(test_usage_handles_missing_thoughts_token_count)
-{
+END_TEST
+
+START_TEST(test_usage_handles_missing_thoughts_token_count) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -195,32 +197,35 @@ END_TEST
  * Finish Reason Tests
  * ================================================================ */
 
-START_TEST(test_map_stop_finish_reason)
-{
+START_TEST(test_map_stop_finish_reason) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("STOP");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_map_max_tokens_finish_reason)
-{
+END_TEST
+
+START_TEST(test_map_max_tokens_finish_reason) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("MAX_TOKENS");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_safety_finish_reason)
-{
+END_TEST
+
+START_TEST(test_map_safety_finish_reason) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("SAFETY");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_unknown_finish_reason)
-{
+END_TEST
+
+START_TEST(test_map_unknown_finish_reason) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("UNKNOWN_REASON");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_map_null_finish_reason)
-{
+END_TEST
+
+START_TEST(test_map_null_finish_reason) {
     ik_finish_reason_t reason = ik_google_map_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
@@ -230,8 +235,7 @@ END_TEST
  * Stream Context Tests
  * ================================================================ */
 
-START_TEST(test_stream_ctx_create_initializes_state)
-{
+START_TEST(test_stream_ctx_create_initializes_state) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
 

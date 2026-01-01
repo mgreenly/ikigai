@@ -94,8 +94,9 @@ START_TEST(test_http_completion_success_chat_api) {
     ck_assert_ptr_nonnull(cb_state.completion.response);
     ck_assert_ptr_null(cb_state.completion.error_message);
 }
-END_TEST START_TEST(test_http_completion_success_responses_api)
-{
+END_TEST
+
+START_TEST(test_http_completion_success_responses_api) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -126,8 +127,7 @@ END_TEST
  * HTTP Completion Handler Tests - Error Cases
  * ================================================================ */
 
-START_TEST(test_http_completion_error_with_json_body)
-{
+START_TEST(test_http_completion_error_with_json_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -154,8 +154,9 @@ START_TEST(test_http_completion_error_with_json_body)
     ck_assert_ptr_nonnull(cb_state.error_msg_copy);
 }
 
-END_TEST START_TEST(test_http_completion_error_parse_error_fails)
-{
+END_TEST
+
+START_TEST(test_http_completion_error_parse_error_fails) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -183,8 +184,9 @@ END_TEST START_TEST(test_http_completion_error_parse_error_fails)
 
 }
 
-END_TEST START_TEST(test_http_completion_error_no_body)
-{
+END_TEST
+
+START_TEST(test_http_completion_error_no_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -211,8 +213,9 @@ END_TEST START_TEST(test_http_completion_error_no_body)
     ck_assert(strstr(cb_state.error_msg_copy, "500") != NULL);
 }
 
-END_TEST START_TEST(test_http_completion_network_error)
-{
+END_TEST
+
+START_TEST(test_http_completion_network_error) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -240,8 +243,9 @@ END_TEST START_TEST(test_http_completion_network_error)
     ck_assert(strstr(cb_state.error_msg_copy, "resolve") != NULL);
 }
 
-END_TEST START_TEST(test_http_completion_network_error_no_message)
-{
+END_TEST
+
+START_TEST(test_http_completion_network_error_no_message) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -267,8 +271,9 @@ END_TEST START_TEST(test_http_completion_network_error_no_message)
     ck_assert_ptr_nonnull(cb_state.error_msg_copy);
 }
 
-END_TEST START_TEST(test_http_completion_parse_response_failure)
-{
+END_TEST
+
+START_TEST(test_http_completion_parse_response_failure) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -299,8 +304,7 @@ END_TEST START_TEST(test_http_completion_parse_response_failure)
 
 END_TEST
 
-START_TEST(test_http_completion_error_parse_error_invalid_json)
-{
+START_TEST(test_http_completion_error_parse_error_invalid_json) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 
@@ -329,8 +333,7 @@ START_TEST(test_http_completion_error_parse_error_invalid_json)
 
 END_TEST
 
-START_TEST(test_http_completion_error_with_empty_body)
-{
+START_TEST(test_http_completion_error_with_empty_body) {
     callback_state_t cb_state = {0};
     reset_callback_state(&cb_state);
 

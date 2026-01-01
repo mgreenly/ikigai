@@ -71,8 +71,9 @@ START_TEST(test_nav_context_called_with_simple_hierarchy) {
     // Basic assertion: function was called and didn't crash
     ck_assert_ptr_nonnull(child->separator_layer);
 }
-END_TEST START_TEST(test_nav_context_called_with_siblings)
-{
+END_TEST
+
+START_TEST(test_nav_context_called_with_siblings) {
     // Create parent with 3 children
     (void)create_agent_with_separator("parent-uuid", NULL);
     (void)create_agent_with_separator("child1-uuid", "parent-uuid");
@@ -89,8 +90,9 @@ END_TEST START_TEST(test_nav_context_called_with_siblings)
     ck_assert_ptr_nonnull(child2->separator_layer);
 }
 
-END_TEST START_TEST(test_nav_context_called_with_children)
-{
+END_TEST
+
+START_TEST(test_nav_context_called_with_children) {
     // Create parent with 2 children
     ik_agent_ctx_t *parent = create_agent_with_separator("parent-uuid", NULL);
     (void)create_agent_with_separator("child1-uuid", "parent-uuid");
@@ -106,8 +108,9 @@ END_TEST START_TEST(test_nav_context_called_with_children)
     ck_assert_ptr_nonnull(parent->separator_layer);
 }
 
-END_TEST START_TEST(test_nav_context_null_separator)
-{
+END_TEST
+
+START_TEST(test_nav_context_null_separator) {
     // Create agent without separator layer
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     agent->uuid = talloc_strdup(agent, "test-uuid");
@@ -123,8 +126,9 @@ END_TEST START_TEST(test_nav_context_null_separator)
     ck_assert_ptr_null(agent->separator_layer);
 }
 
-END_TEST START_TEST(test_nav_context_null_current)
-{
+END_TEST
+
+START_TEST(test_nav_context_null_current) {
     // Create some agents
     create_agent_with_separator("agent-uuid", NULL);
 

@@ -202,8 +202,7 @@ START_TEST(test_delete_mail_removes_message) {
 }
 END_TEST
 // Test: confirmation message displayed
-START_TEST(test_delete_mail_shows_confirmation)
-{
+START_TEST(test_delete_mail_shows_confirmation) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -235,8 +234,7 @@ START_TEST(test_delete_mail_shows_confirmation)
 
 END_TEST
 // Test: non-existent ID shows error
-START_TEST(test_delete_mail_nonexistent_id)
-{
+START_TEST(test_delete_mail_nonexistent_id) {
     // Try to delete non-existent message
     res_t res = ik_cmd_delete_mail(test_ctx, repl, "999999");
     ck_assert(is_ok(&res));
@@ -247,8 +245,7 @@ START_TEST(test_delete_mail_nonexistent_id)
 
 END_TEST
 // Test: ID from different agent (not recipient) shows error
-START_TEST(test_delete_mail_different_agent)
-{
+START_TEST(test_delete_mail_different_agent) {
     // Create sender and another recipient
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -300,8 +297,7 @@ START_TEST(test_delete_mail_different_agent)
 
 END_TEST
 // Test: deleted mail no longer appears in /check-mail
-START_TEST(test_delete_mail_not_in_check_mail)
-{
+START_TEST(test_delete_mail_not_in_check_mail) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -351,8 +347,7 @@ START_TEST(test_delete_mail_not_in_check_mail)
 
 END_TEST
 // Test: deleted mail cannot be read
-START_TEST(test_delete_mail_cannot_read_after)
-{
+START_TEST(test_delete_mail_cannot_read_after) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -391,8 +386,7 @@ START_TEST(test_delete_mail_cannot_read_after)
 
 END_TEST
 // Test: delete by position with multiple messages
-START_TEST(test_delete_by_position_multi_message)
-{
+START_TEST(test_delete_by_position_multi_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

@@ -208,8 +208,7 @@ START_TEST(test_filter_mail_by_sender) {
 }
 END_TEST
 // Test: partial UUID matching works
-START_TEST(test_filter_mail_partial_uuid)
-{
+START_TEST(test_filter_mail_partial_uuid) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -240,8 +239,7 @@ START_TEST(test_filter_mail_partial_uuid)
 
 END_TEST
 // Test: shows "(filtered by ...)" in header
-START_TEST(test_filter_mail_shows_header)
-{
+START_TEST(test_filter_mail_shows_header) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -274,8 +272,7 @@ START_TEST(test_filter_mail_shows_header)
 
 END_TEST
 // Test: no matches shows empty result
-START_TEST(test_filter_mail_no_matches)
-{
+START_TEST(test_filter_mail_no_matches) {
     // Create sender (but don't send any messages)
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

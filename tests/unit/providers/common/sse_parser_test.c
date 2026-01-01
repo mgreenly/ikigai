@@ -17,8 +17,7 @@ START_TEST(test_parser_create) {
 }
 END_TEST
 /* Test: Empty buffer returns NULL */
-START_TEST(test_empty_buffer)
-{
+START_TEST(test_empty_buffer) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -30,8 +29,7 @@ START_TEST(test_empty_buffer)
 
 END_TEST
 /* Test: Single event */
-START_TEST(test_single_event)
-{
+START_TEST(test_single_event) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -53,8 +51,7 @@ START_TEST(test_single_event)
 
 END_TEST
 /* Test: Event with type */
-START_TEST(test_event_with_type)
-{
+START_TEST(test_event_with_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -73,8 +70,7 @@ START_TEST(test_event_with_type)
 
 END_TEST
 /* Test: Multiple events */
-START_TEST(test_multiple_events)
-{
+START_TEST(test_multiple_events) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -105,8 +101,7 @@ START_TEST(test_multiple_events)
 
 END_TEST
 /* Test: Partial feed */
-START_TEST(test_partial_feed)
-{
+START_TEST(test_partial_feed) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -129,8 +124,7 @@ START_TEST(test_partial_feed)
 
 END_TEST
 /* Test: Done marker detection */
-START_TEST(test_done_marker)
-{
+START_TEST(test_done_marker) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -146,8 +140,7 @@ START_TEST(test_done_marker)
 
 END_TEST
 /* Test: Not done marker */
-START_TEST(test_not_done)
-{
+START_TEST(test_not_done) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -163,8 +156,7 @@ START_TEST(test_not_done)
 
 END_TEST
 /* Test: Reset parser */
-START_TEST(test_reset)
-{
+START_TEST(test_reset) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -194,8 +186,7 @@ START_TEST(test_reset)
 
 END_TEST
 /* Test: Multi-line data */
-START_TEST(test_multiline_data)
-{
+START_TEST(test_multiline_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -212,8 +203,7 @@ START_TEST(test_multiline_data)
 
 END_TEST
 /* Test: Empty data field (data: with no content) */
-START_TEST(test_empty_data_field)
-{
+START_TEST(test_empty_data_field) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -230,8 +220,7 @@ START_TEST(test_empty_data_field)
 
 END_TEST
 /* Test: Event type without space after colon */
-START_TEST(test_event_type_no_space)
-{
+START_TEST(test_event_type_no_space) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -248,8 +237,7 @@ START_TEST(test_event_type_no_space)
 
 END_TEST
 /* Test: Buffer growth */
-START_TEST(test_buffer_growth)
-{
+START_TEST(test_buffer_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -274,8 +262,7 @@ START_TEST(test_buffer_growth)
 
 END_TEST
 /* Test: Partial data remaining in buffer */
-START_TEST(test_partial_remaining)
-{
+START_TEST(test_partial_remaining) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -304,8 +291,7 @@ START_TEST(test_partial_remaining)
 END_TEST
 
 /* Test: Feed with zero length (line 46) */
-START_TEST(test_feed_zero_length)
-{
+START_TEST(test_feed_zero_length) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -323,8 +309,7 @@ START_TEST(test_feed_zero_length)
 END_TEST
 
 /* Test: CRLF delimiter only (line 83 - crlf_delimiter != NULL && delimiter == NULL) */
-START_TEST(test_crlf_delimiter_only)
-{
+START_TEST(test_crlf_delimiter_only) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -342,8 +327,7 @@ START_TEST(test_crlf_delimiter_only)
 END_TEST
 
 /* Test: CRLF delimiter before LF delimiter (line 83 - crlf_delimiter < delimiter) */
-START_TEST(test_crlf_before_lf)
-{
+START_TEST(test_crlf_before_lf) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -366,8 +350,7 @@ START_TEST(test_crlf_before_lf)
 END_TEST
 
 /* Test: Empty event (no data, no event type - just delimiter) */
-START_TEST(test_empty_event)
-{
+START_TEST(test_empty_event) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -385,8 +368,7 @@ START_TEST(test_empty_event)
 END_TEST
 
 /* Test: Event with comment line (ignored line type) */
-START_TEST(test_event_with_comment)
-{
+START_TEST(test_event_with_comment) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -404,8 +386,7 @@ START_TEST(test_event_with_comment)
 END_TEST
 
 /* Test: is_done with NULL data (line 210) */
-START_TEST(test_is_done_null_data)
-{
+START_TEST(test_is_done_null_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -425,8 +406,7 @@ START_TEST(test_is_done_null_data)
 END_TEST
 
 /* Test: LF delimiter before CRLF delimiter (line 83 branch 5) */
-START_TEST(test_lf_before_crlf)
-{
+START_TEST(test_lf_before_crlf) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -449,8 +429,7 @@ START_TEST(test_lf_before_crlf)
 END_TEST
 
 /* Test: Event with short line (< 5 chars) - line 152 branch 1 */
-START_TEST(test_event_with_short_line)
-{
+START_TEST(test_event_with_short_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
@@ -468,8 +447,7 @@ START_TEST(test_event_with_short_line)
 END_TEST
 
 /* Test: Data field without space after colon */
-START_TEST(test_data_no_space)
-{
+START_TEST(test_data_no_space) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 

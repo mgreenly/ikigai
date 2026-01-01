@@ -64,8 +64,7 @@ yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 }
 
 // Test: yyjson_doc_get_root_ returns NULL in replay_command_effects
-START_TEST(test_replay_command_effects_null_root)
-{
+START_TEST(test_replay_command_effects_null_root) {
     // Populate scrollback triggers replay_command_effects for command messages
     ik_agent_restore_populate_scrollback(agent, replay_ctx, agent->shared->logger);
 

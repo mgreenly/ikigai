@@ -40,8 +40,9 @@ START_TEST(test_build_responses_url_success) {
     ck_assert_str_eq(url, "https://api.openai.com/v1/responses");
 }
 
-END_TEST START_TEST(test_build_responses_url_custom_base)
-{
+END_TEST
+
+START_TEST(test_build_responses_url_custom_base) {
     char *url = NULL;
     res_t result = ik_openai_build_responses_url(test_ctx, "https://custom.openai.azure.com", &url);
 
@@ -55,8 +56,7 @@ END_TEST
  * Basic Request Serialization Tests
  * ================================================================ */
 
-START_TEST(test_serialize_minimal_request)
-{
+START_TEST(test_serialize_minimal_request) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -91,8 +91,9 @@ START_TEST(test_serialize_minimal_request)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_system_prompt)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_system_prompt) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1-mini", &req);
     ck_assert(!is_err(&create_result));
@@ -120,8 +121,9 @@ END_TEST START_TEST(test_serialize_request_with_system_prompt)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_streaming)
-{
+END_TEST
+
+START_TEST(test_serialize_request_streaming) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -146,8 +148,9 @@ END_TEST START_TEST(test_serialize_request_streaming)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_max_output_tokens)
-{
+END_TEST
+
+START_TEST(test_serialize_request_max_output_tokens) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -179,8 +182,7 @@ END_TEST
  * Multi-turn Conversation Tests
  * ================================================================ */
 
-START_TEST(test_serialize_multi_turn_conversation)
-{
+START_TEST(test_serialize_multi_turn_conversation) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -209,8 +211,9 @@ START_TEST(test_serialize_multi_turn_conversation)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_single_user_message_with_multiple_text_blocks)
-{
+END_TEST
+
+START_TEST(test_serialize_single_user_message_with_multiple_text_blocks) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -244,8 +247,9 @@ END_TEST START_TEST(test_serialize_single_user_message_with_multiple_text_blocks
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_single_user_message_no_text_blocks)
-{
+END_TEST
+
+START_TEST(test_serialize_single_user_message_no_text_blocks) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

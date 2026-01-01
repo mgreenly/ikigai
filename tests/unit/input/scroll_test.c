@@ -22,8 +22,7 @@ START_TEST(test_scroll_up_enum_exists) {
 
 END_TEST
 // Test: IK_INPUT_SCROLL_DOWN enum value exists and is distinct
-START_TEST(test_scroll_down_enum_exists)
-{
+START_TEST(test_scroll_down_enum_exists) {
     // Compile-time verification: IK_INPUT_SCROLL_DOWN should exist
     // and be different from other action types
     ik_input_action_type_t scroll_down = IK_INPUT_SCROLL_DOWN;

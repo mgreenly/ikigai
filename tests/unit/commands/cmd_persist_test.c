@@ -181,8 +181,7 @@ START_TEST(test_help_persisted) {
 }
 END_TEST
 // Test: /model command output is persisted
-START_TEST(test_model_persisted)
-{
+START_TEST(test_model_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
 
@@ -206,8 +205,7 @@ START_TEST(test_model_persisted)
 
 END_TEST
 // Test: /debug command output is persisted
-START_TEST(test_debug_persisted)
-{
+START_TEST(test_debug_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/debug on");
     ck_assert(is_ok(&res));
 
@@ -226,8 +224,7 @@ START_TEST(test_debug_persisted)
 
 END_TEST
 // Test: Command persistence without database context (should not crash)
-START_TEST(test_command_persist_no_db)
-{
+START_TEST(test_command_persist_no_db) {
     // Remove database context
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
@@ -244,8 +241,7 @@ START_TEST(test_command_persist_no_db)
 
 END_TEST
 // Test: Unknown command is not persisted
-START_TEST(test_unknown_command_not_persisted)
-{
+START_TEST(test_unknown_command_not_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unknown");
     ck_assert(is_err(&res));
     talloc_free(res.err);

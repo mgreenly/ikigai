@@ -27,8 +27,9 @@ START_TEST(test_separator_layer_nav_context_with_parent) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_separator_layer_nav_context_root_agent)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_root_agent) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -50,8 +51,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_root_agent)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_nav_context_siblings)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_siblings) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -75,8 +77,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_siblings)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_nav_context_no_siblings)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_no_siblings) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -98,8 +101,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_no_siblings)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_nav_context_with_children)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_with_children) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -121,8 +125,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_with_children)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_nav_context_no_children)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_no_children) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -142,8 +147,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_no_children)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_nav_context_uuid_truncation)
-{
+END_TEST
+
+START_TEST(test_separator_layer_nav_context_uuid_truncation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -166,8 +172,9 @@ END_TEST START_TEST(test_separator_layer_nav_context_uuid_truncation)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_full_width_with_nav_context)
-{
+END_TEST
+
+START_TEST(test_separator_layer_full_width_with_nav_context) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;

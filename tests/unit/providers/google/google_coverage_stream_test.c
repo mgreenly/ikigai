@@ -29,33 +29,32 @@ static void teardown(void)
  * ================================================================ */
 
 // Test NULL stream and NULL sse_parser (lines 113-114)
-START_TEST(test_google_stream_write_cb_null_stream)
-{
+START_TEST(test_google_stream_write_cb_null_stream) {
     ck_assert_uint_eq(ik_google_stream_write_cb("data", 4, NULL), 4);
 }
 END_TEST
 
-START_TEST(test_google_stream_write_cb_null_sse_parser)
-{
-    ik_google_active_stream_t stream = {.stream_ctx = (void*)1, .sse_parser = NULL};
+START_TEST(test_google_stream_write_cb_null_sse_parser) {
+    ik_google_active_stream_t stream = {.stream_ctx = (void *)1, .sse_parser = NULL};
     ck_assert_uint_eq(ik_google_stream_write_cb("data", 4, &stream), 4);
 }
 END_TEST
 
 // Test NULL stream in completion callback (line 145)
-START_TEST(test_google_stream_completion_cb_null_stream)
-{
+START_TEST(test_google_stream_completion_cb_null_stream) {
     ik_http_completion_t completion = {.http_code = 200};
     ik_google_stream_completion_cb(&completion, NULL);
 }
 END_TEST
 
 // Helper for stream tests
-static res_t noop_stream_cb(const ik_stream_event_t *e, void *c) { (void)e; (void)c; return OK(NULL); }
+static res_t noop_stream_cb(const ik_stream_event_t *e, void *c)
+{
+    (void)e; (void)c; return OK(NULL);
+}
 
 // Test lines 118-134: Normal streaming path with valid data
-START_TEST(test_google_stream_write_cb_with_valid_data)
-{
+START_TEST(test_google_stream_write_cb_with_valid_data) {
     ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
     res_t r = ik_google_stream_ctx_create(stream, noop_stream_cb, NULL, &stream->stream_ctx);
     ck_assert(!is_err(&r));
@@ -67,8 +66,7 @@ START_TEST(test_google_stream_write_cb_with_valid_data)
 END_TEST
 
 // Test line 125: NULL event->data branch (empty data field)
-START_TEST(test_google_stream_write_cb_null_event_data)
-{
+START_TEST(test_google_stream_write_cb_null_event_data) {
     ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
     res_t r = ik_google_stream_ctx_create(stream, noop_stream_cb, NULL, &stream->stream_ctx);
     ck_assert(!is_err(&r));
@@ -81,8 +79,7 @@ START_TEST(test_google_stream_write_cb_null_event_data)
 END_TEST
 
 // Test lines 149-150: Stream completion with non-NULL stream
-START_TEST(test_google_stream_completion_cb_with_valid_stream)
-{
+START_TEST(test_google_stream_completion_cb_with_valid_stream) {
     ik_google_active_stream_t *stream = talloc_zero(test_ctx, ik_google_active_stream_t);
     stream->completed = false;
     ik_http_completion_t completion = {.http_code = 200};

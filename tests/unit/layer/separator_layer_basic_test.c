@@ -21,8 +21,9 @@ START_TEST(test_separator_layer_create_and_visibility) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_separator_layer_height)
-{
+END_TEST
+
+START_TEST(test_separator_layer_height) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -36,8 +37,9 @@ END_TEST START_TEST(test_separator_layer_height)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_render)
-{
+END_TEST
+
+START_TEST(test_separator_layer_render) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -59,8 +61,9 @@ END_TEST START_TEST(test_separator_layer_render)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_render_various_widths)
-{
+END_TEST
+
+START_TEST(test_separator_layer_render_various_widths) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -79,8 +82,9 @@ END_TEST START_TEST(test_separator_layer_render_various_widths)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_separator_layer_render_unicode_box_drawing)
-{
+END_TEST
+
+START_TEST(test_separator_layer_render_unicode_box_drawing) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;

@@ -165,8 +165,7 @@ START_TEST(test_filter_mail_missing_args) {
 }
 END_TEST
 // Test: wrong format (no --from) shows error
-START_TEST(test_filter_mail_wrong_format)
-{
+START_TEST(test_filter_mail_wrong_format) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "sender-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -174,8 +173,7 @@ START_TEST(test_filter_mail_wrong_format)
 
 END_TEST
 // Test: --from with only whitespace shows error
-START_TEST(test_filter_mail_empty_uuid)
-{
+START_TEST(test_filter_mail_empty_uuid) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from   ");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
@@ -183,8 +181,7 @@ START_TEST(test_filter_mail_empty_uuid)
 
 END_TEST
 // Test: ambiguous UUID shows error
-START_TEST(test_filter_mail_ambiguous_uuid)
-{
+START_TEST(test_filter_mail_ambiguous_uuid) {
     // Create two senders with similar UUIDs
     ik_agent_ctx_t *sender1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender1);
@@ -218,8 +215,7 @@ START_TEST(test_filter_mail_ambiguous_uuid)
 
 END_TEST
 // Test: non-existent UUID shows error
-START_TEST(test_filter_mail_nonexistent_uuid)
-{
+START_TEST(test_filter_mail_nonexistent_uuid) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from nonexistent-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);

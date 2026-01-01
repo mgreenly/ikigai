@@ -253,8 +253,9 @@ START_TEST(test_fork_inherits_parent_provider) {
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_fork_model_override_changes_provider)
-{
+END_TEST
+
+START_TEST(test_fork_model_override_changes_provider) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -281,8 +282,9 @@ END_TEST START_TEST(test_fork_model_override_changes_provider)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_fork_thinking_override)
-{
+END_TEST
+
+START_TEST(test_fork_thinking_override) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -306,8 +308,9 @@ END_TEST START_TEST(test_fork_thinking_override)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_fork_full_cross_provider_override)
-{
+END_TEST
+
+START_TEST(test_fork_full_cross_provider_override) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -335,8 +338,9 @@ END_TEST START_TEST(test_fork_full_cross_provider_override)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_database_records_fork_hierarchy)
-{
+END_TEST
+
+START_TEST(test_database_records_fork_hierarchy) {
     setup_test_env(); reset_mock_state();
     res_t r = ik_test_db_begin(g_db); ck_assert(is_ok(&r));
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);

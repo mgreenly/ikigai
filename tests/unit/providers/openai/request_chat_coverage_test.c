@@ -67,8 +67,7 @@ static void add_message(ik_request_t *req, ik_role_t role, const char *text)
 /**
  * Test: Serialize request with tools to cover tool serialization branches
  */
-START_TEST(test_serialize_with_tools)
-{
+START_TEST(test_serialize_with_tools) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
@@ -97,8 +96,7 @@ END_TEST
 /**
  * Test: Serialize with tool_choice_mode = 1 (IK_TOOL_NONE) to cover line 100
  */
-START_TEST(test_tool_choice_none)
-{
+START_TEST(test_tool_choice_none) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
@@ -119,8 +117,7 @@ END_TEST
 /**
  * Test: Serialize with tool_choice_mode = 2 (IK_TOOL_REQUIRED) to cover line 106
  */
-START_TEST(test_tool_choice_required)
-{
+START_TEST(test_tool_choice_required) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
@@ -141,8 +138,7 @@ END_TEST
 /**
  * Test: Serialize with invalid tool_choice_mode to cover default case (line 110)
  */
-START_TEST(test_tool_choice_invalid)
-{
+START_TEST(test_tool_choice_invalid) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
@@ -163,8 +159,7 @@ END_TEST
 /**
  * Test: Serialize with system_prompt to cover lines 161-182
  */
-START_TEST(test_serialize_with_system_prompt)
-{
+START_TEST(test_serialize_with_system_prompt) {
     ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
 
@@ -186,8 +181,7 @@ END_TEST
 /**
  * Test: Serialize with streaming=true to cover lines 208-230
  */
-START_TEST(test_serialize_with_streaming)
-{
+START_TEST(test_serialize_with_streaming) {
     ik_request_t *req = create_minimal_request();
 
     char *json = NULL;
@@ -206,8 +200,7 @@ END_TEST
 /**
  * Test: Serialize with invalid tool parameters JSON to cover error path (line 62)
  */
-START_TEST(test_tool_invalid_json_parameters)
-{
+START_TEST(test_tool_invalid_json_parameters) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "test_tool", "A test tool", "{invalid json}"); /* Invalid JSON */
 
@@ -223,8 +216,7 @@ END_TEST
 /**
  * Test: Serialize with messages to cover lines 185-191
  */
-START_TEST(test_serialize_with_messages)
-{
+START_TEST(test_serialize_with_messages) {
     ik_request_t *req = create_minimal_request();
     add_message(req, IK_ROLE_USER, "Hello");
 
@@ -243,8 +235,7 @@ END_TEST
 /**
  * Test: Serialize with max_output_tokens > 0 to cover lines 200-205
  */
-START_TEST(test_serialize_with_max_output_tokens)
-{
+START_TEST(test_serialize_with_max_output_tokens) {
     ik_request_t *req = create_minimal_request();
     req->max_output_tokens = 2048;
 
@@ -263,8 +254,7 @@ END_TEST
 /**
  * Test: ik_openai_build_chat_url to cover lines 284-295
  */
-START_TEST(test_build_chat_url)
-{
+START_TEST(test_build_chat_url) {
     const char *base_url = "https://api.openai.com";
     char *url = NULL;
     res_t result = ik_openai_build_chat_url(ctx, base_url, &url);
@@ -279,8 +269,7 @@ END_TEST
 /**
  * Test: ik_openai_build_headers to cover lines 297-320
  */
-START_TEST(test_build_headers)
-{
+START_TEST(test_build_headers) {
     const char *api_key = "sk-test-12345";
     char **headers = NULL;
     res_t result = ik_openai_build_headers(ctx, api_key, &headers);
@@ -306,8 +295,7 @@ END_TEST
 /**
  * Test: Serialize with empty system_prompt string (should not add system message)
  */
-START_TEST(test_serialize_with_empty_system_prompt)
-{
+START_TEST(test_serialize_with_empty_system_prompt) {
     ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, ""); /* Empty string */
 
@@ -326,8 +314,7 @@ END_TEST
 /**
  * Test: Serialize with NULL model to cover error path (line 133)
  */
-START_TEST(test_serialize_null_model)
-{
+START_TEST(test_serialize_null_model) {
     ik_request_t *req = create_minimal_request();
     req->model = NULL; /* NULL model */
 
@@ -342,12 +329,13 @@ END_TEST
 /**
  * Test: Serialize with multiple tools to cover loop iteration branches
  */
-START_TEST(test_serialize_with_multiple_tools)
-{
+START_TEST(test_serialize_with_multiple_tools) {
     ik_request_t *req = create_minimal_request();
     add_tool(req, "tool_one", "First tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
-    add_tool(req, "tool_two", "Second tool",
+    add_tool(req,
+             "tool_two",
+             "Second tool",
              "{\"type\":\"object\",\"properties\":{\"arg1\":{\"type\":\"string\"}},\"required\":[\"arg1\"],\"additionalProperties\":false}");
     add_tool(req, "tool_three", "Third tool",
              "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}},\"additionalProperties\":false}");
@@ -368,8 +356,7 @@ END_TEST
 /**
  * Test: Serialize with multiple messages to cover loop iteration branches
  */
-START_TEST(test_serialize_with_multiple_messages)
-{
+START_TEST(test_serialize_with_multiple_messages) {
     ik_request_t *req = create_minimal_request();
     add_message(req, IK_ROLE_USER, "Hello");
     add_message(req, IK_ROLE_ASSISTANT, "Hi there!");
@@ -391,14 +378,15 @@ END_TEST
  * Test: Full-featured request with all options enabled
  * This exercises all code paths together to improve branch coverage
  */
-START_TEST(test_serialize_full_featured_request)
-{
+START_TEST(test_serialize_full_featured_request) {
     ik_request_t *req = create_minimal_request();
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
     req->max_output_tokens = 4096;
     add_message(req, IK_ROLE_USER, "Hello");
     add_message(req, IK_ROLE_ASSISTANT, "Hi!");
-    add_tool(req, "get_weather", "Get weather info",
+    add_tool(req,
+             "get_weather",
+             "Get weather info",
              "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"],\"additionalProperties\":false}");
     add_tool(req, "search", "Search the web",
              "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"additionalProperties\":false}");

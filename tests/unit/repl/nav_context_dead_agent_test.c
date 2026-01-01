@@ -89,8 +89,7 @@ START_TEST(test_nav_context_with_removed_prev_sibling) {
 }
 END_TEST
 // Test: ik_repl_update_nav_context with dead/removed next sibling
-START_TEST(test_nav_context_with_removed_next_sibling)
-{
+START_TEST(test_nav_context_with_removed_next_sibling) {
     // Create 3 siblings with sequential timestamps
     ik_agent_ctx_t *sibling1 = create_agent_with_separator("sibling1", NULL, 1000);
     ik_agent_ctx_t *sibling2 = create_agent_with_separator("sibling2", NULL, 2000);
@@ -116,8 +115,7 @@ START_TEST(test_nav_context_with_removed_next_sibling)
 
 END_TEST
 // Test: ik_repl_update_nav_context with multiple prev siblings (tests line 610 branches)
-START_TEST(test_nav_context_multiple_prev_siblings)
-{
+START_TEST(test_nav_context_multiple_prev_siblings) {
     // Create 4 siblings with sequential timestamps
     ik_agent_ctx_t *sibling1 = create_agent_with_separator("sibling1", NULL, 1000);
     ik_agent_ctx_t *sibling2 = create_agent_with_separator("sibling2", NULL, 2000);
@@ -143,8 +141,7 @@ START_TEST(test_nav_context_multiple_prev_siblings)
 
 END_TEST
 // Test: ik_repl_update_nav_context with multiple next siblings (tests line 620 branches)
-START_TEST(test_nav_context_multiple_next_siblings)
-{
+START_TEST(test_nav_context_multiple_next_siblings) {
     // Create 4 siblings with sequential timestamps
     ik_agent_ctx_t *sibling1 = create_agent_with_separator("sibling1", NULL, 1000);
     ik_agent_ctx_t *sibling2 = create_agent_with_separator("sibling2", NULL, 2000);

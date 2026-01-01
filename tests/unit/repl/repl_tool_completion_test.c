@@ -191,8 +191,7 @@ static void setup_tool_completion(const char *finish_reason)
 }
 
 /* Test: handle_agent_tool_completion transitions to idle */
-START_TEST(test_handle_agent_tool_completion_stop)
-{
+START_TEST(test_handle_agent_tool_completion_stop) {
     setup_tool_completion("stop");
     repl->current = NULL;
     ik_repl_handle_agent_tool_completion(repl, agent);
@@ -201,8 +200,7 @@ START_TEST(test_handle_agent_tool_completion_stop)
 }
 END_TEST
 /* Test: tool loop continuation */
-START_TEST(test_handle_agent_tool_completion_continues_loop)
-{
+START_TEST(test_handle_agent_tool_completion_continues_loop) {
     setup_tool_completion("tool_calls");
     agent->tool_iteration_count = 0;
     repl->current = NULL;
@@ -213,8 +211,7 @@ START_TEST(test_handle_agent_tool_completion_continues_loop)
 END_TEST
 
 /* Test: renders when agent is current */
-START_TEST(test_handle_agent_tool_completion_renders_current)
-{
+START_TEST(test_handle_agent_tool_completion_renders_current) {
     setup_tool_completion("stop");
     repl->current = NULL;
     ik_repl_handle_agent_tool_completion(repl, agent);
@@ -223,8 +220,7 @@ START_TEST(test_handle_agent_tool_completion_renders_current)
 END_TEST
 
 /* Test: poll with agent in agents array */
-START_TEST(test_poll_tool_completions_agents_array)
-{
+START_TEST(test_poll_tool_completions_agents_array) {
     setup_tool_completion("stop");
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
     repl->agents[0] = agent;
@@ -242,8 +238,7 @@ START_TEST(test_poll_tool_completions_agents_array)
 END_TEST
 
 /* Test: poll with current agent not executing */
-START_TEST(test_poll_tool_completions_current_not_executing)
-{
+START_TEST(test_poll_tool_completions_current_not_executing) {
     repl->agent_count = 0;
     repl->current = agent;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
@@ -259,8 +254,7 @@ START_TEST(test_poll_tool_completions_current_not_executing)
 END_TEST
 
 /* Test: poll with current agent executing */
-START_TEST(test_poll_tool_completions_current_executing)
-{
+START_TEST(test_poll_tool_completions_current_executing) {
     setup_tool_completion("stop");
     repl->agent_count = 0;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
@@ -276,8 +270,7 @@ START_TEST(test_poll_tool_completions_current_executing)
 END_TEST
 
 /* Test: wrapper function */
-START_TEST(test_handle_tool_completion_wrapper)
-{
+START_TEST(test_handle_tool_completion_wrapper) {
     setup_tool_completion("stop");
     repl->current = agent;
     ik_repl_handle_tool_completion(repl);
@@ -287,8 +280,7 @@ START_TEST(test_handle_tool_completion_wrapper)
 END_TEST
 
 /* Test: submit with request build error */
-START_TEST(test_submit_tool_loop_continuation_request_error)
-{
+START_TEST(test_submit_tool_loop_continuation_request_error) {
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
@@ -305,8 +297,7 @@ START_TEST(test_submit_tool_loop_continuation_request_error)
 END_TEST
 
 /* Test: submit with start_stream error */
-START_TEST(test_submit_tool_loop_continuation_stream_error)
-{
+START_TEST(test_submit_tool_loop_continuation_stream_error) {
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
@@ -323,8 +314,7 @@ START_TEST(test_submit_tool_loop_continuation_stream_error)
 END_TEST
 
 /* Test: submit with success */
-START_TEST(test_submit_tool_loop_continuation_success)
-{
+START_TEST(test_submit_tool_loop_continuation_success) {
     agent->tool_thread_ctx = talloc_new(agent);
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
@@ -340,8 +330,7 @@ START_TEST(test_submit_tool_loop_continuation_success)
 END_TEST
 
 /* Test: poll with no agents */
-START_TEST(test_poll_tool_completions_no_agents)
-{
+START_TEST(test_poll_tool_completions_no_agents) {
     repl->agent_count = 0;
     repl->current = NULL;
     res_t result = ik_repl_poll_tool_completions(repl);
@@ -350,8 +339,7 @@ START_TEST(test_poll_tool_completions_no_agents)
 END_TEST
 
 /* Test: poll with agent not complete */
-START_TEST(test_poll_tool_completions_agent_not_complete)
-{
+START_TEST(test_poll_tool_completions_agent_not_complete) {
     setup_tool_completion("stop");
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
     repl->agents[0] = agent;
@@ -371,8 +359,7 @@ START_TEST(test_poll_tool_completions_agent_not_complete)
 END_TEST
 
 /* Test: poll with agent in wrong state */
-START_TEST(test_poll_tool_completions_agent_wrong_state)
-{
+START_TEST(test_poll_tool_completions_agent_wrong_state) {
     setup_tool_completion("stop");
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
     repl->agents[0] = agent;
@@ -392,8 +379,7 @@ START_TEST(test_poll_tool_completions_agent_wrong_state)
 END_TEST
 
 /* Test: poll current executing not complete */
-START_TEST(test_poll_tool_completions_current_executing_not_complete)
-{
+START_TEST(test_poll_tool_completions_current_executing_not_complete) {
     setup_tool_completion("stop");
     repl->agent_count = 0;
     repl->current = agent;

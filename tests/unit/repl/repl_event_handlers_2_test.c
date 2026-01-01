@@ -117,8 +117,9 @@ START_TEST(test_agent_request_success_with_response) {
     /* Verify response was cleared */
     ck_assert_ptr_null(agent->assistant_response);
 }
-END_TEST START_TEST(test_agent_request_success_empty_response)
-{
+END_TEST
+
+START_TEST(test_agent_request_success_empty_response) {
     /* Empty response should not create message */
     agent->assistant_response = talloc_strdup(agent, "");
 
@@ -128,8 +129,9 @@ END_TEST START_TEST(test_agent_request_success_empty_response)
     ck_assert_ptr_null(agent->assistant_response);
 }
 
-END_TEST START_TEST(test_agent_request_success_null_response)
-{
+END_TEST
+
+START_TEST(test_agent_request_success_null_response) {
     /* Null response should not crash */
     agent->assistant_response = NULL;
 
@@ -165,14 +167,14 @@ END_TEST
 
 /* ========== ik_repl_handle_curl_events Tests ========== */
 
-START_TEST(test_curl_events_no_agents)
-{
+START_TEST(test_curl_events_no_agents) {
     res_t result = ik_repl_handle_curl_events(repl, 0);
     ck_assert(is_ok(&result));
 }
 
-END_TEST START_TEST(test_curl_events_current_not_in_array)
-{
+END_TEST
+
+START_TEST(test_curl_events_current_not_in_array) {
     /* Create a second agent that's not in the array */
     ik_agent_ctx_t *other_agent = talloc_zero(repl, ik_agent_ctx_t);
     other_agent->shared = shared;

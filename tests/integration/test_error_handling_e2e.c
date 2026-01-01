@@ -322,8 +322,7 @@ END_TEST
  *
  * Verifies HTTP 429 from OpenAI also maps to IK_ERR_CAT_RATE_LIMIT.
  */
-START_TEST(test_rate_limit_openai_async)
-{
+START_TEST(test_rate_limit_openai_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -352,8 +351,7 @@ END_TEST
  *
  * Verifies HTTP 401 maps to IK_ERR_CAT_AUTH with retryable=false.
  */
-START_TEST(test_auth_error_openai_async)
-{
+START_TEST(test_auth_error_openai_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -380,8 +378,7 @@ END_TEST
  * Verifies HTTP 529 (Anthropic-specific) maps to IK_ERR_CAT_SERVER
  * with retryable=true.
  */
-START_TEST(test_overloaded_anthropic_async)
-{
+START_TEST(test_overloaded_anthropic_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -408,8 +405,7 @@ END_TEST
  * Verifies HTTP 400 with context_length_exceeded body
  * maps to IK_ERR_CAT_INVALID_ARG.
  */
-START_TEST(test_context_length_error_async)
-{
+START_TEST(test_context_length_error_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -436,8 +432,7 @@ END_TEST
  * Verifies CURLE_COULDNT_CONNECT maps to IK_ERR_CAT_NETWORK
  * with retryable=true.
  */
-START_TEST(test_network_error_async)
-{
+START_TEST(test_network_error_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);

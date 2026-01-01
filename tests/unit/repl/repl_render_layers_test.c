@@ -130,8 +130,7 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
 
 END_TEST
 /* Test: Render with layer-based rendering and scrolling */
-START_TEST(test_repl_render_frame_with_layers_scrolling)
-{
+START_TEST(test_repl_render_frame_with_layers_scrolling) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -216,8 +215,7 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
 
 END_TEST
 /* Test: IO write error handling */
-START_TEST(test_repl_render_frame_write_failure)
-{
+START_TEST(test_repl_render_frame_write_failure) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

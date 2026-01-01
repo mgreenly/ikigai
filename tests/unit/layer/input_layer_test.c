@@ -25,8 +25,9 @@ START_TEST(test_input_layer_create_and_visibility) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_input_layer_height_empty)
-{
+END_TEST
+
+START_TEST(test_input_layer_height_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -42,8 +43,9 @@ END_TEST START_TEST(test_input_layer_height_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_height_single_line)
-{
+END_TEST
+
+START_TEST(test_input_layer_height_single_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -59,8 +61,9 @@ END_TEST START_TEST(test_input_layer_height_single_line)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_height_with_newline)
-{
+END_TEST
+
+START_TEST(test_input_layer_height_with_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -76,8 +79,9 @@ END_TEST START_TEST(test_input_layer_height_with_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_height_with_wrapping)
-{
+END_TEST
+
+START_TEST(test_input_layer_height_with_wrapping) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -94,8 +98,9 @@ END_TEST START_TEST(test_input_layer_height_with_wrapping)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_render_empty)
-{
+END_TEST
+
+START_TEST(test_input_layer_render_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -115,8 +120,9 @@ END_TEST START_TEST(test_input_layer_render_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_render_simple_text)
-{
+END_TEST
+
+START_TEST(test_input_layer_render_simple_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -136,8 +142,9 @@ END_TEST START_TEST(test_input_layer_render_simple_text)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_render_simple_text_has_trailing_newline)
-{
+END_TEST
+
+START_TEST(test_input_layer_render_simple_text_has_trailing_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -156,8 +163,9 @@ END_TEST START_TEST(test_input_layer_render_simple_text_has_trailing_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_render_with_newline)
-{
+END_TEST
+
+START_TEST(test_input_layer_render_with_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;
@@ -178,8 +186,9 @@ END_TEST START_TEST(test_input_layer_render_with_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_input_layer_render_text_ending_with_newline_no_double)
-{
+END_TEST
+
+START_TEST(test_input_layer_render_text_ending_with_newline_no_double) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     bool visible = true;

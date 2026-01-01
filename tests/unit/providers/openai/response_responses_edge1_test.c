@@ -55,8 +55,9 @@ START_TEST(test_parse_response_no_model) {
     ck_assert_ptr_null(resp->model);
 }
 
-END_TEST START_TEST(test_parse_response_no_usage)
-{
+END_TEST
+
+START_TEST(test_parse_response_no_usage) {
     const char *json = "{"
                        "\"id\":\"resp-nousage\","
                        "\"model\":\"gpt-4o\","
@@ -81,8 +82,9 @@ END_TEST START_TEST(test_parse_response_no_usage)
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
 
-END_TEST START_TEST(test_parse_response_no_status)
-{
+END_TEST
+
+START_TEST(test_parse_response_no_status) {
     const char *json = "{"
                        "\"id\":\"resp-nostatus\","
                        "\"model\":\"gpt-4o\","
@@ -108,8 +110,9 @@ END_TEST START_TEST(test_parse_response_no_status)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_response_no_output)
-{
+END_TEST
+
+START_TEST(test_parse_response_no_output) {
     const char *json = "{"
                        "\"id\":\"resp-nooutput\","
                        "\"model\":\"gpt-4o\","
@@ -130,8 +133,9 @@ END_TEST START_TEST(test_parse_response_no_output)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_empty_output_array)
-{
+END_TEST
+
+START_TEST(test_parse_response_empty_output_array) {
     const char *json = "{"
                        "\"id\":\"resp-empty\","
                        "\"model\":\"gpt-4o\","
@@ -153,8 +157,9 @@ END_TEST START_TEST(test_parse_response_empty_output_array)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_output_not_array)
-{
+END_TEST
+
+START_TEST(test_parse_response_output_not_array) {
     const char *json = "{"
                        "\"id\":\"resp-badoutput\","
                        "\"model\":\"gpt-4o\","
@@ -176,8 +181,9 @@ END_TEST START_TEST(test_parse_response_output_not_array)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_incomplete_with_details)
-{
+END_TEST
+
+START_TEST(test_parse_response_incomplete_with_details) {
     const char *json = "{"
                        "\"id\":\"resp-incomplete\","
                        "\"model\":\"gpt-4o\","
@@ -207,8 +213,9 @@ END_TEST START_TEST(test_parse_response_incomplete_with_details)
     ck_assert_int_eq(resp->finish_reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_parse_response_skip_unknown_output_type)
-{
+END_TEST
+
+START_TEST(test_parse_response_skip_unknown_output_type) {
     const char *json = "{"
                        "\"id\":\"resp-unknown\","
                        "\"model\":\"gpt-4o\","
@@ -239,8 +246,9 @@ END_TEST START_TEST(test_parse_response_skip_unknown_output_type)
     ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Valid text");
 }
 
-END_TEST START_TEST(test_parse_response_skip_item_missing_type)
-{
+END_TEST
+
+START_TEST(test_parse_response_skip_item_missing_type) {
     const char *json = "{"
                        "\"id\":\"resp-notype\","
                        "\"model\":\"gpt-4o\","
@@ -269,8 +277,9 @@ END_TEST START_TEST(test_parse_response_skip_item_missing_type)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_skip_item_type_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_skip_item_type_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-typenum\","
                        "\"model\":\"gpt-4o\","
@@ -299,8 +308,9 @@ END_TEST START_TEST(test_parse_response_skip_item_type_not_string)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_message_no_content)
-{
+END_TEST
+
+START_TEST(test_parse_response_message_no_content) {
     const char *json = "{"
                        "\"id\":\"resp-nocontent\","
                        "\"model\":\"gpt-4o\","
@@ -323,8 +333,9 @@ END_TEST START_TEST(test_parse_response_message_no_content)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_message_content_not_array)
-{
+END_TEST
+
+START_TEST(test_parse_response_message_content_not_array) {
     const char *json = "{"
                        "\"id\":\"resp-contentbad\","
                        "\"model\":\"gpt-4o\","

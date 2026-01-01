@@ -281,8 +281,7 @@ END_TEST
  * - 8 rows of scrollback (causes 1 row to scroll off top)
  * - Empty input buffer
  */
-START_TEST(test_cursor_position_10row_terminal_scrolled)
-{
+START_TEST(test_cursor_position_10row_terminal_scrolled) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 10 rows x 80 cols (user's exact scenario)

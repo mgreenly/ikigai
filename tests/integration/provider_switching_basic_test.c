@@ -239,8 +239,9 @@ START_TEST(test_provider_inference_from_model) {
     ck_assert_ptr_null(ik_infer_provider("unknown-model"));
     ck_assert_ptr_null(ik_infer_provider(""));
 }
-END_TEST START_TEST(test_agent_provider_fields_on_switch)
-{
+END_TEST
+
+START_TEST(test_agent_provider_fields_on_switch) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -265,8 +266,9 @@ END_TEST START_TEST(test_agent_provider_fields_on_switch)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_provider_invalidation_on_switch)
-{
+END_TEST
+
+START_TEST(test_provider_invalidation_on_switch) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -284,8 +286,9 @@ END_TEST START_TEST(test_provider_invalidation_on_switch)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_system_prompt_preserved_on_switch)
-{
+END_TEST
+
+START_TEST(test_system_prompt_preserved_on_switch) {
     setup_test_env(); reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -306,8 +309,9 @@ END_TEST START_TEST(test_system_prompt_preserved_on_switch)
     talloc_free(ctx); teardown_test_env();
 }
 
-END_TEST START_TEST(test_database_update_on_switch)
-{
+END_TEST
+
+START_TEST(test_database_update_on_switch) {
     setup_test_env(); reset_mock_state();
     res_t r = ik_test_db_begin(g_db); ck_assert(is_ok(&r));
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);

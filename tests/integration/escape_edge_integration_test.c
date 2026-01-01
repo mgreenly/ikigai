@@ -35,8 +35,7 @@ START_TEST(test_escape_sequence_null_byte) {
 
 END_TEST
 // Test: ESC [ followed by control character (e.g., Ctrl+C)
-START_TEST(test_escape_sequence_control_char)
-{
+START_TEST(test_escape_sequence_control_char) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -58,8 +57,7 @@ START_TEST(test_escape_sequence_control_char)
 
 END_TEST
 // Test: Very long escape sequence (just before buffer overflow)
-START_TEST(test_escape_sequence_nearly_full_buffer)
-{
+START_TEST(test_escape_sequence_nearly_full_buffer) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

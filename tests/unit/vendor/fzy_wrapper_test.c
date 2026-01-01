@@ -18,8 +18,7 @@ START_TEST(test_fzy_filter_null_ctx) {
 }
 END_TEST
 /* Test: NULL candidates assertion */
-START_TEST(test_fzy_filter_null_candidates)
-{
+START_TEST(test_fzy_filter_null_candidates) {
     void *ctx = talloc_new(NULL);
     size_t count = 0;
     ik_fzy_filter(ctx, NULL, 1, "t", 10, &count);
@@ -28,8 +27,7 @@ START_TEST(test_fzy_filter_null_candidates)
 
 END_TEST
 /* Test: NULL search assertion */
-START_TEST(test_fzy_filter_null_search)
-{
+START_TEST(test_fzy_filter_null_search) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"test"};
     size_t count = 0;
@@ -39,8 +37,7 @@ START_TEST(test_fzy_filter_null_search)
 
 END_TEST
 /* Test: NULL count_out assertion */
-START_TEST(test_fzy_filter_null_count_out)
-{
+START_TEST(test_fzy_filter_null_count_out) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"test"};
     ik_fzy_filter(ctx, candidates, 1, "t", 10, NULL);
@@ -52,8 +49,7 @@ END_TEST
 #endif // !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 
 /* Test: Normal operation */
-START_TEST(test_fzy_filter_normal)
-{
+START_TEST(test_fzy_filter_normal) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"mark", "model", "help"};
     size_t count = 0;
@@ -68,8 +64,7 @@ START_TEST(test_fzy_filter_normal)
 
 END_TEST
 /* Test: No matches */
-START_TEST(test_fzy_filter_no_matches)
-{
+START_TEST(test_fzy_filter_no_matches) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"mark", "model", "help"};
     size_t count = 0;
@@ -84,8 +79,7 @@ START_TEST(test_fzy_filter_no_matches)
 
 END_TEST
 /* Test: Zero candidates */
-START_TEST(test_fzy_filter_zero_candidates)
-{
+START_TEST(test_fzy_filter_zero_candidates) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {};
     size_t count = 0;
@@ -100,8 +94,7 @@ START_TEST(test_fzy_filter_zero_candidates)
 
 END_TEST
 /* Test: Prefix matching only - "m" matches "mark", "model" but NOT "system" */
-START_TEST(test_fzy_filter_prefix_only)
-{
+START_TEST(test_fzy_filter_prefix_only) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"mark", "model", "system"};
     size_t count = 0;
@@ -129,8 +122,7 @@ START_TEST(test_fzy_filter_prefix_only)
 
 END_TEST
 /* Test: Case-insensitive prefix matching - "m" matches "Mark", "MODEL" */
-START_TEST(test_fzy_filter_prefix_case_insensitive)
-{
+START_TEST(test_fzy_filter_prefix_case_insensitive) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"Mark", "MODEL", "system"};
     size_t count = 0;
@@ -158,8 +150,7 @@ START_TEST(test_fzy_filter_prefix_case_insensitive)
 
 END_TEST
 /* Test: No prefix match - "m" with candidates that don't start with "m" returns NULL */
-START_TEST(test_fzy_filter_no_prefix_match)
-{
+START_TEST(test_fzy_filter_no_prefix_match) {
     void *ctx = talloc_new(NULL);
     const char *candidates[] = {"system", "clear", "help"};
     size_t count = 0;

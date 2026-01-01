@@ -81,8 +81,7 @@ START_TEST(test_tab_wraps_around) {
 }
 END_TEST
 /* Test: Tab accepts completion and dismisses */
-START_TEST(test_original_input_stored)
-{
+START_TEST(test_original_input_stored) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -145,8 +144,7 @@ START_TEST(test_original_input_stored)
 
 END_TEST
 /* Test: Tab accepts and dismisses - each Tab press accepts current selection */
-START_TEST(test_multiple_tab_presses)
-{
+START_TEST(test_multiple_tab_presses) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -207,8 +205,7 @@ START_TEST(test_multiple_tab_presses)
 
 END_TEST
 /* Test: update_completion_after_char preserves original_input across updates */
-START_TEST(test_update_completion_preserves_original_input)
-{
+START_TEST(test_update_completion_preserves_original_input) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -262,8 +259,7 @@ START_TEST(test_update_completion_preserves_original_input)
 
 END_TEST
 /* Test: Space commit when completion is NULL (no-op) */
-START_TEST(test_space_commit_no_completion)
-{
+START_TEST(test_space_commit_no_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent

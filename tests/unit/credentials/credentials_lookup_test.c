@@ -53,8 +53,9 @@ START_TEST(test_credentials_from_env_openai) {
 
     unsetenv("OPENAI_API_KEY");
 }
-END_TEST START_TEST(test_credentials_from_env_anthropic)
-{
+END_TEST
+
+START_TEST(test_credentials_from_env_anthropic) {
     setenv("ANTHROPIC_API_KEY", "sk-ant-test", 1);
 
     ik_credentials_t *creds = NULL;
@@ -70,8 +71,9 @@ END_TEST START_TEST(test_credentials_from_env_anthropic)
     unsetenv("ANTHROPIC_API_KEY");
 }
 
-END_TEST START_TEST(test_credentials_from_env_google)
-{
+END_TEST
+
+START_TEST(test_credentials_from_env_google) {
     setenv("GOOGLE_API_KEY", "AIza-test", 1);
 
     ik_credentials_t *creds = NULL;
@@ -87,8 +89,9 @@ END_TEST START_TEST(test_credentials_from_env_google)
     unsetenv("GOOGLE_API_KEY");
 }
 
-END_TEST START_TEST(test_credentials_missing_returns_null)
-{
+END_TEST
+
+START_TEST(test_credentials_missing_returns_null) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -107,8 +110,9 @@ END_TEST START_TEST(test_credentials_missing_returns_null)
     (void)key; /* Test passes if no crash */
 }
 
-END_TEST START_TEST(test_credentials_unknown_provider)
-{
+END_TEST
+
+START_TEST(test_credentials_unknown_provider) {
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, NULL, &creds);
 
@@ -119,8 +123,9 @@ END_TEST START_TEST(test_credentials_unknown_provider)
     ck_assert_ptr_null(key);
 }
 
-END_TEST START_TEST(test_credentials_explicit_path_nonexistent)
-{
+END_TEST
+
+START_TEST(test_credentials_explicit_path_nonexistent) {
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, "/tmp/nonexistent_credentials.json", &creds);
 
@@ -128,14 +133,16 @@ END_TEST START_TEST(test_credentials_explicit_path_nonexistent)
     ck_assert_ptr_nonnull(creds);
 }
 
-END_TEST START_TEST(test_insecure_permissions_missing_file)
-{
+END_TEST
+
+START_TEST(test_insecure_permissions_missing_file) {
     bool insecure = ik_credentials_insecure_permissions("/tmp/nonexistent_file_12345.json");
     ck_assert(!insecure);
 }
 
-END_TEST START_TEST(test_insecure_permissions_bad_perms)
-{
+END_TEST
+
+START_TEST(test_insecure_permissions_bad_perms) {
     const char *tmpfile = "/tmp/test_creds_insecure.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -149,8 +156,9 @@ END_TEST START_TEST(test_insecure_permissions_bad_perms)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_insecure_permissions_secure)
-{
+END_TEST
+
+START_TEST(test_insecure_permissions_secure) {
     const char *tmpfile = "/tmp/test_creds_secure.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -164,8 +172,9 @@ END_TEST START_TEST(test_insecure_permissions_secure)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_load_with_insecure_permissions)
-{
+END_TEST
+
+START_TEST(test_load_with_insecure_permissions) {
     const char *tmpfile = "/tmp/test_creds_warning.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -181,14 +190,15 @@ END_TEST START_TEST(test_load_with_insecure_permissions)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_env_var_overrides_file)
-{
+END_TEST
+
+START_TEST(test_env_var_overrides_file) {
     const char *tmpfile = "/tmp/test_creds_override.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\"openai\":{\"api_key\":\"file-key-openai\"},"
-               "\"anthropic\":{\"api_key\":\"file-key-anthropic\"},"
-               "\"google\":{\"api_key\":\"file-key-google\"}}");
+            "\"anthropic\":{\"api_key\":\"file-key-anthropic\"},"
+            "\"google\":{\"api_key\":\"file-key-google\"}}");
     fclose(f);
     chmod(tmpfile, 0600);
 
@@ -219,8 +229,9 @@ END_TEST START_TEST(test_env_var_overrides_file)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_file_based_credentials)
-{
+END_TEST
+
+START_TEST(test_file_based_credentials) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -229,8 +240,8 @@ END_TEST START_TEST(test_file_based_credentials)
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\"openai\":{\"api_key\":\"file-openai-key\"},"
-               "\"anthropic\":{\"api_key\":\"file-anthropic-key\"},"
-               "\"google\":{\"api_key\":\"file-google-key\"}}");
+            "\"anthropic\":{\"api_key\":\"file-anthropic-key\"},"
+            "\"google\":{\"api_key\":\"file-google-key\"}}");
     fclose(f);
     chmod(tmpfile, 0600);
 
@@ -254,8 +265,9 @@ END_TEST START_TEST(test_file_based_credentials)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_invalid_json_file)
-{
+END_TEST
+
+START_TEST(test_invalid_json_file) {
     const char *tmpfile = "/tmp/test_creds_invalid.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -271,8 +283,9 @@ END_TEST START_TEST(test_invalid_json_file)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_json_root_not_object)
-{
+END_TEST
+
+START_TEST(test_json_root_not_object) {
     const char *tmpfile = "/tmp/test_creds_array.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -288,8 +301,9 @@ END_TEST START_TEST(test_json_root_not_object)
     unlink(tmpfile);
 }
 
-END_TEST START_TEST(test_json_malformed_credentials)
-{
+END_TEST
+
+START_TEST(test_json_malformed_credentials) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -298,8 +312,10 @@ END_TEST START_TEST(test_json_malformed_credentials)
         {"/tmp/creds1.json", "{\"other\":\"value\"}"},
         {"/tmp/creds2.json", "{\"openai\":\"str\",\"anthropic\":123,\"google\":[]}"},
         {"/tmp/creds3.json", "{\"openai\":{},\"anthropic\":{\"x\":1},\"google\":{}}"},
-        {"/tmp/creds4.json", "{\"openai\":{\"api_key\":1},\"anthropic\":{\"api_key\":true},\"google\":{\"api_key\":null}}"},
-        {"/tmp/creds5.json", "{\"openai\":{\"api_key\":\"\"},\"anthropic\":{\"api_key\":\"\"},\"google\":{\"api_key\":\"\"}}"},
+        {"/tmp/creds4.json",
+         "{\"openai\":{\"api_key\":1},\"anthropic\":{\"api_key\":true},\"google\":{\"api_key\":null}}"},
+        {"/tmp/creds5.json",
+         "{\"openai\":{\"api_key\":\"\"},\"anthropic\":{\"api_key\":\"\"},\"google\":{\"api_key\":\"\"}}"},
     };
 
     for (size_t i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
@@ -321,8 +337,9 @@ END_TEST START_TEST(test_json_malformed_credentials)
     }
 }
 
-END_TEST START_TEST(test_tilde_expansion_no_home)
-{
+END_TEST
+
+START_TEST(test_tilde_expansion_no_home) {
     char *original_home = getenv("HOME");
     char *home_copy = NULL;
     if (original_home) {
@@ -342,8 +359,9 @@ END_TEST START_TEST(test_tilde_expansion_no_home)
     }
 }
 
-END_TEST START_TEST(test_empty_env_var_ignored)
-{
+END_TEST
+
+START_TEST(test_empty_env_var_ignored) {
     setenv("OPENAI_API_KEY", "", 1);
     setenv("ANTHROPIC_API_KEY", "", 1);
     setenv("GOOGLE_API_KEY", "", 1);
@@ -362,8 +380,9 @@ END_TEST START_TEST(test_empty_env_var_ignored)
     unsetenv("GOOGLE_API_KEY");
 }
 
-END_TEST START_TEST(test_env_var_without_file_credentials)
-{
+END_TEST
+
+START_TEST(test_env_var_without_file_credentials) {
     const char *tmpfile = "/tmp/test_creds_empty_providers.json";
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
@@ -401,11 +420,14 @@ END_TEST START_TEST(test_env_var_without_file_credentials)
 END_TEST
 /* Mock functions for testing edge cases */
 static bool mock_yyjson_doc_get_root_null = false;
-yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc) {
+yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
+{
     return mock_yyjson_doc_get_root_null ? NULL : yyjson_doc_get_root(doc);
 }
+
 static bool mock_yyjson_get_str_null = false;
-const char *yyjson_get_str_(yyjson_val *val) {
+const char *yyjson_get_str_(yyjson_val *val)
+{
     return mock_yyjson_get_str_null ? NULL : yyjson_get_str(val);
 }
 
@@ -427,7 +449,9 @@ START_TEST(test_yyjson_doc_get_root_null) {
     mock_yyjson_doc_get_root_null = false;
     unlink(tmpfile);
 }
-END_TEST START_TEST(test_yyjson_get_str_null) {
+END_TEST
+
+START_TEST(test_yyjson_get_str_null) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");

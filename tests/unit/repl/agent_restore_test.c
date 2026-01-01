@@ -212,8 +212,7 @@ START_TEST(test_restore_agents_queries_running_agents) {
 }
 END_TEST
 // Test: restore_agents sorts by created_at (oldest first)
-START_TEST(test_restore_agents_sorts_by_created_at)
-{
+START_TEST(test_restore_agents_sorts_by_created_at) {
     SKIP_IF_NO_DB();
 
     // Insert root
@@ -242,8 +241,7 @@ START_TEST(test_restore_agents_sorts_by_created_at)
 
 END_TEST
 // Test: restore_agents skips Agent 0 (parent_uuid=NULL)
-START_TEST(test_restore_agents_skips_none_restores_all_running)
-{
+START_TEST(test_restore_agents_skips_none_restores_all_running) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0
@@ -266,8 +264,7 @@ START_TEST(test_restore_agents_skips_none_restores_all_running)
 
 END_TEST
 // Test: restore_agents handles Agent 0 specially
-START_TEST(test_restore_agents_handles_agent0_specially)
-{
+START_TEST(test_restore_agents_handles_agent0_specially) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with some history
@@ -292,8 +289,7 @@ START_TEST(test_restore_agents_handles_agent0_specially)
 
 END_TEST
 // Test: restore_agents populates conversation from replay
-START_TEST(test_restore_agents_populates_conversation)
-{
+START_TEST(test_restore_agents_populates_conversation) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0
@@ -329,8 +325,7 @@ START_TEST(test_restore_agents_populates_conversation)
 
 END_TEST
 // Test: restore_agents populates scrollback from replay
-START_TEST(test_restore_agents_populates_scrollback)
-{
+START_TEST(test_restore_agents_populates_scrollback) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with messages
@@ -356,8 +351,7 @@ END_TEST
 // Test: restore_agents handles mark events (marks are stored in DB but not processed by agent_replay)
 // Note: The agent_replay module returns raw messages without processing marks.
 // Mark processing happens at a higher level when needed.
-START_TEST(test_restore_agents_handles_mark_events)
-{
+START_TEST(test_restore_agents_handles_mark_events) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with mark events
@@ -383,8 +377,7 @@ START_TEST(test_restore_agents_handles_mark_events)
 
 END_TEST
 // Test: restore_agents handles agent with empty history
-START_TEST(test_restore_agents_handles_empty_history)
-{
+START_TEST(test_restore_agents_handles_empty_history) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with no messages (fresh install scenario)
@@ -403,8 +396,7 @@ START_TEST(test_restore_agents_handles_empty_history)
 
 END_TEST
 // Test: restore_agents handles restore failure gracefully
-START_TEST(test_restore_agents_handles_restore_failure_gracefully)
-{
+START_TEST(test_restore_agents_handles_restore_failure_gracefully) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0

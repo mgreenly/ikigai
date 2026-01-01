@@ -240,8 +240,7 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
 }
 END_TEST
 // Test: DB error during mark persistence with label
-START_TEST(test_mark_db_insert_error_with_label)
-{
+START_TEST(test_mark_db_insert_error_with_label) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -291,8 +290,7 @@ START_TEST(test_mark_db_insert_error_with_label)
 
 END_TEST
 // Test: Rewind error handling when mark not found (lines 132-137)
-START_TEST(test_rewind_error_handling)
-{
+START_TEST(test_rewind_error_handling) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -314,8 +312,7 @@ START_TEST(test_rewind_error_handling)
 END_TEST
 // Test: DB error during rewind persistence
 // Note: This test verifies that rewind works in memory even when DB is unavailable
-START_TEST(test_rewind_db_insert_error)
-{
+START_TEST(test_rewind_db_insert_error) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -348,8 +345,7 @@ START_TEST(test_rewind_db_insert_error)
 
 END_TEST
 // Test: DB success during mark persistence (covers line 98 false branch)
-START_TEST(test_mark_db_insert_success)
-{
+START_TEST(test_mark_db_insert_success) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;

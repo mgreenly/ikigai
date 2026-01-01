@@ -25,8 +25,7 @@ static void teardown(void)
  * ik_google_parse_response Edge Cases
  * ================================================================ */
 
-START_TEST(test_parse_invalid_json)
-{
+START_TEST(test_parse_invalid_json) {
     const char *json = "{invalid json";
 
     ik_response_t *resp = NULL;
@@ -38,8 +37,7 @@ START_TEST(test_parse_invalid_json)
 }
 END_TEST
 
-START_TEST(test_parse_root_not_object)
-{
+START_TEST(test_parse_root_not_object) {
     const char *json = "[]";
 
     ik_response_t *resp = NULL;
@@ -51,8 +49,7 @@ START_TEST(test_parse_root_not_object)
 }
 END_TEST
 
-START_TEST(test_parse_error_with_null_message)
-{
+START_TEST(test_parse_error_with_null_message) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":500"
@@ -68,8 +65,7 @@ START_TEST(test_parse_error_with_null_message)
 }
 END_TEST
 
-START_TEST(test_parse_error_with_message)
-{
+START_TEST(test_parse_error_with_message) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":400,"
@@ -86,8 +82,7 @@ START_TEST(test_parse_error_with_message)
 }
 END_TEST
 
-START_TEST(test_parse_blocked_prompt_null_reason)
-{
+START_TEST(test_parse_blocked_prompt_null_reason) {
     const char *json = "{"
                        "\"promptFeedback\":{"
                        "\"blockReason\":null"
@@ -103,8 +98,7 @@ START_TEST(test_parse_blocked_prompt_null_reason)
 }
 END_TEST
 
-START_TEST(test_parse_blocked_prompt_with_reason)
-{
+START_TEST(test_parse_blocked_prompt_with_reason) {
     const char *json = "{"
                        "\"promptFeedback\":{"
                        "\"blockReason\":\"SAFETY\""
@@ -120,8 +114,7 @@ START_TEST(test_parse_blocked_prompt_with_reason)
 }
 END_TEST
 
-START_TEST(test_parse_promptfeedback_without_blockreason)
-{
+START_TEST(test_parse_promptfeedback_without_blockreason) {
     const char *json = "{\"promptFeedback\":{\"other\":\"x\"},"
                        "\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
 
@@ -133,8 +126,7 @@ START_TEST(test_parse_promptfeedback_without_blockreason)
 }
 END_TEST
 
-START_TEST(test_parse_no_model_version)
-{
+START_TEST(test_parse_no_model_version) {
     const char *json = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
 
     ik_response_t *resp = NULL;
@@ -144,8 +136,7 @@ START_TEST(test_parse_no_model_version)
 }
 END_TEST
 
-START_TEST(test_parse_model_version_not_string)
-{
+START_TEST(test_parse_model_version_not_string) {
     const char *json = "{\"modelVersion\":123,\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
 
     ik_response_t *resp = NULL;
@@ -155,8 +146,7 @@ START_TEST(test_parse_model_version_not_string)
 }
 END_TEST
 
-START_TEST(test_parse_no_usage_metadata)
-{
+START_TEST(test_parse_no_usage_metadata) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -173,8 +163,7 @@ START_TEST(test_parse_no_usage_metadata)
 }
 END_TEST
 
-START_TEST(test_parse_usage_missing_some_fields)
-{
+START_TEST(test_parse_usage_missing_some_fields) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -197,9 +186,7 @@ START_TEST(test_parse_usage_missing_some_fields)
 }
 END_TEST
 
-
-START_TEST(test_parse_usage_all_fields_present)
-{
+START_TEST(test_parse_usage_all_fields_present) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -226,8 +213,7 @@ START_TEST(test_parse_usage_all_fields_present)
 }
 END_TEST
 
-START_TEST(test_parse_usage_all_fields_null)
-{
+START_TEST(test_parse_usage_all_fields_null) {
     const char *json = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}],"
                        "\"usageMetadata\":{\"promptTokenCount\":null,\"candidatesTokenCount\":null,"
                        "\"thoughtsTokenCount\":null,\"totalTokenCount\":null}}";
@@ -241,8 +227,7 @@ START_TEST(test_parse_usage_all_fields_null)
 }
 END_TEST
 
-START_TEST(test_parse_no_candidates_field)
-{
+START_TEST(test_parse_no_candidates_field) {
     const char *json = "{\"modelVersion\":\"gemini-2.5-flash\"}";
 
     ik_response_t *resp = NULL;
@@ -254,8 +239,7 @@ START_TEST(test_parse_no_candidates_field)
 }
 END_TEST
 
-START_TEST(test_parse_content_without_parts_field)
-{
+START_TEST(test_parse_content_without_parts_field) {
     const char *json = "{\"candidates\":[{\"content\":{\"other\":\"x\"},\"finishReason\":\"STOP\"}]}";
 
     ik_response_t *resp = NULL;
@@ -267,8 +251,7 @@ START_TEST(test_parse_content_without_parts_field)
 }
 END_TEST
 
-START_TEST(test_parse_candidates_not_array)
-{
+START_TEST(test_parse_candidates_not_array) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":\"not an array\""
@@ -284,8 +267,7 @@ START_TEST(test_parse_candidates_not_array)
 }
 END_TEST
 
-START_TEST(test_parse_empty_candidates_array)
-{
+START_TEST(test_parse_empty_candidates_array) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[]"
@@ -301,8 +283,7 @@ START_TEST(test_parse_empty_candidates_array)
 }
 END_TEST
 
-START_TEST(test_parse_no_finish_reason)
-{
+START_TEST(test_parse_no_finish_reason) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -319,8 +300,7 @@ START_TEST(test_parse_no_finish_reason)
 }
 END_TEST
 
-START_TEST(test_parse_no_content)
-{
+START_TEST(test_parse_no_content) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -338,8 +318,7 @@ START_TEST(test_parse_no_content)
 }
 END_TEST
 
-START_TEST(test_parse_parts_not_array)
-{
+START_TEST(test_parse_parts_not_array) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -358,8 +337,7 @@ START_TEST(test_parse_parts_not_array)
 }
 END_TEST
 
-START_TEST(test_parse_with_provider_data)
-{
+START_TEST(test_parse_with_provider_data) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-3\","
                        "\"candidates\":[{"
@@ -396,8 +374,7 @@ static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
     return OK(NULL);
 }
 
-START_TEST(test_start_request_stub)
-{
+START_TEST(test_start_request_stub) {
     ik_request_t req = {0};
     void *impl_ctx = test_ctx;
 
@@ -407,8 +384,7 @@ START_TEST(test_start_request_stub)
 }
 END_TEST
 
-START_TEST(test_start_stream_stub)
-{
+START_TEST(test_start_stream_stub) {
     ik_request_t req = {0};
     void *impl_ctx = test_ctx;
 

@@ -126,8 +126,7 @@ START_TEST(test_cfg_create_returns_valid_config) {
 }
 END_TEST
 // Test that test_shared_ctx_create() succeeds
-START_TEST(test_shared_ctx_create_succeeds)
-{
+START_TEST(test_shared_ctx_create_succeeds) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -147,8 +146,7 @@ START_TEST(test_shared_ctx_create_succeeds)
 
 END_TEST
 // Test that test_repl_create() creates both contexts
-START_TEST(test_repl_create_creates_both_contexts)
-{
+START_TEST(test_repl_create_creates_both_contexts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -167,8 +165,7 @@ START_TEST(test_repl_create_creates_both_contexts)
 
 END_TEST
 // Test cleanup via talloc_free works
-START_TEST(test_cleanup_via_talloc_free)
-{
+START_TEST(test_cleanup_via_talloc_free) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -188,8 +185,7 @@ START_TEST(test_cleanup_via_talloc_free)
 
 END_TEST
 // Test that test_shared_ctx_create_with_cfg() works
-START_TEST(test_shared_ctx_create_with_custom_cfg)
-{
+START_TEST(test_shared_ctx_create_with_custom_cfg) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);

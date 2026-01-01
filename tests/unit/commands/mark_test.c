@@ -96,8 +96,7 @@ START_TEST(test_create_unlabeled_mark) {
 }
 END_TEST
 // Test: Create labeled mark
-START_TEST(test_create_labeled_mark)
-{
+START_TEST(test_create_labeled_mark) {
     // Create a labeled mark
     res_t res = ik_mark_create(repl, "checkpoint1");
     ck_assert(is_ok(&res));
@@ -110,8 +109,7 @@ START_TEST(test_create_labeled_mark)
 
 END_TEST
 // Test: Create multiple marks
-START_TEST(test_create_multiple_marks)
-{
+START_TEST(test_create_multiple_marks) {
     res_t res;
     // Add some messages to conversation
     ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
@@ -142,8 +140,7 @@ START_TEST(test_create_multiple_marks)
 
 END_TEST
 // Test: Find mark without label (most recent)
-START_TEST(test_find_mark_most_recent)
-{
+START_TEST(test_find_mark_most_recent) {
     // Create two marks
     res_t res = ik_mark_create(repl, "first");
     ck_assert(is_ok(&res));
@@ -160,8 +157,7 @@ START_TEST(test_find_mark_most_recent)
 
 END_TEST
 // Test: Find mark by label
-START_TEST(test_find_mark_by_label)
-{
+START_TEST(test_find_mark_by_label) {
     // Create two marks
     res_t res = ik_mark_create(repl, "first");
     ck_assert(is_ok(&res));
@@ -178,8 +174,7 @@ START_TEST(test_find_mark_by_label)
 
 END_TEST
 // Test: Find mark - no marks error
-START_TEST(test_find_mark_no_marks)
-{
+START_TEST(test_find_mark_no_marks) {
     // Try to find mark when none exist
     ik_mark_t *found_mark;
     res_t res = ik_mark_find(repl, NULL, &found_mark);
@@ -188,8 +183,7 @@ START_TEST(test_find_mark_no_marks)
 
 END_TEST
 // Test: Find mark - label not found
-START_TEST(test_find_mark_label_not_found)
-{
+START_TEST(test_find_mark_label_not_found) {
     // Create a mark with different label
     res_t res = ik_mark_create(repl, "exists");
     ck_assert(is_ok(&res));
@@ -202,8 +196,7 @@ START_TEST(test_find_mark_label_not_found)
 
 END_TEST
 // Test: Find mark by label with unlabeled marks in array
-START_TEST(test_find_mark_with_unlabeled_marks)
-{
+START_TEST(test_find_mark_with_unlabeled_marks) {
     // Create mix of labeled and unlabeled marks
     res_t res = ik_mark_create(repl, NULL);  // unlabeled
     ck_assert(is_ok(&res));
@@ -222,8 +215,7 @@ START_TEST(test_find_mark_with_unlabeled_marks)
 
 END_TEST
 // Test: Rewind to mark
-START_TEST(test_rewind_to_mark)
-{
+START_TEST(test_rewind_to_mark) {
     res_t res;
     // Build conversation with messages
     ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
@@ -263,8 +255,7 @@ START_TEST(test_rewind_to_mark)
 
 END_TEST
 // Test: Rewind to most recent mark (no label)
-START_TEST(test_rewind_to_most_recent)
-{
+START_TEST(test_rewind_to_most_recent) {
     res_t res;
     // Create conversation and marks
     ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message");
@@ -288,8 +279,7 @@ START_TEST(test_rewind_to_most_recent)
 
 END_TEST
 // Test: Rewind to middle mark (not first position)
-START_TEST(test_rewind_to_middle_mark)
-{
+START_TEST(test_rewind_to_middle_mark) {
     res_t res;
     // Create multiple marks
     ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
@@ -325,8 +315,7 @@ START_TEST(test_rewind_to_middle_mark)
 
 END_TEST
 // Test: Rewind - no marks error
-START_TEST(test_rewind_no_marks)
-{
+START_TEST(test_rewind_no_marks) {
     // Try to rewind when no marks exist
     res_t res = ik_mark_rewind_to(repl, NULL);
     ck_assert(is_err(&res));
@@ -334,8 +323,7 @@ START_TEST(test_rewind_no_marks)
 
 END_TEST
 // Test: /mark command via dispatcher
-START_TEST(test_mark_command_via_dispatcher)
-{
+START_TEST(test_mark_command_via_dispatcher) {
     // Execute /mark command with label
     res_t res = ik_cmd_dispatch(ctx, repl, "/mark testlabel");
     ck_assert(is_ok(&res));
@@ -347,8 +335,7 @@ START_TEST(test_mark_command_via_dispatcher)
 
 END_TEST
 // Test: /mark command without label
-START_TEST(test_mark_command_without_label)
-{
+START_TEST(test_mark_command_without_label) {
     // Execute /mark command without label
     res_t res = ik_cmd_dispatch(ctx, repl, "/mark");
     ck_assert(is_ok(&res));
@@ -360,8 +347,7 @@ START_TEST(test_mark_command_without_label)
 
 END_TEST
 // Test: /rewind command via dispatcher
-START_TEST(test_rewind_command_via_dispatcher)
-{
+START_TEST(test_rewind_command_via_dispatcher) {
     res_t res;
     // Create conversation and mark
     ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Test");

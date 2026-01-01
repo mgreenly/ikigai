@@ -95,8 +95,7 @@ START_TEST(test_model_db_persist_thinking_none) {
 
 END_TEST
 // Test: Database persistence with IK_THINKING_LOW (covers line 178)
-START_TEST(test_model_db_persist_thinking_low)
-{
+START_TEST(test_model_db_persist_thinking_low) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/low");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
@@ -105,8 +104,7 @@ START_TEST(test_model_db_persist_thinking_low)
 
 END_TEST
 // Test: Database persistence with IK_THINKING_MED (covers line 179, branch 2)
-START_TEST(test_model_db_persist_thinking_med)
-{
+START_TEST(test_model_db_persist_thinking_med) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/med");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
@@ -115,8 +113,7 @@ START_TEST(test_model_db_persist_thinking_med)
 
 END_TEST
 // Test: Database persistence with IK_THINKING_HIGH (covers line 179, branch 3)
-START_TEST(test_model_db_persist_thinking_high)
-{
+START_TEST(test_model_db_persist_thinking_high) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/high");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
@@ -125,8 +122,7 @@ START_TEST(test_model_db_persist_thinking_high)
 
 END_TEST
 // Test: Database update failure (covers line 184)
-START_TEST(test_model_db_update_failure)
-{
+START_TEST(test_model_db_update_failure) {
     // Mock ik_db_agent_update_provider to fail
     // This is a bit tricky - we need to ensure db_ctx is non-null but make the update fail
     // The actual implementation will log the error but not crash

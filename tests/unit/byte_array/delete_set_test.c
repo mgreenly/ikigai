@@ -34,8 +34,7 @@ START_TEST(test_byte_array_delete_from_beginning) {
 
 END_TEST
 // Test delete from middle
-START_TEST(test_byte_array_delete_from_middle)
-{
+START_TEST(test_byte_array_delete_from_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -63,8 +62,7 @@ START_TEST(test_byte_array_delete_from_middle)
 
 END_TEST
 // Test delete from end
-START_TEST(test_byte_array_delete_from_end)
-{
+START_TEST(test_byte_array_delete_from_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -92,8 +90,7 @@ START_TEST(test_byte_array_delete_from_end)
 
 END_TEST
 // Test set byte
-START_TEST(test_byte_array_set)
-{
+START_TEST(test_byte_array_set) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -121,8 +118,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion on get with out of bounds index
-START_TEST(test_byte_array_get_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_get_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -135,8 +131,7 @@ START_TEST(test_byte_array_get_out_of_bounds_asserts)
 
 END_TEST
 // Test assertion on delete with out of bounds index
-START_TEST(test_byte_array_delete_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_delete_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -149,8 +144,7 @@ START_TEST(test_byte_array_delete_out_of_bounds_asserts)
 
 END_TEST
 // Test assertion on set with out of bounds index
-START_TEST(test_byte_array_set_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_set_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -163,8 +157,7 @@ START_TEST(test_byte_array_set_out_of_bounds_asserts)
 
 END_TEST
 // Test assertion on insert with out of bounds index
-START_TEST(test_byte_array_insert_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_insert_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);

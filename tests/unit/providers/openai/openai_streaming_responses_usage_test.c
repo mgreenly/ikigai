@@ -134,8 +134,9 @@ START_TEST(test_response_completed_edge_cases) {
     ck_assert_int_eq(events->items[0].data.done.usage.input_tokens, 10);
     ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 30);
 }
-END_TEST START_TEST(test_parse_usage_edge_cases)
-{
+END_TEST
+
+START_TEST(test_parse_usage_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

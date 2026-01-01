@@ -46,8 +46,7 @@ START_TEST(test_parse_args_empty_input) {
 }
 END_TEST
 // Test: Parse quoted prompt only
-START_TEST(test_parse_args_quoted_prompt)
-{
+START_TEST(test_parse_args_quoted_prompt) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -60,8 +59,7 @@ START_TEST(test_parse_args_quoted_prompt)
 
 END_TEST
 // Test: Parse --model only
-START_TEST(test_parse_args_model_only)
-{
+START_TEST(test_parse_args_model_only) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -74,8 +72,7 @@ START_TEST(test_parse_args_model_only)
 
 END_TEST
 // Test: Parse --model followed by prompt
-START_TEST(test_parse_args_model_then_prompt)
-{
+START_TEST(test_parse_args_model_then_prompt) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -89,8 +86,7 @@ START_TEST(test_parse_args_model_then_prompt)
 
 END_TEST
 // Test: Parse prompt followed by --model
-START_TEST(test_parse_args_prompt_then_model)
-{
+START_TEST(test_parse_args_prompt_then_model) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -104,8 +100,7 @@ START_TEST(test_parse_args_prompt_then_model)
 
 END_TEST
 // Test: Parse --model with no argument
-START_TEST(test_parse_args_model_no_arg)
-{
+START_TEST(test_parse_args_model_no_arg) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -115,8 +110,7 @@ START_TEST(test_parse_args_model_no_arg)
 
 END_TEST
 // Test: Parse --model with only whitespace
-START_TEST(test_parse_args_model_whitespace_only)
-{
+START_TEST(test_parse_args_model_whitespace_only) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -126,8 +120,7 @@ START_TEST(test_parse_args_model_whitespace_only)
 
 END_TEST
 // Test: Parse unterminated quote
-START_TEST(test_parse_args_unterminated_quote)
-{
+START_TEST(test_parse_args_unterminated_quote) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -137,8 +130,7 @@ START_TEST(test_parse_args_unterminated_quote)
 
 END_TEST
 // Test: Parse unquoted text
-START_TEST(test_parse_args_unquoted_text)
-{
+START_TEST(test_parse_args_unquoted_text) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -148,8 +140,7 @@ START_TEST(test_parse_args_unquoted_text)
 
 END_TEST
 // Test: Parse with leading whitespace
-START_TEST(test_parse_args_leading_whitespace)
-{
+START_TEST(test_parse_args_leading_whitespace) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -162,8 +153,7 @@ START_TEST(test_parse_args_leading_whitespace)
 
 END_TEST
 // Test: Parse with tabs
-START_TEST(test_parse_args_with_tabs)
-{
+START_TEST(test_parse_args_with_tabs) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -177,8 +167,7 @@ START_TEST(test_parse_args_with_tabs)
 
 END_TEST
 // Test: Parse empty quoted string
-START_TEST(test_parse_args_empty_quoted)
-{
+START_TEST(test_parse_args_empty_quoted) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -191,8 +180,7 @@ START_TEST(test_parse_args_empty_quoted)
 
 END_TEST
 // Test: Parse --model with slash syntax
-START_TEST(test_parse_args_model_with_slash)
-{
+START_TEST(test_parse_args_model_with_slash) {
     char *model = NULL;
     char *prompt = NULL;
 
@@ -205,8 +193,7 @@ START_TEST(test_parse_args_model_with_slash)
 
 END_TEST
 // Test: Parse --model followed by quote (edge case for model_len == 0 check)
-START_TEST(test_parse_args_model_followed_by_quote)
-{
+START_TEST(test_parse_args_model_followed_by_quote) {
     char *model = NULL;
     char *prompt = NULL;
 

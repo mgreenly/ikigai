@@ -167,8 +167,7 @@ START_TEST(test_check_mail_empty_inbox) {
 }
 END_TEST
 // Test: displays inbox summary with count
-START_TEST(test_check_mail_displays_summary)
-{
+START_TEST(test_check_mail_displays_summary) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -209,8 +208,7 @@ START_TEST(test_check_mail_displays_summary)
 
 END_TEST
 // Test: shows unread marker (*)
-START_TEST(test_check_mail_unread_marker)
-{
+START_TEST(test_check_mail_unread_marker) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -241,8 +239,7 @@ START_TEST(test_check_mail_unread_marker)
 
 END_TEST
 // Test: shows message preview (truncated if long)
-START_TEST(test_check_mail_message_preview)
-{
+START_TEST(test_check_mail_message_preview) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -277,8 +274,7 @@ START_TEST(test_check_mail_message_preview)
 
 END_TEST
 // Test: shows relative timestamp
-START_TEST(test_check_mail_relative_timestamp)
-{
+START_TEST(test_check_mail_relative_timestamp) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -309,8 +305,7 @@ START_TEST(test_check_mail_relative_timestamp)
 
 END_TEST
 // Test: only shows current agent's mail
-START_TEST(test_check_mail_only_current_agent)
-{
+START_TEST(test_check_mail_only_current_agent) {
     // Create sender and another recipient
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

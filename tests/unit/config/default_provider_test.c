@@ -59,8 +59,9 @@ START_TEST(test_default_provider_with_value) {
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_default_provider_invalid_type)
-{
+END_TEST
+
+START_TEST(test_default_provider_invalid_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -94,8 +95,9 @@ END_TEST START_TEST(test_default_provider_invalid_type)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_default_provider_empty_string)
-{
+END_TEST
+
+START_TEST(test_default_provider_empty_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -130,8 +132,9 @@ END_TEST START_TEST(test_default_provider_empty_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_env_override)
-{
+END_TEST
+
+START_TEST(test_get_default_provider_env_override) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -152,8 +155,9 @@ END_TEST START_TEST(test_get_default_provider_env_override)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_env_empty)
-{
+END_TEST
+
+START_TEST(test_get_default_provider_env_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -174,8 +178,9 @@ END_TEST START_TEST(test_get_default_provider_env_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_from_config)
-{
+END_TEST
+
+START_TEST(test_get_default_provider_from_config) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -195,8 +200,9 @@ END_TEST START_TEST(test_get_default_provider_from_config)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_config_empty)
-{
+END_TEST
+
+START_TEST(test_get_default_provider_config_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -216,8 +222,9 @@ END_TEST START_TEST(test_get_default_provider_config_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_get_default_provider_fallback)
-{
+END_TEST
+
+START_TEST(test_get_default_provider_fallback) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -237,8 +244,9 @@ END_TEST START_TEST(test_get_default_provider_fallback)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_default_provider_null_from_yyjson)
-{
+END_TEST
+
+START_TEST(test_default_provider_null_from_yyjson) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

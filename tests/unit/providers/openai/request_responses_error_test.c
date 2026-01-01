@@ -31,8 +31,7 @@ static void teardown(void)
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_serialize_null_model)
-{
+START_TEST(test_serialize_null_model) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -54,8 +53,7 @@ END_TEST
  * URL Building Tests
  * ================================================================ */
 
-START_TEST(test_build_responses_url)
-{
+START_TEST(test_build_responses_url) {
     char *url = NULL;
     res_t result = ik_openai_build_responses_url(test_ctx, "https://api.openai.com", &url);
 

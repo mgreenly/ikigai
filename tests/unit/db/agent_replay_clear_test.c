@@ -160,8 +160,7 @@ START_TEST(test_find_clear_no_clear) {
 }
 END_TEST
 // Test: find_clear returns correct message ID
-START_TEST(test_find_clear_returns_id)
-{
+START_TEST(test_find_clear_returns_id) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -181,8 +180,7 @@ START_TEST(test_find_clear_returns_id)
 
 END_TEST
 // Test: find_clear respects max_id limit
-START_TEST(test_find_clear_respects_max_id)
-{
+START_TEST(test_find_clear_respects_max_id) {
     SKIP_IF_NO_DB();
 
     // Insert agent

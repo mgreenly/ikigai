@@ -169,8 +169,7 @@ END_TEST
 /**
  * Test: Initial state with some scrollback - cursor still visible
  */
-START_TEST(test_initial_state_with_scrollback_cursor_visible)
-{
+START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols
@@ -252,8 +251,7 @@ END_TEST
 /**
  * Test: After scrolling up, cursor hidden (verify Bug #8 fix still works)
  */
-START_TEST(test_scrolled_up_cursor_hidden)
-{
+START_TEST(test_scrolled_up_cursor_hidden) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols

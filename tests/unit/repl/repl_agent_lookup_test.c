@@ -79,8 +79,7 @@ START_TEST(test_exact_match) {
 }
 END_TEST
 // Test: Prefix match (6 chars) returns correct agent
-START_TEST(test_prefix_match)
-{
+START_TEST(test_prefix_match) {
     // Create agents with different UUIDs
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("xyz789uvw456rst123opqn");
@@ -100,8 +99,7 @@ START_TEST(test_prefix_match)
 
 END_TEST
 // Test: Ambiguous prefix returns NULL
-START_TEST(test_ambiguous_prefix)
-{
+START_TEST(test_ambiguous_prefix) {
     // Create agents with UUIDs that share a prefix
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abc456def789ghi123jklm");
@@ -125,8 +123,7 @@ START_TEST(test_ambiguous_prefix)
 
 END_TEST
 // Test: uuid_ambiguous returns true for ambiguous prefix
-START_TEST(test_uuid_ambiguous)
-{
+START_TEST(test_uuid_ambiguous) {
     // Create agents with UUIDs that share a 4-char prefix
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abcd123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abcd456def789ghi123jklm");
@@ -154,8 +151,7 @@ START_TEST(test_uuid_ambiguous)
 
 END_TEST
 // Test: Minimum 4 char prefix enforced
-START_TEST(test_minimum_prefix_length)
-{
+START_TEST(test_minimum_prefix_length) {
     // Create agent
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
 
@@ -179,8 +175,7 @@ START_TEST(test_minimum_prefix_length)
 
 END_TEST
 // Test: No match returns NULL
-START_TEST(test_no_match)
-{
+START_TEST(test_no_match) {
     // Create agent
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
 
@@ -194,8 +189,7 @@ START_TEST(test_no_match)
 
 END_TEST
 // Test: Empty agent array returns NULL
-START_TEST(test_empty_array)
-{
+START_TEST(test_empty_array) {
     // No agents added
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "abc123");
     ck_assert_ptr_null(found);
@@ -206,8 +200,7 @@ START_TEST(test_empty_array)
 
 END_TEST
 // Test: Exact match takes priority over prefix
-START_TEST(test_exact_match_priority)
-{
+START_TEST(test_exact_match_priority) {
     // Create agents where one UUID is a prefix of another (unlikely but test boundary)
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abc123def456ghi789jklm");

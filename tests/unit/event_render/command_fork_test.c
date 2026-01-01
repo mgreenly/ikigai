@@ -15,15 +15,13 @@ START_TEST(test_renders_visible_command) {
 }
 END_TEST
 // Test: ik_event_renders_visible - fork events are visible
-START_TEST(test_renders_visible_fork)
-{
+START_TEST(test_renders_visible_fork) {
     ck_assert(ik_event_renders_visible("fork"));
 }
 
 END_TEST
 // Test: Render command event
-START_TEST(test_render_command_event)
-{
+START_TEST(test_render_command_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -43,8 +41,7 @@ START_TEST(test_render_command_event)
 
 END_TEST
 // Test: Render fork event - parent role
-START_TEST(test_render_fork_event_parent)
-{
+START_TEST(test_render_fork_event_parent) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -68,8 +65,7 @@ START_TEST(test_render_fork_event_parent)
 
 END_TEST
 // Test: Render fork event - child role
-START_TEST(test_render_fork_event_child)
-{
+START_TEST(test_render_fork_event_child) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -93,8 +89,7 @@ START_TEST(test_render_fork_event_child)
 
 END_TEST
 // Test: Render command event with NULL content
-START_TEST(test_render_command_null_content)
-{
+START_TEST(test_render_command_null_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -107,8 +102,7 @@ START_TEST(test_render_command_null_content)
 
 END_TEST
 // Test: Render command event with empty content
-START_TEST(test_render_command_empty_content)
-{
+START_TEST(test_render_command_empty_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -121,8 +115,7 @@ START_TEST(test_render_command_empty_content)
 
 END_TEST
 // Test: Render fork event with NULL content
-START_TEST(test_render_fork_null_content)
-{
+START_TEST(test_render_fork_null_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -135,8 +128,7 @@ START_TEST(test_render_fork_null_content)
 
 END_TEST
 // Test: Render fork event with empty content
-START_TEST(test_render_fork_empty_content)
-{
+START_TEST(test_render_fork_empty_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 

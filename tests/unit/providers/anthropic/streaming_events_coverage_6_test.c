@@ -42,14 +42,16 @@ static void setup(void)
     memset(captured_events, 0, sizeof(captured_events));
 }
 
-static void teardown(void) { talloc_free(test_ctx); }
+static void teardown(void)
+{
+    talloc_free(test_ctx);
+}
 
 /* ================================================================
  * content_block_start - Unknown block type
  * ================================================================ */
 
-START_TEST(test_content_block_start_unknown_type)
-{
+START_TEST(test_content_block_start_unknown_type) {
     /* Test content_block_start with unknown type - should not match any strcmp */
     const char *json = "{\"index\": 0, \"content_block\": {\"type\": \"unknown_type\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -65,8 +67,7 @@ END_TEST
  * content_block_delta - Unknown delta type
  * ================================================================ */
 
-START_TEST(test_content_block_delta_unknown_type)
-{
+START_TEST(test_content_block_delta_unknown_type) {
     /* Test content_block_delta with unknown type - should not match any strcmp */
     const char *json = "{\"index\": 0, \"delta\": {\"type\": \"unknown_delta_type\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -82,8 +83,7 @@ END_TEST
  * error - Error object not object edge case
  * ================================================================ */
 
-START_TEST(test_error_error_not_object)
-{
+START_TEST(test_error_error_not_object) {
     /* Test error with error field that is not an object - line 306 branch */
     const char *json = "{\"error\": \"not an object\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

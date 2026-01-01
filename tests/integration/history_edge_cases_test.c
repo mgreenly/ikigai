@@ -223,8 +223,9 @@ START_TEST(test_history_empty_input_not_saved) {
     cleanup_test_dir();
     teardown_test_env();
 }
-END_TEST START_TEST(test_history_file_corrupt_continues)
-{
+END_TEST
+
+START_TEST(test_history_file_corrupt_continues) {
     setup_test_env();
     cleanup_test_dir();
 
@@ -260,8 +261,9 @@ END_TEST START_TEST(test_history_file_corrupt_continues)
     teardown_test_env();
 }
 
-END_TEST START_TEST(test_history_file_write_failure)
-{
+END_TEST
+
+START_TEST(test_history_file_write_failure) {
     setup_test_env();
     cleanup_test_dir();
 

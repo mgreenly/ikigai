@@ -97,8 +97,7 @@ START_TEST(test_clear_empty) {
 }
 END_TEST
 // Test: Clear scrollback with content
-START_TEST(test_clear_scrollback_with_content)
-{
+START_TEST(test_clear_scrollback_with_content) {
     // Add some lines to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
@@ -120,8 +119,7 @@ START_TEST(test_clear_scrollback_with_content)
 
 END_TEST
 // Test: Clear conversation with messages
-START_TEST(test_clear_conversation_with_messages)
-{
+START_TEST(test_clear_conversation_with_messages) {
     // Add messages using new API
     ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
     res_t res = ik_agent_add_message(repl->current, msg1);
@@ -145,8 +143,7 @@ START_TEST(test_clear_conversation_with_messages)
 
 END_TEST
 // Test: Clear both scrollback and conversation
-START_TEST(test_clear_both_scrollback_and_conversation)
-{
+START_TEST(test_clear_both_scrollback_and_conversation) {
     // Add scrollback content
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
     ck_assert(is_ok(&res));
@@ -177,8 +174,7 @@ START_TEST(test_clear_both_scrollback_and_conversation)
 
 END_TEST
 // Test: Clear with empty messages (defensive check)
-START_TEST(test_clear_with_null_conversation)
-{
+START_TEST(test_clear_with_null_conversation) {
     // Messages array starts NULL (empty)
     ck_assert_ptr_null(repl->current->messages);
     ck_assert_uint_eq(repl->current->message_count, 0);
@@ -200,8 +196,7 @@ START_TEST(test_clear_with_null_conversation)
 
 END_TEST
 // Test: Clear command with arguments (should be ignored)
-START_TEST(test_clear_with_ignored_arguments)
-{
+START_TEST(test_clear_with_ignored_arguments) {
     // Add content
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
@@ -216,8 +211,7 @@ START_TEST(test_clear_with_ignored_arguments)
 
 END_TEST
 // Test: Clear with marks
-START_TEST(test_clear_with_marks)
-{
+START_TEST(test_clear_with_marks) {
     // Add some content and marks
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
@@ -251,8 +245,7 @@ START_TEST(test_clear_with_marks)
 
 END_TEST
 // Test: Clear with system message should display system message in scrollback
-START_TEST(test_clear_with_system_message_displays_in_scrollback)
-{
+START_TEST(test_clear_with_system_message_displays_in_scrollback) {
     // Create a config with system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -300,8 +293,7 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback)
 
 END_TEST
 // Test: Clear without system message should have empty scrollback
-START_TEST(test_clear_without_system_message_empty_scrollback)
-{
+START_TEST(test_clear_without_system_message_empty_scrollback) {
     // Create a config WITHOUT system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -331,8 +323,7 @@ START_TEST(test_clear_without_system_message_empty_scrollback)
 
 END_TEST
 // Test: Clear with system message when append fails (OOM during scrollback append)
-START_TEST(test_clear_with_system_message_append_failure)
-{
+START_TEST(test_clear_with_system_message_append_failure) {
     // Reset mock state (uses global mocking variables from test_utils)
     ik_test_talloc_realloc_fail_on_call = -1;
     ik_test_talloc_realloc_call_count = 0;

@@ -39,8 +39,9 @@ START_TEST(test_parse_response_invalid_json) {
     ck_assert_ptr_null(resp);
 }
 
-END_TEST START_TEST(test_parse_response_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_response_not_object) {
     const char *json = "[\"array\", \"not\", \"object\"]";
 
     ik_response_t *resp = NULL;
@@ -50,8 +51,9 @@ END_TEST START_TEST(test_parse_response_not_object)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST START_TEST(test_parse_response_error_response)
-{
+END_TEST
+
+START_TEST(test_parse_response_error_response) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":\"Invalid API key\","
@@ -67,8 +69,9 @@ END_TEST START_TEST(test_parse_response_error_response)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST START_TEST(test_parse_response_error_no_message)
-{
+END_TEST
+
+START_TEST(test_parse_response_error_no_message) {
     const char *json = "{"
                        "\"error\":{"
                        "\"type\":\"error_type\""
@@ -82,8 +85,9 @@ END_TEST START_TEST(test_parse_response_error_no_message)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST START_TEST(test_parse_response_error_message_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_error_message_not_string) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":123"
@@ -97,8 +101,9 @@ END_TEST START_TEST(test_parse_response_error_message_not_string)
     ck_assert_ptr_null(resp);
 }
 
-END_TEST START_TEST(test_parse_response_function_call_no_id)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_no_id) {
     const char *json = "{"
                        "\"id\":\"resp-noid\","
                        "\"model\":\"gpt-4o\","
@@ -121,8 +126,9 @@ END_TEST START_TEST(test_parse_response_function_call_no_id)
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_parse_response_function_call_id_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_id_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-idnotstr\","
                        "\"model\":\"gpt-4o\","
@@ -146,8 +152,9 @@ END_TEST START_TEST(test_parse_response_function_call_id_not_string)
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_parse_response_function_call_no_name)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_no_name) {
     const char *json = "{"
                        "\"id\":\"resp-noname\","
                        "\"model\":\"gpt-4o\","
@@ -170,8 +177,9 @@ END_TEST START_TEST(test_parse_response_function_call_no_name)
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_parse_response_function_call_name_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_name_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-namenotstr\","
                        "\"model\":\"gpt-4o\","
@@ -195,8 +203,9 @@ END_TEST START_TEST(test_parse_response_function_call_name_not_string)
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_parse_response_function_call_no_arguments)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_no_arguments) {
     const char *json = "{"
                        "\"id\":\"resp-noargs\","
                        "\"model\":\"gpt-4o\","
@@ -219,8 +228,9 @@ END_TEST START_TEST(test_parse_response_function_call_no_arguments)
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_parse_response_function_call_arguments_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_arguments_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-argsnotstr\","
                        "\"model\":\"gpt-4o\","

@@ -189,8 +189,7 @@ START_TEST(test_read_mail_displays_full_message) {
 }
 END_TEST
 // Test: marks message as read
-START_TEST(test_read_mail_marks_as_read)
-{
+START_TEST(test_read_mail_marks_as_read) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -235,8 +234,7 @@ START_TEST(test_read_mail_marks_as_read)
 
 END_TEST
 // Test: non-existent ID shows error
-START_TEST(test_read_mail_nonexistent_id)
-{
+START_TEST(test_read_mail_nonexistent_id) {
     // Try to read non-existent message
     res_t res = ik_cmd_read_mail(test_ctx, repl, "999");
     ck_assert(is_ok(&res));
@@ -247,8 +245,7 @@ START_TEST(test_read_mail_nonexistent_id)
 
 END_TEST
 // Test: ID from different agent shows error
-START_TEST(test_read_mail_different_agent)
-{
+START_TEST(test_read_mail_different_agent) {
     // Create sender and another recipient
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

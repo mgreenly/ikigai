@@ -93,8 +93,7 @@ START_TEST(test_model_thinking_none) {
 
 END_TEST
 // Test: Thinking level - low (Anthropic extended thinking model)
-START_TEST(test_model_thinking_low)
-{
+START_TEST(test_model_thinking_low) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/low");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
@@ -110,8 +109,7 @@ START_TEST(test_model_thinking_low)
 
 END_TEST
 // Test: Thinking level - med (Anthropic extended thinking model)
-START_TEST(test_model_thinking_med)
-{
+START_TEST(test_model_thinking_med) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/med");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
@@ -127,8 +125,7 @@ START_TEST(test_model_thinking_med)
 
 END_TEST
 // Test: Thinking level - high (Anthropic extended thinking model)
-START_TEST(test_model_thinking_high)
-{
+START_TEST(test_model_thinking_high) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/high");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
@@ -144,8 +141,7 @@ START_TEST(test_model_thinking_high)
 
 END_TEST
 // Test: Invalid thinking level
-START_TEST(test_model_thinking_invalid)
-{
+START_TEST(test_model_thinking_invalid) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/invalid");
     ck_assert(is_err(&res));
 
@@ -159,8 +155,7 @@ START_TEST(test_model_thinking_invalid)
 
 END_TEST
 // Test: Google provider with thinking (budget-based model)
-START_TEST(test_model_google_thinking)
-{
+START_TEST(test_model_google_thinking) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/high");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "google");
@@ -176,8 +171,7 @@ START_TEST(test_model_google_thinking)
 
 END_TEST
 // Test: OpenAI GPT-5 with high thinking effort
-START_TEST(test_model_openai_thinking)
-{
+START_TEST(test_model_openai_thinking) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/high");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
@@ -193,8 +187,7 @@ START_TEST(test_model_openai_thinking)
 
 END_TEST
 // Test: OpenAI GPT-5 with low thinking effort
-START_TEST(test_model_openai_thinking_low)
-{
+START_TEST(test_model_openai_thinking_low) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/low");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
@@ -210,8 +203,7 @@ START_TEST(test_model_openai_thinking_low)
 
 END_TEST
 // Test: OpenAI GPT-5 with medium thinking effort
-START_TEST(test_model_openai_thinking_med)
-{
+START_TEST(test_model_openai_thinking_med) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/med");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
@@ -227,8 +219,7 @@ START_TEST(test_model_openai_thinking_med)
 
 END_TEST
 // Test: OpenAI GPT-5 with none thinking effort (early return line 50-52)
-START_TEST(test_model_openai_thinking_none)
-{
+START_TEST(test_model_openai_thinking_none) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/none");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
@@ -244,8 +235,7 @@ START_TEST(test_model_openai_thinking_none)
 
 END_TEST
 // Test: Warning for non-thinking model with thinking level
-START_TEST(test_model_nothinking_with_level)
-{
+START_TEST(test_model_nothinking_with_level) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/high");
     ck_assert(is_ok(&res));
 
@@ -263,8 +253,7 @@ START_TEST(test_model_nothinking_with_level)
 
 END_TEST
 // Test: Model switch during active LLM request
-START_TEST(test_model_switch_during_request)
-{
+START_TEST(test_model_switch_during_request) {
     // Set agent state to waiting for LLM
     repl->current->state = 1; // IK_AGENT_STATE_WAITING_FOR_LLM
 
@@ -284,8 +273,7 @@ START_TEST(test_model_switch_during_request)
 
 END_TEST
 // Test: Malformed input - trailing slash
-START_TEST(test_model_parse_trailing_slash)
-{
+START_TEST(test_model_parse_trailing_slash) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/");
     ck_assert(is_err(&res));
 
@@ -300,8 +288,7 @@ START_TEST(test_model_parse_trailing_slash)
 
 END_TEST
 // Test: Malformed input - empty model name
-START_TEST(test_model_parse_empty_model)
-{
+START_TEST(test_model_parse_empty_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model /high");
     ck_assert(is_err(&res));
 
@@ -316,8 +303,7 @@ START_TEST(test_model_parse_empty_model)
 
 END_TEST
 // Test: Google model with budget=0 (gemini-3.0-flash - level-based)
-START_TEST(test_model_google_level_based)
-{
+START_TEST(test_model_google_level_based) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-3.0-flash/high");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "google");
@@ -333,8 +319,7 @@ START_TEST(test_model_google_level_based)
 
 END_TEST
 // Test: Anthropic model with budget=0 (non-budget model)
-START_TEST(test_model_anthropic_no_budget)
-{
+START_TEST(test_model_anthropic_no_budget) {
     // Use claude-3-5-sonnet-20241022 which is not in capability table (budget=0)
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/high");
     ck_assert(is_ok(&res));

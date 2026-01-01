@@ -168,8 +168,9 @@ START_TEST(test_stream_start_event) {
     vcr_finish();
 }
 
-END_TEST START_TEST(test_text_delta_events)
-{
+END_TEST
+
+START_TEST(test_text_delta_events) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
@@ -204,8 +205,9 @@ END_TEST START_TEST(test_text_delta_events)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_stream_done_event)
-{
+END_TEST
+
+START_TEST(test_stream_done_event) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
@@ -236,8 +238,9 @@ END_TEST START_TEST(test_stream_done_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_completion_callback_invoked)
-{
+END_TEST
+
+START_TEST(test_completion_callback_invoked) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
@@ -274,8 +277,7 @@ END_TEST
  * Content Accumulation Tests
  * ================================================================ */
 
-START_TEST(test_multiple_text_deltas)
-{
+START_TEST(test_multiple_text_deltas) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
@@ -310,8 +312,9 @@ START_TEST(test_multiple_text_deltas)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_delta_content_preserved)
-{
+END_TEST
+
+START_TEST(test_delta_content_preserved) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,
@@ -343,8 +346,9 @@ END_TEST START_TEST(test_delta_content_preserved)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_event_order_preserved)
-{
+END_TEST
+
+START_TEST(test_event_order_preserved) {
     vcr_init("stream_basic", "anthropic");
 
     res_t r = provider->vt->start_stream(provider->ctx, request,

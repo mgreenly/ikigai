@@ -186,8 +186,9 @@ START_TEST(test_config_read_failure) {
     rmdir(test_dir);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_config_invalid_json_root)
-{
+END_TEST
+
+START_TEST(test_config_invalid_json_root) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

@@ -74,8 +74,7 @@ START_TEST(test_history_up_from_empty_input) {
 }
 END_TEST
 /* Test: Multiple Up arrows navigate backward through history */
-START_TEST(test_history_up_multiple_times)
-{
+START_TEST(test_history_up_multiple_times) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -149,8 +148,7 @@ START_TEST(test_history_up_multiple_times)
 
 END_TEST
 /* Test: Down arrow restores pending input */
-START_TEST(test_history_down_restores_pending)
-{
+START_TEST(test_history_down_restores_pending) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -227,8 +225,7 @@ START_TEST(test_history_down_restores_pending)
 
 END_TEST
 /* Test: Up arrow with cursor not at zero does normal cursor movement */
-START_TEST(test_history_up_with_cursor_not_at_zero)
-{
+START_TEST(test_history_up_with_cursor_not_at_zero) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -311,8 +308,7 @@ START_TEST(test_history_up_with_cursor_not_at_zero)
 
 END_TEST
 /* Test: History navigation takes precedence over multi-line at position 0 */
-START_TEST(test_history_navigation_with_multiline)
-{
+START_TEST(test_history_navigation_with_multiline) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -376,8 +372,7 @@ START_TEST(test_history_navigation_with_multiline)
 
 END_TEST
 /* Test: Empty history handled gracefully */
-START_TEST(test_history_empty)
-{
+START_TEST(test_history_empty) {
     void *ctx = talloc_new(NULL);
     res_t res;
 

@@ -24,8 +24,7 @@ START_TEST(test_csi_u_too_short) {
 }
 END_TEST
 // Test: Sequence ending with 'u' but not valid CSI u
-START_TEST(test_csi_u_invalid_not_ending_with_u)
-{
+START_TEST(test_csi_u_invalid_not_ending_with_u) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -44,8 +43,7 @@ START_TEST(test_csi_u_invalid_not_ending_with_u)
 
 END_TEST
 // Test: CSI u with modified Tab should return UNKNOWN
-START_TEST(test_csi_u_modified_tab_unknown)
-{
+START_TEST(test_csi_u_modified_tab_unknown) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -63,8 +61,7 @@ START_TEST(test_csi_u_modified_tab_unknown)
 
 END_TEST
 // Test: CSI u with modifier should return UNKNOWN
-START_TEST(test_csi_u_modified_key_unknown)
-{
+START_TEST(test_csi_u_modified_key_unknown) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -82,8 +79,7 @@ START_TEST(test_csi_u_modified_key_unknown)
 
 END_TEST
 // Test: CSI u with Ctrl+C but wrong keycode should return UNKNOWN
-START_TEST(test_csi_u_ctrl_wrong_keycode)
-{
+START_TEST(test_csi_u_ctrl_wrong_keycode) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -101,8 +97,7 @@ START_TEST(test_csi_u_ctrl_wrong_keycode)
 
 END_TEST
 // Test: CSI u with 'c' keycode but wrong modifier (not Ctrl) should return UNKNOWN
-START_TEST(test_csi_u_c_wrong_modifier)
-{
+START_TEST(test_csi_u_c_wrong_modifier) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -120,8 +115,7 @@ START_TEST(test_csi_u_c_wrong_modifier)
 
 END_TEST
 // Test: CSI u with modified Backspace should return UNKNOWN
-START_TEST(test_csi_u_modified_backspace)
-{
+START_TEST(test_csi_u_modified_backspace) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -139,8 +133,7 @@ START_TEST(test_csi_u_modified_backspace)
 
 END_TEST
 // Test: CSI u with modified Escape should return UNKNOWN
-START_TEST(test_csi_u_modified_escape)
-{
+START_TEST(test_csi_u_modified_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -158,8 +151,7 @@ START_TEST(test_csi_u_modified_escape)
 
 END_TEST
 // Test: CSI u with Unicode and modifiers should return UNKNOWN
-START_TEST(test_csi_u_unicode_with_modifiers)
-{
+START_TEST(test_csi_u_unicode_with_modifiers) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -177,8 +169,7 @@ START_TEST(test_csi_u_unicode_with_modifiers)
 
 END_TEST
 // Test: CSI u with large Unicode codepoint (4-digit hex)
-START_TEST(test_csi_u_large_unicode)
-{
+START_TEST(test_csi_u_large_unicode) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -197,8 +188,7 @@ START_TEST(test_csi_u_large_unicode)
 
 END_TEST
 // Test: CSI u with codepoint beyond valid Unicode range
-START_TEST(test_csi_u_beyond_unicode_range)
-{
+START_TEST(test_csi_u_beyond_unicode_range) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;

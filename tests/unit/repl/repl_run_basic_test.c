@@ -65,8 +65,7 @@ START_TEST(test_repl_run_simple_char_input) {
 }
 END_TEST
 /* Test: Multiple character input */
-START_TEST(test_repl_run_multiple_chars)
-{
+START_TEST(test_repl_run_multiple_chars) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -125,8 +124,7 @@ START_TEST(test_repl_run_multiple_chars)
 
 END_TEST
 /* Test: Input with newline */
-START_TEST(test_repl_run_with_newline)
-{
+START_TEST(test_repl_run_with_newline) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -183,8 +181,7 @@ START_TEST(test_repl_run_with_newline)
 
 END_TEST
 /* Test: Input with backspace */
-START_TEST(test_repl_run_with_backspace)
-{
+START_TEST(test_repl_run_with_backspace) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -239,8 +236,7 @@ START_TEST(test_repl_run_with_backspace)
 
 END_TEST
 /* Test: Read EOF */
-START_TEST(test_repl_run_read_eof)
-{
+START_TEST(test_repl_run_read_eof) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -296,8 +292,7 @@ START_TEST(test_repl_run_read_eof)
 
 END_TEST
 /* Test: REPL handles incomplete escape sequence at EOF */
-START_TEST(test_repl_run_unknown_action)
-{
+START_TEST(test_repl_run_unknown_action) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -354,8 +349,7 @@ START_TEST(test_repl_run_unknown_action)
 
 END_TEST
 /* Test: Select timeout triggers curl event handling */
-START_TEST(test_repl_run_select_timeout)
-{
+START_TEST(test_repl_run_select_timeout) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -415,8 +409,7 @@ START_TEST(test_repl_run_select_timeout)
 
 END_TEST
 /* Test: Active curl transfers trigger curl event handling */
-START_TEST(test_repl_run_active_curl_transfers)
-{
+START_TEST(test_repl_run_active_curl_transfers) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

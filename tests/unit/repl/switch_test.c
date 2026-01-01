@@ -75,8 +75,7 @@ START_TEST(test_switch_to_different_agent) {
 }
 END_TEST
 // Test: Switch to NULL returns error
-START_TEST(test_switch_to_null_returns_error)
-{
+START_TEST(test_switch_to_null_returns_error) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     repl->current = agent_a;
 
@@ -89,8 +88,7 @@ START_TEST(test_switch_to_null_returns_error)
 
 END_TEST
 // Test: Switch to same agent is no-op
-START_TEST(test_switch_to_same_agent_is_noop)
-{
+START_TEST(test_switch_to_same_agent_is_noop) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     repl->current = agent_a;
 
@@ -101,8 +99,7 @@ START_TEST(test_switch_to_same_agent_is_noop)
 
 END_TEST
 // Test: Input buffer preserved on outgoing agent
-START_TEST(test_input_buffer_preserved_on_outgoing)
-{
+START_TEST(test_input_buffer_preserved_on_outgoing) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -127,8 +124,7 @@ START_TEST(test_input_buffer_preserved_on_outgoing)
 
 END_TEST
 // Test: Input buffer restored on incoming agent
-START_TEST(test_input_buffer_restored_on_incoming)
-{
+START_TEST(test_input_buffer_restored_on_incoming) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -157,8 +153,7 @@ START_TEST(test_input_buffer_restored_on_incoming)
 
 END_TEST
 // Test: Cursor position preserved and restored
-START_TEST(test_cursor_position_preserved)
-{
+START_TEST(test_cursor_position_preserved) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -197,8 +192,7 @@ START_TEST(test_cursor_position_preserved)
 
 END_TEST
 // Test: Viewport offset preserved and restored
-START_TEST(test_viewport_offset_preserved)
-{
+START_TEST(test_viewport_offset_preserved) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -224,8 +218,7 @@ START_TEST(test_viewport_offset_preserved)
 
 END_TEST
 // Test: repl->current updated after switch
-START_TEST(test_repl_current_updated)
-{
+START_TEST(test_repl_current_updated) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
     ik_agent_ctx_t *agent_c = create_test_agent("agent-c-uuid");
@@ -252,8 +245,7 @@ START_TEST(test_repl_current_updated)
 
 END_TEST
 // Test: Complex scenario - typing in A, switch to B, type, switch back to A
-START_TEST(test_typing_preserved_across_switches)
-{
+START_TEST(test_typing_preserved_across_switches) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 

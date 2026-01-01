@@ -311,8 +311,7 @@ START_TEST(test_repl_init_db_init_failure) {
 }
 END_TEST
 /* Test: Agent zero ensure failure */
-START_TEST(test_repl_init_ensure_agent_zero_failure)
-{
+START_TEST(test_repl_init_ensure_agent_zero_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -344,8 +343,7 @@ START_TEST(test_repl_init_ensure_agent_zero_failure)
 
 END_TEST
 /* Test: Successful database initialization and session restore */
-START_TEST(test_repl_init_db_success)
-{
+START_TEST(test_repl_init_db_success) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -373,8 +371,7 @@ START_TEST(test_repl_init_db_success)
 
 END_TEST
 /* Test: Signal handler init failure with db_ctx allocated (line 80-81 cleanup) */
-START_TEST(test_repl_init_signal_handler_failure_with_db)
-{
+START_TEST(test_repl_init_signal_handler_failure_with_db) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 

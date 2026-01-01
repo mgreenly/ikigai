@@ -24,8 +24,7 @@ START_TEST(test_csi_u_plain_enter) {
 }
 END_TEST
 // Test: CSI u Shift+Enter emits INSERT_NEWLINE
-START_TEST(test_csi_u_shift_enter)
-{
+START_TEST(test_csi_u_shift_enter) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -43,8 +42,7 @@ START_TEST(test_csi_u_shift_enter)
 
 END_TEST
 // Test: CSI u Ctrl+Enter emits INSERT_NEWLINE
-START_TEST(test_csi_u_ctrl_enter)
-{
+START_TEST(test_csi_u_ctrl_enter) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -62,8 +60,7 @@ START_TEST(test_csi_u_ctrl_enter)
 
 END_TEST
 // Test: CSI u Alt+Enter emits INSERT_NEWLINE
-START_TEST(test_csi_u_alt_enter)
-{
+START_TEST(test_csi_u_alt_enter) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -81,8 +78,7 @@ START_TEST(test_csi_u_alt_enter)
 
 END_TEST
 // Test: CSI u Ctrl+Shift+Enter emits INSERT_NEWLINE
-START_TEST(test_csi_u_ctrl_shift_enter)
-{
+START_TEST(test_csi_u_ctrl_shift_enter) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -100,8 +96,7 @@ START_TEST(test_csi_u_ctrl_shift_enter)
 
 END_TEST
 // Test: Alacritty modifier-only events are ignored
-START_TEST(test_csi_u_modifier_only_ignored)
-{
+START_TEST(test_csi_u_modifier_only_ignored) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -119,8 +114,7 @@ START_TEST(test_csi_u_modifier_only_ignored)
 
 END_TEST
 // Test: Ctrl+J still works (not CSI u)
-START_TEST(test_ctrl_j_still_works)
-{
+START_TEST(test_ctrl_j_still_works) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -135,8 +129,7 @@ START_TEST(test_ctrl_j_still_works)
 
 END_TEST
 // Test: CSI u character 'a' (keycode 97)
-START_TEST(test_csi_u_char_a)
-{
+START_TEST(test_csi_u_char_a) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -155,8 +148,7 @@ START_TEST(test_csi_u_char_a)
 
 END_TEST
 // Test: CSI u space character (keycode 32)
-START_TEST(test_csi_u_char_space)
-{
+START_TEST(test_csi_u_char_space) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -175,8 +167,7 @@ START_TEST(test_csi_u_char_space)
 
 END_TEST
 // Test: CSI u Tab key (keycode 9)
-START_TEST(test_csi_u_tab)
-{
+START_TEST(test_csi_u_tab) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -194,8 +185,7 @@ START_TEST(test_csi_u_tab)
 
 END_TEST
 // Test: CSI u Backspace key (keycode 127)
-START_TEST(test_csi_u_backspace)
-{
+START_TEST(test_csi_u_backspace) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -213,8 +203,7 @@ START_TEST(test_csi_u_backspace)
 
 END_TEST
 // Test: CSI u Escape key (keycode 27)
-START_TEST(test_csi_u_escape)
-{
+START_TEST(test_csi_u_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -232,8 +221,7 @@ START_TEST(test_csi_u_escape)
 
 END_TEST
 // Test: CSI u Unicode character (e.g., é = U+00E9 = 233)
-START_TEST(test_csi_u_unicode)
-{
+START_TEST(test_csi_u_unicode) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -252,8 +240,7 @@ START_TEST(test_csi_u_unicode)
 
 END_TEST
 // Test: CSI u Ctrl+C (keycode 99 = 'c', modifiers 5 = Ctrl)
-START_TEST(test_csi_u_ctrl_c)
-{
+START_TEST(test_csi_u_ctrl_c) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -271,8 +258,7 @@ START_TEST(test_csi_u_ctrl_c)
 
 END_TEST
 // Test: Legacy Ctrl+C (0x03) still works
-START_TEST(test_legacy_ctrl_c)
-{
+START_TEST(test_legacy_ctrl_c) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -287,8 +273,7 @@ START_TEST(test_legacy_ctrl_c)
 
 END_TEST
 // Test: CSI u Shift+= produces '+'
-START_TEST(test_csi_u_shift_equals_produces_plus)
-{
+START_TEST(test_csi_u_shift_equals_produces_plus) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -308,8 +293,7 @@ START_TEST(test_csi_u_shift_equals_produces_plus)
 
 END_TEST
 // Test: CSI u Shift+a produces 'A'
-START_TEST(test_csi_u_shift_a_produces_uppercase)
-{
+START_TEST(test_csi_u_shift_a_produces_uppercase) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -329,8 +313,7 @@ START_TEST(test_csi_u_shift_a_produces_uppercase)
 
 END_TEST
 // Test: CSI u Shift+1 produces '!'
-START_TEST(test_csi_u_shift_1_produces_exclamation)
-{
+START_TEST(test_csi_u_shift_1_produces_exclamation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;
@@ -350,8 +333,7 @@ START_TEST(test_csi_u_shift_1_produces_exclamation)
 
 END_TEST
 // Test: CSI u Shift+2 produces '@'
-START_TEST(test_csi_u_shift_2_produces_at)
-{
+START_TEST(test_csi_u_shift_2_produces_at) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_action_t action;

@@ -79,8 +79,7 @@ START_TEST(test_render_input_buffer_simple_text) {
 }
 END_TEST
 // Test: render with cursor in middle
-START_TEST(test_render_input_buffer_with_cursor)
-{
+START_TEST(test_render_input_buffer_with_cursor) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -103,8 +102,7 @@ START_TEST(test_render_input_buffer_with_cursor)
 
 END_TEST
 // Test: render empty text
-START_TEST(test_render_input_buffer_empty_text)
-{
+START_TEST(test_render_input_buffer_empty_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -128,8 +126,7 @@ START_TEST(test_render_input_buffer_empty_text)
 
 END_TEST
 // Test: render NULL text with length 0
-START_TEST(test_render_input_buffer_null_text)
-{
+START_TEST(test_render_input_buffer_null_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -153,8 +150,7 @@ START_TEST(test_render_input_buffer_null_text)
 
 END_TEST
 // Test: render UTF-8 text with emoji
-START_TEST(test_render_input_buffer_utf8_text)
-{
+START_TEST(test_render_input_buffer_utf8_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -181,8 +177,7 @@ START_TEST(test_render_input_buffer_utf8_text)
 
 END_TEST
 // Test: render wrapping text
-START_TEST(test_render_input_buffer_wrapping_text)
-{
+START_TEST(test_render_input_buffer_wrapping_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -209,8 +204,7 @@ START_TEST(test_render_input_buffer_wrapping_text)
 
 END_TEST
 // Test: render text with newlines
-START_TEST(test_render_input_buffer_with_newlines)
-{
+START_TEST(test_render_input_buffer_with_newlines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -237,8 +231,7 @@ START_TEST(test_render_input_buffer_with_newlines)
 
 END_TEST
 // Test: render cursor after wrap boundary
-START_TEST(test_render_input_buffer_cursor_after_wrap)
-{
+START_TEST(test_render_input_buffer_cursor_after_wrap) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -262,8 +255,7 @@ START_TEST(test_render_input_buffer_cursor_after_wrap)
 
 END_TEST
 // Test: write failure
-START_TEST(test_render_input_buffer_write_failure)
-{
+START_TEST(test_render_input_buffer_write_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -285,8 +277,7 @@ START_TEST(test_render_input_buffer_write_failure)
 
 END_TEST
 // Test: invalid UTF-8 handling
-START_TEST(test_render_input_buffer_invalid_utf8)
-{
+START_TEST(test_render_input_buffer_invalid_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -310,16 +301,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: NULL ctx asserts
-START_TEST(test_render_input_buffer_null_ctx_asserts)
-{
+START_TEST(test_render_input_buffer_null_ctx_asserts) {
     const char *text = "hello";
     ik_render_input_buffer(NULL, text, 5, 5);
 }
 
 END_TEST
 // Test: NULL text with non-zero length asserts
-START_TEST(test_render_input_buffer_null_text_asserts)
-{
+START_TEST(test_render_input_buffer_null_text_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 

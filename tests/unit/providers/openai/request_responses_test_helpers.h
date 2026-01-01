@@ -36,12 +36,9 @@ extern int32_t yyjson_fail_count;
 extern int32_t yyjson_call_count;
 
 // Mock yyjson wrappers - these override the weak symbols from wrapper_json.c
-bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, const char *val);
-bool yyjson_mut_obj_add_val_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, yyjson_mut_val *val);
-bool yyjson_mut_obj_add_bool_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                               const char *key, bool val);
+bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, const char *val);
+bool yyjson_mut_obj_add_val_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, yyjson_mut_val *val);
+bool yyjson_mut_obj_add_bool_(yyjson_mut_doc *doc, yyjson_mut_val *obj, const char *key, bool val);
 bool yyjson_mut_arr_add_val_(yyjson_mut_val *arr, yyjson_mut_val *val);
 
 #endif // REQUEST_RESPONSES_TEST_HELPERS_H

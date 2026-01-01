@@ -212,8 +212,7 @@ END_TEST
  * - tool_result persist fails but session continues
  * - Both messages are in conversation memory
  */
-START_TEST(test_tool_result_persist_fails_call_succeeds)
-{
+START_TEST(test_tool_result_persist_fails_call_succeeds) {
     SKIP_IF_NO_DB();
 
     // Set mock to fail tool_result persist
@@ -255,8 +254,7 @@ END_TEST
  * - Conversation memory has both messages
  * - Tool loop can continue to next API request
  */
-START_TEST(test_both_persists_fail)
-{
+START_TEST(test_both_persists_fail) {
     SKIP_IF_NO_DB();
 
     // Set mock to fail all persists
@@ -297,8 +295,7 @@ END_TEST
  * Ensures that error objects are properly allocated and can be freed
  * without crashes - regression test for Bug 9 pattern.
  */
-START_TEST(test_error_object_lifetime)
-{
+START_TEST(test_error_object_lifetime) {
     SKIP_IF_NO_DB();
 
     // Set mock to fail tool_call persist

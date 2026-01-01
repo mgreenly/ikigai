@@ -38,8 +38,7 @@ END_TEST
  * When terminal width changes, lines with embedded newlines should still
  * count at least as many physical lines as they have newline-delimited segments.
  */
-START_TEST(test_scrollback_newline_reflow)
-{
+START_TEST(test_scrollback_newline_reflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -69,8 +68,7 @@ END_TEST
  * A line ending with a newline like "content\n" should count the trailing
  * empty segment as an additional physical line.
  */
-START_TEST(test_scrollback_trailing_newline)
-{
+START_TEST(test_scrollback_trailing_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -99,8 +97,7 @@ END_TEST
  * it should wrap to multiple rows. This should work both on initial
  * append and after resize.
  */
-START_TEST(test_scrollback_long_segment_reflow)
-{
+START_TEST(test_scrollback_long_segment_reflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -144,8 +141,7 @@ END_TEST
  *
  * Lines like "A\n\nB" should count empty segments between consecutive newlines.
  */
-START_TEST(test_scrollback_consecutive_newlines)
-{
+START_TEST(test_scrollback_consecutive_newlines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 

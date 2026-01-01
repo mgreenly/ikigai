@@ -155,8 +155,7 @@ END_TEST
  *
  * Simpler test: scroll all the way to top and verify line 9 is visible
  */
-START_TEST(test_scrollback_visible_when_scrolled_to_top)
-{
+START_TEST(test_scrollback_visible_when_scrolled_to_top) {
     void *ctx = talloc_new(NULL);
 
     // Create terminal context (10 rows)

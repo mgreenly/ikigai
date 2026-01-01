@@ -147,8 +147,7 @@ START_TEST(test_resize_updates_terminal_dimensions) {
 }
 END_TEST
 // Test: ik_repl_handle_resize invalidates scrollback layout cache
-START_TEST(test_resize_invalidates_scrollback_layout)
-{
+START_TEST(test_resize_invalidates_scrollback_layout) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -194,8 +193,7 @@ START_TEST(test_resize_invalidates_scrollback_layout)
 
 END_TEST
 // Test: ik_repl_handle_resize handles ioctl failure gracefully
-START_TEST(test_resize_handles_ioctl_failure)
-{
+START_TEST(test_resize_handles_ioctl_failure) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -228,8 +226,7 @@ START_TEST(test_resize_handles_ioctl_failure)
 
 END_TEST
 // Test: SIGWINCH signal handler is installed
-START_TEST(test_sigwinch_handler_installed)
-{
+START_TEST(test_sigwinch_handler_installed) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

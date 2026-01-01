@@ -167,8 +167,7 @@ START_TEST(test_fork_unterminated_quote_error) {
 }
 END_TEST
 // Test: Kill with parent not found (corrupt state)
-START_TEST(test_kill_parent_not_found_error)
-{
+START_TEST(test_kill_parent_not_found_error) {
     // Create child
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -205,8 +204,7 @@ START_TEST(test_kill_parent_not_found_error)
 
 END_TEST
 // Test: Kill with UUID shows error when not found
-START_TEST(test_kill_uuid_not_found_shows_error)
-{
+START_TEST(test_kill_uuid_not_found_shows_error) {
     ik_agent_ctx_t *parent = repl->current;
 
     ik_scrollback_clear(parent->scrollback);

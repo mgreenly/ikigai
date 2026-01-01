@@ -58,8 +58,9 @@ START_TEST(test_layer_cake_create) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_layer_cake_add_layer_single)
-{
+END_TEST
+
+START_TEST(test_layer_cake_add_layer_single) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -75,8 +76,9 @@ END_TEST START_TEST(test_layer_cake_add_layer_single)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_add_layer_multiple)
-{
+END_TEST
+
+START_TEST(test_layer_cake_add_layer_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -95,8 +97,9 @@ END_TEST START_TEST(test_layer_cake_add_layer_multiple)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_add_layer_grows_array)
-{
+END_TEST
+
+START_TEST(test_layer_cake_add_layer_grows_array) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -114,8 +117,9 @@ END_TEST START_TEST(test_layer_cake_add_layer_grows_array)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_get_total_height_all_visible)
-{
+END_TEST
+
+START_TEST(test_layer_cake_get_total_height_all_visible) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -133,8 +137,9 @@ END_TEST START_TEST(test_layer_cake_get_total_height_all_visible)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_get_total_height_some_invisible)
-{
+END_TEST
+
+START_TEST(test_layer_cake_get_total_height_some_invisible) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -154,8 +159,9 @@ END_TEST START_TEST(test_layer_cake_get_total_height_some_invisible)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_get_total_height_empty)
-{
+END_TEST
+
+START_TEST(test_layer_cake_get_total_height_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -167,8 +173,9 @@ END_TEST START_TEST(test_layer_cake_get_total_height_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_simple)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_simple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -186,8 +193,9 @@ END_TEST START_TEST(test_layer_cake_render_simple)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_multiple_layers)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_multiple_layers) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -207,8 +215,9 @@ END_TEST START_TEST(test_layer_cake_render_multiple_layers)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_skips_invisible)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_skips_invisible) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -228,8 +237,9 @@ END_TEST START_TEST(test_layer_cake_render_skips_invisible)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_viewport_clipping_top) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -246,8 +256,9 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_top)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_viewport_clipping_bottom) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -263,8 +274,9 @@ END_TEST START_TEST(test_layer_cake_render_viewport_clipping_bottom)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_early_exit)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_early_exit) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -283,8 +295,9 @@ END_TEST START_TEST(test_layer_cake_render_early_exit)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_layer_outside_viewport) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -303,8 +316,9 @@ END_TEST START_TEST(test_layer_cake_render_layer_outside_viewport)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_layer_after_viewport) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;
@@ -326,8 +340,9 @@ END_TEST START_TEST(test_layer_cake_render_layer_after_viewport)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_layer_cake_render_layer_ends_at_viewport_start)
-{
+END_TEST
+
+START_TEST(test_layer_cake_render_layer_ends_at_viewport_start) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_layer_cake_t *cake;

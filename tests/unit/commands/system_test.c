@@ -92,8 +92,7 @@ START_TEST(test_system_set_message) {
 }
 END_TEST
 // Test: Clear system message (no args)
-START_TEST(test_system_clear_message)
-{
+START_TEST(test_system_clear_message) {
     // Set initial system message
     repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Initial message");
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
@@ -117,8 +116,7 @@ START_TEST(test_system_clear_message)
 
 END_TEST
 // Test: Replace existing system message
-START_TEST(test_system_replace_message)
-{
+START_TEST(test_system_replace_message) {
     // Set initial system message
     repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Old message");
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
@@ -142,8 +140,7 @@ START_TEST(test_system_replace_message)
 
 END_TEST
 // Test: Set system message with special characters
-START_TEST(test_system_with_special_chars)
-{
+START_TEST(test_system_with_special_chars) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/system You are a \"pirate\" assistant!");
     ck_assert(is_ok(&res));
 
@@ -153,8 +150,7 @@ START_TEST(test_system_with_special_chars)
 
 END_TEST
 // Test: Set long system message
-START_TEST(test_system_long_message)
-{
+START_TEST(test_system_long_message) {
     const char *long_msg = "/system You are a helpful assistant that provides detailed "
                            "explanations and considers multiple perspectives when answering questions";
     res_t res = ik_cmd_dispatch(ctx, repl, long_msg);
@@ -168,8 +164,7 @@ START_TEST(test_system_long_message)
 
 END_TEST
 // Test: Multiple set/clear cycles
-START_TEST(test_system_multiple_cycles)
-{
+START_TEST(test_system_multiple_cycles) {
     // Set message
     res_t res = ik_cmd_dispatch(ctx, repl, "/system First");
     ck_assert(is_ok(&res));

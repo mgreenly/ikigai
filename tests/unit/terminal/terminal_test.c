@@ -39,8 +39,7 @@ START_TEST(test_term_init_success) {
 }
 END_TEST
 // Test: alternate screen sequences are written during init and cleanup
-START_TEST(test_term_alt_screen_sequences)
-{
+START_TEST(test_term_alt_screen_sequences) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -65,8 +64,7 @@ START_TEST(test_term_alt_screen_sequences)
 
 END_TEST
 // Test: open fails
-START_TEST(test_term_init_open_fails)
-{
+START_TEST(test_term_init_open_fails) {
     reset_mocks();
     mock_open_fail = 1;
 
@@ -87,8 +85,7 @@ START_TEST(test_term_init_open_fails)
 
 END_TEST
 // Test: tcgetattr fails
-START_TEST(test_term_init_tcgetattr_fails)
-{
+START_TEST(test_term_init_tcgetattr_fails) {
     reset_mocks();
     mock_tcgetattr_fail = 1;
 
@@ -109,8 +106,7 @@ START_TEST(test_term_init_tcgetattr_fails)
 
 END_TEST
 // Test: tcsetattr fails (raw mode)
-START_TEST(test_term_init_tcsetattr_fails)
-{
+START_TEST(test_term_init_tcsetattr_fails) {
     reset_mocks();
     mock_tcsetattr_fail = 1;
 
@@ -131,8 +127,7 @@ START_TEST(test_term_init_tcsetattr_fails)
 
 END_TEST
 // Test: write fails (alternate screen)
-START_TEST(test_term_init_write_fails)
-{
+START_TEST(test_term_init_write_fails) {
     reset_mocks();
     mock_write_fail = 1;
 
@@ -155,8 +150,7 @@ START_TEST(test_term_init_write_fails)
 
 END_TEST
 // Test: ioctl fails (get terminal size)
-START_TEST(test_term_init_ioctl_fails)
-{
+START_TEST(test_term_init_ioctl_fails) {
     reset_mocks();
     mock_ioctl_fail = 1;
 
@@ -180,8 +174,7 @@ START_TEST(test_term_init_ioctl_fails)
 
 END_TEST
 // Test: terminal cleanup with NULL
-START_TEST(test_term_cleanup_null_safe)
-{
+START_TEST(test_term_cleanup_null_safe) {
     reset_mocks();
     // Should handle NULL gracefully (no crash)
     ik_term_cleanup(NULL);
@@ -194,8 +187,7 @@ START_TEST(test_term_cleanup_null_safe)
 
 END_TEST
 // Test: get terminal size success
-START_TEST(test_term_get_size_success)
-{
+START_TEST(test_term_get_size_success) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -218,8 +210,7 @@ START_TEST(test_term_get_size_success)
 
 END_TEST
 // Test: get terminal size fails
-START_TEST(test_term_get_size_fails)
-{
+START_TEST(test_term_get_size_fails) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -244,16 +235,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_term_init with NULL parent asserts
-START_TEST(test_term_init_null_parent_asserts)
-{
+START_TEST(test_term_init_null_parent_asserts) {
     ik_term_ctx_t *term = NULL;
     ik_term_init(NULL, &term);
 }
 
 END_TEST
 // Test: ik_term_init with NULL ctx_out asserts
-START_TEST(test_term_init_null_ctx_out_asserts)
-{
+START_TEST(test_term_init_null_ctx_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_init(ctx, NULL);
     talloc_free(ctx);
@@ -261,16 +250,14 @@ START_TEST(test_term_init_null_ctx_out_asserts)
 
 END_TEST
 // Test: ik_term_get_size with NULL ctx asserts
-START_TEST(test_term_get_size_null_ctx_asserts)
-{
+START_TEST(test_term_get_size_null_ctx_asserts) {
     int rows, cols;
     ik_term_get_size(NULL, &rows, &cols);
 }
 
 END_TEST
 // Test: ik_term_get_size with NULL rows_out asserts
-START_TEST(test_term_get_size_null_rows_asserts)
-{
+START_TEST(test_term_get_size_null_rows_asserts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -285,8 +272,7 @@ START_TEST(test_term_get_size_null_rows_asserts)
 
 END_TEST
 // Test: ik_term_get_size with NULL cols_out asserts
-START_TEST(test_term_get_size_null_cols_asserts)
-{
+START_TEST(test_term_get_size_null_cols_asserts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -303,8 +289,7 @@ END_TEST
 #endif
 
 // Test: tcflush fails
-START_TEST(test_term_init_tcflush_fails)
-{
+START_TEST(test_term_init_tcflush_fails) {
     reset_mocks();
     mock_tcflush_fail = 1;
 

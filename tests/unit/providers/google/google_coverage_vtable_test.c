@@ -47,8 +47,7 @@ static res_t noop_stream_cb(const ik_stream_event_t *e, void *c)
  * ================================================================ */
 
 // Test google_fdset vtable method
-START_TEST(test_google_fdset)
-{
+START_TEST(test_google_fdset) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -67,8 +66,7 @@ START_TEST(test_google_fdset)
 END_TEST
 
 // Test google_perform vtable method
-START_TEST(test_google_perform)
-{
+START_TEST(test_google_perform) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -82,8 +80,7 @@ START_TEST(test_google_perform)
 END_TEST
 
 // Test google_timeout vtable method
-START_TEST(test_google_timeout)
-{
+START_TEST(test_google_timeout) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -97,8 +94,7 @@ START_TEST(test_google_timeout)
 END_TEST
 
 // Test google_cleanup vtable method
-START_TEST(test_google_cleanup)
-{
+START_TEST(test_google_cleanup) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -109,8 +105,7 @@ START_TEST(test_google_cleanup)
 END_TEST
 
 // Test google_start_request vtable method (wrapper - line 246-255)
-START_TEST(test_google_start_request)
-{
+START_TEST(test_google_start_request) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -128,8 +123,7 @@ START_TEST(test_google_start_request)
 END_TEST
 
 // Test google_start_stream vtable method (wrapper - lines 258-334)
-START_TEST(test_google_start_stream)
-{
+START_TEST(test_google_start_stream) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -140,7 +134,7 @@ START_TEST(test_google_start_stream)
 
     // Call start_stream
     res_t r = provider->vt->start_stream(provider->ctx, &req, noop_stream_cb, NULL,
-                                          test_completion_cb, NULL);
+                                         test_completion_cb, NULL);
 
     // Should succeed
     ck_assert(!is_err(&r));

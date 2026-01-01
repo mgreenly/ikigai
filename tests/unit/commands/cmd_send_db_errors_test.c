@@ -244,8 +244,7 @@ START_TEST(test_send_db_agent_get_error) {
 }
 END_TEST
 // Test: /send propagates ik_db_mail_insert error (line 136)
-START_TEST(test_send_db_mail_insert_error)
-{
+START_TEST(test_send_db_mail_insert_error) {
     // Enable mail_insert failure
     mock_mail_insert_fail = true;
 

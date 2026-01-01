@@ -164,8 +164,7 @@ END_TEST
 /**
  * Test: Start tool execution directly on agent (not via repl)
  */
-START_TEST(test_start_tool_execution_on_agent)
-{
+START_TEST(test_start_tool_execution_on_agent) {
     /* Call start on agent A directly */
     ik_agent_start_tool_execution(agent_a);
 

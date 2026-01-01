@@ -65,8 +65,7 @@ END_TEST
 /*
  * Test: Counter increments after tool execution
  */
-START_TEST(test_counter_increments_after_tool_execution)
-{
+START_TEST(test_counter_increments_after_tool_execution) {
     /* Simulate first tool call completed */
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
     repl->current->tool_iteration_count = 0;
@@ -89,8 +88,7 @@ END_TEST
 /*
  * Test: Should continue when under limit
  */
-START_TEST(test_should_continue_when_under_limit)
-{
+START_TEST(test_should_continue_when_under_limit) {
     /* Set up: 2 iterations completed, limit is 3 */
     repl->current->tool_iteration_count = 2;
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
@@ -104,8 +102,7 @@ END_TEST
 /*
  * Test: Should NOT continue when at limit
  */
-START_TEST(test_should_not_continue_when_at_limit)
-{
+START_TEST(test_should_not_continue_when_at_limit) {
     /* Set up: 3 iterations completed, limit is 3 */
     repl->current->tool_iteration_count = 3;
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
@@ -119,8 +116,7 @@ END_TEST
 /*
  * Test: Should NOT continue when over limit
  */
-START_TEST(test_should_not_continue_when_over_limit)
-{
+START_TEST(test_should_not_continue_when_over_limit) {
     /* Set up: 4 iterations completed, limit is 3 */
     repl->current->tool_iteration_count = 4;
     repl->current->response_finish_reason = talloc_strdup(repl, "tool_calls");
@@ -134,8 +130,7 @@ END_TEST
 /*
  * Test: Should NOT continue when finish_reason is not "tool_calls" even if under limit
  */
-START_TEST(test_should_not_continue_when_finish_reason_is_stop)
-{
+START_TEST(test_should_not_continue_when_finish_reason_is_stop) {
     /* Set up: 1 iteration completed, limit is 3, but finish_reason is "stop" */
     repl->current->tool_iteration_count = 1;
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
@@ -149,8 +144,7 @@ END_TEST
 /*
  * Test: Should continue at exactly limit-1
  */
-START_TEST(test_should_continue_at_limit_minus_one)
-{
+START_TEST(test_should_continue_at_limit_minus_one) {
     /* Set up: limit is 3, counter at 2 (one more allowed) */
     cfg->max_tool_turns = 3;
     repl->current->tool_iteration_count = 2;
@@ -165,8 +159,7 @@ END_TEST
 /*
  * Test: Zero limit means no tool calls allowed
  */
-START_TEST(test_zero_limit_means_no_tool_calls)
-{
+START_TEST(test_zero_limit_means_no_tool_calls) {
     /* Set up: limit is 0 */
     cfg->max_tool_turns = 0;
     repl->current->tool_iteration_count = 0;
@@ -181,8 +174,7 @@ END_TEST
 /*
  * Test: Negative limit (edge case - should treat as 0 or error)
  */
-START_TEST(test_negative_limit)
-{
+START_TEST(test_negative_limit) {
     /* Set up: limit is -1 (invalid config, but we should handle gracefully) */
     cfg->max_tool_turns = -1;
     repl->current->tool_iteration_count = 0;
@@ -197,8 +189,7 @@ END_TEST
 /*
  * Test: Should continue when cfg is NULL (no limit enforcement)
  */
-START_TEST(test_should_continue_when_cfg_is_null)
-{
+START_TEST(test_should_continue_when_cfg_is_null) {
     /* Set up: cfg is NULL (defensive check) */
     repl->shared->cfg = NULL;
     repl->current->tool_iteration_count = 10;  // Any value

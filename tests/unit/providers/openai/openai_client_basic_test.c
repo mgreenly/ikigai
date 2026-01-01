@@ -64,8 +64,9 @@ START_TEST(test_build_request_with_system_and_user_messages) {
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_build_request_for_o1_model_with_reasoning_effort)
-{
+END_TEST
+
+START_TEST(test_build_request_for_o1_model_with_reasoning_effort) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "o1-preview");
     req->max_output_tokens = 1024;
@@ -98,8 +99,9 @@ END_TEST START_TEST(test_build_request_for_o1_model_with_reasoning_effort)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort)
-{
+END_TEST
+
+START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-5-mini");
     req->max_output_tokens = 1024;
@@ -130,8 +132,9 @@ END_TEST START_TEST(test_build_request_for_gpt5_model_without_reasoning_effort)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_tool_definitions)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_definitions) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -170,8 +173,9 @@ END_TEST START_TEST(test_build_request_with_tool_definitions)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_without_optional_fields)
-{
+END_TEST
+
+START_TEST(test_build_request_without_optional_fields) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -201,8 +205,9 @@ END_TEST START_TEST(test_build_request_without_optional_fields)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_streaming_enabled)
-{
+END_TEST
+
+START_TEST(test_build_request_with_streaming_enabled) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -240,8 +245,9 @@ END_TEST START_TEST(test_build_request_with_streaming_enabled)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_verify_json_structure_matches_chat_completions_api)
-{
+END_TEST
+
+START_TEST(test_verify_json_structure_matches_chat_completions_api) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 2048;

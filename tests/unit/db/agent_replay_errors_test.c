@@ -153,8 +153,7 @@ START_TEST(test_find_clear_query_failure) {
 }
 END_TEST
 // Test: ik_agent_find_clear handles parse failure (line 67)
-START_TEST(test_find_clear_parse_failure)
-{
+START_TEST(test_find_clear_parse_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -174,8 +173,7 @@ START_TEST(test_find_clear_parse_failure)
 
 END_TEST
 // Test: ik_agent_query_range handles query failure (line 216)
-START_TEST(test_query_range_query_failure)
-{
+START_TEST(test_query_range_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -202,8 +200,7 @@ START_TEST(test_query_range_query_failure)
 
 END_TEST
 // Test: ik_agent_query_range handles message ID parse failure (line 241)
-START_TEST(test_query_range_message_id_parse_failure)
-{
+START_TEST(test_query_range_message_id_parse_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -231,8 +228,7 @@ START_TEST(test_query_range_message_id_parse_failure)
 
 END_TEST
 // Test: ik_agent_query_range with NULL content field (line 255)
-START_TEST(test_query_range_null_content)
-{
+START_TEST(test_query_range_null_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -264,8 +260,7 @@ START_TEST(test_query_range_null_content)
 
 END_TEST
 // Test: ik_agent_query_range with NULL data_json field (line 263)
-START_TEST(test_query_range_null_data)
-{
+START_TEST(test_query_range_null_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 

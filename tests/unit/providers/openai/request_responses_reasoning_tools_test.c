@@ -61,8 +61,7 @@ START_TEST(test_serialize_reasoning_low) {
 
 END_TEST
 
-START_TEST(test_serialize_reasoning_medium)
-{
+START_TEST(test_serialize_reasoning_medium) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1-mini", &req);
     ck_assert(!is_err(&create_result));
@@ -88,8 +87,7 @@ START_TEST(test_serialize_reasoning_medium)
 
 END_TEST
 
-START_TEST(test_serialize_reasoning_high)
-{
+START_TEST(test_serialize_reasoning_high) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o3-mini", &req);
     ck_assert(!is_err(&create_result));
@@ -115,8 +113,7 @@ START_TEST(test_serialize_reasoning_high)
 
 END_TEST
 
-START_TEST(test_serialize_reasoning_none)
-{
+START_TEST(test_serialize_reasoning_none) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -141,8 +138,7 @@ START_TEST(test_serialize_reasoning_none)
 
 END_TEST
 
-START_TEST(test_serialize_non_reasoning_model_with_thinking)
-{
+START_TEST(test_serialize_non_reasoning_model_with_thinking) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "gpt-4o", &req);
     ck_assert(!is_err(&create_result));
@@ -172,8 +168,7 @@ END_TEST
  * Tool Definition Tests
  * ================================================================ */
 
-START_TEST(test_serialize_single_tool)
-{
+START_TEST(test_serialize_single_tool) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -219,8 +214,7 @@ START_TEST(test_serialize_single_tool)
 
 END_TEST
 
-START_TEST(test_serialize_multiple_tools)
-{
+START_TEST(test_serialize_multiple_tools) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -248,8 +242,7 @@ START_TEST(test_serialize_multiple_tools)
 
 END_TEST
 
-START_TEST(test_serialize_tool_choice_auto)
-{
+START_TEST(test_serialize_tool_choice_auto) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -278,8 +271,7 @@ START_TEST(test_serialize_tool_choice_auto)
 
 END_TEST
 
-START_TEST(test_serialize_tool_choice_none)
-{
+START_TEST(test_serialize_tool_choice_none) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -308,8 +300,7 @@ START_TEST(test_serialize_tool_choice_none)
 
 END_TEST
 
-START_TEST(test_serialize_tool_choice_required)
-{
+START_TEST(test_serialize_tool_choice_required) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -338,8 +329,7 @@ START_TEST(test_serialize_tool_choice_required)
 
 END_TEST
 
-START_TEST(test_serialize_tool_choice_unknown)
-{
+START_TEST(test_serialize_tool_choice_unknown) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

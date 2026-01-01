@@ -37,8 +37,7 @@ START_TEST(test_array_insert_at_beginning) {
 
 END_TEST
 // Test insert in middle
-START_TEST(test_array_insert_in_middle)
-{
+START_TEST(test_array_insert_in_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -70,8 +69,7 @@ START_TEST(test_array_insert_in_middle)
 
 END_TEST
 // Test insert at end (equivalent to append)
-START_TEST(test_array_insert_at_end)
-{
+START_TEST(test_array_insert_at_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -97,8 +95,7 @@ START_TEST(test_array_insert_at_end)
 
 END_TEST
 // Test insert with growth
-START_TEST(test_array_insert_with_growth)
-{
+START_TEST(test_array_insert_with_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
@@ -131,8 +128,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: insert with invalid index
-START_TEST(test_array_insert_invalid_index_asserts)
-{
+START_TEST(test_array_insert_invalid_index_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
     ik_array_t *array = res.ok;

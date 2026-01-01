@@ -158,8 +158,7 @@ START_TEST(test_fork_child_inherits_conversation) {
 }
 END_TEST
 // Test: Child post-fork messages are separate from parent
-START_TEST(test_fork_child_post_fork_messages_separate)
-{
+START_TEST(test_fork_child_post_fork_messages_separate) {
     // Add initial message to parent
     ik_message_t *parent_msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "Parent message before fork");
     res_t add_res = ik_agent_add_message(repl->current, parent_msg);

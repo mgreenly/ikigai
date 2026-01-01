@@ -145,8 +145,7 @@ END_TEST
  *
  * Simpler test that directly checks the impact of starting mid-line
  */
-START_TEST(test_separator_row_offset_impact)
-{
+START_TEST(test_separator_row_offset_impact) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 5 rows x 80 cols (small to make math easier)

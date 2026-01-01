@@ -35,8 +35,9 @@ START_TEST(test_create_adapter_with_valid_credentials) {
     ck_assert_ptr_nonnull(provider->vt);
     ck_assert_ptr_nonnull(provider->ctx);
 }
-END_TEST START_TEST(test_destroy_adapter_cleans_up_resources)
-{
+END_TEST
+
+START_TEST(test_destroy_adapter_cleans_up_resources) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "sk-test-api-key-12345", &provider);
 
@@ -47,8 +48,9 @@ END_TEST START_TEST(test_destroy_adapter_cleans_up_resources)
     talloc_free(provider);
 }
 
-END_TEST START_TEST(test_create_adapter_with_empty_api_key_returns_error)
-{
+END_TEST
+
+START_TEST(test_create_adapter_with_empty_api_key_returns_error) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "", &provider);
 
@@ -56,8 +58,9 @@ END_TEST START_TEST(test_create_adapter_with_empty_api_key_returns_error)
     ck_assert_ptr_null(provider);
 }
 
-END_TEST START_TEST(test_vtable_async_methods_non_null)
-{
+END_TEST
+
+START_TEST(test_vtable_async_methods_non_null) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "sk-test-api-key-12345", &provider);
 
@@ -72,8 +75,9 @@ END_TEST START_TEST(test_vtable_async_methods_non_null)
     ck_assert_ptr_nonnull(provider->vt->cancel);
 }
 
-END_TEST START_TEST(test_fdset_returns_ok)
-{
+END_TEST
+
+START_TEST(test_fdset_returns_ok) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "sk-test-api-key-12345", &provider);
     ck_assert(!is_err(&result));
@@ -88,8 +92,9 @@ END_TEST START_TEST(test_fdset_returns_ok)
     ck_assert(!is_err(&r));
 }
 
-END_TEST START_TEST(test_perform_returns_ok)
-{
+END_TEST
+
+START_TEST(test_perform_returns_ok) {
     ik_provider_t *provider = NULL;
     res_t result = ik_openai_create(test_ctx, "sk-test-api-key-12345", &provider);
     ck_assert(!is_err(&result));

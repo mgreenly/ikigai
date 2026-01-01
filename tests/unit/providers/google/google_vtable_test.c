@@ -96,8 +96,7 @@ END_TEST
  * Re-enable this test when google non-streaming requests are fully implemented.
  */
 #if 0
-START_TEST(test_start_request_event_loop)
-{
+START_TEST(test_start_request_event_loop) {
     vcr_init("request_basic", "google");
 
     /* Start request */

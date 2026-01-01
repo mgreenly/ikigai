@@ -181,8 +181,7 @@ START_TEST(test_build_ranges_array_growth) {
 END_TEST
 // Test: Array growth in ik_agent_replay_history (line 326)
 // Create enough messages to trigger reallocation (initial capacity = 16)
-START_TEST(test_replay_history_array_growth)
-{
+START_TEST(test_replay_history_array_growth) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -207,8 +206,7 @@ END_TEST
 // ========== NULL Field Tests ==========
 
 // Test: ik_agent_replay_history with NULL content (line 348)
-START_TEST(test_replay_history_null_content)
-{
+START_TEST(test_replay_history_null_content) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -232,8 +230,7 @@ START_TEST(test_replay_history_null_content)
 
 END_TEST
 // Test: ik_agent_replay_history with NULL data_json (line 355)
-START_TEST(test_replay_history_null_data)
-{
+START_TEST(test_replay_history_null_data) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -257,8 +254,7 @@ START_TEST(test_replay_history_null_data)
 
 END_TEST
 // Test: ik_agent_replay_history with both NULL content and data_json
-START_TEST(test_replay_history_both_null)
-{
+START_TEST(test_replay_history_both_null) {
     SKIP_IF_NO_DB();
 
     // Insert agent

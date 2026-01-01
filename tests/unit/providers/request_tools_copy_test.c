@@ -32,8 +32,7 @@ static void teardown(void)
 /**
  * Test copying message with TEXT content block (line 182 true branch)
  */
-START_TEST(test_copy_text_message)
-{
+START_TEST(test_copy_text_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -61,8 +60,7 @@ END_TEST
 /**
  * Test copying message with TOOL_CALL content (lines 192-193 branches)
  */
-START_TEST(test_copy_tool_call_message)
-{
+START_TEST(test_copy_tool_call_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4o");
@@ -93,8 +91,7 @@ END_TEST
 /**
  * Test copying message with TOOL_RESULT content (line 202 branches)
  */
-START_TEST(test_copy_tool_result_message)
-{
+START_TEST(test_copy_tool_result_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gemini-2.0-flash");
@@ -128,8 +125,7 @@ END_TEST
 /**
  * Test copying message with TOOL_RESULT with is_error=true (line 203)
  */
-START_TEST(test_copy_tool_result_error_message)
-{
+START_TEST(test_copy_tool_result_error_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gemini-2.0-flash");
@@ -163,8 +159,7 @@ END_TEST
 /**
  * Test copying message with multiple content blocks
  */
-START_TEST(test_copy_multiple_content_blocks)
-{
+START_TEST(test_copy_multiple_content_blocks) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -185,7 +180,8 @@ START_TEST(test_copy_multiple_content_blocks)
     agent->messages[0]->content_blocks[1].type = IK_CONTENT_TOOL_CALL;
     agent->messages[0]->content_blocks[1].data.tool_call.id = talloc_strdup(agent->messages[0], "tc1");
     agent->messages[0]->content_blocks[1].data.tool_call.name = talloc_strdup(agent->messages[0], "bash");
-    agent->messages[0]->content_blocks[1].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{\"command\":\"ls\"}");
+    agent->messages[0]->content_blocks[1].data.tool_call.arguments = talloc_strdup(agent->messages[0],
+                                                                                   "{\"command\":\"ls\"}");
 
     // Block 2: thinking
     agent->messages[0]->content_blocks[2].type = IK_CONTENT_THINKING;
@@ -213,8 +209,7 @@ END_TEST
 /**
  * Test copying message with THINKING content
  */
-START_TEST(test_copy_thinking_message)
-{
+START_TEST(test_copy_thinking_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "o1-preview");

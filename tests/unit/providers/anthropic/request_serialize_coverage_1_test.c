@@ -41,7 +41,7 @@ yyjson_mut_val *yyjson_mut_obj_(yyjson_mut_doc *doc)
 }
 
 bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, const char *val)
+                             const char *key, const char *val)
 {
     if (mock_yyjson_mut_obj_add_str_fail) {
         return false;
@@ -58,7 +58,7 @@ bool yyjson_mut_arr_add_val_(yyjson_mut_val *arr, yyjson_mut_val *val)
 }
 
 bool yyjson_mut_obj_add_val_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, yyjson_mut_val *val)
+                             const char *key, yyjson_mut_val *val)
 {
     if (mock_yyjson_mut_obj_add_val_fail) {
         return false;
@@ -91,8 +91,7 @@ static void reset_mocks(void)
  * Content Block Serialization - OOM Tests
  * ================================================================ */
 
-START_TEST(test_serialize_content_block_obj_alloc_fail)
-{
+START_TEST(test_serialize_content_block_obj_alloc_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -112,8 +111,7 @@ START_TEST(test_serialize_content_block_obj_alloc_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_text_type_fail)
-{
+START_TEST(test_serialize_content_block_text_type_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -133,8 +131,7 @@ START_TEST(test_serialize_content_block_text_type_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_thinking_type_fail)
-{
+START_TEST(test_serialize_content_block_thinking_type_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -154,8 +151,7 @@ START_TEST(test_serialize_content_block_thinking_type_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_tool_call_type_fail)
-{
+START_TEST(test_serialize_content_block_tool_call_type_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -177,8 +173,7 @@ START_TEST(test_serialize_content_block_tool_call_type_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_tool_call_copy_fail)
-{
+START_TEST(test_serialize_content_block_tool_call_copy_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -200,8 +195,7 @@ START_TEST(test_serialize_content_block_tool_call_copy_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_tool_call_add_input_fail)
-{
+START_TEST(test_serialize_content_block_tool_call_add_input_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -223,8 +217,7 @@ START_TEST(test_serialize_content_block_tool_call_add_input_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_tool_result_type_fail)
-{
+START_TEST(test_serialize_content_block_tool_result_type_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -246,8 +239,7 @@ START_TEST(test_serialize_content_block_tool_result_type_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_content_block_arr_add_fail)
-{
+START_TEST(test_serialize_content_block_arr_add_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);

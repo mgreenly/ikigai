@@ -121,8 +121,7 @@ START_TEST(test_rewind_with_invalid_role) {
 }
 END_TEST
 // Test: Rewind with message that has content_count == 0 (line 190, branch 1)
-START_TEST(test_rewind_with_empty_content)
-{
+START_TEST(test_rewind_with_empty_content) {
     // Create a normal user message
     ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
     ck_assert_ptr_nonnull(msg_user);
@@ -164,8 +163,7 @@ START_TEST(test_rewind_with_empty_content)
 
 END_TEST
 // Test: Rewind with message that has non-TEXT content type (line 190, branch 3)
-START_TEST(test_rewind_with_non_text_content)
-{
+START_TEST(test_rewind_with_non_text_content) {
     // Create a normal user message
     ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
     ck_assert_ptr_nonnull(msg_user);

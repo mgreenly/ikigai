@@ -186,8 +186,7 @@ START_TEST(test_fork_warning_no_thinking_support) {
 }
 END_TEST
 // Test: thinking_level_to_string handles all enum values
-START_TEST(test_thinking_level_to_string_all_values)
-{
+START_TEST(test_thinking_level_to_string_all_values) {
     ck_assert_str_eq(thinking_level_to_string(IK_THINKING_NONE), "none");
     ck_assert_str_eq(thinking_level_to_string(IK_THINKING_LOW), "low");
     ck_assert_str_eq(thinking_level_to_string(IK_THINKING_MED), "medium");
@@ -197,8 +196,7 @@ START_TEST(test_thinking_level_to_string_all_values)
 
 END_TEST
 // Test: build_fork_feedback with override=true
-START_TEST(test_build_fork_feedback_override)
-{
+START_TEST(test_build_fork_feedback_override) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->provider = talloc_strdup(agent, "openai");
@@ -212,8 +210,7 @@ START_TEST(test_build_fork_feedback_override)
 
 END_TEST
 // Test: build_fork_feedback with override=false
-START_TEST(test_build_fork_feedback_inherit)
-{
+START_TEST(test_build_fork_feedback_inherit) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->provider = talloc_strdup(agent, "anthropic");
@@ -228,8 +225,7 @@ START_TEST(test_build_fork_feedback_inherit)
 
 END_TEST
 // Test: insert_fork_events with no session_id
-START_TEST(test_insert_fork_events_no_session)
-{
+START_TEST(test_insert_fork_events_no_session) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->uuid = talloc_strdup(parent, "parent-uuid");
@@ -251,8 +247,7 @@ START_TEST(test_insert_fork_events_no_session)
 
 END_TEST
 // Test: insert_fork_events with database error on parent insert
-START_TEST(test_insert_fork_events_db_error_parent)
-{
+START_TEST(test_insert_fork_events_db_error_parent) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->uuid = talloc_strdup(parent, "parent-uuid-nonexistent");

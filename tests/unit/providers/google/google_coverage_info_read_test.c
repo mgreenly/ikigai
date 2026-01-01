@@ -48,8 +48,7 @@ static res_t test_completion_cb(const ik_provider_completion_t *completion, void
  * ================================================================ */
 
 // Test line 219 branch 3: NULL active_stream in google_info_read
-START_TEST(test_google_info_read_null_active_stream)
-{
+START_TEST(test_google_info_read_null_active_stream) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -64,8 +63,7 @@ START_TEST(test_google_info_read_null_active_stream)
 END_TEST
 
 // Test line 198 branch 3: active_stream exists but not completed
-START_TEST(test_google_info_read_active_stream_not_completed)
-{
+START_TEST(test_google_info_read_active_stream_not_completed) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -92,8 +90,7 @@ START_TEST(test_google_info_read_active_stream_not_completed)
 END_TEST
 
 // Test line 225 branch 1: Non-2xx HTTP status (error path)
-START_TEST(test_google_info_read_error_status)
-{
+START_TEST(test_google_info_read_error_status) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -122,8 +119,7 @@ START_TEST(test_google_info_read_error_status)
 END_TEST
 
 // Test line 238: 401/403 auth error
-START_TEST(test_google_info_read_auth_error_401)
-{
+START_TEST(test_google_info_read_auth_error_401) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -149,8 +145,7 @@ START_TEST(test_google_info_read_auth_error_401)
 }
 END_TEST
 
-START_TEST(test_google_info_read_auth_error_403)
-{
+START_TEST(test_google_info_read_auth_error_403) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -177,8 +172,7 @@ START_TEST(test_google_info_read_auth_error_403)
 END_TEST
 
 // Test line 240: 429 rate limit error
-START_TEST(test_google_info_read_rate_limit_error)
-{
+START_TEST(test_google_info_read_rate_limit_error) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -205,8 +199,7 @@ START_TEST(test_google_info_read_rate_limit_error)
 END_TEST
 
 // Test line 242: 5xx server error
-START_TEST(test_google_info_read_server_error)
-{
+START_TEST(test_google_info_read_server_error) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -233,8 +226,7 @@ START_TEST(test_google_info_read_server_error)
 END_TEST
 
 // Test line 204 branch: status < 200 (informational/redirect)
-START_TEST(test_google_info_read_status_below_200)
-{
+START_TEST(test_google_info_read_status_below_200) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -261,8 +253,7 @@ START_TEST(test_google_info_read_status_below_200)
 END_TEST
 
 // Test line 253: NULL completion_cb
-START_TEST(test_google_info_read_null_completion_cb)
-{
+START_TEST(test_google_info_read_null_completion_cb) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -285,8 +276,7 @@ START_TEST(test_google_info_read_null_completion_cb)
 END_TEST
 
 // Test line 204: success path (200-299 status) in info_read
-START_TEST(test_google_info_read_success_status)
-{
+START_TEST(test_google_info_read_success_status) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -314,8 +304,7 @@ START_TEST(test_google_info_read_success_status)
 END_TEST
 
 // Test line 237: non-NULL error_message path
-START_TEST(test_google_info_read_error_message_cleanup)
-{
+START_TEST(test_google_info_read_error_message_cleanup) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -346,8 +335,7 @@ END_TEST
  * ================================================================ */
 
 // Test line 373-374: NULL active_stream in cancel
-START_TEST(test_google_cancel_null_active_stream)
-{
+START_TEST(test_google_cancel_null_active_stream) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));
@@ -360,8 +348,7 @@ START_TEST(test_google_cancel_null_active_stream)
 END_TEST
 
 // Test line 373-374: Non-NULL active_stream in cancel
-START_TEST(test_google_cancel_with_active_stream)
-{
+START_TEST(test_google_cancel_with_active_stream) {
     ik_provider_t *provider = NULL;
     res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
     ck_assert(!is_err(&result));

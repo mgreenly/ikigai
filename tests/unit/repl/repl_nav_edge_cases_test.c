@@ -64,8 +64,7 @@ START_TEST(test_nav_prev_sibling_no_siblings) {
 }
 END_TEST
 /* Test: Navigation edge case - parent not found */
-START_TEST(test_nav_parent_not_found)
-{
+START_TEST(test_nav_parent_not_found) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     repl->agents = NULL;
@@ -90,8 +89,7 @@ START_TEST(test_nav_parent_not_found)
 
 END_TEST
 /* Test: Navigation edge case - no children */
-START_TEST(test_nav_child_no_children)
-{
+START_TEST(test_nav_child_no_children) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     repl->agents = NULL;
@@ -116,8 +114,7 @@ START_TEST(test_nav_child_no_children)
 
 END_TEST
 /* Test: Navigation with siblings - wraps around */
-START_TEST(test_nav_sibling_wrap_around)
-{
+START_TEST(test_nav_sibling_wrap_around) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     repl->agents = NULL;
@@ -157,8 +154,7 @@ START_TEST(test_nav_sibling_wrap_around)
 
 END_TEST
 /* Test: Nav child with multiple children - selects newest */
-START_TEST(test_nav_child_selects_newest)
-{
+START_TEST(test_nav_child_selects_newest) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     repl->agents = NULL;

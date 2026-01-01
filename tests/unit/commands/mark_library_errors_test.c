@@ -120,8 +120,7 @@ START_TEST(test_gmtime_failure) {
 }
 END_TEST
 // Test: strftime failure in get_iso8601_timestamp (line 32)
-START_TEST(test_strftime_failure)
-{
+START_TEST(test_strftime_failure) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 
@@ -138,8 +137,7 @@ START_TEST(test_strftime_failure)
 
 END_TEST
 // Test: gmtime failure with unlabeled mark
-START_TEST(test_gmtime_failure_unlabeled)
-{
+START_TEST(test_gmtime_failure_unlabeled) {
     // Mock gmtime to fail
     mock_gmtime_should_fail = true;
 
@@ -156,8 +154,7 @@ START_TEST(test_gmtime_failure_unlabeled)
 
 END_TEST
 // Test: strftime failure with unlabeled mark
-START_TEST(test_strftime_failure_unlabeled)
-{
+START_TEST(test_strftime_failure_unlabeled) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 
@@ -174,8 +171,7 @@ START_TEST(test_strftime_failure_unlabeled)
 
 END_TEST
 // Test: Successful mark creation after gmtime failure
-START_TEST(test_mark_success_after_gmtime_failure)
-{
+START_TEST(test_mark_success_after_gmtime_failure) {
     // First, trigger gmtime failure
     mock_gmtime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
@@ -196,8 +192,7 @@ START_TEST(test_mark_success_after_gmtime_failure)
 
 END_TEST
 // Test: Successful mark creation after strftime failure
-START_TEST(test_mark_success_after_strftime_failure)
-{
+START_TEST(test_mark_success_after_strftime_failure) {
     // First, trigger strftime failure
     mock_strftime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
@@ -218,8 +213,7 @@ START_TEST(test_mark_success_after_strftime_failure)
 
 END_TEST
 // Test: ik_cmd_mark error propagation when gmtime fails (covers commands_mark.c lines 79-80)
-START_TEST(test_cmd_mark_gmtime_error_propagation)
-{
+START_TEST(test_cmd_mark_gmtime_error_propagation) {
     // Mock gmtime to fail
     mock_gmtime_should_fail = true;
 
@@ -237,8 +231,7 @@ START_TEST(test_cmd_mark_gmtime_error_propagation)
 
 END_TEST
 // Test: ik_cmd_mark error propagation when strftime fails (covers commands_mark.c lines 79-80)
-START_TEST(test_cmd_mark_strftime_error_propagation)
-{
+START_TEST(test_cmd_mark_strftime_error_propagation) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 

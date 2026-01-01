@@ -125,8 +125,7 @@ START_TEST(test_db_error_no_debug_pipe) {
 }
 END_TEST
 // Test: DB error with logger (replaces debug pipe test)
-START_TEST(test_db_error_with_logger)
-{
+START_TEST(test_db_error_with_logger) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
 

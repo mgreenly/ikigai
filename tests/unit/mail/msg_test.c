@@ -18,8 +18,7 @@ START_TEST(test_msg_create_allocates_message) {
 }
 END_TEST
 // Test fields copied correctly
-START_TEST(test_msg_create_copies_fields)
-{
+START_TEST(test_msg_create_copies_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -42,8 +41,7 @@ START_TEST(test_msg_create_copies_fields)
 
 END_TEST
 // Test timestamp set to current time
-START_TEST(test_msg_create_sets_timestamp)
-{
+START_TEST(test_msg_create_sets_timestamp) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -60,8 +58,7 @@ START_TEST(test_msg_create_sets_timestamp)
 
 END_TEST
 // Test read defaults to false
-START_TEST(test_msg_create_read_defaults_false)
-{
+START_TEST(test_msg_create_read_defaults_false) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -75,8 +72,7 @@ START_TEST(test_msg_create_read_defaults_false)
 
 END_TEST
 // Test id defaults to 0 (set on insert)
-START_TEST(test_msg_create_id_defaults_zero)
-{
+START_TEST(test_msg_create_id_defaults_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -90,8 +86,7 @@ START_TEST(test_msg_create_id_defaults_zero)
 
 END_TEST
 // Test freed with talloc_free
-START_TEST(test_msg_freed_with_talloc_free)
-{
+START_TEST(test_msg_freed_with_talloc_free) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

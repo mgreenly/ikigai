@@ -20,7 +20,7 @@ static res_t mock_provider_timeout_fails(void *provider_ctx, long *timeout)
 }
 
 static res_t mock_provider_fdset(void *provider_ctx, fd_set *read_fds, fd_set *write_fds,
-                                  fd_set *exc_fds, int *max_fd)
+                                 fd_set *exc_fds, int *max_fd)
 {
     (void)provider_ctx;
     (void)read_fds;
@@ -52,8 +52,7 @@ static ik_provider_vtable_t mock_vt_timeout_error = {
 };
 
 /* Test: provider timeout returns error in repl_run (should propagate error) */
-START_TEST(test_repl_run_provider_timeout_error)
-{
+START_TEST(test_repl_run_provider_timeout_error) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = ik_input_buffer_create(ctx);

@@ -44,8 +44,7 @@ START_TEST(test_completion_no_matches) {
 }
 END_TEST
 /* Test: Completion and history don't conflict */
-START_TEST(test_completion_history_no_conflict)
-{
+START_TEST(test_completion_history_no_conflict) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -82,8 +81,7 @@ START_TEST(test_completion_history_no_conflict)
 
 END_TEST
 /* Test: Layer visibility */
-START_TEST(test_completion_layer_visibility)
-{
+START_TEST(test_completion_layer_visibility) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -113,8 +111,7 @@ START_TEST(test_completion_layer_visibility)
 
 END_TEST
 /* Test: Dynamic typing updates completions */
-START_TEST(test_completion_dynamic_update)
-{
+START_TEST(test_completion_dynamic_update) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);

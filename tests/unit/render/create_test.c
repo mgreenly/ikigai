@@ -23,8 +23,7 @@ START_TEST(test_render_create_success) {
 }
 END_TEST
 // Test: invalid dimensions (rows <= 0)
-START_TEST(test_render_create_invalid_rows)
-{
+START_TEST(test_render_create_invalid_rows) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -39,8 +38,7 @@ START_TEST(test_render_create_invalid_rows)
 
 END_TEST
 // Test: invalid dimensions (cols <= 0)
-START_TEST(test_render_create_invalid_cols)
-{
+START_TEST(test_render_create_invalid_cols) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -55,8 +53,7 @@ START_TEST(test_render_create_invalid_cols)
 
 END_TEST
 // Test: invalid dimensions (negative rows)
-START_TEST(test_render_create_negative_rows)
-{
+START_TEST(test_render_create_negative_rows) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_ctx_t *render = NULL;
 
@@ -73,16 +70,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_render_create with NULL parent asserts
-START_TEST(test_render_create_null_parent_asserts)
-{
+START_TEST(test_render_create_null_parent_asserts) {
     ik_render_ctx_t *render = NULL;
     ik_render_create(NULL, 24, 80, 1, &render);
 }
 
 END_TEST
 // Test: ik_render_create with NULL ctx_out asserts
-START_TEST(test_render_create_null_ctx_out_asserts)
-{
+START_TEST(test_render_create_null_ctx_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_render_create(ctx, 24, 80, 1, NULL);
     talloc_free(ctx);

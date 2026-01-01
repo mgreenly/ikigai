@@ -45,8 +45,9 @@ START_TEST(test_serialize_request_missing_model) {
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_serialize_request_minimal)
-{
+END_TEST
+
+START_TEST(test_serialize_request_minimal) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-2.0-flash";
     req.message_count = 0;
@@ -76,8 +77,9 @@ END_TEST START_TEST(test_serialize_request_minimal)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_system_prompt)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_system_prompt) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-2.0-flash";
     req.system_prompt = (char *)"You are helpful";
@@ -112,8 +114,9 @@ END_TEST START_TEST(test_serialize_request_with_system_prompt)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_empty_system_prompt)
-{
+END_TEST
+
+START_TEST(test_serialize_request_empty_system_prompt) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-2.0-flash";
     req.system_prompt = (char *)"";
@@ -139,8 +142,9 @@ END_TEST START_TEST(test_serialize_request_empty_system_prompt)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_messages)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_messages) {
     ik_message_t msg = {0};
     msg.role = IK_ROLE_USER;
     msg.content_count = 1;
@@ -180,8 +184,9 @@ END_TEST START_TEST(test_serialize_request_with_messages)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_tools)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_tools) {
     ik_tool_def_t tool = {0};
     tool.name = (char *)"test_tool";
     tool.description = (char *)"A test tool";
@@ -226,8 +231,9 @@ END_TEST START_TEST(test_serialize_request_with_tools)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_tool_choice_none)
-{
+END_TEST
+
+START_TEST(test_serialize_request_tool_choice_none) {
     ik_tool_def_t tool = {0};
     tool.name = (char *)"test_tool";
     tool.description = (char *)"A test tool";
@@ -259,8 +265,9 @@ END_TEST START_TEST(test_serialize_request_tool_choice_none)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_tool_choice_required)
-{
+END_TEST
+
+START_TEST(test_serialize_request_tool_choice_required) {
     ik_tool_def_t tool = {0};
     tool.name = (char *)"test_tool";
     tool.description = (char *)"A test tool";
@@ -292,8 +299,9 @@ END_TEST START_TEST(test_serialize_request_tool_choice_required)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_tool_choice_unknown)
-{
+END_TEST
+
+START_TEST(test_serialize_request_tool_choice_unknown) {
     ik_tool_def_t tool = {0};
     tool.name = (char *)"test_tool";
     tool.description = (char *)"A test tool";
@@ -325,8 +333,9 @@ END_TEST START_TEST(test_serialize_request_tool_choice_unknown)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_max_tokens)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_max_tokens) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-2.0-flash";
     req.message_count = 0;
@@ -353,8 +362,9 @@ END_TEST START_TEST(test_serialize_request_with_max_tokens)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_thinking_gemini_25)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_thinking_gemini_25) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-2.5-pro";
     req.message_count = 0;
@@ -388,8 +398,9 @@ END_TEST START_TEST(test_serialize_request_with_thinking_gemini_25)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_thinking_gemini_3)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_thinking_gemini_3) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-3.0-flash";
     req.message_count = 0;
@@ -423,8 +434,9 @@ END_TEST START_TEST(test_serialize_request_with_thinking_gemini_3)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_no_thinking_config_when_unsupported)
-{
+END_TEST
+
+START_TEST(test_serialize_request_no_thinking_config_when_unsupported) {
     ik_request_t req = {0};
     req.model = (char *)"gemini-1.5-pro"; // 1.5 doesn't support thinking
     req.message_count = 0;

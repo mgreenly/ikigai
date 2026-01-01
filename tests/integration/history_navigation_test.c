@@ -226,8 +226,9 @@ START_TEST(test_history_respects_config_capacity) {
     cleanup_test_dir();
     teardown_test_env();
 }
-END_TEST START_TEST(test_history_multiline_preserved)
-{
+END_TEST
+
+START_TEST(test_history_multiline_preserved) {
     setup_test_env();
     cleanup_test_dir();
 
@@ -259,8 +260,9 @@ END_TEST START_TEST(test_history_multiline_preserved)
     teardown_test_env();
 }
 
-END_TEST START_TEST(test_history_submit_stops_browsing)
-{
+END_TEST
+
+START_TEST(test_history_submit_stops_browsing) {
     setup_test_env();
     cleanup_test_dir();
 

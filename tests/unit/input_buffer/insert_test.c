@@ -46,8 +46,7 @@ START_TEST(test_insert_ascii) {
 
 END_TEST
 /* Test: Insert UTF-8 characters */
-START_TEST(test_insert_utf8)
-{
+START_TEST(test_insert_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -83,8 +82,7 @@ START_TEST(test_insert_utf8)
 
 END_TEST
 /* Test: Insert 3-byte UTF-8 character */
-START_TEST(test_insert_utf8_3byte)
-{
+START_TEST(test_insert_utf8_3byte) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -108,8 +106,7 @@ START_TEST(test_insert_utf8_3byte)
 
 END_TEST
 /* Test: Insert in middle of text */
-START_TEST(test_insert_middle)
-{
+START_TEST(test_insert_middle) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -140,8 +137,7 @@ START_TEST(test_insert_middle)
 
 END_TEST
 /* Test: Insert invalid codepoint */
-START_TEST(test_insert_invalid_codepoint)
-{
+START_TEST(test_insert_invalid_codepoint) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -164,8 +160,7 @@ START_TEST(test_insert_invalid_codepoint)
 
 END_TEST
 /* Test: Insert newline */
-START_TEST(test_insert_newline)
-{
+START_TEST(test_insert_newline) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 

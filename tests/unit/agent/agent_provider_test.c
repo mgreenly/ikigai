@@ -42,8 +42,7 @@ START_TEST(test_apply_defaults_null_config) {
 }
 END_TEST
 // Test ik_agent_apply_defaults() success
-START_TEST(test_apply_defaults_success)
-{
+START_TEST(test_apply_defaults_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -69,8 +68,7 @@ START_TEST(test_apply_defaults_success)
 
 END_TEST
 // Test ik_agent_restore_from_row() with NULL row
-START_TEST(test_restore_from_row_null)
-{
+START_TEST(test_restore_from_row_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -86,8 +84,7 @@ START_TEST(test_restore_from_row_null)
 
 END_TEST
 // Test ik_agent_restore_from_row() with all NULL provider fields
-START_TEST(test_restore_from_row_null_fields)
-{
+START_TEST(test_restore_from_row_null_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -118,8 +115,7 @@ START_TEST(test_restore_from_row_null_fields)
 
 END_TEST
 // Test ik_agent_restore_from_row() with all provider fields set
-START_TEST(test_restore_from_row_with_fields)
-{
+START_TEST(test_restore_from_row_with_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -152,8 +148,7 @@ START_TEST(test_restore_from_row_with_fields)
 
 END_TEST
 // Test parse_thinking_level with NULL thinking level
-START_TEST(test_thinking_level_null)
-{
+START_TEST(test_thinking_level_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -171,8 +166,7 @@ START_TEST(test_thinking_level_null)
 
 END_TEST
 // Test parse_thinking_level through ik_agent_restore_from_row
-START_TEST(test_thinking_level_none)
-{
+START_TEST(test_thinking_level_none) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -190,8 +184,7 @@ START_TEST(test_thinking_level_none)
 
 END_TEST
 // Test parse_thinking_level with "low"
-START_TEST(test_thinking_level_low)
-{
+START_TEST(test_thinking_level_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -209,8 +202,7 @@ START_TEST(test_thinking_level_low)
 
 END_TEST
 // Test parse_thinking_level with "med"
-START_TEST(test_thinking_level_med)
-{
+START_TEST(test_thinking_level_med) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -228,8 +220,7 @@ START_TEST(test_thinking_level_med)
 
 END_TEST
 // Test parse_thinking_level with "medium"
-START_TEST(test_thinking_level_medium)
-{
+START_TEST(test_thinking_level_medium) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -247,8 +238,7 @@ START_TEST(test_thinking_level_medium)
 
 END_TEST
 // Test parse_thinking_level with empty string
-START_TEST(test_thinking_level_empty)
-{
+START_TEST(test_thinking_level_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -266,8 +256,7 @@ START_TEST(test_thinking_level_empty)
 
 END_TEST
 // Test parse_thinking_level with unknown value defaults to none
-START_TEST(test_thinking_level_unknown)
-{
+START_TEST(test_thinking_level_unknown) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -285,8 +274,7 @@ START_TEST(test_thinking_level_unknown)
 
 END_TEST
 // Test ik_agent_get_provider() with cached provider
-START_TEST(test_get_provider_cached)
-{
+START_TEST(test_get_provider_cached) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -309,8 +297,7 @@ START_TEST(test_get_provider_cached)
 
 END_TEST
 // Test ik_agent_get_provider() with NULL provider
-START_TEST(test_get_provider_null)
-{
+START_TEST(test_get_provider_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -328,8 +315,7 @@ START_TEST(test_get_provider_null)
 
 END_TEST
 // Test ik_agent_get_provider() with empty provider
-START_TEST(test_get_provider_empty)
-{
+START_TEST(test_get_provider_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -349,8 +335,7 @@ END_TEST
 // Test ik_agent_get_provider() when provider creation fails
 // Note: This test requires actual provider creation to fail, which happens
 // when credentials are missing. We test the error handling path here.
-START_TEST(test_get_provider_creation_fails)
-{
+START_TEST(test_get_provider_creation_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -369,8 +354,7 @@ START_TEST(test_get_provider_creation_fails)
 
 END_TEST
 // Test ik_agent_get_provider() success path when provider creation succeeds
-START_TEST(test_get_provider_success)
-{
+START_TEST(test_get_provider_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -395,8 +379,7 @@ START_TEST(test_get_provider_success)
 
 END_TEST
 // Test ik_agent_invalidate_provider() with NULL cached provider
-START_TEST(test_invalidate_provider_null)
-{
+START_TEST(test_invalidate_provider_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -413,8 +396,7 @@ START_TEST(test_invalidate_provider_null)
 
 END_TEST
 // Test ik_agent_invalidate_provider() with cached provider
-START_TEST(test_invalidate_provider_cached)
-{
+START_TEST(test_invalidate_provider_cached) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

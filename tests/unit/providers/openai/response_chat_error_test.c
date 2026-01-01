@@ -45,8 +45,9 @@ START_TEST(test_parse_error_response) {
     ck_assert_int_eq(result.err->code, ERR_PROVIDER);
 }
 
-END_TEST START_TEST(test_parse_error_response_no_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_response_no_message) {
     /* Error object with no message field - line 170 branch */
     const char *json = "{"
                        "\"error\":{"
@@ -63,8 +64,9 @@ END_TEST START_TEST(test_parse_error_response_no_message)
     /* Should use default "Unknown error" message */
 }
 
-END_TEST START_TEST(test_parse_error_response_non_string_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_response_non_string_message) {
     /* Error object with non-string message - line 172 branch */
     const char *json = "{"
                        "\"error\":{"
@@ -81,8 +83,9 @@ END_TEST START_TEST(test_parse_error_response_non_string_message)
     /* Should use default "Unknown error" message when msg is NULL */
 }
 
-END_TEST START_TEST(test_parse_malformed_json)
-{
+END_TEST
+
+START_TEST(test_parse_malformed_json) {
     const char *json = "{invalid json";
 
     ik_response_t *resp = NULL;
@@ -92,8 +95,9 @@ END_TEST START_TEST(test_parse_malformed_json)
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 }
 
-END_TEST START_TEST(test_parse_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_not_object) {
     const char *json = "[\"array\", \"not\", \"object\"]";
 
     ik_response_t *resp = NULL;
@@ -108,8 +112,7 @@ END_TEST
  * Error Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_auth)
-{
+START_TEST(test_parse_error_auth) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":\"Invalid API key\","
@@ -129,8 +132,9 @@ START_TEST(test_parse_error_auth)
     ck_assert_str_eq(message, "invalid_request_error (invalid_api_key): Invalid API key");
 }
 
-END_TEST START_TEST(test_parse_error_rate_limit)
-{
+END_TEST
+
+START_TEST(test_parse_error_rate_limit) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":\"Rate limit exceeded\","
@@ -148,8 +152,9 @@ END_TEST START_TEST(test_parse_error_rate_limit)
     ck_assert_str_eq(message, "rate_limit_error: Rate limit exceeded");
 }
 
-END_TEST START_TEST(test_parse_error_server)
-{
+END_TEST
+
+START_TEST(test_parse_error_server) {
     const char *json = "{"
                        "\"error\":{"
                        "\"message\":\"Internal server error\""
@@ -166,8 +171,9 @@ END_TEST START_TEST(test_parse_error_server)
     ck_assert_str_eq(message, "Internal server error");
 }
 
-END_TEST START_TEST(test_parse_error_invalid_arg)
-{
+END_TEST
+
+START_TEST(test_parse_error_invalid_arg) {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 400, NULL, 0,
@@ -178,8 +184,9 @@ END_TEST START_TEST(test_parse_error_invalid_arg)
     ck_assert_str_eq(message, "HTTP 400");
 }
 
-END_TEST START_TEST(test_parse_error_not_found)
-{
+END_TEST
+
+START_TEST(test_parse_error_not_found) {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 404, NULL, 0,
@@ -190,8 +197,9 @@ END_TEST START_TEST(test_parse_error_not_found)
     ck_assert_str_eq(message, "HTTP 404");
 }
 
-END_TEST START_TEST(test_parse_error_unknown)
-{
+END_TEST
+
+START_TEST(test_parse_error_unknown) {
     ik_error_category_t category;
     char *message = NULL;
     res_t result = ik_openai_parse_error(test_ctx, 418, NULL, 0,
@@ -202,8 +210,9 @@ END_TEST START_TEST(test_parse_error_unknown)
     ck_assert_str_eq(message, "HTTP 418");
 }
 
-END_TEST START_TEST(test_parse_error_malformed_json)
-{
+END_TEST
+
+START_TEST(test_parse_error_malformed_json) {
     const char *json = "{invalid";
 
     ik_error_category_t category;
@@ -216,8 +225,9 @@ END_TEST START_TEST(test_parse_error_malformed_json)
     ck_assert_str_eq(message, "HTTP 500");
 }
 
-END_TEST START_TEST(test_parse_error_non_string_type)
-{
+END_TEST
+
+START_TEST(test_parse_error_non_string_type) {
     /* Error with non-string type field - tests yyjson_get_str returning NULL for type */
     const char *json = "{"
                        "\"error\":{"
@@ -236,8 +246,9 @@ END_TEST START_TEST(test_parse_error_non_string_type)
     ck_assert_str_eq(message, "Test error");
 }
 
-END_TEST START_TEST(test_parse_error_non_string_code)
-{
+END_TEST
+
+START_TEST(test_parse_error_non_string_code) {
     /* Error with non-string code field - tests yyjson_get_str returning NULL for code */
     const char *json = "{"
                        "\"error\":{"
@@ -258,8 +269,9 @@ END_TEST START_TEST(test_parse_error_non_string_code)
     ck_assert_str_eq(message, "api_error: Not found");
 }
 
-END_TEST START_TEST(test_parse_error_non_string_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_non_string_message) {
     /* Error with non-string message field - tests yyjson_get_str returning NULL for message */
     const char *json = "{"
                        "\"error\":{"
@@ -280,8 +292,9 @@ END_TEST START_TEST(test_parse_error_non_string_message)
     ck_assert_str_eq(message, "server_error");
 }
 
-END_TEST START_TEST(test_parse_error_all_non_string)
-{
+END_TEST
+
+START_TEST(test_parse_error_all_non_string) {
     /* Error with all non-string fields - tests all NULL from yyjson_get_str */
     const char *json = "{"
                        "\"error\":{"

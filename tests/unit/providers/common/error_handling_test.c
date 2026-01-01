@@ -30,8 +30,7 @@ END_TEST
  * Retryability Tests
  */
 
-START_TEST(test_error_is_retryable)
-{
+START_TEST(test_error_is_retryable) {
     /* Retryable categories */
     ck_assert(ik_error_is_retryable(IK_ERR_CAT_RATE_LIMIT));
     ck_assert(ik_error_is_retryable(IK_ERR_CAT_SERVER));
@@ -52,8 +51,7 @@ END_TEST
  * Verify that user-facing error messages are generated correctly.
  */
 
-START_TEST(test_error_user_message)
-{
+START_TEST(test_error_user_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     /* Test rate limit message */
@@ -81,8 +79,7 @@ END_TEST
  * Verify exponential backoff with jitter for async retry via event loop.
  */
 
-START_TEST(test_retry_delay_calculation)
-{
+START_TEST(test_retry_delay_calculation) {
     /* Provider-suggested delay takes precedence */
     int64_t delay = ik_error_calc_retry_delay_ms(1, 5000);
     ck_assert_int_eq(delay, 5000);

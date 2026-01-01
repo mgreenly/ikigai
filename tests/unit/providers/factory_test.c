@@ -29,31 +29,27 @@ START_TEST(test_env_var_openai) {
 }
 END_TEST
 
-START_TEST(test_env_var_anthropic)
-{
+START_TEST(test_env_var_anthropic) {
     const char *env_var = ik_provider_env_var("anthropic");
     ck_assert_ptr_nonnull(env_var);
     ck_assert_str_eq(env_var, "ANTHROPIC_API_KEY");
 }
 END_TEST
 
-START_TEST(test_env_var_google)
-{
+START_TEST(test_env_var_google) {
     const char *env_var = ik_provider_env_var("google");
     ck_assert_ptr_nonnull(env_var);
     ck_assert_str_eq(env_var, "GOOGLE_API_KEY");
 }
 END_TEST
 
-START_TEST(test_env_var_unknown)
-{
+START_TEST(test_env_var_unknown) {
     const char *env_var = ik_provider_env_var("unknown_provider");
     ck_assert_ptr_null(env_var);
 }
 END_TEST
 
-START_TEST(test_env_var_null)
-{
+START_TEST(test_env_var_null) {
     const char *env_var = ik_provider_env_var(NULL);
     ck_assert_ptr_null(env_var);
 }
@@ -63,43 +59,37 @@ END_TEST
  * Provider Validation Tests
  * ================================================================ */
 
-START_TEST(test_is_valid_openai)
-{
+START_TEST(test_is_valid_openai) {
     ck_assert(ik_provider_is_valid("openai"));
 }
 
 END_TEST
 
-START_TEST(test_is_valid_anthropic)
-{
+START_TEST(test_is_valid_anthropic) {
     ck_assert(ik_provider_is_valid("anthropic"));
 }
 
 END_TEST
 
-START_TEST(test_is_valid_google)
-{
+START_TEST(test_is_valid_google) {
     ck_assert(ik_provider_is_valid("google"));
 }
 
 END_TEST
 
-START_TEST(test_is_valid_unknown)
-{
+START_TEST(test_is_valid_unknown) {
     ck_assert(!ik_provider_is_valid("unknown_provider"));
 }
 
 END_TEST
 
-START_TEST(test_is_valid_null)
-{
+START_TEST(test_is_valid_null) {
     ck_assert(!ik_provider_is_valid(NULL));
 }
 
 END_TEST
 
-START_TEST(test_is_valid_case_sensitive)
-{
+START_TEST(test_is_valid_case_sensitive) {
     // Provider names are case-sensitive
     ck_assert(!ik_provider_is_valid("OpenAI"));
     ck_assert(!ik_provider_is_valid("ANTHROPIC"));
@@ -110,8 +100,7 @@ END_TEST
  * Provider List Tests
  * ================================================================ */
 
-START_TEST(test_provider_list)
-{
+START_TEST(test_provider_list) {
     const char **list = ik_provider_list();
     ck_assert_ptr_nonnull(list);
 
@@ -147,8 +136,7 @@ END_TEST
  * Provider Creation Tests (Error Paths)
  * ================================================================ */
 
-START_TEST(test_create_unknown_provider)
-{
+START_TEST(test_create_unknown_provider) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
 
@@ -163,8 +151,7 @@ START_TEST(test_create_unknown_provider)
 
 END_TEST
 
-START_TEST(test_create_credentials_load_error)
-{
+START_TEST(test_create_credentials_load_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
 
@@ -200,8 +187,7 @@ START_TEST(test_create_credentials_load_error)
 }
 END_TEST
 
-START_TEST(test_create_missing_credentials)
-{
+START_TEST(test_create_missing_credentials) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
@@ -251,8 +237,7 @@ START_TEST(test_create_missing_credentials)
 }
 END_TEST
 
-START_TEST(test_create_success_openai)
-{
+START_TEST(test_create_success_openai) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
@@ -300,8 +285,7 @@ START_TEST(test_create_success_openai)
 }
 END_TEST
 
-START_TEST(test_create_success_anthropic)
-{
+START_TEST(test_create_success_anthropic) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
@@ -349,8 +333,7 @@ START_TEST(test_create_success_anthropic)
 }
 END_TEST
 
-START_TEST(test_create_success_google)
-{
+START_TEST(test_create_success_google) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_provider_t *provider = NULL;
     FILE *f = NULL;

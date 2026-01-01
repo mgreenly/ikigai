@@ -51,8 +51,7 @@ START_TEST(test_repl_context_with_scrollback) {
 }
 END_TEST
 /* Test: REPL scrollback integration with terminal width */
-START_TEST(test_repl_scrollback_terminal_width)
-{
+START_TEST(test_repl_scrollback_terminal_width) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal

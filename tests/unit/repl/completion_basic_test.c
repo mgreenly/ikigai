@@ -65,8 +65,7 @@ START_TEST(test_tab_triggers_completion) {
 }
 END_TEST
 /* Test: TAB accepts selection and dismisses completion */
-START_TEST(test_tab_accepts_selection)
-{
+START_TEST(test_tab_accepts_selection) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -116,8 +115,7 @@ START_TEST(test_tab_accepts_selection)
 
 END_TEST
 /* Test: Arrow up changes selection to previous candidate */
-START_TEST(test_arrow_up_changes_selection)
-{
+START_TEST(test_arrow_up_changes_selection) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -172,8 +170,7 @@ START_TEST(test_arrow_up_changes_selection)
 
 END_TEST
 /* Test: Arrow down changes selection to next candidate */
-START_TEST(test_arrow_down_changes_selection)
-{
+START_TEST(test_arrow_down_changes_selection) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -228,8 +225,7 @@ START_TEST(test_arrow_down_changes_selection)
 
 END_TEST
 /* Test: Escape dismisses completion without accepting */
-START_TEST(test_escape_dismisses_completion)
-{
+START_TEST(test_escape_dismisses_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -283,8 +279,7 @@ START_TEST(test_escape_dismisses_completion)
 
 END_TEST
 /* Test: Typing updates completion dynamically */
-START_TEST(test_typing_updates_completion)
-{
+START_TEST(test_typing_updates_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent

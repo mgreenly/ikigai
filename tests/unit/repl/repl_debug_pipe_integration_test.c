@@ -86,8 +86,7 @@ END_TEST
  * Verifies that when debug is disabled, output written to a debug pipe
  * is drained but does NOT appear in scrollback.
  */
-START_TEST(test_debug_pipe_disabled)
-{
+START_TEST(test_debug_pipe_disabled) {
     void *ctx = talloc_new(NULL);
 
     // Create debug manager

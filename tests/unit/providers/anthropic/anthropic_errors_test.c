@@ -42,8 +42,9 @@ START_TEST(test_handle_error_401_auth) {
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
 
-END_TEST START_TEST(test_handle_error_403_auth)
-{
+END_TEST
+
+START_TEST(test_handle_error_403_auth) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -60,8 +61,9 @@ END_TEST START_TEST(test_handle_error_403_auth)
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
 
-END_TEST START_TEST(test_handle_error_429_rate_limit)
-{
+END_TEST
+
+START_TEST(test_handle_error_429_rate_limit) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -78,8 +80,9 @@ END_TEST START_TEST(test_handle_error_429_rate_limit)
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
 
-END_TEST START_TEST(test_handle_error_400_invalid_arg)
-{
+END_TEST
+
+START_TEST(test_handle_error_400_invalid_arg) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -96,8 +99,9 @@ END_TEST START_TEST(test_handle_error_400_invalid_arg)
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_handle_error_404_not_found)
-{
+END_TEST
+
+START_TEST(test_handle_error_404_not_found) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -114,8 +118,9 @@ END_TEST START_TEST(test_handle_error_404_not_found)
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
 
-END_TEST START_TEST(test_handle_error_500_server)
-{
+END_TEST
+
+START_TEST(test_handle_error_500_server) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -132,8 +137,9 @@ END_TEST START_TEST(test_handle_error_500_server)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_529_overloaded)
-{
+END_TEST
+
+START_TEST(test_handle_error_529_overloaded) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -150,8 +156,9 @@ END_TEST START_TEST(test_handle_error_529_overloaded)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_unknown_status)
-{
+END_TEST
+
+START_TEST(test_handle_error_unknown_status) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -168,8 +175,9 @@ END_TEST START_TEST(test_handle_error_unknown_status)
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
 
-END_TEST START_TEST(test_handle_error_invalid_json)
-{
+END_TEST
+
+START_TEST(test_handle_error_invalid_json) {
     const char *error_json = "not valid json";
 
     ik_error_category_t category;
@@ -178,8 +186,9 @@ END_TEST START_TEST(test_handle_error_invalid_json)
     ck_assert(is_err(&r));
 }
 
-END_TEST START_TEST(test_handle_error_no_root)
-{
+END_TEST
+
+START_TEST(test_handle_error_no_root) {
     const char *error_json = "";
 
     ik_error_category_t category;
@@ -188,8 +197,9 @@ END_TEST START_TEST(test_handle_error_no_root)
     ck_assert(is_err(&r));
 }
 
-END_TEST START_TEST(test_handle_error_with_error_object)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_error_object) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -206,8 +216,9 @@ END_TEST START_TEST(test_handle_error_with_error_object)
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
 
-END_TEST START_TEST(test_handle_error_without_error_object)
-{
+END_TEST
+
+START_TEST(test_handle_error_without_error_object) {
     const char *error_json =
         "{"
         "  \"type\": \"error\""
@@ -220,8 +231,9 @@ END_TEST START_TEST(test_handle_error_without_error_object)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_with_error_object_missing_type)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_error_object_missing_type) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -237,8 +249,9 @@ END_TEST START_TEST(test_handle_error_with_error_object_missing_type)
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_handle_error_with_error_object_missing_message)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_error_object_missing_message) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -254,8 +267,9 @@ END_TEST START_TEST(test_handle_error_with_error_object_missing_message)
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_handle_error_with_empty_error_object)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_empty_error_object) {
     const char *error_json =
         "{"
         "  \"type\": \"error\","
@@ -269,8 +283,9 @@ END_TEST START_TEST(test_handle_error_with_empty_error_object)
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
 
-END_TEST START_TEST(test_handle_error_with_string_error)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_string_error) {
     // Test case where "error" field is a string instead of an object
     const char *error_json =
         "{"
@@ -285,8 +300,9 @@ END_TEST START_TEST(test_handle_error_with_string_error)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_with_null_error)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_null_error) {
     // Test case where "error" field is null
     const char *error_json =
         "{"
@@ -301,8 +317,9 @@ END_TEST START_TEST(test_handle_error_with_null_error)
     ck_assert_int_eq(category, IK_ERR_CAT_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_handle_error_with_array_error)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_array_error) {
     // Test case where "error" field is an array instead of an object
     const char *error_json =
         "{"
@@ -317,8 +334,9 @@ END_TEST START_TEST(test_handle_error_with_array_error)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_with_number_error)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_number_error) {
     // Test case where "error" field is a number instead of an object
     const char *error_json =
         "{"
@@ -333,8 +351,9 @@ END_TEST START_TEST(test_handle_error_with_number_error)
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
 
-END_TEST START_TEST(test_handle_error_with_boolean_error)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_boolean_error) {
     // Test case where "error" field is a boolean instead of an object
     const char *error_json =
         "{"
@@ -349,8 +368,9 @@ END_TEST START_TEST(test_handle_error_with_boolean_error)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_handle_error_with_reversed_field_order)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_reversed_field_order) {
     // Test case where "message" comes before "type" in error object
     // This exercises the branch where yyjson_obj_get has to iterate past other fields
     const char *error_json =
@@ -370,8 +390,9 @@ END_TEST START_TEST(test_handle_error_with_reversed_field_order)
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
 
-END_TEST START_TEST(test_handle_error_with_many_fields)
-{
+END_TEST
+
+START_TEST(test_handle_error_with_many_fields) {
     // Test case with many fields to exercise iteration in yyjson_obj_get
     const char *error_json =
         "{"
@@ -399,8 +420,7 @@ END_TEST
  * Retry-After Header Tests
  * ================================================================ */
 
-START_TEST(test_retry_after_found)
-{
+START_TEST(test_retry_after_found) {
     const char *headers[] = {
         "content-type: application/json",
         "retry-after: 60",
@@ -412,8 +432,9 @@ START_TEST(test_retry_after_found)
     ck_assert_int_eq(retry_after, 60);
 }
 
-END_TEST START_TEST(test_retry_after_missing)
-{
+END_TEST
+
+START_TEST(test_retry_after_missing) {
     const char *headers[] = {
         "content-type: application/json",
         "anthropic-ratelimit-requests-remaining: 0",
@@ -424,14 +445,16 @@ END_TEST START_TEST(test_retry_after_missing)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_null_headers)
-{
+END_TEST
+
+START_TEST(test_retry_after_null_headers) {
     int32_t retry_after = ik_anthropic_get_retry_after(NULL);
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_case_insensitive)
-{
+END_TEST
+
+START_TEST(test_retry_after_case_insensitive) {
     const char *headers[] = {
         "Retry-After: 120",
         "RETRY-AFTER: 240",
@@ -442,8 +465,9 @@ END_TEST START_TEST(test_retry_after_case_insensitive)
     ck_assert_int_eq(retry_after, 120);
 }
 
-END_TEST START_TEST(test_retry_after_with_whitespace)
-{
+END_TEST
+
+START_TEST(test_retry_after_with_whitespace) {
     const char *headers[] = {
         "retry-after:   \t  300",
         NULL
@@ -453,8 +477,9 @@ END_TEST START_TEST(test_retry_after_with_whitespace)
     ck_assert_int_eq(retry_after, 300);
 }
 
-END_TEST START_TEST(test_retry_after_invalid_value)
-{
+END_TEST
+
+START_TEST(test_retry_after_invalid_value) {
     const char *headers[] = {
         "retry-after: not-a-number",
         NULL
@@ -464,8 +489,9 @@ END_TEST START_TEST(test_retry_after_invalid_value)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_negative_value)
-{
+END_TEST
+
+START_TEST(test_retry_after_negative_value) {
     const char *headers[] = {
         "retry-after: -5",
         NULL
@@ -475,8 +501,9 @@ END_TEST START_TEST(test_retry_after_negative_value)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_zero_value)
-{
+END_TEST
+
+START_TEST(test_retry_after_zero_value) {
     const char *headers[] = {
         "retry-after: 0",
         NULL
@@ -486,8 +513,9 @@ END_TEST START_TEST(test_retry_after_zero_value)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_empty_value)
-{
+END_TEST
+
+START_TEST(test_retry_after_empty_value) {
     const char *headers[] = {
         "retry-after: ",
         NULL

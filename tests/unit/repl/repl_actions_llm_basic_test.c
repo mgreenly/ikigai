@@ -203,8 +203,7 @@ START_TEST(test_no_model_configured) {
 }
 END_TEST
 // Test: Empty model string (lines 96-99)
-START_TEST(test_empty_model_string)
-{
+START_TEST(test_empty_model_string) {
     // Set model to empty string
     repl->current->model = talloc_strdup(repl->current, "");
 
@@ -235,8 +234,7 @@ START_TEST(test_empty_model_string)
 
 END_TEST
 // Test: Cleanup of existing assistant_response (lines 131-132)
-START_TEST(test_cleanup_assistant_response)
-{
+START_TEST(test_cleanup_assistant_response) {
     // Set up model
     repl->current->model = talloc_strdup(repl->current, "gpt-4");
 
@@ -272,8 +270,7 @@ START_TEST(test_cleanup_assistant_response)
 
 END_TEST
 // Test: Cleanup of existing streaming_line_buffer (lines 135-136)
-START_TEST(test_cleanup_streaming_line_buffer)
-{
+START_TEST(test_cleanup_streaming_line_buffer) {
     // Set up model
     repl->current->model = talloc_strdup(repl->current, "gpt-4");
 

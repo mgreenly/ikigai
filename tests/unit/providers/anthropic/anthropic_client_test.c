@@ -70,8 +70,9 @@ START_TEST(test_build_request_with_system_and_user_messages) {
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_build_request_with_thinking_budget)
-{
+END_TEST
+
+START_TEST(test_build_request_with_thinking_budget) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
     req->max_output_tokens = 1024;
@@ -110,8 +111,9 @@ END_TEST START_TEST(test_build_request_with_thinking_budget)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_tool_definitions)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_definitions) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
     req->max_output_tokens = 1024;
@@ -152,8 +154,9 @@ END_TEST START_TEST(test_build_request_with_tool_definitions)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_without_optional_fields)
-{
+END_TEST
+
+START_TEST(test_build_request_without_optional_fields) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
     req->max_output_tokens = 1024;
@@ -186,8 +189,9 @@ END_TEST START_TEST(test_build_request_without_optional_fields)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_verify_correct_headers)
-{
+END_TEST
+
+START_TEST(test_verify_correct_headers) {
     const char *api_key = "sk-ant-test-key-12345";
     char **headers = NULL;
 
@@ -212,8 +216,9 @@ END_TEST START_TEST(test_verify_correct_headers)
     ck_assert(has_content_type);
 }
 
-END_TEST START_TEST(test_verify_json_structure_matches_api_spec)
-{
+END_TEST
+
+START_TEST(test_verify_json_structure_matches_api_spec) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-sonnet-4-5-20250929");
     req->max_output_tokens = 2048;

@@ -56,8 +56,9 @@ START_TEST(test_build_request_with_system_and_user_messages) {
     ck_assert_ptr_nonnull(strstr(json, "contents"));
     ck_assert_ptr_nonnull(strstr(json, "Hello!"));
 }
-END_TEST START_TEST(test_build_request_gemini_2_5_with_thinking_budget)
-{
+END_TEST
+
+START_TEST(test_build_request_gemini_2_5_with_thinking_budget) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-pro");
     req->max_output_tokens = 1024;
@@ -86,8 +87,9 @@ END_TEST START_TEST(test_build_request_gemini_2_5_with_thinking_budget)
     ck_assert_ptr_nonnull(strstr(json, "thinkingBudget"));
 }
 
-END_TEST START_TEST(test_build_request_gemini_3_with_thinking_level)
-{
+END_TEST
+
+START_TEST(test_build_request_gemini_3_with_thinking_level) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-3-pro");
     req->max_output_tokens = 1024;
@@ -117,8 +119,9 @@ END_TEST START_TEST(test_build_request_gemini_3_with_thinking_level)
     ck_assert_ptr_nonnull(strstr(json, "HIGH"));
 }
 
-END_TEST START_TEST(test_build_request_with_tool_declarations)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_declarations) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
     req->max_output_tokens = 1024;
@@ -150,8 +153,9 @@ END_TEST START_TEST(test_build_request_with_tool_declarations)
     ck_assert_ptr_nonnull(strstr(json, "get_weather"));
 }
 
-END_TEST START_TEST(test_build_request_without_optional_fields)
-{
+END_TEST
+
+START_TEST(test_build_request_without_optional_fields) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
     req->max_output_tokens = 1024;
@@ -180,8 +184,9 @@ END_TEST START_TEST(test_build_request_without_optional_fields)
     ck_assert_ptr_null(strstr(json, "tools"));
 }
 
-END_TEST START_TEST(test_api_key_in_url)
-{
+END_TEST
+
+START_TEST(test_api_key_in_url) {
     char *url = NULL;
     res_t r = ik_google_build_url(test_ctx, "https://generativelanguage.googleapis.com/v1beta",
                                   "gemini-2.5-flash", "test-key-12345", false, &url);
@@ -194,8 +199,9 @@ END_TEST START_TEST(test_api_key_in_url)
     ck_assert_ptr_nonnull(strstr(url, "key=test-key-12345"));
 }
 
-END_TEST START_TEST(test_json_structure_matches_gemini_api)
-{
+END_TEST
+
+START_TEST(test_json_structure_matches_gemini_api) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gemini-2.5-flash");
     req->max_output_tokens = 1024;

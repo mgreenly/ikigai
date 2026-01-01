@@ -28,8 +28,9 @@ START_TEST(test_retry_after_null_headers) {
     int32_t retry_after = ik_openai_get_retry_after(NULL);
     ck_assert_int_eq(retry_after, -1);
 }
-END_TEST START_TEST(test_retry_after_both_headers_prefer_minimum)
-{
+END_TEST
+
+START_TEST(test_retry_after_both_headers_prefer_minimum) {
     const char *headers[] = {
         "content-type: application/json",
         "x-ratelimit-reset-requests: 30s",
@@ -41,8 +42,9 @@ END_TEST START_TEST(test_retry_after_both_headers_prefer_minimum)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_both_headers_prefer_tokens)
-{
+END_TEST
+
+START_TEST(test_retry_after_both_headers_prefer_tokens) {
     const char *headers[] = {
         "content-type: application/json",
         "x-ratelimit-reset-requests: 60s",
@@ -54,8 +56,9 @@ END_TEST START_TEST(test_retry_after_both_headers_prefer_tokens)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_hours)
-{
+END_TEST
+
+START_TEST(test_retry_after_hours) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: 1h",
         NULL
@@ -65,8 +68,9 @@ END_TEST START_TEST(test_retry_after_hours)
     ck_assert_int_eq(retry_after, 3600);
 }
 
-END_TEST START_TEST(test_retry_after_complex_duration)
-{
+END_TEST
+
+START_TEST(test_retry_after_complex_duration) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: 1h30m45s",
         NULL
@@ -76,8 +80,9 @@ END_TEST START_TEST(test_retry_after_complex_duration)
     ck_assert_int_eq(retry_after, 3600 + 1800 + 45);  // 5445 seconds
 }
 
-END_TEST START_TEST(test_retry_after_invalid_duration)
-{
+END_TEST
+
+START_TEST(test_retry_after_invalid_duration) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: invalid",
         NULL
@@ -87,8 +92,9 @@ END_TEST START_TEST(test_retry_after_invalid_duration)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_unknown_unit)
-{
+END_TEST
+
+START_TEST(test_retry_after_unknown_unit) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: 30x",
         NULL
@@ -98,8 +104,9 @@ END_TEST START_TEST(test_retry_after_unknown_unit)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_whitespace)
-{
+END_TEST
+
+START_TEST(test_retry_after_whitespace) {
     const char *headers[] = {
         "x-ratelimit-reset-requests:   \t  30s",
         NULL
@@ -109,8 +116,9 @@ END_TEST START_TEST(test_retry_after_whitespace)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_case_insensitive)
-{
+END_TEST
+
+START_TEST(test_retry_after_case_insensitive) {
     const char *headers[] = {
         "X-RateLimit-Reset-Requests: 30s",
         NULL
@@ -120,8 +128,9 @@ END_TEST START_TEST(test_retry_after_case_insensitive)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_tokens_case_insensitive)
-{
+END_TEST
+
+START_TEST(test_retry_after_tokens_case_insensitive) {
     const char *headers[] = {
         "X-RateLimit-Reset-Tokens: 60s",
         NULL
@@ -131,8 +140,9 @@ END_TEST START_TEST(test_retry_after_tokens_case_insensitive)
     ck_assert_int_eq(retry_after, 60);
 }
 
-END_TEST START_TEST(test_retry_after_empty_value)
-{
+END_TEST
+
+START_TEST(test_retry_after_empty_value) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: ",
         NULL
@@ -143,8 +153,9 @@ END_TEST START_TEST(test_retry_after_empty_value)
     ck_assert_int_eq(retry_after, 0);
 }
 
-END_TEST START_TEST(test_retry_after_only_whitespace)
-{
+END_TEST
+
+START_TEST(test_retry_after_only_whitespace) {
     const char *headers[] = {
         "x-ratelimit-reset-requests:    \t  ",
         NULL
@@ -155,8 +166,9 @@ END_TEST START_TEST(test_retry_after_only_whitespace)
     ck_assert_int_eq(retry_after, 0);
 }
 
-END_TEST START_TEST(test_retry_after_multiple_same_headers)
-{
+END_TEST
+
+START_TEST(test_retry_after_multiple_same_headers) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: 60s",
         "x-ratelimit-reset-requests: 30s",
@@ -168,8 +180,9 @@ END_TEST START_TEST(test_retry_after_multiple_same_headers)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_zero_duration)
-{
+END_TEST
+
+START_TEST(test_retry_after_zero_duration) {
     const char *headers[] = {
         "x-ratelimit-reset-requests: 0s",
         NULL

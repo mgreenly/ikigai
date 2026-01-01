@@ -64,8 +64,7 @@ yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
     return NULL;
 }
 
-START_TEST(test_yyjson_doc_get_root_returns_null)
-{
+START_TEST(test_yyjson_doc_get_root_returns_null) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

@@ -174,8 +174,7 @@ START_TEST(test_query_range_subset) {
 }
 END_TEST
 // Test: query_range with start_id=0 returns from beginning
-START_TEST(test_query_range_from_beginning)
-{
+START_TEST(test_query_range_from_beginning) {
     SKIP_IF_NO_DB();
 
     // Insert agent
@@ -202,8 +201,7 @@ START_TEST(test_query_range_from_beginning)
 
 END_TEST
 // Test: query_range with end_id=0 returns to end
-START_TEST(test_query_range_to_end)
-{
+START_TEST(test_query_range_to_end) {
     SKIP_IF_NO_DB();
 
     // Insert agent

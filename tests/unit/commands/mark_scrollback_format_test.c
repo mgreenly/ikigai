@@ -164,8 +164,7 @@ START_TEST(test_rewind_no_role_prefixes) {
 }
 END_TEST
 // Test: Rewind should include system message from config
-START_TEST(test_rewind_includes_system_message)
-{
+START_TEST(test_rewind_includes_system_message) {
     // Add a user message
     ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
     // removed assertion
@@ -197,8 +196,7 @@ START_TEST(test_rewind_includes_system_message)
 
 END_TEST
 // Test: Rewind without system message configured
-START_TEST(test_rewind_without_system_message)
-{
+START_TEST(test_rewind_without_system_message) {
     // Remove system message from config
     talloc_free(cfg->openai_system_message);
     cfg->openai_system_message = NULL;
@@ -234,8 +232,7 @@ START_TEST(test_rewind_without_system_message)
 
 END_TEST
 // Test: Rewind with NULL config
-START_TEST(test_rewind_with_null_config)
-{
+START_TEST(test_rewind_with_null_config) {
     // Set config to NULL
     repl->shared->cfg = NULL;
 

@@ -33,38 +33,44 @@ START_TEST(test_map_finish_reason_stop) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("stop");
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
-END_TEST START_TEST(test_map_finish_reason_length)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_length) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("length");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_finish_reason_tool_calls)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_tool_calls) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("tool_calls");
     ck_assert_int_eq(reason, IK_FINISH_TOOL_USE);
 }
 
-END_TEST START_TEST(test_map_finish_reason_content_filter)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_content_filter) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("content_filter");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_error)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_error) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("error");
     ck_assert_int_eq(reason, IK_FINISH_ERROR);
 }
 
-END_TEST START_TEST(test_map_finish_reason_null)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_null) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_map_finish_reason_unknown)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_unknown) {
     ik_finish_reason_t reason = ik_openai_map_chat_finish_reason("unknown_reason");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
@@ -74,8 +80,7 @@ END_TEST
  * Simple Response Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_simple_text_response)
-{
+START_TEST(test_parse_simple_text_response) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-123\","
                        "\"object\":\"chat.completion\","
@@ -112,8 +117,9 @@ START_TEST(test_parse_simple_text_response)
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
 
-END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
-{
+END_TEST
+
+START_TEST(test_parse_response_with_reasoning_tokens) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-456\","
                        "\"model\":\"o1-preview\","
@@ -148,8 +154,7 @@ END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
 
 END_TEST
 
-START_TEST(test_parse_response_no_usage)
-{
+START_TEST(test_parse_response_no_usage) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-123\","
                        "\"model\":\"gpt-4\","
@@ -176,8 +181,7 @@ START_TEST(test_parse_response_no_usage)
 
 END_TEST
 
-START_TEST(test_parse_response_null_content)
-{
+START_TEST(test_parse_response_null_content) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-123\","
                        "\"model\":\"gpt-4\","
@@ -207,8 +211,7 @@ START_TEST(test_parse_response_null_content)
 
 END_TEST
 
-START_TEST(test_parse_response_empty_content)
-{
+START_TEST(test_parse_response_empty_content) {
     const char *json = "{"
                        "\"id\":\"chatcmpl-123\","
                        "\"model\":\"gpt-4\","

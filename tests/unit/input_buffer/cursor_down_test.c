@@ -58,8 +58,7 @@ START_TEST(test_cursor_down_basic) {
 
 END_TEST
 /* Test: Cursor down from last line - no-op */
-START_TEST(test_cursor_down_from_last_line)
-{
+START_TEST(test_cursor_down_from_last_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -96,8 +95,7 @@ START_TEST(test_cursor_down_from_last_line)
 
 END_TEST
 /* Test: Cursor down with column preservation */
-START_TEST(test_cursor_down_column_preservation)
-{
+START_TEST(test_cursor_down_column_preservation) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -139,8 +137,7 @@ START_TEST(test_cursor_down_column_preservation)
 
 END_TEST
 /* Test: Cursor down to shorter line */
-START_TEST(test_cursor_down_shorter_line)
-{
+START_TEST(test_cursor_down_shorter_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -180,8 +177,7 @@ START_TEST(test_cursor_down_shorter_line)
 
 END_TEST
 /* Test: Cursor down with empty line */
-START_TEST(test_cursor_down_empty_line)
-{
+START_TEST(test_cursor_down_empty_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -216,8 +212,7 @@ START_TEST(test_cursor_down_empty_line)
 
 END_TEST
 /* Test: Cursor down with UTF-8 */
-START_TEST(test_cursor_down_utf8)
-{
+START_TEST(test_cursor_down_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -259,8 +254,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: Cursor down - NULL input_buffer asserts */
-START_TEST(test_cursor_down_null_input_buffer_asserts)
-{
+START_TEST(test_cursor_down_null_input_buffer_asserts) {
     ik_input_buffer_cursor_down(NULL);
 }
 

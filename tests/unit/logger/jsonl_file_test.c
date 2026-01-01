@@ -43,8 +43,7 @@ START_TEST(test_log_init_creates_log_file) {
 }
 END_TEST
 // Test: ik_log_debug_json writes to current.log file
-START_TEST(test_log_writes_to_file)
-{
+START_TEST(test_log_writes_to_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
 
@@ -92,8 +91,7 @@ START_TEST(test_log_writes_to_file)
 
 END_TEST
 // Test: multiple log entries append correctly
-START_TEST(test_multiple_log_entries_append)
-{
+START_TEST(test_multiple_log_entries_append) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
 
@@ -145,8 +143,7 @@ START_TEST(test_multiple_log_entries_append)
 
 END_TEST
 // Test: ik_log_shutdown closes file
-START_TEST(test_log_shutdown_closes_file)
-{
+START_TEST(test_log_shutdown_closes_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
 

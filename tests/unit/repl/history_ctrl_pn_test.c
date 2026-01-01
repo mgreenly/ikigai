@@ -75,8 +75,7 @@ START_TEST(test_ctrl_p_starts_browsing_empty) {
 }
 END_TEST
 /* Test: Ctrl+P starts browsing with non-empty input */
-START_TEST(test_ctrl_p_starts_browsing_with_text)
-{
+START_TEST(test_ctrl_p_starts_browsing_with_text) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -137,8 +136,7 @@ START_TEST(test_ctrl_p_starts_browsing_with_text)
 
 END_TEST
 /* Test: Ctrl+P while already browsing moves to previous entry */
-START_TEST(test_ctrl_p_moves_to_previous)
-{
+START_TEST(test_ctrl_p_moves_to_previous) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -194,8 +192,7 @@ START_TEST(test_ctrl_p_moves_to_previous)
 
 END_TEST
 /* Test: Ctrl+P at oldest entry returns NULL (no change) */
-START_TEST(test_ctrl_p_at_oldest_entry)
-{
+START_TEST(test_ctrl_p_at_oldest_entry) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -253,8 +250,7 @@ START_TEST(test_ctrl_p_at_oldest_entry)
 
 END_TEST
 /* Test: Ctrl+N when not browsing does nothing */
-START_TEST(test_ctrl_n_when_not_browsing)
-{
+START_TEST(test_ctrl_n_when_not_browsing) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -309,8 +305,7 @@ START_TEST(test_ctrl_n_when_not_browsing)
 
 END_TEST
 /* Test: Ctrl+N while browsing moves to next entry */
-START_TEST(test_ctrl_n_moves_to_next)
-{
+START_TEST(test_ctrl_n_moves_to_next) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -374,8 +369,7 @@ START_TEST(test_ctrl_n_moves_to_next)
 
 END_TEST
 /* Test: Ctrl+N at newest entry returns pending (empty if started empty) */
-START_TEST(test_ctrl_n_at_newest_returns_pending)
-{
+START_TEST(test_ctrl_n_at_newest_returns_pending) {
     void *ctx = talloc_new(NULL);
     res_t res;
 

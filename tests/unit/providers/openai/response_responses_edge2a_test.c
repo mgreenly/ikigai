@@ -58,8 +58,9 @@ START_TEST(test_parse_response_skip_content_no_type) {
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_message_no_content_array)
-{
+END_TEST
+
+START_TEST(test_parse_response_message_no_content_array) {
     const char *json = "{"
                        "\"id\":\"resp-nocontent\","
                        "\"model\":\"gpt-4o\","
@@ -88,8 +89,9 @@ END_TEST START_TEST(test_parse_response_message_no_content_array)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_message_content_not_array)
-{
+END_TEST
+
+START_TEST(test_parse_response_message_content_not_array) {
     const char *json = "{"
                        "\"id\":\"resp-contentnotarr\","
                        "\"model\":\"gpt-4o\","
@@ -119,8 +121,9 @@ END_TEST START_TEST(test_parse_response_message_content_not_array)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_skip_content_type_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_skip_content_type_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-typenotstr\","
                        "\"model\":\"gpt-4o\","
@@ -150,8 +153,9 @@ END_TEST START_TEST(test_parse_response_skip_content_type_not_string)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_skip_unknown_content_type)
-{
+END_TEST
+
+START_TEST(test_parse_response_skip_unknown_content_type) {
     const char *json = "{"
                        "\"id\":\"resp-unknownc\","
                        "\"model\":\"gpt-4o\","
@@ -181,8 +185,9 @@ END_TEST START_TEST(test_parse_response_skip_unknown_content_type)
     ck_assert_int_eq((int)resp->content_count, 1);
 }
 
-END_TEST START_TEST(test_parse_response_output_text_no_text_field)
-{
+END_TEST
+
+START_TEST(test_parse_response_output_text_no_text_field) {
     const char *json = "{"
                        "\"id\":\"resp-notext\","
                        "\"model\":\"gpt-4o\","
@@ -208,8 +213,9 @@ END_TEST START_TEST(test_parse_response_output_text_no_text_field)
     ck_assert_int_eq((int)resp->content_count, 0);
 }
 
-END_TEST START_TEST(test_parse_response_output_text_text_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_response_output_text_text_not_string) {
     const char *json = "{"
                        "\"id\":\"resp-textnotstr\","
                        "\"model\":\"gpt-4o\","

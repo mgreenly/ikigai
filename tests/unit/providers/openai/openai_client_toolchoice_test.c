@@ -64,8 +64,9 @@ START_TEST(test_build_request_with_tool_choice_none) {
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_tool_choice_required)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_choice_required) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -103,8 +104,9 @@ END_TEST START_TEST(test_build_request_with_tool_choice_required)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_tool_choice_auto)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_choice_auto) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -142,8 +144,9 @@ END_TEST START_TEST(test_build_request_with_tool_choice_auto)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_build_request_with_tool_choice_unknown_defaults_to_auto)
-{
+END_TEST
+
+START_TEST(test_build_request_with_tool_choice_unknown_defaults_to_auto) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -186,8 +189,7 @@ END_TEST
  * Validation Tests
  * ================================================================ */
 
-START_TEST(test_build_request_with_invalid_tool_parameters)
-{
+START_TEST(test_build_request_with_invalid_tool_parameters) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = talloc_strdup(req, "gpt-4");
     req->max_output_tokens = 1024;
@@ -212,8 +214,9 @@ START_TEST(test_build_request_with_invalid_tool_parameters)
     ck_assert(is_err(&r));
 }
 
-END_TEST START_TEST(test_build_request_with_null_model)
-{
+END_TEST
+
+START_TEST(test_build_request_with_null_model) {
     ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
     req->model = NULL;
     req->max_output_tokens = 1024;
@@ -232,8 +235,9 @@ END_TEST START_TEST(test_build_request_with_null_model)
     ck_assert(is_err(&r));
 }
 
-END_TEST START_TEST(test_verify_correct_headers)
-{
+END_TEST
+
+START_TEST(test_verify_correct_headers) {
     const char *api_key = "sk-test-key-12345";
     char **headers = NULL;
 

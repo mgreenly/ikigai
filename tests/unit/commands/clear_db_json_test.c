@@ -228,8 +228,7 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
 }
 END_TEST
 // Test: Clear with system message DB error and yyjson_mut_obj_add_str_ failure
-START_TEST(test_clear_system_db_error_json_add_fail)
-{
+START_TEST(test_clear_system_db_error_json_add_fail) {
     // Create config with system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);

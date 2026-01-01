@@ -181,8 +181,7 @@ START_TEST(test_fork_persists_parent_side_event) {
 }
 END_TEST
 // Test: Fork persists child-side fork event
-START_TEST(test_fork_persists_child_side_event)
-{
+START_TEST(test_fork_persists_child_side_event) {
     // Create a session
     int64_t session_id = 0;
     res_t session_res = ik_db_session_create(db, &session_id);
@@ -229,8 +228,7 @@ START_TEST(test_fork_persists_child_side_event)
 
 END_TEST
 // Test: Fork events link via fork_message_id
-START_TEST(test_fork_events_linked_by_fork_message_id)
-{
+START_TEST(test_fork_events_linked_by_fork_message_id) {
     // Create a session
     int64_t session_id = 0;
     res_t session_res = ik_db_session_create(db, &session_id);

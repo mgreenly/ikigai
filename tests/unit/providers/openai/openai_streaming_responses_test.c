@@ -147,8 +147,9 @@ START_TEST(test_ctx_create_initializes_correctly) {
     ck_assert_ptr_null(ctx->current_tool_name);
     ck_assert_ptr_nonnull(ctx->sse_parser);
 }
-END_TEST START_TEST(test_get_usage_returns_zero_initially)
-{
+END_TEST
+
+START_TEST(test_get_usage_returns_zero_initially) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -160,8 +161,9 @@ END_TEST START_TEST(test_get_usage_returns_zero_initially)
     ck_assert_int_eq(usage.total_tokens, 0);
 }
 
-END_TEST START_TEST(test_get_finish_reason_returns_unknown_initially)
-{
+END_TEST
+
+START_TEST(test_get_finish_reason_returns_unknown_initially) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -175,8 +177,7 @@ END_TEST
  * Write Callback Tests
  * ================================================================ */
 
-START_TEST(test_write_callback_returns_total_bytes)
-{
+START_TEST(test_write_callback_returns_total_bytes) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -190,8 +191,9 @@ START_TEST(test_write_callback_returns_total_bytes)
     ck_assert_uint_eq(result, len);
 }
 
-END_TEST START_TEST(test_write_callback_processes_complete_event)
-{
+END_TEST
+
+START_TEST(test_write_callback_processes_complete_event) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -207,8 +209,9 @@ END_TEST START_TEST(test_write_callback_processes_complete_event)
     ck_assert_str_eq(events->items[0].data.start.model, "gpt-4o");
 }
 
-END_TEST START_TEST(test_write_callback_processes_text_delta)
-{
+END_TEST
+
+START_TEST(test_write_callback_processes_text_delta) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -229,8 +232,9 @@ END_TEST START_TEST(test_write_callback_processes_text_delta)
     ck_assert_int_eq(events->items[1].index, 0);
 }
 
-END_TEST START_TEST(test_write_callback_handles_chunked_data)
-{
+END_TEST
+
+START_TEST(test_write_callback_handles_chunked_data) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -248,8 +252,9 @@ END_TEST START_TEST(test_write_callback_handles_chunked_data)
     ck_assert_int_eq(events->items[0].type, IK_STREAM_START);
 }
 
-END_TEST START_TEST(test_write_callback_handles_multiple_events)
-{
+END_TEST
+
+START_TEST(test_write_callback_handles_multiple_events) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -268,8 +273,9 @@ END_TEST START_TEST(test_write_callback_handles_multiple_events)
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
 }
 
-END_TEST START_TEST(test_write_callback_skips_event_with_null_event_name)
-{
+END_TEST
+
+START_TEST(test_write_callback_skips_event_with_null_event_name) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -282,8 +288,9 @@ END_TEST START_TEST(test_write_callback_skips_event_with_null_event_name)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_write_callback_skips_event_with_null_data)
-{
+END_TEST
+
+START_TEST(test_write_callback_skips_event_with_null_data) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -296,8 +303,9 @@ END_TEST START_TEST(test_write_callback_skips_event_with_null_data)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_write_callback_with_size_greater_than_one)
-{
+END_TEST
+
+START_TEST(test_write_callback_with_size_greater_than_one) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

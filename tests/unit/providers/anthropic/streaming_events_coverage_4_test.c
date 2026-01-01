@@ -39,10 +39,12 @@ static void setup(void)
     memset(captured_events, 0, sizeof(captured_events));
 }
 
-static void teardown(void) { talloc_free(test_ctx); }
-
-START_TEST(test_message_delta_no_usage)
+static void teardown(void)
 {
+    talloc_free(test_ctx);
+}
+
+START_TEST(test_message_delta_no_usage) {
     const char *json = "{\"delta\": {\"stop_reason\": \"end_turn\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -52,8 +54,7 @@ START_TEST(test_message_delta_no_usage)
 }
 END_TEST
 
-START_TEST(test_message_delta_with_thinking_tokens)
-{
+START_TEST(test_message_delta_with_thinking_tokens) {
     stream_ctx->usage.input_tokens = 25;
     const char *json = "{\"usage\": {\"output_tokens\": 100, \"thinking_tokens\": 50}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -65,8 +66,7 @@ START_TEST(test_message_delta_with_thinking_tokens)
 }
 END_TEST
 
-START_TEST(test_error_no_object)
-{
+START_TEST(test_error_no_object) {
     const char *json = "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -77,8 +77,7 @@ START_TEST(test_error_no_object)
 }
 END_TEST
 
-START_TEST(test_error_authentication)
-{
+START_TEST(test_error_authentication) {
     const char *json = "{\"error\": {\"type\": \"authentication_error\", \"message\": \"Invalid API key\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -88,8 +87,7 @@ START_TEST(test_error_authentication)
 }
 END_TEST
 
-START_TEST(test_error_rate_limit)
-{
+START_TEST(test_error_rate_limit) {
     const char *json = "{\"error\": {\"type\": \"rate_limit_error\", \"message\": \"Rate limit exceeded\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -99,8 +97,7 @@ START_TEST(test_error_rate_limit)
 }
 END_TEST
 
-START_TEST(test_error_overloaded)
-{
+START_TEST(test_error_overloaded) {
     const char *json = "{\"error\": {\"type\": \"overloaded_error\", \"message\": \"Server overloaded\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -110,8 +107,7 @@ START_TEST(test_error_overloaded)
 }
 END_TEST
 
-START_TEST(test_error_invalid_request)
-{
+START_TEST(test_error_invalid_request) {
     const char *json = "{\"error\": {\"type\": \"invalid_request_error\", \"message\": \"Invalid request\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -121,8 +117,7 @@ START_TEST(test_error_invalid_request)
 }
 END_TEST
 
-START_TEST(test_error_unknown_type)
-{
+START_TEST(test_error_unknown_type) {
     const char *json = "{\"error\": {\"type\": \"unknown_error_type\", \"message\": \"Unknown error\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);

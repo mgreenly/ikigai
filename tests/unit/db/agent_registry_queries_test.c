@@ -141,8 +141,7 @@ START_TEST(test_get_returns_correct_row) {
 }
 END_TEST
 // Test: get returns error for non-existent UUID
-START_TEST(test_get_nonexistent_uuid)
-{
+START_TEST(test_get_nonexistent_uuid) {
     SKIP_IF_NO_DB();
 
     ik_db_agent_row_t *row = NULL;
@@ -152,8 +151,7 @@ START_TEST(test_get_nonexistent_uuid)
 
 END_TEST
 // Test: list_running returns only status='running' agents
-START_TEST(test_list_running_only_running)
-{
+START_TEST(test_list_running_only_running) {
     SKIP_IF_NO_DB();
 
     // Insert running agent
@@ -219,8 +217,7 @@ START_TEST(test_list_running_only_running)
 
 END_TEST
 // Test: list_running excludes dead agents
-START_TEST(test_list_running_excludes_dead)
-{
+START_TEST(test_list_running_excludes_dead) {
     SKIP_IF_NO_DB();
 
     // Insert and immediately kill an agent
@@ -247,8 +244,7 @@ START_TEST(test_list_running_excludes_dead)
 
 END_TEST
 // Test: get_children returns children ordered by created_at
-START_TEST(test_get_children_ordered)
-{
+START_TEST(test_get_children_ordered) {
     SKIP_IF_NO_DB();
 
     // Insert parent
@@ -308,8 +304,7 @@ START_TEST(test_get_children_ordered)
 
 END_TEST
 // Test: get_children returns empty for agent with no children
-START_TEST(test_get_children_empty)
-{
+START_TEST(test_get_children_empty) {
     SKIP_IF_NO_DB();
 
     // Insert agent with no children
@@ -333,8 +328,7 @@ START_TEST(test_get_children_empty)
 
 END_TEST
 // Test: get_parent returns parent row for child agent
-START_TEST(test_get_parent_returns_parent)
-{
+START_TEST(test_get_parent_returns_parent) {
     SKIP_IF_NO_DB();
 
     // Insert parent
@@ -372,8 +366,7 @@ START_TEST(test_get_parent_returns_parent)
 
 END_TEST
 // Test: get_parent returns NULL for root agent (no parent)
-START_TEST(test_get_parent_null_for_root)
-{
+START_TEST(test_get_parent_null_for_root) {
     SKIP_IF_NO_DB();
 
     // Insert root agent
@@ -396,8 +389,7 @@ START_TEST(test_get_parent_null_for_root)
 
 END_TEST
 // Test: get_parent allows iterative chain walking
-START_TEST(test_get_parent_chain_walking)
-{
+START_TEST(test_get_parent_chain_walking) {
     SKIP_IF_NO_DB();
 
     // Insert grandparent

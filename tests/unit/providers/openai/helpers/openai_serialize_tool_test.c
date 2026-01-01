@@ -27,8 +27,7 @@ static void teardown(void)
  * Tool Message Tests
  * ================================================================ */
 
-START_TEST(test_serialize_tool_message)
-{
+START_TEST(test_serialize_tool_message) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
     msg->content_count = 1;
@@ -59,8 +58,7 @@ START_TEST(test_serialize_tool_message)
 
 END_TEST
 
-START_TEST(test_serialize_tool_message_empty_content)
-{
+START_TEST(test_serialize_tool_message_empty_content) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
     msg->content_count = 0;
@@ -84,8 +82,7 @@ START_TEST(test_serialize_tool_message_empty_content)
 
 END_TEST
 
-START_TEST(test_serialize_tool_message_wrong_block_type)
-{
+START_TEST(test_serialize_tool_message_wrong_block_type) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
     msg->content_count = 1;

@@ -105,8 +105,7 @@ START_TEST(test_reinit_switches_directory) {
 }
 END_TEST
 // Test: Reinit rotates existing current.log in new directory
-START_TEST(test_reinit_rotates_existing_log_in_new_dir)
-{
+START_TEST(test_reinit_rotates_existing_log_in_new_dir) {
     char test_dir1[256];
     char test_dir2[256];
     snprintf(test_dir1, sizeof(test_dir1), "/tmp/ikigai_reinit_test1_%d", getpid());
@@ -194,8 +193,7 @@ START_TEST(test_reinit_rotates_existing_log_in_new_dir)
 
 END_TEST
 // Test: Reinit with no existing log in new directory doesn't create archives
-START_TEST(test_reinit_no_existing_log_in_new_dir)
-{
+START_TEST(test_reinit_no_existing_log_in_new_dir) {
     char test_dir1[256];
     char test_dir2[256];
     snprintf(test_dir1, sizeof(test_dir1), "/tmp/ikigai_reinit_test1_%d", getpid());

@@ -49,8 +49,7 @@ static void teardown(void)
 
 /* Edge case tests */
 
-START_TEST(test_done_marker)
-{
+START_TEST(test_done_marker) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, capturing_stream_cb, NULL);
 
@@ -74,8 +73,7 @@ START_TEST(test_done_marker)
 
 END_TEST
 
-START_TEST(test_model_extraction)
-{
+START_TEST(test_model_extraction) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -90,8 +88,7 @@ START_TEST(test_model_extraction)
 
 END_TEST
 
-START_TEST(test_finish_reason_extraction)
-{
+START_TEST(test_finish_reason_extraction) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, capturing_stream_cb, NULL);
 
@@ -107,20 +104,19 @@ START_TEST(test_finish_reason_extraction)
 
 END_TEST
 
-START_TEST(test_usage_with_reasoning_tokens)
-{
+START_TEST(test_usage_with_reasoning_tokens) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
     const char *data = "{"
-        "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":10,"
-            "\"completion_tokens\":20,"
-            "\"total_tokens\":30,"
-            "\"completion_tokens_details\":{\"reasoning_tokens\":5}"
-        "}"
-    "}";
+                       "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":10,"
+                       "\"completion_tokens\":20,"
+                       "\"total_tokens\":30,"
+                       "\"completion_tokens_details\":{\"reasoning_tokens\":5}"
+                       "}"
+                       "}";
     ik_openai_chat_stream_process_data(sctx, data);
 
     ik_usage_t usage = ik_openai_chat_stream_get_usage(sctx);
@@ -132,19 +128,18 @@ START_TEST(test_usage_with_reasoning_tokens)
 
 END_TEST
 
-START_TEST(test_usage_without_reasoning_tokens)
-{
+START_TEST(test_usage_without_reasoning_tokens) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
     const char *data = "{"
-        "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":10,"
-            "\"completion_tokens\":20,"
-            "\"total_tokens\":30"
-        "}"
-    "}";
+                       "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":10,"
+                       "\"completion_tokens\":20,"
+                       "\"total_tokens\":30"
+                       "}"
+                       "}";
     ik_openai_chat_stream_process_data(sctx, data);
 
     ik_usage_t usage = ik_openai_chat_stream_get_usage(sctx);
@@ -156,8 +151,7 @@ START_TEST(test_usage_without_reasoning_tokens)
 
 END_TEST
 
-START_TEST(test_error_without_message_field)
-{
+START_TEST(test_error_without_message_field) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -167,8 +161,7 @@ START_TEST(test_error_without_message_field)
 
 END_TEST
 
-START_TEST(test_model_field_non_string)
-{
+START_TEST(test_model_field_non_string) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -178,8 +171,7 @@ START_TEST(test_model_field_non_string)
 
 END_TEST
 
-START_TEST(test_choice_missing)
-{
+START_TEST(test_choice_missing) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -189,8 +181,7 @@ START_TEST(test_choice_missing)
 
 END_TEST
 
-START_TEST(test_delta_missing)
-{
+START_TEST(test_delta_missing) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -200,8 +191,7 @@ START_TEST(test_delta_missing)
 
 END_TEST
 
-START_TEST(test_reasoning_tokens_missing)
-{
+START_TEST(test_reasoning_tokens_missing) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -214,8 +204,7 @@ START_TEST(test_reasoning_tokens_missing)
 
 END_TEST
 
-START_TEST(test_choices_not_array)
-{
+START_TEST(test_choices_not_array) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -225,8 +214,7 @@ START_TEST(test_choices_not_array)
 
 END_TEST
 
-START_TEST(test_choices_empty_array)
-{
+START_TEST(test_choices_empty_array) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -236,8 +224,7 @@ START_TEST(test_choices_empty_array)
 
 END_TEST
 
-START_TEST(test_choice_not_object)
-{
+START_TEST(test_choice_not_object) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -247,8 +234,7 @@ START_TEST(test_choice_not_object)
 
 END_TEST
 
-START_TEST(test_delta_not_object)
-{
+START_TEST(test_delta_not_object) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -258,8 +244,7 @@ START_TEST(test_delta_not_object)
 
 END_TEST
 
-START_TEST(test_finish_reason_not_string)
-{
+START_TEST(test_finish_reason_not_string) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -269,8 +254,7 @@ START_TEST(test_finish_reason_not_string)
 
 END_TEST
 
-START_TEST(test_usage_not_object)
-{
+START_TEST(test_usage_not_object) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -283,8 +267,7 @@ START_TEST(test_usage_not_object)
 
 END_TEST
 
-START_TEST(test_usage_prompt_tokens_not_int)
-{
+START_TEST(test_usage_prompt_tokens_not_int) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -297,8 +280,7 @@ START_TEST(test_usage_prompt_tokens_not_int)
 
 END_TEST
 
-START_TEST(test_usage_completion_tokens_not_int)
-{
+START_TEST(test_usage_completion_tokens_not_int) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -311,8 +293,7 @@ START_TEST(test_usage_completion_tokens_not_int)
 
 END_TEST
 
-START_TEST(test_usage_total_tokens_not_int)
-{
+START_TEST(test_usage_total_tokens_not_int) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -325,8 +306,7 @@ START_TEST(test_usage_total_tokens_not_int)
 
 END_TEST
 
-START_TEST(test_usage_details_not_object)
-{
+START_TEST(test_usage_details_not_object) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 
@@ -339,8 +319,7 @@ START_TEST(test_usage_details_not_object)
 
 END_TEST
 
-START_TEST(test_usage_reasoning_tokens_not_int)
-{
+START_TEST(test_usage_reasoning_tokens_not_int) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
 

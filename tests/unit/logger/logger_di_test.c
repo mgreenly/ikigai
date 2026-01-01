@@ -77,8 +77,7 @@ START_TEST(test_logger_create_returns_logger) {
 }
 END_TEST
 // Test: ik_logger_debug_json writes to log file
-START_TEST(test_logger_debug_writes_jsonl)
-{
+START_TEST(test_logger_debug_writes_jsonl) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -100,8 +99,7 @@ START_TEST(test_logger_debug_writes_jsonl)
 
 END_TEST
 // Test: logger output has correct level field
-START_TEST(test_logger_has_level_field)
-{
+START_TEST(test_logger_has_level_field) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -130,8 +128,7 @@ START_TEST(test_logger_has_level_field)
 
 END_TEST
 // Test: logger output has timestamp field
-START_TEST(test_logger_has_timestamp_field)
-{
+START_TEST(test_logger_has_timestamp_field) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -159,8 +156,7 @@ START_TEST(test_logger_has_timestamp_field)
 
 END_TEST
 // Test: logger output has logline field with original content
-START_TEST(test_logger_has_logline_field)
-{
+START_TEST(test_logger_has_logline_field) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -195,8 +191,7 @@ START_TEST(test_logger_has_logline_field)
 
 END_TEST
 // Test: talloc cleanup properly closes logger
-START_TEST(test_logger_cleanup_on_talloc_free)
-{
+START_TEST(test_logger_cleanup_on_talloc_free) {
     setup_test();
 
     // Create a separate context for the logger
@@ -223,8 +218,7 @@ START_TEST(test_logger_cleanup_on_talloc_free)
 
 END_TEST
 // Test: ik_logger_reinit changes log file location
-START_TEST(test_logger_reinit_changes_location)
-{
+START_TEST(test_logger_reinit_changes_location) {
     // Save and temporarily unset IKIGAI_LOG_DIR to test working_dir parameter
     const char *saved_log_dir = getenv("IKIGAI_LOG_DIR");
     char saved_buf[512] = {0};
@@ -298,8 +292,7 @@ START_TEST(test_logger_reinit_changes_location)
 
 END_TEST
 // Test: ik_logger_get_fd returns valid fd for normal logger
-START_TEST(test_logger_get_fd_returns_valid_fd)
-{
+START_TEST(test_logger_get_fd_returns_valid_fd) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
@@ -313,16 +306,14 @@ START_TEST(test_logger_get_fd_returns_valid_fd)
 
 END_TEST
 // Test: ik_logger_get_fd returns -1 for NULL logger
-START_TEST(test_logger_get_fd_null_logger)
-{
+START_TEST(test_logger_get_fd_null_logger) {
     int fd = ik_logger_get_fd(NULL);
     ck_assert_int_eq(fd, -1);
 }
 
 END_TEST
 // Test: logger respects IKIGAI_LOG_DIR environment variable
-START_TEST(test_logger_respects_env_var_override)
-{
+START_TEST(test_logger_respects_env_var_override) {
     // Create unique temp directory for this test
     char override_dir[256];
     snprintf(override_dir, sizeof(override_dir), "/tmp/ikigai_logger_env_test_%d", getpid());
@@ -358,8 +349,7 @@ END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
 // Test: ik_logger_fatal_json exits process
-START_TEST(test_logger_fatal_exits)
-{
+START_TEST(test_logger_fatal_exits) {
     setup_test();
 
     ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);

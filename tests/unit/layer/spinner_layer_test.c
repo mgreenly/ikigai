@@ -21,8 +21,9 @@ START_TEST(test_spinner_layer_create_and_visibility) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_spinner_layer_height)
-{
+END_TEST
+
+START_TEST(test_spinner_layer_height) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
@@ -36,8 +37,9 @@ END_TEST START_TEST(test_spinner_layer_height)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_spinner_get_frame_cycles)
-{
+END_TEST
+
+START_TEST(test_spinner_get_frame_cycles) {
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
 
     // Test cycling through all 4 frames
@@ -54,8 +56,9 @@ END_TEST START_TEST(test_spinner_get_frame_cycles)
     ck_assert_int_eq(ik_spinner_get_frame(&state), '|');
 }
 
-END_TEST START_TEST(test_spinner_advance)
-{
+END_TEST
+
+START_TEST(test_spinner_advance) {
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
 
     // Advance through all frames
@@ -72,8 +75,9 @@ END_TEST START_TEST(test_spinner_advance)
     ck_assert_uint_eq(state.frame_index, 0);
 }
 
-END_TEST START_TEST(test_spinner_layer_render_frame0)
-{
+END_TEST
+
+START_TEST(test_spinner_layer_render_frame0) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
@@ -92,8 +96,9 @@ END_TEST START_TEST(test_spinner_layer_render_frame0)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_spinner_layer_render_all_frames)
-{
+END_TEST
+
+START_TEST(test_spinner_layer_render_all_frames) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
@@ -120,8 +125,9 @@ END_TEST START_TEST(test_spinner_layer_render_all_frames)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_spinner_animation_sequence)
-{
+END_TEST
+
+START_TEST(test_spinner_animation_sequence) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};

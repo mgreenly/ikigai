@@ -36,8 +36,7 @@ START_TEST(test_ctrl_left_arrow) {
 }
 END_TEST
 // Test: Ctrl+Right generates NAV_NEXT_SIBLING
-START_TEST(test_ctrl_right_arrow)
-{
+START_TEST(test_ctrl_right_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -67,8 +66,7 @@ START_TEST(test_ctrl_right_arrow)
 
 END_TEST
 // Test: Ctrl+Up generates NAV_PARENT
-START_TEST(test_ctrl_up_arrow)
-{
+START_TEST(test_ctrl_up_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -98,8 +96,7 @@ START_TEST(test_ctrl_up_arrow)
 
 END_TEST
 // Test: Ctrl+Down generates NAV_CHILD
-START_TEST(test_ctrl_down_arrow)
-{
+START_TEST(test_ctrl_down_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -129,8 +126,7 @@ START_TEST(test_ctrl_down_arrow)
 
 END_TEST
 // Test: plain arrow left still works (no regression)
-START_TEST(test_plain_left_arrow)
-{
+START_TEST(test_plain_left_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -151,8 +147,7 @@ START_TEST(test_plain_left_arrow)
 
 END_TEST
 // Test: plain arrow right still works (no regression)
-START_TEST(test_plain_right_arrow)
-{
+START_TEST(test_plain_right_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -173,8 +168,7 @@ START_TEST(test_plain_right_arrow)
 
 END_TEST
 // Test: plain arrow up still works (no regression)
-START_TEST(test_plain_up_arrow)
-{
+START_TEST(test_plain_up_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -195,8 +189,7 @@ START_TEST(test_plain_up_arrow)
 
 END_TEST
 // Test: plain arrow down still works (no regression)
-START_TEST(test_plain_down_arrow)
-{
+START_TEST(test_plain_down_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -217,8 +210,7 @@ START_TEST(test_plain_down_arrow)
 
 END_TEST
 // Test: invalid Ctrl+Arrow pattern (wrong modifier)
-START_TEST(test_invalid_ctrl_pattern)
-{
+START_TEST(test_invalid_ctrl_pattern) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -250,8 +242,7 @@ START_TEST(test_invalid_ctrl_pattern)
 
 END_TEST
 // Test: Ctrl pattern with invalid arrow key
-START_TEST(test_ctrl_pattern_invalid_key)
-{
+START_TEST(test_ctrl_pattern_invalid_key) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

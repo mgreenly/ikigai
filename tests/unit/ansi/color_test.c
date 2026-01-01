@@ -10,8 +10,7 @@ START_TEST(test_ansi_reset_macro) {
 }
 END_TEST
 // Test: ik_ansi_fg_256() produces correct sequence for gray subdued (242)
-START_TEST(test_ansi_fg_256_gray_subdued)
-{
+START_TEST(test_ansi_fg_256_gray_subdued) {
     char buf[12];
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 242);
 
@@ -21,8 +20,7 @@ START_TEST(test_ansi_fg_256_gray_subdued)
 
 END_TEST
 // Test: ik_ansi_fg_256() produces correct sequence for gray light (249)
-START_TEST(test_ansi_fg_256_gray_light)
-{
+START_TEST(test_ansi_fg_256_gray_light) {
     char buf[12];
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 249);
 
@@ -32,8 +30,7 @@ START_TEST(test_ansi_fg_256_gray_light)
 
 END_TEST
 // Test: ik_ansi_fg_256() produces correct sequence for single digit color (0)
-START_TEST(test_ansi_fg_256_single_digit)
-{
+START_TEST(test_ansi_fg_256_single_digit) {
     char buf[12];
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 0);
 
@@ -43,8 +40,7 @@ START_TEST(test_ansi_fg_256_single_digit)
 
 END_TEST
 // Test: ik_ansi_fg_256() produces correct sequence for max color (255)
-START_TEST(test_ansi_fg_256_max_color)
-{
+START_TEST(test_ansi_fg_256_max_color) {
     char buf[12];
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 255);
 
@@ -54,8 +50,7 @@ START_TEST(test_ansi_fg_256_max_color)
 
 END_TEST
 // Test: ik_ansi_fg_256() returns 0 if buffer too small
-START_TEST(test_ansi_fg_256_buffer_too_small)
-{
+START_TEST(test_ansi_fg_256_buffer_too_small) {
     char buf[8];  // Not enough space for 11 bytes + null
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 242);
 
@@ -64,8 +59,7 @@ START_TEST(test_ansi_fg_256_buffer_too_small)
 
 END_TEST
 // Test: ik_ansi_fg_256() handles buffer exactly the right size
-START_TEST(test_ansi_fg_256_exact_buffer_size)
-{
+START_TEST(test_ansi_fg_256_exact_buffer_size) {
     char buf[10];  // Exactly enough for single digit + null
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 0);
 
@@ -75,8 +69,7 @@ START_TEST(test_ansi_fg_256_exact_buffer_size)
 
 END_TEST
 // Test: ik_ansi_fg_256() handles two-digit color
-START_TEST(test_ansi_fg_256_two_digit)
-{
+START_TEST(test_ansi_fg_256_two_digit) {
     char buf[12];
     size_t written = ik_ansi_fg_256(buf, sizeof(buf), 42);
 
@@ -86,8 +79,7 @@ START_TEST(test_ansi_fg_256_two_digit)
 
 END_TEST
 // Test: Color constants have correct values
-START_TEST(test_ansi_color_constants)
-{
+START_TEST(test_ansi_color_constants) {
     ck_assert_uint_eq(IK_ANSI_GRAY_SUBDUED, 242);
     ck_assert_uint_eq(IK_ANSI_GRAY_LIGHT, 249);
 }

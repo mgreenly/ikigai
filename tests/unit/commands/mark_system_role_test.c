@@ -122,8 +122,7 @@ START_TEST(test_rewind_preserves_message_order) {
 }
 END_TEST
 // Test: Rewind with multiple user/assistant pairs
-START_TEST(test_rewind_with_multiple_message_pairs)
-{
+START_TEST(test_rewind_with_multiple_message_pairs) {
     // Add several user/assistant pairs
     for (int i = 0; i < 3; i++) {
         char *user_content = talloc_asprintf(ctx, "User message %d", i);
@@ -168,8 +167,7 @@ START_TEST(test_rewind_with_multiple_message_pairs)
 
 END_TEST
 // Test: Rewind with tool result message (covers marks.c line 188)
-START_TEST(test_rewind_with_tool_result_message)
-{
+START_TEST(test_rewind_with_tool_result_message) {
     // Create a user message
     ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Use a tool");
     ck_assert_ptr_nonnull(msg_user);

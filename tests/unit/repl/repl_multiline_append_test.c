@@ -27,8 +27,7 @@ START_TEST(test_append_empty_output) {
 
 END_TEST
 /* Test: Output ending with newline (line 37 branch 2 coverage) */
-START_TEST(test_append_output_ending_with_newline)
-{
+START_TEST(test_append_output_ending_with_newline) {
     void *ctx = talloc_new(NULL);
 
     /* Create scrollback */
@@ -55,8 +54,7 @@ START_TEST(test_append_output_ending_with_newline)
 
 END_TEST
 /* Test: Multiple lines ending with newline */
-START_TEST(test_append_multiple_lines_ending_with_newline)
-{
+START_TEST(test_append_multiple_lines_ending_with_newline) {
     void *ctx = talloc_new(NULL);
 
     /* Create scrollback */
@@ -75,8 +73,7 @@ START_TEST(test_append_multiple_lines_ending_with_newline)
 
 END_TEST
 /* Test: Just a newline character */
-START_TEST(test_append_just_newline)
-{
+START_TEST(test_append_just_newline) {
     void *ctx = talloc_new(NULL);
 
     /* Create scrollback */

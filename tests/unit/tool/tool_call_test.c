@@ -28,8 +28,7 @@ START_TEST(test_tool_call_create_returns_nonnull) {
 }
 END_TEST
 // Test: ik_tool_call_create sets id correctly
-START_TEST(test_tool_call_create_sets_id)
-{
+START_TEST(test_tool_call_create_sets_id) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -42,8 +41,7 @@ START_TEST(test_tool_call_create_sets_id)
 
 END_TEST
 // Test: ik_tool_call_create sets name correctly
-START_TEST(test_tool_call_create_sets_name)
-{
+START_TEST(test_tool_call_create_sets_name) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", "{\"pattern\": \"*.c\"}");
 
     ck_assert_ptr_nonnull(call);
@@ -56,8 +54,7 @@ START_TEST(test_tool_call_create_sets_name)
 
 END_TEST
 // Test: ik_tool_call_create sets arguments correctly
-START_TEST(test_tool_call_create_sets_arguments)
-{
+START_TEST(test_tool_call_create_sets_arguments) {
     const char *args = "{\"pattern\": \"*.c\", \"path\": \"src/\"}";
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_abc123", "glob", args);
 
@@ -71,8 +68,7 @@ START_TEST(test_tool_call_create_sets_arguments)
 
 END_TEST
 // Test: ik_tool_call_create works with NULL parent context (talloc root)
-START_TEST(test_tool_call_create_null_parent)
-{
+START_TEST(test_tool_call_create_null_parent) {
     ik_tool_call_t *call = ik_tool_call_create(NULL, "call_xyz", "file_read", "{\"path\": \"/tmp/test\"}");
 
     ck_assert_ptr_nonnull(call);

@@ -25,8 +25,7 @@ static void teardown(void)
  * Additional Response Parsing Coverage Tests
  * ================================================================ */
 
-START_TEST(test_parse_response_null_fields)
-{
+START_TEST(test_parse_response_null_fields) {
     const char *jsons[] = {
         "{\"type\":null,\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
         "{\"type\":\"message\",\"model\":null,\"stop_reason\":\"end_turn\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20},\"content\":[]}",
@@ -41,8 +40,9 @@ START_TEST(test_parse_response_null_fields)
         talloc_free(resp);
     }
 }
-END_TEST START_TEST(test_parse_response_errors)
-{
+END_TEST
+
+START_TEST(test_parse_response_errors) {
     const char *jsons[] = {
         "{\"type\":\"error\",\"model\":\"claude\"}",
         "{\"type\":\"error\",\"error\":{\"message\":null}}",
@@ -56,8 +56,9 @@ END_TEST START_TEST(test_parse_response_errors)
         ck_assert(is_err(&r));
     }
 }
-END_TEST START_TEST(test_parse_response_type_mismatches)
-{
+END_TEST
+
+START_TEST(test_parse_response_type_mismatches) {
     // Fields with wrong types (covers yyjson_get_str returning NULL)
     struct { const char *json; bool should_error; } cases[] = {
         {"{\"type\":\"message\",\"model\":123,\"usage\":{},\"content\":[]}", false},
@@ -72,13 +73,19 @@ END_TEST START_TEST(test_parse_response_type_mismatches)
     }
 }
 
-END_TEST START_TEST(test_parse_response_edge_cases)
-{
+END_TEST
+
+START_TEST(test_parse_response_edge_cases) {
     struct { const char *json; bool should_error; } cases[] = {
-        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":\"not array\"}", false},
+        {
+            "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":\"not array\"}",
+            false
+        },
         {"{ invalid json }", true},
         {"[1, 2, 3]", true},
-        {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}", true},
+        {
+            "{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[{\"invalid\":true}]}",
+            true},
         {"{\"type\":\"message\",\"stop_reason\":\"end_turn\",\"usage\":{},\"content\":[]}", false},
         {"{\"type\":\"message\",\"model\":\"claude\",\"usage\":{},\"content\":[]}", false},
         {"{\"type\":\"message\",\"model\":\"claude\",\"stop_reason\":\"end_turn\",\"usage\":{}}", false},
@@ -101,8 +108,7 @@ END_TEST
  * Finish Reason Mapping Coverage Tests
  * ================================================================ */
 
-START_TEST(test_map_finish_reason_all)
-{
+START_TEST(test_map_finish_reason_all) {
     struct { const char *input; ik_finish_reason_t expected; } test_cases[] = {
         {"end_turn", IK_FINISH_STOP}, {"stop_sequence", IK_FINISH_STOP},
         {"max_tokens", IK_FINISH_LENGTH}, {"tool_use", IK_FINISH_TOOL_USE},
@@ -122,8 +128,7 @@ END_TEST
  * Additional Error Parsing Coverage Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_invalid_json)
-{
+START_TEST(test_parse_error_invalid_json) {
     const char *json = "not valid json";
 
     ik_error_category_t category;
@@ -135,8 +140,9 @@ START_TEST(test_parse_error_invalid_json)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_json_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_error_json_not_object) {
     const char *json = "[1, 2, 3]";
 
     ik_error_category_t category;
@@ -148,8 +154,9 @@ END_TEST START_TEST(test_parse_error_json_not_object)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_no_error_field)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_error_field) {
     const char *json =
         "{"
         "  \"type\": \"message\","
@@ -165,8 +172,9 @@ END_TEST START_TEST(test_parse_error_no_error_field)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_type_null_no_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_type_null_no_message) {
     const char *json =
         "{"
         "  \"type\": \"error\","
@@ -183,8 +191,9 @@ END_TEST START_TEST(test_parse_error_type_null_no_message)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_message_null_no_type)
-{
+END_TEST
+
+START_TEST(test_parse_error_message_null_no_type) {
     const char *json =
         "{"
         "  \"type\": \"error\","
@@ -201,8 +210,9 @@ END_TEST START_TEST(test_parse_error_message_null_no_type)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_http_codes)
-{
+END_TEST
+
+START_TEST(test_parse_error_http_codes) {
     struct { int code; ik_error_category_t expected_cat; } test_cases[] = {
         {400, IK_ERR_CAT_INVALID_ARG}, {401, IK_ERR_CAT_AUTH}, {403, IK_ERR_CAT_AUTH},
         {404, IK_ERR_CAT_NOT_FOUND}, {429, IK_ERR_CAT_RATE_LIMIT},
@@ -221,8 +231,9 @@ END_TEST START_TEST(test_parse_error_http_codes)
     }
 }
 
-END_TEST START_TEST(test_parse_error_type_and_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_type_and_message) {
     const char *json =
         "{"
         "  \"error\": {"
@@ -241,8 +252,9 @@ END_TEST START_TEST(test_parse_error_type_and_message)
     ck_assert(strstr(message, "Invalid request") != NULL);
 }
 
-END_TEST START_TEST(test_parse_error_message_only)
-{
+END_TEST
+
+START_TEST(test_parse_error_message_only) {
     const char *json =
         "{"
         "  \"error\": {"
@@ -259,8 +271,9 @@ END_TEST START_TEST(test_parse_error_message_only)
     ck_assert_str_eq(message, "Error occurred");
 }
 
-END_TEST START_TEST(test_parse_error_type_only)
-{
+END_TEST
+
+START_TEST(test_parse_error_type_only) {
     const char *json =
         "{"
         "  \"error\": {"
@@ -277,8 +290,9 @@ END_TEST START_TEST(test_parse_error_type_only)
     ck_assert_str_eq(message, "server_error");
 }
 
-END_TEST START_TEST(test_parse_error_empty_json)
-{
+END_TEST
+
+START_TEST(test_parse_error_empty_json) {
     ik_error_category_t category;
     char *message = NULL;
     res_t r = ik_anthropic_parse_error(test_ctx, 500, "", 0, &category, &message);
@@ -288,8 +302,9 @@ END_TEST START_TEST(test_parse_error_empty_json)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_invalid_json_root_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_error_invalid_json_root_not_object) {
     // Test doc != NULL but root is not object (covers line 168 branch)
     const char *json = "\"just a string\"";
 
@@ -303,8 +318,9 @@ END_TEST START_TEST(test_parse_error_invalid_json_root_not_object)
     talloc_free(message);
 }
 
-END_TEST START_TEST(test_parse_error_no_error_obj_in_valid_json)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_error_obj_in_valid_json) {
     // Test doc != NULL, root is object, but no error field (covers line 170 branch)
     const char *json = "{\"status\":\"failed\",\"code\":404}";
 
@@ -319,8 +335,9 @@ END_TEST START_TEST(test_parse_error_no_error_obj_in_valid_json)
     talloc_free(message);
 }
 
-END_TEST START_TEST(test_parse_error_error_field_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_error_error_field_not_object) {
     // Test when error field exists but is not an object (covers yyjson_obj_get branch)
     const char *json =
         "{"
@@ -337,8 +354,9 @@ END_TEST START_TEST(test_parse_error_error_field_not_object)
     talloc_free(message);
 }
 
-END_TEST START_TEST(test_parse_error_fields_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_error_fields_not_string) {
     // Test when type/message fields are not strings (covers yyjson_get_str returning NULL)
     struct { const char *json; int http; const char *expected; } cases[] = {
         {"{\"error\":{\"type\":123,\"message\":\"Err\"}}", 400, "Err"},
@@ -349,7 +367,12 @@ END_TEST START_TEST(test_parse_error_fields_not_string)
     for (size_t i = 0; i < 3; i++) {
         ik_error_category_t category;
         char *message = NULL;
-        res_t r = ik_anthropic_parse_error(test_ctx, cases[i].http, cases[i].json, strlen(cases[i].json), &category, &message);
+        res_t r = ik_anthropic_parse_error(test_ctx,
+                                           cases[i].http,
+                                           cases[i].json,
+                                           strlen(cases[i].json),
+                                           &category,
+                                           &message);
         ck_assert(!is_err(&r));
         ck_assert_ptr_nonnull(message);
         ck_assert(strstr(message, cases[i].expected) != NULL);
@@ -377,8 +400,7 @@ static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
     return OK(NULL);
 }
 
-START_TEST(test_start_request_stub)
-{
+START_TEST(test_start_request_stub) {
     ik_request_t req = {0};
     int32_t dummy_ctx = 42;
 
@@ -387,8 +409,9 @@ START_TEST(test_start_request_stub)
     ck_assert(!is_err(&r));
 }
 
-END_TEST START_TEST(test_start_stream_stub)
-{
+END_TEST
+
+START_TEST(test_start_stream_stub) {
     ik_request_t req = {0};
     int32_t dummy_ctx = 42;
 

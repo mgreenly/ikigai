@@ -60,8 +60,7 @@ START_TEST(test_repl_process_action_char) {
 }
 END_TEST
 /* Test: Process NEWLINE action */
-START_TEST(test_repl_process_action_newline)
-{
+START_TEST(test_repl_process_action_newline) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -100,8 +99,7 @@ START_TEST(test_repl_process_action_newline)
 
 END_TEST
 /* Test: Process BACKSPACE action */
-START_TEST(test_repl_process_action_backspace)
-{
+START_TEST(test_repl_process_action_backspace) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -141,8 +139,7 @@ START_TEST(test_repl_process_action_backspace)
 
 END_TEST
 /* Test: Process DELETE action */
-START_TEST(test_repl_process_action_delete)
-{
+START_TEST(test_repl_process_action_delete) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -187,8 +184,7 @@ START_TEST(test_repl_process_action_delete)
 
 END_TEST
 /* Test: Process BACKSPACE at start (no-op) */
-START_TEST(test_repl_process_action_backspace_at_start)
-{
+START_TEST(test_repl_process_action_backspace_at_start) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -218,8 +214,7 @@ START_TEST(test_repl_process_action_backspace_at_start)
 
 END_TEST
 /* Test: Process DELETE at end (no-op) */
-START_TEST(test_repl_process_action_delete_at_end)
-{
+START_TEST(test_repl_process_action_delete_at_end) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

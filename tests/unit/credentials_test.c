@@ -48,8 +48,7 @@ static void set_file_permissions(const char *path, mode_t mode)
 }
 
 // Test: Empty credentials and load from environment
-START_TEST(test_empty_and_env_credentials)
-{
+START_TEST(test_empty_and_env_credentials) {
     // Test 1: No file, no env
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
@@ -74,8 +73,7 @@ START_TEST(test_empty_and_env_credentials)
 
 END_TEST
 // Test: Load from file
-START_TEST(test_load_from_file)
-{
+START_TEST(test_load_from_file) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -101,8 +99,7 @@ START_TEST(test_load_from_file)
 
 END_TEST
 // Test: Environment precedence over file
-START_TEST(test_environment_precedence)
-{
+START_TEST(test_environment_precedence) {
     const char *json = "{\n"
                        "  \"openai\": { \"api_key\": \"file-openai-key\" },\n"
                        "  \"anthropic\": { \"api_key\": \"file-anthropic-key\" },\n"
@@ -131,8 +128,7 @@ START_TEST(test_environment_precedence)
 
 END_TEST
 // Test: Provider lookup via ik_credentials_get
-START_TEST(test_provider_lookup)
-{
+START_TEST(test_provider_lookup) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -156,8 +152,7 @@ START_TEST(test_provider_lookup)
 
 END_TEST
 // Test: Invalid JSON returns error
-START_TEST(test_invalid_json)
-{
+START_TEST(test_invalid_json) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -175,8 +170,7 @@ START_TEST(test_invalid_json)
 
 END_TEST
 // Test: File permissions (secure and insecure)
-START_TEST(test_file_permissions)
-{
+START_TEST(test_file_permissions) {
     const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
     char *path = create_temp_credentials(json);
 
@@ -191,8 +185,7 @@ START_TEST(test_file_permissions)
 
 END_TEST
 // Test: Unknown provider returns NULL
-START_TEST(test_unknown_provider)
-{
+START_TEST(test_unknown_provider) {
     const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
     char *path = create_temp_credentials(json);
 
@@ -209,8 +202,7 @@ START_TEST(test_unknown_provider)
 
 END_TEST
 // Test: Edge cases - partial providers, nonexistent file perms, invalid JSON
-START_TEST(test_misc_edge_cases)
-{
+START_TEST(test_misc_edge_cases) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -238,8 +230,7 @@ START_TEST(test_misc_edge_cases)
 
 END_TEST
 // Test: Tilde expansion in path
-START_TEST(test_tilde_expansion)
-{
+START_TEST(test_tilde_expansion) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -274,8 +265,7 @@ START_TEST(test_tilde_expansion)
 
 END_TEST
 // Test: HOME not set returns error
-START_TEST(test_home_not_set)
-{
+START_TEST(test_home_not_set) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -300,8 +290,7 @@ START_TEST(test_home_not_set)
 
 END_TEST
 // Test: Provider parsing edge cases (no api_key, non-string, not object)
-START_TEST(test_provider_parsing)
-{
+START_TEST(test_provider_parsing) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -332,8 +321,7 @@ START_TEST(test_provider_parsing)
 
 END_TEST
 // Test: Path handling (no tilde, NULL path)
-START_TEST(test_path_handling)
-{
+START_TEST(test_path_handling) {
     ik_credentials_t *c = NULL;
     res_t r;
 
@@ -359,8 +347,7 @@ START_TEST(test_path_handling)
 
 END_TEST
 // Test: Environment override when no file value exists
-START_TEST(test_env_override_no_file_value)
-{
+START_TEST(test_env_override_no_file_value) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -436,8 +423,7 @@ START_TEST(test_yyjson_read_file_error) {
 }
 END_TEST
 // Test: yyjson_doc_get_root_ returns NULL
-START_TEST(test_yyjson_doc_get_root_null)
-{
+START_TEST(test_yyjson_doc_get_root_null) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -461,8 +447,7 @@ START_TEST(test_yyjson_doc_get_root_null)
 END_TEST
 
 // Test: Only google provider in file (ensure lines 104-113 fully covered)
-START_TEST(test_only_google_provider)
-{
+START_TEST(test_only_google_provider) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");

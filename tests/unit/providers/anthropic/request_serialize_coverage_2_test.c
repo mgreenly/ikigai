@@ -41,7 +41,7 @@ yyjson_mut_val *yyjson_mut_obj_(yyjson_mut_doc *doc)
 }
 
 bool yyjson_mut_obj_add_str_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, const char *val)
+                             const char *key, const char *val)
 {
     if (mock_yyjson_mut_obj_add_str_fail) {
         return false;
@@ -66,7 +66,7 @@ bool yyjson_mut_arr_add_val_(yyjson_mut_val *arr, yyjson_mut_val *val)
 }
 
 bool yyjson_mut_obj_add_val_(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                              const char *key, yyjson_mut_val *val)
+                             const char *key, yyjson_mut_val *val)
 {
     if (mock_yyjson_mut_obj_add_val_fail) {
         return false;
@@ -91,8 +91,7 @@ static void reset_mocks(void)
  * Message Content Serialization - OOM Tests
  * ================================================================ */
 
-START_TEST(test_serialize_message_content_single_text_fail)
-{
+START_TEST(test_serialize_message_content_single_text_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -115,8 +114,7 @@ START_TEST(test_serialize_message_content_single_text_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_content_arr_alloc_fail)
-{
+START_TEST(test_serialize_message_content_arr_alloc_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -141,8 +139,7 @@ START_TEST(test_serialize_message_content_arr_alloc_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_message_content_add_val_fail)
-{
+START_TEST(test_serialize_message_content_add_val_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -171,8 +168,7 @@ END_TEST
  * Role Mapping Tests
  * ================================================================ */
 
-START_TEST(test_role_to_string_default)
-{
+START_TEST(test_role_to_string_default) {
     const char *role = ik_anthropic_role_to_string((ik_role_t)999);
 
     ck_assert_str_eq(role, "user");
@@ -183,8 +179,7 @@ END_TEST
  * Message Serialization - OOM Tests
  * ================================================================ */
 
-START_TEST(test_serialize_messages_arr_alloc_fail)
-{
+START_TEST(test_serialize_messages_arr_alloc_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -211,8 +206,7 @@ START_TEST(test_serialize_messages_arr_alloc_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_messages_msg_obj_alloc_fail)
-{
+START_TEST(test_serialize_messages_msg_obj_alloc_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -239,8 +233,7 @@ START_TEST(test_serialize_messages_msg_obj_alloc_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_messages_role_add_fail)
-{
+START_TEST(test_serialize_messages_role_add_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -267,8 +260,7 @@ START_TEST(test_serialize_messages_role_add_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_messages_arr_add_msg_fail)
-{
+START_TEST(test_serialize_messages_arr_add_msg_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -295,8 +287,7 @@ START_TEST(test_serialize_messages_arr_add_msg_fail)
 }
 END_TEST
 
-START_TEST(test_serialize_messages_add_to_root_fail)
-{
+START_TEST(test_serialize_messages_add_to_root_fail) {
     reset_mocks();
 
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);

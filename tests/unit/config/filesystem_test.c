@@ -82,8 +82,7 @@ START_TEST(test_config_mkdir_failure) {
 }
 END_TEST
 /* Test: stat succeeds (directory exists) */
-START_TEST(test_config_stat_directory_exists)
-{
+START_TEST(test_config_stat_directory_exists) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Use /tmp which always exists

@@ -34,8 +34,9 @@ START_TEST(test_config_missing_field_listen_address) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_field_listen_port)
-{
+END_TEST
+
+START_TEST(test_config_missing_field_listen_port) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -61,8 +62,9 @@ END_TEST START_TEST(test_config_missing_field_listen_port)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_field_openai_model)
-{
+END_TEST
+
+START_TEST(test_config_missing_field_openai_model) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -84,8 +86,9 @@ END_TEST START_TEST(test_config_missing_field_openai_model)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_field_openai_temperature)
-{
+END_TEST
+
+START_TEST(test_config_missing_field_openai_temperature) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -108,8 +111,9 @@ END_TEST START_TEST(test_config_missing_field_openai_temperature)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_field_openai_max_completion_tokens)
-{
+END_TEST
+
+START_TEST(test_config_missing_field_openai_max_completion_tokens) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -132,8 +136,9 @@ END_TEST START_TEST(test_config_missing_field_openai_max_completion_tokens)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_openai_system_message)
-{
+END_TEST
+
+START_TEST(test_config_missing_openai_system_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

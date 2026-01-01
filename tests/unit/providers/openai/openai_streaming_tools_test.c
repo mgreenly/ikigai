@@ -140,8 +140,9 @@ START_TEST(test_parse_tool_call_start) {
     ck_assert_str_eq(events->items[2].data.tool_delta.arguments, "");
 }
 
-END_TEST START_TEST(test_parse_tool_call_arguments_delta)
-{
+END_TEST
+
+START_TEST(test_parse_tool_call_arguments_delta) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -169,8 +170,9 @@ END_TEST START_TEST(test_parse_tool_call_arguments_delta)
     ck_assert_str_eq(events->items[3].data.tool_delta.arguments, "{\"lo");
 }
 
-END_TEST START_TEST(test_accumulate_tool_arguments)
-{
+END_TEST
+
+START_TEST(test_accumulate_tool_arguments) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -200,8 +202,9 @@ END_TEST START_TEST(test_accumulate_tool_arguments)
     ck_assert_str_eq(events->items[5].data.tool_delta.arguments, ":\"NYC\"}");
 }
 
-END_TEST START_TEST(test_handle_multiple_tool_calls)
-{
+END_TEST
+
+START_TEST(test_handle_multiple_tool_calls) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -244,8 +247,9 @@ END_TEST START_TEST(test_handle_multiple_tool_calls)
     ck_assert_int_eq(events->items[5].index, 1);
 }
 
-END_TEST START_TEST(test_emit_tool_call_done)
-{
+END_TEST
+
+START_TEST(test_emit_tool_call_done) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 

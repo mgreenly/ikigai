@@ -65,8 +65,7 @@ yyjson_val *yyjson_obj_get_(yyjson_val *obj, const char *key)
 }
 
 // Test: yyjson_obj_get_ returns NULL in replay_command_effects
-START_TEST(test_replay_command_effects_null_obj_get)
-{
+START_TEST(test_replay_command_effects_null_obj_get) {
     // Populate scrollback triggers replay_command_effects for command messages
     ik_agent_restore_populate_scrollback(agent, replay_ctx, agent->shared->logger);
 

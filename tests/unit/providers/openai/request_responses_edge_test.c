@@ -46,8 +46,9 @@ START_TEST(test_serialize_null_model) {
     ck_assert(is_err(&result));
 }
 
-END_TEST START_TEST(test_serialize_invalid_tool_params)
-{
+END_TEST
+
+START_TEST(test_serialize_invalid_tool_params) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -69,8 +70,7 @@ END_TEST
  * Edge Cases
  * ================================================================ */
 
-START_TEST(test_serialize_empty_system_prompt)
-{
+START_TEST(test_serialize_empty_system_prompt) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -93,8 +93,9 @@ START_TEST(test_serialize_empty_system_prompt)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_max_output_tokens_zero)
-{
+END_TEST
+
+START_TEST(test_serialize_max_output_tokens_zero) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -117,8 +118,9 @@ END_TEST START_TEST(test_serialize_max_output_tokens_zero)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_no_streaming)
-{
+END_TEST
+
+START_TEST(test_serialize_no_streaming) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

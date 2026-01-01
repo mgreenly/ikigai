@@ -35,8 +35,9 @@ START_TEST(test_config_expand_tilde) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_expand_tilde_home_unset)
-{
+END_TEST
+
+START_TEST(test_config_expand_tilde_home_unset) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -64,8 +65,9 @@ END_TEST START_TEST(test_config_expand_tilde_home_unset)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_load_tilde_home_unset)
-{
+END_TEST
+
+START_TEST(test_config_load_tilde_home_unset) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

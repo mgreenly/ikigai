@@ -18,8 +18,7 @@ START_TEST(test_ansi_colors_enabled_default) {
 }
 END_TEST
 // Test: colors disabled when NO_COLOR is set to any value
-START_TEST(test_ansi_colors_disabled_no_color_set)
-{
+START_TEST(test_ansi_colors_disabled_no_color_set) {
     // Set NO_COLOR to "1"
     setenv("NO_COLOR", "1", 1);
     unsetenv("TERM");
@@ -36,8 +35,7 @@ START_TEST(test_ansi_colors_disabled_no_color_set)
 
 END_TEST
 // Test: colors disabled when NO_COLOR is set to empty string
-START_TEST(test_ansi_colors_disabled_no_color_empty)
-{
+START_TEST(test_ansi_colors_disabled_no_color_empty) {
     // Set NO_COLOR to empty string
     setenv("NO_COLOR", "", 1);
     unsetenv("TERM");
@@ -54,8 +52,7 @@ START_TEST(test_ansi_colors_disabled_no_color_empty)
 
 END_TEST
 // Test: colors disabled when TERM=dumb
-START_TEST(test_ansi_colors_disabled_term_dumb)
-{
+START_TEST(test_ansi_colors_disabled_term_dumb) {
     // Set TERM to "dumb"
     unsetenv("NO_COLOR");
     setenv("TERM", "dumb", 1);
@@ -72,8 +69,7 @@ START_TEST(test_ansi_colors_disabled_term_dumb)
 
 END_TEST
 // Test: colors enabled when TERM=xterm-256color
-START_TEST(test_ansi_colors_enabled_term_xterm)
-{
+START_TEST(test_ansi_colors_enabled_term_xterm) {
     // Set TERM to "xterm-256color"
     unsetenv("NO_COLOR");
     setenv("TERM", "xterm-256color", 1);
@@ -90,8 +86,7 @@ START_TEST(test_ansi_colors_enabled_term_xterm)
 
 END_TEST
 // Test: NO_COLOR takes precedence over TERM
-START_TEST(test_ansi_no_color_precedence)
-{
+START_TEST(test_ansi_no_color_precedence) {
     // Set both NO_COLOR and TERM to a color-capable terminal
     setenv("NO_COLOR", "1", 1);
     setenv("TERM", "xterm-256color", 1);

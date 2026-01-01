@@ -31,8 +31,7 @@ static void teardown(void)
  * Tool Call Error Tests (parse_chat_tool_call branches)
  * ================================================================ */
 
-START_TEST(test_parse_tool_call_missing_id)
-{
+START_TEST(test_parse_tool_call_missing_id) {
     /* Tool call without 'id' field - line 32 branch (id_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -64,8 +63,7 @@ START_TEST(test_parse_tool_call_missing_id)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_id_not_string)
-{
+START_TEST(test_parse_tool_call_id_not_string) {
     /* Tool call with non-string 'id' - line 36 branch (id == NULL after yyjson_get_str) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -98,8 +96,7 @@ START_TEST(test_parse_tool_call_id_not_string)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_missing_function)
-{
+START_TEST(test_parse_tool_call_missing_function) {
     /* Tool call without 'function' field - line 44 branch (func_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -128,8 +125,7 @@ START_TEST(test_parse_tool_call_missing_function)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_missing_name)
-{
+START_TEST(test_parse_tool_call_missing_name) {
     /* Tool call function without 'name' field - line 50 branch (name_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -161,8 +157,7 @@ START_TEST(test_parse_tool_call_missing_name)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_name_not_string)
-{
+START_TEST(test_parse_tool_call_name_not_string) {
     /* Tool call function with non-string 'name' - line 54 branch (name == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -195,8 +190,7 @@ START_TEST(test_parse_tool_call_name_not_string)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_missing_arguments)
-{
+START_TEST(test_parse_tool_call_missing_arguments) {
     /* Tool call function without 'arguments' field - line 62 branch (args_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -228,8 +222,7 @@ START_TEST(test_parse_tool_call_missing_arguments)
 
 END_TEST
 
-START_TEST(test_parse_tool_call_arguments_not_string)
-{
+START_TEST(test_parse_tool_call_arguments_not_string) {
     /* Tool call function with non-string 'arguments' - line 66 branch (args_str == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","

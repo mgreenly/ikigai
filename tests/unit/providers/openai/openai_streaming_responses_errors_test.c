@@ -118,8 +118,9 @@ START_TEST(test_error_event_edge_cases) {
                                              "{\"error\":{\"message\":\"Something went wrong\",\"type\":null}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_UNKNOWN);
 }
-END_TEST START_TEST(test_error_event_categories)
-{
+END_TEST
+
+START_TEST(test_error_event_categories) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -146,8 +147,9 @@ END_TEST START_TEST(test_error_event_categories)
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_unknown_event_is_ignored)
-{
+END_TEST
+
+START_TEST(test_unknown_event_is_ignored) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

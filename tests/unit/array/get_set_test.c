@@ -34,8 +34,7 @@ START_TEST(test_array_set) {
 
 END_TEST
 // Security test: Use-after-free attempt via stale pointer after reallocation
-START_TEST(test_array_stale_pointer_after_reallocation)
-{
+START_TEST(test_array_stale_pointer_after_reallocation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
@@ -84,15 +83,13 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: get with NULL array
-START_TEST(test_array_get_null_array_asserts)
-{
+START_TEST(test_array_get_null_array_asserts) {
     ik_array_get(NULL, 0);
 }
 
 END_TEST
 // Test assertion: get with out of bounds index
-START_TEST(test_array_get_out_of_bounds_asserts)
-{
+START_TEST(test_array_get_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
     ik_array_t *array = res.ok;
@@ -105,8 +102,7 @@ START_TEST(test_array_get_out_of_bounds_asserts)
 
 END_TEST
 // Test assertion: set with invalid index
-START_TEST(test_array_set_invalid_index_asserts)
-{
+START_TEST(test_array_set_invalid_index_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
     ik_array_t *array = res.ok;

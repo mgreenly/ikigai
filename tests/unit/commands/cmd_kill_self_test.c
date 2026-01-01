@@ -188,8 +188,7 @@ START_TEST(test_kill_terminates_non_root) {
 }
 END_TEST
 // Test: Registry updated to status='dead'
-START_TEST(test_kill_marks_dead_in_registry)
-{
+START_TEST(test_kill_marks_dead_in_registry) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -210,8 +209,7 @@ START_TEST(test_kill_marks_dead_in_registry)
 
 END_TEST
 // Test: Registry ended_at is set to current timestamp
-START_TEST(test_kill_sets_ended_at)
-{
+START_TEST(test_kill_sets_ended_at) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -239,8 +237,7 @@ START_TEST(test_kill_sets_ended_at)
 
 END_TEST
 // Test: Agent removed from array
-START_TEST(test_kill_removes_from_array)
-{
+START_TEST(test_kill_removes_from_array) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -263,8 +260,7 @@ START_TEST(test_kill_removes_from_array)
 
 END_TEST
 // Test: Switches to parent
-START_TEST(test_kill_switches_to_parent)
-{
+START_TEST(test_kill_switches_to_parent) {
     ik_agent_ctx_t *parent = repl->current;
 
     // Create child agent
@@ -284,8 +280,7 @@ START_TEST(test_kill_switches_to_parent)
 
 END_TEST
 // Test: /kill on root shows error
-START_TEST(test_kill_root_shows_error)
-{
+START_TEST(test_kill_root_shows_error) {
     // Current agent is root (parent_uuid == NULL)
     ck_assert_ptr_null(repl->current->parent_uuid);
 
@@ -309,8 +304,7 @@ START_TEST(test_kill_root_shows_error)
 
 END_TEST
 // Test: Root agent not modified
-START_TEST(test_kill_root_not_modified)
-{
+START_TEST(test_kill_root_not_modified) {
     const char *root_uuid = repl->current->uuid;
 
     // Try to kill root
@@ -330,8 +324,7 @@ START_TEST(test_kill_root_not_modified)
 
 END_TEST
 // Test: Kill waits for fork_pending to clear (sync barrier)
-START_TEST(test_kill_waits_for_fork_pending)
-{
+START_TEST(test_kill_waits_for_fork_pending) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -353,8 +346,7 @@ START_TEST(test_kill_waits_for_fork_pending)
 
 END_TEST
 // Test: agent_killed event recorded in parent's history
-START_TEST(test_kill_records_event_in_parent_history)
-{
+START_TEST(test_kill_records_event_in_parent_history) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -388,8 +380,7 @@ START_TEST(test_kill_records_event_in_parent_history)
 
 END_TEST
 // Test: agent_killed event has killed_by="user" metadata
-START_TEST(test_kill_event_has_killed_by_user)
-{
+START_TEST(test_kill_event_has_killed_by_user) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));

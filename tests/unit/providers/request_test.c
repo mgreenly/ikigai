@@ -31,8 +31,9 @@ START_TEST(test_content_block_text) {
     ck_assert_int_eq(block->type, IK_CONTENT_TEXT);
     ck_assert_str_eq(block->data.text.text, "Hello world");
 }
-END_TEST START_TEST(test_content_block_tool_call)
-{
+END_TEST
+
+START_TEST(test_content_block_tool_call) {
     ik_content_block_t *block = ik_content_block_tool_call(test_ctx,
                                                            "call_123", "read_file", "{\"path\":\"/etc/hosts\"}");
 
@@ -43,8 +44,9 @@ END_TEST START_TEST(test_content_block_tool_call)
     ck_assert_str_eq(block->data.tool_call.arguments, "{\"path\":\"/etc/hosts\"}");
 }
 
-END_TEST START_TEST(test_content_block_tool_result)
-{
+END_TEST
+
+START_TEST(test_content_block_tool_result) {
     ik_content_block_t *block = ik_content_block_tool_result(test_ctx,
                                                              "call_123", "File contents here", false);
 
@@ -55,8 +57,9 @@ END_TEST START_TEST(test_content_block_tool_result)
     ck_assert(!block->data.tool_result.is_error);
 }
 
-END_TEST START_TEST(test_content_block_tool_result_error)
-{
+END_TEST
+
+START_TEST(test_content_block_tool_result_error) {
     ik_content_block_t *block = ik_content_block_tool_result(test_ctx,
                                                              "call_456", "File not found", true);
 
@@ -67,8 +70,9 @@ END_TEST START_TEST(test_content_block_tool_result_error)
     ck_assert(block->data.tool_result.is_error);
 }
 
-END_TEST START_TEST(test_content_block_thinking)
-{
+END_TEST
+
+START_TEST(test_content_block_thinking) {
     ik_content_block_t *block = ik_content_block_thinking(test_ctx,
                                                           "Let me think about this...");
 
@@ -82,8 +86,7 @@ END_TEST
  * Request Builder Tests
  * ================================================================ */
 
-START_TEST(test_request_create)
-{
+START_TEST(test_request_create) {
     ik_request_t *req = NULL;
     res_t result = ik_request_create(test_ctx, "claude-sonnet-4-5", &req);
 
@@ -103,8 +106,9 @@ START_TEST(test_request_create)
     ck_assert_ptr_null(req->tool_choice_name);
 }
 
-END_TEST START_TEST(test_request_set_system)
-{
+END_TEST
+
+START_TEST(test_request_set_system) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gpt-5-mini", &req);
 
@@ -114,8 +118,9 @@ END_TEST START_TEST(test_request_set_system)
     ck_assert_str_eq(req->system_prompt, "You are a helpful assistant.");
 }
 
-END_TEST START_TEST(test_request_set_system_replace)
-{
+END_TEST
+
+START_TEST(test_request_set_system_replace) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gpt-5-mini", &req);
 
@@ -125,8 +130,9 @@ END_TEST START_TEST(test_request_set_system_replace)
     ck_assert_str_eq(req->system_prompt, "Second prompt");
 }
 
-END_TEST START_TEST(test_request_add_message)
-{
+END_TEST
+
+START_TEST(test_request_add_message) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gemini-3.0-flash", &req);
 
@@ -139,8 +145,9 @@ END_TEST START_TEST(test_request_add_message)
     ck_assert_str_eq(req->messages[0].content_blocks[0].data.text.text, "Hello!");
 }
 
-END_TEST START_TEST(test_request_add_multiple_messages)
-{
+END_TEST
+
+START_TEST(test_request_add_multiple_messages) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "claude-sonnet-4-5", &req);
 
@@ -157,8 +164,9 @@ END_TEST START_TEST(test_request_add_multiple_messages)
     ck_assert_str_eq(req->messages[2].content_blocks[0].data.text.text, "Third message");
 }
 
-END_TEST START_TEST(test_request_add_message_blocks)
-{
+END_TEST
+
+START_TEST(test_request_add_message_blocks) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gpt-5", &req);
 
@@ -178,8 +186,9 @@ END_TEST START_TEST(test_request_add_message_blocks)
     ck_assert_str_eq(req->messages[0].content_blocks[1].data.text.text, "Answer");
 }
 
-END_TEST START_TEST(test_request_set_thinking)
-{
+END_TEST
+
+START_TEST(test_request_set_thinking) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "claude-sonnet-4-5", &req);
 
@@ -189,8 +198,9 @@ END_TEST START_TEST(test_request_set_thinking)
     ck_assert(req->thinking.include_summary);
 }
 
-END_TEST START_TEST(test_request_add_tool)
-{
+END_TEST
+
+START_TEST(test_request_add_tool) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gpt-5-mini", &req);
 
@@ -205,8 +215,9 @@ END_TEST START_TEST(test_request_add_tool)
     ck_assert(!req->tools[0].strict);
 }
 
-END_TEST START_TEST(test_request_add_multiple_tools)
-{
+END_TEST
+
+START_TEST(test_request_add_multiple_tools) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "gemini-3.0-pro", &req);
 
@@ -223,8 +234,9 @@ END_TEST START_TEST(test_request_add_multiple_tools)
     ck_assert(req->tools[1].strict);
 }
 
-END_TEST START_TEST(test_request_memory_lifecycle)
-{
+END_TEST
+
+START_TEST(test_request_memory_lifecycle) {
     /* Test that freeing request frees all child allocations */
     TALLOC_CTX *temp_ctx = talloc_new(NULL);
 

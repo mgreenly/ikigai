@@ -153,8 +153,9 @@ START_TEST(test_execute_pending_tool_basic) {
     ik_message_t *result_msg = repl->current->messages[1];
     ck_assert(result_msg->role == IK_ROLE_TOOL);
 }
-END_TEST START_TEST(test_execute_pending_tool_clears_pending)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_clears_pending) {
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
 
@@ -162,8 +163,9 @@ END_TEST START_TEST(test_execute_pending_tool_clears_pending)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_conversation_messages) {
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
 
@@ -178,8 +180,9 @@ END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
     ck_assert_uint_ge(result_msg->content_count, 1);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_file_read)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_file_read) {
     /* Change to file_read tool */
     talloc_free(repl->current->pending_tool_call);
     repl->current->pending_tool_call = ik_tool_call_create(repl,
@@ -197,8 +200,9 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_debug_output)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_debug_output) {
     /* Note: This test previously verified debug pipe output.
      * Debug pipes have been replaced with JSONL logger calls.
      * The logger writes to .ikigai/logs/current.log instead of a pipe.
@@ -214,8 +218,9 @@ END_TEST START_TEST(test_execute_pending_tool_debug_output)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_no_debug_pipe) {
     /* Verify that when debug pipe is NULL, execution still works */
     repl->shared->openai_debug_pipe = NULL;
 
@@ -229,8 +234,9 @@ END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_debug_pipe_null_write_end) {
     /* Create debug pipe and set write_end to NULL to test that branch */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -255,8 +261,9 @@ END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_db_persistence)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_db_persistence) {
     /* Create a mock database context */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 42;
@@ -274,8 +281,9 @@ END_TEST START_TEST(test_execute_pending_tool_db_persistence)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_no_db_ctx)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_no_db_ctx) {
     /* Set db_ctx to NULL - should not persist */
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 42;
@@ -291,8 +299,9 @@ END_TEST START_TEST(test_execute_pending_tool_no_db_ctx)
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_no_session_id)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_no_session_id) {
     /* Set session_id to 0 - should not persist */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 0;

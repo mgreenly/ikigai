@@ -33,8 +33,9 @@ START_TEST(test_tool_response_error_basic) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_tool_response_error_special_chars)
-{
+END_TEST
+
+START_TEST(test_tool_response_error_special_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -55,8 +56,9 @@ END_TEST START_TEST(test_tool_response_error_special_chars)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_tool_response_success_basic)
-{
+END_TEST
+
+START_TEST(test_tool_response_success_basic) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -84,8 +86,9 @@ END_TEST START_TEST(test_tool_response_success_basic)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_tool_response_success_empty_output)
-{
+END_TEST
+
+START_TEST(test_tool_response_success_empty_output) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -158,8 +161,9 @@ START_TEST(test_tool_response_success_ex_with_fields) {
     yyjson_doc_free(doc);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_tool_response_success_ex_without_fields)
-{
+END_TEST
+
+START_TEST(test_tool_response_success_ex_without_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -188,8 +192,9 @@ END_TEST START_TEST(test_tool_response_success_ex_without_fields)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_tool_response_success_with_data)
-{
+END_TEST
+
+START_TEST(test_tool_response_success_with_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 
@@ -223,16 +228,16 @@ END_TEST START_TEST(test_tool_response_success_with_data)
 END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
-START_TEST(test_tool_response_null_ctx)
-{
+START_TEST(test_tool_response_null_ctx) {
     char *result = NULL;
 
     // Should assert when ctx is NULL
     ik_tool_response_error(NULL, "error", &result);
 }
 
-END_TEST START_TEST(test_tool_response_null_message)
-{
+END_TEST
+
+START_TEST(test_tool_response_null_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char *result = NULL;
 

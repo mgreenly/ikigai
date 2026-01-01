@@ -197,8 +197,7 @@ START_TEST(test_fork_creates_agent) {
 }
 END_TEST
 // Test: Child has parent_uuid set
-START_TEST(test_fork_sets_parent)
-{
+START_TEST(test_fork_sets_parent) {
     const char *parent_uuid = repl->current->uuid;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -213,8 +212,7 @@ START_TEST(test_fork_sets_parent)
 
 END_TEST
 // Test: Child added to agents array
-START_TEST(test_fork_adds_to_array)
-{
+START_TEST(test_fork_adds_to_array) {
     size_t initial_count = repl->agent_count;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -226,8 +224,7 @@ START_TEST(test_fork_adds_to_array)
 
 END_TEST
 // Test: Switches to child
-START_TEST(test_fork_switches_to_child)
-{
+START_TEST(test_fork_switches_to_child) {
     ik_agent_ctx_t *parent = repl->current;
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -239,8 +236,7 @@ START_TEST(test_fork_switches_to_child)
 
 END_TEST
 // Test: Child in registry with status='running'
-START_TEST(test_fork_registry_entry)
-{
+START_TEST(test_fork_registry_entry) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -254,8 +250,7 @@ START_TEST(test_fork_registry_entry)
 
 END_TEST
 // Test: Confirmation message displayed
-START_TEST(test_fork_confirmation_message)
-{
+START_TEST(test_fork_confirmation_message) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -266,8 +261,7 @@ START_TEST(test_fork_confirmation_message)
 
 END_TEST
 // Test: fork_pending flag set during fork
-START_TEST(test_fork_pending_flag_set)
-{
+START_TEST(test_fork_pending_flag_set) {
     // This test would need mocking to observe mid-execution
     // For now, verify flag is clear after completion
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -277,8 +271,7 @@ START_TEST(test_fork_pending_flag_set)
 
 END_TEST
 // Test: fork_pending flag cleared after fork
-START_TEST(test_fork_pending_flag_cleared)
-{
+START_TEST(test_fork_pending_flag_cleared) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert(!atomic_load(&repl->shared->fork_pending));
@@ -286,8 +279,7 @@ START_TEST(test_fork_pending_flag_cleared)
 
 END_TEST
 // Test: Concurrent fork rejected
-START_TEST(test_fork_concurrent_rejected)
-{
+START_TEST(test_fork_concurrent_rejected) {
     atomic_store(&repl->shared->fork_pending, true);
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
@@ -316,8 +308,7 @@ END_TEST
 // testing with actual database errors (not precondition violations).
 
 // Test: /fork with quoted prompt extracts prompt
-START_TEST(test_fork_with_quoted_prompt)
-{
+START_TEST(test_fork_with_quoted_prompt) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Research OAuth 2.0 patterns\"");
     ck_assert(is_ok(&res));
 
@@ -343,8 +334,7 @@ START_TEST(test_fork_with_quoted_prompt)
 
 END_TEST
 // Test: Prompt added as user message
-START_TEST(test_fork_prompt_appended_as_user_message)
-{
+START_TEST(test_fork_prompt_appended_as_user_message) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Analyze database schema\"");
     ck_assert(is_ok(&res));
 
@@ -364,8 +354,7 @@ START_TEST(test_fork_prompt_appended_as_user_message)
 
 END_TEST
 // Test: LLM call triggered when prompt provided
-START_TEST(test_fork_llm_call_triggered)
-{
+START_TEST(test_fork_llm_call_triggered) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Test prompt\"");
     ck_assert(is_ok(&res));
 
@@ -392,8 +381,7 @@ START_TEST(test_fork_llm_call_triggered)
 
 END_TEST
 // Test: Empty prompt treated as no prompt
-START_TEST(test_fork_empty_prompt)
-{
+START_TEST(test_fork_empty_prompt) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"\"");
     ck_assert(is_ok(&res));
 
@@ -404,8 +392,7 @@ START_TEST(test_fork_empty_prompt)
 
 END_TEST
 // Test: Unquoted text rejected
-START_TEST(test_fork_unquoted_text_rejected)
-{
+START_TEST(test_fork_unquoted_text_rejected) {
     res_t res = ik_cmd_fork(test_ctx, repl, "unquoted text");
     ck_assert(is_ok(&res));  // Returns OK but shows error
 

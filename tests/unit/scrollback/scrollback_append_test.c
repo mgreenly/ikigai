@@ -35,8 +35,7 @@ START_TEST(test_scrollback_append_single_line) {
 }
 END_TEST
 // Test: Append multiple lines
-START_TEST(test_scrollback_append_multiple_lines)
-{
+START_TEST(test_scrollback_append_multiple_lines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -85,8 +84,7 @@ START_TEST(test_scrollback_append_multiple_lines)
 
 END_TEST
 // Test: Append UTF-8 content with various widths
-START_TEST(test_scrollback_append_utf8_content)
-{
+START_TEST(test_scrollback_append_utf8_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -113,8 +111,7 @@ START_TEST(test_scrollback_append_utf8_content)
 
 END_TEST
 // Test: Long line that wraps multiple times
-START_TEST(test_scrollback_append_long_line)
-{
+START_TEST(test_scrollback_append_long_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -136,8 +133,7 @@ START_TEST(test_scrollback_append_long_line)
 
 END_TEST
 // Test: Empty line
-START_TEST(test_scrollback_append_empty_line)
-{
+START_TEST(test_scrollback_append_empty_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -155,8 +151,7 @@ START_TEST(test_scrollback_append_empty_line)
 
 END_TEST
 // Test: Array growth when capacity is exceeded
-START_TEST(test_scrollback_array_growth)
-{
+START_TEST(test_scrollback_array_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -185,8 +180,7 @@ START_TEST(test_scrollback_array_growth)
 
 END_TEST
 // Test: Text buffer growth when capacity is exceeded
-START_TEST(test_scrollback_buffer_growth)
-{
+START_TEST(test_scrollback_buffer_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -214,8 +208,7 @@ START_TEST(test_scrollback_buffer_growth)
 
 END_TEST
 // Test: Buffer growth requiring multiple doublings
-START_TEST(test_scrollback_buffer_multiple_doublings)
-{
+START_TEST(test_scrollback_buffer_multiple_doublings) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -240,8 +233,7 @@ START_TEST(test_scrollback_buffer_multiple_doublings)
 
 END_TEST
 // Test: Invalid UTF-8 sequence handling
-START_TEST(test_scrollback_append_invalid_utf8)
-{
+START_TEST(test_scrollback_append_invalid_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -262,8 +254,7 @@ START_TEST(test_scrollback_append_invalid_utf8)
 
 END_TEST
 // Test: Control characters (negative width from utf8proc_charwidth)
-START_TEST(test_scrollback_append_control_chars)
-{
+START_TEST(test_scrollback_append_control_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -283,8 +274,7 @@ START_TEST(test_scrollback_append_control_chars)
 
 END_TEST
 // Test: Line with trailing newline
-START_TEST(test_scrollback_append_trailing_newline)
-{
+START_TEST(test_scrollback_append_trailing_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -301,8 +291,7 @@ START_TEST(test_scrollback_append_trailing_newline)
 
 END_TEST
 // Test: Line with just newline
-START_TEST(test_scrollback_append_just_newline)
-{
+START_TEST(test_scrollback_append_just_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -319,8 +308,7 @@ START_TEST(test_scrollback_append_just_newline)
 
 END_TEST
 // Test: Line with multiple newlines
-START_TEST(test_scrollback_append_multiple_newlines)
-{
+START_TEST(test_scrollback_append_multiple_newlines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -337,8 +325,7 @@ START_TEST(test_scrollback_append_multiple_newlines)
 
 END_TEST
 // Test: Line with content and multiple trailing newlines
-START_TEST(test_scrollback_append_content_multiple_newlines)
-{
+START_TEST(test_scrollback_append_content_multiple_newlines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
@@ -355,8 +342,7 @@ START_TEST(test_scrollback_append_content_multiple_newlines)
 
 END_TEST
 // Test: Line with newline followed by control character
-START_TEST(test_scrollback_append_newline_control_char)
-{
+START_TEST(test_scrollback_append_newline_control_char) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);

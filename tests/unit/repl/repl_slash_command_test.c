@@ -70,8 +70,7 @@ START_TEST(test_pp_command_clears_input_buffer) {
 }
 END_TEST
 /* Test: /pp with additional text (e.g., "/pp input buffer") */
-START_TEST(test_pp_command_with_args)
-{
+START_TEST(test_pp_command_with_args) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -119,8 +118,7 @@ START_TEST(test_pp_command_with_args)
 
 END_TEST
 /* Test: Unknown slash command is ignored */
-START_TEST(test_unknown_slash_command)
-{
+START_TEST(test_unknown_slash_command) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -168,8 +166,7 @@ START_TEST(test_unknown_slash_command)
 
 END_TEST
 /* Test: Empty input buffer on newline - Phase 4: Enter always submits and clears */
-START_TEST(test_empty_input_buffer_newline)
-{
+START_TEST(test_empty_input_buffer_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -209,8 +206,7 @@ START_TEST(test_empty_input_buffer_newline)
 
 END_TEST
 /* Test: Regular text (not slash command) on newline - Phase 4: Enter submits and clears */
-START_TEST(test_slash_in_middle_not_command)
-{
+START_TEST(test_slash_in_middle_not_command) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -262,8 +258,7 @@ START_TEST(test_slash_in_middle_not_command)
 
 END_TEST
 /* Test: /pp command output appears in scrollback (command itself not rendered - legacy behavior) */
-START_TEST(test_pp_command_order_in_scrollback)
-{
+START_TEST(test_pp_command_order_in_scrollback) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -319,8 +314,7 @@ START_TEST(test_pp_command_order_in_scrollback)
 
 END_TEST
 /* Test: /pp output newline handling - verify trailing newline is handled correctly */
-START_TEST(test_pp_output_trailing_newline)
-{
+START_TEST(test_pp_output_trailing_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 

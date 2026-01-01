@@ -155,8 +155,7 @@ START_TEST(test_provider_metadata) {
 }
 END_TEST
 // Test: Provider + model metadata
-START_TEST(test_provider_and_model_metadata)
-{
+START_TEST(test_provider_and_model_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -172,8 +171,7 @@ START_TEST(test_provider_and_model_metadata)
 
 END_TEST
 // Test: Thinking level = 1 (low)
-START_TEST(test_thinking_level_low)
-{
+START_TEST(test_thinking_level_low) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -189,8 +187,7 @@ START_TEST(test_thinking_level_low)
 
 END_TEST
 // Test: Thinking level = 2 (med)
-START_TEST(test_thinking_level_med)
-{
+START_TEST(test_thinking_level_med) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -206,8 +203,7 @@ START_TEST(test_thinking_level_med)
 
 END_TEST
 // Test: Thinking level = 3 (high)
-START_TEST(test_thinking_level_high)
-{
+START_TEST(test_thinking_level_high) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -223,8 +219,7 @@ START_TEST(test_thinking_level_high)
 
 END_TEST
 // Test: Provider + thinking level
-START_TEST(test_provider_and_thinking_level)
-{
+START_TEST(test_provider_and_thinking_level) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -240,8 +235,7 @@ START_TEST(test_provider_and_thinking_level)
 
 END_TEST
 // Test: All metadata including provider and thinking level
-START_TEST(test_all_metadata_with_provider_thinking)
-{
+START_TEST(test_all_metadata_with_provider_thinking) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");

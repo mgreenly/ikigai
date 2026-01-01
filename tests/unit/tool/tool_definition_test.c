@@ -95,8 +95,7 @@ START_TEST(test_tool_param_def_struct_exists) {
 }
 END_TEST
 // Test: ik_tool_schema_def_t struct exists and is usable
-START_TEST(test_tool_schema_def_struct_exists)
-{
+START_TEST(test_tool_schema_def_struct_exists) {
     static const ik_tool_param_def_t params[] = {
         {"pattern", "Pattern to match", true},
         {"path", "Base path", false}
@@ -117,8 +116,7 @@ START_TEST(test_tool_schema_def_struct_exists)
 
 END_TEST
 // Test: ik_tool_build_schema_from_def basic functionality
-START_TEST(test_tool_build_schema_from_def_basic)
-{
+START_TEST(test_tool_build_schema_from_def_basic) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);
 
@@ -152,8 +150,7 @@ START_TEST(test_tool_build_schema_from_def_basic)
 
 END_TEST
 // Test: All schema definitions produce correct output (completeness check)
-START_TEST(test_schema_definitions_complete)
-{
+START_TEST(test_schema_definitions_complete) {
     // Verify all 5 tool schemas can be built and have expected tool names
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     ck_assert_ptr_nonnull(doc);

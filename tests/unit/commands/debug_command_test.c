@@ -91,8 +91,7 @@ END_TEST
 /**
  * Test: /debug off disables debug output
  */
-START_TEST(test_debug_off)
-{
+START_TEST(test_debug_off) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL
@@ -125,8 +124,7 @@ END_TEST
 /**
  * Test: /debug (no args) shows current status
  */
-START_TEST(test_debug_status)
-{
+START_TEST(test_debug_status) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL
@@ -153,8 +151,7 @@ END_TEST
 /**
  * Test: /debug (no args) shows ON when enabled
  */
-START_TEST(test_debug_status_on)
-{
+START_TEST(test_debug_status_on) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL and enable debug
@@ -182,8 +179,7 @@ END_TEST
 /**
  * Test: /debug with invalid argument shows error
  */
-START_TEST(test_debug_invalid_arg)
-{
+START_TEST(test_debug_invalid_arg) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL

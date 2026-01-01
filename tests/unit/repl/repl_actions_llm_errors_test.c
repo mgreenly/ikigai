@@ -221,8 +221,7 @@ START_TEST(test_get_provider_fails) {
 
 END_TEST
 // Test: ik_request_build_from_conversation fails (lines 157-161)
-START_TEST(test_build_request_fails)
-{
+START_TEST(test_build_request_fails) {
     // Set up model
     repl->current->model = talloc_strdup(repl->current, "gpt-4");
 
@@ -267,8 +266,7 @@ START_TEST(test_build_request_fails)
 
 END_TEST
 // Test: provider start_stream fails (lines 169-172)
-START_TEST(test_start_stream_fails)
-{
+START_TEST(test_start_stream_fails) {
     // Set up model
     repl->current->model = talloc_strdup(repl->current, "gpt-4");
 

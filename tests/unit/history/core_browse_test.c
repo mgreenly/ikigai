@@ -92,8 +92,7 @@ START_TEST(test_browsing_workflow) {
 }
 END_TEST
 // Test: Pending input preservation
-START_TEST(test_pending_input_preservation)
-{
+START_TEST(test_pending_input_preservation) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -119,8 +118,7 @@ START_TEST(test_pending_input_preservation)
 
 END_TEST
 // Test: Stop browsing
-START_TEST(test_stop_browsing)
-{
+START_TEST(test_stop_browsing) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
 
@@ -137,8 +135,7 @@ START_TEST(test_stop_browsing)
 
 END_TEST
 // Test: Stop browsing when not browsing (no pending)
-START_TEST(test_stop_browsing_no_pending)
-{
+START_TEST(test_stop_browsing_no_pending) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
 
@@ -155,8 +152,7 @@ START_TEST(test_stop_browsing_no_pending)
 
 END_TEST
 // Test: Empty history browsing (no-op)
-START_TEST(test_empty_history_browsing)
-{
+START_TEST(test_empty_history_browsing) {
     hist = ik_history_create(ctx, 5);
 
     // Start browsing with empty history
@@ -182,8 +178,7 @@ START_TEST(test_empty_history_browsing)
 
 END_TEST
 // Test: Navigation boundaries
-START_TEST(test_navigation_boundaries)
-{
+START_TEST(test_navigation_boundaries) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "only_one");
 
@@ -208,8 +203,7 @@ START_TEST(test_navigation_boundaries)
 
 END_TEST
 // Test: Get current when not browsing
-START_TEST(test_get_current_not_browsing)
-{
+START_TEST(test_get_current_not_browsing) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
 
@@ -223,8 +217,7 @@ START_TEST(test_get_current_not_browsing)
 
 END_TEST
 // Test: Restart browsing updates pending input
-START_TEST(test_restart_browsing_updates_pending)
-{
+START_TEST(test_restart_browsing_updates_pending) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -244,8 +237,7 @@ START_TEST(test_restart_browsing_updates_pending)
 
 END_TEST
 // Test: Add entry while browsing frees pending
-START_TEST(test_add_entry_while_browsing)
-{
+START_TEST(test_add_entry_while_browsing) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -268,8 +260,7 @@ START_TEST(test_add_entry_while_browsing)
 
 END_TEST
 // Test: Start browsing twice on empty history
-START_TEST(test_start_browsing_twice_empty_history)
-{
+START_TEST(test_start_browsing_twice_empty_history) {
     hist = ik_history_create(ctx, 5);
 
     // Start browsing on empty history
@@ -289,8 +280,7 @@ START_TEST(test_start_browsing_twice_empty_history)
 
 END_TEST
 // Test: Call next when index > count
-START_TEST(test_next_past_pending)
-{
+START_TEST(test_next_past_pending) {
     hist = ik_history_create(ctx, 5);
     ik_history_add(hist, "cmd1");
 

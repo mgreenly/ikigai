@@ -202,8 +202,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
 }
 END_TEST
 /* Test: Render creation failure (invalid terminal dimensions) */
-START_TEST(test_repl_init_render_invalid_dimensions)
-{
+START_TEST(test_repl_init_render_invalid_dimensions) {
     void *ctx = talloc_new(NULL);
 
     // Enable mock failure for ioctl
@@ -228,8 +227,7 @@ START_TEST(test_repl_init_render_invalid_dimensions)
 
 END_TEST
 /* Test: Signal handler setup failure */
-START_TEST(test_repl_init_signal_handler_failure)
-{
+START_TEST(test_repl_init_signal_handler_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -260,8 +258,7 @@ START_TEST(test_repl_init_signal_handler_failure)
 
 END_TEST
 /* Test: History load failure (graceful degradation) */
-START_TEST(test_repl_init_history_load_failure)
-{
+START_TEST(test_repl_init_history_load_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -298,8 +295,7 @@ START_TEST(test_repl_init_history_load_failure)
 
 END_TEST
 /* Test: Successful initialization verifies debug manager creation */
-START_TEST(test_repl_init_success_debug_manager)
-{
+START_TEST(test_repl_init_success_debug_manager) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -331,8 +327,7 @@ START_TEST(test_repl_init_success_debug_manager)
 
 END_TEST
 /* Test: Agent creation at REPL initialization */
-START_TEST(test_repl_init_creates_agent)
-{
+START_TEST(test_repl_init_creates_agent) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -371,8 +366,7 @@ START_TEST(test_repl_init_creates_agent)
 
 END_TEST
 /* Test: Initial agent is added to agents array */
-START_TEST(test_repl_init_agent_in_array)
-{
+START_TEST(test_repl_init_agent_in_array) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -400,8 +394,7 @@ START_TEST(test_repl_init_agent_in_array)
 
 END_TEST
 /* Test: ik_repl_find_agent returns correct agent */
-START_TEST(test_repl_find_agent_found)
-{
+START_TEST(test_repl_find_agent_found) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -428,8 +421,7 @@ START_TEST(test_repl_find_agent_found)
 
 END_TEST
 /* Test: ik_repl_find_agent returns NULL for unknown UUID */
-START_TEST(test_repl_find_agent_not_found)
-{
+START_TEST(test_repl_find_agent_not_found) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 

@@ -7,22 +7,25 @@ START_TEST(test_fzy_has_match_basic) {
     int result = has_match("abc", "abc");
     ck_assert_int_eq(result, 1);
 }
-END_TEST START_TEST(test_fzy_has_match_subsequence)
-{
+END_TEST
+
+START_TEST(test_fzy_has_match_subsequence) {
     // Test matching a subsequence
     int result = has_match("abc", "aXbXc");
     ck_assert_int_eq(result, 1);
 }
 
-END_TEST START_TEST(test_fzy_has_match_no_match)
-{
+END_TEST
+
+START_TEST(test_fzy_has_match_no_match) {
     // Test when there's no match
     int result = has_match("abc", "def");
     ck_assert_int_eq(result, 0);
 }
 
-END_TEST START_TEST(test_fzy_match_scoring)
-{
+END_TEST
+
+START_TEST(test_fzy_match_scoring) {
     // Test match scoring
     double score = match("abc", "abc");
     ck_assert(score > 0);

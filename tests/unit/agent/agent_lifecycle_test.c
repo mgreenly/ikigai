@@ -28,8 +28,7 @@ START_TEST(test_agent_allocated_under_parent) {
 }
 END_TEST
 // Test agent_ctx can be freed via talloc_free
-START_TEST(test_agent_can_be_freed)
-{
+START_TEST(test_agent_can_be_freed) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

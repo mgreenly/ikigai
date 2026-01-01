@@ -289,8 +289,7 @@ END_TEST
  * Test that tool execution correctly handles file not found without crashing.
  * This is a simpler unit-style test within the integration suite.
  */
-START_TEST(test_tool_exec_file_read_handles_missing_file)
-{
+START_TEST(test_tool_exec_file_read_handles_missing_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Execute tool on non-existent file

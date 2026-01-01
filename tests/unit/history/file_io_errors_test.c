@@ -183,8 +183,9 @@ START_TEST(test_history_ensure_directory_race_condition) {
     res_t res = ik_history_ensure_directory(ctx);
     ck_assert(is_ok(&res));
 }
-END_TEST START_TEST(test_history_ensure_directory_mkdir_failure)
-{
+END_TEST
+
+START_TEST(test_history_ensure_directory_mkdir_failure) {
     mock_mkdir_should_fail = true;
     mock_mkdir_errno = EACCES;
     res_t res = ik_history_ensure_directory(ctx);
@@ -193,8 +194,9 @@ END_TEST START_TEST(test_history_ensure_directory_mkdir_failure)
     ck_assert(strstr(error_message(res.err), "Failed to create") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_ensure_directory_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_ensure_directory_failure) {
     mock_mkdir_should_fail = true;
     mock_mkdir_errno = EACCES;
     res_t res = ik_history_load(ctx, hist, NULL);
@@ -202,8 +204,9 @@ END_TEST START_TEST(test_history_load_ensure_directory_failure)
     ck_assert_int_eq(error_code(res.err), ERR_IO);
 }
 
-END_TEST START_TEST(test_history_load_fopen_create_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_fopen_create_failure) {
     mock_fopen_should_fail = true;
     mock_fopen_fail_path = ".ikigai/history";
     res_t res = ik_history_load(ctx, hist, NULL);
@@ -212,8 +215,9 @@ END_TEST START_TEST(test_history_load_fopen_create_failure)
     ck_assert(strstr(error_message(res.err), "Failed to create") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_fopen_read_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_fopen_read_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -227,8 +231,9 @@ END_TEST START_TEST(test_history_load_fopen_read_failure)
     ck_assert(strstr(error_message(res.err), "Failed to open") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_fseek_to_end_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_fseek_to_end_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -242,8 +247,9 @@ END_TEST START_TEST(test_history_load_fseek_to_end_failure)
     ck_assert(strstr(error_message(res.err), "Failed to seek") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_ftell_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_ftell_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -256,8 +262,9 @@ END_TEST START_TEST(test_history_load_ftell_failure)
     ck_assert(strstr(error_message(res.err), "Failed to get size") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_fseek_to_beginning_failure)
-{
+END_TEST
+
+START_TEST(test_history_load_fseek_to_beginning_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -271,8 +278,9 @@ END_TEST START_TEST(test_history_load_fseek_to_beginning_failure)
     ck_assert(strstr(error_message(res.err), "Failed to seek") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_fread_incomplete)
-{
+END_TEST
+
+START_TEST(test_history_load_fread_incomplete) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -286,8 +294,9 @@ END_TEST START_TEST(test_history_load_fread_incomplete)
     ck_assert(strstr(error_message(res.err), "incomplete") != NULL);
 }
 
-END_TEST START_TEST(test_history_load_exceeds_max_entries)
-{
+END_TEST
+
+START_TEST(test_history_load_exceeds_max_entries) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     FILE *f = fopen(".ikigai/history", "w");
     ck_assert_ptr_nonnull(f);
@@ -300,8 +309,9 @@ END_TEST START_TEST(test_history_load_exceeds_max_entries)
     ck_assert_uint_eq(hist->count, 10);
 }
 
-END_TEST START_TEST(test_history_save_ensure_directory_failure)
-{
+END_TEST
+
+START_TEST(test_history_save_ensure_directory_failure) {
     ik_history_add(hist, "command1");
     ik_history_add(hist, "command2");
     mock_mkdir_should_fail = true;
@@ -312,8 +322,9 @@ END_TEST START_TEST(test_history_save_ensure_directory_failure)
     talloc_free(res.err);
 }
 
-END_TEST START_TEST(test_history_save_fopen_failure)
-{
+END_TEST
+
+START_TEST(test_history_save_fopen_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     ik_history_add(hist, "command1");
     ik_history_add(hist, "command2");
@@ -327,8 +338,9 @@ END_TEST START_TEST(test_history_save_fopen_failure)
     talloc_free(res.err);
 }
 
-END_TEST START_TEST(test_history_save_rename_failure)
-{
+END_TEST
+
+START_TEST(test_history_save_rename_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     ik_history_add(hist, "command1");
     ik_history_add(hist, "command2");
@@ -340,8 +352,9 @@ END_TEST START_TEST(test_history_save_rename_failure)
     talloc_free(res.err);
 }
 
-END_TEST START_TEST(test_history_append_ensure_directory_failure)
-{
+END_TEST
+
+START_TEST(test_history_append_ensure_directory_failure) {
     mock_mkdir_should_fail = true;
     mock_mkdir_errno = EACCES;
     res_t res = ik_history_append_entry("test command");
@@ -350,8 +363,9 @@ END_TEST START_TEST(test_history_append_ensure_directory_failure)
     talloc_free(res.err);
 }
 
-END_TEST START_TEST(test_history_append_fopen_failure)
-{
+END_TEST
+
+START_TEST(test_history_append_fopen_failure) {
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
     mock_fopen_should_fail = true;
     mock_fopen_fail_path = ".ikigai/history";

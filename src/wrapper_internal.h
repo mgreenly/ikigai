@@ -73,11 +73,11 @@ MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req
                                           void *completion_cb, void *completion_ctx)
 {
     return ik_http_multi_add_request((ik_http_multi_t *)http_multi,
-                                      (const ik_http_request_t *)http_req,
-                                      (ik_http_write_cb_t)write_cb,
-                                      write_ctx,
-                                      (ik_http_completion_cb_t)completion_cb,
-                                      completion_ctx);
+                                     (const ik_http_request_t *)http_req,
+                                     (ik_http_write_cb_t)write_cb,
+                                     write_ctx,
+                                     (ik_http_completion_cb_t)completion_cb,
+                                     completion_ctx);
 }
 
 MOCKABLE void ik_agent_start_tool_execution_(void *agent)
@@ -123,9 +123,12 @@ MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out);
 MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out);
 MOCKABLE res_t ik_http_multi_create_(void *parent, void **out);
 MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
-MOCKABLE res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
-                                          void *write_cb, void *write_ctx,
-                                          void *completion_cb, void *completion_ctx);
+MOCKABLE res_t ik_http_multi_add_request_(void *http_multi,
+                                          const void *http_req,
+                                          void *write_cb,
+                                          void *write_ctx,
+                                          void *completion_cb,
+                                          void *completion_ctx);
 MOCKABLE void ik_agent_start_tool_execution_(void *agent);
 MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent);
 MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent);

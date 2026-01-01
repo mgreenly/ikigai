@@ -50,8 +50,7 @@ START_TEST(test_completion_debug_args) {
 }
 END_TEST
 /* Test: Partial argument matching */
-START_TEST(test_completion_partial_arg)
-{
+START_TEST(test_completion_partial_arg) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);

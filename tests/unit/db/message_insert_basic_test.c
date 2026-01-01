@@ -130,8 +130,7 @@ START_TEST(test_db_message_insert_clear_event) {
 }
 END_TEST
 // Test: Insert system event with content
-START_TEST(test_db_message_insert_system_event)
-{
+START_TEST(test_db_message_insert_system_event) {
     SKIP_IF_NO_DB();
 
     const char *system_prompt = "You are a helpful assistant.";
@@ -154,8 +153,7 @@ START_TEST(test_db_message_insert_system_event)
 
 END_TEST
 // Test: Insert user event with JSONB data
-START_TEST(test_db_message_insert_user_event)
-{
+START_TEST(test_db_message_insert_user_event) {
     SKIP_IF_NO_DB();
 
     const char *user_msg = "Hello, how are you?";
@@ -182,8 +180,7 @@ START_TEST(test_db_message_insert_user_event)
 
 END_TEST
 // Test: Insert assistant event with response metadata
-START_TEST(test_db_message_insert_assistant_event)
-{
+START_TEST(test_db_message_insert_assistant_event) {
     SKIP_IF_NO_DB();
 
     const char *assistant_msg = "I'm doing well, thank you!";
@@ -210,8 +207,7 @@ START_TEST(test_db_message_insert_assistant_event)
 
 END_TEST
 // Test: Insert mark event with label
-START_TEST(test_db_message_insert_mark_event)
-{
+START_TEST(test_db_message_insert_mark_event) {
     SKIP_IF_NO_DB();
 
     const char *mark_label = "approach-a";
@@ -234,8 +230,7 @@ START_TEST(test_db_message_insert_mark_event)
 
 END_TEST
 // Test: Insert rewind event with target reference
-START_TEST(test_db_message_insert_rewind_event)
-{
+START_TEST(test_db_message_insert_rewind_event) {
     SKIP_IF_NO_DB();
 
     const char *target_label = "approach-a";
@@ -261,8 +256,7 @@ START_TEST(test_db_message_insert_rewind_event)
 
 END_TEST
 // Test: Insert with empty string content
-START_TEST(test_db_message_insert_empty_content)
-{
+START_TEST(test_db_message_insert_empty_content) {
     SKIP_IF_NO_DB();
 
     res_t res = ik_db_message_insert(db, session_id, NULL, "user", "", NULL);
@@ -281,8 +275,7 @@ START_TEST(test_db_message_insert_empty_content)
 
 END_TEST
 // Test: Insert with NULL data field
-START_TEST(test_db_message_insert_null_data)
-{
+START_TEST(test_db_message_insert_null_data) {
     SKIP_IF_NO_DB();
 
     res_t res = ik_db_message_insert(db, session_id, NULL, "system", "Test", NULL);

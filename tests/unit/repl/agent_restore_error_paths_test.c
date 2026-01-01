@@ -213,8 +213,7 @@ START_TEST(test_restore_agents_fresh_install_with_system_message) {
 }
 END_TEST
 // Test: Fresh install scenario - Agent 0 with no history and NO system message configured
-START_TEST(test_restore_agents_fresh_install_no_system_message)
-{
+START_TEST(test_restore_agents_fresh_install_no_system_message) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with NO messages (fresh install)
@@ -238,8 +237,7 @@ START_TEST(test_restore_agents_fresh_install_no_system_message)
 END_TEST
 // Test: Agent 0 with marks in history - marks tested in agent_restore_test.c
 // (mark_stack population depends on replay logic implementation)
-START_TEST(test_restore_agents_agent0_with_mark_events)
-{
+START_TEST(test_restore_agents_agent0_with_mark_events) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with mark events
@@ -267,8 +265,7 @@ START_TEST(test_restore_agents_agent0_with_mark_events)
 
 END_TEST
 // Test: Child agent with mark events in history
-START_TEST(test_restore_agents_child_with_mark_events)
-{
+START_TEST(test_restore_agents_child_with_mark_events) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0
@@ -303,8 +300,7 @@ START_TEST(test_restore_agents_child_with_mark_events)
 
 END_TEST
 // Test: Agent with only one message in comparison function
-START_TEST(test_restore_agents_single_agent_comparison)
-{
+START_TEST(test_restore_agents_single_agent_comparison) {
     SKIP_IF_NO_DB();
 
     // Insert single agent (exercises qsort comparison with count=1, which skips qsort)
@@ -323,8 +319,7 @@ START_TEST(test_restore_agents_single_agent_comparison)
 
 END_TEST
 // Test: Agents with identical timestamps (exercises comparison return 0)
-START_TEST(test_restore_agents_identical_timestamps)
-{
+START_TEST(test_restore_agents_identical_timestamps) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0
@@ -348,8 +343,7 @@ START_TEST(test_restore_agents_identical_timestamps)
 
 END_TEST
 // Test: Agents sorted correctly with return 1 from comparison (newer timestamp)
-START_TEST(test_restore_agents_comparison_return_1)
-{
+START_TEST(test_restore_agents_comparison_return_1) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0
@@ -375,8 +369,7 @@ START_TEST(test_restore_agents_comparison_return_1)
 
 END_TEST
 // Test: Agent 0 with multiple message kinds (exercises conversation filter)
-START_TEST(test_restore_agents_agent0_multiple_kinds)
-{
+START_TEST(test_restore_agents_agent0_multiple_kinds) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0 with various message kinds
@@ -401,8 +394,7 @@ START_TEST(test_restore_agents_agent0_multiple_kinds)
 
 END_TEST
 // Test: Child agent with multiple message kinds
-START_TEST(test_restore_agents_child_multiple_kinds)
-{
+START_TEST(test_restore_agents_child_multiple_kinds) {
     SKIP_IF_NO_DB();
 
     // Insert Agent 0

@@ -67,8 +67,7 @@ START_TEST(test_agent_transition_to_waiting_for_llm) {
 }
 END_TEST
 /* Test: Transition from WAITING_FOR_LLM to IDLE */
-START_TEST(test_agent_transition_to_idle)
-{
+START_TEST(test_agent_transition_to_idle) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -94,8 +93,7 @@ START_TEST(test_agent_transition_to_idle)
 
 END_TEST
 /* Test: Transition from WAITING_FOR_LLM to EXECUTING_TOOL */
-START_TEST(test_agent_transition_to_executing_tool)
-{
+START_TEST(test_agent_transition_to_executing_tool) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -120,8 +118,7 @@ START_TEST(test_agent_transition_to_executing_tool)
 
 END_TEST
 /* Test: Transition from EXECUTING_TOOL back to WAITING_FOR_LLM */
-START_TEST(test_agent_transition_from_executing_tool)
-{
+START_TEST(test_agent_transition_from_executing_tool) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -146,8 +143,7 @@ START_TEST(test_agent_transition_from_executing_tool)
 
 END_TEST
 /* Test: Full tool execution cycle */
-START_TEST(test_agent_full_tool_cycle)
-{
+START_TEST(test_agent_full_tool_cycle) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 

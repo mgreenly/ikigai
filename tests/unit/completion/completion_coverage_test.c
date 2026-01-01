@@ -53,8 +53,7 @@ static void teardown(void)
 }
 
 // Test: Coverage for line 310 false branch - /model without slash
-START_TEST(test_model_completion_without_slash)
-{
+START_TEST(test_model_completion_without_slash) {
     // "/model " should complete model names (no slash, so false branch at line 310)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model ");
     ck_assert_ptr_nonnull(comp);
@@ -78,8 +77,7 @@ START_TEST(test_model_completion_without_slash)
 END_TEST
 
 // Test: Coverage for line 310 true branch - /model with slash
-START_TEST(test_model_completion_with_slash)
-{
+START_TEST(test_model_completion_with_slash) {
     // "/model gpt-4o/" should complete thinking levels (slash present, so true branch at line 310)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model gpt-4o/");
     ck_assert_ptr_nonnull(comp);
@@ -104,8 +102,7 @@ START_TEST(test_model_completion_with_slash)
 END_TEST
 
 // Test: Coverage for lines 136-141 - rewind args with labeled marks
-START_TEST(test_rewind_completion_with_labeled_marks)
-{
+START_TEST(test_rewind_completion_with_labeled_marks) {
     // Create marks with labels (lines 136-141 collect these)
     ik_mark_t *mark1 = talloc_zero(test_repl, ik_mark_t);
     mark1->label = talloc_strdup(mark1, "checkpoint1");

@@ -91,8 +91,7 @@ START_TEST(test_render_mark_yyjson_get_str_returns_null) {
 END_TEST
 // Test: Render mark event when scrollback append fails
 // This tests the error handling at lines 85-87 in event_render.c
-START_TEST(test_render_mark_scrollback_append_fails)
-{
+START_TEST(test_render_mark_scrollback_append_fails) {
     void *ctx = talloc_new(NULL);
     reset_mocks();
 

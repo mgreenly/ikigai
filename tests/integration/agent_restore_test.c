@@ -248,8 +248,7 @@ START_TEST(test_multi_agent_restart_preserves_hierarchy) {
 }
 END_TEST
 // Test: Forked agent survives restart with correct history
-START_TEST(test_forked_agent_survives_restart)
-{
+START_TEST(test_forked_agent_survives_restart) {
     SKIP_IF_NO_DB();
 
     insert_agent("parent-fork-test", NULL, 1000, 0);
@@ -281,8 +280,7 @@ START_TEST(test_forked_agent_survives_restart)
 
 END_TEST
 // Test: Killed agents not restored (status != 'running')
-START_TEST(test_killed_agent_not_restored)
-{
+START_TEST(test_killed_agent_not_restored) {
     SKIP_IF_NO_DB();
 
     insert_agent("parent-kill-test", NULL, 1000, 0);
@@ -311,8 +309,7 @@ START_TEST(test_killed_agent_not_restored)
 
 END_TEST
 // Test: Fork points respected on restore
-START_TEST(test_fork_points_respected_on_restore)
-{
+START_TEST(test_fork_points_respected_on_restore) {
     SKIP_IF_NO_DB();
 
     insert_agent("parent-forkpt", NULL, 1000, 0);
@@ -351,8 +348,7 @@ START_TEST(test_fork_points_respected_on_restore)
 
 END_TEST
 // Test: Clear events respected
-START_TEST(test_clear_events_respected_on_restore)
-{
+START_TEST(test_clear_events_respected_on_restore) {
     SKIP_IF_NO_DB();
 
     insert_agent("agent-clear-test", NULL, 1000, 0);
@@ -373,8 +369,7 @@ START_TEST(test_clear_events_respected_on_restore)
 
 END_TEST
 // Test: Deep ancestry
-START_TEST(test_deep_ancestry_on_restore)
-{
+START_TEST(test_deep_ancestry_on_restore) {
     SKIP_IF_NO_DB();
 
     insert_agent("grandparent-deep", NULL, 1000, 0);
@@ -410,8 +405,7 @@ START_TEST(test_deep_ancestry_on_restore)
 
 END_TEST
 // Test: Dependency ordering
-START_TEST(test_dependency_ordering_on_restore)
-{
+START_TEST(test_dependency_ordering_on_restore) {
     SKIP_IF_NO_DB();
 
     insert_agent("parent-order", NULL, 2000, 0);
@@ -426,8 +420,7 @@ START_TEST(test_dependency_ordering_on_restore)
 
 END_TEST
 // Test: Metadata events filtered
-START_TEST(test_metadata_events_filtered_on_restore)
-{
+START_TEST(test_metadata_events_filtered_on_restore) {
     SKIP_IF_NO_DB();
 
     insert_agent("agent-metadata", NULL, 1000, 0);

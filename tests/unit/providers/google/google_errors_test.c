@@ -46,8 +46,9 @@ START_TEST(test_parse_authentication_error_401) {
     ck_assert_ptr_nonnull(message);
     ck_assert_ptr_nonnull(strstr(message, "API key"));
 }
-END_TEST START_TEST(test_parse_rate_limit_error_429)
-{
+END_TEST
+
+START_TEST(test_parse_rate_limit_error_429) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":429,"
@@ -76,8 +77,9 @@ END_TEST START_TEST(test_parse_rate_limit_error_429)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_quota_exceeded_error)
-{
+END_TEST
+
+START_TEST(test_parse_quota_exceeded_error) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":403,"
@@ -99,8 +101,9 @@ END_TEST START_TEST(test_parse_quota_exceeded_error)
     ck_assert_ptr_nonnull(strstr(message, "Quota"));
 }
 
-END_TEST START_TEST(test_parse_validation_error_400)
-{
+END_TEST
+
+START_TEST(test_parse_validation_error_400) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":400,"
@@ -121,8 +124,9 @@ END_TEST START_TEST(test_parse_validation_error_400)
     ck_assert_ptr_nonnull(strstr(message, "Invalid argument"));
 }
 
-END_TEST START_TEST(test_map_errors_to_correct_categories)
-{
+END_TEST
+
+START_TEST(test_map_errors_to_correct_categories) {
     // Test 401 -> AUTH
     ik_error_category_t cat1;
     char *msg1 = NULL;

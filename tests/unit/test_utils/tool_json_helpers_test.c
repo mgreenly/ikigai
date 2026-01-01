@@ -40,8 +40,7 @@ START_TEST(test_parse_success_valid) {
 }
 END_TEST
 // Test: ik_test_tool_parse_error with valid error response
-START_TEST(test_parse_error_valid)
-{
+START_TEST(test_parse_error_valid) {
     const char *json = "{\"success\": false, \"error\": \"File not found\"}";
     yyjson_doc *doc = NULL;
 
@@ -57,8 +56,7 @@ START_TEST(test_parse_error_valid)
 
 END_TEST
 // Test: ik_test_tool_get_output extracts output field
-START_TEST(test_get_output)
-{
+START_TEST(test_get_output) {
     const char *json = "{\"success\": true, \"data\": {\"output\": \"hello world\", \"exit_code\": 0}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
@@ -74,8 +72,7 @@ START_TEST(test_get_output)
 
 END_TEST
 // Test: ik_test_tool_get_exit_code extracts exit_code field
-START_TEST(test_get_exit_code)
-{
+START_TEST(test_get_exit_code) {
     const char *json = "{\"success\": true, \"data\": {\"output\": \"test\", \"exit_code\": 42}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);

@@ -64,7 +64,6 @@ res_t ik_repl_render_frame_(void *repl_ctx)
     return OK(NULL);
 }
 
-
 static void setup(void)
 {
     ctx = talloc_new(NULL);
@@ -138,8 +137,7 @@ static void teardown(void)
 
 /* ========== Basic Test ========== */
 
-START_TEST(test_basic_setup)
-{
+START_TEST(test_basic_setup) {
     /* Just verify that our setup/teardown works */
     ck_assert_ptr_nonnull(repl);
     ck_assert_ptr_nonnull(agent);

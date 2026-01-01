@@ -316,8 +316,7 @@ START_TEST(test_repl_init_session_get_active_failure) {
 }
 END_TEST
 /* Test: Session create failure */
-START_TEST(test_repl_init_session_create_failure)
-{
+START_TEST(test_repl_init_session_create_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -347,8 +346,7 @@ START_TEST(test_repl_init_session_create_failure)
 
 END_TEST
 /* Test: Restore agents failure */
-START_TEST(test_repl_init_restore_agents_failure)
-{
+START_TEST(test_repl_init_restore_agents_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -378,8 +376,7 @@ START_TEST(test_repl_init_restore_agents_failure)
 
 END_TEST
 /* Test: Existing session found (session_id != 0) */
-START_TEST(test_repl_init_existing_session)
-{
+START_TEST(test_repl_init_existing_session) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 

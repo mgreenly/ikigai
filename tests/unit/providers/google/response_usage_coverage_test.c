@@ -25,8 +25,7 @@ static void teardown(void)
  * Usage Metadata Field Combinations
  * ================================================================ */
 
-START_TEST(test_parse_usage_missing_prompt_tokens)
-{
+START_TEST(test_parse_usage_missing_prompt_tokens) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -52,8 +51,7 @@ START_TEST(test_parse_usage_missing_prompt_tokens)
 }
 END_TEST
 
-START_TEST(test_parse_usage_missing_candidates_tokens)
-{
+START_TEST(test_parse_usage_missing_candidates_tokens) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -79,8 +77,7 @@ START_TEST(test_parse_usage_missing_candidates_tokens)
 }
 END_TEST
 
-START_TEST(test_parse_usage_missing_thoughts_tokens)
-{
+START_TEST(test_parse_usage_missing_thoughts_tokens) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"

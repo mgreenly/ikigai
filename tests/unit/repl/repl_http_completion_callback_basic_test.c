@@ -101,8 +101,7 @@ START_TEST(test_completion_flushes_streaming_buffer) {
 }
 END_TEST
 /* Test: Completion clears previous error message */
-START_TEST(test_completion_clears_previous_error)
-{
+START_TEST(test_completion_clears_previous_error) {
     /* Set up previous error */
     repl->current->http_error_message = talloc_strdup(repl, "Previous error");
 
@@ -119,8 +118,7 @@ START_TEST(test_completion_clears_previous_error)
 
 END_TEST
 /* Test: Completion stores error message on failure */
-START_TEST(test_completion_stores_error_on_failure)
-{
+START_TEST(test_completion_stores_error_on_failure) {
     /* Create failed completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 500 server error");
     ik_provider_completion_t completion = make_error_completion(500, IK_ERR_CAT_SERVER, error_msg);
@@ -136,8 +134,7 @@ START_TEST(test_completion_stores_error_on_failure)
 
 END_TEST
 /* Test: Completion stores response metadata on success */
-START_TEST(test_completion_stores_metadata_on_success)
-{
+START_TEST(test_completion_stores_metadata_on_success) {
     /* Create response with metadata */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = talloc_strdup(response, "gpt-4-turbo");
@@ -164,8 +161,7 @@ START_TEST(test_completion_stores_metadata_on_success)
 
 END_TEST
 /* Test: Completion clears previous metadata before storing new */
-START_TEST(test_completion_clears_previous_metadata)
-{
+START_TEST(test_completion_clears_previous_metadata) {
     /* Set up previous metadata */
     repl->current->response_model = talloc_strdup(repl, "old-model");
     repl->current->response_finish_reason = talloc_strdup(repl, "old-reason");
@@ -195,8 +191,7 @@ START_TEST(test_completion_clears_previous_metadata)
 
 END_TEST
 /* Test: Completion with NULL metadata doesn't store anything */
-START_TEST(test_completion_null_metadata)
-{
+START_TEST(test_completion_null_metadata) {
     /* Create successful completion without response (NULL metadata) */
     ik_provider_completion_t completion = make_success_completion();
     /* response is already NULL */
@@ -213,8 +208,7 @@ START_TEST(test_completion_null_metadata)
 
 END_TEST
 /* Test: Completion with network error stores error message */
-START_TEST(test_completion_network_error)
-{
+START_TEST(test_completion_network_error) {
     /* Create network error completion */
     char *error_msg = talloc_strdup(ctx, "Connection error: Failed to connect");
     ik_provider_completion_t completion = make_error_completion(0, IK_ERR_CAT_NETWORK, error_msg);
@@ -230,8 +224,7 @@ START_TEST(test_completion_network_error)
 
 END_TEST
 /* Test: Completion with client error (4xx) stores error */
-START_TEST(test_completion_client_error)
-{
+START_TEST(test_completion_client_error) {
     /* Create client error completion */
     char *error_msg = talloc_strdup(ctx, "HTTP 401 error");
     ik_provider_completion_t completion = make_error_completion(401, IK_ERR_CAT_AUTH, error_msg);
@@ -247,8 +240,7 @@ START_TEST(test_completion_client_error)
 
 END_TEST
 /* Test: Both streaming buffer and error handling */
-START_TEST(test_completion_flushes_buffer_and_stores_error)
-{
+START_TEST(test_completion_flushes_buffer_and_stores_error) {
     /* Set up partial streaming content */
     repl->current->streaming_line_buffer = talloc_strdup(repl, "Incomplete response");
 
@@ -271,8 +263,7 @@ START_TEST(test_completion_flushes_buffer_and_stores_error)
 
 END_TEST
 /* Test: Error completion with NULL error_message doesn't store error */
-START_TEST(test_completion_error_null_message)
-{
+START_TEST(test_completion_error_null_message) {
     /* Create error completion with NULL error message */
     ik_provider_completion_t completion = make_error_completion(500, IK_ERR_CAT_SERVER, NULL);
 
@@ -287,8 +278,7 @@ START_TEST(test_completion_error_null_message)
 END_TEST
 
 /* Test: Completion with text content (not tool_call) */
-START_TEST(test_completion_text_content_no_tool_call)
-{
+START_TEST(test_completion_text_content_no_tool_call) {
     /* Create response with text content block */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;

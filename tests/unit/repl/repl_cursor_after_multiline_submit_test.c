@@ -63,8 +63,9 @@ START_TEST(test_scrollback_lines_after_single_line_submit) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_scrollback_lines_after_multiline_submit)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_after_multiline_submit) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -86,8 +87,9 @@ END_TEST START_TEST(test_scrollback_lines_after_multiline_submit)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_with_leading_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_with_leading_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -106,8 +108,9 @@ END_TEST START_TEST(test_scrollback_lines_with_leading_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_with_trailing_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_with_trailing_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -126,8 +129,9 @@ END_TEST START_TEST(test_scrollback_lines_with_trailing_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_after_three_line_submit)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_after_three_line_submit) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -153,8 +157,9 @@ END_TEST START_TEST(test_scrollback_lines_after_three_line_submit)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_a_b_trailing_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_a_b_trailing_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -177,8 +182,9 @@ END_TEST START_TEST(test_scrollback_lines_a_b_trailing_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_single_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_single_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -195,8 +201,9 @@ END_TEST START_TEST(test_scrollback_lines_single_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_double_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_double_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -215,8 +222,9 @@ END_TEST START_TEST(test_scrollback_lines_double_newline)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_lines_content_double_newline)
-{
+END_TEST
+
+START_TEST(test_scrollback_lines_content_double_newline) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 

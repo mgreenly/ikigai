@@ -35,20 +35,23 @@ START_TEST(test_role_to_string_user) {
     const char *role = ik_google_role_to_string(IK_ROLE_USER);
     ck_assert_str_eq(role, "user");
 }
-END_TEST START_TEST(test_role_to_string_assistant)
-{
+END_TEST
+
+START_TEST(test_role_to_string_assistant) {
     const char *role = ik_google_role_to_string(IK_ROLE_ASSISTANT);
     ck_assert_str_eq(role, "model");
 }
 
-END_TEST START_TEST(test_role_to_string_tool)
-{
+END_TEST
+
+START_TEST(test_role_to_string_tool) {
     const char *role = ik_google_role_to_string(IK_ROLE_TOOL);
     ck_assert_str_eq(role, "function");
 }
 
-END_TEST START_TEST(test_role_to_string_invalid)
-{
+END_TEST
+
+START_TEST(test_role_to_string_invalid) {
     const char *role = ik_google_role_to_string((ik_role_t)999);
     ck_assert_str_eq(role, "user");
 }
@@ -58,8 +61,7 @@ END_TEST
  * Content Block Serialization Tests
  * ================================================================ */
 
-START_TEST(test_serialize_content_text)
-{
+START_TEST(test_serialize_content_text) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
@@ -78,8 +80,9 @@ START_TEST(test_serialize_content_text)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_content_thinking)
-{
+END_TEST
+
+START_TEST(test_serialize_content_thinking) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
@@ -101,8 +104,9 @@ END_TEST START_TEST(test_serialize_content_thinking)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_content_tool_call)
-{
+END_TEST
+
+START_TEST(test_serialize_content_tool_call) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
@@ -131,8 +135,9 @@ END_TEST START_TEST(test_serialize_content_tool_call)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_content_tool_call_invalid_json)
-{
+END_TEST
+
+START_TEST(test_serialize_content_tool_call_invalid_json) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
@@ -148,8 +153,9 @@ END_TEST START_TEST(test_serialize_content_tool_call_invalid_json)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_content_tool_result)
-{
+END_TEST
+
+START_TEST(test_serialize_content_tool_result) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
@@ -182,8 +188,7 @@ END_TEST
  * Message Parts Serialization Tests
  * ================================================================ */
 
-START_TEST(test_serialize_message_parts_basic)
-{
+START_TEST(test_serialize_message_parts_basic) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 
@@ -206,8 +211,9 @@ START_TEST(test_serialize_message_parts_basic)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_message_parts_with_thought_signature)
-{
+END_TEST
+
+START_TEST(test_serialize_message_parts_with_thought_signature) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 
@@ -235,8 +241,9 @@ END_TEST START_TEST(test_serialize_message_parts_with_thought_signature)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_message_parts_thought_not_first_assistant)
-{
+END_TEST
+
+START_TEST(test_serialize_message_parts_thought_not_first_assistant) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 
@@ -261,8 +268,9 @@ END_TEST START_TEST(test_serialize_message_parts_thought_not_first_assistant)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_message_parts_with_tool_call)
-{
+END_TEST
+
+START_TEST(test_serialize_message_parts_with_tool_call) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 
@@ -287,8 +295,9 @@ END_TEST START_TEST(test_serialize_message_parts_with_tool_call)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_message_parts_with_tool_result)
-{
+END_TEST
+
+START_TEST(test_serialize_message_parts_with_tool_result) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 
@@ -312,8 +321,9 @@ END_TEST START_TEST(test_serialize_message_parts_with_tool_result)
     yyjson_mut_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_message_parts_invalid_block_stops)
-{
+END_TEST
+
+START_TEST(test_serialize_message_parts_invalid_block_stops) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
 

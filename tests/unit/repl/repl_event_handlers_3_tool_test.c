@@ -155,8 +155,7 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-START_TEST(test_success_with_pending_tool_call)
-{
+START_TEST(test_success_with_pending_tool_call) {
     /* Reset mock state */
     mock_start_tool_called = false;
     mock_should_continue_called = false;
@@ -187,8 +186,7 @@ START_TEST(test_success_with_pending_tool_call)
 
 END_TEST
 
-START_TEST(test_success_with_tool_loop_continuation)
-{
+START_TEST(test_success_with_tool_loop_continuation) {
     /* Reset mock state */
     mock_start_tool_called = false;
     mock_should_continue_called = false;
@@ -216,8 +214,7 @@ START_TEST(test_success_with_tool_loop_continuation)
 
 END_TEST
 
-START_TEST(test_success_without_tool_continuation)
-{
+START_TEST(test_success_without_tool_continuation) {
     /* Reset mock state */
     mock_start_tool_called = false;
     mock_should_continue_called = false;

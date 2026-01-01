@@ -34,8 +34,9 @@ START_TEST(test_dispatch_glob_with_valid_json) {
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_dispatch_glob_returns_exec_result)
-{
+END_TEST
+
+START_TEST(test_dispatch_glob_returns_exec_result) {
     const char *arguments = "{\"pattern\": \"*.json\"}";
     res_t dispatch_res = ik_tool_dispatch(ctx, "glob", arguments);
 
@@ -48,8 +49,9 @@ END_TEST START_TEST(test_dispatch_glob_returns_exec_result)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_invalid_json_arguments)
-{
+END_TEST
+
+START_TEST(test_dispatch_invalid_json_arguments) {
     const char *arguments = "{invalid json";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
@@ -69,8 +71,9 @@ END_TEST START_TEST(test_dispatch_invalid_json_arguments)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
-{
+END_TEST
+
+START_TEST(test_dispatch_glob_missing_required_pattern) {
     const char *arguments = "{\"path\": \"/tmp\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
@@ -89,8 +92,9 @@ END_TEST START_TEST(test_dispatch_glob_missing_required_pattern)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_unknown_tool)
-{
+END_TEST
+
+START_TEST(test_dispatch_unknown_tool) {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "unknown_tool", arguments);
 
@@ -109,8 +113,9 @@ END_TEST START_TEST(test_dispatch_unknown_tool)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_null_tool_name)
-{
+END_TEST
+
+START_TEST(test_dispatch_null_tool_name) {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, NULL, arguments);
 
@@ -129,8 +134,9 @@ END_TEST START_TEST(test_dispatch_null_tool_name)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_empty_tool_name)
-{
+END_TEST
+
+START_TEST(test_dispatch_empty_tool_name) {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "", arguments);
 
@@ -149,8 +155,9 @@ END_TEST START_TEST(test_dispatch_empty_tool_name)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_read_missing_path)
-{
+END_TEST
+
+START_TEST(test_dispatch_file_read_missing_path) {
     const char *arguments = "{}";
     res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
 
@@ -169,8 +176,9 @@ END_TEST START_TEST(test_dispatch_file_read_missing_path)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_read_not_found)
-{
+END_TEST
+
+START_TEST(test_dispatch_file_read_not_found) {
     const char *arguments = "{\"path\": \"/nonexistent/file/that/does/not/exist\"}";
     res_t res = ik_tool_dispatch(ctx, "file_read", arguments);
 
@@ -184,8 +192,9 @@ END_TEST START_TEST(test_dispatch_file_read_not_found)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_grep_missing_pattern)
-{
+END_TEST
+
+START_TEST(test_dispatch_grep_missing_pattern) {
     const char *arguments = "{}";
     res_t res = ik_tool_dispatch(ctx, "grep", arguments);
 
@@ -204,8 +213,9 @@ END_TEST START_TEST(test_dispatch_grep_missing_pattern)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_grep_with_matches)
-{
+END_TEST
+
+START_TEST(test_dispatch_grep_with_matches) {
     const char *arguments = "{\"pattern\": \"test\", \"glob\": \"*.c\", \"path\": \"src\"}";
     res_t res = ik_tool_dispatch(ctx, "grep", arguments);
 
@@ -218,8 +228,9 @@ END_TEST START_TEST(test_dispatch_grep_with_matches)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_bash_success)
-{
+END_TEST
+
+START_TEST(test_dispatch_bash_success) {
     const char *arguments = "{\"command\": \"echo test\"}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
@@ -238,8 +249,9 @@ END_TEST START_TEST(test_dispatch_bash_success)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_bash_missing_command)
-{
+END_TEST
+
+START_TEST(test_dispatch_bash_missing_command) {
     const char *arguments = "{}";
     res_t res = ik_tool_dispatch(ctx, "bash", arguments);
 
@@ -258,8 +270,9 @@ END_TEST START_TEST(test_dispatch_bash_missing_command)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_error_format_single_field)
-{
+END_TEST
+
+START_TEST(test_dispatch_error_format_single_field) {
     const char *arguments = "{\"pattern\": \"*.c\"}";
     res_t res = ik_tool_dispatch(ctx, "nonexistent", arguments);
 
@@ -289,8 +302,9 @@ END_TEST START_TEST(test_dispatch_error_format_single_field)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_glob_with_null_path)
-{
+END_TEST
+
+START_TEST(test_dispatch_glob_with_null_path) {
     const char *arguments = "{\"pattern\": \"Makefile\"}";
     res_t res = ik_tool_dispatch(ctx, "glob", arguments);
 
@@ -303,8 +317,9 @@ END_TEST START_TEST(test_dispatch_glob_with_null_path)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_null_arguments)
-{
+END_TEST
+
+START_TEST(test_dispatch_null_arguments) {
     res_t res = ik_tool_dispatch(ctx, "glob", NULL);
 
     ck_assert(!res.is_err);
@@ -322,8 +337,9 @@ END_TEST START_TEST(test_dispatch_null_arguments)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_missing_path)
-{
+END_TEST
+
+START_TEST(test_dispatch_file_write_missing_path) {
     const char *arguments = "{\"content\": \"test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
 
@@ -342,8 +358,9 @@ END_TEST START_TEST(test_dispatch_file_write_missing_path)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_missing_content)
-{
+END_TEST
+
+START_TEST(test_dispatch_file_write_missing_content) {
     const char *arguments = "{\"path\": \"/tmp/test\"}";
     res_t res = ik_tool_dispatch(ctx, "file_write", arguments);
 
@@ -362,8 +379,9 @@ END_TEST START_TEST(test_dispatch_file_write_missing_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_dispatch_file_write_success)
-{
+END_TEST
+
+START_TEST(test_dispatch_file_write_success) {
     char test_file[] = "/tmp/ikigai-dispatcher-file-write-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);

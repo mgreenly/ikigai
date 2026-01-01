@@ -124,8 +124,7 @@ START_TEST(test_cmd_get_all) {
 }
 END_TEST
 // Test: Dispatch valid command (clear)
-START_TEST(test_dispatch_clear_command)
-{
+START_TEST(test_dispatch_clear_command) {
     // Add some content to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
@@ -141,8 +140,7 @@ START_TEST(test_dispatch_clear_command)
 
 END_TEST
 // Test: Dispatch valid command (help)
-START_TEST(test_dispatch_help_command)
-{
+START_TEST(test_dispatch_help_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -161,8 +159,7 @@ START_TEST(test_dispatch_help_command)
 
 END_TEST
 // Test: Dispatch command with arguments (mark)
-START_TEST(test_dispatch_mark_with_args)
-{
+START_TEST(test_dispatch_mark_with_args) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/mark checkpoint1");
     ck_assert(is_ok(&res));
 
@@ -182,8 +179,7 @@ START_TEST(test_dispatch_mark_with_args)
 
 END_TEST
 // Test: Dispatch unknown command
-START_TEST(test_dispatch_unknown_command)
-{
+START_TEST(test_dispatch_unknown_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unknown");
     ck_assert(is_err(&res));
 
@@ -198,8 +194,7 @@ START_TEST(test_dispatch_unknown_command)
 
 END_TEST
 // Test: Dispatch empty command (just "/")
-START_TEST(test_dispatch_empty_command)
-{
+START_TEST(test_dispatch_empty_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/");
     ck_assert(is_err(&res));
 
@@ -214,8 +209,7 @@ START_TEST(test_dispatch_empty_command)
 
 END_TEST
 // Test: Dispatch command with leading/trailing whitespace
-START_TEST(test_dispatch_command_with_whitespace)
-{
+START_TEST(test_dispatch_command_with_whitespace) {
     // Add content to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Test line", 9);
     ck_assert(is_ok(&res));
@@ -231,8 +225,7 @@ START_TEST(test_dispatch_command_with_whitespace)
 
 END_TEST
 // Test: Dispatch command with slash and whitespace
-START_TEST(test_dispatch_slash_whitespace)
-{
+START_TEST(test_dispatch_slash_whitespace) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/   ");
     ck_assert(is_err(&res));
 
@@ -247,8 +240,7 @@ START_TEST(test_dispatch_slash_whitespace)
 
 END_TEST
 // Test: Dispatch model command with argument
-START_TEST(test_dispatch_model_with_arg)
-{
+START_TEST(test_dispatch_model_with_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
 
@@ -268,8 +260,7 @@ START_TEST(test_dispatch_model_with_arg)
 
 END_TEST
 // Test: Dispatch rewind command with argument
-START_TEST(test_dispatch_rewind_with_arg)
-{
+START_TEST(test_dispatch_rewind_with_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/rewind checkpoint1");
     ck_assert(is_ok(&res));
 
@@ -284,8 +275,7 @@ START_TEST(test_dispatch_rewind_with_arg)
 
 END_TEST
 // Test: Dispatch system command with multiword argument
-START_TEST(test_dispatch_system_with_multiword_arg)
-{
+START_TEST(test_dispatch_system_with_multiword_arg) {
     res_t res =
         ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
     ck_assert(is_ok(&res));

@@ -42,8 +42,9 @@ START_TEST(test_response_create) {
     ck_assert_ptr_null(resp->model);
     ck_assert_ptr_null(resp->provider_data);
 }
-END_TEST START_TEST(test_response_add_content)
-{
+END_TEST
+
+START_TEST(test_response_add_content) {
     ik_response_t *resp = NULL;
     ik_response_create(test_ctx, &resp);
 
@@ -56,8 +57,9 @@ END_TEST START_TEST(test_response_add_content)
     ck_assert_str_eq(resp->content_blocks[0].data.text.text, "Hello");
 }
 
-END_TEST START_TEST(test_response_add_multiple_content)
-{
+END_TEST
+
+START_TEST(test_response_add_multiple_content) {
     ik_response_t *resp = NULL;
     ik_response_create(test_ctx, &resp);
 
@@ -79,8 +81,9 @@ END_TEST START_TEST(test_response_add_multiple_content)
     ck_assert_str_eq(resp->content_blocks[2].data.tool_call.id, "call_1");
 }
 
-END_TEST START_TEST(test_response_memory_lifecycle)
-{
+END_TEST
+
+START_TEST(test_response_memory_lifecycle) {
     /* Test that freeing response frees all child allocations */
     TALLOC_CTX *temp_ctx = talloc_new(NULL);
 

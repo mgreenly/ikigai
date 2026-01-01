@@ -132,8 +132,7 @@ START_TEST(test_db_mail_insert_creates_record) {
 }
 END_TEST
 // Test: Insert sets msg->id
-START_TEST(test_db_mail_insert_sets_msg_id)
-{
+START_TEST(test_db_mail_insert_sets_msg_id) {
     SKIP_IF_NO_DB();
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "agent-2", "Hello!");
@@ -149,8 +148,7 @@ START_TEST(test_db_mail_insert_sets_msg_id)
 
 END_TEST
 // Test: Inbox returns messages for recipient only
-START_TEST(test_db_mail_inbox_filters_by_recipient)
-{
+START_TEST(test_db_mail_inbox_filters_by_recipient) {
     SKIP_IF_NO_DB();
 
     // Insert messages to different recipients
@@ -176,8 +174,7 @@ START_TEST(test_db_mail_inbox_filters_by_recipient)
 
 END_TEST
 // Test: Inbox orders unread first
-START_TEST(test_db_mail_inbox_orders_unread_first)
-{
+START_TEST(test_db_mail_inbox_orders_unread_first) {
     SKIP_IF_NO_DB();
 
     // Insert messages
@@ -208,8 +205,7 @@ START_TEST(test_db_mail_inbox_orders_unread_first)
 
 END_TEST
 // Test: Inbox orders by timestamp desc
-START_TEST(test_db_mail_inbox_orders_by_timestamp_desc)
-{
+START_TEST(test_db_mail_inbox_orders_by_timestamp_desc) {
     SKIP_IF_NO_DB();
 
     // Insert messages with different timestamps
@@ -240,8 +236,7 @@ START_TEST(test_db_mail_inbox_orders_by_timestamp_desc)
 
 END_TEST
 // Test: Mark read updates read flag
-START_TEST(test_db_mail_mark_read_updates_flag)
-{
+START_TEST(test_db_mail_mark_read_updates_flag) {
     SKIP_IF_NO_DB();
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "agent-2", "Test");

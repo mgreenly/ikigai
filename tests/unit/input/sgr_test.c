@@ -32,8 +32,7 @@ START_TEST(test_input_parse_sgr_reset) {
 
 END_TEST
 // Test: 256-color foreground SGR sequence is discarded
-START_TEST(test_input_parse_sgr_256_color)
-{
+START_TEST(test_input_parse_sgr_256_color) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -79,8 +78,7 @@ START_TEST(test_input_parse_sgr_256_color)
 
 END_TEST
 // Test: pasting text with SGR before and after
-START_TEST(test_input_parse_text_with_sgr)
-{
+START_TEST(test_input_parse_text_with_sgr) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -152,8 +150,7 @@ START_TEST(test_input_parse_text_with_sgr)
 
 END_TEST
 // Test: pasting text with SGR prefix
-START_TEST(test_input_parse_text_with_sgr_prefix)
-{
+START_TEST(test_input_parse_text_with_sgr_prefix) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -221,8 +218,7 @@ START_TEST(test_input_parse_text_with_sgr_prefix)
 
 END_TEST
 // Test: non-SGR escapes still work after SGR implementation
-START_TEST(test_input_parse_arrow_still_works_with_sgr)
-{
+START_TEST(test_input_parse_arrow_still_works_with_sgr) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -244,8 +240,7 @@ START_TEST(test_input_parse_arrow_still_works_with_sgr)
 
 END_TEST
 // Test: ESC m with no '[' should reset (esc_len == 0 when checking 'm')
-START_TEST(test_input_parse_sgr_no_bracket)
-{
+START_TEST(test_input_parse_sgr_no_bracket) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

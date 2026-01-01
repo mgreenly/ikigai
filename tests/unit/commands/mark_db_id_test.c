@@ -200,8 +200,7 @@ START_TEST(test_mark_db_query_no_results) {
 }
 END_TEST
 // Test: get_mark_db_id with query failure (line 48 branches)
-START_TEST(test_mark_db_query_failure)
-{
+START_TEST(test_mark_db_query_failure) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -229,8 +228,7 @@ START_TEST(test_mark_db_query_failure)
 
 END_TEST
 // Test: get_mark_db_id with NULL db_ctx (line 24 branches)
-START_TEST(test_mark_db_id_null_ctx)
-{
+START_TEST(test_mark_db_id_null_ctx) {
     // No DB context
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 1;
@@ -253,8 +251,7 @@ START_TEST(test_mark_db_id_null_ctx)
 
 END_TEST
 // Test: get_mark_db_id with session_id <= 0 (line 24 branches)
-START_TEST(test_mark_db_id_invalid_session)
-{
+START_TEST(test_mark_db_id_invalid_session) {
     // DB context set but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -279,8 +276,7 @@ START_TEST(test_mark_db_id_invalid_session)
 
 END_TEST
 // Test: Rewind to unlabeled mark with DB query (NULL label path in get_mark_db_id)
-START_TEST(test_rewind_unlabeled_mark_db_query)
-{
+START_TEST(test_rewind_unlabeled_mark_db_query) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -309,8 +305,7 @@ START_TEST(test_rewind_unlabeled_mark_db_query)
 
 END_TEST
 // Test: sscanf fails with non-numeric string
-START_TEST(test_mark_db_id_sscanf_non_numeric)
-{
+START_TEST(test_mark_db_id_sscanf_non_numeric) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -339,8 +334,7 @@ START_TEST(test_mark_db_id_sscanf_non_numeric)
 
 END_TEST
 // Test: sscanf fails with empty string
-START_TEST(test_mark_db_id_sscanf_empty_string)
-{
+START_TEST(test_mark_db_id_sscanf_empty_string) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -369,8 +363,7 @@ START_TEST(test_mark_db_id_sscanf_empty_string)
 
 END_TEST
 // Test: sscanf fails with special characters
-START_TEST(test_mark_db_id_sscanf_special_chars)
-{
+START_TEST(test_mark_db_id_sscanf_special_chars) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -399,8 +392,7 @@ START_TEST(test_mark_db_id_sscanf_special_chars)
 
 END_TEST
 // Test: sscanf fails with text instead of number
-START_TEST(test_mark_db_id_sscanf_text_only)
-{
+START_TEST(test_mark_db_id_sscanf_text_only) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;

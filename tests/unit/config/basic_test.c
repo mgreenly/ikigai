@@ -26,8 +26,9 @@ START_TEST(test_config_types_exist) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_load_function_exists)
-{
+END_TEST
+
+START_TEST(test_config_load_function_exists) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -43,8 +44,9 @@ END_TEST START_TEST(test_config_load_function_exists)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_directory)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -81,8 +83,9 @@ END_TEST START_TEST(test_config_auto_create_directory)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_with_existing_directory)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_with_existing_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -121,8 +124,9 @@ END_TEST START_TEST(test_config_auto_create_with_existing_directory)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_defaults)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_defaults) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -156,8 +160,9 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_load_invalid_json)
-{
+END_TEST
+
+START_TEST(test_config_load_invalid_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -181,8 +186,9 @@ END_TEST START_TEST(test_config_load_invalid_json)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_memory_cleanup)
-{
+END_TEST
+
+START_TEST(test_config_memory_cleanup) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

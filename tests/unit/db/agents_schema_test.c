@@ -84,8 +84,7 @@ START_TEST(test_agents_table_exists) {
 }
 END_TEST
 // Test that agent_status enum exists with correct values
-START_TEST(test_agent_status_enum)
-{
+START_TEST(test_agent_status_enum) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -111,8 +110,7 @@ START_TEST(test_agent_status_enum)
 
 END_TEST
 // Test that all required columns exist
-START_TEST(test_required_columns_exist)
-{
+START_TEST(test_required_columns_exist) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -148,8 +146,7 @@ START_TEST(test_required_columns_exist)
 
 END_TEST
 // Test that required indexes exist
-START_TEST(test_required_indexes_exist)
-{
+START_TEST(test_required_indexes_exist) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);

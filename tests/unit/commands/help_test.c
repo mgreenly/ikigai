@@ -89,8 +89,7 @@ START_TEST(test_help_shows_header) {
 }
 END_TEST
 // Test: Help command includes all commands
-START_TEST(test_help_includes_all_commands)
-{
+START_TEST(test_help_includes_all_commands) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -105,8 +104,7 @@ START_TEST(test_help_includes_all_commands)
 
 END_TEST
 // Test: Help command lists clear
-START_TEST(test_help_lists_clear)
-{
+START_TEST(test_help_lists_clear) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -123,8 +121,7 @@ START_TEST(test_help_lists_clear)
 
 END_TEST
 // Test: Help command lists mark
-START_TEST(test_help_lists_mark)
-{
+START_TEST(test_help_lists_mark) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -141,8 +138,7 @@ START_TEST(test_help_lists_mark)
 
 END_TEST
 // Test: Help command lists rewind
-START_TEST(test_help_lists_rewind)
-{
+START_TEST(test_help_lists_rewind) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -159,8 +155,7 @@ START_TEST(test_help_lists_rewind)
 
 END_TEST
 // Test: Help command lists help (self-reference)
-START_TEST(test_help_lists_help)
-{
+START_TEST(test_help_lists_help) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -177,8 +172,7 @@ START_TEST(test_help_lists_help)
 
 END_TEST
 // Test: Help command lists model
-START_TEST(test_help_lists_model)
-{
+START_TEST(test_help_lists_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -195,8 +189,7 @@ START_TEST(test_help_lists_model)
 
 END_TEST
 // Test: Help command lists system
-START_TEST(test_help_lists_system)
-{
+START_TEST(test_help_lists_system) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -213,8 +206,7 @@ START_TEST(test_help_lists_system)
 
 END_TEST
 // Test: Help command with arguments (args should be ignored)
-START_TEST(test_help_with_arguments)
-{
+START_TEST(test_help_with_arguments) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help foo bar");
     ck_assert(is_ok(&res));
 

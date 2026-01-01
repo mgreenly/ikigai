@@ -266,8 +266,7 @@ START_TEST(test_db_message_insert_error) {
 }
 END_TEST
 // Test normal path (no DB error) for comparison
-START_TEST(test_db_message_insert_success)
-{
+START_TEST(test_db_message_insert_success) {
     // Set up: Insert text into input buffer
     const char *test_text = "Test message";
     for (const char *p = test_text; *p; p++) {
@@ -308,8 +307,7 @@ START_TEST(test_db_message_insert_success)
 
 END_TEST
 // Test DB error when db_debug_pipe is NULL (shouldn't crash)
-START_TEST(test_db_message_insert_error_no_debug_pipe)
-{
+START_TEST(test_db_message_insert_error_no_debug_pipe) {
     // Close and remove debug pipe
     fclose(repl->shared->db_debug_pipe->write_end);
     repl->shared->db_debug_pipe->write_end = NULL;
@@ -340,8 +338,7 @@ START_TEST(test_db_message_insert_error_no_debug_pipe)
 
 END_TEST
 // Test message submission when db_ctx is NULL (no DB persistence)
-START_TEST(test_message_submission_no_db_ctx)
-{
+START_TEST(test_message_submission_no_db_ctx) {
     // Set db_ctx to NULL
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 1;

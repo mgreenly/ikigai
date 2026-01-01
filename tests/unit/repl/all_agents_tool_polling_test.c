@@ -188,8 +188,7 @@ END_TEST
  * - Agent B is current (user switched)
  * - Event loop iterates all agents and finds Agent A needs handling
  */
-START_TEST(test_event_loop_polls_all_agents)
-{
+START_TEST(test_event_loop_polls_all_agents) {
     /* Wait for agent_a's thread to complete */
     int32_t max_wait = 200;
     bool complete = false;

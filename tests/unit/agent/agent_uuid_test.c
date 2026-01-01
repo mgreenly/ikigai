@@ -43,8 +43,7 @@ START_TEST(test_agent_uuid_non_null_and_22_chars) {
 }
 END_TEST
 // Test agent->uuid contains only base64url characters
-START_TEST(test_agent_uuid_base64url_chars)
-{
+START_TEST(test_agent_uuid_base64url_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -64,8 +63,7 @@ START_TEST(test_agent_uuid_base64url_chars)
 
 END_TEST
 // Test ik_generate_uuid() returns valid 22-char base64url string
-START_TEST(test_generate_uuid_returns_valid_string)
-{
+START_TEST(test_generate_uuid_returns_valid_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -79,8 +77,7 @@ START_TEST(test_generate_uuid_returns_valid_string)
 
 END_TEST
 // Test that multiple UUIDs are different (with seeded random)
-START_TEST(test_generate_uuid_produces_different_uuids)
-{
+START_TEST(test_generate_uuid_produces_different_uuids) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

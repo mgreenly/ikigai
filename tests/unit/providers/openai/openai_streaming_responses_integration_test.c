@@ -145,8 +145,9 @@ START_TEST(test_write_callback_with_thinking_delta) {
     ck_assert_int_eq(events->items[1].type, IK_STREAM_THINKING_DELTA);
     ck_assert_str_eq(events->items[1].data.delta.text, "Let me think");
 }
-END_TEST START_TEST(test_write_callback_with_tool_call)
-{
+END_TEST
+
+START_TEST(test_write_callback_with_tool_call) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -180,8 +181,9 @@ END_TEST START_TEST(test_write_callback_with_tool_call)
     ck_assert_int_eq(events->items[3].type, IK_STREAM_TOOL_CALL_DONE);
 }
 
-END_TEST START_TEST(test_write_callback_with_completion)
-{
+END_TEST
+
+START_TEST(test_write_callback_with_completion) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -213,8 +215,9 @@ END_TEST START_TEST(test_write_callback_with_completion)
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_write_callback_with_error_event)
-{
+END_TEST
+
+START_TEST(test_write_callback_with_error_event) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

@@ -232,8 +232,7 @@ static void teardown(void)
 
 /* ========== Tests ========== */
 
-START_TEST(test_curl_events_current_not_in_array)
-{
+START_TEST(test_curl_events_current_not_in_array) {
     /* Create a separate current agent that is NOT in the agents array */
     ik_agent_ctx_t *current_agent = talloc_zero(repl, ik_agent_ctx_t);
     current_agent->shared = shared;
@@ -289,8 +288,7 @@ START_TEST(test_curl_events_current_not_in_array)
 
 END_TEST
 
-START_TEST(test_curl_events_current_not_in_array_perform_error)
-{
+START_TEST(test_curl_events_current_not_in_array_perform_error) {
     /* Create a separate current agent that is NOT in the agents array */
     ik_agent_ctx_t *current_agent = talloc_zero(repl, ik_agent_ctx_t);
     current_agent->shared = shared;
@@ -325,8 +323,7 @@ START_TEST(test_curl_events_current_not_in_array_perform_error)
 
 END_TEST
 
-START_TEST(test_curl_events_background_agent_completes)
-{
+START_TEST(test_curl_events_background_agent_completes) {
     /* Create a background agent that IS in the array but NOT current */
     ik_agent_ctx_t *background_agent = talloc_zero(repl, ik_agent_ctx_t);
     background_agent->shared = shared;

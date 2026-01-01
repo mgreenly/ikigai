@@ -112,20 +112,19 @@ static void teardown(void)
  * Getter Coverage Tests
  * ================================================================ */
 
-START_TEST(test_get_usage)
-{
+START_TEST(test_get_usage) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
     /* Process data with usage info */
     const char *data = "{"
-        "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
-        "\"usage\":{"
-            "\"prompt_tokens\":10,"
-            "\"completion_tokens\":20,"
-            "\"total_tokens\":30"
-        "}"
-    "}";
+                       "\"choices\":[{\"delta\":{\"role\":\"assistant\"}}],"
+                       "\"usage\":{"
+                       "\"prompt_tokens\":10,"
+                       "\"completion_tokens\":20,"
+                       "\"total_tokens\":30"
+                       "}"
+                       "}";
     ik_openai_chat_stream_process_data(sctx, data);
 
     /* Get usage */
@@ -139,8 +138,7 @@ START_TEST(test_get_usage)
 
 END_TEST
 
-START_TEST(test_get_finish_reason)
-{
+START_TEST(test_get_finish_reason) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -161,8 +159,7 @@ END_TEST
  * Malformed JSON Tests
  * ================================================================ */
 
-START_TEST(test_malformed_json_silently_ignored)
-{
+START_TEST(test_malformed_json_silently_ignored) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -175,8 +172,7 @@ START_TEST(test_malformed_json_silently_ignored)
 
 END_TEST
 
-START_TEST(test_null_root_silently_ignored)
-{
+START_TEST(test_null_root_silently_ignored) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -189,8 +185,7 @@ START_TEST(test_null_root_silently_ignored)
 
 END_TEST
 
-START_TEST(test_normal_message_without_error)
-{
+START_TEST(test_normal_message_without_error) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -204,8 +199,7 @@ START_TEST(test_normal_message_without_error)
 
 END_TEST
 
-START_TEST(test_non_object_root_silently_ignored)
-{
+START_TEST(test_non_object_root_silently_ignored) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -222,8 +216,7 @@ END_TEST
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_error_authentication)
-{
+START_TEST(test_error_authentication) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -238,8 +231,7 @@ START_TEST(test_error_authentication)
 
 END_TEST
 
-START_TEST(test_error_permission)
-{
+START_TEST(test_error_permission) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -253,8 +245,7 @@ START_TEST(test_error_permission)
 
 END_TEST
 
-START_TEST(test_error_rate_limit)
-{
+START_TEST(test_error_rate_limit) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -268,8 +259,7 @@ START_TEST(test_error_rate_limit)
 
 END_TEST
 
-START_TEST(test_error_invalid_request)
-{
+START_TEST(test_error_invalid_request) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -283,8 +273,7 @@ START_TEST(test_error_invalid_request)
 
 END_TEST
 
-START_TEST(test_error_server)
-{
+START_TEST(test_error_server) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -298,8 +287,7 @@ START_TEST(test_error_server)
 
 END_TEST
 
-START_TEST(test_error_service)
-{
+START_TEST(test_error_service) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -313,8 +301,7 @@ START_TEST(test_error_service)
 
 END_TEST
 
-START_TEST(test_error_unknown_type)
-{
+START_TEST(test_error_unknown_type) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -328,8 +315,7 @@ START_TEST(test_error_unknown_type)
 
 END_TEST
 
-START_TEST(test_error_null_type)
-{
+START_TEST(test_error_null_type) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -343,8 +329,7 @@ START_TEST(test_error_null_type)
 
 END_TEST
 
-START_TEST(test_error_null_message)
-{
+START_TEST(test_error_null_message) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 

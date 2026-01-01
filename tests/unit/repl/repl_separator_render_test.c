@@ -141,8 +141,7 @@ START_TEST(test_separator_renders_on_empty_scrollback) {
 
 END_TEST
 /* Test: Separator renders with scrollback content */
-START_TEST(test_separator_renders_with_scrollback)
-{
+START_TEST(test_separator_renders_with_scrollback) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -244,8 +243,7 @@ START_TEST(test_separator_renders_with_scrollback)
 
 END_TEST
 /* Test: Separator does NOT render when visibility flag is false */
-START_TEST(test_separator_not_renders_when_invisible)
-{
+START_TEST(test_separator_not_renders_when_invisible) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

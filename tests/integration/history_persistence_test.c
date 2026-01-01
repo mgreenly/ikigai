@@ -233,8 +233,9 @@ START_TEST(test_history_loads_on_init) {
     cleanup_test_dir();
     teardown_test_env();
 }
-END_TEST START_TEST(test_history_saves_on_submit)
-{
+END_TEST
+
+START_TEST(test_history_saves_on_submit) {
     setup_test_env();
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
@@ -265,8 +266,9 @@ END_TEST START_TEST(test_history_saves_on_submit)
     teardown_test_env();
 }
 
-END_TEST START_TEST(test_history_survives_repl_restart)
-{
+END_TEST
+
+START_TEST(test_history_survives_repl_restart) {
     setup_test_env();
     cleanup_test_dir();
 

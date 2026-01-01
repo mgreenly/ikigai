@@ -25,8 +25,8 @@ static TALLOC_CTX *test_ctx;
 
 /* Mock ik_http_multi_add_request_ to prevent actual HTTP calls */
 res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
-                                   void *write_cb, void *write_ctx,
-                                   void *completion_cb, void *completion_ctx)
+                                 void *write_cb, void *write_ctx,
+                                 void *completion_cb, void *completion_ctx)
 {
     (void)http_multi;
     (void)http_req;
@@ -69,7 +69,7 @@ static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
  * ================================================================ */
 
 static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
-                                   ik_content_block_t *content, const char *model)
+                                  ik_content_block_t *content, const char *model)
 {
     content->type = IK_CONTENT_TEXT;
     content->data.text.text = talloc_strdup(test_ctx, "Test message");
@@ -96,8 +96,7 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
  * Wrapper Function Coverage Tests
  * ================================================================ */
 
-START_TEST(test_wrappers_via_start_request_chat)
-{
+START_TEST(test_wrappers_via_start_request_chat) {
     /* This test calls start_request with a chat model, which exercises:
      * - ik_openai_serialize_chat_request_
      * - ik_openai_build_chat_url_
@@ -119,8 +118,7 @@ START_TEST(test_wrappers_via_start_request_chat)
 }
 END_TEST
 
-START_TEST(test_wrappers_via_start_request_responses)
-{
+START_TEST(test_wrappers_via_start_request_responses) {
     /* This test calls start_request with responses API, which exercises:
      * - ik_openai_serialize_responses_request_
      * - ik_openai_build_responses_url_
@@ -142,8 +140,7 @@ START_TEST(test_wrappers_via_start_request_responses)
 }
 END_TEST
 
-START_TEST(test_wrappers_via_start_stream_chat)
-{
+START_TEST(test_wrappers_via_start_stream_chat) {
     /* This test calls start_stream with a chat model */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -162,8 +159,7 @@ START_TEST(test_wrappers_via_start_stream_chat)
 }
 END_TEST
 
-START_TEST(test_wrappers_via_start_stream_responses)
-{
+START_TEST(test_wrappers_via_start_stream_responses) {
     /* This test calls start_stream with responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -182,8 +178,7 @@ START_TEST(test_wrappers_via_start_stream_responses)
 }
 END_TEST
 
-START_TEST(test_auto_prefer_responses_api_start_request)
-{
+START_TEST(test_auto_prefer_responses_api_start_request) {
     /* Test that o1 model auto-selects responses API even without use_responses_api flag
      * This exercises the "|| ik_openai_prefer_responses_api(req->model)" branch */
     ik_provider_t *provider = NULL;
@@ -202,8 +197,7 @@ START_TEST(test_auto_prefer_responses_api_start_request)
 }
 END_TEST
 
-START_TEST(test_auto_prefer_responses_api_start_stream)
-{
+START_TEST(test_auto_prefer_responses_api_start_stream) {
     /* Test that o1 model auto-selects responses API even without use_responses_api flag
      * This exercises the "|| ik_openai_prefer_responses_api(req->model)" branch */
     ik_provider_t *provider = NULL;

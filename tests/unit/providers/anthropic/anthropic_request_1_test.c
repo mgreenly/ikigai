@@ -86,8 +86,9 @@ START_TEST(test_serialize_request_basic) {
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_serialize_request_stream)
-{
+END_TEST
+
+START_TEST(test_serialize_request_stream) {
     ik_request_t *req = create_basic_request(test_ctx);
     char *json = NULL;
 
@@ -111,8 +112,9 @@ END_TEST START_TEST(test_serialize_request_stream)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_null_model)
-{
+END_TEST
+
+START_TEST(test_serialize_request_null_model) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->model = NULL;
     char *json = NULL;
@@ -123,8 +125,9 @@ END_TEST START_TEST(test_serialize_request_null_model)
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
 }
 
-END_TEST START_TEST(test_serialize_request_default_max_tokens)
-{
+END_TEST
+
+START_TEST(test_serialize_request_default_max_tokens) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->max_output_tokens = 0;
     char *json = NULL;
@@ -143,8 +146,9 @@ END_TEST START_TEST(test_serialize_request_default_max_tokens)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_negative_max_tokens)
-{
+END_TEST
+
+START_TEST(test_serialize_request_negative_max_tokens) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->max_output_tokens = -1;
     char *json = NULL;
@@ -163,8 +167,9 @@ END_TEST START_TEST(test_serialize_request_negative_max_tokens)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_with_system_prompt)
-{
+END_TEST
+
+START_TEST(test_serialize_request_with_system_prompt) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = talloc_strdup(req, "You are a helpful assistant.");
     char *json = NULL;
@@ -183,8 +188,9 @@ END_TEST START_TEST(test_serialize_request_with_system_prompt)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_request_without_system_prompt)
-{
+END_TEST
+
+START_TEST(test_serialize_request_without_system_prompt) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = NULL;
     char *json = NULL;

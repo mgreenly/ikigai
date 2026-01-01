@@ -177,8 +177,9 @@ START_TEST(test_thinking_delta_event_type) {
     vcr_finish();
 }
 
-END_TEST START_TEST(test_thinking_delta_content)
-{
+END_TEST
+
+START_TEST(test_thinking_delta_content) {
     vcr_init("stream_thinking", "anthropic");
 
     request->thinking.level = IK_THINKING_HIGH;
@@ -212,8 +213,9 @@ END_TEST START_TEST(test_thinking_delta_content)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_usage_includes_thinking_tokens)
-{
+END_TEST
+
+START_TEST(test_usage_includes_thinking_tokens) {
     vcr_init("stream_thinking", "anthropic");
 
     request->thinking.level = IK_THINKING_HIGH;
@@ -250,8 +252,7 @@ END_TEST
  * Tool Call Streaming Tests
  * ================================================================ */
 
-START_TEST(test_tool_call_start_event)
-{
+START_TEST(test_tool_call_start_event) {
     vcr_init("stream_tool_call", "anthropic");
 
     /* Add tool definition */
@@ -295,8 +296,9 @@ START_TEST(test_tool_call_start_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_tool_call_delta_events)
-{
+END_TEST
+
+START_TEST(test_tool_call_delta_events) {
     vcr_init("stream_tool_call", "anthropic");
 
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
@@ -338,8 +340,9 @@ END_TEST START_TEST(test_tool_call_delta_events)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_tool_call_done_event)
-{
+END_TEST
+
+START_TEST(test_tool_call_done_event) {
     vcr_init("stream_tool_call", "anthropic");
 
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);
@@ -380,8 +383,9 @@ END_TEST START_TEST(test_tool_call_done_event)
     vcr_finish();
 }
 
-END_TEST START_TEST(test_tool_call_arguments_accumulated)
-{
+END_TEST
+
+START_TEST(test_tool_call_arguments_accumulated) {
     vcr_init("stream_tool_call", "anthropic");
 
     request->tools = talloc_zero_array(request, ik_tool_def_t, 1);

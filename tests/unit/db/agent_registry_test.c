@@ -123,8 +123,7 @@ START_TEST(test_insert_root_agent_success) {
 }
 END_TEST
 // Test: Insert child agent (parent_uuid set) succeeds
-START_TEST(test_insert_child_agent_success)
-{
+START_TEST(test_insert_child_agent_success) {
     SKIP_IF_NO_DB();
 
     // First insert parent
@@ -152,8 +151,7 @@ START_TEST(test_insert_child_agent_success)
 
 END_TEST
 // Test: Inserted record has status = 'running'
-START_TEST(test_insert_agent_status_running)
-{
+START_TEST(test_insert_agent_status_running) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent = {0};
@@ -182,8 +180,7 @@ START_TEST(test_insert_agent_status_running)
 
 END_TEST
 // Test: Inserted record has correct created_at
-START_TEST(test_insert_agent_created_at)
-{
+START_TEST(test_insert_agent_created_at) {
     SKIP_IF_NO_DB();
 
     int64_t expected_timestamp = time(NULL);
@@ -218,8 +215,7 @@ START_TEST(test_insert_agent_created_at)
 
 END_TEST
 // Test: Duplicate uuid fails (PRIMARY KEY violation)
-START_TEST(test_insert_duplicate_uuid_fails)
-{
+START_TEST(test_insert_duplicate_uuid_fails) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent1 = {0};
@@ -246,8 +242,7 @@ START_TEST(test_insert_duplicate_uuid_fails)
 
 END_TEST
 // Test: Agent with NULL name succeeds (name is optional)
-START_TEST(test_insert_agent_null_name)
-{
+START_TEST(test_insert_agent_null_name) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent = {0};
@@ -274,8 +269,7 @@ START_TEST(test_insert_agent_null_name)
 
 END_TEST
 // Test: fork_message_id is correctly stored
-START_TEST(test_insert_agent_fork_message_id)
-{
+START_TEST(test_insert_agent_fork_message_id) {
     SKIP_IF_NO_DB();
 
     // Insert parent first
@@ -319,8 +313,7 @@ END_TEST
 // ========== Mark Dead Tests ==========
 
 // Test: mark_dead updates status to 'dead'
-START_TEST(test_mark_dead_updates_status)
-{
+START_TEST(test_mark_dead_updates_status) {
     SKIP_IF_NO_DB();
 
     // First insert an agent with status='running'
@@ -354,8 +347,7 @@ START_TEST(test_mark_dead_updates_status)
 
 END_TEST
 // Test: mark_dead sets ended_at timestamp
-START_TEST(test_mark_dead_sets_ended_at)
-{
+START_TEST(test_mark_dead_sets_ended_at) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -402,8 +394,7 @@ START_TEST(test_mark_dead_sets_ended_at)
 
 END_TEST
 // Test: mark_dead on already-dead agent is no-op (idempotent)
-START_TEST(test_mark_dead_idempotent)
-{
+START_TEST(test_mark_dead_idempotent) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -455,8 +446,7 @@ START_TEST(test_mark_dead_idempotent)
 
 END_TEST
 // Test: mark_dead on non-existent uuid returns error
-START_TEST(test_mark_dead_nonexistent_uuid)
-{
+START_TEST(test_mark_dead_nonexistent_uuid) {
     SKIP_IF_NO_DB();
 
     // Try to mark a non-existent agent as dead

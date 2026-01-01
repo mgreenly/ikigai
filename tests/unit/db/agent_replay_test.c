@@ -175,8 +175,7 @@ START_TEST(test_replay_chronological_order) {
 }
 END_TEST
 // Test: replay handles agent with no history
-START_TEST(test_replay_empty_history)
-{
+START_TEST(test_replay_empty_history) {
     SKIP_IF_NO_DB();
 
     // Insert agent with no messages
@@ -192,8 +191,7 @@ START_TEST(test_replay_empty_history)
 
 END_TEST
 // Test: replay handles deep ancestry (4+ levels)
-START_TEST(test_replay_deep_ancestry)
-{
+START_TEST(test_replay_deep_ancestry) {
     SKIP_IF_NO_DB();
 
     // Build 4-level hierarchy: great-grandparent -> grandparent -> parent -> child

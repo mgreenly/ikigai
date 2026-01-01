@@ -60,8 +60,7 @@ START_TEST(test_log_create_returns_doc) {
 }
 END_TEST
 // Test: ik_log_debug_json writes JSONL to file
-START_TEST(test_log_debug_writes_jsonl)
-{
+START_TEST(test_log_debug_writes_jsonl) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -85,8 +84,7 @@ START_TEST(test_log_debug_writes_jsonl)
 
 END_TEST
 // Test: output has "level":"debug" field
-START_TEST(test_log_debug_has_level_field)
-{
+START_TEST(test_log_debug_has_level_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -114,8 +112,7 @@ START_TEST(test_log_debug_has_level_field)
 
 END_TEST
 // Test: output has "timestamp" field
-START_TEST(test_log_debug_has_timestamp_field)
-{
+START_TEST(test_log_debug_has_timestamp_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -142,8 +139,7 @@ START_TEST(test_log_debug_has_timestamp_field)
 
 END_TEST
 // Test: output has "logline" field containing original doc
-START_TEST(test_log_debug_has_logline_field)
-{
+START_TEST(test_log_debug_has_logline_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -180,8 +176,7 @@ START_TEST(test_log_debug_has_logline_field)
 
 END_TEST
 // Test: output is valid single-line JSON
-START_TEST(test_log_debug_is_single_line_json)
-{
+START_TEST(test_log_debug_is_single_line_json) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();

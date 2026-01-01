@@ -372,8 +372,7 @@ END_TEST
  *
  * Verifies specific model is preserved and used in requests.
  */
-START_TEST(test_restore_model_setting)
-{
+START_TEST(test_restore_model_setting) {
     SKIP_IF_NO_DB();
     setup_test_env();
     reset_mock_state();
@@ -407,8 +406,7 @@ END_TEST
  *
  * Verifies thinking level is preserved and translated correctly.
  */
-START_TEST(test_restore_thinking_level)
-{
+START_TEST(test_restore_thinking_level) {
     SKIP_IF_NO_DB();
     setup_test_env();
     reset_mock_state();
@@ -454,8 +452,7 @@ END_TEST
  *
  * Verifies message history is loaded in correct order.
  */
-START_TEST(test_restore_conversation_history)
-{
+START_TEST(test_restore_conversation_history) {
     SKIP_IF_NO_DB();
     setup_test_env();
     reset_mock_state();
@@ -507,8 +504,7 @@ END_TEST
  *
  * Verifies parent-child relationships and settings preserved.
  */
-START_TEST(test_restore_forked_agent)
-{
+START_TEST(test_restore_forked_agent) {
     SKIP_IF_NO_DB();
     setup_test_env();
     reset_mock_state();

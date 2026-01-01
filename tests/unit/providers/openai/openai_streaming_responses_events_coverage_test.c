@@ -100,8 +100,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_usage_edge_cases)
-{
+START_TEST(test_usage_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
@@ -109,39 +108,43 @@ START_TEST(test_usage_edge_cases)
     // Test usage is not an object
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":\"not an object\"}}");
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":\"not an object\"}}");
     ck_assert_int_eq(events->items[0].data.done.usage.input_tokens, 0);
 
     // Test input_tokens is not an int
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":\"not an int\"}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":\"not an int\"}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.input_tokens, 0);
 
     // Test output_tokens is not an int
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens\":\"not an int\"}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens\":\"not an int\"}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.output_tokens, 0);
 
     // Test total_tokens is not an int (should calculate from input+output)
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100,"
-        "\"output_tokens\":50,\"total_tokens\":\"not an int\"}}}");
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100,"
+                                             "\"output_tokens\":50,\"total_tokens\":\"not an int\"}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 150);
 
     // Test output_tokens_details is not an object
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":\"not an object\"}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":\"not an object\"}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.thinking_tokens, 0);
 
     // Test reasoning_tokens is not an int
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":"
-        "{\"reasoning_tokens\":\"not an int\"}}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":"
+                                             "{\"reasoning_tokens\":\"not an int\"}}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.thinking_tokens, 0);
 
     // Test total_tokens is NULL with input/output tokens as 0 (else branch of line 104)
@@ -151,7 +154,7 @@ START_TEST(test_usage_edge_cases)
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{}}}");
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 0);
 
     // Test reasoning_tokens is NULL
@@ -160,8 +163,9 @@ START_TEST(test_usage_edge_cases)
     ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":{}}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens_details\":{}}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.thinking_tokens, 0);
 
     // Test input_tokens is NULL
@@ -170,8 +174,9 @@ START_TEST(test_usage_edge_cases)
     ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens\":50}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"output_tokens\":50}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.input_tokens, 0);
 
     // Test output_tokens is NULL
@@ -180,8 +185,9 @@ START_TEST(test_usage_edge_cases)
     ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.output_tokens, 0);
 
     // Test total_tokens is NULL (but should be calculated because input > 0)
@@ -190,49 +196,52 @@ START_TEST(test_usage_edge_cases)
     ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100,\"output_tokens\":0}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":100,\"output_tokens\":0}}}");
     ck_assert_int_eq(events->items[0].data.done.usage.total_tokens, 100);
 }
-END_TEST START_TEST(test_error_event_types)
-{
+END_TEST
+
+START_TEST(test_error_event_types) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
     // Test rate_limit_error
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Rate limited\",\"type\":\"rate_limit_error\"}}");
+                                             "{\"error\":{\"message\":\"Rate limited\",\"type\":\"rate_limit_error\"}}");
     ck_assert_int_eq((int)events->count, 1);
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_RATE_LIMIT);
 
     // Test invalid_request_error
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Invalid request\",\"type\":\"invalid_request_error\"}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "error",
+                                             "{\"error\":{\"message\":\"Invalid request\",\"type\":\"invalid_request_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_INVALID_ARG);
 
     // Test server_error
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Server error\",\"type\":\"server_error\"}}");
+                                             "{\"error\":{\"message\":\"Server error\",\"type\":\"server_error\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_SERVER);
 
     // Test unknown error type
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Unknown\",\"type\":\"unknown_type\"}}");
+                                             "{\"error\":{\"message\":\"Unknown\",\"type\":\"unknown_type\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_UNKNOWN);
 
     // Test NULL type
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Error without type\"}}");
+                                             "{\"error\":{\"message\":\"Error without type\"}}");
     ck_assert_int_eq(events->items[0].data.error.category, IK_ERR_CAT_UNKNOWN);
 
     // Test NULL message
     events->count = 0;
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"type\":\"server_error\"}}");
+                                             "{\"error\":{\"type\":\"server_error\"}}");
     ck_assert_str_eq(events->items[0].data.error.message, "Unknown error");
 
     // Test error_val is NULL
@@ -245,8 +254,9 @@ END_TEST START_TEST(test_error_event_types)
     ik_openai_responses_stream_process_event(ctx, "error", "{\"error\":\"not an object\"}");
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST START_TEST(test_response_completed_edge_cases)
-{
+END_TEST
+
+START_TEST(test_response_completed_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
     ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
@@ -263,12 +273,14 @@ END_TEST START_TEST(test_response_completed_edge_cases)
 
     // Test incomplete_details is not an object
     events->count = 0;
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"incomplete\",\"incomplete_details\":\"not an object\"}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"incomplete\",\"incomplete_details\":\"not an object\"}}");
     ck_assert_int_eq((int)events->count, 1);
 }
-END_TEST START_TEST(test_helper_function_branches)
-{
+END_TEST
+
+START_TEST(test_helper_function_branches) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 

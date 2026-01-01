@@ -447,8 +447,7 @@ END_TEST
  * - Verify previous current.log was rotated to timestamped file
  * - Verify new current.log is created
  */
-START_TEST(test_logger_reinit_rotates_log)
-{
+START_TEST(test_logger_reinit_rotates_log) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_reinit_%d", (int)getpid());
 
@@ -498,8 +497,7 @@ END_TEST
  * - Reinit multiple times
  * - Verify each reinit creates a new rotated file and current.log always exists
  */
-START_TEST(test_logger_multiple_reinit_cycles)
-{
+START_TEST(test_logger_multiple_reinit_cycles) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_multi_%d", (int)getpid());
 

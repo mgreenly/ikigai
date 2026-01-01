@@ -18,8 +18,7 @@ static void suite_setup(void)
 }
 
 /* Test: Submit line adds to scrollback and clears input buffer */
-START_TEST(test_submit_line_to_scrollback)
-{
+START_TEST(test_submit_line_to_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL
@@ -65,8 +64,7 @@ START_TEST(test_submit_line_to_scrollback)
 END_TEST
 
 /* Test: Submit line resets viewport_offset (auto-scroll) */
-START_TEST(test_submit_line_auto_scroll)
-{
+START_TEST(test_submit_line_auto_scroll) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL
@@ -108,8 +106,7 @@ START_TEST(test_submit_line_auto_scroll)
 END_TEST
 
 /* Test: Submit empty input buffer does not add to scrollback */
-START_TEST(test_submit_empty_line)
-{
+START_TEST(test_submit_empty_line) {
     void *ctx = talloc_new(NULL);
 
     // Setup REPL

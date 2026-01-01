@@ -32,8 +32,7 @@ static void teardown(void)
 /**
  * Test error when model is NULL (line 239 true branch - first condition)
  */
-START_TEST(test_null_model_error)
-{
+START_TEST(test_null_model_error) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = NULL;
@@ -50,8 +49,7 @@ END_TEST
 /**
  * Test error when model is empty string (line 239 true branch - second condition)
  */
-START_TEST(test_empty_model_error)
-{
+START_TEST(test_empty_model_error) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "");
@@ -68,8 +66,7 @@ END_TEST
 /**
  * Test success when model is valid (line 239 false branch, line 245 false branch)
  */
-START_TEST(test_valid_model_success)
-{
+START_TEST(test_valid_model_success) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -90,8 +87,7 @@ END_TEST
 /**
  * Test with system message (line 249 true branch)
  */
-START_TEST(test_with_system_message)
-{
+START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -113,8 +109,7 @@ END_TEST
 /**
  * Test with NULL shared context (line 249 - first condition false)
  */
-START_TEST(test_null_shared_context)
-{
+START_TEST(test_null_shared_context) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = NULL;  // NULL shared context
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -133,8 +128,7 @@ END_TEST
 /**
  * Test with NULL config (line 249 - second condition false)
  */
-START_TEST(test_null_config)
-{
+START_TEST(test_null_config) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->shared->cfg = NULL;  // NULL config
@@ -154,8 +148,7 @@ END_TEST
 /**
  * Test without system message (line 249 - third condition false)
  */
-START_TEST(test_without_system_message)
-{
+START_TEST(test_without_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -176,8 +169,7 @@ END_TEST
 /**
  * Test with different thinking levels (line 249)
  */
-START_TEST(test_different_thinking_levels)
-{
+START_TEST(test_different_thinking_levels) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "o1-preview");
@@ -196,8 +188,7 @@ END_TEST
 /**
  * Test with NULL message in array (line 260 continue)
  */
-START_TEST(test_skip_null_message)
-{
+START_TEST(test_skip_null_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");

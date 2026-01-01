@@ -30,7 +30,8 @@ static res_t test_stream_cb(const ik_stream_event_t *event, void *ctx)
                 captured_events[captured_count].data.tool_start.id = talloc_strdup(test_ctx, event->data.tool_start.id);
             }
             if (event->data.tool_start.name) {
-                captured_events[captured_count].data.tool_start.name = talloc_strdup(test_ctx, event->data.tool_start.name);
+                captured_events[captured_count].data.tool_start.name = talloc_strdup(test_ctx,
+                                                                                     event->data.tool_start.name);
             }
         }
         captured_count++;
@@ -47,10 +48,12 @@ static void setup(void)
     memset(captured_events, 0, sizeof(captured_events));
 }
 
-static void teardown(void) { talloc_free(test_ctx); }
-
-START_TEST(test_thinking_type)
+static void teardown(void)
 {
+    talloc_free(test_ctx);
+}
+
+START_TEST(test_thinking_type) {
     const char *json = "{\"index\": 1, \"content_block\": {\"type\": \"thinking\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -61,8 +64,7 @@ START_TEST(test_thinking_type)
 }
 END_TEST
 
-START_TEST(test_tool_use_no_id)
-{
+START_TEST(test_tool_use_no_id) {
     const char *json = "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"name\": \"test_tool\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -72,9 +74,9 @@ START_TEST(test_tool_use_no_id)
 }
 END_TEST
 
-START_TEST(test_tool_use_id_not_string)
-{
-    const char *json = "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"id\": 12345, \"name\": \"test_tool\"}}";
+START_TEST(test_tool_use_id_not_string) {
+    const char *json =
+        "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"id\": 12345, \"name\": \"test_tool\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
     ik_anthropic_process_content_block_start(stream_ctx, yyjson_doc_get_root(doc));
@@ -83,8 +85,7 @@ START_TEST(test_tool_use_id_not_string)
 }
 END_TEST
 
-START_TEST(test_tool_use_no_name)
-{
+START_TEST(test_tool_use_no_name) {
     const char *json = "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"id\": \"tool_123\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -94,9 +95,9 @@ START_TEST(test_tool_use_no_name)
 }
 END_TEST
 
-START_TEST(test_tool_use_name_not_string)
-{
-    const char *json = "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"id\": \"tool_123\", \"name\": 12345}}";
+START_TEST(test_tool_use_name_not_string) {
+    const char *json =
+        "{\"index\": 2, \"content_block\": {\"type\": \"tool_use\", \"id\": \"tool_123\", \"name\": 12345}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
     ik_anthropic_process_content_block_start(stream_ctx, yyjson_doc_get_root(doc));
@@ -105,8 +106,7 @@ START_TEST(test_tool_use_name_not_string)
 }
 END_TEST
 
-START_TEST(test_delta_no_delta)
-{
+START_TEST(test_delta_no_delta) {
     const char *json = "{\"index\": 1}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -116,8 +116,7 @@ START_TEST(test_delta_no_delta)
 }
 END_TEST
 
-START_TEST(test_delta_thinking)
-{
+START_TEST(test_delta_thinking) {
     const char *json = "{\"index\": 1, \"delta\": {\"type\": \"thinking_delta\", \"thinking\": \"Hmm...\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -127,8 +126,7 @@ START_TEST(test_delta_thinking)
 }
 END_TEST
 
-START_TEST(test_delta_thinking_no_field)
-{
+START_TEST(test_delta_thinking_no_field) {
     const char *json = "{\"index\": 1, \"delta\": {\"type\": \"thinking_delta\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -138,8 +136,7 @@ START_TEST(test_delta_thinking_no_field)
 }
 END_TEST
 
-START_TEST(test_delta_input_json)
-{
+START_TEST(test_delta_input_json) {
     const char *json = "{\"index\": 2, \"delta\": {\"type\": \"input_json_delta\", \"partial_json\": \"{}\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -149,8 +146,7 @@ START_TEST(test_delta_input_json)
 }
 END_TEST
 
-START_TEST(test_delta_input_json_no_field)
-{
+START_TEST(test_delta_input_json_no_field) {
     const char *json = "{\"index\": 2, \"delta\": {\"type\": \"input_json_delta\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -160,8 +156,7 @@ START_TEST(test_delta_input_json_no_field)
 }
 END_TEST
 
-START_TEST(test_stop_text_block)
-{
+START_TEST(test_stop_text_block) {
     stream_ctx->current_block_type = IK_CONTENT_TEXT;
     const char *json = "{\"index\": 0}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -172,8 +167,7 @@ START_TEST(test_stop_text_block)
 }
 END_TEST
 
-START_TEST(test_stop_thinking_block)
-{
+START_TEST(test_stop_thinking_block) {
     stream_ctx->current_block_type = IK_CONTENT_THINKING;
     const char *json = "{\"index\": 1}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

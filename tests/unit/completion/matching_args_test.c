@@ -91,8 +91,7 @@ START_TEST(test_completion_debug_arguments) {
 }
 END_TEST
 // Test: /rewind argument completion with marks
-START_TEST(test_completion_rewind_arguments)
-{
+START_TEST(test_completion_rewind_arguments) {
     // Create test marks
     ik_mark_t *mark1 = talloc_zero(test_repl, ik_mark_t);
     mark1->label = talloc_strdup(mark1, "cp1");
@@ -121,8 +120,7 @@ START_TEST(test_completion_rewind_arguments)
 
 END_TEST
 // Test: /rewind with no marks
-START_TEST(test_completion_rewind_no_marks)
-{
+START_TEST(test_completion_rewind_no_marks) {
     // No marks created - should return NULL
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/rewind ");
     ck_assert_ptr_null(comp);
@@ -130,8 +128,7 @@ START_TEST(test_completion_rewind_no_marks)
 
 END_TEST
 // Test: /model argument completion
-START_TEST(test_completion_model_arguments)
-{
+START_TEST(test_completion_model_arguments) {
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model ");
     ck_assert_ptr_nonnull(comp);
     ck_assert(comp->count > 0);
@@ -140,8 +137,7 @@ START_TEST(test_completion_model_arguments)
 END_TEST
 
 // Test: /model with thinking level (slash present)
-START_TEST(test_completion_model_thinking_level)
-{
+START_TEST(test_completion_model_thinking_level) {
     // "/model claude-haiku-4-5/" should complete thinking levels
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model claude-haiku-4-5/");
     ck_assert_ptr_nonnull(comp);
@@ -164,8 +160,7 @@ START_TEST(test_completion_model_thinking_level)
 END_TEST
 
 // Test: Uppercase argument prefix (tests case handling in fzy)
-START_TEST(test_completion_argument_case_sensitive)
-{
+START_TEST(test_completion_argument_case_sensitive) {
     // With fzy, uppercase should still match (case-insensitive matching)
     // However, if no matches, that's also acceptable depending on fzy implementation
     ik_completion_create_for_arguments(ctx, test_repl, "/debug O");
@@ -175,8 +170,7 @@ START_TEST(test_completion_argument_case_sensitive)
 
 END_TEST
 // Test: No space in input (just command name)
-START_TEST(test_completion_no_space_in_input)
-{
+START_TEST(test_completion_no_space_in_input) {
     // "/debug" without space should return NULL (no argument completion)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/debug");
     ck_assert_ptr_null(comp);
@@ -184,8 +178,7 @@ START_TEST(test_completion_no_space_in_input)
 
 END_TEST
 // Test: Empty command name ("/ ")
-START_TEST(test_completion_empty_command_name)
-{
+START_TEST(test_completion_empty_command_name) {
     // "/ " should return NULL (empty command name)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/ ");
     ck_assert_ptr_null(comp);
@@ -193,8 +186,7 @@ START_TEST(test_completion_empty_command_name)
 
 END_TEST
 // Test: Clear completion state
-START_TEST(test_completion_clear)
-{
+START_TEST(test_completion_clear) {
     // Create a completion with multiple candidates
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);
@@ -215,8 +207,7 @@ START_TEST(test_completion_clear)
 
 END_TEST
 // Test: Clear completion with original_input set
-START_TEST(test_completion_clear_with_original_input)
-{
+START_TEST(test_completion_clear_with_original_input) {
     // Create a completion and set original_input
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);

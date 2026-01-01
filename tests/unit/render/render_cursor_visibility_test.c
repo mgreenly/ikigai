@@ -151,8 +151,7 @@ END_TEST
  *
  * When render_input_buffer = true, cursor positioning escape SHOULD be present.
  */
-START_TEST(test_cursor_visible_when_input_buffer_on_screen)
-{
+START_TEST(test_cursor_visible_when_input_buffer_on_screen) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 
@@ -193,8 +192,7 @@ END_TEST
  * When input buffer is off-screen, the last visible scrollback line should not
  * be overwritten by a blank cursor line.
  */
-START_TEST(test_last_scrollback_line_visible_when_scrolled_up)
-{
+START_TEST(test_last_scrollback_line_visible_when_scrolled_up) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 
@@ -233,8 +231,7 @@ END_TEST
  *
  * When render_input_buffer = false, output should contain \x1b[?25l (hide cursor).
  */
-START_TEST(test_cursor_visibility_escape_hide_when_off_screen)
-{
+START_TEST(test_cursor_visibility_escape_hide_when_off_screen) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 
@@ -283,8 +280,7 @@ END_TEST
  *
  * When render_input_buffer = true, output should contain \x1b[?25h (show cursor).
  */
-START_TEST(test_cursor_visibility_escape_show_when_on_screen)
-{
+START_TEST(test_cursor_visibility_escape_show_when_on_screen) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 

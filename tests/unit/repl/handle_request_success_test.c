@@ -157,8 +157,7 @@ END_TEST
 #define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // Test: Empty assistant response (early exit)
-START_TEST(test_empty_assistant_response)
-{
+START_TEST(test_empty_assistant_response) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
@@ -169,8 +168,7 @@ START_TEST(test_empty_assistant_response)
 
 END_TEST
 // Test: Assistant response without DB
-START_TEST(test_assistant_response_no_db)
-{
+START_TEST(test_assistant_response_no_db) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
@@ -186,8 +184,7 @@ START_TEST(test_assistant_response_no_db)
 
 END_TEST
 // Test: Assistant response with DB but no session ID
-START_TEST(test_assistant_response_db_no_session)
-{
+START_TEST(test_assistant_response_db_no_session) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -202,8 +199,7 @@ START_TEST(test_assistant_response_db_no_session)
 
 END_TEST
 // Test: All metadata fields present
-START_TEST(test_all_metadata_fields)
-{
+START_TEST(test_all_metadata_fields) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -220,8 +216,7 @@ START_TEST(test_all_metadata_fields)
 
 END_TEST
 // Test: Only model metadata
-START_TEST(test_only_model_metadata)
-{
+START_TEST(test_only_model_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -237,8 +232,7 @@ START_TEST(test_only_model_metadata)
 
 END_TEST
 // Test: Only tokens metadata
-START_TEST(test_only_tokens_metadata)
-{
+START_TEST(test_only_tokens_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -254,8 +248,7 @@ START_TEST(test_only_tokens_metadata)
 
 END_TEST
 // Test: Only finish_reason metadata
-START_TEST(test_only_finish_reason_metadata)
-{
+START_TEST(test_only_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -271,8 +264,7 @@ START_TEST(test_only_finish_reason_metadata)
 
 END_TEST
 // Test: Model + tokens metadata
-START_TEST(test_model_tokens_metadata)
-{
+START_TEST(test_model_tokens_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -288,8 +280,7 @@ START_TEST(test_model_tokens_metadata)
 
 END_TEST
 // Test: Model + finish_reason metadata
-START_TEST(test_model_finish_reason_metadata)
-{
+START_TEST(test_model_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -305,8 +296,7 @@ START_TEST(test_model_finish_reason_metadata)
 
 END_TEST
 // Test: Tokens + finish_reason metadata
-START_TEST(test_tokens_finish_reason_metadata)
-{
+START_TEST(test_tokens_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -322,8 +312,7 @@ START_TEST(test_tokens_finish_reason_metadata)
 
 END_TEST
 // Test: No metadata
-START_TEST(test_no_metadata)
-{
+START_TEST(test_no_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");

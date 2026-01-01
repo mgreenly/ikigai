@@ -207,8 +207,7 @@ START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
 }
 END_TEST
 // Test: Mark with unlabeled DB insert error, no debug pipe
-START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
-{
+START_TEST(test_mark_unlabeled_db_error_no_debug_pipe) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -229,8 +228,7 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe)
 
 END_TEST
 // Test: Mark with unlabeled DB insert error, NULL write_end
-START_TEST(test_mark_unlabeled_db_error_null_write_end)
-{
+START_TEST(test_mark_unlabeled_db_error_null_write_end) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -253,8 +251,7 @@ START_TEST(test_mark_unlabeled_db_error_null_write_end)
 
 END_TEST
 // Test: Rewind to non-existent mark (error path lines 113-120)
-START_TEST(test_rewind_mark_not_found)
-{
+START_TEST(test_rewind_mark_not_found) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -274,8 +271,7 @@ START_TEST(test_rewind_mark_not_found)
 
 END_TEST
 // Test: Rewind with DB insert error and debug pipe
-START_TEST(test_rewind_db_error_with_debug_pipe)
-{
+START_TEST(test_rewind_db_error_with_debug_pipe) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -317,8 +313,7 @@ START_TEST(test_rewind_db_error_with_debug_pipe)
 
 END_TEST
 // Test: Rewind with DB insert error, no debug pipe
-START_TEST(test_rewind_db_error_no_debug_pipe)
-{
+START_TEST(test_rewind_db_error_no_debug_pipe) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -351,8 +346,7 @@ START_TEST(test_rewind_db_error_no_debug_pipe)
 
 END_TEST
 // Test: Rewind with DB insert error, NULL write_end
-START_TEST(test_rewind_db_error_null_write_end)
-{
+START_TEST(test_rewind_db_error_null_write_end) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -387,8 +381,7 @@ START_TEST(test_rewind_db_error_null_write_end)
 
 END_TEST
 // Test: Mark with db_ctx set but session_id = 0 (line 76 branches)
-START_TEST(test_mark_with_db_ctx_but_no_session)
-{
+START_TEST(test_mark_with_db_ctx_but_no_session) {
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -403,8 +396,7 @@ START_TEST(test_mark_with_db_ctx_but_no_session)
 
 END_TEST
 // Test: Rewind with db_ctx but session_id = 0 (line 142 branches)
-START_TEST(test_rewind_with_db_ctx_but_no_session)
-{
+START_TEST(test_rewind_with_db_ctx_but_no_session) {
     // Set up DB context but invalid session
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
@@ -429,8 +421,7 @@ START_TEST(test_rewind_with_db_ctx_but_no_session)
 
 END_TEST
 // Test: Rewind with valid DB but target_message_id = 0 (line 142 branches)
-START_TEST(test_rewind_with_zero_message_id)
-{
+START_TEST(test_rewind_with_zero_message_id) {
     // Set up valid DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;

@@ -100,8 +100,7 @@ START_TEST(test_completion_stores_tool_call) {
 
 END_TEST
 /* Test: Completion clears previous pending_tool_call before storing new one */
-START_TEST(test_completion_clears_previous_tool_call)
-{
+START_TEST(test_completion_clears_previous_tool_call) {
     /* Set up previous pending_tool_call */
     repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
@@ -133,8 +132,7 @@ START_TEST(test_completion_clears_previous_tool_call)
 
 END_TEST
 /* Test: Completion with NULL tool_call clears pending_tool_call */
-START_TEST(test_completion_null_tool_call_clears_pending)
-{
+START_TEST(test_completion_null_tool_call_clears_pending) {
     /* Set up previous pending_tool_call */
     repl->current->pending_tool_call = ik_tool_call_create(repl, "old_call", "old_tool", "{}");
 
@@ -161,8 +159,7 @@ START_TEST(test_completion_null_tool_call_clears_pending)
 END_TEST
 
 /* Test: Completion with IK_FINISH_STOP maps to "stop" */
-START_TEST(test_completion_finish_reason_stop)
-{
+START_TEST(test_completion_finish_reason_stop) {
     /* Create response with STOP finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -187,8 +184,7 @@ START_TEST(test_completion_finish_reason_stop)
 END_TEST
 
 /* Test: Completion with IK_FINISH_LENGTH maps to "length" */
-START_TEST(test_completion_finish_reason_length)
-{
+START_TEST(test_completion_finish_reason_length) {
     /* Create response with LENGTH finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -212,8 +208,7 @@ START_TEST(test_completion_finish_reason_length)
 
 END_TEST
 /* Test: Completion with IK_FINISH_TOOL_USE maps to "tool_use" */
-START_TEST(test_completion_finish_reason_tool_use)
-{
+START_TEST(test_completion_finish_reason_tool_use) {
     /* Create response with TOOL_USE finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -237,8 +232,7 @@ START_TEST(test_completion_finish_reason_tool_use)
 
 END_TEST
 /* Test: Completion with IK_FINISH_CONTENT_FILTER maps to "content_filter" */
-START_TEST(test_completion_finish_reason_content_filter)
-{
+START_TEST(test_completion_finish_reason_content_filter) {
     /* Create response with CONTENT_FILTER finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -262,8 +256,7 @@ START_TEST(test_completion_finish_reason_content_filter)
 
 END_TEST
 /* Test: Completion with IK_FINISH_ERROR maps to "error" */
-START_TEST(test_completion_finish_reason_error)
-{
+START_TEST(test_completion_finish_reason_error) {
     /* Create response with ERROR finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;
@@ -287,8 +280,7 @@ START_TEST(test_completion_finish_reason_error)
 
 END_TEST
 /* Test: Completion with IK_FINISH_UNKNOWN maps to "unknown" */
-START_TEST(test_completion_finish_reason_unknown)
-{
+START_TEST(test_completion_finish_reason_unknown) {
     /* Create response with UNKNOWN finish reason */
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->model = NULL;

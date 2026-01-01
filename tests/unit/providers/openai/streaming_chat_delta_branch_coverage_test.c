@@ -112,8 +112,7 @@ static void teardown(void)
  * Branch Coverage Tests
  * ================================================================ */
 
-START_TEST(test_content_yyjson_get_str_returns_null)
-{
+START_TEST(test_content_yyjson_get_str_returns_null) {
     /* Line 88: Cover content != NULL false branch
      * When yyjson_get_str returns NULL for content value */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
@@ -127,74 +126,75 @@ START_TEST(test_content_yyjson_get_str_returns_null)
 }
 END_TEST
 
-START_TEST(test_tool_call_yyjson_arr_get_returns_null)
-{
+START_TEST(test_tool_call_yyjson_arr_get_returns_null) {
     /* Line 112: Cover tool_call != NULL false branch (second part)
      * When yyjson_arr_get returns NULL */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* This is hard to trigger as yyjson_arr_get on valid array won't return NULL
      * This test documents the defensive check */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
 }
 END_TEST
 
-START_TEST(test_new_tool_call_id_yyjson_get_str_null)
-{
+START_TEST(test_new_tool_call_id_yyjson_get_str_null) {
     /* Line 130: Cover id != NULL false branch
      * When yyjson_get_str(id_val) returns NULL */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Start a tool call with index 0 */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc0\",\"function\":{\"name\":\"fn0\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc0\",\"function\":{\"name\":\"fn0\"}}]}}]}");
 
     /* Try to start new tool call with id as non-string type that yyjson_get_str would return NULL for */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":123,\"function\":{\"name\":\"fn1\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":123,\"function\":{\"name\":\"fn1\"}}]}}]}");
 }
 END_TEST
 
-START_TEST(test_arguments_delta_yyjson_get_str_null)
-{
+START_TEST(test_arguments_delta_yyjson_get_str_null) {
     /* Line 166: Cover arguments != NULL false branch (second part)
      * When yyjson_get_str(arguments_val) returns NULL */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Start a tool call */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
 
     /* Send arguments as integer - yyjson_get_str would return NULL */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":123}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":123}}]}}]}");
 }
 END_TEST
 
-START_TEST(test_arguments_delta_current_tool_args_null)
-{
+START_TEST(test_arguments_delta_current_tool_args_null) {
     /* Line 169: Cover the ternary false branch where sctx->current_tool_args is NULL
      * This can happen if we somehow get arguments delta without starting a tool call properly */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Directly send arguments without proper tool call start
      * This should handle the NULL current_tool_args case */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"test\"}}]}}]}");
 }
 END_TEST
 
-START_TEST(test_arguments_not_in_tool_call)
-{
+START_TEST(test_arguments_not_in_tool_call) {
     /* Line 166: Cover sctx->in_tool_call false branch
      * When we receive arguments but we're not in a tool call */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Send arguments without being in a tool call */
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"test\"}}]}}]}");
 
     /* Should not emit delta event */
     ck_assert_int_eq((int)events->count, 0);
 }
 END_TEST
 
-START_TEST(test_end_tool_call_not_in_tool_call)
-{
+START_TEST(test_end_tool_call_not_in_tool_call) {
     /* Line 53: Cover sctx->in_tool_call false branch in maybe_end_tool_call
      * When we try to end but not in a tool call */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);

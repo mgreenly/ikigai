@@ -250,8 +250,7 @@ END_TEST
  *
  * Verify cursor is still correct when viewport is completely full.
  */
-START_TEST(test_cursor_position_viewport_full)
-{
+START_TEST(test_cursor_position_viewport_full) {
     test_fixture_t *fixture = create_test_fixture("test", 100);
     res_t res;
 
@@ -280,8 +279,7 @@ END_TEST
 /**
  * Test: Cursor position when viewport is half full
  */
-START_TEST(test_cursor_position_viewport_half_full)
-{
+START_TEST(test_cursor_position_viewport_half_full) {
     test_fixture_t *fixture = create_test_fixture("hi", 5);
     res_t res;
 

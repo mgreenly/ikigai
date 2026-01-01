@@ -66,8 +66,9 @@ START_TEST(test_parse_simple_text_response) {
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
 }
 
-END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
-{
+END_TEST
+
+START_TEST(test_parse_response_with_reasoning_tokens) {
     const char *json = "{"
                        "\"id\":\"resp-456\","
                        "\"model\":\"o1-preview\","
@@ -100,8 +101,9 @@ END_TEST START_TEST(test_parse_response_with_reasoning_tokens)
     ck_assert_int_eq(resp->usage.thinking_tokens, 25);
 }
 
-END_TEST START_TEST(test_parse_response_with_refusal)
-{
+END_TEST
+
+START_TEST(test_parse_response_with_refusal) {
     const char *json = "{"
                        "\"id\":\"resp-789\","
                        "\"model\":\"gpt-4o\","
@@ -131,8 +133,9 @@ END_TEST START_TEST(test_parse_response_with_refusal)
                      "I cannot help with that request.");
 }
 
-END_TEST START_TEST(test_parse_response_multiple_content_blocks)
-{
+END_TEST
+
+START_TEST(test_parse_response_multiple_content_blocks) {
     const char *json = "{"
                        "\"id\":\"resp-multi\","
                        "\"model\":\"gpt-4o\","
@@ -164,8 +167,9 @@ END_TEST START_TEST(test_parse_response_multiple_content_blocks)
     ck_assert_str_eq(resp->content_blocks[1].data.text.text, "Second block");
 }
 
-END_TEST START_TEST(test_parse_response_function_call)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call) {
     const char *json = "{"
                        "\"id\":\"resp-tool\","
                        "\"model\":\"gpt-4o\","
@@ -195,8 +199,9 @@ END_TEST START_TEST(test_parse_response_function_call)
     ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{\"location\":\"Boston\"}");
 }
 
-END_TEST START_TEST(test_parse_response_function_call_with_call_id)
-{
+END_TEST
+
+START_TEST(test_parse_response_function_call_with_call_id) {
     const char *json = "{"
                        "\"id\":\"resp-tool2\","
                        "\"model\":\"gpt-4o\","
@@ -224,8 +229,9 @@ END_TEST START_TEST(test_parse_response_function_call_with_call_id)
     ck_assert_str_eq(resp->content_blocks[0].data.tool_call.id, "call_xyz789");
 }
 
-END_TEST START_TEST(test_parse_response_mixed_message_and_tool)
-{
+END_TEST
+
+START_TEST(test_parse_response_mixed_message_and_tool) {
     const char *json = "{"
                        "\"id\":\"resp-mixed\","
                        "\"model\":\"gpt-4o\","

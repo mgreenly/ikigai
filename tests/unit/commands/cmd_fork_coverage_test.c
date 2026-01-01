@@ -31,9 +31,12 @@ int posix_rename_(const char *oldpath, const char *newpath)
     return 0;
 }
 
-static res_t mock_start_stream(void *ctx, const ik_request_t *req,
-                                ik_stream_cb_t stream_cb, void *stream_ctx,
-                                ik_provider_completion_cb_t completion_cb, void *completion_ctx);
+static res_t mock_start_stream(void *ctx,
+                               const ik_request_t *req,
+                               ik_stream_cb_t stream_cb,
+                               void *stream_ctx,
+                               ik_provider_completion_cb_t completion_cb,
+                               void *completion_ctx);
 
 // Mock control flags
 static bool mock_get_provider_should_fail = false;
@@ -95,8 +98,8 @@ res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **r
 
 // Mock start_stream function for provider
 static res_t mock_start_stream(void *ctx, const ik_request_t *req,
-                                ik_stream_cb_t stream_cb, void *stream_ctx,
-                                ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+                               ik_stream_cb_t stream_cb, void *stream_ctx,
+                               ik_provider_completion_cb_t completion_cb, void *completion_ctx)
 {
     (void)ctx;
     (void)req;
@@ -260,8 +263,7 @@ START_TEST(test_fork_clears_assistant_response) {
 }
 END_TEST
 // Test: Lines 84-87: Clear streaming_line_buffer when non-NULL
-START_TEST(test_fork_clears_streaming_buffer)
-{
+START_TEST(test_fork_clears_streaming_buffer) {
     // Set up agent with streaming_line_buffer
     repl->current->streaming_line_buffer = talloc_strdup(repl->current, "Partial line");
     ck_assert_ptr_nonnull(repl->current->streaming_line_buffer);
@@ -276,8 +278,7 @@ START_TEST(test_fork_clears_streaming_buffer)
 
 END_TEST
 // Test: Lines 84-87: Both assistant_response and streaming_line_buffer non-NULL
-START_TEST(test_fork_clears_both_response_and_buffer)
-{
+START_TEST(test_fork_clears_both_response_and_buffer) {
     // Set up agent with both fields
     repl->current->assistant_response = talloc_strdup(repl->current, "Previous response");
     repl->current->streaming_line_buffer = talloc_strdup(repl->current, "Partial buffer");
@@ -294,8 +295,7 @@ START_TEST(test_fork_clears_both_response_and_buffer)
 
 END_TEST
 // Test: Line 98: ik_agent_get_provider returns error
-START_TEST(test_fork_prompt_provider_error)
-{
+START_TEST(test_fork_prompt_provider_error) {
     // Enable mock failure for provider
     mock_get_provider_should_fail = true;
 
@@ -314,8 +314,7 @@ START_TEST(test_fork_prompt_provider_error)
 
 END_TEST
 // Test: Line 109: ik_request_build_from_conversation returns error
-START_TEST(test_fork_prompt_build_request_error)
-{
+START_TEST(test_fork_prompt_build_request_error) {
     // Enable mock failure for request building
     mock_build_request_should_fail = true;
 
@@ -330,8 +329,7 @@ START_TEST(test_fork_prompt_build_request_error)
 
 END_TEST
 // Test: Lines 107-127: Success path in handle_fork_prompt
-START_TEST(test_fork_prompt_success_path)
-{
+START_TEST(test_fork_prompt_success_path) {
     mock_get_provider_should_fail = false;
     mock_build_request_should_fail = false;
     mock_start_stream_should_fail = false;
@@ -347,8 +345,7 @@ START_TEST(test_fork_prompt_success_path)
 
 END_TEST
 // Test: Line 294 branch: child->thinking_level == IK_THINKING_NONE
-START_TEST(test_fork_no_thinking_level)
-{
+START_TEST(test_fork_no_thinking_level) {
     // Fork without thinking level (defaults to NONE)
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -360,8 +357,7 @@ START_TEST(test_fork_no_thinking_level)
 
 END_TEST
 // Test: Line 294 branch: child->model == NULL
-START_TEST(test_fork_no_model)
-{
+START_TEST(test_fork_no_model) {
     // Set up parent with NULL model
     repl->current->model = NULL;
     repl->current->thinking_level = IK_THINKING_HIGH;
@@ -377,8 +373,7 @@ START_TEST(test_fork_no_model)
 
 END_TEST
 // Test: Line 297: supports_thinking is true (no warning)
-START_TEST(test_fork_supports_thinking)
-{
+START_TEST(test_fork_supports_thinking) {
     // Fork with a model that supports thinking
     res_t res = ik_cmd_fork(test_ctx, repl, "--model claude-opus-4-5/high");
     ck_assert(is_ok(&res));
@@ -401,8 +396,7 @@ START_TEST(test_fork_supports_thinking)
 
 END_TEST
 // Test: Lines 157-160: Parse error displays message to scrollback
-START_TEST(test_fork_parse_error_display)
-{
+START_TEST(test_fork_parse_error_display) {
     // Pass malformed arguments to trigger parse error
     res_t res = ik_cmd_fork(test_ctx, repl, "unquoted text");
     ck_assert(is_ok(&res));  // Function returns OK even on parse error
@@ -421,8 +415,7 @@ START_TEST(test_fork_parse_error_display)
 }
 END_TEST
 // Test: Lines 165-170: Fork already in progress error
-START_TEST(test_fork_already_in_progress)
-{
+START_TEST(test_fork_already_in_progress) {
     atomic_store(&repl->shared->fork_pending, true);
 
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);

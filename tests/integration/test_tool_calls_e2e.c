@@ -336,8 +336,7 @@ END_TEST
  * Verifies OpenAI's tool_calls array with JSON string arguments
  * is parsed correctly via async streaming.
  */
-START_TEST(test_openai_tool_call_format_async)
-{
+START_TEST(test_openai_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -368,8 +367,7 @@ END_TEST
  * Verifies Google's functionCall parts (complete in one chunk)
  * are parsed correctly. Google uses UUID for tool call IDs.
  */
-START_TEST(test_google_tool_call_format_async)
-{
+START_TEST(test_google_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -399,8 +397,7 @@ END_TEST
  * Verifies tool results are formatted correctly for each provider
  * when sent back via start_stream().
  */
-START_TEST(test_tool_result_format_per_provider)
-{
+START_TEST(test_tool_result_format_per_provider) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -430,8 +427,7 @@ END_TEST
  * Verifies multiple tool calls indexed correctly when mock
  * returns multiple tool calls in SSE stream.
  */
-START_TEST(test_multiple_tool_calls_async)
-{
+START_TEST(test_multiple_tool_calls_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -461,8 +457,7 @@ END_TEST
  * Verifies tool errors are propagated correctly through
  * the async pattern.
  */
-START_TEST(test_tool_error_handling_async)
-{
+START_TEST(test_tool_error_handling_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);

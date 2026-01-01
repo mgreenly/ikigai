@@ -206,8 +206,7 @@ START_TEST(test_populate_scrollback_replays_model_command) {
 }
 END_TEST
 // Test: model command with slash syntax (model/thinking)
-START_TEST(test_model_command_with_slash_thinking)
-{
+START_TEST(test_model_command_with_slash_thinking) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-model-slash-1";
@@ -239,8 +238,7 @@ START_TEST(test_model_command_with_slash_thinking)
 
 END_TEST
 // Test: model command updates provider instance
-START_TEST(test_model_command_invalidates_provider_instance)
-{
+START_TEST(test_model_command_invalidates_provider_instance) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-model-provider-1";
@@ -284,8 +282,7 @@ START_TEST(test_model_command_invalidates_provider_instance)
 
 END_TEST
 // Test: command with NULL data_json is skipped
-START_TEST(test_command_with_null_data_json)
-{
+START_TEST(test_command_with_null_data_json) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-null-data-1";
@@ -319,8 +316,7 @@ START_TEST(test_command_with_null_data_json)
 
 END_TEST
 // Test: command with invalid JSON cannot be inserted into JSONB column
-START_TEST(test_command_with_invalid_json)
-{
+START_TEST(test_command_with_invalid_json) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-invalid-json-1";
@@ -338,8 +334,7 @@ START_TEST(test_command_with_invalid_json)
 
 END_TEST
 // Test: command with NULL command name is skipped
-START_TEST(test_command_with_null_command_name)
-{
+START_TEST(test_command_with_null_command_name) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-null-cmd-1";
@@ -369,8 +364,7 @@ START_TEST(test_command_with_null_command_name)
 
 END_TEST
 // Test: non-model command is ignored
-START_TEST(test_non_model_command_ignored)
-{
+START_TEST(test_non_model_command_ignored) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-other-cmd-1";
@@ -400,8 +394,7 @@ START_TEST(test_non_model_command_ignored)
 
 END_TEST
 // Test: model command with NULL args is skipped
-START_TEST(test_model_command_with_null_args)
-{
+START_TEST(test_model_command_with_null_args) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-model-null-args";

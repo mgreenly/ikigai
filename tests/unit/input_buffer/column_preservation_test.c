@@ -85,8 +85,7 @@ START_TEST(test_cursor_up_down_column_preservation) {
 }
 END_TEST
 /* Test: Column preservation resets on horizontal movement */
-START_TEST(test_column_preservation_resets_on_horizontal_move)
-{
+START_TEST(test_column_preservation_resets_on_horizontal_move) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -141,8 +140,7 @@ START_TEST(test_column_preservation_resets_on_horizontal_move)
 
 END_TEST
 /* Test: Multiple consecutive vertical movements preserve column */
-START_TEST(test_multiple_vertical_movements)
-{
+START_TEST(test_multiple_vertical_movements) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 

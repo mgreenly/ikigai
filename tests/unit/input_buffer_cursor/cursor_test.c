@@ -23,8 +23,7 @@ START_TEST(test_cursor_create) {
 }
 END_TEST
 // Test set position with ASCII text
-START_TEST(test_cursor_set_position_ascii)
-{
+START_TEST(test_cursor_set_position_ascii) {
     void *ctx = talloc_new(NULL);
     const char *text = "hello";
     size_t text_len = 5;
@@ -42,8 +41,7 @@ START_TEST(test_cursor_set_position_ascii)
 
 END_TEST
 // Test set position with UTF-8 multi-byte character
-START_TEST(test_cursor_set_position_utf8)
-{
+START_TEST(test_cursor_set_position_utf8) {
     void *ctx = talloc_new(NULL);
     const char *text = "a\xC3\xA9" "b";  // "aéb" (4 bytes: a + C3 A9 + b)
     size_t text_len = 4;
@@ -61,8 +59,7 @@ START_TEST(test_cursor_set_position_utf8)
 
 END_TEST
 // Test set position with 4-byte emoji
-START_TEST(test_cursor_set_position_emoji)
-{
+START_TEST(test_cursor_set_position_emoji) {
     void *ctx = talloc_new(NULL);
     const char *text = "a\xF0\x9F\x8E\x89" "b";  // "a🎉b" (6 bytes: a + F0 9F 8E 89 + b)
     size_t text_len = 6;
@@ -80,8 +77,7 @@ START_TEST(test_cursor_set_position_emoji)
 
 END_TEST
 // Test get_position
-START_TEST(test_cursor_get_position)
-{
+START_TEST(test_cursor_get_position) {
     void *ctx = talloc_new(NULL);
     const char *text = "hello";
     size_t text_len = 5;
@@ -107,16 +103,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test NULL parent parameter assertion
-START_TEST(test_cursor_create_null_parent)
-{
+START_TEST(test_cursor_create_null_parent) {
     /* parent cannot be NULL - should abort */
     ik_input_buffer_cursor_create(NULL);
 }
 
 END_TEST
 // Test NULL cursor parameter assertion
-START_TEST(test_cursor_set_position_null_cursor)
-{
+START_TEST(test_cursor_set_position_null_cursor) {
     const char *text = "hello";
 
     /* cursor cannot be NULL - should abort */
@@ -125,8 +119,7 @@ START_TEST(test_cursor_set_position_null_cursor)
 
 END_TEST
 // Test NULL text parameter assertion
-START_TEST(test_cursor_set_position_null_text)
-{
+START_TEST(test_cursor_set_position_null_text) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_cursor_t *cursor = ik_input_buffer_cursor_create(ctx);
 
@@ -138,8 +131,7 @@ START_TEST(test_cursor_set_position_null_text)
 
 END_TEST
 // Test byte_offset > text_len assertion
-START_TEST(test_cursor_set_position_offset_too_large)
-{
+START_TEST(test_cursor_set_position_offset_too_large) {
     void *ctx = talloc_new(NULL);
     const char *text = "hello";
     ik_input_buffer_cursor_t *cursor = ik_input_buffer_cursor_create(ctx);
@@ -152,8 +144,7 @@ START_TEST(test_cursor_set_position_offset_too_large)
 
 END_TEST
 // Test get_position NULL cursor assertion
-START_TEST(test_cursor_get_position_null_cursor)
-{
+START_TEST(test_cursor_get_position_null_cursor) {
     size_t byte_offset = 0;
     size_t grapheme_offset = 0;
 
@@ -163,8 +154,7 @@ START_TEST(test_cursor_get_position_null_cursor)
 
 END_TEST
 // Test get_position NULL byte_offset_out assertion
-START_TEST(test_cursor_get_position_null_byte_out)
-{
+START_TEST(test_cursor_get_position_null_byte_out) {
     void *ctx = talloc_new(NULL);
     size_t grapheme_offset = 0;
 
@@ -178,8 +168,7 @@ START_TEST(test_cursor_get_position_null_byte_out)
 
 END_TEST
 // Test get_position NULL grapheme_offset_out assertion
-START_TEST(test_cursor_get_position_null_grapheme_out)
-{
+START_TEST(test_cursor_get_position_null_grapheme_out) {
     void *ctx = talloc_new(NULL);
     size_t byte_offset = 0;
 

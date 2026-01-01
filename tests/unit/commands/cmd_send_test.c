@@ -188,8 +188,7 @@ START_TEST(test_send_creates_mail) {
 }
 END_TEST
 // Test: mail has correct from/to UUIDs
-START_TEST(test_send_correct_uuids)
-{
+START_TEST(test_send_correct_uuids) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -223,8 +222,7 @@ START_TEST(test_send_correct_uuids)
 
 END_TEST
 // Test: mail body stored correctly
-START_TEST(test_send_body_stored)
-{
+START_TEST(test_send_body_stored) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -257,8 +255,7 @@ START_TEST(test_send_body_stored)
 
 END_TEST
 // Test: non-existent recipient shows error
-START_TEST(test_send_nonexistent_recipient)
-{
+START_TEST(test_send_nonexistent_recipient) {
     res_t res = ik_cmd_send(test_ctx, repl, "nonexistent-uuid \"Message\"");
     ck_assert(is_ok(&res));
 
@@ -268,8 +265,7 @@ START_TEST(test_send_nonexistent_recipient)
 
 END_TEST
 // Test: dead recipient shows "Recipient agent is dead" error
-START_TEST(test_send_dead_recipient_error)
-{
+START_TEST(test_send_dead_recipient_error) {
     // Create and register recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -302,8 +298,7 @@ START_TEST(test_send_dead_recipient_error)
 
 END_TEST
 // Test: dead recipient does NOT create mail record
-START_TEST(test_send_dead_recipient_no_mail)
-{
+START_TEST(test_send_dead_recipient_no_mail) {
     // Create and register recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -339,8 +334,7 @@ START_TEST(test_send_dead_recipient_no_mail)
 
 END_TEST
 // Test: self-mail is allowed (sender == recipient)
-START_TEST(test_send_self_mail_allowed)
-{
+START_TEST(test_send_self_mail_allowed) {
     // Send mail to self
     res_t res = ik_cmd_send(test_ctx, repl, "sender-uuid-123 \"Note to self\"");
     ck_assert(is_ok(&res));
@@ -358,8 +352,7 @@ START_TEST(test_send_self_mail_allowed)
 
 END_TEST
 // Test: empty body shows error
-START_TEST(test_send_empty_body)
-{
+START_TEST(test_send_empty_body) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -388,8 +381,7 @@ START_TEST(test_send_empty_body)
 
 END_TEST
 // Test: confirmation displayed
-START_TEST(test_send_confirmation)
-{
+START_TEST(test_send_confirmation) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);

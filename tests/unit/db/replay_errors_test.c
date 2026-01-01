@@ -159,8 +159,7 @@ START_TEST(test_mark_stack_capacity_expansion) {
 }
 END_TEST
 // Test: Malformed rewind event - missing data field (line 195)
-START_TEST(test_rewind_missing_data)
-{
+START_TEST(test_rewind_missing_data) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -199,8 +198,7 @@ START_TEST(test_rewind_missing_data)
 
 END_TEST
 // Test: Malformed rewind event - missing target_message_id field (line 208)
-START_TEST(test_rewind_missing_target_message_id)
-{
+START_TEST(test_rewind_missing_target_message_id) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -235,8 +233,7 @@ START_TEST(test_rewind_missing_target_message_id)
 
 END_TEST
 // Test: Rewind with non-integer target_message_id (line 208)
-START_TEST(test_rewind_invalid_target_message_id_type)
-{
+START_TEST(test_rewind_invalid_target_message_id_type) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -271,8 +268,7 @@ START_TEST(test_rewind_invalid_target_message_id_type)
 
 END_TEST
 // Test: Rewind with target mark not found (line 219)
-START_TEST(test_rewind_mark_not_found)
-{
+START_TEST(test_rewind_mark_not_found) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -379,8 +375,7 @@ START_TEST(test_rewind_invalid_json) {
 }
 END_TEST
 // Test: Unknown event kind (lines 236-237)
-START_TEST(test_unknown_event_kind)
-{
+START_TEST(test_unknown_event_kind) {
     SKIP_IF_NO_DB();
 
     // Bypass the database CHECK constraint by directly inserting an unknown kind

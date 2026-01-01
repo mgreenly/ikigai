@@ -111,8 +111,7 @@ END_TEST
  * Test async tool execution without debug pipe (NULL)
  * This tests the branch where openai_debug_pipe IS NULL
  */
-START_TEST(test_async_tool_no_debug_pipe)
-{
+START_TEST(test_async_tool_no_debug_pipe) {
     /* Set debug pipe to NULL */
     repl->shared->openai_debug_pipe = NULL;
 
@@ -144,8 +143,7 @@ END_TEST
  * Test async tool execution with working debug pipe
  * This tests the branch where both openai_debug_pipe and write_end are NOT NULL
  */
-START_TEST(test_async_tool_with_working_debug_pipe)
-{
+START_TEST(test_async_tool_with_working_debug_pipe) {
     /* Create debug pipe with working write_end */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);

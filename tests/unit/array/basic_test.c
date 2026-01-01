@@ -24,8 +24,7 @@ START_TEST(test_array_create_success) {
 }
 END_TEST
 // Test array creation with invalid element_size (0)
-START_TEST(test_array_create_invalid_element_size)
-{
+START_TEST(test_array_create_invalid_element_size) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, 0, 10);
@@ -39,8 +38,7 @@ START_TEST(test_array_create_invalid_element_size)
 
 END_TEST
 // Test array creation with invalid increment (0)
-START_TEST(test_array_create_invalid_increment)
-{
+START_TEST(test_array_create_invalid_increment) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 0);
@@ -54,8 +52,7 @@ START_TEST(test_array_create_invalid_increment)
 
 END_TEST
 // Test array_size on empty array
-START_TEST(test_array_size_empty)
-{
+START_TEST(test_array_size_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -70,8 +67,7 @@ START_TEST(test_array_size_empty)
 
 END_TEST
 // Test array_capacity on empty array
-START_TEST(test_array_capacity_empty)
-{
+START_TEST(test_array_capacity_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -86,8 +82,7 @@ START_TEST(test_array_capacity_empty)
 
 END_TEST
 // Test clear array
-START_TEST(test_array_clear)
-{
+START_TEST(test_array_clear) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -115,8 +110,7 @@ START_TEST(test_array_clear)
 
 END_TEST
 // Security test: Clear then append (verify array still works)
-START_TEST(test_array_clear_then_append)
-{
+START_TEST(test_array_clear_then_append) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -153,15 +147,13 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: size with NULL array
-START_TEST(test_array_size_null_array_asserts)
-{
+START_TEST(test_array_size_null_array_asserts) {
     ik_array_size(NULL);
 }
 
 END_TEST
 // Test assertion: capacity with NULL array
-START_TEST(test_array_capacity_null_array_asserts)
-{
+START_TEST(test_array_capacity_null_array_asserts) {
     ik_array_capacity(NULL);
 }
 

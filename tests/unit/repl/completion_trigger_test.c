@@ -53,8 +53,7 @@ START_TEST(test_typing_slash_triggers_completion) {
 }
 END_TEST
 /* Test: Typing "/m" filters to matching commands */
-START_TEST(test_typing_m_after_slash_filters)
-{
+START_TEST(test_typing_m_after_slash_filters) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -100,8 +99,7 @@ START_TEST(test_typing_m_after_slash_filters)
 
 END_TEST
 /* Test: Typing regular text without slash has no completion */
-START_TEST(test_typing_regular_text_no_completion)
-{
+START_TEST(test_typing_regular_text_no_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -140,8 +138,7 @@ START_TEST(test_typing_regular_text_no_completion)
 
 END_TEST
 /* Test: Backspace refilters completion */
-START_TEST(test_backspace_refilters)
-{
+START_TEST(test_backspace_refilters) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -198,8 +195,7 @@ START_TEST(test_backspace_refilters)
 
 END_TEST
 /* Test: Tab accepts completion and dismisses */
-START_TEST(test_tab_cycles_without_triggering)
-{
+START_TEST(test_tab_cycles_without_triggering) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -250,8 +246,7 @@ START_TEST(test_tab_cycles_without_triggering)
 
 END_TEST
 /* Test: Empty slash followed by typing characters */
-START_TEST(test_empty_slash_then_typing)
-{
+START_TEST(test_empty_slash_then_typing) {
     void *ctx = talloc_new(NULL);
 
     // Create agent

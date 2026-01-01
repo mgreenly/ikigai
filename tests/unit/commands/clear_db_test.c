@@ -201,8 +201,7 @@ START_TEST(test_clear_db_error_clear_event) {
 }
 END_TEST
 // Test: Clear with database error on system message persist
-START_TEST(test_clear_db_error_system_message)
-{
+START_TEST(test_clear_db_error_system_message) {
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
@@ -228,8 +227,7 @@ START_TEST(test_clear_db_error_system_message)
 
 END_TEST
 // Test: Clear with system message successfully persisted to database
-START_TEST(test_clear_db_success_system_message)
-{
+START_TEST(test_clear_db_success_system_message) {
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
@@ -255,8 +253,7 @@ START_TEST(test_clear_db_success_system_message)
 
 END_TEST
 // Test: Clear without database context (no persistence)
-START_TEST(test_clear_without_db_ctx)
-{
+START_TEST(test_clear_without_db_ctx) {
     // No database context set (db_ctx is NULL)
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
@@ -276,8 +273,7 @@ START_TEST(test_clear_without_db_ctx)
 
 END_TEST
 // Test: Clear with DB error but no debug pipe (silent failure)
-START_TEST(test_clear_db_error_no_debug_pipe)
-{
+START_TEST(test_clear_db_error_no_debug_pipe) {
     // Create minimal config (no system message)
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -310,8 +306,7 @@ START_TEST(test_clear_db_error_no_debug_pipe)
 
 END_TEST
 // Test: Clear with system message DB error but no debug pipe
-START_TEST(test_clear_system_db_error_no_debug_pipe)
-{
+START_TEST(test_clear_system_db_error_no_debug_pipe) {
     // Create config with system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -345,8 +340,7 @@ START_TEST(test_clear_system_db_error_no_debug_pipe)
 
 END_TEST
 // Test: Clear with DB error and debug pipe but write_end is NULL
-START_TEST(test_clear_db_error_write_end_null)
-{
+START_TEST(test_clear_db_error_write_end_null) {
     // Create minimal config
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -382,8 +376,7 @@ START_TEST(test_clear_db_error_write_end_null)
 
 END_TEST
 // Test: Clear with system message DB error and write_end is NULL
-START_TEST(test_clear_system_db_error_write_end_null)
-{
+START_TEST(test_clear_system_db_error_write_end_null) {
     // Create config with system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -420,8 +413,7 @@ START_TEST(test_clear_system_db_error_write_end_null)
 
 END_TEST
 // Test: Clear with session_id <= 0 (no DB persistence)
-START_TEST(test_clear_with_invalid_session_id)
-{
+START_TEST(test_clear_with_invalid_session_id) {
     // Set up database context but invalid session_id
     ik_db_ctx_t *db_ctx = (ik_db_ctx_t *)0x1234;  // Fake pointer
     repl->shared->db_ctx = db_ctx;

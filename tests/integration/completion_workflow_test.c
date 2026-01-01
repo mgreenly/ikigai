@@ -52,8 +52,7 @@ START_TEST(test_completion_full_workflow) {
 }
 END_TEST
 /* Test: Argument completion workflow */
-START_TEST(test_completion_argument_workflow)
-{
+START_TEST(test_completion_argument_workflow) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -87,8 +86,7 @@ START_TEST(test_completion_argument_workflow)
 
 END_TEST
 /* Test: Escape dismisses completion */
-START_TEST(test_completion_escape_dismisses)
-{
+START_TEST(test_completion_escape_dismisses) {
     cleanup_test_dir();
     void *ctx = talloc_new(NULL);
     ik_config_t *cfg = ik_test_create_config(ctx);

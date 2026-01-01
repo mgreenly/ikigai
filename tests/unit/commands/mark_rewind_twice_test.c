@@ -96,8 +96,9 @@ START_TEST(test_rewind_to_same_mark_twice) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_rewind_to_unlabeled_mark_twice)
-{
+END_TEST
+
+START_TEST(test_rewind_to_unlabeled_mark_twice) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

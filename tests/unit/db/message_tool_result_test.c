@@ -35,8 +35,9 @@ START_TEST(test_tool_result_message_create_returns_nonnull) {
         );
     ck_assert_ptr_nonnull(msg);
 }
-END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_kind_is_tool_result) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -49,8 +50,9 @@ END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
     ck_assert_str_eq(msg->kind, "tool_result");
 }
 
-END_TEST START_TEST(test_tool_result_message_content_is_summary)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_content_is_summary) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -63,8 +65,9 @@ END_TEST START_TEST(test_tool_result_message_content_is_summary)
     ck_assert_str_eq(msg->content, "3 files found");
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_tool_call_id) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -78,8 +81,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "call_abc123"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_name) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -93,8 +97,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "glob"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_output) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -108,8 +113,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "src/main.c"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_success)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_success) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -130,8 +136,7 @@ END_TEST
  * Talloc hierarchy tests
  */
 
-START_TEST(test_tool_result_message_talloc_hierarchy)
-{
+START_TEST(test_tool_result_message_talloc_hierarchy) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -156,8 +161,7 @@ END_TEST
  * Different content strings
  */
 
-START_TEST(test_tool_result_message_with_different_summary)
-{
+START_TEST(test_tool_result_message_with_different_summary) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_xyz789",
@@ -171,8 +175,9 @@ START_TEST(test_tool_result_message_with_different_summary)
     ck_assert_str_eq(msg->kind, "tool_result");
 }
 
-END_TEST START_TEST(test_tool_result_message_success_false)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_success_false) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_error123",

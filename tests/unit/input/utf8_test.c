@@ -28,8 +28,7 @@ START_TEST(test_input_parse_utf8_2byte) {
 
 END_TEST
 // Test: parse 3-byte UTF-8 character (☃ = U+2603 = 0xE2 0x98 0x83)
-START_TEST(test_input_parse_utf8_3byte)
-{
+START_TEST(test_input_parse_utf8_3byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -54,8 +53,7 @@ START_TEST(test_input_parse_utf8_3byte)
 
 END_TEST
 // Test: parse 4-byte UTF-8 character (🎉 = U+1F389 = 0xF0 0x9F 0x8E 0x89)
-START_TEST(test_input_parse_utf8_4byte)
-{
+START_TEST(test_input_parse_utf8_4byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -84,8 +82,7 @@ START_TEST(test_input_parse_utf8_4byte)
 
 END_TEST
 // Test: incomplete UTF-8 sequence (only lead byte)
-START_TEST(test_input_parse_utf8_incomplete_eof)
-{
+START_TEST(test_input_parse_utf8_incomplete_eof) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -101,8 +98,7 @@ START_TEST(test_input_parse_utf8_incomplete_eof)
 
 END_TEST
 // Test: invalid UTF-8 sequence (invalid continuation byte)
-START_TEST(test_input_parse_utf8_invalid_continuation)
-{
+START_TEST(test_input_parse_utf8_invalid_continuation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

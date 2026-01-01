@@ -82,8 +82,9 @@ START_TEST(test_get_usage_initial) {
     ck_assert_int_eq(usage.thinking_tokens, 0);
     ck_assert_int_eq(usage.total_tokens, 0);
 }
-END_TEST START_TEST(test_get_usage_after_update)
-{
+END_TEST
+
+START_TEST(test_get_usage_after_update) {
     /* Manually update usage to simulate stream processing */
     stream_ctx->usage.input_tokens = 100;
     stream_ctx->usage.output_tokens = 50;
@@ -100,8 +101,9 @@ END_TEST START_TEST(test_get_usage_after_update)
     ck_assert_int_eq(usage.total_tokens, 175);
 }
 
-END_TEST START_TEST(test_get_finish_reason_initial)
-{
+END_TEST
+
+START_TEST(test_get_finish_reason_initial) {
     /* Get finish reason from fresh context */
     ik_finish_reason_t reason = ik_anthropic_stream_get_finish_reason(stream_ctx);
 
@@ -109,8 +111,9 @@ END_TEST START_TEST(test_get_finish_reason_initial)
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_get_finish_reason_after_update)
-{
+END_TEST
+
+START_TEST(test_get_finish_reason_after_update) {
     /* Manually update finish reason to simulate stream processing */
     stream_ctx->finish_reason = IK_FINISH_STOP;
 
@@ -126,8 +129,7 @@ END_TEST
  * Event Processing Edge Case Tests
  * ================================================================ */
 
-START_TEST(test_process_ping_event)
-{
+START_TEST(test_process_ping_event) {
     /* Process ping event - should be ignored */
     ik_anthropic_stream_process_event(stream_ctx, "ping", "{}");
 
@@ -135,8 +137,9 @@ START_TEST(test_process_ping_event)
     ck_assert_int_eq((int)captured_count, 0);
 }
 
-END_TEST START_TEST(test_process_invalid_json)
-{
+END_TEST
+
+START_TEST(test_process_invalid_json) {
     /* Process event with invalid JSON */
     ik_anthropic_stream_process_event(stream_ctx, "message_start", "not json at all");
 
@@ -147,8 +150,9 @@ END_TEST START_TEST(test_process_invalid_json)
     ck_assert_str_eq(captured_events[0].data.error.message, "Invalid JSON in SSE event");
 }
 
-END_TEST START_TEST(test_process_non_object_json)
-{
+END_TEST
+
+START_TEST(test_process_non_object_json) {
     /* Process event with JSON that's not an object */
     ik_anthropic_stream_process_event(stream_ctx, "message_start", "\"just a string\"");
 
@@ -159,8 +163,9 @@ END_TEST START_TEST(test_process_non_object_json)
     ck_assert_str_eq(captured_events[0].data.error.message, "SSE event data is not a JSON object");
 }
 
-END_TEST START_TEST(test_process_non_object_json_array)
-{
+END_TEST
+
+START_TEST(test_process_non_object_json_array) {
     /* Process event with JSON array instead of object */
     ik_anthropic_stream_process_event(stream_ctx, "message_start", "[1, 2, 3]");
 
@@ -171,8 +176,9 @@ END_TEST START_TEST(test_process_non_object_json_array)
     ck_assert_str_eq(captured_events[0].data.error.message, "SSE event data is not a JSON object");
 }
 
-END_TEST START_TEST(test_process_error_event)
-{
+END_TEST
+
+START_TEST(test_process_error_event) {
     /* Process error event with minimal error structure */
     const char *error_json = "{"
                              "\"type\": \"error\","
@@ -199,8 +205,9 @@ END_TEST START_TEST(test_process_error_event)
     ck_assert(found_error);
 }
 
-END_TEST START_TEST(test_process_unknown_event)
-{
+END_TEST
+
+START_TEST(test_process_unknown_event) {
     /* Process unknown event type - should be silently ignored */
     const char *unknown_json = "{\"type\": \"unknown_event\"}";
 

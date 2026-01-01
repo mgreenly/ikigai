@@ -64,8 +64,9 @@ START_TEST(test_config_with_db_connection_string) {
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_config_without_db_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_without_db_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -101,8 +102,9 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_full_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_full_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -140,8 +142,9 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_unix_socket_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_unix_socket_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -179,8 +182,9 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_empty_db_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_empty_db_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -217,8 +221,9 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
-{
+END_TEST
+
+START_TEST(test_config_with_invalid_db_connection_string_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -253,8 +258,9 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_structure_has_db_connection_string_field)
-{
+END_TEST
+
+START_TEST(test_config_structure_has_db_connection_string_field) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -273,8 +279,9 @@ END_TEST START_TEST(test_config_structure_has_db_connection_string_field)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_db_connection_string_null_value)
-{
+END_TEST
+
+START_TEST(test_config_with_db_connection_string_null_value) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

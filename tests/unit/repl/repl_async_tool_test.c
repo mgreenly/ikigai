@@ -180,8 +180,7 @@ END_TEST
 /*
  * Test async tool execution completion
  */
-START_TEST(test_complete_tool_execution)
-{
+START_TEST(test_complete_tool_execution) {
     /* Start async tool execution first */
     ik_repl_start_tool_execution(repl);
 
@@ -229,8 +228,7 @@ END_TEST
 /*
  * Test async execution with file_read tool
  */
-START_TEST(test_async_tool_file_read)
-{
+START_TEST(test_async_tool_file_read) {
     /* Change to file_read tool */
     talloc_free(repl->current->pending_tool_call);
     repl->current->pending_tool_call = ik_tool_call_create(repl,
@@ -265,8 +263,7 @@ END_TEST
 /*
  * Test async execution with debug pipe
  */
-START_TEST(test_async_tool_with_debug_pipe)
-{
+START_TEST(test_async_tool_with_debug_pipe) {
     /* Create debug pipe */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -300,8 +297,7 @@ END_TEST
 /*
  * Test async execution with database persistence
  */
-START_TEST(test_async_tool_db_persistence)
-{
+START_TEST(test_async_tool_db_persistence) {
     /* Set up database context */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 42;
@@ -336,8 +332,7 @@ END_TEST
 /*
  * Test async execution without database context
  */
-START_TEST(test_async_tool_no_db_ctx)
-{
+START_TEST(test_async_tool_no_db_ctx) {
     /* Set db_ctx to NULL - should not persist */
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 42;
@@ -372,8 +367,7 @@ END_TEST
 /*
  * Test async execution without session ID
  */
-START_TEST(test_async_tool_no_session_id)
-{
+START_TEST(test_async_tool_no_session_id) {
     /* Set session_id to 0 - should not persist */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 0;

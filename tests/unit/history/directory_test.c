@@ -85,8 +85,7 @@ START_TEST(test_history_ensure_directory_creates) {
 }
 END_TEST
 // Test: Succeeds when directory already exists (idempotent)
-START_TEST(test_history_ensure_directory_exists)
-{
+START_TEST(test_history_ensure_directory_exists) {
     // Create directory first
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -104,8 +103,7 @@ START_TEST(test_history_ensure_directory_exists)
 
 END_TEST
 // Test: Handle permission denied error
-START_TEST(test_history_ensure_directory_permission_denied)
-{
+START_TEST(test_history_ensure_directory_permission_denied) {
     // Mock mkdir to fail with EACCES
     // We'll do this by creating a file at .ikigai path (not a directory)
     FILE *f = fopen(".ikigai", "w");

@@ -74,8 +74,9 @@ START_TEST(test_serialize_single_text_message) {
 
     yyjson_doc_free(doc);
 }
-END_TEST START_TEST(test_serialize_multiple_content_blocks)
-{
+END_TEST
+
+START_TEST(test_serialize_multiple_content_blocks) {
     ik_request_t *req = create_basic_request(test_ctx);
 
     // Add multiple content blocks
@@ -103,8 +104,9 @@ END_TEST START_TEST(test_serialize_multiple_content_blocks)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_thinking_content)
-{
+END_TEST
+
+START_TEST(test_serialize_thinking_content) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].content_blocks[0].type = IK_CONTENT_THINKING;
     req->messages[0].content_blocks[0].data.thinking.text = talloc_strdup(req, "Let me think...");
@@ -132,8 +134,9 @@ END_TEST START_TEST(test_serialize_thinking_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_tool_call_content)
-{
+END_TEST
+
+START_TEST(test_serialize_tool_call_content) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_ASSISTANT;
     req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL;
@@ -167,8 +170,9 @@ END_TEST START_TEST(test_serialize_tool_call_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_tool_result_content)
-{
+END_TEST
+
+START_TEST(test_serialize_tool_result_content) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_TOOL;
     req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_RESULT;
@@ -202,8 +206,9 @@ END_TEST START_TEST(test_serialize_tool_result_content)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_serialize_tool_result_error)
-{
+END_TEST
+
+START_TEST(test_serialize_tool_result_error) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->messages[0].role = IK_ROLE_TOOL;
     req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_RESULT;

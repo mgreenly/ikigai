@@ -187,8 +187,7 @@ START_TEST(test_check_mail_timestamp_seconds) {
 }
 END_TEST
 // Test: check-mail with message 120 seconds old (< 3600)
-START_TEST(test_check_mail_timestamp_minutes)
-{
+START_TEST(test_check_mail_timestamp_minutes) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -218,8 +217,7 @@ START_TEST(test_check_mail_timestamp_minutes)
 
 END_TEST
 // Test: check-mail with message 7200 seconds old (< 86400)
-START_TEST(test_check_mail_timestamp_hours)
-{
+START_TEST(test_check_mail_timestamp_hours) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -249,8 +247,7 @@ START_TEST(test_check_mail_timestamp_hours)
 
 END_TEST
 // Test: check-mail with message exactly 1 hour old (singular form)
-START_TEST(test_check_mail_timestamp_1_hour)
-{
+START_TEST(test_check_mail_timestamp_1_hour) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -280,8 +277,7 @@ START_TEST(test_check_mail_timestamp_1_hour)
 
 END_TEST
 // Test: check-mail with message >= 86400 seconds old (days)
-START_TEST(test_check_mail_timestamp_days)
-{
+START_TEST(test_check_mail_timestamp_days) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -311,8 +307,7 @@ START_TEST(test_check_mail_timestamp_days)
 
 END_TEST
 // Test: check-mail with message exactly 1 day old (singular form)
-START_TEST(test_check_mail_timestamp_1_day)
-{
+START_TEST(test_check_mail_timestamp_1_day) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -342,8 +337,7 @@ START_TEST(test_check_mail_timestamp_1_day)
 
 END_TEST
 // Test: check-mail with short message (body <= 50 chars)
-START_TEST(test_check_mail_short_body)
-{
+START_TEST(test_check_mail_short_body) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -376,8 +370,7 @@ START_TEST(test_check_mail_short_body)
 
 END_TEST
 // Test: check-mail with single message (singular form in summary)
-START_TEST(test_check_mail_single_message)
-{
+START_TEST(test_check_mail_single_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);

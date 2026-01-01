@@ -31,8 +31,7 @@ static void teardown(void)
  * Input Format Tests
  * ================================================================ */
 
-START_TEST(test_serialize_multi_turn_conversation)
-{
+START_TEST(test_serialize_multi_turn_conversation) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -62,8 +61,7 @@ START_TEST(test_serialize_multi_turn_conversation)
 
 END_TEST
 
-START_TEST(test_serialize_non_user_message)
-{
+START_TEST(test_serialize_non_user_message) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -89,8 +87,7 @@ START_TEST(test_serialize_non_user_message)
 
 END_TEST
 
-START_TEST(test_serialize_multiple_content_blocks_with_separator)
-{
+START_TEST(test_serialize_multiple_content_blocks_with_separator) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -122,8 +119,7 @@ START_TEST(test_serialize_multiple_content_blocks_with_separator)
 
 END_TEST
 
-START_TEST(test_serialize_empty_input)
-{
+START_TEST(test_serialize_empty_input) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -154,8 +150,7 @@ START_TEST(test_serialize_empty_input)
 
 END_TEST
 
-START_TEST(test_serialize_user_message_with_zero_content_blocks)
-{
+START_TEST(test_serialize_user_message_with_zero_content_blocks) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -185,8 +180,7 @@ START_TEST(test_serialize_user_message_with_zero_content_blocks)
 
 END_TEST
 
-START_TEST(test_serialize_mixed_content_types_with_text)
-{
+START_TEST(test_serialize_mixed_content_types_with_text) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -223,8 +217,7 @@ END_TEST
  * Instructions (System Prompt) Tests
  * ================================================================ */
 
-START_TEST(test_serialize_with_system_prompt)
-{
+START_TEST(test_serialize_with_system_prompt) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -250,8 +243,7 @@ START_TEST(test_serialize_with_system_prompt)
 
 END_TEST
 
-START_TEST(test_serialize_without_system_prompt)
-{
+START_TEST(test_serialize_without_system_prompt) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -275,8 +267,7 @@ START_TEST(test_serialize_without_system_prompt)
 
 END_TEST
 
-START_TEST(test_serialize_with_empty_system_prompt)
-{
+START_TEST(test_serialize_with_empty_system_prompt) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -306,8 +297,7 @@ END_TEST
  * Streaming and Output Tests
  * ================================================================ */
 
-START_TEST(test_serialize_streaming_enabled)
-{
+START_TEST(test_serialize_streaming_enabled) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -332,8 +322,7 @@ START_TEST(test_serialize_streaming_enabled)
 
 END_TEST
 
-START_TEST(test_serialize_streaming_disabled)
-{
+START_TEST(test_serialize_streaming_disabled) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -357,8 +346,7 @@ START_TEST(test_serialize_streaming_disabled)
 
 END_TEST
 
-START_TEST(test_serialize_max_output_tokens)
-{
+START_TEST(test_serialize_max_output_tokens) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
@@ -383,8 +371,7 @@ START_TEST(test_serialize_max_output_tokens)
 
 END_TEST
 
-START_TEST(test_serialize_no_max_output_tokens)
-{
+START_TEST(test_serialize_no_max_output_tokens) {
     ik_request_t *req = NULL;
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));

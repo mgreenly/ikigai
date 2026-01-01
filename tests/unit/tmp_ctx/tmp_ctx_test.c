@@ -8,8 +8,9 @@ START_TEST(test_tmp_ctx_create_returns_non_null) {
     ck_assert_ptr_nonnull(tmp);
     talloc_free(tmp);
 }
-END_TEST START_TEST(test_tmp_ctx_can_allocate)
-{
+END_TEST
+
+START_TEST(test_tmp_ctx_can_allocate) {
     TALLOC_CTX *tmp = tmp_ctx_create();
     ck_assert_ptr_nonnull(tmp);
 
@@ -21,8 +22,9 @@ END_TEST START_TEST(test_tmp_ctx_can_allocate)
     talloc_free(tmp);
 }
 
-END_TEST START_TEST(test_tmp_ctx_can_be_freed)
-{
+END_TEST
+
+START_TEST(test_tmp_ctx_can_be_freed) {
     TALLOC_CTX *tmp = tmp_ctx_create();
     ck_assert_ptr_nonnull(tmp);
 

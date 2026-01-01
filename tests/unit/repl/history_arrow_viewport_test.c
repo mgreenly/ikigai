@@ -88,8 +88,7 @@ START_TEST(test_arrow_up_with_viewport_offset_scrolls) {
 }
 END_TEST
 /* Test: Arrow down with viewport_offset > 0 scrolls viewport instead of history */
-START_TEST(test_arrow_down_with_viewport_offset_scrolls)
-{
+START_TEST(test_arrow_down_with_viewport_offset_scrolls) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -154,8 +153,7 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls)
 
 END_TEST
 /* Test: Arrow up with viewport_offset == 0 navigates history normally */
-START_TEST(test_arrow_up_with_zero_offset_navigates_history)
-{
+START_TEST(test_arrow_up_with_zero_offset_navigates_history) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -212,8 +210,7 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history)
 
 END_TEST
 /* Test: Arrow down when scrolled to bottom then returns to offset 0, next arrow down triggers history */
-START_TEST(test_arrow_down_to_bottom_then_history)
-{
+START_TEST(test_arrow_down_to_bottom_then_history) {
     void *ctx = talloc_new(NULL);
     res_t res;
 

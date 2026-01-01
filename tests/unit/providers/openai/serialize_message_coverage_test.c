@@ -32,8 +32,7 @@ static void teardown(void)
 }
 
 /* Test: Serialize IK_ROLE_TOOL message with tool result */
-START_TEST(test_tool_result_message)
-{
+START_TEST(test_tool_result_message) {
     ik_message_t *msg = ik_message_create_tool_result(ctx, "call_123", "Success", false);
     yyjson_mut_val *result = ik_openai_serialize_message(doc, msg);
 
@@ -45,8 +44,7 @@ START_TEST(test_tool_result_message)
 END_TEST
 
 /* Test: Serialize assistant message with tool call */
-START_TEST(test_assistant_tool_call)
-{
+START_TEST(test_assistant_tool_call) {
     ik_message_t *msg = ik_message_create_tool_call(ctx, "call_456", "get_weather", "{\"city\":\"Paris\"}");
     yyjson_mut_val *result = ik_openai_serialize_message(doc, msg);
 
@@ -61,8 +59,7 @@ START_TEST(test_assistant_tool_call)
 END_TEST
 
 /* Test: Multiple text blocks concatenated with \n\n */
-START_TEST(test_multiple_text_blocks)
-{
+START_TEST(test_multiple_text_blocks) {
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 3;
@@ -82,8 +79,7 @@ START_TEST(test_multiple_text_blocks)
 END_TEST
 
 /* Test: Empty content (zero blocks) */
-START_TEST(test_empty_content)
-{
+START_TEST(test_empty_content) {
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 0;
@@ -96,8 +92,7 @@ START_TEST(test_empty_content)
 END_TEST
 
 /* Test: Multiple tool calls in one message */
-START_TEST(test_multiple_tool_calls)
-{
+START_TEST(test_multiple_tool_calls) {
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
     msg->role = IK_ROLE_ASSISTANT;
     msg->content_count = 2;
@@ -120,8 +115,7 @@ START_TEST(test_multiple_tool_calls)
 END_TEST
 
 /* Test: Mixed content blocks (text + thinking) to hit branch coverage */
-START_TEST(test_mixed_content_types)
-{
+START_TEST(test_mixed_content_types) {
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 2;
@@ -139,8 +133,7 @@ START_TEST(test_mixed_content_types)
 END_TEST
 
 /* Test: Tool role without tool_result content */
-START_TEST(test_tool_role_no_result)
-{
+START_TEST(test_tool_role_no_result) {
     ik_message_t *msg = talloc_zero(ctx, ik_message_t);
     msg->role = IK_ROLE_TOOL;
     msg->content_count = 1;

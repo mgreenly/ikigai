@@ -32,7 +32,8 @@ static void teardown(void)
  */
 
 /* User callback that consumes all data */
-static size_t user_callback_success(const char *data, size_t len, void *ctx) {
+static size_t user_callback_success(const char *data, size_t len, void *ctx)
+{
     (void)data;
     int *call_count = (int *)ctx;
     (*call_count)++;
@@ -40,7 +41,8 @@ static size_t user_callback_success(const char *data, size_t len, void *ctx) {
 }
 
 /* User callback that fails to consume all data */
-static size_t user_callback_partial(const char *data, size_t len, void *ctx) {
+static size_t user_callback_partial(const char *data, size_t len, void *ctx)
+{
     (void)data;
     (void)ctx;
     return len / 2;  /* Only consume half */

@@ -64,7 +64,7 @@ static void teardown(void)
  * ================================================================ */
 
 res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx, const ik_request_t *req,
-                                         bool stream, char **out_json)
+                                        bool stream, char **out_json)
 {
     (void)req;
     (void)stream;
@@ -78,7 +78,7 @@ res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx, const ik_request_t *req
 }
 
 res_t ik_openai_serialize_responses_request_(TALLOC_CTX *ctx, const ik_request_t *req,
-                                              bool stream, char **out_json)
+                                             bool stream, char **out_json)
 {
     (void)req;
     (void)stream;
@@ -128,8 +128,8 @@ res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out
 }
 
 res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
-                                   void *write_cb, void *write_ctx,
-                                   void *completion_cb, void *completion_ctx)
+                                 void *write_cb, void *write_ctx,
+                                 void *completion_cb, void *completion_ctx)
 {
     (void)http_multi;
     (void)http_req;
@@ -149,7 +149,7 @@ res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
  * ================================================================ */
 
 static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
-                                   ik_content_block_t *content, const char *model)
+                                  ik_content_block_t *content, const char *model)
 {
     content->type = IK_CONTENT_TEXT;
     content->data.text.text = talloc_strdup(test_ctx, "Test");
@@ -176,8 +176,7 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
  * start_request Error Path Tests - Chat API
  * ================================================================ */
 
-START_TEST(test_start_request_chat_serialize_failure)
-{
+START_TEST(test_start_request_chat_serialize_failure) {
     /* Covers line 189: is_err(&serialize_res) for chat API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -197,8 +196,7 @@ START_TEST(test_start_request_chat_serialize_failure)
 }
 END_TEST
 
-START_TEST(test_start_request_chat_url_failure)
-{
+START_TEST(test_start_request_chat_url_failure) {
     /* Covers line 205: is_err(&url_res) for chat API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -218,8 +216,7 @@ START_TEST(test_start_request_chat_url_failure)
 }
 END_TEST
 
-START_TEST(test_start_request_headers_failure)
-{
+START_TEST(test_start_request_headers_failure) {
     /* Covers line 214: is_err(&headers_res) */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -239,8 +236,7 @@ START_TEST(test_start_request_headers_failure)
 }
 END_TEST
 
-START_TEST(test_start_request_http_multi_add_failure)
-{
+START_TEST(test_start_request_http_multi_add_failure) {
     /* Covers line 245: is_err(&add_res) */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -264,8 +260,7 @@ END_TEST
  * start_request Error Path Tests - Responses API
  * ================================================================ */
 
-START_TEST(test_start_request_responses_serialize_failure)
-{
+START_TEST(test_start_request_responses_serialize_failure) {
     /* Covers line 189: is_err(&serialize_res) for responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -285,8 +280,7 @@ START_TEST(test_start_request_responses_serialize_failure)
 }
 END_TEST
 
-START_TEST(test_start_request_responses_url_failure)
-{
+START_TEST(test_start_request_responses_url_failure) {
     /* Covers line 205: is_err(&url_res) for responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -310,8 +304,7 @@ END_TEST
  * start_stream Error Path Tests - Chat API
  * ================================================================ */
 
-START_TEST(test_start_stream_chat_serialize_failure)
-{
+START_TEST(test_start_stream_chat_serialize_failure) {
     /* Covers line 299: is_err(&serialize_res) for chat API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -332,8 +325,7 @@ START_TEST(test_start_stream_chat_serialize_failure)
 }
 END_TEST
 
-START_TEST(test_start_stream_chat_url_failure)
-{
+START_TEST(test_start_stream_chat_url_failure) {
     /* Covers line 315: is_err(&url_res) for chat API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -354,8 +346,7 @@ START_TEST(test_start_stream_chat_url_failure)
 }
 END_TEST
 
-START_TEST(test_start_stream_headers_failure)
-{
+START_TEST(test_start_stream_headers_failure) {
     /* Covers line 324: is_err(&headers_res) */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -376,8 +367,7 @@ START_TEST(test_start_stream_headers_failure)
 }
 END_TEST
 
-START_TEST(test_start_stream_http_multi_add_failure)
-{
+START_TEST(test_start_stream_http_multi_add_failure) {
     /* Covers line 353: is_err(&add_res) */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
@@ -402,8 +392,7 @@ END_TEST
  * start_stream Error Path Tests - Responses API
  * ================================================================ */
 
-START_TEST(test_start_stream_responses_serialize_failure)
-{
+START_TEST(test_start_stream_responses_serialize_failure) {
     /* Covers line 299: is_err(&serialize_res) for responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
@@ -424,8 +413,7 @@ START_TEST(test_start_stream_responses_serialize_failure)
 }
 END_TEST
 
-START_TEST(test_start_stream_responses_url_failure)
-{
+START_TEST(test_start_stream_responses_url_failure) {
     /* Covers line 315: is_err(&url_res) for responses API */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);

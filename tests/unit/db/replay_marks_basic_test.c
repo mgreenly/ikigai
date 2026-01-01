@@ -145,8 +145,7 @@ START_TEST(test_simple_mark) {
 }
 END_TEST
 // Test rewind to mark: [user, assistant, mark, user, assistant, rewind] -> [user, assistant, mark, rewind]
-START_TEST(test_rewind_to_mark)
-{
+START_TEST(test_rewind_to_mark) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -211,8 +210,7 @@ START_TEST(test_rewind_to_mark)
 
 END_TEST
 // Test rewind truncates correctly: [user, mark, assistant, user, rewind] -> verify assistant and second user not in context
-START_TEST(test_rewind_truncates_messages)
-{
+START_TEST(test_rewind_truncates_messages) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -268,8 +266,7 @@ START_TEST(test_rewind_truncates_messages)
 
 END_TEST
 // Test multiple marks: [user, mark('a'), assistant, mark('b'), user, rewind('a')] -> [user, mark('a'), rewind]
-START_TEST(test_multiple_marks)
-{
+START_TEST(test_multiple_marks) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -327,8 +324,7 @@ START_TEST(test_multiple_marks)
 
 END_TEST
 // Test rewind removes subsequent marks from mark stack
-START_TEST(test_rewind_removes_subsequent_marks)
-{
+START_TEST(test_rewind_removes_subsequent_marks) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -398,8 +394,7 @@ START_TEST(test_rewind_removes_subsequent_marks)
 
 END_TEST
 // Test mark labels: named marks vs auto-numbered marks
-START_TEST(test_mark_labels)
-{
+START_TEST(test_mark_labels) {
     SKIP_IF_NO_DB();
 
     // Insert clear

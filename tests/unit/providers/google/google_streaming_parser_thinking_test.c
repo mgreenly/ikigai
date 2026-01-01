@@ -168,8 +168,9 @@ START_TEST(test_parse_part_with_thought_true_flag) {
     ck_assert_str_eq(thinking_event->data.delta.text, "Let me think...");
 }
 
-END_TEST START_TEST(test_parse_part_without_thought_flag)
-{
+END_TEST
+
+START_TEST(test_parse_part_without_thought_flag) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -188,8 +189,9 @@ END_TEST START_TEST(test_parse_part_without_thought_flag)
     ck_assert_ptr_null(thinking_event);
 }
 
-END_TEST START_TEST(test_distinguish_thought_content_from_regular_content)
-{
+END_TEST
+
+START_TEST(test_distinguish_thought_content_from_regular_content) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -207,8 +209,9 @@ END_TEST START_TEST(test_distinguish_thought_content_from_regular_content)
     ck_assert_int_eq((int)text_count, 1);
 }
 
-END_TEST START_TEST(test_interleaved_thinking_and_content_parts)
-{
+END_TEST
+
+START_TEST(test_interleaved_thinking_and_content_parts) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -233,8 +236,7 @@ END_TEST
  * Event Normalization Tests
  * ================================================================ */
 
-START_TEST(test_normalize_text_part_to_text_delta)
-{
+START_TEST(test_normalize_text_part_to_text_delta) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -250,8 +252,9 @@ START_TEST(test_normalize_text_part_to_text_delta)
     ck_assert_int_eq(event->type, IK_STREAM_TEXT_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_thought_part_to_thinking_delta)
-{
+END_TEST
+
+START_TEST(test_normalize_thought_part_to_thinking_delta) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));
@@ -267,8 +270,9 @@ END_TEST START_TEST(test_normalize_thought_part_to_thinking_delta)
     ck_assert_int_eq(event->type, IK_STREAM_THINKING_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_finish_reason_to_done_with_usage)
-{
+END_TEST
+
+START_TEST(test_normalize_finish_reason_to_done_with_usage) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
     ck_assert(!is_err(&r));

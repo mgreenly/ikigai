@@ -46,8 +46,7 @@ static void reset_mock(void)
     mock_return_null_on_call = -1;
 }
 
-START_TEST(test_text_delta_yyjson_get_str_returns_null)
-{
+START_TEST(test_text_delta_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -57,15 +56,14 @@ START_TEST(test_text_delta_yyjson_get_str_returns_null)
 
     /* Even with valid JSON, mock makes yyjson_get_str return NULL */
     ik_openai_responses_stream_process_event(ctx, "response.output_text.delta",
-        "{\"delta\":\"text\"}");
+                                             "{\"delta\":\"text\"}");
 
     /* No events should be emitted when delta is NULL */
     ck_assert_int_eq((int)events->count, 0);
 }
 END_TEST
 
-START_TEST(test_thinking_delta_yyjson_get_str_returns_null)
-{
+START_TEST(test_thinking_delta_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -74,37 +72,36 @@ START_TEST(test_thinking_delta_yyjson_get_str_returns_null)
     mock_yyjson_get_str_should_return_null = true;
 
     ik_openai_responses_stream_process_event(ctx, "response.reasoning_summary_text.delta",
-        "{\"delta\":\"thinking\"}");
+                                             "{\"delta\":\"thinking\"}");
 
     /* No events should be emitted when delta is NULL */
     ck_assert_int_eq((int)events->count, 0);
 }
 END_TEST
 
-START_TEST(test_function_call_args_delta_yyjson_get_str_returns_null)
-{
+START_TEST(test_function_call_args_delta_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
 
     /* Start a tool call first */
-    ik_openai_responses_stream_process_event(ctx, "response.output_item.added",
-        "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test\"},\"output_index\":0}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.output_item.added",
+                                             "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test\"},\"output_index\":0}");
     events->count = 0;
 
     /* Enable mock to return NULL - covers line 248 (delta == NULL) */
     mock_yyjson_get_str_should_return_null = true;
 
     ik_openai_responses_stream_process_event(ctx, "response.function_call_arguments.delta",
-        "{\"delta\":\"args\"}");
+                                             "{\"delta\":\"args\"}");
 
     /* No events should be emitted when delta is NULL */
     ck_assert_int_eq((int)events->count, 0);
 }
 END_TEST
 
-START_TEST(test_output_item_added_call_id_yyjson_get_str_returns_null)
-{
+START_TEST(test_output_item_added_call_id_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -112,16 +109,16 @@ START_TEST(test_output_item_added_call_id_yyjson_get_str_returns_null)
     /* Mock returns NULL on first call (call_id) - covers line 218 (call_id == NULL) */
     mock_return_null_on_call = 1;
 
-    ik_openai_responses_stream_process_event(ctx, "response.output_item.added",
-        "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test\"},\"output_index\":0}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.output_item.added",
+                                             "{\"item\":{\"type\":\"function_call\",\"call_id\":\"call_1\",\"name\":\"test\"},\"output_index\":0}");
 
     /* No TOOL_CALL_START event should be emitted when call_id is NULL */
     ck_assert_int_eq((int)events->count, 0);
 }
 END_TEST
 
-START_TEST(test_response_completed_incomplete_reason_yyjson_get_str_returns_null)
-{
+START_TEST(test_response_completed_incomplete_reason_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -131,8 +128,9 @@ START_TEST(test_response_completed_incomplete_reason_yyjson_get_str_returns_null
     /* Mock returns NULL for reason field - covers line 297 (yyjson_get_str returns NULL) */
     mock_return_null_on_call = 1;
 
-    ik_openai_responses_stream_process_event(ctx, "response.completed",
-        "{\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_tokens\"}}}");
+    ik_openai_responses_stream_process_event(ctx,
+                                             "response.completed",
+                                             "{\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_tokens\"}}}");
 
     /* Event should still be emitted, incomplete_reason will be NULL */
     ck_assert_int_eq((int)events->count, 1);
@@ -140,8 +138,7 @@ START_TEST(test_response_completed_incomplete_reason_yyjson_get_str_returns_null
 }
 END_TEST
 
-START_TEST(test_error_message_yyjson_get_str_returns_null)
-{
+START_TEST(test_error_message_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -150,7 +147,7 @@ START_TEST(test_error_message_yyjson_get_str_returns_null)
     mock_return_null_on_call = 1;
 
     ik_openai_responses_stream_process_event(ctx, "error",
-        "{\"error\":{\"message\":\"Error occurred\",\"type\":\"server_error\"}}");
+                                             "{\"error\":{\"message\":\"Error occurred\",\"type\":\"server_error\"}}");
 
     /* Error event should be emitted with fallback message */
     ck_assert_int_eq((int)events->count, 1);

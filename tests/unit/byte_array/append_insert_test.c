@@ -26,8 +26,7 @@ START_TEST(test_byte_array_append_first) {
 
 END_TEST
 // Test appending multiple bytes within capacity
-START_TEST(test_byte_array_append_no_growth)
-{
+START_TEST(test_byte_array_append_no_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -53,8 +52,7 @@ START_TEST(test_byte_array_append_no_growth)
 
 END_TEST
 // Test appending that triggers growth
-START_TEST(test_byte_array_append_with_growth)
-{
+START_TEST(test_byte_array_append_with_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 2);
@@ -80,8 +78,7 @@ START_TEST(test_byte_array_append_with_growth)
 
 END_TEST
 // Test insert at beginning
-START_TEST(test_byte_array_insert_at_beginning)
-{
+START_TEST(test_byte_array_insert_at_beginning) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -111,8 +108,7 @@ START_TEST(test_byte_array_insert_at_beginning)
 
 END_TEST
 // Test insert in middle
-START_TEST(test_byte_array_insert_in_middle)
-{
+START_TEST(test_byte_array_insert_in_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -143,8 +139,7 @@ START_TEST(test_byte_array_insert_in_middle)
 
 END_TEST
 // Test insert at end (same as append)
-START_TEST(test_byte_array_insert_at_end)
-{
+START_TEST(test_byte_array_insert_at_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -170,8 +165,7 @@ START_TEST(test_byte_array_insert_at_end)
 
 END_TEST
 // Test insert with growth
-START_TEST(test_byte_array_insert_with_growth)
-{
+START_TEST(test_byte_array_insert_with_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 2);

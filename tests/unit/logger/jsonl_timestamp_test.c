@@ -87,8 +87,7 @@ START_TEST(test_jsonl_timestamp_iso8601_format) {
 }
 END_TEST
 // Test: timestamp includes exactly 3 millisecond digits
-START_TEST(test_jsonl_timestamp_milliseconds)
-{
+START_TEST(test_jsonl_timestamp_milliseconds) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -125,8 +124,7 @@ START_TEST(test_jsonl_timestamp_milliseconds)
 
 END_TEST
 // Test: timestamp includes timezone offset ±HH:MM
-START_TEST(test_jsonl_timestamp_timezone_offset)
-{
+START_TEST(test_jsonl_timestamp_timezone_offset) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -162,8 +160,7 @@ START_TEST(test_jsonl_timestamp_timezone_offset)
 
 END_TEST
 // Test: timestamp is approximately current time (within 1 second tolerance)
-START_TEST(test_jsonl_timestamp_current_time)
-{
+START_TEST(test_jsonl_timestamp_current_time) {
     setup_logger();
 
     time_t before = time(NULL);

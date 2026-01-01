@@ -33,8 +33,7 @@ static void teardown(void)
  * Test build_from_conversation which internally calls build_tool_parameters_json
  * This covers lines 92-107 (the function that builds JSON tool schemas)
  */
-START_TEST(test_build_tool_parameters_json_via_conversation)
-{
+START_TEST(test_build_tool_parameters_json_via_conversation) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");

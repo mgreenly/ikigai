@@ -129,8 +129,9 @@ START_TEST(verify_anthropic_streaming_text) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(verify_anthropic_streaming_thinking)
-{
+END_TEST
+
+START_TEST(verify_anthropic_streaming_thinking) {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
         ck_assert(true);
@@ -219,8 +220,9 @@ END_TEST START_TEST(verify_anthropic_streaming_thinking)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(verify_anthropic_tool_call)
-{
+END_TEST
+
+START_TEST(verify_anthropic_tool_call) {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
         ck_assert(true);
@@ -320,8 +322,9 @@ END_TEST START_TEST(verify_anthropic_tool_call)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(verify_anthropic_error_auth)
-{
+END_TEST
+
+START_TEST(verify_anthropic_error_auth) {
     // Skip if not in verification mode
     if (!should_verify_mocks_anthropic()) {
         ck_assert(true);
@@ -383,8 +386,9 @@ END_TEST START_TEST(verify_anthropic_error_auth)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(validate_fixture_structure)
-{
+END_TEST
+
+START_TEST(validate_fixture_structure) {
     // This test runs even without VERIFY_MOCKS to validate fixture files
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);

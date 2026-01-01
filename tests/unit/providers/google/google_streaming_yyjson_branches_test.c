@@ -280,7 +280,7 @@ START_TEST(test_error_with_large_object) {
         "\"message\":\"Test error\","
         "\"status\":\"UNAUTHENTICATED\","
         "\"code\":401,"
-        "\"details\":[],""\"metadata\":{},"
+        "\"details\":[]," "\"metadata\":{},"
         "\"field1\":1,"
         "\"field2\":2"
         "}}";

@@ -85,8 +85,7 @@ START_TEST(test_mail_table_exists) {
 }
 END_TEST
 // Test that all required columns exist with correct types
-START_TEST(test_mail_columns_exist)
-{
+START_TEST(test_mail_columns_exist) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -134,8 +133,7 @@ START_TEST(test_mail_columns_exist)
 
 END_TEST
 // Test foreign key to sessions table
-START_TEST(test_mail_foreign_key_sessions)
-{
+START_TEST(test_mail_foreign_key_sessions) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -164,8 +162,7 @@ START_TEST(test_mail_foreign_key_sessions)
 
 END_TEST
 // Test that idx_mail_recipient index exists
-START_TEST(test_mail_recipient_index_exists)
-{
+START_TEST(test_mail_recipient_index_exists) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -189,8 +186,7 @@ START_TEST(test_mail_recipient_index_exists)
 
 END_TEST
 // Test migration is idempotent (running migrations again should not fail)
-START_TEST(test_mail_migration_idempotent)
-{
+START_TEST(test_mail_migration_idempotent) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);

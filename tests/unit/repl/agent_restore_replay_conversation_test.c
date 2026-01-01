@@ -199,8 +199,7 @@ START_TEST(test_populate_conversation_adds_messages) {
 }
 END_TEST
 // Test: populate_conversation skips non-conversation messages
-START_TEST(test_populate_conversation_skips_commands)
-{
+START_TEST(test_populate_conversation_skips_commands) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-conv-skip-1";
@@ -230,8 +229,7 @@ START_TEST(test_populate_conversation_skips_commands)
 
 END_TEST
 // Test: restore_marks with empty mark stack
-START_TEST(test_restore_marks_empty_stack)
-{
+START_TEST(test_restore_marks_empty_stack) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-marks-empty-1";
@@ -258,8 +256,7 @@ START_TEST(test_restore_marks_empty_stack)
 
 END_TEST
 // Test: yyjson_read returns NULL (invalid JSON that passes through DB)
-START_TEST(test_yyjson_read_returns_null)
-{
+START_TEST(test_yyjson_read_returns_null) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-yyjson-null-1";
@@ -297,8 +294,7 @@ START_TEST(test_yyjson_read_returns_null)
 
 END_TEST
 // Test: model command with existing provider and provider_instance
-START_TEST(test_existing_provider_and_instance_cleanup)
-{
+START_TEST(test_existing_provider_and_instance_cleanup) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-existing-prov-2";
@@ -343,8 +339,7 @@ START_TEST(test_existing_provider_and_instance_cleanup)
 
 END_TEST
 // Test: JSON with missing root object
-START_TEST(test_json_missing_root)
-{
+START_TEST(test_json_missing_root) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-json-no-root-1";
@@ -383,8 +378,7 @@ START_TEST(test_json_missing_root)
 
 END_TEST
 // Test: message with NULL kind in scrollback
-START_TEST(test_message_with_null_kind)
-{
+START_TEST(test_message_with_null_kind) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-null-kind-1";
@@ -421,8 +415,7 @@ START_TEST(test_message_with_null_kind)
 END_TEST
 
 // Test: populate_conversation handles system messages (provider_msg == NULL)
-START_TEST(test_populate_conversation_system_message)
-{
+START_TEST(test_populate_conversation_system_message) {
     SKIP_IF_NO_DB();
 
     const char *agent_uuid = "test-conv-system-1";

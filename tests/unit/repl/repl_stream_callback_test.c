@@ -60,8 +60,7 @@ START_TEST(test_stream_start_initializes) {
 }
 END_TEST
 /* Test: IK_STREAM_START clears existing assistant_response */
-START_TEST(test_stream_start_clears_existing_response)
-{
+START_TEST(test_stream_start_clears_existing_response) {
     /* Set up existing assistant_response */
     agent->assistant_response = talloc_strdup(agent, "old response");
 
@@ -79,8 +78,7 @@ START_TEST(test_stream_start_clears_existing_response)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with text creates assistant_response */
-START_TEST(test_text_delta_creates_response)
-{
+START_TEST(test_text_delta_creates_response) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = "Hello"
@@ -96,8 +94,7 @@ START_TEST(test_text_delta_creates_response)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA appends to existing response */
-START_TEST(test_text_delta_appends_to_response)
-{
+START_TEST(test_text_delta_appends_to_response) {
     /* Set up existing response */
     agent->assistant_response = talloc_strdup(agent, "Hello");
 
@@ -115,8 +112,7 @@ START_TEST(test_text_delta_appends_to_response)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with NULL text does nothing */
-START_TEST(test_text_delta_null_text)
-{
+START_TEST(test_text_delta_null_text) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = NULL
@@ -131,8 +127,7 @@ START_TEST(test_text_delta_null_text)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with newline flushes to scrollback */
-START_TEST(test_text_delta_newline_flushes)
-{
+START_TEST(test_text_delta_newline_flushes) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = "Line 1\n"
@@ -148,8 +143,7 @@ START_TEST(test_text_delta_newline_flushes)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA without newline buffers text */
-START_TEST(test_text_delta_no_newline_buffers)
-{
+START_TEST(test_text_delta_no_newline_buffers) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = "Partial line"
@@ -166,8 +160,7 @@ START_TEST(test_text_delta_no_newline_buffers)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA appends to existing buffer */
-START_TEST(test_text_delta_appends_to_buffer)
-{
+START_TEST(test_text_delta_appends_to_buffer) {
     /* Set up existing buffer */
     agent->streaming_line_buffer = talloc_strdup(agent, "Partial");
 
@@ -186,8 +179,7 @@ START_TEST(test_text_delta_appends_to_buffer)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with buffered text and newline flushes both */
-START_TEST(test_text_delta_buffer_and_newline)
-{
+START_TEST(test_text_delta_buffer_and_newline) {
     /* Set up existing buffer */
     agent->streaming_line_buffer = talloc_strdup(agent, "Partial");
 
@@ -206,8 +198,7 @@ START_TEST(test_text_delta_buffer_and_newline)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with just newline creates empty line */
-START_TEST(test_text_delta_empty_line)
-{
+START_TEST(test_text_delta_empty_line) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = "\n"
@@ -222,8 +213,7 @@ START_TEST(test_text_delta_empty_line)
 
 END_TEST
 /* Test: IK_STREAM_TEXT_DELTA with multiple newlines */
-START_TEST(test_text_delta_multiple_newlines)
-{
+START_TEST(test_text_delta_multiple_newlines) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TEXT_DELTA,
         .data.delta.text = "Line 1\nLine 2\nLine 3"
@@ -240,8 +230,7 @@ START_TEST(test_text_delta_multiple_newlines)
 
 END_TEST
 /* Test: IK_STREAM_THINKING_DELTA is handled (no-op) */
-START_TEST(test_thinking_delta)
-{
+START_TEST(test_thinking_delta) {
     ik_stream_event_t event = {
         .type = IK_STREAM_THINKING_DELTA,
         .data.delta.text = "Thinking content"
@@ -256,8 +245,7 @@ START_TEST(test_thinking_delta)
 
 END_TEST
 /* Test: IK_STREAM_TOOL_CALL_START is handled (no-op) */
-START_TEST(test_tool_call_start)
-{
+START_TEST(test_tool_call_start) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TOOL_CALL_START,
         .data.tool_start.id = "call_123",
@@ -270,8 +258,7 @@ START_TEST(test_tool_call_start)
 
 END_TEST
 /* Test: IK_STREAM_TOOL_CALL_DELTA is handled (no-op) */
-START_TEST(test_tool_call_delta)
-{
+START_TEST(test_tool_call_delta) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TOOL_CALL_DELTA,
         .data.tool_delta.arguments = "{\"pattern\":"
@@ -283,8 +270,7 @@ START_TEST(test_tool_call_delta)
 
 END_TEST
 /* Test: IK_STREAM_TOOL_CALL_DONE is handled (no-op) */
-START_TEST(test_tool_call_done)
-{
+START_TEST(test_tool_call_done) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TOOL_CALL_DONE
     };
@@ -295,8 +281,7 @@ START_TEST(test_tool_call_done)
 
 END_TEST
 /* Test: IK_STREAM_DONE stores token counts */
-START_TEST(test_stream_done_stores_tokens)
-{
+START_TEST(test_stream_done_stores_tokens) {
     ik_stream_event_t event = {
         .type = IK_STREAM_DONE,
         .data.done.finish_reason = IK_FINISH_STOP,
@@ -319,8 +304,7 @@ START_TEST(test_stream_done_stores_tokens)
 
 END_TEST
 /* Test: IK_STREAM_ERROR stores error message */
-START_TEST(test_stream_error_stores_message)
-{
+START_TEST(test_stream_error_stores_message) {
     ik_stream_event_t event = {
         .type = IK_STREAM_ERROR,
         .data.error.category = IK_ERR_CAT_SERVER,
@@ -337,8 +321,7 @@ START_TEST(test_stream_error_stores_message)
 
 END_TEST
 /* Test: IK_STREAM_ERROR with NULL message does nothing */
-START_TEST(test_stream_error_null_message)
-{
+START_TEST(test_stream_error_null_message) {
     ik_stream_event_t event = {
         .type = IK_STREAM_ERROR,
         .data.error.category = IK_ERR_CAT_SERVER,
@@ -354,8 +337,7 @@ START_TEST(test_stream_error_null_message)
 
 END_TEST
 /* Test: IK_STREAM_ERROR replaces existing error message */
-START_TEST(test_stream_error_replaces_existing_message)
-{
+START_TEST(test_stream_error_replaces_existing_message) {
     /* Set up existing error message */
     agent->http_error_message = talloc_strdup(agent, "First error");
 

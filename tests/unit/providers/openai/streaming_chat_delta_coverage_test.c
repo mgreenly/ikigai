@@ -113,8 +113,7 @@ static void teardown(void)
  * Coverage Tests for streaming_chat_delta.c
  * ================================================================ */
 
-START_TEST(test_delta_content_non_string)
-{
+START_TEST(test_delta_content_non_string) {
     /* L86: content not string */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -125,8 +124,7 @@ START_TEST(test_delta_content_non_string)
 
 END_TEST
 
-START_TEST(test_delta_content_null_string)
-{
+START_TEST(test_delta_content_null_string) {
     /* L88: content null */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
     ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"content\":null}}]}");
@@ -136,8 +134,7 @@ START_TEST(test_delta_content_null_string)
 
 END_TEST
 
-START_TEST(test_delta_tool_calls_not_array)
-{
+START_TEST(test_delta_tool_calls_not_array) {
     /* L107 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -147,8 +144,7 @@ START_TEST(test_delta_tool_calls_not_array)
 
 END_TEST
 
-START_TEST(test_delta_tool_calls_empty_array)
-{
+START_TEST(test_delta_tool_calls_empty_array) {
     /* L109 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -158,8 +154,7 @@ START_TEST(test_delta_tool_calls_empty_array)
 
 END_TEST
 
-START_TEST(test_delta_tool_call_null)
-{
+START_TEST(test_delta_tool_call_null) {
     /* L112 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -169,8 +164,7 @@ START_TEST(test_delta_tool_call_null)
 
 END_TEST
 
-START_TEST(test_delta_tool_call_not_object)
-{
+START_TEST(test_delta_tool_call_not_object) {
     /* L112 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -180,85 +174,84 @@ START_TEST(test_delta_tool_call_not_object)
 
 END_TEST
 
-START_TEST(test_delta_tool_call_index_null)
-{
+START_TEST(test_delta_tool_call_index_null) {
     /* L116 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_ge((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_index_not_int)
-{
+START_TEST(test_delta_tool_call_index_not_int) {
     /* L116 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":\"not_int\",\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":\"not_int\",\"id\":\"tc1\",\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_ge((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_missing_id_or_function)
-{
+START_TEST(test_delta_tool_call_missing_id_or_function) {
     /* L126 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_missing_function)
-{
+START_TEST(test_delta_tool_call_missing_function) {
     /* L126 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\"}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\"}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_function_not_object)
-{
+START_TEST(test_delta_tool_call_function_not_object) {
     /* L129 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":\"not_object\"}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":\"not_object\"}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_null_id_string)
-{
+START_TEST(test_delta_tool_call_null_id_string) {
     /* L134 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":null,\"function\":{\"name\":\"test\"}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":null,\"function\":{\"name\":\"test\"}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_tool_call_null_name_string)
-{
+START_TEST(test_delta_tool_call_null_name_string) {
     /* L134 */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{\"name\":null}}]}}]}");
+    ik_openai_chat_stream_process_data(sctx,
+                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":1,\"id\":\"tc1\",\"function\":{\"name\":null}}]}}]}");
     ck_assert_int_eq((int)events->count, 0);
 }
 
 END_TEST
 
-START_TEST(test_delta_role_field)
-{
+START_TEST(test_delta_role_field) {
     /* Line 79-81: role_val != NULL - first chunk with role */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -269,8 +262,7 @@ START_TEST(test_delta_role_field)
 
 END_TEST
 
-START_TEST(test_delta_content_string)
-{
+START_TEST(test_delta_content_string) {
     /* Line 86-101: content path with valid string */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -291,8 +283,7 @@ START_TEST(test_delta_content_string)
 
 END_TEST
 
-START_TEST(test_delta_finish_reason)
-{
+START_TEST(test_delta_finish_reason) {
     /* Line 190-191: finish_reason_str != NULL */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -309,8 +300,7 @@ START_TEST(test_delta_finish_reason)
 
 END_TEST
 
-START_TEST(test_delta_emit_start_already_started)
-{
+START_TEST(test_delta_emit_start_already_started) {
     /* Line 51: Test false branch - sctx->started already true */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
@@ -338,19 +328,20 @@ START_TEST(test_delta_emit_start_already_started)
 
 END_TEST
 
-START_TEST(test_delta_tool_call_arguments_delta)
-{
+START_TEST(test_delta_tool_call_arguments_delta) {
     /* Line 164-181: Test tool call arguments delta (both conditions true) */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* First, start a tool call */
-    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\"}}]}}]}";
+    const char *data1 =
+        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\"}}]}}]}";
     ik_openai_chat_stream_process_data(sctx, data1);
 
     size_t count_after_start = events->count;
 
     /* Now send arguments delta */
-    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"city\\\":\"}}]}}]}";
+    const char *data2 =
+        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"city\\\":\"}}]}}]}";
     ik_openai_chat_stream_process_data(sctx, data2);
 
     ck_assert_int_gt((int)events->count, (int)count_after_start);
@@ -368,17 +359,18 @@ START_TEST(test_delta_tool_call_arguments_delta)
 
 END_TEST
 
-START_TEST(test_delta_tool_call_then_text)
-{
+START_TEST(test_delta_tool_call_then_text) {
     /* Line 53 + 90: Test ending tool call when text comes in */
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(test_ctx, stream_cb, events);
 
     /* Start a tool call */
-    const char *data1 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"test\"}}]}}]}";
+    const char *data1 =
+        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"test\"}}]}}]}";
     ik_openai_chat_stream_process_data(sctx, data1);
 
     /* Send arguments to ensure we're in_tool_call */
-    const char *data2 = "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{}\"}}]}}]}";
+    const char *data2 =
+        "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{}\"}}]}}]}";
     ik_openai_chat_stream_process_data(sctx, data2);
 
     /* Now send text content - this should end the tool call */
@@ -407,7 +399,6 @@ START_TEST(test_delta_tool_call_then_text)
 }
 
 END_TEST
-
 
 /* ================================================================
  * Test Suite

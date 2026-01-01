@@ -73,8 +73,7 @@ START_TEST(test_repl_remove_agent_not_found) {
 }
 END_TEST
 /* Test: ik_repl_remove_agent sets current to NULL when removing current agent */
-START_TEST(test_repl_remove_agent_current)
-{
+START_TEST(test_repl_remove_agent_current) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -110,8 +109,7 @@ START_TEST(test_repl_remove_agent_current)
 
 END_TEST
 /* Test: Process NAV_PREV_SIBLING action */
-START_TEST(test_repl_process_action_nav_prev_sibling)
-{
+START_TEST(test_repl_process_action_nav_prev_sibling) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -151,8 +149,7 @@ START_TEST(test_repl_process_action_nav_prev_sibling)
 
 END_TEST
 /* Test: Process NAV_NEXT_SIBLING action */
-START_TEST(test_repl_process_action_nav_next_sibling)
-{
+START_TEST(test_repl_process_action_nav_next_sibling) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -192,8 +189,7 @@ START_TEST(test_repl_process_action_nav_next_sibling)
 
 END_TEST
 /* Test: Process NAV_PARENT action */
-START_TEST(test_repl_process_action_nav_parent)
-{
+START_TEST(test_repl_process_action_nav_parent) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -234,8 +230,7 @@ START_TEST(test_repl_process_action_nav_parent)
 
 END_TEST
 /* Test: Process NAV_CHILD action */
-START_TEST(test_repl_process_action_nav_child)
-{
+START_TEST(test_repl_process_action_nav_child) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);
@@ -277,8 +272,7 @@ START_TEST(test_repl_process_action_nav_child)
 
 END_TEST
 /* Test: ik_repl_add_agent grows capacity when array is full */
-START_TEST(test_repl_add_agent_grows_capacity)
-{
+START_TEST(test_repl_add_agent_grows_capacity) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(repl);

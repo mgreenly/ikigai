@@ -73,8 +73,7 @@ static void teardown(void)
  * content_block_start Tests - Line 61 branches
  * ================================================================ */
 
-START_TEST(test_content_block_start_no_index_field)
-{
+START_TEST(test_content_block_start_no_index_field) {
     /* Test content_block_start without "index" field - line 61 branch (NULL) */
     const char *json = "{\"content_block\": {\"type\": \"text\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -94,8 +93,7 @@ START_TEST(test_content_block_start_no_index_field)
 
 END_TEST
 
-START_TEST(test_content_block_start_index_not_int)
-{
+START_TEST(test_content_block_start_index_not_int) {
     /* Test content_block_start with "index" that is not an int - line 61 branch (!yyjson_is_int) */
     const char *json = "{\"index\": \"not an int\", \"content_block\": {\"type\": \"text\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -115,8 +113,7 @@ START_TEST(test_content_block_start_index_not_int)
 
 END_TEST
 
-START_TEST(test_content_block_start_no_content_block)
-{
+START_TEST(test_content_block_start_no_content_block) {
     /* Test content_block_start without "content_block" field - line 67 branch (NULL) */
     const char *json = "{\"index\": 0}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -130,8 +127,7 @@ START_TEST(test_content_block_start_no_content_block)
 
 END_TEST
 
-START_TEST(test_content_block_start_content_block_not_object)
-{
+START_TEST(test_content_block_start_content_block_not_object) {
     /* Test content_block_start with "content_block" not an object - line 67 branch (!yyjson_is_obj) */
     const char *json = "{\"index\": 0, \"content_block\": \"not an object\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -145,8 +141,7 @@ START_TEST(test_content_block_start_content_block_not_object)
 
 END_TEST
 
-START_TEST(test_content_block_start_no_type_field)
-{
+START_TEST(test_content_block_start_no_type_field) {
     /* Test content_block_start without "type" field - line 73 branch (NULL) */
     const char *json = "{\"index\": 0, \"content_block\": {}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -160,8 +155,7 @@ START_TEST(test_content_block_start_no_type_field)
 
 END_TEST
 
-START_TEST(test_content_block_start_type_not_string)
-{
+START_TEST(test_content_block_start_type_not_string) {
     /* Test content_block_start with "type" not a string - line 78 branch (NULL) */
     const char *json = "{\"index\": 0, \"content_block\": {\"type\": 12345}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -179,8 +173,7 @@ END_TEST
  * content_block_delta Tests - Lines 154-165 (text_delta)
  * ================================================================ */
 
-START_TEST(test_content_block_delta_text_delta)
-{
+START_TEST(test_content_block_delta_text_delta) {
     /* Test content_block_delta with text_delta type - lines 156-170 */
     const char *json = "{\"index\": 0, \"delta\": {\"type\": \"text_delta\", \"text\": \"Hello world\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -199,8 +192,7 @@ START_TEST(test_content_block_delta_text_delta)
 
 END_TEST
 
-START_TEST(test_content_block_delta_text_delta_no_text_field)
-{
+START_TEST(test_content_block_delta_text_delta_no_text_field) {
     /* Test content_block_delta text_delta without "text" field - line 159 branch (NULL) */
     const char *json = "{\"index\": 0, \"delta\": {\"type\": \"text_delta\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -216,8 +208,7 @@ START_TEST(test_content_block_delta_text_delta_no_text_field)
 
 END_TEST
 
-START_TEST(test_content_block_delta_text_delta_text_not_string)
-{
+START_TEST(test_content_block_delta_text_delta_text_not_string) {
     /* Test content_block_delta text_delta with "text" that is not a string - line 160 branch (NULL) */
     const char *json = "{\"index\": 0, \"delta\": {\"type\": \"text_delta\", \"text\": 12345}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

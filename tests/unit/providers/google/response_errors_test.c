@@ -32,68 +32,79 @@ START_TEST(test_map_finish_reason_stop) {
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_map_finish_reason_max_tokens)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_max_tokens) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("MAX_TOKENS");
     ck_assert_int_eq(reason, IK_FINISH_LENGTH);
 }
 
-END_TEST START_TEST(test_map_finish_reason_safety)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_safety) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("SAFETY");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_blocklist)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_blocklist) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("BLOCKLIST");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_prohibited)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_prohibited) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("PROHIBITED_CONTENT");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_recitation)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_recitation) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("RECITATION");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_malformed_function_call)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_malformed_function_call) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("MALFORMED_FUNCTION_CALL");
     ck_assert_int_eq(reason, IK_FINISH_ERROR);
 }
 
-END_TEST START_TEST(test_map_finish_reason_unexpected_tool_call)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_unexpected_tool_call) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("UNEXPECTED_TOOL_CALL");
     ck_assert_int_eq(reason, IK_FINISH_ERROR);
 }
 
-END_TEST START_TEST(test_map_finish_reason_null)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_null) {
     ik_finish_reason_t reason = ik_google_map_finish_reason(NULL);
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_map_finish_reason_unknown)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_unknown) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("UNKNOWN");
     ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
 }
 
-END_TEST START_TEST(test_map_finish_reason_image_safety)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_image_safety) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("IMAGE_SAFETY");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
 
-END_TEST START_TEST(test_map_finish_reason_image_prohibited_content)
-{
+END_TEST
+
+START_TEST(test_map_finish_reason_image_prohibited_content) {
     ik_finish_reason_t reason = ik_google_map_finish_reason("IMAGE_PROHIBITED_CONTENT");
     ck_assert_int_eq(reason, IK_FINISH_CONTENT_FILTER);
 }
@@ -103,8 +114,7 @@ END_TEST
  * Error Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_400)
-{
+START_TEST(test_parse_error_400) {
     const char *json = "{\"error\":{\"message\":\"Invalid argument\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -117,8 +127,9 @@ START_TEST(test_parse_error_400)
     ck_assert_ptr_nonnull(strstr(message, "Invalid argument"));
 }
 
-END_TEST START_TEST(test_parse_error_401)
-{
+END_TEST
+
+START_TEST(test_parse_error_401) {
     const char *json = "{\"error\":{\"message\":\"Unauthorized\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -130,8 +141,9 @@ END_TEST START_TEST(test_parse_error_401)
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
 
-END_TEST START_TEST(test_parse_error_404)
-{
+END_TEST
+
+START_TEST(test_parse_error_404) {
     const char *json = "{\"error\":{\"message\":\"Model not found\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -143,8 +155,9 @@ END_TEST START_TEST(test_parse_error_404)
     ck_assert_int_eq(category, IK_ERR_CAT_NOT_FOUND);
 }
 
-END_TEST START_TEST(test_parse_error_429)
-{
+END_TEST
+
+START_TEST(test_parse_error_429) {
     const char *json = "{\"error\":{\"message\":\"Rate limit exceeded\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -156,8 +169,9 @@ END_TEST START_TEST(test_parse_error_429)
     ck_assert_int_eq(category, IK_ERR_CAT_RATE_LIMIT);
 }
 
-END_TEST START_TEST(test_parse_error_500)
-{
+END_TEST
+
+START_TEST(test_parse_error_500) {
     const char *json = "{\"error\":{\"message\":\"Internal error\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -169,8 +183,9 @@ END_TEST START_TEST(test_parse_error_500)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_parse_error_504)
-{
+END_TEST
+
+START_TEST(test_parse_error_504) {
     const char *json = "{\"error\":{\"message\":\"Gateway timeout\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -182,8 +197,9 @@ END_TEST START_TEST(test_parse_error_504)
     ck_assert_int_eq(category, IK_ERR_CAT_TIMEOUT);
 }
 
-END_TEST START_TEST(test_parse_error_no_json)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_json) {
     ik_error_category_t category;
     char *message = NULL;
 
@@ -195,8 +211,9 @@ END_TEST START_TEST(test_parse_error_no_json)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_invalid_json)
-{
+END_TEST
+
+START_TEST(test_parse_error_invalid_json) {
     const char *json = "not json";
     ik_error_category_t category;
     char *message = NULL;
@@ -209,8 +226,9 @@ END_TEST START_TEST(test_parse_error_invalid_json)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_json_len_zero)
-{
+END_TEST
+
+START_TEST(test_parse_error_json_len_zero) {
     const char *json = "{\"error\":{\"message\":\"Test\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -224,8 +242,9 @@ END_TEST START_TEST(test_parse_error_json_len_zero)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_root_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_error_root_not_object) {
     const char *json = "[\"not an object\"]";
     ik_error_category_t category;
     char *message = NULL;
@@ -238,8 +257,9 @@ END_TEST START_TEST(test_parse_error_root_not_object)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_no_error_field)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_error_field) {
     const char *json = "{\"different_field\":\"value\"}";
     ik_error_category_t category;
     char *message = NULL;
@@ -252,8 +272,9 @@ END_TEST START_TEST(test_parse_error_no_error_field)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_no_message_field)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_message_field) {
     const char *json = "{\"error\":{\"code\":123}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -266,8 +287,9 @@ END_TEST START_TEST(test_parse_error_no_message_field)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_message_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_error_message_not_string) {
     const char *json = "{\"error\":{\"message\":123}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -280,8 +302,9 @@ END_TEST START_TEST(test_parse_error_message_not_string)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_403)
-{
+END_TEST
+
+START_TEST(test_parse_error_403) {
     const char *json = "{\"error\":{\"message\":\"Forbidden\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -293,8 +316,9 @@ END_TEST START_TEST(test_parse_error_403)
     ck_assert_int_eq(category, IK_ERR_CAT_AUTH);
 }
 
-END_TEST START_TEST(test_parse_error_502)
-{
+END_TEST
+
+START_TEST(test_parse_error_502) {
     const char *json = "{\"error\":{\"message\":\"Bad gateway\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -306,8 +330,9 @@ END_TEST START_TEST(test_parse_error_502)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_parse_error_503)
-{
+END_TEST
+
+START_TEST(test_parse_error_503) {
     const char *json = "{\"error\":{\"message\":\"Service unavailable\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -319,8 +344,9 @@ END_TEST START_TEST(test_parse_error_503)
     ck_assert_int_eq(category, IK_ERR_CAT_SERVER);
 }
 
-END_TEST START_TEST(test_parse_error_unknown_status)
-{
+END_TEST
+
+START_TEST(test_parse_error_unknown_status) {
     const char *json = "{\"error\":{\"message\":\"Unknown error\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -332,8 +358,9 @@ END_TEST START_TEST(test_parse_error_unknown_status)
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_error_error_not_object)
-{
+END_TEST
+
+START_TEST(test_parse_error_error_not_object) {
     const char *json = "{\"error\":\"string instead of object\"}";
     ik_error_category_t category;
     char *message = NULL;
@@ -346,8 +373,9 @@ END_TEST START_TEST(test_parse_error_error_not_object)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_message_null)
-{
+END_TEST
+
+START_TEST(test_parse_error_message_null) {
     const char *json = "{\"error\":{\"message\":null}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -360,8 +388,9 @@ END_TEST START_TEST(test_parse_error_message_null)
     ck_assert_ptr_nonnull(strstr(message, "HTTP 500"));
 }
 
-END_TEST START_TEST(test_parse_error_empty_message)
-{
+END_TEST
+
+START_TEST(test_parse_error_empty_message) {
     const char *json = "{\"error\":{\"message\":\"\"}}";
     ik_error_category_t category;
     char *message = NULL;
@@ -379,15 +408,15 @@ END_TEST
  * Tool ID Generation Tests
  * ================================================================ */
 
-START_TEST(test_generate_tool_id_length)
-{
+START_TEST(test_generate_tool_id_length) {
     char *id = ik_google_generate_tool_id(test_ctx);
     ck_assert_ptr_nonnull(id);
     ck_assert_uint_eq((unsigned int)strlen(id), 22);
 }
 
-END_TEST START_TEST(test_generate_tool_id_charset)
-{
+END_TEST
+
+START_TEST(test_generate_tool_id_charset) {
     char *id = ik_google_generate_tool_id(test_ctx);
     ck_assert_ptr_nonnull(id);
 
@@ -398,8 +427,9 @@ END_TEST START_TEST(test_generate_tool_id_charset)
     }
 }
 
-END_TEST START_TEST(test_generate_tool_id_unique)
-{
+END_TEST
+
+START_TEST(test_generate_tool_id_unique) {
     char *id1 = ik_google_generate_tool_id(test_ctx);
     char *id2 = ik_google_generate_tool_id(test_ctx);
 

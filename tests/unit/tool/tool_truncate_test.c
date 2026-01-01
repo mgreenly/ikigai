@@ -23,8 +23,9 @@ START_TEST(test_tool_truncate_output_null) {
     talloc_free(ctx);
     ctx = talloc_new(NULL);
 }
-END_TEST START_TEST(test_tool_truncate_output_empty)
-{
+END_TEST
+
+START_TEST(test_tool_truncate_output_empty) {
     char *result = ik_tool_truncate_output(ctx, "", 1024);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "");
@@ -32,8 +33,9 @@ END_TEST START_TEST(test_tool_truncate_output_empty)
     ctx = talloc_new(NULL);
 }
 
-END_TEST START_TEST(test_tool_truncate_output_under_limit)
-{
+END_TEST
+
+START_TEST(test_tool_truncate_output_under_limit) {
     char *result = ik_tool_truncate_output(ctx, "Hello, World!", 100);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "Hello, World!");
@@ -41,8 +43,9 @@ END_TEST START_TEST(test_tool_truncate_output_under_limit)
     ctx = talloc_new(NULL);
 }
 
-END_TEST START_TEST(test_tool_truncate_output_at_limit)
-{
+END_TEST
+
+START_TEST(test_tool_truncate_output_at_limit) {
     char *result = ik_tool_truncate_output(ctx, "12345", 5);
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result, "12345");
@@ -50,8 +53,9 @@ END_TEST START_TEST(test_tool_truncate_output_at_limit)
     ctx = talloc_new(NULL);
 }
 
-END_TEST START_TEST(test_tool_truncate_output_over_limit)
-{
+END_TEST
+
+START_TEST(test_tool_truncate_output_over_limit) {
     const char *output = "This is a very long string that exceeds the limit";
     char *result = ik_tool_truncate_output(ctx, output, 10);
     ck_assert_ptr_nonnull(result);
@@ -62,8 +66,9 @@ END_TEST START_TEST(test_tool_truncate_output_over_limit)
     ctx = talloc_new(NULL);
 }
 
-END_TEST START_TEST(test_tool_truncate_output_zero_limit)
-{
+END_TEST
+
+START_TEST(test_tool_truncate_output_zero_limit) {
     char *result = ik_tool_truncate_output(ctx, "test", 0);
     ck_assert_ptr_nonnull(result);
     ck_assert(strstr(result, "[Output truncated:") != NULL);

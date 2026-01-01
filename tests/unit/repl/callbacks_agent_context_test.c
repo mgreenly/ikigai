@@ -101,8 +101,7 @@ START_TEST(test_streaming_callback_uses_agent_context) {
 }
 END_TEST
 /* Test: Completion callback updates agent A when called with agent A, not repl->current */
-START_TEST(test_completion_callback_uses_agent_context)
-{
+START_TEST(test_completion_callback_uses_agent_context) {
     /* repl->current is agent_b, but we'll pass agent_a to callback */
     char *model = talloc_strdup(ctx, "gpt-4");
 
@@ -139,8 +138,7 @@ START_TEST(test_completion_callback_uses_agent_context)
 
 END_TEST
 /* Test: Streaming callback with partial line buffer updates correct agent */
-START_TEST(test_streaming_partial_buffer_uses_agent_context)
-{
+START_TEST(test_streaming_partial_buffer_uses_agent_context) {
     /* Set repl->current to agent_b */
     repl->current = agent_b;
 
@@ -193,8 +191,7 @@ START_TEST(test_streaming_partial_buffer_uses_agent_context)
 
 END_TEST
 /* Test: Completion callback flushes buffer for correct agent */
-START_TEST(test_completion_flushes_correct_agent_buffer)
-{
+START_TEST(test_completion_flushes_correct_agent_buffer) {
     /* Set repl->current to agent_b */
     repl->current = agent_b;
 

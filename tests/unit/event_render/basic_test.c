@@ -15,50 +15,43 @@ START_TEST(test_renders_visible_user) {
 }
 END_TEST
 // Test: ik_event_renders_visible - assistant events are visible
-START_TEST(test_renders_visible_assistant)
-{
+START_TEST(test_renders_visible_assistant) {
     ck_assert(ik_event_renders_visible("assistant"));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - system events are visible
-START_TEST(test_renders_visible_system)
-{
+START_TEST(test_renders_visible_system) {
     ck_assert(ik_event_renders_visible("system"));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - mark events are visible
-START_TEST(test_renders_visible_mark)
-{
+START_TEST(test_renders_visible_mark) {
     ck_assert(ik_event_renders_visible("mark"));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - rewind events are not visible
-START_TEST(test_renders_visible_rewind)
-{
+START_TEST(test_renders_visible_rewind) {
     ck_assert(!ik_event_renders_visible("rewind"));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - clear events are not visible
-START_TEST(test_renders_visible_clear)
-{
+START_TEST(test_renders_visible_clear) {
     ck_assert(!ik_event_renders_visible("clear"));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - NULL returns false
-START_TEST(test_renders_visible_null)
-{
+START_TEST(test_renders_visible_null) {
     ck_assert(!ik_event_renders_visible(NULL));
 }
 
 END_TEST
 // Test: ik_event_renders_visible - unknown kinds return false
-START_TEST(test_renders_visible_unknown)
-{
+START_TEST(test_renders_visible_unknown) {
     ck_assert(!ik_event_renders_visible("unknown"));
     ck_assert(!ik_event_renders_visible(""));
     ck_assert(!ik_event_renders_visible("USER"));  // Case sensitive
@@ -66,8 +59,7 @@ START_TEST(test_renders_visible_unknown)
 
 END_TEST
 // Test: Render user event
-START_TEST(test_render_user_event)
-{
+START_TEST(test_render_user_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -90,8 +82,7 @@ START_TEST(test_render_user_event)
 
 END_TEST
 // Test: Render assistant event
-START_TEST(test_render_assistant_event)
-{
+START_TEST(test_render_assistant_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -114,8 +105,7 @@ START_TEST(test_render_assistant_event)
 
 END_TEST
 // Test: Render system event
-START_TEST(test_render_system_event)
-{
+START_TEST(test_render_system_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -138,8 +128,7 @@ START_TEST(test_render_system_event)
 
 END_TEST
 // Test: Render mark event with label from data_json
-START_TEST(test_render_mark_event_with_label)
-{
+START_TEST(test_render_mark_event_with_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -162,8 +151,7 @@ START_TEST(test_render_mark_event_with_label)
 
 END_TEST
 // Test: Render mark event without label (auto-numbered)
-START_TEST(test_render_mark_event_no_label)
-{
+START_TEST(test_render_mark_event_no_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -186,8 +174,7 @@ START_TEST(test_render_mark_event_no_label)
 
 END_TEST
 // Test: Render mark event with NULL data_json
-START_TEST(test_render_mark_event_null_json)
-{
+START_TEST(test_render_mark_event_null_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -210,8 +197,7 @@ START_TEST(test_render_mark_event_null_json)
 
 END_TEST
 // Test: Render mark event with empty label in data_json
-START_TEST(test_render_mark_event_empty_label)
-{
+START_TEST(test_render_mark_event_empty_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -234,8 +220,7 @@ START_TEST(test_render_mark_event_empty_label)
 
 END_TEST
 // Test: Render rewind event (renders nothing)
-START_TEST(test_render_rewind_event)
-{
+START_TEST(test_render_rewind_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -248,8 +233,7 @@ START_TEST(test_render_rewind_event)
 
 END_TEST
 // Test: Render clear event (renders nothing)
-START_TEST(test_render_clear_event)
-{
+START_TEST(test_render_clear_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -262,8 +246,7 @@ START_TEST(test_render_clear_event)
 
 END_TEST
 // Test: Render agent_killed event (renders nothing)
-START_TEST(test_render_agent_killed_event)
-{
+START_TEST(test_render_agent_killed_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -284,8 +267,7 @@ START_TEST(test_render_agent_killed_event)
 
 END_TEST
 // Test: Render content event with NULL content
-START_TEST(test_render_content_null)
-{
+START_TEST(test_render_content_null) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -298,8 +280,7 @@ START_TEST(test_render_content_null)
 
 END_TEST
 // Test: Render content event with empty content
-START_TEST(test_render_content_empty)
-{
+START_TEST(test_render_content_empty) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -312,8 +293,7 @@ START_TEST(test_render_content_empty)
 
 END_TEST
 // Test: Unknown kind returns error
-START_TEST(test_render_unknown_kind)
-{
+START_TEST(test_render_unknown_kind) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -327,8 +307,7 @@ START_TEST(test_render_unknown_kind)
 
 END_TEST
 // Test: Render mark event with invalid JSON (no crash, treated as no label)
-START_TEST(test_render_mark_invalid_json)
-{
+START_TEST(test_render_mark_invalid_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -351,8 +330,7 @@ START_TEST(test_render_mark_invalid_json)
 
 END_TEST
 // Test: Render mark event with label not a string
-START_TEST(test_render_mark_label_not_string)
-{
+START_TEST(test_render_mark_label_not_string) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -375,8 +353,7 @@ START_TEST(test_render_mark_label_not_string)
 
 END_TEST
 // Test: NULL kind returns error
-START_TEST(test_render_null_kind_returns_error)
-{
+START_TEST(test_render_null_kind_returns_error) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 

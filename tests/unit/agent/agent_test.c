@@ -27,8 +27,7 @@ START_TEST(test_agent_create_success) {
 }
 END_TEST
 // Test agent->name is NULL initially
-START_TEST(test_agent_name_null_initially)
-{
+START_TEST(test_agent_name_null_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -47,8 +46,7 @@ START_TEST(test_agent_name_null_initially)
 
 END_TEST
 // Test agent->shared matches input
-START_TEST(test_agent_shared_matches_input)
-{
+START_TEST(test_agent_shared_matches_input) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -67,8 +65,7 @@ START_TEST(test_agent_shared_matches_input)
 
 END_TEST
 // Test agent->scrollback is initialized
-START_TEST(test_agent_scrollback_initialized)
-{
+START_TEST(test_agent_scrollback_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -87,8 +84,7 @@ START_TEST(test_agent_scrollback_initialized)
 
 END_TEST
 // Test agent->layer_cake is initialized
-START_TEST(test_agent_layer_cake_initialized)
-{
+START_TEST(test_agent_layer_cake_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -107,8 +103,7 @@ START_TEST(test_agent_layer_cake_initialized)
 
 END_TEST
 // Test all layer pointers are non-NULL
-START_TEST(test_agent_all_layers_initialized)
-{
+START_TEST(test_agent_all_layers_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -131,8 +126,7 @@ START_TEST(test_agent_all_layers_initialized)
 
 END_TEST
 // Test agent->viewport_offset is 0 initially
-START_TEST(test_agent_viewport_offset_zero)
-{
+START_TEST(test_agent_viewport_offset_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -151,8 +145,7 @@ START_TEST(test_agent_viewport_offset_zero)
 
 END_TEST
 // Test agent->input_buffer is initialized
-START_TEST(test_agent_input_buffer_initialized)
-{
+START_TEST(test_agent_input_buffer_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -171,8 +164,7 @@ START_TEST(test_agent_input_buffer_initialized)
 
 END_TEST
 // Test agent->separator_visible is true initially
-START_TEST(test_agent_separator_visible_true)
-{
+START_TEST(test_agent_separator_visible_true) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -191,8 +183,7 @@ START_TEST(test_agent_separator_visible_true)
 
 END_TEST
 // Test agent->input_buffer_visible is true initially
-START_TEST(test_agent_input_buffer_visible_true)
-{
+START_TEST(test_agent_input_buffer_visible_true) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -211,8 +202,7 @@ START_TEST(test_agent_input_buffer_visible_true)
 
 END_TEST
 // Test agent->messages is initialized (empty array)
-START_TEST(test_agent_messages_initialized)
-{
+START_TEST(test_agent_messages_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -232,8 +222,7 @@ START_TEST(test_agent_messages_initialized)
 
 END_TEST
 // Test agent->marks is NULL and mark_count is 0 initially
-START_TEST(test_agent_marks_and_count_initially)
-{
+START_TEST(test_agent_marks_and_count_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -249,8 +238,7 @@ START_TEST(test_agent_marks_and_count_initially)
 
 END_TEST
 // Test agent->state is IK_AGENT_STATE_IDLE initially
-START_TEST(test_agent_state_idle_initially)
-{
+START_TEST(test_agent_state_idle_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -269,8 +257,7 @@ START_TEST(test_agent_state_idle_initially)
 
 END_TEST
 // Test agent->provider_instance is NULL initially (lazy loading)
-START_TEST(test_agent_provider_instance_null_initially)
-{
+START_TEST(test_agent_provider_instance_null_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -290,8 +277,7 @@ START_TEST(test_agent_provider_instance_null_initially)
 
 END_TEST
 // Test agent->curl_still_running is 0 initially
-START_TEST(test_agent_curl_still_running_zero_initially)
-{
+START_TEST(test_agent_curl_still_running_zero_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -310,8 +296,7 @@ START_TEST(test_agent_curl_still_running_zero_initially)
 
 END_TEST
 // Test agent response-related fields are NULL initially
-START_TEST(test_agent_response_fields_null_initially)
-{
+START_TEST(test_agent_response_fields_null_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -330,8 +315,7 @@ START_TEST(test_agent_response_fields_null_initially)
 
 END_TEST
 // Test agent token fields are 0 initially
-START_TEST(test_agent_response_tokens_zero_initially)
-{
+START_TEST(test_agent_response_tokens_zero_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -352,8 +336,7 @@ START_TEST(test_agent_response_tokens_zero_initially)
 
 END_TEST
 // Test agent tool thread fields initialized correctly
-START_TEST(test_agent_tool_fields_initialized)
-{
+START_TEST(test_agent_tool_fields_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -371,8 +354,7 @@ START_TEST(test_agent_tool_fields_initialized)
 
 END_TEST
 // Test agent->spinner_state is properly initialized
-START_TEST(test_agent_spinner_state_initialized)
-{
+START_TEST(test_agent_spinner_state_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -392,8 +374,7 @@ START_TEST(test_agent_spinner_state_initialized)
 
 END_TEST
 // Test agent->completion is NULL initially
-START_TEST(test_agent_completion_null_initially)
-{
+START_TEST(test_agent_completion_null_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -412,8 +393,7 @@ START_TEST(test_agent_completion_null_initially)
 
 END_TEST
 // Test mutex is initialized and can be locked/unlocked
-START_TEST(test_agent_tool_thread_mutex_initialized)
-{
+START_TEST(test_agent_tool_thread_mutex_initialized) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -438,8 +418,7 @@ START_TEST(test_agent_tool_thread_mutex_initialized)
 
 END_TEST
 // Test agent->created_at is set to current time
-START_TEST(test_agent_create_sets_created_at)
-{
+START_TEST(test_agent_create_sets_created_at) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -463,8 +442,7 @@ START_TEST(test_agent_create_sets_created_at)
 
 END_TEST
 // Test agent->repl backpointer is NULL initially (no repl context yet)
-START_TEST(test_agent_repl_backpointer_null_initially)
-{
+START_TEST(test_agent_repl_backpointer_null_initially) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

@@ -63,8 +63,7 @@ END_TEST
 /*
  * Test: Should not continue when finish_reason is "stop"
  */
-START_TEST(test_should_not_continue_with_stop)
-{
+START_TEST(test_should_not_continue_with_stop) {
     /* Set finish_reason to "stop" */
     repl->current->response_finish_reason = talloc_strdup(repl, "stop");
 
@@ -77,8 +76,7 @@ END_TEST
 /*
  * Test: Should not continue when finish_reason is "length"
  */
-START_TEST(test_should_not_continue_with_length)
-{
+START_TEST(test_should_not_continue_with_length) {
     /* Set finish_reason to "length" */
     repl->current->response_finish_reason = talloc_strdup(repl, "length");
 
@@ -91,8 +89,7 @@ END_TEST
 /*
  * Test: Should not continue when finish_reason is NULL
  */
-START_TEST(test_should_not_continue_with_null)
-{
+START_TEST(test_should_not_continue_with_null) {
     /* finish_reason is NULL */
     repl->current->response_finish_reason = NULL;
 
@@ -105,8 +102,7 @@ END_TEST
 /*
  * Test: Should not continue when finish_reason is empty string
  */
-START_TEST(test_should_not_continue_with_empty_string)
-{
+START_TEST(test_should_not_continue_with_empty_string) {
     /* Set finish_reason to empty string */
     repl->current->response_finish_reason = talloc_strdup(repl, "");
 
@@ -119,8 +115,7 @@ END_TEST
 /*
  * Test: Should not continue with unknown finish_reason
  */
-START_TEST(test_should_not_continue_with_unknown)
-{
+START_TEST(test_should_not_continue_with_unknown) {
     /* Set finish_reason to unknown value */
     repl->current->response_finish_reason = talloc_strdup(repl, "content_filter");
 

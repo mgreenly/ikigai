@@ -72,8 +72,7 @@ static void teardown(void)
  * message_start Tests - Line 22, 24, 26 branches
  * ================================================================ */
 
-START_TEST(test_message_start_no_message_field)
-{
+START_TEST(test_message_start_no_message_field) {
     /* Test message_start without "message" field - line 22 branch (NULL) */
     const char *json = "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -91,8 +90,7 @@ START_TEST(test_message_start_no_message_field)
 
 END_TEST
 
-START_TEST(test_message_start_message_not_object)
-{
+START_TEST(test_message_start_message_not_object) {
     /* Test message_start with "message" field that is not an object - line 22 branch (!yyjson_is_obj) */
     const char *json = "{\"message\": \"not an object\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -110,8 +108,7 @@ START_TEST(test_message_start_message_not_object)
 
 END_TEST
 
-START_TEST(test_message_start_no_model_field)
-{
+START_TEST(test_message_start_no_model_field) {
     /* Test message_start without "model" field in message - line 24 branch (NULL) */
     const char *json = "{\"message\": {}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -129,8 +126,7 @@ START_TEST(test_message_start_no_model_field)
 
 END_TEST
 
-START_TEST(test_message_start_model_not_string)
-{
+START_TEST(test_message_start_model_not_string) {
     /* Test message_start with "model" field that is not a string - line 26 branch (NULL) */
     const char *json = "{\"message\": {\"model\": 12345}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -152,8 +148,7 @@ END_TEST
  * message_start Tests - Line 34, 36 branches
  * ================================================================ */
 
-START_TEST(test_message_start_no_usage_field)
-{
+START_TEST(test_message_start_no_usage_field) {
     /* Test message_start without "usage" field - line 34 branch (NULL) */
     const char *json = "{\"message\": {\"model\": \"claude-3-5-sonnet-20241022\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -172,8 +167,7 @@ START_TEST(test_message_start_no_usage_field)
 
 END_TEST
 
-START_TEST(test_message_start_usage_not_object)
-{
+START_TEST(test_message_start_usage_not_object) {
     /* Test message_start with "usage" field that is not an object - line 34 branch (!yyjson_is_obj) */
     const char *json = "{\"message\": {\"model\": \"claude-3-5-sonnet-20241022\", \"usage\": \"not an object\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -192,8 +186,7 @@ START_TEST(test_message_start_usage_not_object)
 
 END_TEST
 
-START_TEST(test_message_start_no_input_tokens_field)
-{
+START_TEST(test_message_start_no_input_tokens_field) {
     /* Test message_start without "input_tokens" field - line 36 branch (NULL) */
     const char *json = "{\"message\": {\"model\": \"claude-3-5-sonnet-20241022\", \"usage\": {}}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -211,10 +204,10 @@ START_TEST(test_message_start_no_input_tokens_field)
 
 END_TEST
 
-START_TEST(test_message_start_input_tokens_not_int)
-{
+START_TEST(test_message_start_input_tokens_not_int) {
     /* Test message_start with "input_tokens" that is not an int - line 36 branch (!yyjson_is_int) */
-    const char *json = "{\"message\": {\"model\": \"claude-3-5-sonnet-20241022\", \"usage\": {\"input_tokens\": \"not an int\"}}}";
+    const char *json =
+        "{\"message\": {\"model\": \"claude-3-5-sonnet-20241022\", \"usage\": {\"input_tokens\": \"not an int\"}}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
 

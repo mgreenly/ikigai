@@ -43,8 +43,7 @@ START_TEST(test_apply_override_basic_model) {
 }
 END_TEST
 // Test: Apply override with thinking level none
-START_TEST(test_apply_override_thinking_none)
-{
+START_TEST(test_apply_override_thinking_none) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
     child->thinking_level = IK_THINKING_HIGH;
@@ -56,8 +55,7 @@ START_TEST(test_apply_override_thinking_none)
 
 END_TEST
 // Test: Apply override with thinking level low
-START_TEST(test_apply_override_thinking_low)
-{
+START_TEST(test_apply_override_thinking_low) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -68,8 +66,7 @@ START_TEST(test_apply_override_thinking_low)
 
 END_TEST
 // Test: Apply override with thinking level med
-START_TEST(test_apply_override_thinking_med)
-{
+START_TEST(test_apply_override_thinking_med) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -80,8 +77,7 @@ START_TEST(test_apply_override_thinking_med)
 
 END_TEST
 // Test: Apply override with thinking level high
-START_TEST(test_apply_override_thinking_high)
-{
+START_TEST(test_apply_override_thinking_high) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -92,8 +88,7 @@ START_TEST(test_apply_override_thinking_high)
 
 END_TEST
 // Test: Apply override with invalid thinking level
-START_TEST(test_apply_override_invalid_thinking)
-{
+START_TEST(test_apply_override_invalid_thinking) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -103,8 +98,7 @@ START_TEST(test_apply_override_invalid_thinking)
 
 END_TEST
 // Test: Apply override with unknown model
-START_TEST(test_apply_override_unknown_model)
-{
+START_TEST(test_apply_override_unknown_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -114,8 +108,7 @@ START_TEST(test_apply_override_unknown_model)
 
 END_TEST
 // Test: Apply override replaces existing provider
-START_TEST(test_apply_override_replaces_provider)
-{
+START_TEST(test_apply_override_replaces_provider) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
     child->provider = talloc_strdup(child, "anthropic");
@@ -131,8 +124,7 @@ START_TEST(test_apply_override_replaces_provider)
 
 END_TEST
 // Test: Apply override with Anthropic model
-START_TEST(test_apply_override_anthropic_model)
-{
+START_TEST(test_apply_override_anthropic_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -146,8 +138,7 @@ START_TEST(test_apply_override_anthropic_model)
 
 END_TEST
 // Test: Apply override with Google model
-START_TEST(test_apply_override_google_model)
-{
+START_TEST(test_apply_override_google_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -161,8 +152,7 @@ START_TEST(test_apply_override_google_model)
 
 END_TEST
 // Test: Apply override with invalid model parse (malformed MODEL/THINKING syntax)
-START_TEST(test_apply_override_invalid_parse)
-{
+START_TEST(test_apply_override_invalid_parse) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
@@ -173,8 +163,7 @@ START_TEST(test_apply_override_invalid_parse)
 
 END_TEST
 // Test: Inherit config from parent
-START_TEST(test_inherit_config_basic)
-{
+START_TEST(test_inherit_config_basic) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->provider = talloc_strdup(parent, "openai");
@@ -195,8 +184,7 @@ START_TEST(test_inherit_config_basic)
 
 END_TEST
 // Test: Inherit config replaces existing child config
-START_TEST(test_inherit_config_replaces_existing)
-{
+START_TEST(test_inherit_config_replaces_existing) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->provider = talloc_strdup(parent, "openai");
@@ -220,8 +208,7 @@ START_TEST(test_inherit_config_replaces_existing)
 
 END_TEST
 // Test: Inherit config with NULL parent provider
-START_TEST(test_inherit_config_null_parent_provider)
-{
+START_TEST(test_inherit_config_null_parent_provider) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->provider = NULL;
@@ -241,8 +228,7 @@ START_TEST(test_inherit_config_null_parent_provider)
 
 END_TEST
 // Test: Inherit config with NULL parent model
-START_TEST(test_inherit_config_null_parent_model)
-{
+START_TEST(test_inherit_config_null_parent_model) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->provider = talloc_strdup(parent, "openai");

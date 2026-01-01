@@ -130,8 +130,9 @@ START_TEST(test_normalize_content_to_text_delta) {
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_tool_calls_to_deltas)
-{
+END_TEST
+
+START_TEST(test_normalize_tool_calls_to_deltas) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -154,8 +155,9 @@ END_TEST START_TEST(test_normalize_tool_calls_to_deltas)
     ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DELTA);
 }
 
-END_TEST START_TEST(test_normalize_finish_reason_to_done)
-{
+END_TEST
+
+START_TEST(test_normalize_finish_reason_to_done) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -178,8 +180,7 @@ END_TEST
  * Error Handling Tests
  * ================================================================ */
 
-START_TEST(test_handle_malformed_json)
-{
+START_TEST(test_handle_malformed_json) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -190,8 +191,9 @@ START_TEST(test_handle_malformed_json)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_handle_error_response)
-{
+END_TEST
+
+START_TEST(test_handle_error_response) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -206,8 +208,9 @@ END_TEST START_TEST(test_handle_error_response)
     ck_assert_str_eq(events->items[0].data.error.message, "Invalid API key");
 }
 
-END_TEST START_TEST(test_handle_stream_with_usage)
-{
+END_TEST
+
+START_TEST(test_handle_stream_with_usage) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 

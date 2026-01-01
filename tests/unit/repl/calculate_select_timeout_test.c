@@ -65,8 +65,7 @@ END_TEST
  * Test: Single valid timeout (spinner only)
  * Covers: min_timeout < 0 being true (first timeout found)
  */
-START_TEST(test_calculate_timeout_spinner_only)
-{
+START_TEST(test_calculate_timeout_spinner_only) {
     /* Only spinner timeout active */
     repl->current->spinner_state.visible = true;   // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -83,8 +82,7 @@ END_TEST
  * Test: Single valid timeout (curl only)
  * Covers: min_timeout < 0 being true (first timeout found)
  */
-START_TEST(test_calculate_timeout_curl_only)
-{
+START_TEST(test_calculate_timeout_curl_only) {
     /* Only curl timeout active */
     repl->current->spinner_state.visible = false;  // spinner_timeout = -1
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -101,8 +99,7 @@ END_TEST
  * Test: Single valid timeout (tool poll only)
  * Covers: min_timeout < 0 being true (first timeout found)
  */
-START_TEST(test_calculate_timeout_tool_poll_only)
-{
+START_TEST(test_calculate_timeout_tool_poll_only) {
     /* Only tool poll timeout active */
     repl->current->spinner_state.visible = false;            // spinner_timeout = -1
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -119,8 +116,7 @@ END_TEST
  * Test: Multiple timeouts with decreasing values (80, 50)
  * Covers: min_timeout < 0 being false AND timeouts[i] < min_timeout being true
  */
-START_TEST(test_calculate_timeout_decreasing_spinner_tool)
-{
+START_TEST(test_calculate_timeout_decreasing_spinner_tool) {
     /* Spinner (80ms) and tool poll (50ms) both active */
     repl->current->spinner_state.visible = true;             // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -137,8 +133,7 @@ END_TEST
  * Test: Multiple timeouts with decreasing values (80, 25)
  * Covers: min_timeout < 0 being false AND timeouts[i] < min_timeout being true
  */
-START_TEST(test_calculate_timeout_decreasing_spinner_curl)
-{
+START_TEST(test_calculate_timeout_decreasing_spinner_curl) {
     /* Spinner (80ms) and curl (25ms) both active */
     repl->current->spinner_state.visible = true;   // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -155,8 +150,7 @@ END_TEST
  * Test: Multiple timeouts - later one NOT smaller
  * Covers: min_timeout < 0 being false AND timeouts[i] < min_timeout being false
  */
-START_TEST(test_calculate_timeout_increasing_spinner_curl)
-{
+START_TEST(test_calculate_timeout_increasing_spinner_curl) {
     /* Spinner (80ms) and curl (500ms) both active */
     repl->current->spinner_state.visible = true;   // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -173,8 +167,7 @@ END_TEST
  * Test: Multiple timeouts - later one NOT smaller (tool poll first)
  * Covers: min_timeout < 0 being false AND timeouts[i] < min_timeout being false
  */
-START_TEST(test_calculate_timeout_increasing_curl_tool)
-{
+START_TEST(test_calculate_timeout_increasing_curl_tool) {
     /* Curl (100ms) comes first, tool poll (50ms) comes later */
     repl->current->spinner_state.visible = false;            // spinner_timeout = -1
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -191,8 +184,7 @@ END_TEST
  * Test: All three timeouts active with decreasing values
  * Covers: multiple iterations of both branches
  */
-START_TEST(test_calculate_timeout_all_active_decreasing)
-{
+START_TEST(test_calculate_timeout_all_active_decreasing) {
     /* All timeouts active: spinner (80), curl (60), tool (50) */
     repl->current->spinner_state.visible = true;             // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -209,8 +201,7 @@ END_TEST
  * Test: All three timeouts active with mixed values
  * Covers: cases where later timeouts are NOT smaller
  */
-START_TEST(test_calculate_timeout_all_active_mixed)
-{
+START_TEST(test_calculate_timeout_all_active_mixed) {
     /* All timeouts active: spinner (80), curl (100), tool (50) */
     repl->current->spinner_state.visible = true;             // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -226,8 +217,7 @@ END_TEST
 /*
  * Test: Mix of disabled and valid timeouts (spinner + curl)
  */
-START_TEST(test_calculate_timeout_mixed_disabled_spinner_curl)
-{
+START_TEST(test_calculate_timeout_mixed_disabled_spinner_curl) {
     /* Spinner (80ms) and curl (200ms), tool disabled */
     repl->current->spinner_state.visible = true;   // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -243,8 +233,7 @@ END_TEST
 /*
  * Test: Mix of disabled and valid timeouts (spinner + tool)
  */
-START_TEST(test_calculate_timeout_mixed_disabled_spinner_tool)
-{
+START_TEST(test_calculate_timeout_mixed_disabled_spinner_tool) {
     /* Spinner (80ms) and tool (50ms), curl disabled */
     repl->current->spinner_state.visible = true;             // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -260,8 +249,7 @@ END_TEST
 /*
  * Test: Mix of disabled and valid timeouts (curl + tool)
  */
-START_TEST(test_calculate_timeout_mixed_disabled_curl_tool)
-{
+START_TEST(test_calculate_timeout_mixed_disabled_curl_tool) {
     /* Curl (300ms) and tool (50ms), spinner disabled */
     repl->current->spinner_state.visible = false;            // spinner_timeout = -1
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;     // tool_poll_timeout = 50
@@ -277,8 +265,7 @@ END_TEST
 /*
  * Test: WAITING_FOR_LLM state (no tool poll timeout)
  */
-START_TEST(test_calculate_timeout_waiting_for_llm)
-{
+START_TEST(test_calculate_timeout_waiting_for_llm) {
     /* Spinner visible, waiting for LLM (no tool poll) */
     repl->current->spinner_state.visible = true;             // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;    // tool_poll_timeout = -1
@@ -294,8 +281,7 @@ END_TEST
 /*
  * Test: Zero curl timeout (edge case)
  */
-START_TEST(test_calculate_timeout_zero_curl)
-{
+START_TEST(test_calculate_timeout_zero_curl) {
     /* Zero timeout is valid and should be chosen */
     repl->current->spinner_state.visible = true;   // spinner_timeout = 80
     repl->current->state = IK_AGENT_STATE_IDLE;     // tool_poll_timeout = -1
@@ -312,8 +298,7 @@ END_TEST
  * Test: scroll_det is NULL (no scroll detector timeout)
  * Covers: repl->scroll_det != NULL being false
  */
-START_TEST(test_calculate_timeout_no_scroll_detector)
-{
+START_TEST(test_calculate_timeout_no_scroll_detector) {
     /* Free scroll detector to test NULL case */
     talloc_free(repl->scroll_det);
     repl->scroll_det = NULL;

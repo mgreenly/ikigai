@@ -22,23 +22,20 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_input_parser_create with NULL parent asserts
-START_TEST(test_input_parser_create_null_parent_asserts)
-{
+START_TEST(test_input_parser_create_null_parent_asserts) {
     ik_input_parser_create(NULL);
 }
 
 END_TEST
 // Test: ik_input_parse_byte with NULL parser asserts
-START_TEST(test_input_parse_byte_null_parser_asserts)
-{
+START_TEST(test_input_parse_byte_null_parser_asserts) {
     ik_input_action_t action = {0};
     ik_input_parse_byte(NULL, 'a', &action);
 }
 
 END_TEST
 // Test: ik_input_parse_byte with NULL action_out asserts
-START_TEST(test_input_parse_byte_null_action_out_asserts)
-{
+START_TEST(test_input_parse_byte_null_action_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_parse_byte(parser, 'a', NULL);

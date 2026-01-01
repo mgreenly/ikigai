@@ -17,8 +17,9 @@ START_TEST(test_error_code_strings) {
     ck_assert_str_eq(parse_str, "Parse error");
 }
 
-END_TEST START_TEST(test_config_port_too_low)
-{
+END_TEST
+
+START_TEST(test_config_port_too_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -44,8 +45,9 @@ END_TEST START_TEST(test_config_port_too_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_port_too_high)
-{
+END_TEST
+
+START_TEST(test_config_port_too_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -71,8 +73,9 @@ END_TEST START_TEST(test_config_port_too_high)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_port_valid_range)
-{
+END_TEST
+
+START_TEST(test_config_port_valid_range) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -128,8 +131,9 @@ END_TEST START_TEST(test_config_port_valid_range)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_temperature_too_low)
-{
+END_TEST
+
+START_TEST(test_config_temperature_too_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -152,8 +156,9 @@ END_TEST START_TEST(test_config_temperature_too_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_temperature_too_high)
-{
+END_TEST
+
+START_TEST(test_config_temperature_too_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -176,8 +181,9 @@ END_TEST START_TEST(test_config_temperature_too_high)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tokens_too_low)
-{
+END_TEST
+
+START_TEST(test_config_max_tokens_too_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -200,8 +206,9 @@ END_TEST START_TEST(test_config_max_tokens_too_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tokens_too_high)
-{
+END_TEST
+
+START_TEST(test_config_max_tokens_too_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -224,8 +231,9 @@ END_TEST START_TEST(test_config_max_tokens_too_high)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_valid_openai_system_message)
-{
+END_TEST
+
+START_TEST(test_config_valid_openai_system_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 

@@ -43,8 +43,9 @@ START_TEST(test_multi_create_success) {
     ik_http_multi_t *multi = res.ok;
     talloc_free(multi);
 }
-END_TEST START_TEST(test_multi_cleanup_no_crash)
-{
+END_TEST
+
+START_TEST(test_multi_cleanup_no_crash) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -53,8 +54,9 @@ END_TEST START_TEST(test_multi_cleanup_no_crash)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_fdset_empty_multi)
-{
+END_TEST
+
+START_TEST(test_fdset_empty_multi) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -74,8 +76,9 @@ END_TEST START_TEST(test_fdset_empty_multi)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_perform_empty_multi)
-{
+END_TEST
+
+START_TEST(test_perform_empty_multi) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -89,8 +92,9 @@ END_TEST START_TEST(test_perform_empty_multi)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_timeout_empty_multi)
-{
+END_TEST
+
+START_TEST(test_timeout_empty_multi) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -105,8 +109,9 @@ END_TEST START_TEST(test_timeout_empty_multi)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_info_read_empty_multi)
-{
+END_TEST
+
+START_TEST(test_info_read_empty_multi) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -123,8 +128,7 @@ END_TEST
  * Request Configuration Tests
  */
 
-START_TEST(test_add_request_minimal)
-{
+START_TEST(test_add_request_minimal) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -145,8 +149,9 @@ START_TEST(test_add_request_minimal)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_add_request_with_headers)
-{
+END_TEST
+
+START_TEST(test_add_request_with_headers) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -173,8 +178,9 @@ END_TEST START_TEST(test_add_request_with_headers)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_add_request_with_body)
-{
+END_TEST
+
+START_TEST(test_add_request_with_body) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -196,8 +202,9 @@ END_TEST START_TEST(test_add_request_with_body)
     talloc_free(multi);
 }
 
-END_TEST START_TEST(test_add_request_custom_method)
-{
+END_TEST
+
+START_TEST(test_add_request_custom_method) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -223,8 +230,7 @@ END_TEST
  * Memory Lifecycle Tests
  */
 
-START_TEST(test_parent_context_frees_all)
-{
+START_TEST(test_parent_context_frees_all) {
     TALLOC_CTX *parent = talloc_new(NULL);
 
     res_t res = ik_http_multi_create(parent);
@@ -249,8 +255,9 @@ START_TEST(test_parent_context_frees_all)
     /* If we get here without crash, test passes */
 }
 
-END_TEST START_TEST(test_destructor_handles_active_requests)
-{
+END_TEST
+
+START_TEST(test_destructor_handles_active_requests) {
     res_t res = ik_http_multi_create(test_ctx);
     ck_assert(!res.is_err);
 
@@ -289,14 +296,16 @@ static bool g_curl_easy_init_should_fail = false;
 static bool g_curl_multi_add_handle_should_fail = false;
 
 /* Mock implementations */
-CURLM *curl_multi_init_(void) {
+CURLM *curl_multi_init_(void)
+{
     if (g_curl_multi_init_should_fail) {
         return NULL;
     }
     return curl_multi_init();
 }
 
-CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles) {
+CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles)
+{
     if (g_curl_multi_perform_should_fail) {
         return CURLM_BAD_HANDLE;
     }
@@ -304,29 +313,33 @@ CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles) {
 }
 
 CURLMcode curl_multi_fdset_(CURLM *multi_handle, fd_set *read_fd_set,
-                             fd_set *write_fd_set, fd_set *exc_fd_set,
-                             int *max_fd) {
+                            fd_set *write_fd_set, fd_set *exc_fd_set,
+                            int *max_fd)
+{
     if (g_curl_multi_fdset_should_fail) {
         return CURLM_BAD_HANDLE;
     }
     return curl_multi_fdset(multi_handle, read_fd_set, write_fd_set, exc_fd_set, max_fd);
 }
 
-CURLMcode curl_multi_timeout_(CURLM *multi_handle, long *timeout) {
+CURLMcode curl_multi_timeout_(CURLM *multi_handle, long *timeout)
+{
     if (g_curl_multi_timeout_should_fail) {
         return CURLM_BAD_HANDLE;
     }
     return curl_multi_timeout(multi_handle, timeout);
 }
 
-CURL *curl_easy_init_(void) {
+CURL *curl_easy_init_(void)
+{
     if (g_curl_easy_init_should_fail) {
         return NULL;
     }
     return curl_easy_init();
 }
 
-CURLMcode curl_multi_add_handle_(CURLM *multi_handle, CURL *easy_handle) {
+CURLMcode curl_multi_add_handle_(CURLM *multi_handle, CURL *easy_handle)
+{
     if (g_curl_multi_add_handle_should_fail) {
         return CURLM_BAD_HANDLE;
     }

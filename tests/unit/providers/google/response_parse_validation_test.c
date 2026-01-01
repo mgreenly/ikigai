@@ -25,8 +25,7 @@ static void teardown(void)
  * Error and Validation Tests
  * ================================================================ */
 
-START_TEST(test_parse_error_response)
-{
+START_TEST(test_parse_error_response) {
     const char *json = "{"
                        "\"error\":{"
                        "\"code\":403,"
@@ -43,8 +42,9 @@ START_TEST(test_parse_error_response)
     talloc_free(result.err);
 }
 
-END_TEST START_TEST(test_parse_blocked_prompt)
-{
+END_TEST
+
+START_TEST(test_parse_blocked_prompt) {
     const char *json = "{"
                        "\"promptFeedback\":{"
                        "\"blockReason\":\"SAFETY\""
@@ -59,8 +59,9 @@ END_TEST START_TEST(test_parse_blocked_prompt)
     talloc_free(result.err);
 }
 
-END_TEST START_TEST(test_parse_invalid_json)
-{
+END_TEST
+
+START_TEST(test_parse_invalid_json) {
     const char *json = "not valid json";
 
     ik_response_t *resp = NULL;
@@ -70,8 +71,9 @@ END_TEST START_TEST(test_parse_invalid_json)
     talloc_free(result.err);
 }
 
-END_TEST START_TEST(test_parse_part_without_text_or_function)
-{
+END_TEST
+
+START_TEST(test_parse_part_without_text_or_function) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"
@@ -94,8 +96,9 @@ END_TEST START_TEST(test_parse_part_without_text_or_function)
     ck_assert_str_eq(resp->content_blocks[1].data.text.text, "Hello world");
 }
 
-END_TEST START_TEST(test_parse_function_call_missing_name)
-{
+END_TEST
+
+START_TEST(test_parse_function_call_missing_name) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -117,8 +120,9 @@ END_TEST START_TEST(test_parse_function_call_missing_name)
     talloc_free(result.err);
 }
 
-END_TEST START_TEST(test_parse_function_call_name_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_function_call_name_not_string) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-pro\","
                        "\"candidates\":[{"
@@ -141,8 +145,9 @@ END_TEST START_TEST(test_parse_function_call_name_not_string)
     talloc_free(result.err);
 }
 
-END_TEST START_TEST(test_parse_text_not_string)
-{
+END_TEST
+
+START_TEST(test_parse_text_not_string) {
     const char *json = "{"
                        "\"modelVersion\":\"gemini-2.5-flash\","
                        "\"candidates\":[{"

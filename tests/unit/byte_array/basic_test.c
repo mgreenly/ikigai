@@ -21,8 +21,7 @@ START_TEST(test_byte_array_create_success) {
 }
 END_TEST
 // Test byte array creation with invalid increment (0)
-START_TEST(test_byte_array_create_invalid_increment)
-{
+START_TEST(test_byte_array_create_invalid_increment) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 0);
@@ -35,8 +34,7 @@ START_TEST(test_byte_array_create_invalid_increment)
 
 END_TEST
 // Test clear
-START_TEST(test_byte_array_clear)
-{
+START_TEST(test_byte_array_clear) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -60,8 +58,7 @@ START_TEST(test_byte_array_clear)
 
 END_TEST
 // Test size and capacity queries
-START_TEST(test_byte_array_size_capacity)
-{
+START_TEST(test_byte_array_size_capacity) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 5);
@@ -87,15 +84,13 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion on NULL array for size
-START_TEST(test_byte_array_size_null_asserts)
-{
+START_TEST(test_byte_array_size_null_asserts) {
     ik_byte_array_size(NULL);
 }
 
 END_TEST
 // Test assertion on NULL array for capacity
-START_TEST(test_byte_array_capacity_null_asserts)
-{
+START_TEST(test_byte_array_capacity_null_asserts) {
     ik_byte_array_capacity(NULL);
 }
 

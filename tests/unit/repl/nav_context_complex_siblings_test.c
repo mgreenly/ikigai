@@ -81,8 +81,7 @@ START_TEST(test_nav_context_multiple_prev_siblings) {
 }
 END_TEST
 // Test: Multiple siblings with complex timestamp ordering requiring next_sibling updates
-START_TEST(test_nav_context_multiple_next_siblings)
-{
+START_TEST(test_nav_context_multiple_next_siblings) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -106,8 +105,7 @@ START_TEST(test_nav_context_multiple_next_siblings)
 
 END_TEST
 // Test: Five siblings to exercise all timestamp comparison paths
-START_TEST(test_nav_context_five_siblings_middle_current)
-{
+START_TEST(test_nav_context_five_siblings_middle_current) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -130,8 +128,7 @@ START_TEST(test_nav_context_five_siblings_middle_current)
 
 END_TEST
 // Test: Same parent (both NULL) - root-level siblings
-START_TEST(test_nav_context_root_level_siblings)
-{
+START_TEST(test_nav_context_root_level_siblings) {
     // Create multiple root-level agents (parent_uuid = NULL for all)
     ik_agent_ctx_t *root1 = create_agent_with_timestamp("root1-uuid", NULL, 1000);
     (void)create_agent_with_timestamp("root2-uuid", NULL, 2000);
@@ -149,8 +146,7 @@ START_TEST(test_nav_context_root_level_siblings)
 
 END_TEST
 // Test: Agent with both older and newer siblings to exercise timestamp comparisons
-START_TEST(test_nav_context_timestamp_comparisons)
-{
+START_TEST(test_nav_context_timestamp_comparisons) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -174,8 +170,7 @@ START_TEST(test_nav_context_timestamp_comparisons)
 
 END_TEST
 // Test: Agent equal timestamps (edge case)
-START_TEST(test_nav_context_equal_timestamps)
-{
+START_TEST(test_nav_context_equal_timestamps) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -194,8 +189,7 @@ START_TEST(test_nav_context_equal_timestamps)
 
 END_TEST
 // Test: Agent removed from array causing find_agent_by_uuid to return NULL
-START_TEST(test_nav_context_with_removed_sibling)
-{
+START_TEST(test_nav_context_with_removed_sibling) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -230,8 +224,7 @@ START_TEST(test_nav_context_with_removed_sibling)
 
 END_TEST
 // Test: Next sibling replacement path with earlier timestamp
-START_TEST(test_nav_context_next_sibling_earlier_timestamp)
-{
+START_TEST(test_nav_context_next_sibling_earlier_timestamp) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 

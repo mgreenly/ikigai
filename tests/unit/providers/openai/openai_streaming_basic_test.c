@@ -139,8 +139,9 @@ START_TEST(test_parse_initial_role_delta) {
     /* First delta with role should not emit START yet (waits for content) */
     ck_assert_int_eq((int)events->count, 0);
 }
-END_TEST START_TEST(test_parse_content_delta)
-{
+END_TEST
+
+START_TEST(test_parse_content_delta) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -161,8 +162,9 @@ END_TEST START_TEST(test_parse_content_delta)
     ck_assert_str_eq(events->items[1].data.delta.text, "Hello");
 }
 
-END_TEST START_TEST(test_parse_finish_reason)
-{
+END_TEST
+
+START_TEST(test_parse_finish_reason) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -179,8 +181,9 @@ END_TEST START_TEST(test_parse_finish_reason)
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
-END_TEST START_TEST(test_handle_done_marker)
-{
+END_TEST
+
+START_TEST(test_handle_done_marker) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -205,8 +208,7 @@ END_TEST
  * Content Accumulation Tests
  * ================================================================ */
 
-START_TEST(test_accumulate_multiple_deltas)
-{
+START_TEST(test_accumulate_multiple_deltas) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -230,8 +232,9 @@ START_TEST(test_accumulate_multiple_deltas)
     ck_assert_str_eq(events->items[3].data.delta.text, "world");
 }
 
-END_TEST START_TEST(test_handle_empty_content_delta)
-{
+END_TEST
+
+START_TEST(test_handle_empty_content_delta) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 
@@ -246,8 +249,9 @@ END_TEST START_TEST(test_handle_empty_content_delta)
     ck_assert_int_eq((int)events->count, 0);
 }
 
-END_TEST START_TEST(test_preserve_text_order)
-{
+END_TEST
+
+START_TEST(test_preserve_text_order) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
 

@@ -53,8 +53,7 @@ START_TEST(test_serialize_user_message_single_text) {
 }
 END_TEST
 
-START_TEST(test_serialize_user_message_multiple_text_blocks)
-{
+START_TEST(test_serialize_user_message_multiple_text_blocks) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 3;
@@ -83,8 +82,7 @@ START_TEST(test_serialize_user_message_multiple_text_blocks)
 
 END_TEST
 
-START_TEST(test_serialize_user_message_empty_content)
-{
+START_TEST(test_serialize_user_message_empty_content) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 0;
@@ -104,8 +102,7 @@ START_TEST(test_serialize_user_message_empty_content)
 
 END_TEST
 
-START_TEST(test_serialize_user_message_text_and_thinking)
-{
+START_TEST(test_serialize_user_message_text_and_thinking) {
     ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
     msg->role = IK_ROLE_USER;
     msg->content_count = 3;

@@ -173,8 +173,7 @@ static void teardown(void)
 
 /* ========== ik_repl_setup_fd_sets Tests ========== */
 
-START_TEST(test_setup_fd_sets_no_agents)
-{
+START_TEST(test_setup_fd_sets_no_agents) {
     fd_set read_fds, write_fds, exc_fds;
     int max_fd = -1;
 
@@ -186,8 +185,7 @@ START_TEST(test_setup_fd_sets_no_agents)
 
 END_TEST
 
-START_TEST(test_setup_fd_sets_with_provider_instance)
-{
+START_TEST(test_setup_fd_sets_with_provider_instance) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -209,8 +207,7 @@ START_TEST(test_setup_fd_sets_with_provider_instance)
 
 END_TEST
 
-START_TEST(test_setup_fd_sets_provider_returns_error)
-{
+START_TEST(test_setup_fd_sets_provider_returns_error) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt_fails;
@@ -232,8 +229,7 @@ START_TEST(test_setup_fd_sets_provider_returns_error)
 
 END_TEST
 
-START_TEST(test_setup_fd_sets_updates_max_fd)
-{
+START_TEST(test_setup_fd_sets_updates_max_fd) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt_high;
@@ -255,8 +251,7 @@ START_TEST(test_setup_fd_sets_updates_max_fd)
 
 END_TEST
 
-START_TEST(test_setup_fd_sets_agent_fd_not_higher)
-{
+START_TEST(test_setup_fd_sets_agent_fd_not_higher) {
     /* Create mock provider instance that returns a lower fd than terminal */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;  /* Returns max_fd=10 */

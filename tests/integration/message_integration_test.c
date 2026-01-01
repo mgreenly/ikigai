@@ -182,8 +182,7 @@ END_TEST
 #endif
 // Test 2: Assistant response triggers database write
 #if 0
-START_TEST(test_assistant_response_integration)
-{
+START_TEST(test_assistant_response_integration) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
 
@@ -213,8 +212,7 @@ END_TEST
 #endif
 // Test 3: /clear command triggers database write
 #if 0
-START_TEST(test_clear_command_integration)
-{
+START_TEST(test_clear_command_integration) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
 
@@ -247,8 +245,7 @@ END_TEST
 #endif
 // Test 4: /mark command triggers database write
 #if 0
-START_TEST(test_mark_command_integration)
-{
+START_TEST(test_mark_command_integration) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
 
@@ -278,8 +275,7 @@ END_TEST
 #endif
 // Test 5: /rewind command triggers database write
 #if 0
-START_TEST(test_rewind_command_integration)
-{
+START_TEST(test_rewind_command_integration) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
 
@@ -309,8 +305,7 @@ END_TEST
 #endif
 // Test 6: DB/memory invariant - database and memory stay synchronized
 #if 0
-START_TEST(test_db_memory_invariant)
-{
+START_TEST(test_db_memory_invariant) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = NULL;
 
@@ -345,8 +340,7 @@ END_TEST
 // Test 7: Error handling - database write failure is graceful
 // This test is a placeholder for future integration testing
 // For now, it's essentially a no-op that just verifies DB setup works
-START_TEST(test_error_handling_db_write_failure)
-{
+START_TEST(test_error_handling_db_write_failure) {
     SKIP_IF_NO_DB();
 
     // TODO: After integration, simulate database write failure

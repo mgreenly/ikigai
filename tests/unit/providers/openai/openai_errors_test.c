@@ -48,8 +48,9 @@ START_TEST(test_parse_authentication_error_401) {
     ck_assert_ptr_nonnull(message);
     ck_assert(strstr(message, "API key") != NULL || strstr(message, "authentication") != NULL);
 }
-END_TEST START_TEST(test_parse_rate_limit_error_429)
-{
+END_TEST
+
+START_TEST(test_parse_rate_limit_error_429) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -71,8 +72,9 @@ END_TEST START_TEST(test_parse_rate_limit_error_429)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_context_length_error_400)
-{
+END_TEST
+
+START_TEST(test_parse_context_length_error_400) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -94,8 +96,9 @@ END_TEST START_TEST(test_parse_context_length_error_400)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_model_not_found_error_404)
-{
+END_TEST
+
+START_TEST(test_parse_model_not_found_error_404) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -117,8 +120,9 @@ END_TEST START_TEST(test_parse_model_not_found_error_404)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_map_errors_to_correct_categories)
-{
+END_TEST
+
+START_TEST(test_map_errors_to_correct_categories) {
     // Test various HTTP status codes map correctly
     ik_error_category_t category;
     char *message = NULL;
@@ -155,8 +159,9 @@ END_TEST START_TEST(test_map_errors_to_correct_categories)
     ck_assert_int_eq(category, IK_ERR_CAT_UNKNOWN);
 }
 
-END_TEST START_TEST(test_parse_server_error_500)
-{
+END_TEST
+
+START_TEST(test_parse_server_error_500) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -178,8 +183,9 @@ END_TEST START_TEST(test_parse_server_error_500)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_service_unavailable_503)
-{
+END_TEST
+
+START_TEST(test_parse_service_unavailable_503) {
     const char *error_json =
         "{"
         "  \"error\": {"
@@ -201,8 +207,9 @@ END_TEST START_TEST(test_parse_service_unavailable_503)
     ck_assert_ptr_nonnull(message);
 }
 
-END_TEST START_TEST(test_parse_error_message_only)
-{
+END_TEST
+
+START_TEST(test_parse_error_message_only) {
     // Test error object with only message field (line 376)
     const char *error_json =
         "{"
@@ -223,8 +230,9 @@ END_TEST START_TEST(test_parse_error_message_only)
     ck_assert_str_eq(message, "Something went wrong");
 }
 
-END_TEST START_TEST(test_parse_error_type_only)
-{
+END_TEST
+
+START_TEST(test_parse_error_type_only) {
     // Test error object with only type field (line 378)
     const char *error_json =
         "{"
@@ -245,8 +253,9 @@ END_TEST START_TEST(test_parse_error_type_only)
     ck_assert_str_eq(message, "server_error");
 }
 
-END_TEST START_TEST(test_parse_error_no_fields)
-{
+END_TEST
+
+START_TEST(test_parse_error_no_fields) {
     // Test error object with no type, code, or message fields (line 381)
     const char *error_json =
         "{"
@@ -267,8 +276,9 @@ END_TEST START_TEST(test_parse_error_no_fields)
     ck_assert_str_eq(message, "HTTP 500");
 }
 
-END_TEST START_TEST(test_parse_error_http_502)
-{
+END_TEST
+
+START_TEST(test_parse_error_http_502) {
     // Test HTTP 502 status code (line 334)
     ik_error_category_t category;
     char *message = NULL;
@@ -286,8 +296,7 @@ END_TEST
  * Retry-After Header Tests
  * ================================================================ */
 
-START_TEST(test_extract_retry_after_from_reset_headers)
-{
+START_TEST(test_extract_retry_after_from_reset_headers) {
     const char *headers[] = {
         "content-type: application/json",
         "x-ratelimit-reset-requests: 30s",
@@ -299,8 +308,9 @@ START_TEST(test_extract_retry_after_from_reset_headers)
     ck_assert_int_eq(retry_after, 30);
 }
 
-END_TEST START_TEST(test_retry_after_missing)
-{
+END_TEST
+
+START_TEST(test_retry_after_missing) {
     const char *headers[] = {
         "content-type: application/json",
         "x-ratelimit-limit-requests: 10000",
@@ -311,8 +321,9 @@ END_TEST START_TEST(test_retry_after_missing)
     ck_assert_int_eq(retry_after, -1);
 }
 
-END_TEST START_TEST(test_retry_after_tokens_reset)
-{
+END_TEST
+
+START_TEST(test_retry_after_tokens_reset) {
     const char *headers[] = {
         "content-type: application/json",
         "x-ratelimit-reset-tokens: 6m0s",

@@ -32,8 +32,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: Invalid width assertion */
-START_TEST(test_scrollback_create_invalid_width_asserts)
-{
+START_TEST(test_scrollback_create_invalid_width_asserts) {
     void *ctx = talloc_new(NULL);
 
     /* terminal_width must be > 0 - should abort */

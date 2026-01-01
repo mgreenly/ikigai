@@ -50,8 +50,9 @@ START_TEST(test_create_with_empty_api_key_fails) {
     ck_assert(is_err(&r));
     ck_assert_ptr_null(p);
 }
-END_TEST START_TEST(test_create_with_options_responses_api)
-{
+END_TEST
+
+START_TEST(test_create_with_options_responses_api) {
     ik_provider_t *p = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test", true, &p);
 
@@ -60,8 +61,9 @@ END_TEST START_TEST(test_create_with_options_responses_api)
     ck_assert_str_eq(p->name, "openai");
 }
 
-END_TEST START_TEST(test_create_with_options_chat_api)
-{
+END_TEST
+
+START_TEST(test_create_with_options_chat_api) {
     ik_provider_t *p = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test", false, &p);
 
@@ -75,8 +77,7 @@ END_TEST
  * Vtable Method Tests
  * ================================================================ */
 
-START_TEST(test_cleanup_method)
-{
+START_TEST(test_cleanup_method) {
     // cleanup is a void function that currently does nothing
     // but we should still call it to ensure coverage
     provider->vt->cleanup(provider->ctx);
@@ -85,8 +86,9 @@ START_TEST(test_cleanup_method)
     ck_assert(1);
 }
 
-END_TEST START_TEST(test_cancel_method)
-{
+END_TEST
+
+START_TEST(test_cancel_method) {
     // cancel is a void function that currently does nothing
     // but we should still call it to ensure coverage
     provider->vt->cancel(provider->ctx);
@@ -95,8 +97,9 @@ END_TEST START_TEST(test_cancel_method)
     ck_assert(1);
 }
 
-END_TEST START_TEST(test_fdset_method)
-{
+END_TEST
+
+START_TEST(test_fdset_method) {
     fd_set read_fds, write_fds, exc_fds;
     int max_fd = -1;
 
@@ -108,24 +111,27 @@ END_TEST START_TEST(test_fdset_method)
     ck_assert(!is_err(&r));
 }
 
-END_TEST START_TEST(test_perform_method)
-{
+END_TEST
+
+START_TEST(test_perform_method) {
     int running_handles = 0;
 
     res_t r = provider->vt->perform(provider->ctx, &running_handles);
     ck_assert(!is_err(&r));
 }
 
-END_TEST START_TEST(test_timeout_method)
-{
+END_TEST
+
+START_TEST(test_timeout_method) {
     long timeout_ms = -1;
 
     res_t r = provider->vt->timeout(provider->ctx, &timeout_ms);
     ck_assert(!is_err(&r));
 }
 
-END_TEST START_TEST(test_info_read_method)
-{
+END_TEST
+
+START_TEST(test_info_read_method) {
     // Create a minimal logger for testing
     ik_logger_t *logger = ik_logger_create(test_ctx, "/tmp");
     ck_assert_ptr_nonnull(logger);

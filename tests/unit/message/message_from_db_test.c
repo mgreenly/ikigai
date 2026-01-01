@@ -49,8 +49,7 @@ START_TEST(test_tool_call_json_array) {
 }
 END_TEST
 // Test: JSON null for tool_call
-START_TEST(test_tool_call_json_null)
-{
+START_TEST(test_tool_call_json_null) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -66,8 +65,7 @@ START_TEST(test_tool_call_json_null)
 
 END_TEST
 // Test: Missing tool_call_id in tool_call
-START_TEST(test_tool_call_missing_id)
-{
+START_TEST(test_tool_call_missing_id) {
     char *kind = talloc_strdup(test_ctx, "tool_call");
     char *data_json = talloc_strdup(test_ctx, "{\"name\":\"bash\",\"arguments\":\"{}\"}");
 
@@ -86,8 +84,7 @@ START_TEST(test_tool_call_missing_id)
 
 END_TEST
 // Test: Missing name in tool_call
-START_TEST(test_tool_call_missing_name)
-{
+START_TEST(test_tool_call_missing_name) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -103,8 +100,7 @@ START_TEST(test_tool_call_missing_name)
 
 END_TEST
 // Test: Missing arguments in tool_call
-START_TEST(test_tool_call_missing_arguments)
-{
+START_TEST(test_tool_call_missing_arguments) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -120,8 +116,7 @@ START_TEST(test_tool_call_missing_arguments)
 
 END_TEST
 // Test: Invalid field type for tool_call_id (number instead of string)
-START_TEST(test_tool_call_invalid_id_type)
-{
+START_TEST(test_tool_call_invalid_id_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -137,8 +132,7 @@ START_TEST(test_tool_call_invalid_id_type)
 
 END_TEST
 // Test: Invalid field type for name (number instead of string)
-START_TEST(test_tool_call_invalid_name_type)
-{
+START_TEST(test_tool_call_invalid_name_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -154,8 +148,7 @@ START_TEST(test_tool_call_invalid_name_type)
 
 END_TEST
 // Test: Invalid field type for arguments (number instead of string)
-START_TEST(test_tool_call_invalid_arguments_type)
-{
+START_TEST(test_tool_call_invalid_arguments_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -171,8 +164,7 @@ START_TEST(test_tool_call_invalid_arguments_type)
 
 END_TEST
 // Test: Valid tool_call succeeds
-START_TEST(test_tool_call_valid)
-{
+START_TEST(test_tool_call_valid) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
@@ -189,8 +181,7 @@ START_TEST(test_tool_call_valid)
 
 END_TEST
 // Test: JSON array instead of object for tool_result
-START_TEST(test_tool_result_json_array)
-{
+START_TEST(test_tool_result_json_array) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -206,8 +197,7 @@ START_TEST(test_tool_result_json_array)
 
 END_TEST
 // Test: JSON null for tool_result
-START_TEST(test_tool_result_json_null)
-{
+START_TEST(test_tool_result_json_null) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -223,8 +213,7 @@ START_TEST(test_tool_result_json_null)
 
 END_TEST
 // Test: Missing tool_call_id in tool_result
-START_TEST(test_tool_result_missing_id)
-{
+START_TEST(test_tool_result_missing_id) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -240,8 +229,7 @@ START_TEST(test_tool_result_missing_id)
 
 END_TEST
 // Test: Missing output in tool_result
-START_TEST(test_tool_result_missing_output)
-{
+START_TEST(test_tool_result_missing_output) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -257,8 +245,7 @@ START_TEST(test_tool_result_missing_output)
 
 END_TEST
 // Test: Invalid field type for tool_call_id in tool_result (number instead of string)
-START_TEST(test_tool_result_invalid_id_type)
-{
+START_TEST(test_tool_result_invalid_id_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -274,8 +261,7 @@ START_TEST(test_tool_result_invalid_id_type)
 
 END_TEST
 // Test: Invalid field type for output in tool_result (number instead of string)
-START_TEST(test_tool_result_invalid_output_type)
-{
+START_TEST(test_tool_result_invalid_output_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -291,8 +277,7 @@ START_TEST(test_tool_result_invalid_output_type)
 
 END_TEST
 // Test: Valid tool_result with success=true
-START_TEST(test_tool_result_success_true)
-{
+START_TEST(test_tool_result_success_true) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -309,8 +294,7 @@ START_TEST(test_tool_result_success_true)
 
 END_TEST
 // Test: Valid tool_result with success=false
-START_TEST(test_tool_result_success_false)
-{
+START_TEST(test_tool_result_success_false) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -328,8 +312,7 @@ START_TEST(test_tool_result_success_false)
 
 END_TEST
 // Test: Valid tool_result without success field (defaults to false)
-START_TEST(test_tool_result_no_success_field)
-{
+START_TEST(test_tool_result_no_success_field) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_result"),
         .content = NULL,
@@ -346,8 +329,7 @@ START_TEST(test_tool_result_no_success_field)
 
 END_TEST
 // Test: "tool" kind is handled same as "tool_result"
-START_TEST(test_tool_kind_handled)
-{
+START_TEST(test_tool_kind_handled) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool"),
         .content = NULL,
@@ -364,8 +346,7 @@ START_TEST(test_tool_kind_handled)
 
 END_TEST
 // Test: "tool" kind with missing fields
-START_TEST(test_tool_kind_missing_fields)
-{
+START_TEST(test_tool_kind_missing_fields) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool"),
         .content = NULL,

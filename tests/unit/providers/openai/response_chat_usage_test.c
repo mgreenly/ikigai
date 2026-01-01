@@ -31,8 +31,7 @@ static void teardown(void)
  * Usage Parsing Tests
  * ================================================================ */
 
-START_TEST(test_parse_usage_null_prompt_tokens)
-{
+START_TEST(test_parse_usage_null_prompt_tokens) {
     /* Usage with missing prompt_tokens - line 93 branch (prompt_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -63,8 +62,7 @@ START_TEST(test_parse_usage_null_prompt_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_non_int_prompt_tokens)
-{
+START_TEST(test_parse_usage_non_int_prompt_tokens) {
     /* Usage with non-integer prompt_tokens - line 93 branch (!yyjson_is_int) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -96,8 +94,7 @@ START_TEST(test_parse_usage_non_int_prompt_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_non_int_completion_tokens)
-{
+START_TEST(test_parse_usage_non_int_completion_tokens) {
     /* Usage with non-integer completion_tokens - line 99 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -129,8 +126,7 @@ START_TEST(test_parse_usage_non_int_completion_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_null_completion_tokens)
-{
+START_TEST(test_parse_usage_null_completion_tokens) {
     /* Usage with missing completion_tokens - line 99 branch (completion_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -161,8 +157,7 @@ START_TEST(test_parse_usage_null_completion_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_non_int_total_tokens)
-{
+START_TEST(test_parse_usage_non_int_total_tokens) {
     /* Usage with non-integer total_tokens - line 105 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -195,8 +190,7 @@ START_TEST(test_parse_usage_non_int_total_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_null_total_tokens)
-{
+START_TEST(test_parse_usage_null_total_tokens) {
     /* Usage with missing total_tokens - line 105 branch (total_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -228,8 +222,7 @@ START_TEST(test_parse_usage_null_total_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_non_int_reasoning_tokens)
-{
+START_TEST(test_parse_usage_non_int_reasoning_tokens) {
     /* Usage with non-integer reasoning_tokens - line 113 branch */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","
@@ -265,8 +258,7 @@ START_TEST(test_parse_usage_non_int_reasoning_tokens)
 
 END_TEST
 
-START_TEST(test_parse_usage_null_reasoning_tokens)
-{
+START_TEST(test_parse_usage_null_reasoning_tokens) {
     /* Usage with missing reasoning_tokens - line 113 branch (reasoning_val == NULL) */
     const char *json = "{"
                        "\"id\":\"chatcmpl-test\","

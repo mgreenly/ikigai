@@ -66,8 +66,7 @@ START_TEST(test_db_begin_query_failure) {
 }
 END_TEST
 // Test: ik_db_commit handles query failure
-START_TEST(test_db_commit_query_failure)
-{
+START_TEST(test_db_commit_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -83,8 +82,7 @@ START_TEST(test_db_commit_query_failure)
 
 END_TEST
 // Test: ik_db_rollback handles query failure
-START_TEST(test_db_rollback_query_failure)
-{
+START_TEST(test_db_rollback_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 

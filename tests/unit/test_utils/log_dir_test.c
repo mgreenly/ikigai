@@ -21,8 +21,7 @@ START_TEST(test_set_log_dir_from_file_path) {
 }
 END_TEST
 // Test: ik_test_set_log_dir handles nested paths
-START_TEST(test_set_log_dir_from_nested_path)
-{
+START_TEST(test_set_log_dir_from_nested_path) {
     unsetenv("IKIGAI_LOG_DIR");
 
     ik_test_set_log_dir("tests/unit/commands/mark_db_test.c");
@@ -34,8 +33,7 @@ START_TEST(test_set_log_dir_from_nested_path)
 
 END_TEST
 // Test: ik_test_set_log_dir handles simple filename
-START_TEST(test_set_log_dir_simple_file)
-{
+START_TEST(test_set_log_dir_simple_file) {
     unsetenv("IKIGAI_LOG_DIR");
 
     ik_test_set_log_dir("foo_test.c");
@@ -47,8 +45,7 @@ START_TEST(test_set_log_dir_simple_file)
 
 END_TEST
 // Test: ik_test_set_log_dir handles NULL gracefully
-START_TEST(test_set_log_dir_null)
-{
+START_TEST(test_set_log_dir_null) {
     unsetenv("IKIGAI_LOG_DIR");
 
     ik_test_set_log_dir(NULL);
@@ -59,8 +56,7 @@ START_TEST(test_set_log_dir_null)
 
 END_TEST
 // Test: ik_test_set_log_dir handles file without extension
-START_TEST(test_set_log_dir_no_extension)
-{
+START_TEST(test_set_log_dir_no_extension) {
     unsetenv("IKIGAI_LOG_DIR");
 
     ik_test_set_log_dir("tests/unit/test_file");

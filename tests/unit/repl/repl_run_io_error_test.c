@@ -67,8 +67,7 @@ START_TEST(test_repl_run_read_error_eintr) {
 
 END_TEST
 /* Test: read() returns -1 with non-EINTR error (should exit) */
-START_TEST(test_repl_run_read_error_other)
-{
+START_TEST(test_repl_run_read_error_other) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -124,8 +123,7 @@ START_TEST(test_repl_run_read_error_other)
 
 END_TEST
 /* Test: select() returns -1 with EINTR (should check resize and continue) */
-START_TEST(test_repl_run_select_error_eintr)
-{
+START_TEST(test_repl_run_select_error_eintr) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -185,8 +183,7 @@ START_TEST(test_repl_run_select_error_eintr)
 
 END_TEST
 /* Test: select() returns -1 with non-EINTR error (should break loop) */
-START_TEST(test_repl_run_select_error_other)
-{
+START_TEST(test_repl_run_select_error_other) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;

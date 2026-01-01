@@ -15,20 +15,20 @@
 static TALLOC_CTX *test_ctx;
 
 /* TODO: Restore these when test_start_stream_returns_immediately is fixed
-static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
-{
+   static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
+   {
     (void)completion;
     (void)ctx;
     return OK(NULL);
-}
+   }
 
-static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
-{
+   static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
+   {
     (void)event;
     (void)ctx;
     return OK(NULL);
-}
-*/
+   }
+ */
 
 static void setup(void)
 {
@@ -45,14 +45,13 @@ static void teardown(void)
  * ================================================================ */
 
 /* TODO: Fix test_start_stream_returns_immediately - currently segfaults
-START_TEST(test_start_stream_returns_immediately) {
+   START_TEST(test_start_stream_returns_immediately) {
     ...
-}
-END_TEST
-*/
+   }
+   END_TEST
+ */
 
-START_TEST(test_fdset_returns_valid_fds)
-{
+START_TEST(test_fdset_returns_valid_fds) {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);
@@ -76,8 +75,9 @@ START_TEST(test_fdset_returns_valid_fds)
     talloc_free(provider);
 }
 
-END_TEST START_TEST(test_perform_info_read_no_crash)
-{
+END_TEST
+
+START_TEST(test_perform_info_read_no_crash) {
     /* Create provider instance */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key-12345", &provider);

@@ -114,8 +114,7 @@ START_TEST(test_db_mail_insert_query_failure) {
 }
 END_TEST
 // Test: ik_db_mail_inbox handles query failure
-START_TEST(test_db_mail_inbox_query_failure)
-{
+START_TEST(test_db_mail_inbox_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -133,8 +132,7 @@ START_TEST(test_db_mail_inbox_query_failure)
 
 END_TEST
 // Test: ik_db_mail_mark_read handles query failure
-START_TEST(test_db_mail_mark_read_query_failure)
-{
+START_TEST(test_db_mail_mark_read_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -149,8 +147,7 @@ START_TEST(test_db_mail_mark_read_query_failure)
 
 END_TEST
 // Test: ik_db_mail_delete handles query failure
-START_TEST(test_db_mail_delete_query_failure)
-{
+START_TEST(test_db_mail_delete_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -165,8 +162,7 @@ START_TEST(test_db_mail_delete_query_failure)
 
 END_TEST
 // Test: ik_db_mail_inbox_filtered handles query failure
-START_TEST(test_db_mail_inbox_filtered_query_failure)
-{
+START_TEST(test_db_mail_inbox_filtered_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 

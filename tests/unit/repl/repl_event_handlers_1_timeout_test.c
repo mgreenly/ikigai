@@ -194,8 +194,7 @@ static void teardown(void)
 
 /* ========== ik_repl_calculate_curl_min_timeout Tests ========== */
 
-START_TEST(test_curl_min_timeout_no_agents)
-{
+START_TEST(test_curl_min_timeout_no_agents) {
     long timeout = -1;
 
     res_t result = ik_repl_calculate_curl_min_timeout(repl, &timeout);
@@ -205,8 +204,7 @@ START_TEST(test_curl_min_timeout_no_agents)
 
 END_TEST
 
-START_TEST(test_curl_min_timeout_with_provider)
-{
+START_TEST(test_curl_min_timeout_with_provider) {
     /* Create mock provider instance */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt;
@@ -227,8 +225,7 @@ START_TEST(test_curl_min_timeout_with_provider)
 
 END_TEST
 
-START_TEST(test_curl_min_timeout_chooses_minimum)
-{
+START_TEST(test_curl_min_timeout_chooses_minimum) {
     /* Create first agent with 500ms timeout */
     struct ik_provider *instance1 = talloc_zero(agent, struct ik_provider);
     instance1->vt = &mock_vt_500;
@@ -261,8 +258,7 @@ START_TEST(test_curl_min_timeout_chooses_minimum)
 
 END_TEST
 
-START_TEST(test_curl_min_timeout_provider_error)
-{
+START_TEST(test_curl_min_timeout_provider_error) {
     /* Create mock provider instance that returns error from timeout */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt_timeout_fails;
@@ -283,8 +279,7 @@ START_TEST(test_curl_min_timeout_provider_error)
 
 END_TEST
 
-START_TEST(test_curl_min_timeout_negative_timeout)
-{
+START_TEST(test_curl_min_timeout_negative_timeout) {
     /* Create mock provider instance that returns -1 for timeout */
     struct ik_provider *instance = talloc_zero(agent, struct ik_provider);
     instance->vt = &mock_vt_timeout_negative;
@@ -307,16 +302,14 @@ END_TEST
 
 /* ========== ik_repl_calculate_select_timeout_ms Tests ========== */
 
-START_TEST(test_select_timeout_default)
-{
+START_TEST(test_select_timeout_default) {
     long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
     ck_assert_int_eq(timeout, 1000);  /* Default when no timeouts active */
 }
 
 END_TEST
 
-START_TEST(test_select_timeout_with_spinner)
-{
+START_TEST(test_select_timeout_with_spinner) {
     agent->spinner_state.visible = true;
 
     long timeout = ik_repl_calculate_select_timeout_ms(repl, -1);
@@ -325,8 +318,7 @@ START_TEST(test_select_timeout_with_spinner)
 
 END_TEST
 
-START_TEST(test_select_timeout_with_executing_tool)
-{
+START_TEST(test_select_timeout_with_executing_tool) {
     /* Add agent to repl */
     repl->agent_count = 1;
     repl->agents = talloc_array(repl, ik_agent_ctx_t *, 1);
@@ -343,8 +335,7 @@ START_TEST(test_select_timeout_with_executing_tool)
 
 END_TEST
 
-START_TEST(test_select_timeout_with_scroll_detector)
-{
+START_TEST(test_select_timeout_with_scroll_detector) {
     /* Create scroll detector */
     repl->scroll_det = ik_scroll_detector_create(repl);
     ck_assert_ptr_nonnull(repl->scroll_det);
@@ -356,8 +347,7 @@ START_TEST(test_select_timeout_with_scroll_detector)
 
 END_TEST
 
-START_TEST(test_select_timeout_prefers_minimum)
-{
+START_TEST(test_select_timeout_prefers_minimum) {
     /* Set multiple timeouts and verify minimum is returned */
     agent->spinner_state.visible = true;  /* 80ms */
 

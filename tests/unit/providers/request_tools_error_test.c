@@ -33,8 +33,7 @@ static void teardown(void)
  * Test error path when ik_request_set_system fails (line 252-253)
  * This is very hard to trigger since talloc_strdup would need to fail
  */
-START_TEST(test_set_system_error_cleanup)
-{
+START_TEST(test_set_system_error_cleanup) {
     // This test documents the error path but may not actually hit it
     // The error would occur if talloc_strdup fails in ik_request_set_system
     // which is nearly impossible to trigger in practice
@@ -63,8 +62,7 @@ END_TEST
  * Test error path when ik_request_add_message_direct fails (line 264-265)
  * This could happen if message copying fails
  */
-START_TEST(test_add_message_error_cleanup)
-{
+START_TEST(test_add_message_error_cleanup) {
     // Similarly hard to trigger - would need talloc to fail during message copy
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
@@ -97,8 +95,7 @@ END_TEST
  * Test error path when ik_request_add_tool fails (line 282-283)
  * This would happen if tool addition fails
  */
-START_TEST(test_add_tool_error_cleanup)
-{
+START_TEST(test_add_tool_error_cleanup) {
     // The error path would be hit if ik_request_add_tool fails
     // which is also very hard to trigger
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);

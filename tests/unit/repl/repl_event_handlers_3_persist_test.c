@@ -135,8 +135,7 @@ static void teardown(void)
 
 /* ========== Database persistence tests ========== */
 
-START_TEST(test_persist_with_thinking_level_low)
-{
+START_TEST(test_persist_with_thinking_level_low) {
     agent->thinking_level = 1;  /* LOW */
     agent->response_model = talloc_strdup(agent, "test-model");
     agent->assistant_response = talloc_strdup(agent, "Test response");
@@ -149,8 +148,7 @@ START_TEST(test_persist_with_thinking_level_low)
 
 END_TEST
 
-START_TEST(test_persist_with_thinking_level_med)
-{
+START_TEST(test_persist_with_thinking_level_med) {
     agent->thinking_level = 2;  /* MED */
     agent->response_model = talloc_strdup(agent, "test-model");
     agent->assistant_response = talloc_strdup(agent, "Test response");
@@ -162,8 +160,7 @@ START_TEST(test_persist_with_thinking_level_med)
 
 END_TEST
 
-START_TEST(test_persist_with_thinking_level_high)
-{
+START_TEST(test_persist_with_thinking_level_high) {
     agent->thinking_level = 3;  /* HIGH */
     agent->response_model = talloc_strdup(agent, "test-model");
     agent->assistant_response = talloc_strdup(agent, "Test response");
@@ -175,8 +172,7 @@ START_TEST(test_persist_with_thinking_level_high)
 
 END_TEST
 
-START_TEST(test_persist_with_thinking_level_unknown)
-{
+START_TEST(test_persist_with_thinking_level_unknown) {
     agent->thinking_level = 99;  /* Unknown value - will use default "unknown" */
     agent->response_model = talloc_strdup(agent, "test-model");
     agent->assistant_response = talloc_strdup(agent, "Test response");
@@ -188,8 +184,7 @@ START_TEST(test_persist_with_thinking_level_unknown)
 
 END_TEST
 
-START_TEST(test_persist_with_provider_info)
-{
+START_TEST(test_persist_with_provider_info) {
     agent->provider = talloc_strdup(agent, "anthropic");
     agent->response_model = talloc_strdup(agent, "claude-3-opus");
     agent->response_finish_reason = talloc_strdup(agent, "end_turn");
@@ -203,8 +198,7 @@ START_TEST(test_persist_with_provider_info)
 
 END_TEST
 
-START_TEST(test_persist_with_usage_tokens)
-{
+START_TEST(test_persist_with_usage_tokens) {
     agent->response_input_tokens = 100;
     agent->response_output_tokens = 50;
     agent->response_thinking_tokens = 25;
@@ -218,8 +212,7 @@ START_TEST(test_persist_with_usage_tokens)
 
 END_TEST
 
-START_TEST(test_persist_no_usage_tokens)
-{
+START_TEST(test_persist_no_usage_tokens) {
     agent->response_input_tokens = 0;
     agent->response_output_tokens = 0;
     agent->response_thinking_tokens = 0;

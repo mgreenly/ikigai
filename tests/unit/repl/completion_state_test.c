@@ -73,8 +73,7 @@ START_TEST(test_tab_cycles_to_next) {
 }
 END_TEST
 /* Test: TAB updates input buffer with current selection and dismisses */
-START_TEST(test_tab_updates_input_buffer)
-{
+START_TEST(test_tab_updates_input_buffer) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -133,8 +132,7 @@ START_TEST(test_tab_updates_input_buffer)
 
 END_TEST
 /* Test: ESC reverts to original input */
-START_TEST(test_esc_reverts_to_original)
-{
+START_TEST(test_esc_reverts_to_original) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -199,8 +197,7 @@ START_TEST(test_esc_reverts_to_original)
 
 END_TEST
 /* Test: Space commits selection and continues editing */
-START_TEST(test_space_commits_selection)
-{
+START_TEST(test_space_commits_selection) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -262,8 +259,7 @@ START_TEST(test_space_commits_selection)
 
 END_TEST
 /* Test: Tab with single candidate accepts and dismisses */
-START_TEST(test_enter_commits_and_submits)
-{
+START_TEST(test_enter_commits_and_submits) {
     void *ctx = talloc_new(NULL);
 
     // Create agent

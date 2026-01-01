@@ -149,8 +149,7 @@ START_TEST(test_replay_tool_call_message) {
 }
 END_TEST
 // Test: Replay session with tool_result, verify in context
-START_TEST(test_replay_tool_result_message)
-{
+START_TEST(test_replay_tool_result_message) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -181,8 +180,7 @@ START_TEST(test_replay_tool_result_message)
 
 END_TEST
 // Test: User → tool_call → tool_result → assistant sequence
-START_TEST(test_replay_full_tool_conversation)
-{
+START_TEST(test_replay_full_tool_conversation) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -225,8 +223,7 @@ START_TEST(test_replay_full_tool_conversation)
 
 END_TEST
 // Test: Verify data_json is preserved for serialization
-START_TEST(test_replay_tool_message_preserves_data_json)
-{
+START_TEST(test_replay_tool_message_preserves_data_json) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -257,8 +254,7 @@ START_TEST(test_replay_tool_message_preserves_data_json)
 
 END_TEST
 // Test: Session with multiple tool call/result pairs
-START_TEST(test_replay_multiple_tool_calls)
-{
+START_TEST(test_replay_multiple_tool_calls) {
     SKIP_IF_NO_DB();
 
     // Insert clear first

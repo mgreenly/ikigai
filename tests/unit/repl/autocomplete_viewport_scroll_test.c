@@ -144,8 +144,7 @@ END_TEST
  *
  * Same scenario but without completion - should be shorter document.
  */
-START_TEST(test_autocomplete_viewport_without_completion)
-{
+START_TEST(test_autocomplete_viewport_without_completion) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 10 rows x 80 cols

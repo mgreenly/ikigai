@@ -26,8 +26,7 @@ static void teardown(void)
  * Thought Signature Extraction Tests
  * ================================================================ */
 
-START_TEST(test_extract_thought_signature_top_level)
-{
+START_TEST(test_extract_thought_signature_top_level) {
     const char *json = "{\"thoughtSignature\":\"test-signature\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -40,8 +39,9 @@ START_TEST(test_extract_thought_signature_top_level)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_in_candidates)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_in_candidates) {
     const char *json = "{\"candidates\":[{\"thoughtSignature\":\"candidate-sig\"}]}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -54,8 +54,9 @@ END_TEST START_TEST(test_extract_thought_signature_in_candidates)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_no_signature)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_no_signature) {
     const char *json = "{\"other\":\"field\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -67,8 +68,9 @@ END_TEST START_TEST(test_extract_thought_signature_no_signature)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_candidates_not_array)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_candidates_not_array) {
     const char *json = "{\"candidates\":\"not-an-array\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -80,8 +82,9 @@ END_TEST START_TEST(test_extract_thought_signature_candidates_not_array)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_candidates_empty_array)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_candidates_empty_array) {
     const char *json = "{\"candidates\":[]}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -93,8 +96,9 @@ END_TEST START_TEST(test_extract_thought_signature_candidates_empty_array)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_not_string)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_not_string) {
     const char *json = "{\"thoughtSignature\":123}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -106,8 +110,9 @@ END_TEST START_TEST(test_extract_thought_signature_not_string)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_extract_thought_signature_empty_string)
-{
+END_TEST
+
+START_TEST(test_extract_thought_signature_empty_string) {
     const char *json = "{\"thoughtSignature\":\"\"}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);

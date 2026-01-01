@@ -99,8 +99,7 @@ START_TEST(test_model_switch_gpt4) {
 }
 END_TEST
 // Test: Switch to gpt-4-turbo
-START_TEST(test_model_switch_gpt4_turbo)
-{
+START_TEST(test_model_switch_gpt4_turbo) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl->current->model);
@@ -116,8 +115,7 @@ START_TEST(test_model_switch_gpt4_turbo)
 
 END_TEST
 // Test: Switch to gpt-4o
-START_TEST(test_model_switch_gpt4o)
-{
+START_TEST(test_model_switch_gpt4o) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4o");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl->current->model);
@@ -126,8 +124,7 @@ START_TEST(test_model_switch_gpt4o)
 
 END_TEST
 // Test: Switch to gpt-3.5-turbo
-START_TEST(test_model_switch_gpt35_turbo)
-{
+START_TEST(test_model_switch_gpt35_turbo) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-3.5-turbo");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl->current->model);
@@ -136,8 +133,7 @@ START_TEST(test_model_switch_gpt35_turbo)
 
 END_TEST
 // Test: Switch to o1-mini
-START_TEST(test_model_switch_o1_mini)
-{
+START_TEST(test_model_switch_o1_mini) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model o1-mini");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl->current->model);
@@ -146,8 +142,7 @@ START_TEST(test_model_switch_o1_mini)
 
 END_TEST
 // Test: Missing model name
-START_TEST(test_model_missing_name)
-{
+START_TEST(test_model_missing_name) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model");
     ck_assert(is_err(&res));
 
@@ -163,8 +158,7 @@ START_TEST(test_model_missing_name)
 
 END_TEST
 // Test: Invalid model name
-START_TEST(test_model_invalid_name)
-{
+START_TEST(test_model_invalid_name) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model invalid-model-xyz");
     ck_assert(is_err(&res));
 
@@ -180,8 +174,7 @@ START_TEST(test_model_invalid_name)
 
 END_TEST
 // Test: Multiple switches (verify proper memory cleanup)
-START_TEST(test_model_multiple_switches)
-{
+START_TEST(test_model_multiple_switches) {
     // First switch
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
@@ -203,8 +196,7 @@ START_TEST(test_model_multiple_switches)
 
 END_TEST
 // Test: Switch with extra whitespace before model name
-START_TEST(test_model_with_whitespace)
-{
+START_TEST(test_model_with_whitespace) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model   gpt-4");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->model, "gpt-4");
@@ -212,8 +204,7 @@ START_TEST(test_model_with_whitespace)
 
 END_TEST
 // Test: All supported models
-START_TEST(test_model_all_valid_models)
-{
+START_TEST(test_model_all_valid_models) {
     const char *valid_models[] = {
         "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini",
         "gpt-3.5-turbo", "gpt-5", "gpt-5-mini", "o1", "o1-mini", "o1-preview"

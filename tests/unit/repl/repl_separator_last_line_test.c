@@ -149,8 +149,7 @@ END_TEST
  *   - Separator should be at the last visible row (terminal_rows - 1)
  *   - Input buffer is off-screen (input_buffer_start_row == terminal_rows)
  */
-START_TEST(test_separator_last_row_input_buffer_offscreen)
-{
+START_TEST(test_separator_last_row_input_buffer_offscreen) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 10 rows

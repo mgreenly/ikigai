@@ -38,8 +38,9 @@ START_TEST(test_parse_usage_null) {
     ck_assert_int_eq(usage.cached_tokens, 0);
     ck_assert_int_eq(usage.total_tokens, 0);
 }
-END_TEST START_TEST(test_parse_usage_basic)
-{
+END_TEST
+
+START_TEST(test_parse_usage_basic) {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -58,8 +59,9 @@ END_TEST START_TEST(test_parse_usage_basic)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_with_thinking)
-{
+END_TEST
+
+START_TEST(test_parse_usage_with_thinking) {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50, \"thinking_tokens\": 25}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -78,8 +80,9 @@ END_TEST START_TEST(test_parse_usage_with_thinking)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_with_cached)
-{
+END_TEST
+
+START_TEST(test_parse_usage_with_cached) {
     const char *json = "{\"input_tokens\": 100, \"output_tokens\": 50, \"cache_read_input_tokens\": 200}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -98,8 +101,9 @@ END_TEST START_TEST(test_parse_usage_with_cached)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_all_fields)
-{
+END_TEST
+
+START_TEST(test_parse_usage_all_fields) {
     const char *json = "{"
                        "\"input_tokens\": 100,"
                        "\"output_tokens\": 50,"
@@ -123,8 +127,9 @@ END_TEST START_TEST(test_parse_usage_all_fields)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_empty_object)
-{
+END_TEST
+
+START_TEST(test_parse_usage_empty_object) {
     const char *json = "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
@@ -143,8 +148,9 @@ END_TEST START_TEST(test_parse_usage_empty_object)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_non_int_values)
-{
+END_TEST
+
+START_TEST(test_parse_usage_non_int_values) {
     // Non-integer values should be ignored
     const char *json = "{"
                        "\"input_tokens\": \"not a number\","
@@ -165,8 +171,9 @@ END_TEST START_TEST(test_parse_usage_non_int_values)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_output_tokens_not_int)
-{
+END_TEST
+
+START_TEST(test_parse_usage_output_tokens_not_int) {
     // output_tokens is a string, should be ignored (line 161 branch 3)
     const char *json = "{"
                        "\"input_tokens\": 100,"
@@ -189,8 +196,9 @@ END_TEST START_TEST(test_parse_usage_output_tokens_not_int)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_thinking_tokens_not_int)
-{
+END_TEST
+
+START_TEST(test_parse_usage_thinking_tokens_not_int) {
     // thinking_tokens is a string, should be ignored (line 167 branch 3)
     const char *json = "{"
                        "\"input_tokens\": 100,"
@@ -214,8 +222,9 @@ END_TEST START_TEST(test_parse_usage_thinking_tokens_not_int)
     yyjson_doc_free(doc);
 }
 
-END_TEST START_TEST(test_parse_usage_cached_tokens_not_int)
-{
+END_TEST
+
+START_TEST(test_parse_usage_cached_tokens_not_int) {
     // cache_read_input_tokens is a string, should be ignored (line 173 branch 3)
     const char *json = "{"
                        "\"input_tokens\": 100,"

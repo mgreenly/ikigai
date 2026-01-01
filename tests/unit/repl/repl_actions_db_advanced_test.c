@@ -239,8 +239,7 @@ START_TEST(test_message_submission_no_session) {
 
 END_TEST
 // Test DB error when db_debug_pipe->write_end is NULL (but db_debug_pipe exists)
-START_TEST(test_db_error_null_write_end)
-{
+START_TEST(test_db_error_null_write_end) {
     // Set write_end to NULL but keep db_debug_pipe allocated
     fclose(repl->shared->db_debug_pipe->write_end);
     repl->shared->db_debug_pipe->write_end = NULL;
@@ -270,8 +269,7 @@ START_TEST(test_db_error_null_write_end)
 
 END_TEST
 // Test backspace success path (line 79 error path is defensive)
-START_TEST(test_backspace_error_path)
-{
+START_TEST(test_backspace_error_path) {
     // Note: line 79 is a defensive error check in backspace handling
     // The actual error path is very difficult to trigger without mocking
     // ik_input_buffer_backspace, as it would require cursor manipulation
@@ -299,8 +297,7 @@ START_TEST(test_backspace_error_path)
 
 END_TEST
 // Test ESC with completion original_input revert (lines 134-137)
-START_TEST(test_escape_revert_original_input)
-{
+START_TEST(test_escape_revert_original_input) {
     // Set up completion with original_input
     repl->current->completion = talloc_zero_(repl, sizeof(ik_completion_t));
     ck_assert_ptr_nonnull(repl->current->completion);

@@ -38,8 +38,9 @@ START_TEST(test_agent_add_message_single) {
     ck_assert_uint_eq(agent->message_count, 1);
     ck_assert_ptr_eq(agent->messages[0], msg);
 }
-END_TEST START_TEST(test_agent_add_message_growth)
-{
+END_TEST
+
+START_TEST(test_agent_add_message_growth) {
     // Add 20 messages to test capacity growth
     for (int i = 0; i < 20; i++) {
         char text[32];
@@ -61,8 +62,9 @@ END_TEST START_TEST(test_agent_add_message_growth)
     }
 }
 
-END_TEST START_TEST(test_agent_clear_messages)
-{
+END_TEST
+
+START_TEST(test_agent_clear_messages) {
     // Add some messages
     ik_message_t *msg1 = ik_message_create_text(test_ctx, IK_ROLE_USER, "Hello");
     ik_message_t *msg2 = ik_message_create_text(test_ctx, IK_ROLE_ASSISTANT, "World");
@@ -80,8 +82,9 @@ END_TEST START_TEST(test_agent_clear_messages)
     ck_assert_ptr_null(agent->messages);
 }
 
-END_TEST START_TEST(test_agent_clone_messages)
-{
+END_TEST
+
+START_TEST(test_agent_clone_messages) {
     // Create source agent with messages
     ik_message_t *msg1 = ik_message_create_text(test_ctx, IK_ROLE_USER, "First");
     ik_message_t *msg2 = ik_message_create_tool_call(test_ctx, "call_1", "grep", "{\"pattern\":\"test\"}");
