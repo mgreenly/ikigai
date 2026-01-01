@@ -45,7 +45,6 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
                                      ik_provider_completion_cb_t completion_cb,
                                      void *completion_ctx);
 static void anthropic_cleanup(void *ctx);
-static void anthropic_cancel(void *ctx);
 
 /* ================================================================
  * Vtable
@@ -59,7 +58,6 @@ static const ik_provider_vtable_t ANTHROPIC_VTABLE = {
     .start_request = anthropic_start_request,
     .start_stream = anthropic_start_stream,
     .cleanup = anthropic_cleanup,
-    .cancel = anthropic_cancel,
 };
 
 /* ================================================================
@@ -350,14 +348,3 @@ static void anthropic_cleanup(void *ctx)
     (void)ctx;
 }
 
-static void anthropic_cancel(void *ctx)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
-
-    // Clear active stream (no malloc in signal handler)
-    if (impl_ctx->active_stream != NULL) {
-        impl_ctx->active_stream->completed = true;
-    }
-}

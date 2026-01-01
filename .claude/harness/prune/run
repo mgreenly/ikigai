@@ -274,7 +274,18 @@ def parse_response(response: str) -> tuple[bool, str]:
     Parse sub-agent response for SUCCESS/SKIPPED status.
     Returns (success, reason).
     """
-    # Look for SUCCESS or SKIPPED at start of a line
+    # First, look for the ---RESULT--- delimiter
+    if "---RESULT---" in response:
+        # Get everything after the delimiter
+        after_delimiter = response.split("---RESULT---")[-1].strip()
+        for line in after_delimiter.split('\n'):
+            line = line.strip()
+            if line.startswith("SUCCESS:"):
+                return True, line[8:].strip()
+            if line.startswith("SKIPPED:"):
+                return False, line[8:].strip()
+
+    # Fallback: look for SUCCESS or SKIPPED at start of any line
     for line in response.split('\n'):
         line = line.strip()
         if line.startswith("SUCCESS:"):
@@ -282,11 +293,11 @@ def parse_response(response: str) -> tuple[bool, str]:
         if line.startswith("SKIPPED:"):
             return False, line[8:].strip()
 
-    # Fallback: check if response contains these keywords anywhere
+    # Last resort: check if response contains these keywords anywhere
     if "SUCCESS" in response.upper():
-        return True, "removed"
+        return True, "removed (inferred)"
     if "SKIPPED" in response.upper():
-        return False, "unknown reason"
+        return False, "unknown reason (inferred)"
 
     # No clear indicator - assume failure
     return False, "no clear status in response"

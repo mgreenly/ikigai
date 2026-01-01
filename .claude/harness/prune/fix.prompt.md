@@ -52,11 +52,20 @@ After removing the function:
 - Keep production changes minimal: just delete the function and its doc comment
 - Tests may be modified/removed as needed to eliminate dead code dependencies
 
-## Response Format
+## REQUIRED: Final Output
 
-First word must be SUCCESS or SKIPPED:
+After completing all steps, you MUST output exactly one of these lines as your FINAL message:
 
 ```
-SUCCESS: {{function}} [optional: N tests modified]
+---RESULT---
+SUCCESS: {{function}}
+```
+
+or
+
+```
+---RESULT---
 SKIPPED: {{function}} - <reason>
 ```
+
+This delimiter and status line are MANDATORY. The harness parses this to determine success.
