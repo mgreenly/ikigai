@@ -25,6 +25,14 @@ MAX_TEST_FIX_ATTEMPTS = 3
 # Phase 1: Remove function (mechanical - use Haiku)
 REMOVE_MODEL = ("haiku", "0", "haiku")
 
+# Classification escalation ladder (starts with haiku, escalates on failure)
+CLASSIFY_LADDER = {
+    1: ("haiku", "0", "haiku"),
+    2: ("sonnet", "10000", "sonnet:think"),
+    3: ("opus", "10000", "opus:think"),
+    4: ("opus", "128000", "opus:ultrathink"),
+}
+
 # Phase 2: Fix tests (escalation ladder)
 TEST_FIX_LADDER = {
     1: ("sonnet", "10000", "sonnet:think"),
@@ -721,27 +729,38 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
         for i, test_name in enumerate(test_names, 1):
             log(f"    [{i}/{len(test_names)}] {test_name}")
 
-            # Analyze: TESTING or USING?
+            # Analyze: TESTING or USING? (with escalation)
+            action = None
             prompt = build_analyze_single_test_prompt(function, test_file, test_name)
-            success, output, error = invoke_claude_with_output(prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
 
-            if not success:
-                log(f"      Analysis failed: {error}")
-                git_revert()
-                return False, f"analysis failed for {test_name}"
+            for level in range(1, len(CLASSIFY_LADDER) + 1):
+                model, thinking_budget, model_name = CLASSIFY_LADDER[level]
+                if level > 1:
+                    log(f"      Escalating classification to {model_name}")
 
-            classification = output.strip().upper()
-            classify_model = REMOVE_MODEL[2]
-            if "TESTING" in classification:
-                log(f"      CLASSIFYING ({classify_model}): delete")
-                action = "delete"
-            elif "USING" in classification:
-                log(f"      CLASSIFYING ({classify_model}): refactor")
-                action = "refactor"
-            else:
-                log(f"      Unknown classification: {classification}")
+                success, output, error = invoke_claude_with_output(prompt, model, thinking_budget, model_name, timeout)
+
+                if not success:
+                    log(f"      Classification failed ({model_name}): {error}")
+                    continue
+
+                classification = output.strip().upper()
+                if "TESTING" in classification:
+                    log(f"      CLASSIFYING ({model_name}): delete")
+                    action = "delete"
+                    break
+                elif "USING" in classification:
+                    log(f"      CLASSIFYING ({model_name}): refactor")
+                    action = "refactor"
+                    break
+                else:
+                    log(f"      Unknown classification ({model_name}): {classification[:80]}")
+                    continue
+
+            if action is None:
+                log(f"      Classification exhausted - skipping function")
                 git_revert()
-                return False, f"unknown classification for {test_name}"
+                return False, f"classification exhausted for {test_name}"
 
             # Perform action with escalation
             test_fixed = False
