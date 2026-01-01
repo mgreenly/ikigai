@@ -477,6 +477,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Automated dead code removal loop")
     parser.add_argument("--dry-run", action="store_true",
                         help="Identify dead code without removing it")
+    parser.add_argument("--function", type=str, default=None,
+                        help="Only process this specific function")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
@@ -484,6 +486,8 @@ def main() -> int:
     opts = []
     if args.dry_run:
         opts.append("dry-run")
+    if args.function:
+        opts.append(f"function={args.function}")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
@@ -496,6 +500,13 @@ def main() -> int:
 
     # Get candidates
     candidates = get_dead_code_candidates()
+
+    # Filter to specific function if requested
+    if args.function:
+        candidates = [c for c in candidates if c["function"] == args.function]
+        if not candidates:
+            log(f"Function '{args.function}' not found in dead code candidates")
+            return 1
 
     if not candidates:
         log("No dead code found.")
