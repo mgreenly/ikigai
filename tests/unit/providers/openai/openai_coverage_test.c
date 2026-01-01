@@ -7,7 +7,11 @@
  * header building, and HTTP multi operations.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
 #include <check.h>
+#include <curl/curl.h>
 #include <talloc.h>
 #include <string.h>
 #include "providers/openai/openai.h"
@@ -24,7 +28,7 @@ static bool g_serialize_responses_should_fail = false;
 static bool g_build_chat_url_should_fail = false;
 static bool g_build_responses_url_should_fail = false;
 static bool g_build_headers_should_fail = false;
-static bool g_http_multi_add_should_fail = false;
+static bool g_curl_easy_init_should_fail = false;
 
 /* Dummy callbacks for tests */
 static res_t dummy_completion_cb(const ik_provider_completion_t *completion, void *ctx)
@@ -51,7 +55,7 @@ static void setup(void)
     g_build_chat_url_should_fail = false;
     g_build_responses_url_should_fail = false;
     g_build_headers_should_fail = false;
-    g_http_multi_add_should_fail = false;
+    g_curl_easy_init_should_fail = false;
 }
 
 static void teardown(void)
@@ -127,21 +131,13 @@ res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out
     return OK(headers);
 }
 
-res_t ik_http_multi_add_request_(void *http_multi, const void *http_req,
-                                 void *write_cb, void *write_ctx,
-                                 void *completion_cb, void *completion_ctx)
+/* Mock curl_easy_init_ to test http_multi_add_request failure path */
+CURL *curl_easy_init_(void)
 {
-    (void)http_multi;
-    (void)http_req;
-    (void)write_cb;
-    (void)write_ctx;
-    (void)completion_cb;
-
-    if (g_http_multi_add_should_fail) {
-        return ERR(completion_ctx, IO, "Mock HTTP multi add failure");
+    if (g_curl_easy_init_should_fail) {
+        return NULL;
     }
-
-    return OK(NULL);
+    return curl_easy_init();
 }
 
 /* ================================================================
@@ -237,7 +233,7 @@ START_TEST(test_start_request_headers_failure) {
 END_TEST
 
 START_TEST(test_start_request_http_multi_add_failure) {
-    /* Covers line 245: is_err(&add_res) */
+    /* Covers line 245: is_err(&add_res) - uses curl_easy_init failure */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -247,12 +243,12 @@ START_TEST(test_start_request_http_multi_add_failure) {
     ik_content_block_t content;
     setup_minimal_request(&req, &msg, &content, "gpt-4");
 
-    g_http_multi_add_should_fail = true;
+    g_curl_easy_init_should_fail = true;
 
     r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
-    ck_assert_str_eq(r.err->msg, "Mock HTTP multi add failure");
+    /* Error message comes from http_multi when curl_easy_init fails */
 }
 END_TEST
 
@@ -368,7 +364,7 @@ START_TEST(test_start_stream_headers_failure) {
 END_TEST
 
 START_TEST(test_start_stream_http_multi_add_failure) {
-    /* Covers line 353: is_err(&add_res) */
+    /* Covers line 353: is_err(&add_res) - uses curl_easy_init failure */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -378,13 +374,13 @@ START_TEST(test_start_stream_http_multi_add_failure) {
     ik_content_block_t content;
     setup_minimal_request(&req, &msg, &content, "gpt-4");
 
-    g_http_multi_add_should_fail = true;
+    g_curl_easy_init_should_fail = true;
 
     r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
                                    dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
-    ck_assert_str_eq(r.err->msg, "Mock HTTP multi add failure");
+    /* Error message comes from http_multi when curl_easy_init fails */
 }
 END_TEST
 

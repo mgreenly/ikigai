@@ -237,12 +237,12 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     };
 
     // Add request to multi handle
-    res_t add_res = ik_http_multi_add_request_(impl_ctx->http_multi,
-                                                &http_req,
-                                                NULL,  // No streaming write callback
-                                                NULL,  // No write context
-                                                ik_openai_http_completion_handler,
-                                                req_ctx);
+    res_t add_res = ik_http_multi_add_request(impl_ctx->http_multi,
+                                               &http_req,
+                                               NULL,  // No streaming write callback
+                                               NULL,  // No write context
+                                               ik_openai_http_completion_handler,
+                                               req_ctx);
 
     if (is_err(&add_res)) {
         talloc_steal(impl_ctx, add_res.err);
@@ -344,7 +344,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     };
 
     // Add request with streaming write callback
-    res_t add_res = ik_http_multi_add_request_(
+    res_t add_res = ik_http_multi_add_request(
         impl_ctx->http_multi,
         &http_req,
         ik_openai_stream_write_callback,
