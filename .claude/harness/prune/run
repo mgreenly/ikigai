@@ -37,6 +37,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 ANALYZE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-tests.prompt.md"
 DELETE_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "delete-tests.prompt.md"
+CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE = SCRIPT_DIR / "cleanup-empty-tcase.prompt.md"
 REFACTOR_REMOVE_CALL_PROMPT_TEMPLATE = SCRIPT_DIR / "refactor-remove-call.prompt.md"
 JUSTIFY_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "justify-helper.prompt.md"
 CREATE_HELPER_PROMPT_TEMPLATE = SCRIPT_DIR / "create-helper.prompt.md"
@@ -302,6 +303,58 @@ def build_refactor_test_prompt(function: str, test_file: str, helper_header: str
     prompt = template.replace("{{test_file}}", test_file)
     prompt = prompt.replace("{{helper_header}}", helper_header)
     return prompt
+
+
+def build_cleanup_empty_tcase_prompt(test_file: str, tcase_name: str) -> str:
+    """Build prompt to cleanup an empty TCase."""
+    if not CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = CLEANUP_EMPTY_TCASE_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{test_file}}", test_file)
+    prompt = prompt.replace("{{tcase_name}}", tcase_name)
+    return prompt
+
+
+def find_empty_tcases(test_file: str) -> list[str]:
+    """
+    Find TCases that have no tcase_add_test calls.
+    Returns list of TCase variable names that are empty.
+    """
+    import re
+
+    path = Path(test_file)
+    if not path.exists():
+        return []
+
+    content = path.read_text()
+
+    # Find all TCase declarations: TCase *tc_name = tcase_create(...)
+    tcase_pattern = re.compile(r'TCase\s*\*\s*(\w+)\s*=\s*tcase_create\s*\(')
+    all_tcases = tcase_pattern.findall(content)
+
+    # For each TCase, check if it has any tcase_add_test calls
+    empty_tcases = []
+    for tcase_name in all_tcases:
+        # Look for tcase_add_test(tcase_name, ...)
+        add_test_pattern = re.compile(rf'tcase_add_test\s*\(\s*{re.escape(tcase_name)}\s*,')
+        if not add_test_pattern.search(content):
+            empty_tcases.append(tcase_name)
+
+    return empty_tcases
+
+
+def file_has_no_tcases(test_file: str) -> bool:
+    """Check if a test file has no suite_add_tcase calls (empty file)."""
+    import re
+
+    path = Path(test_file)
+    if not path.exists():
+        return True
+
+    content = path.read_text()
+    return not re.search(r'suite_add_tcase\s*\(', content)
 
 
 def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
@@ -711,6 +764,37 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
                     log(f"    Deleted {len(tests_testing)} tests from: {test_file}")
                     test_files_modified.append(test_file)
                     final_model_name = model_name
+
+                    # Phase 2: Cleanup any empty TCases
+                    empty_tcases = find_empty_tcases(test_file)
+                    if empty_tcases:
+                        log(f"  Step 2b: Cleanup {len(empty_tcases)} empty TCase(s)")
+                        for tcase_name in empty_tcases:
+                            log(f"    Cleaning up empty TCase: {tcase_name}")
+                            cleanup_prompt = build_cleanup_empty_tcase_prompt(test_file, tcase_name)
+                            # Use haiku for mechanical cleanup
+                            cleanup_model, cleanup_thinking, cleanup_name = REMOVE_MODEL
+                            cleanup_success, error = invoke_claude(cleanup_prompt, cleanup_model, cleanup_thinking, cleanup_name, timeout)
+                            if not cleanup_success:
+                                log(f"    WARNING: Failed to cleanup {tcase_name}: {error}")
+
+                        # Verify file still compiles after TCase cleanup
+                        if not build_single_test(test_file):
+                            log(f"    TCase cleanup broke build - reverting all")
+                            git_revert()
+                            all_tests_fixed = False
+                            file_fixed = False
+                            break
+
+                    # Check if file is now empty (no TCases left)
+                    if file_has_no_tcases(test_file):
+                        log(f"    File has no remaining TCases - deleting")
+                        delete_test_file(test_file)
+                        test_files_deleted.append(test_file)
+                        # Remove from modified since we deleted it
+                        if test_file in test_files_modified:
+                            test_files_modified.remove(test_file)
+
                     # If no USING tests remain, we're done with this file
                     if not tests_using_func:
                         file_fixed = True
@@ -718,6 +802,10 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
                 log(f"    Still failing - reverting")
                 git_revert()
+
+        # If TCase cleanup failed, exit test_file loop entirely
+        if not all_tests_fixed:
+            break
 
         if file_fixed:
             continue

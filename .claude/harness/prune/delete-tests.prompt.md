@@ -11,18 +11,17 @@ The function `{{function}}` is dead code (not reachable from main). Tests that c
 Delete the following tests from `{{test_file}}`:
 {{tests_to_delete}}
 
-Also remove the corresponding `tcase_add_test` lines from the suite setup.
-
 ## Steps
 
 1. Read `{{test_file}}`
-2. Delete each START_TEST...END_TEST block for the listed tests
-3. Delete the corresponding `tcase_add_test(tc_*, test_name)` lines
-4. If a TCase becomes empty after deletion, delete it entirely
+2. For each test in the list above:
+   - Delete the `START_TEST(test_name) { ... } END_TEST` block
+   - Delete the corresponding `tcase_add_test(tc_*, test_name)` line
 
 ## Rules
 
 - Use the Edit tool for all changes
 - Only delete the specified tests, leave others intact
+- Do NOT delete TCase infrastructure (tcase_create, tcase_set_timeout, etc.) - a later phase handles that
 - Do NOT modify src/ files
 - Do NOT create new files
