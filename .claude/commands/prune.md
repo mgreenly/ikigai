@@ -9,111 +9,112 @@ Remove functions identified as dead code by `scripts/dead-code.sh`.
 
 ---
 
-## Pre-conditions
+## Orchestrator Role
 
-1. Run `git status --porcelain`
-2. If output is non-empty, abort: "Error: Git workspace must be clean before pruning."
+You are a **dumb orchestration loop**. Your only job is:
+1. Run precondition checks
+2. Generate candidate list from script output
+3. Spawn sub-agents and wait
+4. Count SUCCESS/SKIPPED from sub-agent responses
+5. Print summary
+
+**DO NOT:**
+- Read source files
+- Analyze code
+- Make decisions about functions
+- Do anything while waiting for sub-agents
+
+All intelligence is in the sub-agents. You are just a dispatcher.
+
+---
 
 ## Execution
 
-### 1. Identify Dead Code
+### Step 1: Preconditions
 
-Run `scripts/dead-code.sh` and parse output.
+```bash
+git status --porcelain
+```
 
-- If "No orphaned functions found." → report success and stop
-- Otherwise, parse lines matching `function:file:line` format
+If output is non-empty: print "Error: Git workspace must be clean before pruning." and stop.
 
-### 2. Create Todo List
+### Step 2: Get Candidates
 
-Use TodoWrite to create a todo item for each dead function:
-- Content: `Remove dead function: <function_name> (<file>:<line>)`
-- Status: `pending`
+```bash
+./scripts/dead-code.sh
+```
 
-### 3. Process Each Function
+- If output starts with "No orphaned functions": print "No dead code found." and stop.
+- Otherwise: capture lines matching `function:file:line` format into a list
 
-**Sequence:** Process ONE function at a time. Do not start the next until the current completes.
+### Step 3: Initialize
 
-**CRITICAL:** While a sub-agent is running, do NOTHING. Do not read files, edit files, run commands, or perform any other actions.
+Create a single todo item:
+- Content: `Pruning N dead code candidates`
+- Status: `in_progress`
 
-For each function, mark it `in_progress` in the todo list, then spawn a sub-agent:
+Initialize counters: `removed=0`, `skipped=0`
 
-**Tool Configuration:**
+### Step 4: Dispatch Loop
+
+For each candidate line `<function>:<file>:<line>`:
+
+1. Spawn sub-agent (configuration below)
+2. **WAIT. Do nothing else.**
+3. When sub-agent returns, check first word of response:
+   - Starts with `SUCCESS` → `removed++`
+   - Starts with `SKIPPED` → `skipped++`
+4. Continue to next candidate
+
+**Sub-agent configuration:**
 - Tool: `Task`
 - `subagent_type`: `general-purpose`
-- `model`: `sonnet` with thinking enabled
+- `model`: `sonnet`
 
-**Prompt template:**
+**Sub-agent prompt:**
 ```
-Remove dead code function and verify the change.
+Remove dead code and verify.
 
-**Pre-read skills:**
-- `/load git` - Commit conventions (required)
+Function: <function>
+File: <file>
+Line: <line>
 
-**Load on-demand (only if refactoring tests):**
-- `/load style` - Code style rules
-- `/load tdd` - Test patterns
-- `/load mocking` - If tests use mock overrides
+Steps:
+1. Read `.claude/library/git/SKILL.md` for commit conventions
+2. Read the file and locate the function at the specified line
+3. Remove the function (and any preceding doc comment block)
+4. Run `make bin/ikigai`
+   - If FAILS: run `mkdir -p .claude/data && echo "<function>" >> .claude/data/dead-code-false-positives.txt && git checkout -- <file>`
+   - Report: SKIPPED: <function> - false positive (recorded)
+5. Run `make check`
+   - If PASSES: commit with message "refactor: remove dead code <function>" and report: SUCCESS: <function>
+   - If FAILS: try to fix/remove failing tests, then `make check` again
+6. If tests fixed and pass: commit and report SUCCESS: <function> (N tests modified)
+7. If still failing: `git checkout -- .` and report: SKIPPED: <function> - test fixes failed
 
-**Function:** <function_name>
-**Location:** <file>:<line>
-
-**Steps:**
-
-1. Read the file and locate the function
-2. Remove the entire function (including any preceding doc comment)
-3. Run `make bin/ikigai`
-   - If build fails: run `git checkout -- <file>`, report SKIPPED (false positive), done
-4. Run `make check`
-   - If passes: commit and report SUCCESS, done
-   - If fails: analyze which test(s) failed
-
-5. For each failing test:
-   - Read the test file
-   - Determine if the test ONLY tests the removed function
-     - If yes: remove the entire test
-     - If no: refactor the test to remove usage of the dead function
-
-6. Run `make check` again
-   - If passes: commit all changes and report SUCCESS, done
-   - If fails: run `git checkout -- .`, report SKIPPED (unresolvable), done
-
-**Commit message format:**
-```
-refactor: remove dead code <function_name>
-
-Function unreachable from main(), identified by scripts/dead-code.sh.
-[Optional: Also removed/refactored test(s) that depended on it.]
+Response format (first word must be SUCCESS or SKIPPED):
+SUCCESS: <function> [optional details]
+SKIPPED: <function> - <reason>
 ```
 
-**Report format:**
-Return one of:
-- SUCCESS: removed <function_name>, [N test(s) removed/refactored]
-- SKIPPED: <function_name> - <reason>
-```
+### Step 5: Summary
 
-### 4. Update Todo and Track Results
-
-After each sub-agent completes:
-- Parse the report (SUCCESS or SKIPPED)
-- Mark todo item as `completed`
-- Track counts: removed, skipped, tests_modified
-
-### 5. Summary
-
-After all functions processed, output:
+After all candidates processed:
 
 ```
 /prune complete
 
-Removed: N functions
-Skipped: M functions (false positives or unresolvable)
-Tests modified: K
-
-[If any skipped, list them with reasons]
+Removed: <removed>
+Skipped: <skipped>
 ```
+
+Mark todo as `completed`.
+
+---
 
 ## Notes
 
-- Each removal is an atomic commit
-- Skipped functions remain in codebase (may need manual review)
-- The dead-code script may have false positives for function-pointer dispatch
+- Orchestrator uses minimal context - just loop control and counters
+- All file reading, editing, and decisions happen in sub-agents
+- False positives recorded in `.claude/data/dead-code-false-positives.txt`
+- To re-check all functions, delete the false positives file
