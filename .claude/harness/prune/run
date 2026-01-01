@@ -209,10 +209,21 @@ def build_prompt(candidate: dict) -> str:
     return prompt
 
 
-def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
+RESULT_SCHEMA = json.dumps({
+    "type": "object",
+    "properties": {
+        "status": {"type": "string", "enum": ["SUCCESS", "SKIPPED"]},
+        "function": {"type": "string"},
+        "reason": {"type": "string"}
+    },
+    "required": ["status", "function"]
+})
+
+
+def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, dict | str]:
     """
     Invoke Claude CLI with the prompt via stdin.
-    Returns (success, response).
+    Returns (success, response_dict or error_string).
     """
     import tempfile
 
@@ -222,20 +233,30 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
 
     spinner = Spinner(f"Waiting for {model_name}")
     try:
-        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 20'
+        cmd = [
+            "claude", "-p", "-",
+            "--model", model,
+            "--allowedTools", "Read,Edit,Write,Bash,Glob,Grep",
+            "--output-format", "json",
+            "--max-turns", "20",
+            "--json-schema", RESULT_SCHEMA,
+        ]
         env = os.environ.copy()
         env["MAX_THINKING_TOKENS"] = thinking_budget
-        spinner.start()
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=timeout,
-            env=env,
-        )
-        spinner.stop()
+
+        with open(prompt_file, 'r') as pf:
+            spinner.start()
+            result = subprocess.run(
+                cmd,
+                stdin=pf,
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+                timeout=timeout,
+                env=env,
+            )
+            spinner.stop()
+
         code = result.returncode
         stdout = result.stdout or ""
         stderr = result.stderr or ""
@@ -249,10 +270,13 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
         return False, stderr
 
     try:
-        result = json.loads(stdout)
-        return True, result.get("result", "")
-    except json.JSONDecodeError:
-        return True, stdout
+        cli_response = json.loads(stdout)
+        # The result field contains our structured JSON as a string
+        result_str = cli_response.get("result", "{}")
+        result_obj = json.loads(result_str)
+        return True, result_obj
+    except json.JSONDecodeError as e:
+        return False, f"JSON parse error: {e}"
 
 
 def record_false_positive(function: str) -> None:
@@ -269,38 +293,23 @@ def record_false_positive(function: str) -> None:
         log(f"Recorded false positive: {function}")
 
 
-def parse_response(response: str) -> tuple[bool, str]:
+def parse_response(response: dict | str) -> tuple[bool, str]:
     """
     Parse sub-agent response for SUCCESS/SKIPPED status.
     Returns (success, reason).
     """
-    # First, look for the ---RESULT--- delimiter
-    if "---RESULT---" in response:
-        # Get everything after the delimiter
-        after_delimiter = response.split("---RESULT---")[-1].strip()
-        for line in after_delimiter.split('\n'):
-            line = line.strip()
-            if line.startswith("SUCCESS:"):
-                return True, line[8:].strip()
-            if line.startswith("SKIPPED:"):
-                return False, line[8:].strip()
+    # Structured response from --json-schema
+    if isinstance(response, dict):
+        status = response.get("status", "")
+        reason = response.get("reason", "")
+        if status == "SUCCESS":
+            return True, reason or "removed"
+        if status == "SKIPPED":
+            return False, reason or "unknown reason"
+        return False, f"unexpected status: {status}"
 
-    # Fallback: look for SUCCESS or SKIPPED at start of any line
-    for line in response.split('\n'):
-        line = line.strip()
-        if line.startswith("SUCCESS:"):
-            return True, line[8:].strip()
-        if line.startswith("SKIPPED:"):
-            return False, line[8:].strip()
-
-    # Last resort: check if response contains these keywords anywhere
-    if "SUCCESS" in response.upper():
-        return True, "removed (inferred)"
-    if "SKIPPED" in response.upper():
-        return False, "unknown reason (inferred)"
-
-    # No clear indicator - assume failure
-    return False, "no clear status in response"
+    # Fallback for string responses (errors, etc.)
+    return False, str(response)[:100]
 
 
 def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:

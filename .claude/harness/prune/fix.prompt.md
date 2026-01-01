@@ -54,18 +54,16 @@ After removing the function:
 
 ## REQUIRED: Final Output
 
-After completing all steps, you MUST output exactly one of these lines as your FINAL message:
+After completing all steps, output a JSON object with your result:
 
-```
----RESULT---
-SUCCESS: {{function}}
+```json
+{"status": "SUCCESS", "function": "{{function}}", "reason": "removed"}
 ```
 
 or
 
-```
----RESULT---
-SKIPPED: {{function}} - <reason>
+```json
+{"status": "SKIPPED", "function": "{{function}}", "reason": "<why it was skipped>"}
 ```
 
-This delimiter and status line are MANDATORY. The harness parses this to determine success.
+The harness enforces this schema. Your final output MUST be valid JSON matching this format.
