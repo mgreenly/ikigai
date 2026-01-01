@@ -331,6 +331,89 @@ START_TEST(test_serialize_request_with_tools_required) {
 
 END_TEST
 
+START_TEST(test_serialize_request_with_invalid_tool_json) {
+    ik_request_t *req = create_basic_request(test_ctx);
+
+    // Add a tool with invalid JSON
+    req->tool_count = 1;
+    req->tools = talloc_array(req, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(req, "test_tool");
+    req->tools[0].description = talloc_strdup(req, "A test tool");
+    req->tools[0].parameters = talloc_strdup(req, "{invalid json}");  // Invalid JSON
+    req->tools[0].strict = false;
+    req->tool_choice_mode = 0;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(is_err(&r));
+    ck_assert_str_eq(r.err->msg, "Invalid tool parameters JSON");
+}
+
+END_TEST
+
+START_TEST(test_serialize_request_with_tools_unknown_mode) {
+    ik_request_t *req = create_basic_request(test_ctx);
+
+    // Add a tool with unknown tool choice mode
+    req->tool_count = 1;
+    req->tools = talloc_array(req, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(req, "test_tool");
+    req->tools[0].description = talloc_strdup(req, "A test tool");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\"}");
+    req->tools[0].strict = false;
+    req->tool_choice_mode = 99;  // Unknown mode, should default to "auto"
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Check tool_choice defaults to auto
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    yyjson_val *choice_type = yyjson_obj_get(tool_choice, "type");
+    ck_assert_str_eq(yyjson_get_str(choice_type), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_request_thinking_budget_exceeds_max_tokens) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->thinking.level = IK_THINKING_HIGH;
+    req->max_output_tokens = 100;  // Very small, will be less than thinking budget
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // max_tokens should be adjusted to budget + 4096
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_tokens");
+    ck_assert_ptr_nonnull(max_tokens);
+    ck_assert(yyjson_get_int(max_tokens) > 4096);  // Should be budget + 4096
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -351,6 +434,9 @@ static Suite *anthropic_request_suite_1(void)
     tcase_add_test(tc_basic, test_serialize_request_with_tools_auto);
     tcase_add_test(tc_basic, test_serialize_request_with_tools_none);
     tcase_add_test(tc_basic, test_serialize_request_with_tools_required);
+    tcase_add_test(tc_basic, test_serialize_request_with_invalid_tool_json);
+    tcase_add_test(tc_basic, test_serialize_request_with_tools_unknown_mode);
+    tcase_add_test(tc_basic, test_serialize_request_thinking_budget_exceeds_max_tokens);
     suite_add_tcase(s, tc_basic);
 
     return s;
