@@ -224,24 +224,6 @@ void ik_completion_prev(ik_completion_t *comp)
     }
 }
 
-bool ik_completion_matches_prefix(const ik_completion_t *comp,
-                                  const char *current_input)
-{
-    assert(comp != NULL);          // LCOV_EXCL_BR_LINE
-    assert(current_input != NULL); // LCOV_EXCL_BR_LINE
-
-    size_t prefix_len = strlen(comp->prefix);
-    size_t input_len = strlen(current_input);
-
-    // Current input must be at least as long as the prefix
-    if (input_len < prefix_len) {     // LCOV_EXCL_BR_LINE
-        return false;
-    }
-
-    // Check if current input starts with the stored prefix
-    return strncmp(current_input, comp->prefix, prefix_len) == 0;     // LCOV_EXCL_BR_LINE
-}
-
 ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
                                                     ik_repl_ctx_t *repl,
                                                     const char *input)

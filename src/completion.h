@@ -90,22 +90,6 @@ void ik_completion_next(ik_completion_t *comp);
  */
 void ik_completion_prev(ik_completion_t *comp);
 
-/**
- * Check if input still matches prefix (for re-triggering).
- *
- * Used to determine if the completion context is still valid as the
- * user continues typing.
- *
- * @param comp Completion context
- * @param current_input Current input buffer content
- * @return true if current_input starts with comp->prefix, false otherwise
- *
- * Preconditions:
- * - comp != NULL
- * - current_input != NULL
- */
-bool ik_completion_matches_prefix(const ik_completion_t *comp, const char *current_input);
-
 // Forward declarations for argument completion
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
 
