@@ -269,14 +269,53 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
     if code != 0:
         return False, stderr
 
+    if not stdout.strip():
+        return False, "empty response from CLI"
+
     try:
         cli_response = json.loads(stdout)
-        # The result field contains our structured JSON as a string
-        result_str = cli_response.get("result", "{}")
+    except json.JSONDecodeError:
+        # CLI didn't return JSON - might be plain text result
+        return False, f"CLI response not JSON: {stdout[:200]}"
+
+    # The result field contains the model's output
+    result_str = cli_response.get("result", "")
+
+    if not result_str:
+        return False, "empty result field in CLI response"
+
+    # Try to extract JSON from the result
+    # The model might wrap it in markdown code blocks
+    result_str = result_str.strip()
+
+    # Remove markdown code blocks if present
+    if result_str.startswith("```"):
+        lines = result_str.split('\n')
+        # Skip first line (```json) and last line (```)
+        json_lines = []
+        in_block = False
+        for line in lines:
+            if line.startswith("```") and not in_block:
+                in_block = True
+                continue
+            if line.startswith("```") and in_block:
+                break
+            if in_block:
+                json_lines.append(line)
+        result_str = '\n'.join(json_lines)
+
+    # Try to find JSON object in the result
+    # Look for { ... } pattern
+    start = result_str.find('{')
+    end = result_str.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        result_str = result_str[start:end + 1]
+
+    try:
         result_obj = json.loads(result_str)
         return True, result_obj
     except json.JSONDecodeError as e:
-        return False, f"JSON parse error: {e}"
+        return False, f"JSON parse error: {e}\nRaw result: {result_str[:300]}"
 
 
 def record_false_positive(function: str) -> None:
