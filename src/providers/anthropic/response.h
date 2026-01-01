@@ -39,32 +39,6 @@ res_t ik_anthropic_parse_response(TALLOC_CTX *ctx, const char *json, size_t json
                                    ik_response_t **out_resp);
 
 /**
- * Parse Anthropic error response
- *
- * @param ctx          Talloc context for error allocation
- * @param http_status  HTTP status code
- * @param json         JSON error response (may be NULL)
- * @param json_len     Length of JSON (0 if NULL)
- * @param out_category Output: error category
- * @param out_message  Output: error message (allocated on ctx)
- * @return             OK with category/message, ERR on parse failure
- *
- * Maps HTTP status to category:
- * - 400 -> IK_ERR_CAT_INVALID_ARG
- * - 401, 403 -> IK_ERR_CAT_AUTH
- * - 404 -> IK_ERR_CAT_NOT_FOUND
- * - 429 -> IK_ERR_CAT_RATE_LIMIT
- * - 500, 502, 503, 529 -> IK_ERR_CAT_SERVER
- * - Other -> IK_ERR_CAT_UNKNOWN
- *
- * Extracts error.message and error.type from JSON if available.
- * Falls back to "HTTP <status>" if JSON unavailable or invalid.
- */
-res_t ik_anthropic_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
-                                size_t json_len, ik_error_category_t *out_category,
-                                char **out_message);
-
-/**
  * Map Anthropic stop_reason to internal finish reason
  *
  * @param stop_reason Anthropic stop_reason string (may be NULL)
