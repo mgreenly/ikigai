@@ -44,6 +44,7 @@ class Spinner:
     """Threaded spinner for long-running operations."""
 
     FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    disabled = False  # Class-level flag to disable all spinners
 
     def __init__(self, message: str = ""):
         self.message = message
@@ -65,6 +66,8 @@ class Spinner:
         sys.stdout.flush()
 
     def start(self) -> None:
+        if Spinner.disabled:
+            return
         self.running = True
         self.start_time = time.time()
         self.thread = threading.Thread(target=self._spin, daemon=True)
@@ -479,9 +482,14 @@ def main() -> int:
                         help="Identify dead code without removing it")
     parser.add_argument("--function", type=str, default=None,
                         help="Only process this specific function")
+    parser.add_argument("--no-spinner", action="store_true",
+                        help="Disable spinner animation (useful for non-interactive output)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
+
+    if args.no_spinner:
+        Spinner.disabled = True
 
     opts = []
     if args.dry_run:
