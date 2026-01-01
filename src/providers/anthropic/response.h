@@ -94,22 +94,5 @@ ik_finish_reason_t ik_anthropic_map_finish_reason(const char *stop_reason);
 res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req,
                                   ik_provider_completion_cb_t cb, void *cb_ctx);
 
-/**
- * Start streaming request (async vtable implementation)
- *
- * @param impl_ctx       Anthropic provider context
- * @param req            Request to send
- * @param stream_cb      Stream event callback
- * @param stream_ctx     User context for stream callback
- * @param completion_cb  Completion callback
- * @param completion_ctx User context for completion callback
- * @return               OK if request started, ERR on failure
- *
- * Returns immediately. Callbacks invoked as events arrive.
- */
-res_t ik_anthropic_start_stream(void *impl_ctx, const ik_request_t *req,
-                                 ik_stream_cb_t stream_cb, void *stream_ctx,
-                                 ik_provider_completion_cb_t completion_cb,
-                                 void *completion_ctx);
 
 #endif /* IK_PROVIDERS_ANTHROPIC_RESPONSE_H */
