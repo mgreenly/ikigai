@@ -23,13 +23,13 @@ from pathlib import Path
 MAX_TEST_FIX_ATTEMPTS = 3
 
 # Phase 1: Remove function (mechanical - use Haiku)
-REMOVE_MODEL = ("claude-haiku-4-20250514", "0", "haiku")
+REMOVE_MODEL = ("haiku", "0", "haiku")
 
 # Phase 2: Fix tests (escalation ladder)
 TEST_FIX_LADDER = {
-    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
-    2: ("claude-opus-4-20250514", "10000", "opus:think"),
-    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
+    1: ("sonnet", "10000", "sonnet:think"),
+    2: ("opus", "10000", "opus:think"),
+    3: ("opus", "128000", "opus:ultrathink"),
 }
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
