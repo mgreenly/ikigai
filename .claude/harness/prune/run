@@ -334,7 +334,7 @@ def finalize_removal(function: str, modified_files: set[str]) -> None:
 
 
 def find_broken_tests() -> list[str]:
-    """Run make build-tests and find which test files fail to compile."""
+    """Run make build-tests and find which test files fail to compile/link."""
     log("Finding broken tests...")
     spinner = Spinner("Compiling tests")
     spinner.start()
@@ -345,17 +345,19 @@ def find_broken_tests() -> list[str]:
         log("All tests compile")
         return []
 
-    # Parse compile errors to find affected test files
-    # Error format: tests/unit/foo/bar_test.c:123:45: error: ...
+    # Parse compile/link errors to find affected test files
+    # Compile error format: tests/unit/foo/bar_test.c:123:45: error: ...
+    # Link error format: /full/path/tests/unit/foo/bar_test.c:123: undefined reference to ...
     broken = set()
+    import re
     for line in (stdout + stderr).split('\n'):
-        if 'error:' in line and line.startswith('tests/'):
-            # Extract file path before the first ':'
-            parts = line.split(':')
-            if len(parts) >= 1:
-                test_file = parts[0]
-                if test_file.endswith('.c'):
-                    broken.add(test_file)
+        # Look for .c files in tests/ directory with error indicators
+        if 'error:' in line or 'undefined reference' in line:
+            # Extract test file path - could be relative or absolute
+            match = re.search(r'(/?(?:[^/:]*/)*(tests/[^:]+\.c))', line)
+            if match:
+                test_file = match.group(2)  # Get just the tests/... part
+                broken.add(test_file)
 
     result = sorted(broken)
     if result:
