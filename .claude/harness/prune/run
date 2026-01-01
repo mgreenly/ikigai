@@ -200,8 +200,22 @@ def build_prompt(template_path: Path, candidate: dict) -> str:
 
     template = template_path.read_text()
     prompt = template.replace("{{function}}", candidate["function"])
+    prompt = template.replace("{{file}}", candidate["file"])
+    prompt = prompt.replace("{{line}}", candidate["line"])
+    return prompt
+
+
+def build_fix_tests_prompt(candidate: dict, broken_tests: list[str]) -> str:
+    """Build fix-tests prompt with list of broken test files."""
+    if not FIX_TESTS_PROMPT_TEMPLATE.exists():
+        log(f"ERROR: Missing {FIX_TESTS_PROMPT_TEMPLATE}")
+        sys.exit(1)
+
+    template = FIX_TESTS_PROMPT_TEMPLATE.read_text()
+    prompt = template.replace("{{function}}", candidate["function"])
     prompt = prompt.replace("{{file}}", candidate["file"])
     prompt = prompt.replace("{{line}}", candidate["line"])
+    prompt = prompt.replace("{{broken_tests}}", "\n".join(f"- {t}" for t in broken_tests))
     return prompt
 
 
@@ -315,26 +329,34 @@ def finalize_removal(function: str, modified_files: set[str]) -> None:
         log(f"Finalized: {file_path}")
 
 
-def find_test_files(source_file: str) -> list[str]:
-    """Find test files corresponding to a source file."""
-    # src/foo/bar.c -> tests/unit/foo/bar_test.c
-    # src/foo/bar.c -> tests/unit/foo/bar_*_test.c
-    source_path = Path(source_file)
-    if not source_path.parts[0] == "src":
+def find_broken_tests() -> list[str]:
+    """Run make build-tests and find which test files fail to compile."""
+    log("Finding broken tests...")
+    spinner = Spinner("Compiling tests")
+    spinner.start()
+    code, stdout, stderr = run_cmd(["make", "build-tests"])
+    spinner.stop()
+
+    if code == 0:
+        log("All tests compile")
         return []
 
-    # Build test path pattern
-    relative = Path(*source_path.parts[1:])  # Remove 'src/'
-    stem = relative.stem  # filename without extension
-    test_dir = Path("tests/unit") / relative.parent
+    # Parse compile errors to find affected test files
+    # Error format: tests/unit/foo/bar_test.c:123:45: error: ...
+    broken = set()
+    for line in (stdout + stderr).split('\n'):
+        if 'error:' in line and line.startswith('tests/'):
+            # Extract file path before the first ':'
+            parts = line.split(':')
+            if len(parts) >= 1:
+                test_file = parts[0]
+                if test_file.endswith('.c'):
+                    broken.add(test_file)
 
-    test_files = []
-    if test_dir.exists():
-        # Look for exact match and wildcard matches
-        for pattern in [f"{stem}_test.c", f"{stem}_*_test.c"]:
-            test_files.extend(str(p) for p in test_dir.glob(pattern))
-
-    return sorted(set(test_files))
+    result = sorted(broken)
+    if result:
+        log(f"Broken tests: {', '.join(result)}")
+    return result
 
 
 def run_tests(test_files: list[str] | None = None) -> bool:
@@ -391,40 +413,32 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
     log(f"Files changed: {', '.join(sorted(changed))}")
 
-    # Check build
+    # Check build (production code only)
     if not run_build():
-        log(f"False positive - function is used")
+        log(f"False positive - function is used in production")
         git_revert(files_before)
         record_false_positive(function)
         return False, "false positive"
 
-    # Find and run relevant tests only
-    test_files = find_test_files(file)
-    if not test_files:
-        log(f"No test files found for {file}")
-        # No tests to run - finalize and commit
+    # Find tests that fail to compile after function removal
+    broken_tests = find_broken_tests()
+    if not broken_tests:
+        # No tests broken - finalize and commit
         log("Finalizing: deleting commented code")
         finalize_removal(function, changed)
         log(f"SUCCESS - removed {function}")
         git_commit(function, file, model_name, 1, files_before)
         return True, "removed"
 
-    if run_tests(test_files):
-        # Finalize: delete the commented code
-        log("Finalizing: deleting commented code")
-        finalize_removal(function, changed)
-        log(f"SUCCESS - removed {function}")
-        git_commit(function, file, model_name, 1, files_before)
-        return True, "removed"
-
-    # Phase 2: Fix tests (escalation ladder)
+    # Phase 2: Fix broken tests (escalation ladder)
     files_after_phase1 = git_get_modified_files()
 
     for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
         model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
         log(f"Phase 2: Fix tests ({model_name}, attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS})")
 
-        prompt = build_prompt(FIX_TESTS_PROMPT_TEMPLATE, candidate)
+        # Build prompt with list of broken test files
+        prompt = build_fix_tests_prompt(candidate, broken_tests)
         success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
         if not success:
             log(f"{model_name} test fix invocation FAILED: {error}")
@@ -436,9 +450,8 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         if test_changes:
             log(f"Test files changed: {', '.join(sorted(test_changes))}")
 
-        # Check the modified test files
-        tests_to_run = list(test_changes) if test_changes else test_files
-        if run_tests(tests_to_run):
+        # Verify broken tests now compile and pass
+        if run_tests(broken_tests):
             # Finalize: delete the commented code
             log("Finalizing: deleting commented code")
             finalize_removal(function, changed)
