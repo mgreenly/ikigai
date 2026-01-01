@@ -129,38 +129,24 @@ def git_get_modified_files() -> set[str]:
     return files
 
 
-def git_commit(function: str, file: str, model_name: str, attempt: int, files_before: set[str]) -> bool:
-    """Commit only files that changed during fix attempt."""
-    files_after = git_get_modified_files()
-    new_changes = files_after - files_before
-
-    if not new_changes:
+def git_commit(function: str, model_name: str) -> bool:
+    """Commit all current changes."""
+    if git_is_clean():
         return False
 
-    for f in new_changes:
-        run_cmd(["git", "add", f])
-
-    msg = f"refactor: remove dead code {function}\n\nharness/prune | {model_name} | attempt {attempt}"
+    run_cmd(["git", "add", "-A"])
+    msg = f"refactor: remove dead code {function}\n\nharness/prune | {model_name}"
 
     code, _, _ = run_cmd(["git", "commit", "-m", msg])
     return code == 0
 
 
-def git_revert(files_before: set[str] | None = None) -> None:
-    """Revert changes made during fix attempt."""
-    if files_before is not None:
-        files_after = git_get_modified_files()
-        new_changes = files_after - files_before
-        if new_changes:
-            log("Reverting uncommitted changes...")
-            for f in new_changes:
-                run_cmd(["git", "checkout", f])
-    else:
-        code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
-        if stdout.strip():
-            log("Reverting uncommitted changes...")
-            run_cmd(["git", "checkout", "."])
-            run_cmd(["git", "clean", "-fd"])
+def git_revert() -> None:
+    """Revert all uncommitted changes (tracked and untracked)."""
+    if not git_is_clean():
+        log("Reverting uncommitted changes...")
+        run_cmd(["git", "reset", "--hard"])
+        run_cmd(["git", "clean", "-fd"])
 
 
 def get_dead_code_candidates() -> list[dict]:
@@ -483,7 +469,13 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     function = candidate["function"]
     file = candidate["file"]
 
-    files_before = git_get_modified_files()
+    # Defensive: ensure clean workspace before starting
+    if not git_is_clean():
+        log("WARNING: Dirty workspace detected - cleaning before attempt")
+        git_revert()
+        if not git_is_clean():
+            log("ERROR: Could not clean workspace")
+            return False, "dirty workspace"
 
     # Phase 1: Remove the function (Haiku - mechanical task)
     model, thinking_budget, model_name = REMOVE_MODEL
@@ -493,21 +485,20 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
     if not success:
         log(f"{model_name} invocation FAILED: {error}")
+        git_revert()
         return False, "removal failed"
 
     # Verify changes were made
-    files_after = git_get_modified_files()
-    changed = files_after - files_before
-    if not changed:
+    if git_is_clean():
         log(f"Agent made no changes")
         return False, "no changes made"
 
-    log(f"Files changed: {', '.join(sorted(changed))}")
+    log(f"Files changed: {', '.join(sorted(git_get_modified_files()))}")
 
     # Check build (production code only)
     if not run_build():
         log(f"False positive - function is used in production")
-        git_revert(files_before)
+        git_revert()
         record_false_positive(function)
         return False, "false positive"
 
@@ -516,9 +507,9 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     if not broken_tests:
         # No tests broken - finalize and commit
         log("Finalizing: deleting commented code")
-        finalize_removal(function, changed)
+        finalize_removal(function, git_get_modified_files())
         log(f"SUCCESS - removed {function}")
-        git_commit(function, file, model_name, 1, files_before)
+        git_commit(function, model_name)
         return True, "removed"
 
     # Phase 2: Fix broken tests (one file at a time)
@@ -615,7 +606,7 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
     if not all_tests_fixed:
         log(f"SKIPPED - could not fix all test files")
-        git_revert(files_before)
+        git_revert()
         return False, "test fixes exhausted"
 
     # Verify all tests pass together
@@ -624,12 +615,12 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         log(f"Final verification: {len(remaining_tests)} test file(s)")
         if not run_tests(remaining_tests):
             log(f"SKIPPED - final verification failed")
-            git_revert(files_before)
+            git_revert()
             return False, "final verification failed"
 
     # All tests fixed - finalize and commit
     log("Finalizing: deleting commented code")
-    finalize_removal(function, changed)
+    finalize_removal(function, git_get_modified_files())
 
     summary_parts = []
     if test_files_deleted:
@@ -639,7 +630,7 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     summary = ", ".join(summary_parts) if summary_parts else "no test changes needed"
 
     log(f"SUCCESS - removed {function} ({summary})")
-    git_commit(function, file, final_model_name, 1, files_before)
+    git_commit(function, final_model_name)
     return True, "removed with test fixes"
 
 
