@@ -205,10 +205,10 @@ def build_prompt(template_path: Path, candidate: dict) -> str:
     return prompt
 
 
-def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> bool:
+def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
     """
     Invoke Claude CLI with the prompt via stdin.
-    Returns True if invocation succeeded (regardless of what agent did).
+    Returns (success, error_message).
     """
     import tempfile
 
@@ -225,7 +225,8 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
             "--max-turns", "20",
         ]
         env = os.environ.copy()
-        env["MAX_THINKING_TOKENS"] = thinking_budget
+        if thinking_budget and thinking_budget != "0":
+            env["MAX_THINKING_TOKENS"] = thinking_budget
 
         with open(prompt_file, 'r') as pf:
             spinner.start()
@@ -240,10 +241,13 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
             )
             spinner.stop()
 
-        return result.returncode == 0
+        if result.returncode != 0:
+            error = result.stderr.strip() if result.stderr else "unknown error"
+            return False, error[:200]
+        return True, ""
     except subprocess.TimeoutExpired:
         spinner.stop()
-        return False
+        return False, f"timeout after {timeout}s"
     finally:
         Path(prompt_file).unlink(missing_ok=True)
 
@@ -373,8 +377,9 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     log(f"Phase 1: Remove function ({model_name})")
 
     prompt = build_prompt(REMOVE_PROMPT_TEMPLATE, candidate)
-    if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
-        log(f"{model_name} invocation FAILED")
+    success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+    if not success:
+        log(f"{model_name} invocation FAILED: {error}")
         return False, "removal failed"
 
     # Verify changes were made
@@ -420,8 +425,9 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         log(f"Phase 2: Fix tests ({model_name}, attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS})")
 
         prompt = build_prompt(FIX_TESTS_PROMPT_TEMPLATE, candidate)
-        if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
-            log(f"{model_name} test fix invocation FAILED")
+        success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
+        if not success:
+            log(f"{model_name} test fix invocation FAILED: {error}")
             continue
 
         # Show what test files changed
