@@ -276,6 +276,41 @@ def run_build() -> bool:
     return code == 0
 
 
+def finalize_removal(function: str, modified_files: set[str]) -> None:
+    """Delete #if 0 blocks that were used to comment out the function."""
+    import re
+
+    marker = f"#if 0  // dead code: {function}"
+
+    for file_path in modified_files:
+        path = Path(file_path)
+        if not path.exists():
+            continue
+
+        content = path.read_text()
+        if marker not in content:
+            continue
+
+        # Remove #if 0 ... #endif blocks with our marker
+        # Pattern: #if 0  // dead code: func_name ... #endif
+        lines = content.split('\n')
+        new_lines = []
+        in_block = False
+
+        for line in lines:
+            if marker in line:
+                in_block = True
+                continue
+            if in_block and line.strip() == '#endif':
+                in_block = False
+                continue
+            if not in_block:
+                new_lines.append(line)
+
+        path.write_text('\n'.join(new_lines))
+        log(f"Finalized: {file_path}")
+
+
 def find_test_files(source_file: str) -> list[str]:
     """Find test files corresponding to a source file."""
     # src/foo/bar.c -> tests/unit/foo/bar_test.c
@@ -362,12 +397,17 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     test_files = find_test_files(file)
     if not test_files:
         log(f"No test files found for {file}")
-        # No tests to run - assume success
+        # No tests to run - finalize and commit
+        log("Finalizing: deleting commented code")
+        finalize_removal(function, changed)
         log(f"SUCCESS - removed {function}")
         git_commit(function, file, model_name, 1, files_before)
         return True, "removed"
 
     if run_tests(test_files):
+        # Finalize: delete the commented code
+        log("Finalizing: deleting commented code")
+        finalize_removal(function, changed)
         log(f"SUCCESS - removed {function}")
         git_commit(function, file, model_name, 1, files_before)
         return True, "removed"
@@ -393,6 +433,9 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         # Check the modified test files
         tests_to_run = list(test_changes) if test_changes else test_files
         if run_tests(tests_to_run):
+            # Finalize: delete the commented code
+            log("Finalizing: deleting commented code")
+            finalize_removal(function, changed)
             log(f"SUCCESS - removed {function} (with test fixes)")
             git_commit(function, file, model_name, attempt, files_before)
             return True, "removed with test fixes"
