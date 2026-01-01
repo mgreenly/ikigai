@@ -56,10 +56,11 @@ typedef enum {
  * Content block types
  */
 typedef enum {
-    IK_CONTENT_TEXT = 0,        /* Text content */
-    IK_CONTENT_TOOL_CALL = 1,   /* Tool call request */
-    IK_CONTENT_TOOL_RESULT = 2, /* Tool execution result */
-    IK_CONTENT_THINKING = 3     /* Thinking/reasoning content */
+    IK_CONTENT_TEXT = 0,              /* Text content */
+    IK_CONTENT_TOOL_CALL = 1,         /* Tool call request */
+    IK_CONTENT_TOOL_RESULT = 2,       /* Tool execution result */
+    IK_CONTENT_THINKING = 3,          /* Thinking/reasoning content */
+    IK_CONTENT_REDACTED_THINKING = 4  /* Redacted thinking (encrypted) */
 } ik_content_type_t;
 
 /**
@@ -154,8 +155,14 @@ struct ik_content_block {
 
         /* IK_CONTENT_THINKING */
         struct {
-            char *text; /* Thinking summary text */
+            char *text;      /* Thinking summary text */
+            char *signature; /* Cryptographic signature (required for round-trip) */
         } thinking;
+
+        /* IK_CONTENT_REDACTED_THINKING */
+        struct {
+            char *data; /* Encrypted opaque data (base64) */
+        } redacted_thinking;
     } data;
 };
 
