@@ -47,7 +47,7 @@ static bool ensure_all_properties_required(yyjson_mut_doc *doc, yyjson_mut_val *
     yyjson_mut_val *key;
     while ((key = yyjson_mut_obj_iter_next(&iter)) != NULL) {
         const char *key_str = yyjson_mut_get_str(key);
-        if (key_str) {
+        if (key_str) { // LCOV_EXCL_BR_LINE - JSON object keys are always strings per spec
             if (!yyjson_mut_arr_add_str(doc, new_required, key_str)) { // LCOV_EXCL_BR_LINE
                 return false; // LCOV_EXCL_LINE
             }
