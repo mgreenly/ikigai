@@ -50,7 +50,6 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Basic Request Serialization Tests
  * ================================================================ */
 
-
 START_TEST(test_serialize_request_stream) {
     ik_request_t *req = create_basic_request(test_ctx);
     char *json = NULL;

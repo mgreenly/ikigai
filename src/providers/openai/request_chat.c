@@ -25,6 +25,45 @@
  * ================================================================ */
 
 /**
+ * Ensure all properties are in the required array for OpenAI strict mode.
+ * OpenAI's strict mode requires every property to be listed in required[].
+ */
+static bool ensure_all_properties_required(yyjson_mut_doc *doc, yyjson_mut_val *params)
+{
+    assert(doc != NULL);    // LCOV_EXCL_BR_LINE
+    assert(params != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *properties = yyjson_mut_obj_get(params, "properties");
+    if (!properties || !yyjson_mut_is_obj(properties)) {
+        return true; // No properties to require
+    }
+
+    // Build new required array with ALL property keys
+    yyjson_mut_val *new_required = yyjson_mut_arr(doc);
+    if (!new_required) return false; // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_obj_iter iter;
+    yyjson_mut_obj_iter_init(properties, &iter);
+    yyjson_mut_val *key;
+    while ((key = yyjson_mut_obj_iter_next(&iter)) != NULL) {
+        const char *key_str = yyjson_mut_get_str(key);
+        if (key_str) {
+            if (!yyjson_mut_arr_add_str(doc, new_required, key_str)) { // LCOV_EXCL_BR_LINE
+                return false; // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    // Remove existing required array if present and add new one
+    yyjson_mut_obj_remove_key(params, "required");
+    if (!yyjson_mut_obj_add_val(doc, params, "required", new_required)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
+
+    return true;
+}
+
+/**
  * Serialize a single tool definition to Chat Completions format
  */
 static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
@@ -59,11 +98,16 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
     // Parse parameters JSON and add as object
     yyjson_doc *params_doc = yyjson_read(tool->parameters,
                                           strlen(tool->parameters), 0);
-    if (!params_doc) return false; // LCOV_EXCL_BR_LINE
+    if (!params_doc) return false;
 
     yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
     yyjson_doc_free(params_doc);
     if (!params_mut) return false; // LCOV_EXCL_BR_LINE
+
+    // OpenAI strict mode requires ALL properties in the required array
+    if (!ensure_all_properties_required(doc, params_mut)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
 
     if (!yyjson_mut_obj_add_val(doc, func_obj, "parameters", params_mut)) { // LCOV_EXCL_BR_LINE
         return false; // LCOV_EXCL_LINE

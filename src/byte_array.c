@@ -43,4 +43,3 @@ size_t ik_byte_array_size(const ik_byte_array_t *array)
 {
     return ik_array_size(array);
 }
-
