@@ -13,6 +13,7 @@
 #include <talloc.h>
 #include <string.h>
 #include "providers/google/streaming.h"
+#include "providers/google/streaming_internal.h"
 #include "providers/provider.h"
 
 static TALLOC_CTX *test_ctx;
@@ -176,6 +177,41 @@ START_TEST(test_build_response_tool_call_preserved_after_text) {
 
 END_TEST
 
+START_TEST(test_build_response_inconsistent_tool_state_name_null) {
+    // Edge case: current_tool_id is set but current_tool_name is NULL
+    // This tests the false branch of the second part of the AND condition
+    stream_ctx->current_tool_id = talloc_strdup(stream_ctx, "tool_id_abc");
+    stream_ctx->current_tool_name = NULL;
+    stream_ctx->current_tool_args = talloc_strdup(stream_ctx, "{}");
+
+    ik_response_t *resp = ik_google_stream_build_response(test_ctx, stream_ctx);
+
+    // Should take the else branch (no tool call) because condition requires BOTH to be non-NULL
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_ptr_null(resp->content_blocks);
+    ck_assert_int_eq((int)resp->content_count, 0);
+}
+
+END_TEST
+
+START_TEST(test_build_response_tool_call_null_args) {
+    // Edge case: tool call with NULL args (should use "{}" default)
+    // This tests line 59 branch 1 (the uncovered ternary false branch)
+    stream_ctx->current_tool_id = talloc_strdup(stream_ctx, "test_id_123");
+    stream_ctx->current_tool_name = talloc_strdup(stream_ctx, "test_tool");
+    stream_ctx->current_tool_args = NULL; // Explicitly NULL to trigger "{}" fallback
+
+    ik_response_t *resp = ik_google_stream_build_response(test_ctx, stream_ctx);
+
+    ck_assert_ptr_nonnull(resp);
+    ck_assert_int_eq((int)resp->content_count, 1);
+    ck_assert_ptr_nonnull(resp->content_blocks);
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.name, "test_tool");
+    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{}");
+}
+
+END_TEST
+
 /* ================================================================
  * Complete Response Tests
  * ================================================================ */
@@ -240,6 +276,8 @@ static Suite *streaming_response_builder_suite(void)
     tcase_add_test(tc_tool, test_build_response_with_tool_call);
     tcase_add_test(tc_tool, test_build_response_tool_call_no_args);
     tcase_add_test(tc_tool, test_build_response_tool_call_preserved_after_text);
+    tcase_add_test(tc_tool, test_build_response_inconsistent_tool_state_name_null);
+    tcase_add_test(tc_tool, test_build_response_tool_call_null_args);
     suite_add_tcase(s, tc_tool);
 
     TCase *tc_full = tcase_create("Complete Response");
