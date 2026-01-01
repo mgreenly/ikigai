@@ -586,8 +586,9 @@ def run_single_test(test_file: str) -> bool:
 def run_tests(test_files: list[str] | None = None) -> bool:
     """Run make check, optionally for specific test files."""
     if test_files:
-        # Run only specified tests
-        test_list = " ".join(test_files)
+        # Run only specified tests - extract test names from paths
+        test_names = [Path(f).stem for f in test_files]
+        test_list = " ".join(test_names)
         log(f"Verifying tests: {test_list}")
         spinner = Spinner("Testing")
         spinner.start()
@@ -730,11 +731,12 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
                 return False, f"analysis failed for {test_name}"
 
             classification = output.strip().upper()
+            classify_model = REMOVE_MODEL[2]
             if "TESTING" in classification:
-                log(f"      CLASSIFYING: delete")
+                log(f"      CLASSIFYING ({classify_model}): delete")
                 action = "delete"
             elif "USING" in classification:
-                log(f"      CLASSIFYING: refactor")
+                log(f"      CLASSIFYING ({classify_model}): refactor")
                 action = "refactor"
             else:
                 log(f"      Unknown classification: {classification}")
