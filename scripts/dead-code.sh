@@ -55,6 +55,27 @@ if [ -f "$FALSE_POSITIVES_FILE" ]; then
   mv /tmp/cflow_orphans_filtered.txt /tmp/cflow_orphans.txt
 fi
 
+# Filter out functions that are used anywhere in src/ (beyond definition/declaration)
+# A function is "used" if it appears in any context other than:
+#   - Its definition line (return_type func_name(...))
+#   - Its declaration in a header file
+> /tmp/cflow_orphans_filtered.txt
+while read -r fn; do
+  # Get all occurrences in src/, excluding:
+  #   - Header files (.h) - declarations
+  #   - Definition lines (start with return type, contain function name with open paren)
+  # If anything remains, the function is used somewhere
+  if grep -rn "\b${fn}\b" "${SRC_FILES[@]}" 2>/dev/null | \
+     grep -v "\.h:" | \
+     grep -vE "^[^:]+:[0-9]+:\s*(static\s+)?(const\s+)?(struct\s+\w+\s*\*?|enum\s+\w+|void|int|bool|char|res_t|size_t|ssize_t|int32_t|uint32_t|int64_t|uint64_t|ik_\w+_t)\s*\*?\s*${fn}\s*\(" | \
+     grep -q .; then
+    : # Skip - function is used somewhere
+  else
+    echo "$fn" >> /tmp/cflow_orphans_filtered.txt
+  fi
+done < /tmp/cflow_orphans.txt
+mv /tmp/cflow_orphans_filtered.txt /tmp/cflow_orphans.txt
+
 # Output results (format: function:file:line)
 count=$(wc -l < /tmp/cflow_orphans.txt)
 if [ "$count" -eq 0 ]; then
