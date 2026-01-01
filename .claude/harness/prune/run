@@ -489,7 +489,7 @@ def parse_justify_decision(output: str) -> tuple[str, str]:
 
 
 def record_false_positive(function: str) -> None:
-    """Record a false positive to the exclusion file."""
+    """Record a false positive to the exclusion file and commit."""
     FALSE_POSITIVES_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     existing = set()
@@ -500,6 +500,9 @@ def record_false_positive(function: str) -> None:
         with open(FALSE_POSITIVES_FILE, 'a') as f:
             f.write(f"{function}\n")
         log(f"Recorded false positive: {function}")
+        # Commit the false positive so workspace stays clean
+        run_cmd(["git", "add", str(FALSE_POSITIVES_FILE)])
+        run_cmd(["git", "commit", "-m", f"chore: record false positive {function}"])
 
 
 def run_build() -> bool:
