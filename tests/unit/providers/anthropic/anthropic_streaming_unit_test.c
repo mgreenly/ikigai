@@ -103,28 +103,6 @@ START_TEST(test_get_usage_after_update) {
 
 END_TEST
 
-START_TEST(test_get_finish_reason_initial) {
-    /* Get finish reason from fresh context */
-    ik_finish_reason_t reason = ik_anthropic_stream_get_finish_reason(stream_ctx);
-
-    /* Should be UNKNOWN initially */
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST
-
-START_TEST(test_get_finish_reason_after_update) {
-    /* Manually update finish reason to simulate stream processing */
-    stream_ctx->finish_reason = IK_FINISH_STOP;
-
-    /* Get finish reason */
-    ik_finish_reason_t reason = ik_anthropic_stream_get_finish_reason(stream_ctx);
-
-    /* Should return the updated value */
-    ck_assert_int_eq(reason, IK_FINISH_STOP);
-}
-
-END_TEST
 /* ================================================================
  * Event Processing Edge Case Tests
  * ================================================================ */
@@ -235,8 +213,6 @@ static Suite *anthropic_streaming_unit_suite(void)
     tcase_add_unchecked_fixture(tc_getters, setup, teardown);
     tcase_add_test(tc_getters, test_get_usage_initial);
     tcase_add_test(tc_getters, test_get_usage_after_update);
-    tcase_add_test(tc_getters, test_get_finish_reason_initial);
-    tcase_add_test(tc_getters, test_get_finish_reason_after_update);
     suite_add_tcase(s, tc_getters);
 
     TCase *tc_edge_cases = tcase_create("Event Processing Edge Cases");

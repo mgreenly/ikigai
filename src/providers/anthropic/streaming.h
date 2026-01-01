@@ -97,15 +97,4 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
  */
 ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx);
 
-/**
- * Get finish reason from stream
- *
- * @param stream_ctx Streaming context
- * @return           Finish reason
- *
- * Returns finish reason extracted from message_delta event.
- * IK_FINISH_UNKNOWN until message_delta provides stop_reason.
- */
-ik_finish_reason_t ik_anthropic_stream_get_finish_reason(ik_anthropic_stream_ctx_t *stream_ctx);
-
 #endif /* IK_PROVIDERS_ANTHROPIC_STREAMING_H */

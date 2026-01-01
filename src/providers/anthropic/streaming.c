@@ -60,13 +60,6 @@ ik_usage_t ik_anthropic_stream_get_usage(ik_anthropic_stream_ctx_t *stream_ctx)
     return stream_ctx->usage;
 }
 
-ik_finish_reason_t ik_anthropic_stream_get_finish_reason(ik_anthropic_stream_ctx_t *stream_ctx)
-{
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    return stream_ctx->finish_reason;
-}
-
-
 /* ================================================================
  * Main Event Processing
  * ================================================================ */
