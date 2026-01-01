@@ -31,7 +31,8 @@ ESCALATION_LADDER = {
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+REMOVE_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+FIX_TESTS_PROMPT_TEMPLATE = SCRIPT_DIR / "fix-tests.prompt.md"
 FALSE_POSITIVES_FILE = PROJECT_ROOT / ".claude" / "data" / "dead-code-false-positives.txt"
 DEFAULT_TIMEOUT = 600
 
@@ -188,24 +189,16 @@ def get_dead_code_candidates() -> list[dict]:
     return candidates
 
 
-def load_prompt_template() -> str:
-    """Load the fix prompt template."""
-    if not FIX_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
+def build_prompt(template_path: Path, candidate: dict) -> str:
+    """Build a prompt from template."""
+    if not template_path.exists():
+        log(f"ERROR: Missing {template_path}")
         sys.exit(1)
-    return FIX_PROMPT_TEMPLATE.read_text()
 
-
-def build_prompt(candidate: dict) -> str:
-    """Build the fix prompt from template."""
-    template = load_prompt_template()
-
+    template = template_path.read_text()
     prompt = template.replace("{{function}}", candidate["function"])
     prompt = prompt.replace("{{file}}", candidate["file"])
-    prompt = template.replace("{{file}}", candidate["file"])
-    prompt = prompt.replace("{{function}}", candidate["function"])
     prompt = prompt.replace("{{line}}", candidate["line"])
-
     return prompt
 
 
@@ -307,14 +300,15 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
     for attempt in range(1, MAX_ATTEMPTS_PER_FUNCTION + 1):
         model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
 
-        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FUNCTION})")
+        # Phase 1: Remove the function
+        log(f"Phase 1: Remove function ({model_name}, attempt {attempt}/{MAX_ATTEMPTS_PER_FUNCTION})")
 
-        prompt = build_prompt(candidate)
+        prompt = build_prompt(REMOVE_PROMPT_TEMPLATE, candidate)
         if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
             log(f"{model_name} invocation FAILED")
             continue
 
-        # Verify outcome directly
+        # Verify changes were made
         files_after = git_get_modified_files()
         changed = files_after - files_before
         if not changed:
@@ -336,7 +330,29 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
             git_commit(function, file, model_name, attempt, files_before)
             return True, "removed"
 
-        log(f"Tests failed - reverting")
+        # Phase 2: Fix tests
+        log(f"Phase 2: Fix tests ({model_name})")
+
+        files_after_phase1 = git_get_modified_files()
+        prompt = build_prompt(FIX_TESTS_PROMPT_TEMPLATE, candidate)
+        if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
+            log(f"{model_name} test fix invocation FAILED")
+            git_revert(files_before)
+            continue
+
+        # Show what test files changed
+        files_after_phase2 = git_get_modified_files()
+        test_changes = files_after_phase2 - files_after_phase1
+        if test_changes:
+            log(f"Test files changed: {', '.join(sorted(test_changes))}")
+
+        # Check tests again
+        if run_tests():
+            log(f"SUCCESS - removed {function} (with test fixes)")
+            git_commit(function, file, model_name, attempt, files_before)
+            return True, "removed with test fixes"
+
+        log(f"Tests still failing - reverting")
         git_revert(files_before)
 
     # Exhausted all attempts
