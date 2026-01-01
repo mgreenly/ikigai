@@ -8,6 +8,7 @@
 #include <string.h>
 #include "providers/anthropic/request.h"
 #include "providers/provider.h"
+#include "providers/provider_types.h"
 #include "vendor/yyjson/yyjson.h"
 
 static TALLOC_CTX *test_ctx;
@@ -210,6 +211,126 @@ START_TEST(test_serialize_request_with_thinking_high) {
 
 END_TEST
 
+START_TEST(test_serialize_request_with_tools_auto) {
+    ik_request_t *req = create_basic_request(test_ctx);
+
+    // Add a tool
+    req->tool_count = 1;
+    req->tools = talloc_array(req, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(req, "test_tool");
+    req->tools[0].description = talloc_strdup(req, "A test tool");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\",\"properties\":{}}");
+    req->tools[0].strict = false;
+    req->tool_choice_mode = 0;  // IK_TOOL_AUTO
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Check tools array
+    yyjson_val *tools = yyjson_obj_get(root, "tools");
+    ck_assert_ptr_nonnull(tools);
+    ck_assert(yyjson_arr_size(tools) == 1);
+
+    yyjson_val *tool = yyjson_arr_get_first(tools);
+    yyjson_val *name = yyjson_obj_get(tool, "name");
+    ck_assert_str_eq(yyjson_get_str(name), "test_tool");
+
+    yyjson_val *description = yyjson_obj_get(tool, "description");
+    ck_assert_str_eq(yyjson_get_str(description), "A test tool");
+
+    yyjson_val *input_schema = yyjson_obj_get(tool, "input_schema");
+    ck_assert_ptr_nonnull(input_schema);
+
+    // Check tool_choice
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    yyjson_val *choice_type = yyjson_obj_get(tool_choice, "type");
+    ck_assert_str_eq(yyjson_get_str(choice_type), "auto");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_request_with_tools_none) {
+    ik_request_t *req = create_basic_request(test_ctx);
+
+    // Add a tool
+    req->tool_count = 1;
+    req->tools = talloc_array(req, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(req, "test_tool");
+    req->tools[0].description = talloc_strdup(req, "A test tool");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\"}");
+    req->tools[0].strict = false;
+    req->tool_choice_mode = 1;  // IK_TOOL_NONE
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Check tool_choice
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    yyjson_val *choice_type = yyjson_obj_get(tool_choice, "type");
+    ck_assert_str_eq(yyjson_get_str(choice_type), "none");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_request_with_tools_required) {
+    ik_request_t *req = create_basic_request(test_ctx);
+
+    // Add a tool
+    req->tool_count = 1;
+    req->tools = talloc_array(req, ik_tool_def_t, 1);
+    req->tools[0].name = talloc_strdup(req, "test_tool");
+    req->tools[0].description = talloc_strdup(req, "A test tool");
+    req->tools[0].parameters = talloc_strdup(req, "{\"type\":\"object\"}");
+    req->tools[0].strict = false;
+    req->tool_choice_mode = 2;  // IK_TOOL_REQUIRED
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    ck_assert(!is_err(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse and validate JSON structure
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // Check tool_choice
+    yyjson_val *tool_choice = yyjson_obj_get(root, "tool_choice");
+    ck_assert_ptr_nonnull(tool_choice);
+    yyjson_val *choice_type = yyjson_obj_get(tool_choice, "type");
+    ck_assert_str_eq(yyjson_get_str(choice_type), "any");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -227,6 +348,9 @@ static Suite *anthropic_request_suite_1(void)
     tcase_add_test(tc_basic, test_serialize_request_with_system_prompt);
     tcase_add_test(tc_basic, test_serialize_request_with_thinking_low);
     tcase_add_test(tc_basic, test_serialize_request_with_thinking_high);
+    tcase_add_test(tc_basic, test_serialize_request_with_tools_auto);
+    tcase_add_test(tc_basic, test_serialize_request_with_tools_none);
+    tcase_add_test(tc_basic, test_serialize_request_with_tools_required);
     suite_add_tcase(s, tc_basic);
 
     return s;
