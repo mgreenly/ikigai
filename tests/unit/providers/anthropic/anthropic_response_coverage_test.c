@@ -58,13 +58,6 @@ static res_t dummy_completion_cb(const ik_provider_completion_t *completion, voi
     return OK(NULL);
 }
 
-static res_t dummy_stream_cb(const ik_stream_event_t *event, void *ctx)
-{
-    (void)ctx;
-    (void)event;
-    return OK(NULL);
-}
-
 START_TEST(test_start_request_stub) {
     ik_request_t req = {0};
     int32_t dummy_ctx = 42;
