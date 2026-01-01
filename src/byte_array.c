@@ -50,8 +50,3 @@ size_t ik_byte_array_size(const ik_byte_array_t *array)
     return ik_array_size(array);
 }
 
-// Get allocated capacity
-size_t ik_byte_array_capacity(const ik_byte_array_t *array)
-{
-    return ik_array_capacity(array);
-}

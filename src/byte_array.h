@@ -29,6 +29,5 @@ uint8_t ik_byte_array_get(const ik_byte_array_t *array, size_t index);
 
 // Query operations (Pure - Direct return with asserts)
 size_t ik_byte_array_size(const ik_byte_array_t *array);
-size_t ik_byte_array_capacity(const ik_byte_array_t *array);
 
 #endif // IK_BYTE_ARRAY_H
