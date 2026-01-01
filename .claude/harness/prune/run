@@ -809,6 +809,13 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
         log(f"  Verify tests: {len(remaining_tests)} file(s)")
         if not run_tests(remaining_tests):
             log(f"  Tests failed")
+            if debug:
+                log("ABORTING FOR INVESTIGATION:")
+                log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+                log("")
+                log("Workspace left dirty for investigation.")
+                log("Run 'make check TEST=<file>' to see test errors.")
+                sys.exit(1)
             git_revert()
             return False, "tests failed"
 
@@ -834,6 +841,13 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
         log(f"  Final test verification")
         if not run_tests(remaining_tests):
             log(f"  Tests failed after function deletion")
+            if debug:
+                log("ABORTING FOR INVESTIGATION:")
+                log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+                log("")
+                log("Workspace left dirty for investigation.")
+                log("Run 'make check TEST=<file>' to see test errors.")
+                sys.exit(1)
             git_revert()
             return False, "final tests failed"
 
