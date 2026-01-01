@@ -20,10 +20,13 @@ from datetime import datetime
 from pathlib import Path
 
 # Configuration
-MAX_ATTEMPTS_PER_FUNCTION = 3
+MAX_TEST_FIX_ATTEMPTS = 3
 
-# Escalation ladder: (model, thinking_budget, display_name)
-ESCALATION_LADDER = {
+# Phase 1: Remove function (mechanical - use Haiku)
+REMOVE_MODEL = ("claude-haiku-4-20250514", "0", "haiku")
+
+# Phase 2: Fix tests (escalation ladder)
+TEST_FIX_LADDER = {
     1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
     2: ("claude-opus-4-20250514", "10000", "opus:think"),
     3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
@@ -273,13 +276,46 @@ def run_build() -> bool:
     return code == 0
 
 
-def run_tests() -> bool:
-    """Run make check and return success."""
-    log("Verifying tests...")
-    spinner = Spinner("Testing")
-    spinner.start()
-    code, _, _ = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
-    spinner.stop()
+def find_test_files(source_file: str) -> list[str]:
+    """Find test files corresponding to a source file."""
+    # src/foo/bar.c -> tests/unit/foo/bar_test.c
+    # src/foo/bar.c -> tests/unit/foo/bar_*_test.c
+    source_path = Path(source_file)
+    if not source_path.parts[0] == "src":
+        return []
+
+    # Build test path pattern
+    relative = Path(*source_path.parts[1:])  # Remove 'src/'
+    stem = relative.stem  # filename without extension
+    test_dir = Path("tests/unit") / relative.parent
+
+    test_files = []
+    if test_dir.exists():
+        # Look for exact match and wildcard matches
+        for pattern in [f"{stem}_test.c", f"{stem}_*_test.c"]:
+            test_files.extend(str(p) for p in test_dir.glob(pattern))
+
+    return sorted(set(test_files))
+
+
+def run_tests(test_files: list[str] | None = None) -> bool:
+    """Run make check, optionally for specific test files."""
+    if test_files:
+        # Run only specified tests
+        test_list = " ".join(test_files)
+        log(f"Verifying tests: {test_list}")
+        spinner = Spinner("Testing")
+        spinner.start()
+        code, _, _ = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check", f"TEST={test_list}"])
+        spinner.stop()
+    else:
+        # Run all tests
+        log("Verifying all tests...")
+        spinner = Spinner("Testing")
+        spinner.start()
+        code, _, _ = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check"])
+        spinner.stop()
+
     if code == 0:
         log("Tests: PASS")
     else:
@@ -297,47 +333,55 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
 
     files_before = git_get_modified_files()
 
-    for attempt in range(1, MAX_ATTEMPTS_PER_FUNCTION + 1):
-        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
+    # Phase 1: Remove the function (Haiku - mechanical task)
+    model, thinking_budget, model_name = REMOVE_MODEL
+    log(f"Phase 1: Remove function ({model_name})")
 
-        # Phase 1: Remove the function
-        log(f"Phase 1: Remove function ({model_name}, attempt {attempt}/{MAX_ATTEMPTS_PER_FUNCTION})")
+    prompt = build_prompt(REMOVE_PROMPT_TEMPLATE, candidate)
+    if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
+        log(f"{model_name} invocation FAILED")
+        return False, "removal failed"
 
-        prompt = build_prompt(REMOVE_PROMPT_TEMPLATE, candidate)
-        if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
-            log(f"{model_name} invocation FAILED")
-            continue
+    # Verify changes were made
+    files_after = git_get_modified_files()
+    changed = files_after - files_before
+    if not changed:
+        log(f"Agent made no changes")
+        return False, "no changes made"
 
-        # Verify changes were made
-        files_after = git_get_modified_files()
-        changed = files_after - files_before
-        if not changed:
-            log(f"Agent made no changes")
-            continue
+    log(f"Files changed: {', '.join(sorted(changed))}")
 
-        log(f"Files changed: {', '.join(sorted(changed))}")
+    # Check build
+    if not run_build():
+        log(f"False positive - function is used")
+        git_revert(files_before)
+        record_false_positive(function)
+        return False, "false positive"
 
-        # Check build
-        if not run_build():
-            log(f"False positive - function is used")
-            git_revert(files_before)
-            record_false_positive(function)
-            return False, "false positive"
+    # Find and run relevant tests only
+    test_files = find_test_files(file)
+    if not test_files:
+        log(f"No test files found for {file}")
+        # No tests to run - assume success
+        log(f"SUCCESS - removed {function}")
+        git_commit(function, file, model_name, 1, files_before)
+        return True, "removed"
 
-        # Check tests
-        if run_tests():
-            log(f"SUCCESS - removed {function}")
-            git_commit(function, file, model_name, attempt, files_before)
-            return True, "removed"
+    if run_tests(test_files):
+        log(f"SUCCESS - removed {function}")
+        git_commit(function, file, model_name, 1, files_before)
+        return True, "removed"
 
-        # Phase 2: Fix tests
-        log(f"Phase 2: Fix tests ({model_name})")
+    # Phase 2: Fix tests (escalation ladder)
+    files_after_phase1 = git_get_modified_files()
 
-        files_after_phase1 = git_get_modified_files()
+    for attempt in range(1, MAX_TEST_FIX_ATTEMPTS + 1):
+        model, thinking_budget, model_name = TEST_FIX_LADDER[attempt]
+        log(f"Phase 2: Fix tests ({model_name}, attempt {attempt}/{MAX_TEST_FIX_ATTEMPTS})")
+
         prompt = build_prompt(FIX_TESTS_PROMPT_TEMPLATE, candidate)
         if not invoke_claude(prompt, model, thinking_budget, model_name, timeout):
             log(f"{model_name} test fix invocation FAILED")
-            git_revert(files_before)
             continue
 
         # Show what test files changed
@@ -346,19 +390,22 @@ def try_remove_function(candidate: dict, timeout: int) -> tuple[bool, str]:
         if test_changes:
             log(f"Test files changed: {', '.join(sorted(test_changes))}")
 
-        # Check tests again
-        if run_tests():
+        # Check the modified test files
+        tests_to_run = list(test_changes) if test_changes else test_files
+        if run_tests(tests_to_run):
             log(f"SUCCESS - removed {function} (with test fixes)")
             git_commit(function, file, model_name, attempt, files_before)
             return True, "removed with test fixes"
 
-        log(f"Tests still failing - reverting")
-        git_revert(files_before)
+        log(f"Tests still failing")
+        # Revert test changes only, keep function removal
+        for f in test_changes:
+            run_cmd(["git", "checkout", f])
 
-    # Exhausted all attempts
-    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FUNCTION} attempts")
+    # Exhausted all test fix attempts - revert everything
+    log(f"SKIPPED - exhausted test fix attempts")
     git_revert(files_before)
-    return False, "exhausted attempts"
+    return False, "test fixes exhausted"
 
 
 def main() -> int:
