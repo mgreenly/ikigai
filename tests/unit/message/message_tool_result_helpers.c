@@ -1,11 +1,11 @@
 /**
- * @file message_tool_result_test.c
+ * @file message_tool_result_helpers.c
  * @brief Unit tests for message.c tool_result message handling
  *
  * Tests error paths and success cases for tool_result messages in ik_message_from_db_msg.
  */
 
-#include "message_tool_result_test.h"
+#include "message_tool_result_helpers.h"
 
 #include "../../../src/message.h"
 

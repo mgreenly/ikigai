@@ -1,10 +1,10 @@
 /**
- * @file content_block_serialize_test.h
+ * @file content_block_serialize_helpers.h
  * @brief Header for content block serialization tests
  */
 
-#ifndef CONTENT_BLOCK_SERIALIZE_TEST_H
-#define CONTENT_BLOCK_SERIALIZE_TEST_H
+#ifndef CONTENT_BLOCK_SERIALIZE_HELPERS_H
+#define CONTENT_BLOCK_SERIALIZE_HELPERS_H
 
 #include <check.h>
 
@@ -14,4 +14,4 @@
  */
 extern Suite *content_block_serialize_suite(void);
 
-#endif /* CONTENT_BLOCK_SERIALIZE_TEST_H */
+#endif /* CONTENT_BLOCK_SERIALIZE_HELPERS_H */

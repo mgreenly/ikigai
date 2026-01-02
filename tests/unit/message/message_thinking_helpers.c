@@ -1,11 +1,11 @@
 /**
- * @file message_thinking_test.c
+ * @file message_thinking_helpers.c
  * @brief Unit tests for message.c thinking block handling
  *
  * Tests thinking and redacted thinking blocks in tool_call messages.
  */
 
-#include "message_thinking_test.h"
+#include "message_thinking_helpers.h"
 
 #include "../../../src/message.h"
 

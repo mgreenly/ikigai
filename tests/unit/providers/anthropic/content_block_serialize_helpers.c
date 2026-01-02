@@ -1,5 +1,5 @@
 /**
- * @file content_block_serialize_test.c
+ * @file content_block_serialize_helpers.c
  * @brief Content block serialization tests for Anthropic provider
  *
  * This file contains tests for serializing individual content blocks.
@@ -11,7 +11,7 @@
 #include "providers/anthropic/request_serialize.h"
 #include "providers/provider.h"
 #include "wrapper_json.h"
-#include "content_block_serialize_test.h"
+#include "content_block_serialize_helpers.h"
 
 static TALLOC_CTX *test_ctx;
 
@@ -304,16 +304,4 @@ Suite *content_block_serialize_suite(void)
     suite_add_tcase(s, tc_content);
 
     return s;
-}
-
-int main(void)
-{
-    Suite *s = content_block_serialize_suite();
-    SRunner *sr = srunner_create(s);
-
-    srunner_run_all(sr, CK_NORMAL);
-    int number_failed = srunner_ntests_failed(sr);
-    srunner_free(sr);
-
-    return (number_failed == 0) ? 0 : 1;
 }

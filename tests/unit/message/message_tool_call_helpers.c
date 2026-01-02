@@ -1,11 +1,11 @@
 /**
- * @file message_tool_call_test.c
+ * @file message_tool_call_helpers.c
  * @brief Unit tests for message.c tool_call message handling
  *
  * Tests error paths and success cases for tool_call messages in ik_message_from_db_msg.
  */
 
-#include "message_tool_call_test.h"
+#include "message_tool_call_helpers.h"
 
 #include "../../../src/message.h"
 
@@ -180,9 +180,8 @@ START_TEST(test_tool_call_valid) {
 
 END_TEST
 
-static Suite *tool_call_suite(void)
+TCase *create_tool_call_tcase(void)
 {
-    Suite *s = suite_create("Tool Call Messages");
     TCase *tc = tcase_create("Tool Call");
     tcase_set_timeout(tc, 30);
 
@@ -197,19 +196,5 @@ static Suite *tool_call_suite(void)
     tcase_add_test(tc, test_tool_call_invalid_arguments_type);
     tcase_add_test(tc, test_tool_call_valid);
 
-    suite_add_tcase(s, tc);
-    return s;
-}
-
-int main(void)
-{
-    int number_failed;
-    Suite *s = tool_call_suite();
-    SRunner *sr = srunner_create(s);
-
-    srunner_run_all(sr, CK_NORMAL);
-    number_failed = srunner_ntests_failed(sr);
-    srunner_free(sr);
-
-    return (number_failed == 0) ? 0 : 1;
+    return tc;
 }

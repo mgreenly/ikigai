@@ -1,10 +1,10 @@
 /**
- * @file message_tool_call_test.h
+ * @file message_tool_call_helpers.h
  * @brief Unit tests for message.c tool_call message handling
  */
 
-#ifndef MESSAGE_TOOL_CALL_TEST_H
-#define MESSAGE_TOOL_CALL_TEST_H
+#ifndef MESSAGE_TOOL_CALL_HELPERS_H
+#define MESSAGE_TOOL_CALL_HELPERS_H
 
 #include <check.h>
 

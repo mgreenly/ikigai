@@ -1,10 +1,10 @@
 /**
- * @file message_thinking_test.h
+ * @file message_thinking_helpers.h
  * @brief Unit tests for message.c thinking block handling
  */
 
-#ifndef MESSAGE_THINKING_TEST_H
-#define MESSAGE_THINKING_TEST_H
+#ifndef MESSAGE_THINKING_HELPERS_H
+#define MESSAGE_THINKING_HELPERS_H
 
 #include <check.h>
 

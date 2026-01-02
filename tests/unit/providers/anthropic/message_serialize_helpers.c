@@ -1,5 +1,5 @@
 /**
- * @file message_serialize_test.c
+ * @file message_serialize_helpers.c
  * @brief Message serialization tests for Anthropic provider
  *
  * This file contains tests for serializing message content, role mapping,
@@ -12,7 +12,7 @@
 #include "providers/anthropic/request_serialize.h"
 #include "providers/provider.h"
 #include "wrapper_json.h"
-#include "message_serialize_test.h"
+#include "message_serialize_helpers.h"
 
 static TALLOC_CTX *test_ctx;
 
@@ -36,7 +36,7 @@ START_TEST(test_serialize_message_content_single_text_success) {
 
     ik_message_t message;
     message.content_count = 1;
-    ik_content_block_t blocks[1];
+    ik_content_block_t blocks[1] = {0};
     blocks[0].type = IK_CONTENT_TEXT;
     blocks[0].data.text.text = talloc_strdup(test_ctx, "Single text block");
     message.content_blocks = blocks;
@@ -61,7 +61,7 @@ START_TEST(test_serialize_message_content_multiple_blocks_success) {
 
     ik_message_t message;
     message.content_count = 2;
-    ik_content_block_t blocks[2];
+    ik_content_block_t blocks[2] = {0};
     blocks[0].type = IK_CONTENT_TEXT;
     blocks[0].data.text.text = talloc_strdup(test_ctx, "First block");
     blocks[1].type = IK_CONTENT_TEXT;
@@ -88,7 +88,7 @@ START_TEST(test_serialize_message_content_non_text_block) {
 
     ik_message_t message;
     message.content_count = 1;
-    ik_content_block_t blocks[1];
+    ik_content_block_t blocks[1] = {0};
     blocks[0].type = IK_CONTENT_THINKING;
     blocks[0].data.thinking.text = talloc_strdup(test_ctx, "Thinking...");
     message.content_blocks = blocks;
@@ -236,16 +236,4 @@ Suite *message_serialize_suite(void)
     suite_add_tcase(s, tc_messages);
 
     return s;
-}
-
-int main(void)
-{
-    Suite *s = message_serialize_suite();
-    SRunner *sr = srunner_create(s);
-
-    srunner_run_all(sr, CK_NORMAL);
-    int number_failed = srunner_ntests_failed(sr);
-    srunner_free(sr);
-
-    return (number_failed == 0) ? 0 : 1;
 }

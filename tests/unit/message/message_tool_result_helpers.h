@@ -1,10 +1,10 @@
 /**
- * @file message_tool_result_test.h
+ * @file message_tool_result_helpers.h
  * @brief Unit tests for message.c tool_result message handling
  */
 
-#ifndef MESSAGE_TOOL_RESULT_TEST_H
-#define MESSAGE_TOOL_RESULT_TEST_H
+#ifndef MESSAGE_TOOL_RESULT_HELPERS_H
+#define MESSAGE_TOOL_RESULT_HELPERS_H
 
 #include <check.h>
 

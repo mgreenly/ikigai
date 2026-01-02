@@ -1,10 +1,10 @@
 /**
- * @file message_serialize_test.h
+ * @file message_serialize_helpers.h
  * @brief Header for message serialization tests
  */
 
-#ifndef MESSAGE_SERIALIZE_TEST_H
-#define MESSAGE_SERIALIZE_TEST_H
+#ifndef MESSAGE_SERIALIZE_HELPERS_H
+#define MESSAGE_SERIALIZE_HELPERS_H
 
 #include <check.h>
 
@@ -14,4 +14,4 @@
  */
 extern Suite *message_serialize_suite(void);
 
-#endif /* MESSAGE_SERIALIZE_TEST_H */
+#endif /* MESSAGE_SERIALIZE_HELPERS_H */

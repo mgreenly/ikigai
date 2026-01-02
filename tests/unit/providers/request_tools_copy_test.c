@@ -14,25 +14,31 @@
 #include <string.h>
 #include <talloc.h>
 
-static TALLOC_CTX *test_ctx;
-static ik_shared_ctx_t *shared_ctx;
+static TALLOC_CTX *test_ctx = NULL;
 
 static void setup(void)
 {
+    if (test_ctx != NULL) {
+        talloc_free(test_ctx);
+    }
     test_ctx = talloc_new(NULL);
-    shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
-    shared_ctx->cfg = ik_test_create_config(shared_ctx);
 }
 
 static void teardown(void)
 {
-    talloc_free(test_ctx);
+    if (test_ctx != NULL) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+    }
 }
 
 /**
  * Test copying message with TEXT content block (line 182 true branch)
  */
 START_TEST(test_copy_text_message) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -61,6 +67,9 @@ END_TEST
  * Test copying message with TOOL_CALL content (lines 192-193 branches)
  */
 START_TEST(test_copy_tool_call_message) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4o");
@@ -92,6 +101,9 @@ END_TEST
  * Test copying message with TOOL_RESULT content (line 202 branches)
  */
 START_TEST(test_copy_tool_result_message) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gemini-2.0-flash");
@@ -126,6 +138,9 @@ END_TEST
  * Test copying message with TOOL_RESULT with is_error=true (line 203)
  */
 START_TEST(test_copy_tool_result_error_message) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gemini-2.0-flash");
@@ -160,6 +175,9 @@ END_TEST
  * Test copying message with multiple content blocks
  */
 START_TEST(test_copy_multiple_content_blocks) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -210,6 +228,9 @@ END_TEST
  * Test copying message with THINKING content
  */
 START_TEST(test_copy_thinking_message) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "o1-preview");
@@ -240,6 +261,9 @@ END_TEST
  * Test copying message with THINKING content and signature
  */
 START_TEST(test_copy_thinking_with_signature) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -272,6 +296,9 @@ END_TEST
  * Test copying message with THINKING content and NULL signature
  */
 START_TEST(test_copy_thinking_null_signature) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");
@@ -303,6 +330,9 @@ END_TEST
  * Test copying message with REDACTED_THINKING content
  */
 START_TEST(test_copy_redacted_thinking) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "claude-sonnet-4-5");

@@ -214,6 +214,40 @@ $(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test: $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
+# Message test helper compilation
+MESSAGE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/message/message_tool_call_helpers.o $(BUILDDIR)/tests/unit/message/message_tool_result_helpers.o $(BUILDDIR)/tests/unit/message/message_thinking_helpers.o
+
+$(BUILDDIR)/tests/unit/message/message_tool_call_helpers.o: tests/unit/message/message_tool_call_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/message/message_tool_result_helpers.o: tests/unit/message/message_tool_result_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/message/message_thinking_helpers.o: tests/unit/message/message_thinking_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/message/message_from_db_test: $(BUILDDIR)/tests/unit/message/message_from_db_test.o $(MESSAGE_TEST_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+# Anthropic request serialize test helper compilation
+ANTHROPIC_SERIALIZE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helpers.o $(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helpers.o
+
+$(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helpers.o: tests/unit/providers/anthropic/content_block_serialize_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helpers.o: tests/unit/providers/anthropic/message_serialize_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/anthropic/request_serialize_success_test: $(BUILDDIR)/tests/unit/providers/anthropic/request_serialize_success_test.o $(ANTHROPIC_SERIALIZE_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
 $(BUILDDIR)/tests/integration/%_test.o: tests/integration/%_test.c | $(BUILDDIR)/tests/integration
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -510,7 +544,7 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 ifeq ($(BUILD),sanitize)
 	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),tsan)
-	@CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@TSAN_OPTIONS=suppressions=.suppressions/tsan.supp CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else ifeq ($(BUILD),valgrind)
 	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
 else
