@@ -55,13 +55,24 @@ ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *to
                                                   const char *content, bool is_error);
 
 /**
- * Create thinking content block
+ * Create thinking content block with signature
+ *
+ * @param ctx       Talloc parent context
+ * @param text      Thinking text (will be copied)
+ * @param signature Cryptographic signature (will be copied, can be NULL)
+ * @return          Allocated content block
+ */
+ik_content_block_t *ik_content_block_thinking(TALLOC_CTX *ctx, const char *text,
+                                               const char *signature);
+
+/**
+ * Create redacted thinking content block
  *
  * @param ctx  Talloc parent context
- * @param text Thinking summary text (will be copied)
- * @return     Allocated content block, or NULL on OOM
+ * @param data Encrypted opaque data (will be copied)
+ * @return     Allocated content block
  */
-ik_content_block_t *ik_content_block_thinking(TALLOC_CTX *ctx, const char *text);
+ik_content_block_t *ik_content_block_redacted_thinking(TALLOC_CTX *ctx, const char *data);
 
 /* ================================================================
  * Request Builder Functions

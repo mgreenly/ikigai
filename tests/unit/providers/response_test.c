@@ -63,7 +63,7 @@ START_TEST(test_response_add_multiple_content) {
     ik_response_t *resp = NULL;
     ik_response_create(test_ctx, &resp);
 
-    ik_content_block_t *block1 = ik_content_block_thinking(test_ctx, "Thinking...");
+    ik_content_block_t *block1 = ik_content_block_thinking(test_ctx, "Thinking...", NULL);
     ik_content_block_t *block2 = ik_content_block_text(test_ctx, "Answer");
     ik_content_block_t *block3 = ik_content_block_tool_call(test_ctx,
                                                             "call_1", "read_file", "{\"path\":\"/tmp/file\"}");
@@ -92,7 +92,7 @@ START_TEST(test_response_memory_lifecycle) {
 
     ik_content_block_t *block1 = ik_content_block_text(temp_ctx, "Text 1");
     ik_content_block_t *block2 = ik_content_block_text(temp_ctx, "Text 2");
-    ik_content_block_t *block3 = ik_content_block_thinking(temp_ctx, "Thinking");
+    ik_content_block_t *block3 = ik_content_block_thinking(temp_ctx, "Thinking", NULL);
 
     ik_response_add_content(resp, block1);
     ik_response_add_content(resp, block2);
