@@ -67,7 +67,7 @@ END_TEST
 // Test: Missing tool_call_id in tool_call
 START_TEST(test_tool_call_missing_id) {
     char *kind = talloc_strdup(test_ctx, "tool_call");
-    char *data_json = talloc_strdup(test_ctx, "{\"name\":\"bash\",\"arguments\":\"{}\"}");
+    char *data_json = talloc_strdup(test_ctx, "{\"tool_name\":\"bash\",\"tool_args\":\"{}\"}");
 
     ik_msg_t db_msg = {
         .kind = kind,
@@ -83,12 +83,12 @@ START_TEST(test_tool_call_missing_id) {
 }
 
 END_TEST
-// Test: Missing name in tool_call
+// Test: Missing tool_name in tool_call
 START_TEST(test_tool_call_missing_name) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"arguments\":\"{}\"}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -99,12 +99,12 @@ START_TEST(test_tool_call_missing_name) {
 }
 
 END_TEST
-// Test: Missing arguments in tool_call
+// Test: Missing tool_args in tool_call
 START_TEST(test_tool_call_missing_arguments) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"name\":\"bash\"}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -120,7 +120,7 @@ START_TEST(test_tool_call_invalid_id_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":123,\"name\":\"bash\",\"arguments\":\"{}\"}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":123,\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -131,12 +131,12 @@ START_TEST(test_tool_call_invalid_id_type) {
 }
 
 END_TEST
-// Test: Invalid field type for name (number instead of string)
+// Test: Invalid field type for tool_name (number instead of string)
 START_TEST(test_tool_call_invalid_name_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"name\":456,\"arguments\":\"{}\"}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":456,\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -147,12 +147,12 @@ START_TEST(test_tool_call_invalid_name_type) {
 }
 
 END_TEST
-// Test: Invalid field type for arguments (number instead of string)
+// Test: Invalid field type for tool_args (number instead of string)
 START_TEST(test_tool_call_invalid_arguments_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"name\":\"bash\",\"arguments\":789}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":789}"),
     };
 
     ik_message_t *out = NULL;
@@ -168,7 +168,7 @@ START_TEST(test_tool_call_valid) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"name\":\"bash\",\"arguments\":\"{}\"}"),
+        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -177,6 +177,8 @@ START_TEST(test_tool_call_valid) {
     ck_assert(is_ok(&r));
     ck_assert_ptr_nonnull(out);
     ck_assert_int_eq(out->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
 }
 
 END_TEST
@@ -362,6 +364,147 @@ START_TEST(test_tool_kind_missing_fields) {
 
 END_TEST
 
+// Test: Tool call with thinking block
+START_TEST(test_from_db_tool_call_with_thinking) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":{\"text\":\"Let me analyze...\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_int_eq(out->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(out->content_count, 2);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(out->content_blocks[0].data.thinking.text, "Let me analyze...");
+    ck_assert_ptr_null(out->content_blocks[0].data.thinking.signature);
+    ck_assert_int_eq(out->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with thinking and signature
+START_TEST(test_from_db_tool_call_with_signature) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":{\"text\":\"Think carefully...\",\"signature\":\"EqQBCgIYAhIM...\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_uint_eq(out->content_count, 2);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(out->content_blocks[0].data.thinking.text, "Think carefully...");
+    ck_assert_str_eq(out->content_blocks[0].data.thinking.signature, "EqQBCgIYAhIM...");
+    ck_assert_int_eq(out->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with redacted thinking
+START_TEST(test_from_db_tool_call_with_redacted) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"redacted_thinking\":{\"data\":\"EmwKAhgBEgy...\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_uint_eq(out->content_count, 2);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_REDACTED_THINKING);
+    ck_assert_str_eq(out->content_blocks[0].data.redacted_thinking.data, "EmwKAhgBEgy...");
+    ck_assert_int_eq(out->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call without thinking (backward compatibility)
+START_TEST(test_from_db_tool_call_no_thinking) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with empty thinking object (treated as no thinking)
+START_TEST(test_from_db_tool_call_empty_thinking) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":{}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    // Empty thinking object has no text, so no thinking block created
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with both thinking and redacted thinking
+START_TEST(test_from_db_tool_call_thinking_and_redacted) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":{\"text\":\"My thinking...\",\"signature\":\"sig123\"},"
+            "\"redacted_thinking\":{\"data\":\"redacted_data\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_uint_eq(out->content_count, 3);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(out->content_blocks[0].data.thinking.text, "My thinking...");
+    ck_assert_str_eq(out->content_blocks[0].data.thinking.signature, "sig123");
+    ck_assert_int_eq(out->content_blocks[1].type, IK_CONTENT_REDACTED_THINKING);
+    ck_assert_str_eq(out->content_blocks[1].data.redacted_thinking.data, "redacted_data");
+    ck_assert_int_eq(out->content_blocks[2].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
 static Suite *message_from_db_suite(void)
 {
     Suite *s = suite_create("Message from DB");
@@ -369,6 +512,8 @@ static Suite *message_from_db_suite(void)
     tcase_set_timeout(tc_tool_call, 30);
     TCase *tc_tool_result = tcase_create("Tool Result");
     tcase_set_timeout(tc_tool_result, 30);
+    TCase *tc_thinking = tcase_create("Thinking Blocks");
+    tcase_set_timeout(tc_thinking, 30);
 
     tcase_add_checked_fixture(tc_tool_call, setup, teardown);
     tcase_add_test(tc_tool_call, test_tool_call_json_array);
@@ -394,8 +539,17 @@ static Suite *message_from_db_suite(void)
     tcase_add_test(tc_tool_result, test_tool_kind_handled);
     tcase_add_test(tc_tool_result, test_tool_kind_missing_fields);
 
+    tcase_add_checked_fixture(tc_thinking, setup, teardown);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_with_thinking);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_with_signature);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_with_redacted);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_no_thinking);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_empty_thinking);
+    tcase_add_test(tc_thinking, test_from_db_tool_call_thinking_and_redacted);
+
     suite_add_tcase(s, tc_tool_call);
     suite_add_tcase(s, tc_tool_result);
+    suite_add_tcase(s, tc_thinking);
     return s;
 }
 

@@ -212,7 +212,7 @@ START_TEST(test_message_from_db_msg_tool_call) {
     char kind[] = "tool_call";
     char content[] = "grep(pattern=\"test\")";
     char data_json[] =
-        "{\"tool_call_id\":\"call_456\",\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"test\\\"}\"}";
+        "{\"tool_call_id\":\"call_456\",\"tool_name\":\"grep\",\"tool_args\":\"{\\\"pattern\\\":\\\"test\\\"}\"}";
     ik_msg_t db_msg = {
         .id = 2,
         .kind = kind,

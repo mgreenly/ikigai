@@ -181,8 +181,8 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
 
         yyjson_val *root = yyjson_doc_get_root_(doc);
         yyjson_val *id_val = yyjson_obj_get_(root, "tool_call_id");
-        yyjson_val *name_val = yyjson_obj_get_(root, "name");
-        yyjson_val *args_val = yyjson_obj_get_(root, "arguments");
+        yyjson_val *name_val = yyjson_obj_get_(root, "tool_name");
+        yyjson_val *args_val = yyjson_obj_get_(root, "tool_args");
 
         if (!id_val || !name_val || !args_val) {
             yyjson_doc_free(doc);
@@ -198,7 +198,34 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             return ERR(ctx, PARSE, "Invalid field types in tool_call data_json");
         }
 
-        *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
+        // Parse optional thinking blocks
+        yyjson_val *thinking_obj = yyjson_obj_get(root, "thinking");
+        yyjson_val *redacted_obj = yyjson_obj_get(root, "redacted_thinking");
+
+        const char *thinking_text = NULL;
+        const char *thinking_sig = NULL;
+        const char *redacted_data = NULL;
+
+        if (thinking_obj != NULL && yyjson_is_obj(thinking_obj)) {
+            yyjson_val *text_val = yyjson_obj_get(thinking_obj, "text");
+            yyjson_val *sig_val = yyjson_obj_get(thinking_obj, "signature");
+            thinking_text = yyjson_get_str(text_val);
+            thinking_sig = yyjson_get_str(sig_val);
+        }
+
+        if (redacted_obj != NULL && yyjson_is_obj(redacted_obj)) {
+            yyjson_val *data_val = yyjson_obj_get(redacted_obj, "data");
+            redacted_data = yyjson_get_str(data_val);
+        }
+
+        // Create message with appropriate blocks
+        if (thinking_text != NULL || redacted_data != NULL) {
+            *out = ik_message_create_tool_call_with_thinking(
+                ctx, thinking_text, thinking_sig, redacted_data, id, name, arguments);
+        } else {
+            *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
+        }
+
         yyjson_doc_free(doc);
         return OK(*out);
     }
