@@ -227,6 +227,71 @@ START_TEST(test_serialize_content_block_tool_result_is_error_field_fail) {
 }
 END_TEST
 
+START_TEST(test_serialize_content_block_thinking_signature_field_fail) {
+    reset_mocks();
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_THINKING;
+    block.data.thinking.text = talloc_strdup(test_ctx, "Thinking...");
+    block.data.thinking.signature = talloc_strdup(test_ctx, "sig123");
+
+    // Fail on the 3rd call (adding "signature" field, after "type" and "thinking" succeed)
+    mock_yyjson_mut_obj_add_str_fail_on_call = 3;
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(!result);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_content_block_redacted_thinking_data_field_fail) {
+    reset_mocks();
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_REDACTED_THINKING;
+    block.data.redacted_thinking.data = talloc_strdup(test_ctx, "redacted_data");
+
+    // Fail on the 2nd call (adding "data" field, after "type" succeeds)
+    mock_yyjson_mut_obj_add_str_fail_on_call = 2;
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(!result);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_content_block_tool_call_invalid_json) {
+    reset_mocks();
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_TOOL_CALL;
+    block.data.tool_call.id = talloc_strdup(test_ctx, "call_123");
+    block.data.tool_call.name = talloc_strdup(test_ctx, "test_tool");
+    // Invalid JSON - should fail to parse
+    block.data.tool_call.arguments = talloc_strdup(test_ctx, "{invalid json");
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    // Should return false for invalid JSON
+    ck_assert(!result);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
 START_TEST(test_serialize_content_block_invalid_type) {
     reset_mocks();
 
@@ -345,11 +410,14 @@ static Suite *request_serialize_coverage_suite_3(void)
     tcase_add_unchecked_fixture(tc_specific, setup, teardown);
     tcase_add_test(tc_specific, test_serialize_content_block_text_text_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_thinking_thinking_field_fail);
+    tcase_add_test(tc_specific, test_serialize_content_block_thinking_signature_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_call_id_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_call_name_field_fail);
+    tcase_add_test(tc_specific, test_serialize_content_block_tool_call_invalid_json);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_tool_use_id_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_content_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_is_error_field_fail);
+    tcase_add_test(tc_specific, test_serialize_content_block_redacted_thinking_data_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_invalid_type);
     suite_add_tcase(s, tc_specific);
 
