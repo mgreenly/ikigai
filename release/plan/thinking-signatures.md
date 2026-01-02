@@ -166,14 +166,155 @@ All content block copy functions must handle:
 - `src/providers/request_tools.c` - `ik_request_add_message_direct`
 - `src/agent_messages.c` - `clone_content_block`
 
-## Task Dependencies
+## 9. Tool Call Message Integration (PHASE 2)
+
+**Problem:** When a response contains thinking + tool_use, only the tool_call is stored in the assistant message. The thinking block (with signature) is lost.
+
+### Agent Context Changes
+
+**File:** `src/agent.h`
+
+Add fields to `ik_agent_ctx_t` to store pending thinking blocks:
+
+```c
+// Pending thinking blocks from response (for tool call messages)
+char *pending_thinking_text;
+char *pending_thinking_signature;
+char *pending_redacted_data;
+```
+
+### Response Processing
+
+**File:** `src/repl_callbacks.c`
+
+In `extract_tool_calls` (or new function), also extract thinking blocks:
+
+```c
+for (size_t i = 0; i < response->content_count; i++) {
+    ik_content_block_t *block = &response->content_blocks[i];
+    if (block->type == IK_CONTENT_THINKING) {
+        agent->pending_thinking_text = talloc_strdup(agent, block->data.thinking.text);
+        agent->pending_thinking_signature = talloc_strdup(agent, block->data.thinking.signature);
+    } else if (block->type == IK_CONTENT_REDACTED_THINKING) {
+        agent->pending_redacted_data = talloc_strdup(agent, block->data.redacted_thinking.data);
+    }
+}
+```
+
+### Tool Call Message Creation
+
+**File:** `src/repl_tool.c`
+
+Replace `ik_message_create_tool_call` with a function that creates a message with all content blocks:
+
+```c
+// Count blocks
+size_t block_count = 1; // tool_call
+if (agent->pending_thinking_text) block_count++;
+if (agent->pending_redacted_data) block_count++;
+
+// Create message with multiple content blocks
+ik_message_t *msg = talloc_zero(agent, ik_message_t);
+msg->role = IK_ROLE_ASSISTANT;
+msg->content_blocks = talloc_array(msg, ik_content_block_t, block_count);
+msg->content_count = block_count;
+
+size_t idx = 0;
+// Add thinking block first (if present)
+if (agent->pending_thinking_text) {
+    msg->content_blocks[idx].type = IK_CONTENT_THINKING;
+    msg->content_blocks[idx].data.thinking.text = talloc_strdup(...);
+    msg->content_blocks[idx].data.thinking.signature = talloc_strdup(...);
+    idx++;
+}
+// Add redacted thinking (if present)
+if (agent->pending_redacted_data) {
+    msg->content_blocks[idx].type = IK_CONTENT_REDACTED_THINKING;
+    msg->content_blocks[idx].data.redacted_thinking.data = talloc_strdup(...);
+    idx++;
+}
+// Add tool_call
+msg->content_blocks[idx].type = IK_CONTENT_TOOL_CALL;
+// ... fill tool_call fields
+```
+
+### Cleanup
+
+Clear pending thinking fields after use:
+
+```c
+talloc_free(agent->pending_thinking_text);
+agent->pending_thinking_text = NULL;
+talloc_free(agent->pending_thinking_signature);
+agent->pending_thinking_signature = NULL;
+talloc_free(agent->pending_redacted_data);
+agent->pending_redacted_data = NULL;
+```
+
+## 10. Database Persistence (PHASE 2)
+
+**Problem:** Thinking blocks must survive process restart.
+
+### Storage Strategy
+
+Store thinking data in the `data_json` field of tool_call messages:
+
+```json
+{
+  "tool_call_id": "toolu_01...",
+  "tool_name": "bash",
+  "tool_args": "{...}",
+  "thinking": {
+    "text": "Let me solve...",
+    "signature": "EqQBCgIYAhIM..."
+  }
+}
+```
+
+Or for redacted thinking:
+
+```json
+{
+  "tool_call_id": "toolu_01...",
+  "tool_name": "bash",
+  "tool_args": "{...}",
+  "redacted_thinking": {
+    "data": "EmwKAhgBEgy..."
+  }
+}
+```
+
+### Database Insert
+
+**File:** `src/repl_tool.c`
+
+Update `ik_db_message_insert_` call to include thinking data in JSON:
+
+```c
+char *data_json = build_tool_call_data_json(agent, tc);
+ik_db_message_insert_(..., "tool_call", formatted_call, data_json);
+```
+
+### Message Restoration
+
+**File:** `src/message.c`
+
+In `ik_message_from_db_msg`, parse `data_json` for tool_call messages and reconstruct thinking blocks if present.
+
+## Task Dependencies (Updated)
 
 ```
+PHASE 1 (COMPLETE):
 types ─────────────────┬──> content-block-api ──> deep-copy
                        │
 streaming-capture ─────┴──> response-builder
                        │
                        └──> serialization
+
+PHASE 2 (NEW):
+agent-context ──> extract-thinking ──> tool-call-message
+                                    │
+                                    └──> db-persistence ──> db-restore
 ```
 
-All tasks can run after `types` completes. No other strict ordering required.
+Phase 1 tasks are complete. Phase 2 tasks address the in-memory and database integration.

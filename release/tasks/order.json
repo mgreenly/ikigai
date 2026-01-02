@@ -1,10 +1,9 @@
 {
   "tasks": [
-    {"task": "types.md", "group": "Core", "model": "sonnet", "thinking": "none"},
-    {"task": "content-block-api.md", "group": "Core", "model": "sonnet", "thinking": "none"},
-    {"task": "streaming-capture.md", "group": "Streaming", "model": "sonnet", "thinking": "none"},
-    {"task": "serialization.md", "group": "Serialization", "model": "sonnet", "thinking": "none"},
-    {"task": "deep-copy.md", "group": "Core", "model": "sonnet", "thinking": "none"},
-    {"task": "response-builder.md", "group": "Streaming", "model": "sonnet", "thinking": "none"}
+    {"task": "agent-context.md", "group": "Phase2-Core", "model": "sonnet", "thinking": "none"},
+    {"task": "extract-thinking.md", "group": "Phase2-Core", "model": "sonnet", "thinking": "none"},
+    {"task": "tool-call-message.md", "group": "Phase2-Integration", "model": "sonnet", "thinking": "none"},
+    {"task": "db-persistence.md", "group": "Phase2-Database", "model": "sonnet", "thinking": "none"},
+    {"task": "db-restore.md", "group": "Phase2-Database", "model": "sonnet", "thinking": "none"}
   ]
 }
