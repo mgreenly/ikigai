@@ -118,8 +118,8 @@ def parse_failures(output: str) -> list[dict]:
     """
     failures = []
 
-    # Pattern: ✗ path/to/file.c: 18000 bytes (exceeds 16000)
-    pattern = re.compile(r'^✗\s+(\S+):\s+(\d+)\s+bytes\s+\(exceeds\s+(\d+)\)', re.MULTILINE)
+    # Pattern: 🔴 path/to/file.c: 18000 bytes (exceeds 16000)
+    pattern = re.compile(r'^🔴\s+(\S+):\s+(\d+)\s+bytes\s+\(exceeds\s+(\d+)\)', re.MULTILINE)
 
     for match in pattern.finditer(output):
         failures.append({
