@@ -74,12 +74,8 @@ void ik_openai_chat_process_delta(ik_openai_chat_stream_ctx_t *sctx, void *delta
 
     yyjson_val *delta = (yyjson_val *)delta_ptr; // LCOV_EXCL_BR_LINE - cast always succeeds
 
-    // Extract role (first chunk only)
-    yyjson_val *role_val = yyjson_obj_get(delta, "role");
-    if (role_val != NULL) {
-        // First chunk with role - don't emit anything yet
-        return;
-    }
+    // Note: role field may be present in first chunk alongside tool_calls/content
+    // We don't need to handle it specially - just continue processing
 
     // Extract content (text delta)
     yyjson_val *content_val = yyjson_obj_get(delta, "content");
