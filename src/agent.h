@@ -117,6 +117,11 @@ typedef struct ik_agent_ctx {
     const char *input_text;
     size_t input_text_len;
 
+    // Pending thinking blocks from response (for tool call messages)
+    char *pending_thinking_text;
+    char *pending_thinking_signature;
+    char *pending_redacted_data;
+
     // Tool execution state (per-agent)
     ik_tool_call_t *pending_tool_call;
     pthread_t tool_thread;

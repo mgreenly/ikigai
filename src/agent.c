@@ -130,6 +130,11 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Initialize viewport offset
     agent->viewport_offset = 0;
 
+    // Initialize pending thinking fields
+    agent->pending_thinking_text = NULL;
+    agent->pending_thinking_signature = NULL;
+    agent->pending_redacted_data = NULL;
+
     // Initialize tool execution state
     agent->pending_tool_call = NULL;
     agent->tool_thread_running = false;
