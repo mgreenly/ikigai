@@ -46,6 +46,9 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
     sctx->current_tool_id = NULL;
     sctx->current_tool_name = NULL;
     sctx->current_tool_args = NULL;
+    sctx->current_thinking_text = NULL;
+    sctx->current_thinking_signature = NULL;
+    sctx->current_redacted_data = NULL;
 
     *out = sctx;
     return OK(sctx);

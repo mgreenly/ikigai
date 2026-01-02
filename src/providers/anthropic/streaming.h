@@ -32,6 +32,9 @@ struct ik_anthropic_stream_ctx {
     char *current_tool_id;             /* Current tool call ID */
     char *current_tool_name;           /* Current tool call name */
     char *current_tool_args;           /* Accumulated tool call arguments */
+    char *current_thinking_text;       /* Accumulated thinking from thinking_delta */
+    char *current_thinking_signature;  /* Signature from signature_delta */
+    char *current_redacted_data;       /* Data from redacted_thinking block */
 };
 
 typedef struct ik_anthropic_stream_ctx ik_anthropic_stream_ctx_t;

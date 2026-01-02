@@ -86,6 +86,19 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
     } else if (strcmp(type_str, "thinking") == 0) {
         sctx->current_block_type = IK_CONTENT_THINKING;
         // No event emission for thinking blocks
+    } else if (strcmp(type_str, "redacted_thinking") == 0) {
+        sctx->current_block_type = IK_CONTENT_REDACTED_THINKING;
+
+        // Extract data field
+        yyjson_val *data_val = yyjson_obj_get(block_obj, "data");
+        if (data_val != NULL) {
+            const char *data = yyjson_get_str(data_val);
+            if (data != NULL) {
+                sctx->current_redacted_data = talloc_strdup(sctx, data);
+                if (sctx->current_redacted_data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        }
+        // No event emission for redacted_thinking blocks
     } else if (strcmp(type_str, "tool_use") == 0) {
         sctx->current_block_type = IK_CONTENT_TOOL_CALL; // LCOV_EXCL_BR_LINE
 
@@ -174,6 +187,14 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
         if (thinking_val != NULL) {
             const char *thinking = yyjson_get_str(thinking_val);
             if (thinking != NULL) {
+                // Accumulate thinking text
+                char *new_text = talloc_asprintf(sctx, "%s%s",
+                    sctx->current_thinking_text ? sctx->current_thinking_text : "",
+                    thinking);
+                if (new_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                talloc_free(sctx->current_thinking_text);
+                sctx->current_thinking_text = new_text;
+
                 // Emit IK_STREAM_THINKING_DELTA
                 ik_stream_event_t event = {
                     .type = IK_STREAM_THINKING_DELTA,
@@ -183,6 +204,19 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
                 sctx->stream_cb(&event, sctx->stream_ctx);
             }
         }
+    } else if (strcmp(type_str, "signature_delta") == 0) {
+        // Extract signature
+        yyjson_val *sig_val = yyjson_obj_get(delta_obj, "signature");
+        if (sig_val != NULL) {
+            const char *signature = yyjson_get_str(sig_val);
+            if (signature != NULL) {
+                // Store signature (overwrites previous - signature comes in one piece)
+                talloc_free(sctx->current_thinking_signature);
+                sctx->current_thinking_signature = talloc_strdup(sctx, signature);
+                if (sctx->current_thinking_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        }
+        // No event emission for signature_delta
     } else if (strcmp(type_str, "input_json_delta") == 0) {
         // Extract partial_json
         yyjson_val *json_val = yyjson_obj_get(delta_obj, "partial_json");
