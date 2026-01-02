@@ -199,22 +199,22 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         }
 
         // Parse optional thinking blocks
-        yyjson_val *thinking_obj = yyjson_obj_get(root, "thinking");
-        yyjson_val *redacted_obj = yyjson_obj_get(root, "redacted_thinking");
+        yyjson_val *thinking_obj = yyjson_obj_get_(root, "thinking");
+        yyjson_val *redacted_obj = yyjson_obj_get_(root, "redacted_thinking");
 
         const char *thinking_text = NULL;
         const char *thinking_sig = NULL;
         const char *redacted_data = NULL;
 
         if (thinking_obj != NULL && yyjson_is_obj(thinking_obj)) {
-            yyjson_val *text_val = yyjson_obj_get(thinking_obj, "text");
-            yyjson_val *sig_val = yyjson_obj_get(thinking_obj, "signature");
+            yyjson_val *text_val = yyjson_obj_get_(thinking_obj, "text");
+            yyjson_val *sig_val = yyjson_obj_get_(thinking_obj, "signature");
             thinking_text = yyjson_get_str(text_val);
             thinking_sig = yyjson_get_str(sig_val);
         }
 
         if (redacted_obj != NULL && yyjson_is_obj(redacted_obj)) {
-            yyjson_val *data_val = yyjson_obj_get(redacted_obj, "data");
+            yyjson_val *data_val = yyjson_obj_get_(redacted_obj, "data");
             redacted_data = yyjson_get_str(data_val);
         }
 

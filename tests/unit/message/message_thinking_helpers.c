@@ -171,6 +171,94 @@ START_TEST(test_from_db_tool_call_thinking_and_redacted) {
 
 END_TEST
 
+// Test: Tool call with thinking as non-object (should skip thinking block)
+START_TEST(test_from_db_tool_call_thinking_not_object) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":\"not an object\"}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    // thinking is not an object, so it should be skipped
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with redacted_thinking as non-object (should skip redacted block)
+START_TEST(test_from_db_tool_call_redacted_not_object) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"redacted_thinking\":\"not an object\"}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    // redacted_thinking is not an object, so it should be skipped
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with thinking object but no text field (should skip thinking block)
+START_TEST(test_from_db_tool_call_thinking_no_text) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"thinking\":{\"signature\":\"sig123\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    // thinking object has no text, so no thinking block created
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
+// Test: Tool call with redacted_thinking object but no data field (should skip redacted block)
+START_TEST(test_from_db_tool_call_redacted_no_data) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+            "\"redacted_thinking\":{\"other_field\":\"value\"}}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    // redacted_thinking object has no data, so no redacted block created
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+}
+
+END_TEST
+
 TCase *create_thinking_tcase(void)
 {
     TCase *tc = tcase_create("Thinking Blocks");
@@ -183,6 +271,10 @@ TCase *create_thinking_tcase(void)
     tcase_add_test(tc, test_from_db_tool_call_no_thinking);
     tcase_add_test(tc, test_from_db_tool_call_empty_thinking);
     tcase_add_test(tc, test_from_db_tool_call_thinking_and_redacted);
+    tcase_add_test(tc, test_from_db_tool_call_thinking_not_object);
+    tcase_add_test(tc, test_from_db_tool_call_redacted_not_object);
+    tcase_add_test(tc, test_from_db_tool_call_thinking_no_text);
+    tcase_add_test(tc, test_from_db_tool_call_redacted_no_data);
 
     return tc;
 }
