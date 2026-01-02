@@ -249,6 +249,27 @@ START_TEST(test_serialize_content_block_thinking_signature_field_fail) {
 }
 END_TEST
 
+START_TEST(test_serialize_content_block_redacted_thinking_type_field_fail) {
+    reset_mocks();
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_REDACTED_THINKING;
+    block.data.redacted_thinking.data = talloc_strdup(test_ctx, "redacted_data");
+
+    // Fail on the 1st call (adding "type" field)
+    mock_yyjson_mut_obj_add_str_fail_on_call = 1;
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(!result);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
 START_TEST(test_serialize_content_block_redacted_thinking_data_field_fail) {
     reset_mocks();
 
@@ -417,6 +438,7 @@ static Suite *request_serialize_coverage_suite_3(void)
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_tool_use_id_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_content_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_tool_result_is_error_field_fail);
+    tcase_add_test(tc_specific, test_serialize_content_block_redacted_thinking_type_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_redacted_thinking_data_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_invalid_type);
     suite_add_tcase(s, tc_specific);
