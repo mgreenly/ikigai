@@ -5,6 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-07] - 2026-01-02
+
+### Added
+
+#### Extended Thinking Support (Complete)
+- **Thinking signatures**: Added signature field to thinking content blocks for verification
+- **Redacted thinking type**: New IK_CONTENT_REDACTED_THINKING for encrypted thinking data
+- **Streaming capture**: Capture thinking signatures during streaming responses
+- **Serialization**: Full serialization support for thinking signatures across all providers
+- **Deep copy support**: Updated deep copy utilities to handle thinking signature fields
+- **Response builder**: Include thinking blocks in response construction
+- **Tool call integration**: Include thinking data in tool call messages
+- **Database persistence**: Store and restore thinking blocks with database replay
+- **Content block API**: Updated builder API for signature and redacted thinking types
+
+#### Dead Code Pruning System (Complete)
+- **/prune command**: Automated dead code removal with sub-agent orchestration
+- **Prune harness**: Two-phase approach with classification and deletion
+- **Model escalation**: Automatic escalation through model ladder on failures
+- **Per-test flow**: Process test files individually for safer deletion
+- **Debug mode**: --debug flag for troubleshooting with preserved workspace
+- **Function targeting**: --function flag to target specific functions
+- **False positives tracking**: dead-code-false-positives.txt for known exceptions
+
+#### Coverage Infrastructure
+- **Per-test coverage reports**: Individual coverage reports alongside XML test results
+- **Coverage map**: Source→test mapping in `.claude/data/source_tests.json`
+- **Early-commit strategy**: /coverage command prioritizes incremental commits
+
+### Changed
+
+#### Multi-Provider Improvements
+- **OpenAI tool calls**: Fixed handling when role appears in same delta chunk
+- **Streaming tool calls**: Implemented streaming tool call support for all providers
+- **OpenAI strict mode**: Add all properties to required array for schema compliance
+- **Tool schemas**: Added additionalProperties:false for stricter validation
+- **Google models**: Added Gemini 2.5 models with standardized naming
+- **SSE parsing**: Fixed CRLF support in Server-Sent Events parsing
+
+#### Code Quality & Refactoring
+- **CDD rename**: Renamed RPI (Release Process Infrastructure) to CDD (Context Driven Development)
+- **File splits**: Split 50+ large files to comply with 16KB limit
+- **Test organization**: Reorganized provider tests into focused modules
+- **Cyclomatic complexity**: Extracted helper functions to reduce complexity violations
+- **Skill compression**: Compressed skill files by ~40% while preserving content
+
+#### Bug Fixes
+- **Memory safety**: Use talloc_zero_array to prevent uninitialized memory access
+- **Use-after-free**: Fixed bugs detected by sanitizers in Google error parsing
+- **Thread leaks**: Fixed thread leak errors in repl_tool_completion_test
+- **Race conditions**: Fixed data races in test mock state and fork_pending flag
+- **Test timeouts**: Added 30-second timeouts to database tests
+
+### Development
+
+#### Testing & Quality Gates
+- **Test coverage**: Achieved and maintained 100% (lines, functions, branches)
+- **Branch coverage**: Improved from 99.6% to 100% across all source files
+- **Coverage exclusions**: Updated LCOV limit to 3405 for legitimate exclusions
+- **Sanitizer compliance**: Clean runs through ASan, UBSan, TSan
+- **Memory checkers**: All tests pass under Valgrind and Helgrind
+- **Test infrastructure**: Improved harness scripts with elapsed time and alignment
+
+#### Dead Code Removed
+- ik_anthropic_serialize_request, ik_anthropic_build_headers
+- ik_anthropic_validate_thinking, ik_anthropic_stream_get_usage
+- ik_anthropic_start_stream, ik_anthropic_parse_response
+- ik_anthropic_parse_error, ik_anthropic_get_retry_after
+- ik_config_get_default_provider, ik_completion_matches_prefix
+- ik_completion_clear, ik_byte_array_set, ik_byte_array_capacity
+- ik_ansi_init, ik_agent_apply_defaults
+- And many other unused functions
+
+### Technical Metrics
+- **Changes**: 1,433 files modified, +188,693/-37,528 lines
+- **Commits**: 817 commits over development cycle
+- **Test coverage**: 100% lines (12,578), functions (690), and branches (4,704)
+- **Code quality**: All lint, format, and sanitizer checks pass
+- **Quality gates**: 7 gates (lint, check, sanitize, tsan, valgrind, helgrind, coverage)
+
 ## [rel-06] - 2025-12-19
 
 ### Added
@@ -496,6 +576,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-07]: https://github.com/mgreenly/ikigai/releases/tag/rel-07
 [rel-06]: https://github.com/mgreenly/ikigai/releases/tag/rel-06
 [rel-05]: https://github.com/mgreenly/ikigai/releases/tag/rel-05
 [rel-04]: https://github.com/mgreenly/ikigai/releases/tag/rel-04
