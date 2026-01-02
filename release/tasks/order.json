@@ -1,0 +1,10 @@
+{
+  "tasks": [
+    {"task": "types.md", "group": "Core", "model": "sonnet", "thinking": "none"},
+    {"task": "content-block-api.md", "group": "Core", "model": "sonnet", "thinking": "none"},
+    {"task": "streaming-capture.md", "group": "Streaming", "model": "sonnet", "thinking": "none"},
+    {"task": "serialization.md", "group": "Serialization", "model": "sonnet", "thinking": "none"},
+    {"task": "deep-copy.md", "group": "Core", "model": "sonnet", "thinking": "none"},
+    {"task": "response-builder.md", "group": "Streaming", "model": "sonnet", "thinking": "none"}
+  ]
+}
