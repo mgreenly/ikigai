@@ -36,6 +36,9 @@ bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *a
         case IK_CONTENT_THINKING:
             if (!yyjson_mut_obj_add_str_(doc, obj, "type", "thinking")) return false;
             if (!yyjson_mut_obj_add_str_(doc, obj, "thinking", block->data.thinking.text)) return false;
+            if (block->data.thinking.signature != NULL) {
+                if (!yyjson_mut_obj_add_str_(doc, obj, "signature", block->data.thinking.signature)) return false;
+            }
             break;
 
         case IK_CONTENT_TOOL_CALL:
@@ -60,6 +63,11 @@ bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *a
             if (!yyjson_mut_obj_add_str_(doc, obj, "tool_use_id", block->data.tool_result.tool_call_id)) return false;
             if (!yyjson_mut_obj_add_str_(doc, obj, "content", block->data.tool_result.content)) return false;
             if (!yyjson_mut_obj_add_bool_(doc, obj, "is_error", block->data.tool_result.is_error)) return false;
+            break;
+
+        case IK_CONTENT_REDACTED_THINKING:
+            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "redacted_thinking")) return false;
+            if (!yyjson_mut_obj_add_str_(doc, obj, "data", block->data.redacted_thinking.data)) return false;
             break;
 
         default: // LCOV_EXCL_LINE

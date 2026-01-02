@@ -63,6 +63,7 @@ START_TEST(test_serialize_content_block_thinking_success) {
     ik_content_block_t block;
     block.type = IK_CONTENT_THINKING;
     block.data.thinking.text = talloc_strdup(test_ctx, "Let me think about this...");
+    block.data.thinking.signature = NULL;
 
     bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
 
@@ -78,6 +79,90 @@ START_TEST(test_serialize_content_block_thinking_success) {
 
     yyjson_mut_val *thinking = yyjson_mut_obj_get(obj, "thinking");
     ck_assert_str_eq(yyjson_mut_get_str(thinking), "Let me think about this...");
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_thinking_with_signature) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_THINKING;
+    block.data.thinking.text = talloc_strdup(test_ctx, "Deep analysis...");
+    block.data.thinking.signature = talloc_strdup(test_ctx, "EqQBCgIYAhIM...");
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(result);
+    ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
+
+    // Verify the serialized content
+    yyjson_mut_val *obj = yyjson_mut_arr_get(arr, 0);
+    ck_assert_ptr_nonnull(obj);
+
+    yyjson_mut_val *type = yyjson_mut_obj_get(obj, "type");
+    ck_assert_str_eq(yyjson_mut_get_str(type), "thinking");
+
+    yyjson_mut_val *thinking = yyjson_mut_obj_get(obj, "thinking");
+    ck_assert_str_eq(yyjson_mut_get_str(thinking), "Deep analysis...");
+
+    yyjson_mut_val *signature = yyjson_mut_obj_get(obj, "signature");
+    ck_assert_ptr_nonnull(signature);
+    ck_assert_str_eq(yyjson_mut_get_str(signature), "EqQBCgIYAhIM...");
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_thinking_null_signature) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_THINKING;
+    block.data.thinking.text = talloc_strdup(test_ctx, "Thinking without signature...");
+    block.data.thinking.signature = NULL;
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(result);
+
+    // Verify no signature field when NULL
+    yyjson_mut_val *obj = yyjson_mut_arr_get(arr, 0);
+    ck_assert_ptr_nonnull(obj);
+
+    yyjson_mut_val *signature = yyjson_mut_obj_get(obj, "signature");
+    ck_assert_ptr_null(signature);
+
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_redacted_thinking) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block;
+    block.type = IK_CONTENT_REDACTED_THINKING;
+    block.data.redacted_thinking.data = talloc_strdup(test_ctx, "EmwKAhgBEgy...");
+
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+
+    ck_assert(result);
+    ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
+
+    // Verify the serialized content
+    yyjson_mut_val *obj = yyjson_mut_arr_get(arr, 0);
+    ck_assert_ptr_nonnull(obj);
+
+    yyjson_mut_val *type = yyjson_mut_obj_get(obj, "type");
+    ck_assert_str_eq(yyjson_mut_get_str(type), "redacted_thinking");
+
+    yyjson_mut_val *data = yyjson_mut_obj_get(obj, "data");
+    ck_assert_ptr_nonnull(data);
+    ck_assert_str_eq(yyjson_mut_get_str(data), "EmwKAhgBEgy...");
 
     yyjson_mut_doc_free(doc);
 }
@@ -387,6 +472,9 @@ static Suite *request_serialize_success_suite(void)
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_serialize_content_block_text_success);
     tcase_add_test(tc_content, test_serialize_content_block_thinking_success);
+    tcase_add_test(tc_content, test_serialize_thinking_with_signature);
+    tcase_add_test(tc_content, test_serialize_thinking_null_signature);
+    tcase_add_test(tc_content, test_serialize_redacted_thinking);
     tcase_add_test(tc_content, test_serialize_content_block_tool_call_success);
     tcase_add_test(tc_content, test_serialize_content_block_tool_call_invalid_json);
     tcase_add_test(tc_content, test_serialize_content_block_tool_result_success);

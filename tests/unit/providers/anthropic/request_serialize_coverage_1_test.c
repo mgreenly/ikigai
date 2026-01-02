@@ -140,6 +140,7 @@ START_TEST(test_serialize_content_block_thinking_type_fail) {
     ik_content_block_t block;
     block.type = IK_CONTENT_THINKING;
     block.data.thinking.text = talloc_strdup(test_ctx, "Thinking...");
+    block.data.thinking.signature = NULL;
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
