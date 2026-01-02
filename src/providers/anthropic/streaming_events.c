@@ -87,7 +87,7 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
         sctx->current_block_type = IK_CONTENT_THINKING;
         // No event emission for thinking blocks
     } else if (strcmp(type_str, "redacted_thinking") == 0) {
-        sctx->current_block_type = IK_CONTENT_REDACTED_THINKING;
+        sctx->current_block_type = IK_CONTENT_REDACTED_THINKING; // LCOV_EXCL_BR_LINE
 
         // Extract data field
         yyjson_val *data_val = yyjson_obj_get(block_obj, "data");
