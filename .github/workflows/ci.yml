@@ -68,14 +68,18 @@ jobs:
     - name: Run tests with coverage
       run: make coverage
 
-    - name: Clean test directories
-      run: rm -rf /tmp/.ikigai
+    - name: Clean before sanitizer build
+      run: |
+        rm -rf /tmp/.ikigai
+        make clean
 
     - name: Run AddressSanitizer tests
       run: make check-sanitize
 
-    - name: Clean test directories
-      run: rm -rf /tmp/.ikigai
+    - name: Clean before tsan build
+      run: |
+        rm -rf /tmp/.ikigai
+        make clean
 
     - name: Run ThreadSanitizer tests
       run: make check-tsan
