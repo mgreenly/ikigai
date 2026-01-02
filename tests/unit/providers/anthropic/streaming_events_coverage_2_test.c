@@ -113,6 +113,23 @@ START_TEST(test_content_block_start_index_not_int) {
 
 END_TEST
 
+START_TEST(test_content_block_start_with_valid_index) {
+    /* Test content_block_start with valid index - line 62 branch (TRUE path) */
+    const char *json = "{\"index\": 3, \"content_block\": {\"type\": \"text\"}}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    ik_anthropic_process_content_block_start(stream_ctx, yyjson_doc_get_root(doc));
+
+    /* Index should be updated */
+    ck_assert_int_eq(stream_ctx->current_block_index, 3);
+    ck_assert_int_eq(stream_ctx->current_block_type, IK_CONTENT_TEXT);
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 START_TEST(test_content_block_start_no_content_block) {
     /* Test content_block_start without "content_block" field - line 67 branch (NULL) */
     const char *json = "{\"index\": 0}";
@@ -237,6 +254,7 @@ static Suite *streaming_events_coverage_suite_2(void)
     tcase_add_checked_fixture(tc_content_block_start, setup, teardown);
     tcase_add_test(tc_content_block_start, test_content_block_start_no_index_field);
     tcase_add_test(tc_content_block_start, test_content_block_start_index_not_int);
+    tcase_add_test(tc_content_block_start, test_content_block_start_with_valid_index);
     tcase_add_test(tc_content_block_start, test_content_block_start_no_content_block);
     tcase_add_test(tc_content_block_start, test_content_block_start_content_block_not_object);
     tcase_add_test(tc_content_block_start, test_content_block_start_no_type_field);
