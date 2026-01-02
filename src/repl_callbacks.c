@@ -203,10 +203,25 @@ static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *
 }
 
 /**
- * Helper to extract tool calls from response
+ * Helper to extract tool calls and thinking blocks from response
  */
 static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
+    // Clear any previous pending thinking
+    if (agent->pending_thinking_text != NULL) {
+        talloc_free(agent->pending_thinking_text);
+        agent->pending_thinking_text = NULL;
+    }
+    if (agent->pending_thinking_signature != NULL) {
+        talloc_free(agent->pending_thinking_signature);
+        agent->pending_thinking_signature = NULL;
+    }
+    if (agent->pending_redacted_data != NULL) {
+        talloc_free(agent->pending_redacted_data);
+        agent->pending_redacted_data = NULL;
+    }
+
+    // Clear any previous pending tool call
     if (agent->pending_tool_call != NULL) {
         talloc_free(agent->pending_tool_call);
         agent->pending_tool_call = NULL;
@@ -214,7 +229,22 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
 
     for (size_t i = 0; i < response->content_count; i++) {
         ik_content_block_t *block = &response->content_blocks[i];
-        if (block->type == IK_CONTENT_TOOL_CALL) {
+
+        if (block->type == IK_CONTENT_THINKING) {
+            if (block->data.thinking.text != NULL) {
+                agent->pending_thinking_text = talloc_strdup(agent, block->data.thinking.text);
+                if (agent->pending_thinking_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+            if (block->data.thinking.signature != NULL) {
+                agent->pending_thinking_signature = talloc_strdup(agent, block->data.thinking.signature);
+                if (agent->pending_thinking_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        } else if (block->type == IK_CONTENT_REDACTED_THINKING) {
+            if (block->data.redacted_thinking.data != NULL) {
+                agent->pending_redacted_data = talloc_strdup(agent, block->data.redacted_thinking.data);
+                if (agent->pending_redacted_data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        } else if (block->type == IK_CONTENT_TOOL_CALL) {
             agent->pending_tool_call = ik_tool_call_create(agent,
                                                            block->data.tool_call.id,
                                                            block->data.tool_call.name,
