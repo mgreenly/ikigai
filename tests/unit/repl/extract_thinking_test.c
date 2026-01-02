@@ -220,6 +220,113 @@ START_TEST(test_extract_clears_previous) {
 
 END_TEST
 
+// Test: Extract thinking block with NULL text field
+START_TEST(test_extract_thinking_null_text) {
+    // Create response with thinking block that has NULL text
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "claude-sonnet-4-5");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 100;
+
+    // Create thinking content block with NULL text but valid signature
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_THINKING;
+    response->content_blocks[0].data.thinking.text = NULL;
+    response->content_blocks[0].data.thinking.signature = talloc_strdup(response, "EqQBCgIYAhIM...");
+
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = IK_ERR_CAT_UNKNOWN,
+        .error_message = NULL,
+        .retry_after_ms = -1
+    };
+
+    // Call completion callback
+    res_t result = ik_repl_completion_callback(&completion, agent);
+    ck_assert(is_ok(&result));
+
+    // Verify thinking text is NULL but signature was stored
+    ck_assert_ptr_null(agent->pending_thinking_text);
+    ck_assert_ptr_nonnull(agent->pending_thinking_signature);
+    ck_assert_str_eq(agent->pending_thinking_signature, "EqQBCgIYAhIM...");
+}
+
+END_TEST
+
+// Test: Extract thinking block with NULL signature field
+START_TEST(test_extract_thinking_null_signature) {
+    // Create response with thinking block that has NULL signature
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "claude-sonnet-4-5");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 100;
+
+    // Create thinking content block with valid text but NULL signature
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_THINKING;
+    response->content_blocks[0].data.thinking.text = talloc_strdup(response, "Let me solve this...");
+    response->content_blocks[0].data.thinking.signature = NULL;
+
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = IK_ERR_CAT_UNKNOWN,
+        .error_message = NULL,
+        .retry_after_ms = -1
+    };
+
+    // Call completion callback
+    res_t result = ik_repl_completion_callback(&completion, agent);
+    ck_assert(is_ok(&result));
+
+    // Verify thinking text was stored but signature is NULL
+    ck_assert_ptr_nonnull(agent->pending_thinking_text);
+    ck_assert_str_eq(agent->pending_thinking_text, "Let me solve this...");
+    ck_assert_ptr_null(agent->pending_thinking_signature);
+}
+
+END_TEST
+
+// Test: Extract redacted thinking with NULL data field
+START_TEST(test_extract_redacted_thinking_null_data) {
+    // Create response with redacted thinking block that has NULL data
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "claude-sonnet-4-5");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 100;
+
+    // Create redacted thinking content block with NULL data
+    response->content_count = 1;
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
+    response->content_blocks[0].type = IK_CONTENT_REDACTED_THINKING;
+    response->content_blocks[0].data.redacted_thinking.data = NULL;
+
+    ik_provider_completion_t completion = {
+        .success = true,
+        .http_status = 200,
+        .response = response,
+        .error_category = IK_ERR_CAT_UNKNOWN,
+        .error_message = NULL,
+        .retry_after_ms = -1
+    };
+
+    // Call completion callback
+    res_t result = ik_repl_completion_callback(&completion, agent);
+    ck_assert(is_ok(&result));
+
+    // Verify redacted data is NULL (not stored)
+    ck_assert_ptr_null(agent->pending_thinking_text);
+    ck_assert_ptr_null(agent->pending_thinking_signature);
+    ck_assert_ptr_null(agent->pending_redacted_data);
+}
+
+END_TEST
+
 /*
  * Test suite
  */
@@ -235,6 +342,9 @@ static Suite *extract_thinking_suite(void)
     tcase_add_test(tc_core, test_extract_redacted_thinking);
     tcase_add_test(tc_core, test_extract_thinking_with_tool_call);
     tcase_add_test(tc_core, test_extract_clears_previous);
+    tcase_add_test(tc_core, test_extract_thinking_null_text);
+    tcase_add_test(tc_core, test_extract_thinking_null_signature);
+    tcase_add_test(tc_core, test_extract_redacted_thinking_null_data);
     suite_add_tcase(s, tc_core);
 
     return s;
