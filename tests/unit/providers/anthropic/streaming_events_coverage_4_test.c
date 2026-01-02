@@ -66,6 +66,33 @@ START_TEST(test_message_delta_with_thinking_tokens) {
 }
 END_TEST
 
+START_TEST(test_message_stop) {
+    /* Test message_stop - should emit IK_STREAM_DONE with accumulated usage */
+    stream_ctx->usage.input_tokens = 25;
+    stream_ctx->usage.output_tokens = 100;
+    stream_ctx->usage.thinking_tokens = 50;
+    stream_ctx->usage.total_tokens = 175;
+    stream_ctx->finish_reason = IK_FINISH_STOP;
+
+    const char *json = "{}";
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    ik_anthropic_process_message_stop(stream_ctx, yyjson_doc_get_root(doc));
+
+    /* Should emit IK_STREAM_DONE event */
+    ck_assert_int_eq((int)captured_count, 1);
+    ck_assert_int_eq(captured_events[0].type, IK_STREAM_DONE);
+    ck_assert_int_eq(captured_events[0].data.done.finish_reason, IK_FINISH_STOP);
+    ck_assert_int_eq(captured_events[0].data.done.usage.input_tokens, 25);
+    ck_assert_int_eq(captured_events[0].data.done.usage.output_tokens, 100);
+    ck_assert_int_eq(captured_events[0].data.done.usage.thinking_tokens, 50);
+    ck_assert_int_eq(captured_events[0].data.done.usage.total_tokens, 175);
+
+    yyjson_doc_free(doc);
+}
+END_TEST
+
 START_TEST(test_error_no_object) {
     const char *json = "{}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
@@ -135,6 +162,7 @@ static Suite *streaming_events_coverage_suite_4(void)
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_message_delta_no_usage);
     tcase_add_test(tc, test_message_delta_with_thinking_tokens);
+    tcase_add_test(tc, test_message_stop);
     tcase_add_test(tc, test_error_no_object);
     tcase_add_test(tc, test_error_authentication);
     tcase_add_test(tc, test_error_rate_limit);
