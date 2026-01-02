@@ -150,6 +150,7 @@ START_TEST(test_clone_messages_thinking) {
     msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
     msg->content_blocks[0].type = IK_CONTENT_THINKING;
     msg->content_blocks[0].data.thinking.text = talloc_strdup(msg, "Let me think...");
+    msg->content_blocks[0].data.thinking.signature = NULL;
     msg->provider_metadata = NULL;
 
     ik_agent_add_message(src, msg);
@@ -160,6 +161,56 @@ START_TEST(test_clone_messages_thinking) {
     ck_assert_uint_eq(dest->message_count, 1);
     ck_assert_int_eq(dest->messages[0]->content_blocks[0].type, IK_CONTENT_THINKING);
     ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.thinking.text, "Let me think...");
+}
+
+END_TEST
+
+START_TEST(test_clone_thinking_with_signature) {
+    ik_agent_ctx_t *src = create_test_agent(test_ctx);
+    ik_agent_ctx_t *dest = create_test_agent(test_ctx);
+
+    ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
+    msg->role = IK_ROLE_ASSISTANT;
+    msg->content_count = 1;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks[0].type = IK_CONTENT_THINKING;
+    msg->content_blocks[0].data.thinking.text = talloc_strdup(msg, "Let me analyze...");
+    msg->content_blocks[0].data.thinking.signature = talloc_strdup(msg, "EqQBCgIYAhIM...");
+    msg->provider_metadata = NULL;
+
+    ik_agent_add_message(src, msg);
+
+    res_t r = ik_agent_clone_messages(dest, src);
+
+    ck_assert(!is_err(&r));
+    ck_assert_uint_eq(dest->message_count, 1);
+    ck_assert_int_eq(dest->messages[0]->content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.thinking.text, "Let me analyze...");
+    ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.thinking.signature, "EqQBCgIYAhIM...");
+}
+
+END_TEST
+
+START_TEST(test_clone_redacted_thinking) {
+    ik_agent_ctx_t *src = create_test_agent(test_ctx);
+    ik_agent_ctx_t *dest = create_test_agent(test_ctx);
+
+    ik_message_t *msg = talloc_zero(test_ctx, ik_message_t);
+    msg->role = IK_ROLE_ASSISTANT;
+    msg->content_count = 1;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks[0].type = IK_CONTENT_REDACTED_THINKING;
+    msg->content_blocks[0].data.redacted_thinking.data = talloc_strdup(msg, "EmwKAhgBEgy...");
+    msg->provider_metadata = NULL;
+
+    ik_agent_add_message(src, msg);
+
+    res_t r = ik_agent_clone_messages(dest, src);
+
+    ck_assert(!is_err(&r));
+    ck_assert_uint_eq(dest->message_count, 1);
+    ck_assert_int_eq(dest->messages[0]->content_blocks[0].type, IK_CONTENT_REDACTED_THINKING);
+    ck_assert_str_eq(dest->messages[0]->content_blocks[0].data.redacted_thinking.data, "EmwKAhgBEgy...");
 }
 
 END_TEST
@@ -266,6 +317,8 @@ static Suite *agent_messages_suite(void)
     tcase_add_test(tc_clone, test_clone_messages_empty);
     tcase_add_test(tc_clone, test_clone_messages_text);
     tcase_add_test(tc_clone, test_clone_messages_thinking);
+    tcase_add_test(tc_clone, test_clone_thinking_with_signature);
+    tcase_add_test(tc_clone, test_clone_redacted_thinking);
     tcase_add_test(tc_clone, test_clone_messages_tool_call);
     tcase_add_test(tc_clone, test_clone_messages_tool_result);
     tcase_add_test(tc_clone, test_clone_messages_with_provider_metadata);

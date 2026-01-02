@@ -209,6 +209,17 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
         case IK_CONTENT_THINKING:
             dst->data.thinking.text = talloc_strdup(copy, src->data.thinking.text);
             if (dst->data.thinking.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            if (src->data.thinking.signature != NULL) {
+                dst->data.thinking.signature = talloc_strdup(copy, src->data.thinking.signature);
+                if (dst->data.thinking.signature == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            } else {
+                dst->data.thinking.signature = NULL;
+            }
+            break;
+
+        case IK_CONTENT_REDACTED_THINKING:
+            dst->data.redacted_thinking.data = talloc_strdup(copy, src->data.redacted_thinking.data);
+            if (dst->data.redacted_thinking.data == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             break;
 
         default: // LCOV_EXCL_LINE

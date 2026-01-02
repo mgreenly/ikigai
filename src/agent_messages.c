@@ -66,10 +66,19 @@ static void clone_content_block(ik_content_block_t *dest_block,
         dest_block->data.tool_result.content = talloc_strdup(ctx, src_block->data.tool_result.content);
         if (!dest_block->data.tool_result.content) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         dest_block->data.tool_result.is_error = src_block->data.tool_result.is_error;
-    } else {
-        // IK_CONTENT_THINKING (only remaining type)
+    } else if (src_block->type == IK_CONTENT_THINKING) {
         dest_block->data.thinking.text = talloc_strdup(ctx, src_block->data.thinking.text);
         if (!dest_block->data.thinking.text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (src_block->data.thinking.signature != NULL) {
+            dest_block->data.thinking.signature = talloc_strdup(ctx, src_block->data.thinking.signature);
+            if (!dest_block->data.thinking.signature) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        } else {
+            dest_block->data.thinking.signature = NULL;
+        }
+    } else {
+        // IK_CONTENT_REDACTED_THINKING (only remaining type)
+        dest_block->data.redacted_thinking.data = talloc_strdup(ctx, src_block->data.redacted_thinking.data);
+        if (!dest_block->data.redacted_thinking.data) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     }
 }
 
