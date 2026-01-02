@@ -142,15 +142,55 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
     resp->finish_reason = sctx->finish_reason;
     resp->usage = sctx->usage;
 
-    // Check if we have a tool call to include
-    if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
-        // Allocate content blocks array with one tool call
-        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
-        if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        resp->content_count = 1;
+    // Count content blocks dynamically
+    // Order: thinking (or redacted_thinking), then tool_call
+    bool has_thinking = (sctx->current_thinking_text != NULL);
+    bool has_redacted = (sctx->current_redacted_data != NULL);
+    bool has_tool = (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL);
 
-        // Populate tool call content block
-        ik_content_block_t *block = &resp->content_blocks[0];
+    uint32_t block_count = 0;
+    if (has_thinking) block_count++;
+    if (has_redacted) block_count++;
+    if (has_tool) block_count++;
+
+    if (block_count == 0) {
+        resp->content_blocks = NULL;
+        resp->content_count = 0;
+        return resp;
+    }
+
+    // Allocate content blocks array
+    resp->content_blocks = talloc_array(resp, ik_content_block_t, block_count);
+    if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    resp->content_count = block_count;
+
+    uint32_t idx = 0;
+
+    // Populate thinking block (comes first in Anthropic responses)
+    if (has_thinking) {
+        ik_content_block_t *block = &resp->content_blocks[idx++];
+        block->type = IK_CONTENT_THINKING;
+        block->data.thinking.text = talloc_strdup(resp->content_blocks, sctx->current_thinking_text);
+        if (block->data.thinking.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (sctx->current_thinking_signature != NULL) {
+            block->data.thinking.signature = talloc_strdup(resp->content_blocks, sctx->current_thinking_signature);
+            if (block->data.thinking.signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            block->data.thinking.signature = NULL;
+        }
+    }
+
+    // Populate redacted thinking block (replaces regular thinking, but can coexist)
+    if (has_redacted) {
+        ik_content_block_t *block = &resp->content_blocks[idx++];
+        block->type = IK_CONTENT_REDACTED_THINKING;
+        block->data.redacted_thinking.data = talloc_strdup(resp->content_blocks, sctx->current_redacted_data);
+        if (block->data.redacted_thinking.data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Populate tool call block (comes after thinking blocks)
+    if (has_tool) {
+        ik_content_block_t *block = &resp->content_blocks[idx++];
         block->type = IK_CONTENT_TOOL_CALL;
         block->data.tool_call.id = talloc_strdup(resp->content_blocks, sctx->current_tool_id);
         if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -159,10 +199,6 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
         block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
             sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    } else {
-        // No tool call - empty content
-        resp->content_blocks = NULL;
-        resp->content_count = 0;
     }
 
     return resp;
