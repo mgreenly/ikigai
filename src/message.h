@@ -41,6 +41,32 @@ ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char
 ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments);
 
 /**
+ * Create assistant message with thinking and tool call blocks
+ *
+ * Creates a message containing:
+ * 1. Thinking block (if thinking_text != NULL)
+ * 2. Redacted thinking block (if redacted_data != NULL)
+ * 3. Tool call block
+ *
+ * @param ctx              Talloc parent
+ * @param thinking_text    Thinking text (may be NULL)
+ * @param thinking_sig     Thinking signature (may be NULL)
+ * @param redacted_data    Redacted thinking data (may be NULL)
+ * @param tool_id          Tool call ID
+ * @param tool_name        Tool name
+ * @param tool_args        Tool arguments JSON
+ * @return                 Allocated message
+ */
+ik_message_t *ik_message_create_tool_call_with_thinking(
+    TALLOC_CTX *ctx,
+    const char *thinking_text,
+    const char *thinking_sig,
+    const char *redacted_data,
+    const char *tool_id,
+    const char *tool_name,
+    const char *tool_args);
+
+/**
  * Create a tool result message
  *
  * Creates an ik_message_t with IK_ROLE_TOOL and a single tool result content block.

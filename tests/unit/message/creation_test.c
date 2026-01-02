@@ -78,6 +78,114 @@ START_TEST(test_message_create_tool_result) {
 
 END_TEST
 
+START_TEST(test_create_tool_call_with_thinking) {
+    ik_message_t *msg = ik_message_create_tool_call_with_thinking(
+        test_ctx,
+        "Let me think about this...",
+        "sig123",
+        NULL,
+        "call_456",
+        "grep",
+        "{\"pattern\":\"test\"}");
+
+    ck_assert_ptr_nonnull(msg);
+    ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(msg->content_count, 2);
+    ck_assert_ptr_nonnull(msg->content_blocks);
+
+    // First block should be thinking
+    ck_assert_int_eq(msg->content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(msg->content_blocks[0].data.thinking.text, "Let me think about this...");
+    ck_assert_str_eq(msg->content_blocks[0].data.thinking.signature, "sig123");
+
+    // Second block should be tool_call
+    ck_assert_int_eq(msg->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(msg->content_blocks[1].data.tool_call.id, "call_456");
+    ck_assert_str_eq(msg->content_blocks[1].data.tool_call.name, "grep");
+    ck_assert_str_eq(msg->content_blocks[1].data.tool_call.arguments, "{\"pattern\":\"test\"}");
+}
+
+END_TEST
+
+START_TEST(test_create_tool_call_with_redacted) {
+    ik_message_t *msg = ik_message_create_tool_call_with_thinking(
+        test_ctx,
+        NULL,
+        NULL,
+        "encrypted_data_xyz",
+        "call_789",
+        "bash",
+        "{\"cmd\":\"ls\"}");
+
+    ck_assert_ptr_nonnull(msg);
+    ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(msg->content_count, 2);
+
+    // First block should be redacted thinking
+    ck_assert_int_eq(msg->content_blocks[0].type, IK_CONTENT_REDACTED_THINKING);
+    ck_assert_str_eq(msg->content_blocks[0].data.redacted_thinking.data, "encrypted_data_xyz");
+
+    // Second block should be tool_call
+    ck_assert_int_eq(msg->content_blocks[1].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(msg->content_blocks[1].data.tool_call.id, "call_789");
+}
+
+END_TEST
+
+START_TEST(test_create_tool_call_no_thinking) {
+    ik_message_t *msg = ik_message_create_tool_call_with_thinking(
+        test_ctx,
+        NULL,
+        NULL,
+        NULL,
+        "call_simple",
+        "echo",
+        "{\"text\":\"hi\"}");
+
+    ck_assert_ptr_nonnull(msg);
+    ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(msg->content_count, 1);
+
+    // Only block should be tool_call
+    ck_assert_int_eq(msg->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(msg->content_blocks[0].data.tool_call.id, "call_simple");
+    ck_assert_str_eq(msg->content_blocks[0].data.tool_call.name, "echo");
+}
+
+END_TEST
+
+START_TEST(test_create_tool_call_with_signature) {
+    ik_message_t *msg = ik_message_create_tool_call_with_thinking(
+        test_ctx,
+        "Analyzing the request",
+        "base64_signature_here",
+        NULL,
+        "call_sig",
+        "read",
+        "{\"path\":\"/tmp/test\"}");
+
+    ck_assert_ptr_nonnull(msg);
+    ck_assert_uint_eq(msg->content_count, 2);
+
+    // Verify signature is copied
+    ck_assert_str_eq(msg->content_blocks[0].data.thinking.signature, "base64_signature_here");
+
+    // Test without signature
+    ik_message_t *msg2 = ik_message_create_tool_call_with_thinking(
+        test_ctx,
+        "No signature thinking",
+        NULL,
+        NULL,
+        "call_nosig",
+        "write",
+        "{}");
+
+    ck_assert_ptr_nonnull(msg2);
+    ck_assert_ptr_null(msg2->content_blocks[0].data.thinking.signature);
+}
+
+END_TEST
+
 START_TEST(test_message_from_db_msg_user) {
     char kind[] = "user";
     char content[] = "Hello world";
@@ -348,6 +456,10 @@ static Suite *creation_suite(void)
     tcase_add_test(tc, test_message_create_text_assistant);
     tcase_add_test(tc, test_message_create_tool_call);
     tcase_add_test(tc, test_message_create_tool_result);
+    tcase_add_test(tc, test_create_tool_call_with_thinking);
+    tcase_add_test(tc, test_create_tool_call_with_redacted);
+    tcase_add_test(tc, test_create_tool_call_no_thinking);
+    tcase_add_test(tc, test_create_tool_call_with_signature);
     tcase_add_test(tc, test_message_from_db_msg_user);
     tcase_add_test(tc, test_message_from_db_msg_tool_call);
     tcase_add_test(tc, test_message_from_db_msg_tool_result);

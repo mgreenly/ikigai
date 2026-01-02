@@ -52,6 +52,69 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
     return msg;
 }
 
+ik_message_t *ik_message_create_tool_call_with_thinking(
+    TALLOC_CTX *ctx,
+    const char *thinking_text,
+    const char *thinking_sig,
+    const char *redacted_data,
+    const char *tool_id,
+    const char *tool_name,
+    const char *tool_args)
+{
+    assert(tool_id != NULL);    // LCOV_EXCL_BR_LINE
+    assert(tool_name != NULL);  // LCOV_EXCL_BR_LINE
+    assert(tool_args != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Count blocks
+    size_t block_count = 1;  // tool_call always present
+    if (thinking_text != NULL) block_count++;
+    if (redacted_data != NULL) block_count++;
+
+    ik_message_t *msg = talloc_zero(ctx, ik_message_t);
+    if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    msg->role = IK_ROLE_ASSISTANT;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, (unsigned int)block_count);
+    if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->content_count = block_count;
+    msg->provider_metadata = NULL;
+
+    size_t idx = 0;
+
+    // Add thinking block first (if present)
+    if (thinking_text != NULL) {
+        msg->content_blocks[idx].type = IK_CONTENT_THINKING;
+        msg->content_blocks[idx].data.thinking.text = talloc_strdup(msg, thinking_text);
+        if (!msg->content_blocks[idx].data.thinking.text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (thinking_sig != NULL) {
+            msg->content_blocks[idx].data.thinking.signature = talloc_strdup(msg, thinking_sig);
+            if (!msg->content_blocks[idx].data.thinking.signature) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        } else {
+            msg->content_blocks[idx].data.thinking.signature = NULL;
+        }
+        idx++;
+    }
+
+    // Add redacted thinking (if present)
+    if (redacted_data != NULL) {
+        msg->content_blocks[idx].type = IK_CONTENT_REDACTED_THINKING;
+        msg->content_blocks[idx].data.redacted_thinking.data = talloc_strdup(msg, redacted_data);
+        if (!msg->content_blocks[idx].data.redacted_thinking.data) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        idx++;
+    }
+
+    // Add tool_call - populate directly (don't use helper which allocates separately)
+    msg->content_blocks[idx].type = IK_CONTENT_TOOL_CALL;
+    msg->content_blocks[idx].data.tool_call.id = talloc_strdup(msg, tool_id);
+    if (!msg->content_blocks[idx].data.tool_call.id) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->content_blocks[idx].data.tool_call.name = talloc_strdup(msg, tool_name);
+    if (!msg->content_blocks[idx].data.tool_call.name) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->content_blocks[idx].data.tool_call.arguments = talloc_strdup(msg, tool_args);
+    if (!msg->content_blocks[idx].data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    return msg;
+}
+
 ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
                                             const char *content, bool is_error)
 {

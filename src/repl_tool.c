@@ -220,7 +220,27 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     char *summary = talloc_asprintf(agent, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_message_t *tc_msg = ik_message_create_tool_call(agent, tc->id, tc->name, tc->arguments);
+    ik_message_t *tc_msg = ik_message_create_tool_call_with_thinking(
+        agent,
+        agent->pending_thinking_text,
+        agent->pending_thinking_signature,
+        agent->pending_redacted_data,
+        tc->id, tc->name, tc->arguments);
+
+    // Clear pending thinking after use
+    if (agent->pending_thinking_text != NULL) {
+        talloc_free(agent->pending_thinking_text);
+        agent->pending_thinking_text = NULL;
+    }
+    if (agent->pending_thinking_signature != NULL) {
+        talloc_free(agent->pending_thinking_signature);
+        agent->pending_thinking_signature = NULL;
+    }
+    if (agent->pending_redacted_data != NULL) {
+        talloc_free(agent->pending_redacted_data);
+        agent->pending_redacted_data = NULL;
+    }
+
     res_t result = ik_agent_add_message(agent, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
