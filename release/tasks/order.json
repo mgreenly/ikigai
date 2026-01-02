@@ -1,9 +1,0 @@
-{
-  "tasks": [
-    {"task": "agent-context.md", "group": "Phase2-Core", "model": "sonnet", "thinking": "none"},
-    {"task": "extract-thinking.md", "group": "Phase2-Core", "model": "sonnet", "thinking": "none"},
-    {"task": "tool-call-message.md", "group": "Phase2-Integration", "model": "sonnet", "thinking": "none"},
-    {"task": "db-persistence.md", "group": "Phase2-Database", "model": "sonnet", "thinking": "none"},
-    {"task": "db-restore.md", "group": "Phase2-Database", "model": "sonnet", "thinking": "none"}
-  ]
-}
