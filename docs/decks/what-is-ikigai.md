@@ -62,6 +62,7 @@ advantage of those ideas.
 -> Structured Context <-
 -> Historical Message Summaries <-
 -> Sliding Context Window <-
+-> External Agents <-
 
 ---
 
@@ -148,8 +149,7 @@ Using `/pin` and `/unpin`
   * It lists skills.
 
   [ [system-prompt],
-    [memory-files],
-    [artifacts],
+    [pinned-files],
     [skill-set],
     [tool-set],
     [historical-summary],
