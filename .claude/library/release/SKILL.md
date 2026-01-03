@@ -129,7 +129,7 @@ Before creating a release commit:
 1. `make fmt` - Code formatted
 2. `make check` - All tests pass
 3. `make lint` - Complexity/size checks pass
-4. `make coverage` - 100% coverage maintained
+4. `make check-coverage` - 100% coverage maintained
 5. `make check-dynamic` - Sanitizers pass
 6. Update `CHANGELOG.md` with release notes
 

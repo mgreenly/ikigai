@@ -39,10 +39,10 @@ Build system for ikigai multi-model coding agent with comprehensive testing, qua
 
 ## Quality Assurance
 
-- `make coverage` - Generate code coverage report and enforce coverage thresholds.
-- `make lint` - Run all lint checks (complexity and filesize).
-- `make complexity` - Check cyclomatic complexity and nesting depth against thresholds.
-- `make filesize` - Verify all source and documentation files are below size limits.
+- `make check-coverage` - Generate code coverage report and enforce coverage thresholds.
+- `make lint` - Run all lint checks (complexity and check-filesize).
+- `make check-complexity` - Check cyclomatic complexity and nesting depth against thresholds.
+- `make check-filesize` - Verify all source and documentation files are below size limits.
 - `make ci` - Run complete CI pipeline (lint, coverage, all tests, all dynamic analysis).
 
 ## Code Formatting
@@ -85,7 +85,7 @@ make fmt                             # Format code before commit
 
 # Quality assurance
 make lint                            # Check complexity and file sizes
-make coverage                        # Generate coverage report
+make check-coverage                  # Generate coverage report
 make check-dynamic                   # Run all sanitizers and Valgrind
 
 # Release workflow
@@ -100,7 +100,7 @@ make distro-package                  # Build deb/rpm packages
 # Custom builds
 make all BUILD=release               # Build in release mode
 make check BUILD=sanitize            # Run tests with sanitizers
-make coverage COVERAGE_THRESHOLD=95  # Require 95% coverage
+make check-coverage COVERAGE_THRESHOLD=95  # Require 95% coverage
 
 # Distribution testing
 make distro-check DISTROS="debian"   # Test only on Debian

@@ -35,7 +35,7 @@ Follow strict Red/Green/Verify cycle:
 
 - `make check` - All tests must pass
 - `make lint` - Code complexity under threshold
-- `make coverage` - **100% coverage is MANDATORY**
+- `make check-coverage` - **100% coverage is MANDATORY**
 
 ## Coverage Phase Requirements
 

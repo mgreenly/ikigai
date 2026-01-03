@@ -77,7 +77,7 @@ while (concerns feel substantive):
 
 **Process:**
 ```
-/orchestrate → /quality → /refactor → /quality
+/orchestrate → /check-quality → /refactor → /check-quality
 ```
 
 **Why this structure:** Execution is unattended. No human to provide missing context. Task files must be complete or sub-agents will fail, research (wasting tokens), or succeed partially (creating debt).

@@ -7,6 +7,7 @@ You have ONE job: add tests to cover the gaps in the source file described below
 ## Load Required Skills
 
 Before starting, load these skills for context:
+- /load coverage
 - /load errors
 - /load lcov
 - /load memory

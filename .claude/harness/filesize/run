@@ -106,11 +106,11 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tu
 
 
 def run_make_filesize() -> tuple[bool, str]:
-    """Run make filesize and return (success, output)."""
-    log("Running make filesize...")
-    spinner = Spinner("Running make filesize")
+    """Run make check-filesize and return (success, output)."""
+    log("Running make check-filesize...")
+    spinner = Spinner("Running make check-filesize")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "filesize"])
+    code, stdout, stderr = run_cmd(["make", "check-filesize"])
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
@@ -322,7 +322,7 @@ def main() -> int:
     failures = parse_failures(output)
 
     if not failures:
-        log("make filesize failed but couldn't parse failures")
+        log("make check-filesize failed but couldn't parse failures")
         log("Output tail:")
         for line in output.split('\n')[-20:]:
             log(f"  {line}")
@@ -356,7 +356,7 @@ def main() -> int:
             failures = parse_failures(output)
 
             if not failures:
-                log("make filesize failed but couldn't parse failures")
+                log("make check-filesize failed but couldn't parse failures")
                 log("Output tail:")
                 for line in output.split('\n')[-20:]:
                     log(f"  {line}")

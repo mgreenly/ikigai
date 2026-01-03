@@ -31,7 +31,7 @@ BEFORE creating ANY commit with source code changes (no exceptions):
 1. `make fmt` - Format code
 2. `make check` - ALL tests pass (100%)
 3. `make lint` - ALL complexity/file size checks pass
-4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
+4. `make check-coverage` - ALL metrics (lines, functions, branches) at 100.0%
 5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
 
 If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
@@ -72,7 +72,7 @@ jj git fetch
 jj rebase -d main
 
 # Run all quality checks
-make fmt && make check && make lint && make coverage && make check-dynamic
+make fmt && make check && make lint && make check-coverage && make check-dynamic
 
 # Create release bookmark
 jj bookmark create rel-XX

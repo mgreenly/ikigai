@@ -4,7 +4,7 @@ sys.dont_write_bytecode = True
 """
 harness/complexity - Automated complexity fix loop
 
-Runs make complexity, fixes complex functions one at a time with escalation,
+Runs make check-complexity, fixes complex functions one at a time with escalation,
 commits on success, reverts on exhaustion, continues until all pass or
 no progress is made.
 """
@@ -106,11 +106,11 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tu
 
 
 def run_make_complexity() -> tuple[bool, str]:
-    """Run make complexity and return (success, output)."""
-    log("Running make complexity...")
-    spinner = Spinner("Running make complexity")
+    """Run make check-complexity and return (success, output)."""
+    log("Running make check-complexity...")
+    spinner = Spinner("Running make check-complexity")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "complexity"])
+    code, stdout, stderr = run_cmd(["make", "check-complexity"])
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
@@ -118,7 +118,7 @@ def run_make_complexity() -> tuple[bool, str]:
 
 def parse_failures(output: str) -> list[dict]:
     """
-    Parse make complexity output to extract complex functions.
+    Parse make check-complexity output to extract complex functions.
     Returns list of {file, line, function, score, issue_type} dicts.
     """
     failures = []
@@ -357,7 +357,7 @@ def main() -> int:
     failures = parse_failures(output)
 
     if not failures:
-        log("make complexity failed but couldn't parse failures")
+        log("make check-complexity failed but couldn't parse failures")
         log("Output tail:")
         for line in output.split('\n')[-20:]:
             log(f"  {line}")
@@ -391,7 +391,7 @@ def main() -> int:
             failures = parse_failures(output)
 
             if not failures:
-                log("make complexity failed but couldn't parse failures")
+                log("make check-complexity failed but couldn't parse failures")
                 log("Output tail:")
                 for line in output.split('\n')[-20:]:
                     log(f"  {line}")

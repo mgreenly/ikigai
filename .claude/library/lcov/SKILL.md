@@ -1,34 +1,27 @@
 ---
 name: lcov
-description: LCOV skill for the ikigai project
+description: LCOV tooling - finding gaps, parsing coverage files, marker syntax
 ---
 
-# LCOV
-
-## Description
-Coverage tooling: finding gaps, reading coverage.info, using exclusion markers.
+# LCOV Tooling
 
 ## Finding Coverage Gaps
 
-Run coverage build first:
 ```bash
-make coverage
-```
+# Run coverage first
+make check-coverage
 
-Then find gaps:
-
-```bash
-# Uncovered lines (DA = data line)
+# Uncovered lines
 grep "^DA:" reports/coverage/coverage.info | grep ",0$"
 
-# Uncovered branches (BRDA = branch data)
+# Uncovered branches
 grep "^BRDA:" reports/coverage/coverage.info | grep ",0$"
 
-# Uncovered functions (FN = function)
+# Uncovered functions
 grep "^FNDA:0," reports/coverage/coverage.info
 ```
 
-## Understanding coverage.info Format
+## coverage.info Format
 
 ```
 SF:/path/to/file.c          # Source file
@@ -48,68 +41,44 @@ Key patterns:
 
 ## Coverage Files
 
-### Full Coverage (`make coverage`)
+| Command | Output |
+|---------|--------|
+| `make check-coverage` | `reports/coverage/coverage.info`, `reports/coverage/summary.txt` |
+| `make check-coverage TEST=unit/foo` | `reports/coverage/unit/foo.coverage.info`, `.coverage.txt` |
 
-| File | Purpose |
-|------|---------|
-| `reports/coverage/coverage.info` | Primary data (parse with grep) |
-| `reports/coverage/summary.txt` | Human-readable summary |
+## Exclusion Markers
 
-### Per-Test Coverage (`make coverage TEST=<test_path>`)
+| Marker | Effect |
+|--------|--------|
+| `LCOV_EXCL_LINE` | Exclude entire line |
+| `LCOV_EXCL_BR_LINE` | Exclude branch only |
+| `LCOV_EXCL_START` / `LCOV_EXCL_STOP` | Block exclusion (wrapper.c only) |
 
-Example: `make coverage TEST=unit/agent/agent_test` produces:
-- `reports/coverage/unit/agent/agent_test.coverage.info` - LCOV data
-- `reports/coverage/unit/agent/agent_test.coverage.txt` - Summary
-
-**Do NOT generate HTML reports** - slow and unnecessary.
-
-## LCOV Exclusion Markers
-
-Use sparingly and only for true invariants:
-
-| Marker | Effect | Use For |
-|--------|--------|---------|
-| `LCOV_EXCL_LINE` | Exclude line | Rare |
-| `LCOV_EXCL_BR_LINE` | Exclude branch | assert(), PANIC() |
-| `LCOV_EXCL_START` | Begin block | wrapper.c only |
-| `LCOV_EXCL_STOP` | End block | wrapper.c only |
-
-### Correct Usage
-
+Usage:
 ```c
 assert(ptr != NULL);                    // LCOV_EXCL_BR_LINE
 if (!ptr) PANIC("Invariant violated");  // LCOV_EXCL_BR_LINE
 ```
 
-**Important:** These markers are NOT reliably honored inside `static` functions. See `style.md` "Avoid Static Functions" rule - inline code instead of using static helpers.
+**Note:** Markers are NOT reliably honored inside `static` functions. Inline code instead.
 
-### Never Exclude
-
-- Runtime error handling
-- Library error returns
-- System call failures
-- "Should never happen" branches
-
-If it can happen at runtime, test it.
+See `coverage` skill for exclusion policy (what's allowed vs forbidden).
 
 ## Quick Workflow
 
 ```bash
 # 1. Run coverage
-make coverage
+make check-coverage
 
 # 2. Check summary
 cat reports/coverage/summary.txt
 
-# 3. Find specific gaps
-grep "^DA:" reports/coverage/coverage.info | grep ",0$" | head -20
-
-# 4. Find file with most gaps
-grep "^SF:" reports/coverage/coverage.info   # List all files
-grep -A 1000 "SF:.*myfile.c" reports/coverage/coverage.info | grep -m 1 -B 1000 "end_of_record" | grep ",0$"
+# 3. Find gaps in specific file
+grep -A 1000 "SF:.*myfile.c" reports/coverage/coverage.info | \
+  grep -m 1 -B 1000 "end_of_record" | grep ",0$"
 ```
 
-## References
+## Related Skills
 
-- `project/lcov_exclusion_strategy.md` - Full exclusion policy
-- LCOV documentation: https://github.com/linux-test-project/lcov
+- `coverage` - Policy (100% requirement, exclusion rules)
+- `testability` - Refactoring patterns for gaps

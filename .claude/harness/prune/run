@@ -40,7 +40,7 @@ TEST_FIX_LADDER = {
     3: ("opus", "128000", "opus:ultrathink"),
 }
 
-SCRIPT_DIR = Path(__file__).parent.resolve()
+SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 COMMENT_OUT_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-single-test.prompt.md"
@@ -945,6 +945,8 @@ def main() -> int:
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     parser.add_argument("--debug", action="store_true",
                         help="On first failure, show details and abort without reverting")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Maximum number of functions to process (default: all)")
     args = parser.parse_args()
 
     if args.no_spinner:
@@ -959,6 +961,8 @@ def main() -> int:
         opts.append(f"timeout={args.time_out}s")
     if args.debug:
         opts.append("debug")
+    if args.limit:
+        opts.append(f"limit={args.limit}")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
@@ -983,6 +987,11 @@ def main() -> int:
         return 0
 
     log(f"Found {len(candidates)} dead code candidates")
+
+    # Apply limit if specified
+    if args.limit and args.limit < len(candidates):
+        log(f"Limiting to first {args.limit} candidates")
+        candidates = candidates[:args.limit]
 
     # Dry-run: just list candidates and exit
     if args.dry_run:

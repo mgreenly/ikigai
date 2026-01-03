@@ -4,7 +4,7 @@ sys.dont_write_bytecode = True
 """
 harness/coverage - Automated coverage gap fix loop
 
-Runs make coverage, fixes gaps one file at a time with escalation,
+Runs make check-coverage, fixes gaps one file at a time with escalation,
 commits on success, reverts on exhaustion, continues until
 all coverage thresholds met or no progress is made.
 """
@@ -148,11 +148,11 @@ def drop_test_databases() -> None:
 
 
 def run_make_coverage() -> tuple[bool, str]:
-    """Run make coverage and return (success, output)."""
-    log("Running make coverage...")
-    spinner = Spinner("Running make coverage")
+    """Run make check-coverage and return (success, output)."""
+    log("Running make check-coverage...")
+    spinner = Spinner("Running make check-coverage")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "coverage"], timeout=600)
+    code, stdout, stderr = run_cmd(["make", "check-coverage"], timeout=600)
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
@@ -533,7 +533,7 @@ def main() -> int:
     gaps = parse_summary_for_gaps(summary_path)
 
     if not gaps:
-        log("make coverage failed but couldn't parse gaps")
+        log("make check-coverage failed but couldn't parse gaps")
         log("Output tail:")
         for line in output.split('\n')[-20:]:
             log(f"  {line}")
@@ -569,7 +569,7 @@ def main() -> int:
             gaps = parse_summary_for_gaps(summary_path)
 
             if not gaps:
-                log("make coverage failed but couldn't parse gaps")
+                log("make check-coverage failed but couldn't parse gaps")
                 log("Output tail:")
                 for line in output.split('\n')[-20:]:
                     log(f"  {line}")
@@ -627,7 +627,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    start = time.time()
     try:
-        sys.exit(main())
+        result = main()
+        elapsed = format_elapsed(time.time() - start)
+        if result == 0:
+            log(f"PASSED (total: {elapsed})")
+        else:
+            log(f"FAILED (total: {elapsed})")
+        sys.exit(result)
     except KeyboardInterrupt:
+        elapsed = format_elapsed(time.time() - start)
+        log(f"INTERRUPTED (total: {elapsed})")
         sys.exit(130)

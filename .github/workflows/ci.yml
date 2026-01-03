@@ -57,7 +57,7 @@ jobs:
       run: make install-deps
 
     - name: Check file sizes
-      run: make filesize
+      run: make check-filesize
 
     - name: Check complexity
       run: make complexity

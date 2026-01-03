@@ -15,7 +15,7 @@ BEFORE creating ANY commit (mandatory, no exceptions):
 1. `make fmt` - Format code
 2. `make check` - ALL tests pass (100%)
 3. `make lint` - ALL complexity/file size checks pass
-4. `make coverage` - ALL metrics (lines, functions, branches) at 100.0%
+4. `make check-coverage` - ALL metrics (lines, functions, branches) at 100.0%
 5. `make check-dynamic` - ALL sanitizer checks pass (ASan, UBSan, TSan)
 
 If ANY check fails: fix ALL issues, re-run ALL checks, repeat until everything passes.
@@ -56,7 +56,7 @@ make BUILD={debug|release|sanitize|tsan|coverage}
 ## Quality Gates
 
 - Use `make check` to verify tests while working on code changes
-- Use `make lint && make coverage` before commits - **100% coverage is MANDATORY**
+- Use `make lint && make check-coverage` before commits - **100% coverage is MANDATORY**
 - **CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
 
 ## Coverage Phase Mindset
