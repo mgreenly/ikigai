@@ -79,10 +79,16 @@ ssize_t posix_read_(int fd, void *b, size_t c)
     (void)fd; (void)b; (void)c; return 0;
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Helper: Create REPL with scrollback and set viewport offset
 static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offset)
 {
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
@@ -125,14 +131,16 @@ START_TEST(test_autoscroll_on_char_insert) {
     ik_input_action_t action = { .type = IK_INPUT_CHAR, .codepoint = 'x' };
     test_action_autoscrolls(&action, true);
 }
-END_TEST START_TEST(test_autoscroll_on_insert_newline)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_insert_newline) {
     ik_input_action_t action = { .type = IK_INPUT_INSERT_NEWLINE };
     test_action_autoscrolls(&action, true);
 }
 
-END_TEST START_TEST(test_autoscroll_on_backspace)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_backspace) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 10);
@@ -150,8 +158,9 @@ END_TEST START_TEST(test_autoscroll_on_backspace)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_autoscroll_on_delete)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_delete) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 10);
@@ -172,8 +181,9 @@ END_TEST START_TEST(test_autoscroll_on_delete)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_cursor_navigation) {
     // Arrow left/right should autoscroll (not affected by scroll detector)
     ik_input_action_t left_right_actions[] = {
         { .type = IK_INPUT_ARROW_LEFT },
@@ -197,8 +207,9 @@ END_TEST START_TEST(test_autoscroll_on_cursor_navigation)
     }
 }
 
-END_TEST START_TEST(test_autoscroll_on_ctrl_shortcuts)
-{
+END_TEST
+
+START_TEST(test_autoscroll_on_ctrl_shortcuts) {
     ik_input_action_t actions[] = {
         { .type = IK_INPUT_CTRL_A },  // Jump to line start
         { .type = IK_INPUT_CTRL_E },  // Jump to line end
@@ -211,14 +222,16 @@ END_TEST START_TEST(test_autoscroll_on_ctrl_shortcuts)
     }
 }
 
-END_TEST START_TEST(test_no_autoscroll_on_page_up)
-{
+END_TEST
+
+START_TEST(test_no_autoscroll_on_page_up) {
     ik_input_action_t action = { .type = IK_INPUT_PAGE_UP };
     test_action_autoscrolls(&action, false);
 }
 
-END_TEST START_TEST(test_no_autoscroll_on_page_down)
-{
+END_TEST
+
+START_TEST(test_no_autoscroll_on_page_down) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
     setup_repl_scrolled(ctx, &repl, 20);
@@ -236,6 +249,11 @@ static Suite *repl_autoscroll_suite(void)
 {
     Suite *s = suite_create("repl_autoscroll");
     TCase *tc = tcase_create("autoscroll");
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_autoscroll_on_char_insert);
     tcase_add_test(tc, test_autoscroll_on_insert_newline);

@@ -47,6 +47,12 @@ int posix_mkdir_(const char *pathname, mode_t mode);
 // Forward declaration for suite function
 static Suite *repl_init_suite(void);
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Mock posix_open_ to test terminal open failure
 int posix_open_(const char *pathname, int flags)
 {
@@ -158,12 +164,14 @@ int posix_stat_(const char *pathname, struct stat *statbuf)
 
 int posix_mkdir_(const char *pathname, mode_t mode)
 {
-    (void)pathname;
-    (void)mode;
-
     if (mock_stat_should_fail) {
         errno = EACCES;  // Permission denied
         return -1;
+    }
+
+    // For logger directories in /tmp, call real mkdir
+    if (strncmp(pathname, "/tmp", 4) == 0) {
+        return mkdir(pathname, mode);
     }
 
     return 0;  // Success
@@ -177,7 +185,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
     mock_open_should_fail = true;
 
     // Attempt to initialize shared context - should fail during terminal init
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -194,15 +202,14 @@ START_TEST(test_repl_init_terminal_open_failure) {
 }
 END_TEST
 /* Test: Render creation failure (invalid terminal dimensions) */
-START_TEST(test_repl_init_render_invalid_dimensions)
-{
+START_TEST(test_repl_init_render_invalid_dimensions) {
     void *ctx = talloc_new(NULL);
 
     // Enable mock failure for ioctl
     mock_ioctl_should_fail = true;
 
     // Attempt to initialize shared context - should fail when creating render
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -220,8 +227,7 @@ START_TEST(test_repl_init_render_invalid_dimensions)
 
 END_TEST
 /* Test: Signal handler setup failure */
-START_TEST(test_repl_init_signal_handler_failure)
-{
+START_TEST(test_repl_init_signal_handler_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
@@ -229,7 +235,7 @@ START_TEST(test_repl_init_signal_handler_failure)
     mock_sigaction_should_fail = true;
 
     // Attempt to initialize REPL - should fail when setting up signal handler
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -251,15 +257,13 @@ START_TEST(test_repl_init_signal_handler_failure)
 }
 
 END_TEST
-
 /* Test: History load failure (graceful degradation) */
-START_TEST(test_repl_init_history_load_failure)
-{
+START_TEST(test_repl_init_history_load_failure) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should succeed even with history failure
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context (logger needs to initialize first)
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -291,13 +295,12 @@ START_TEST(test_repl_init_history_load_failure)
 
 END_TEST
 /* Test: Successful initialization verifies debug manager creation */
-START_TEST(test_repl_init_success_debug_manager)
-{
+START_TEST(test_repl_init_success_debug_manager) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should succeed
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -324,13 +327,12 @@ START_TEST(test_repl_init_success_debug_manager)
 
 END_TEST
 /* Test: Agent creation at REPL initialization */
-START_TEST(test_repl_init_creates_agent)
-{
+START_TEST(test_repl_init_creates_agent) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL - should create an agent
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -363,15 +365,13 @@ START_TEST(test_repl_init_creates_agent)
 }
 
 END_TEST
-
 /* Test: Initial agent is added to agents array */
-START_TEST(test_repl_init_agent_in_array)
-{
+START_TEST(test_repl_init_agent_in_array) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -393,15 +393,13 @@ START_TEST(test_repl_init_agent_in_array)
 }
 
 END_TEST
-
 /* Test: ik_repl_find_agent returns correct agent */
-START_TEST(test_repl_find_agent_found)
-{
+START_TEST(test_repl_find_agent_found) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -422,15 +420,13 @@ START_TEST(test_repl_find_agent_found)
 }
 
 END_TEST
-
 /* Test: ik_repl_find_agent returns NULL for unknown UUID */
-START_TEST(test_repl_find_agent_not_found)
-{
+START_TEST(test_repl_find_agent_not_found) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = NULL;
 
     // Initialize REPL
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
@@ -457,6 +453,11 @@ static Suite *repl_init_suite(void)
 
     TCase *tc_term = tcase_create("Terminal Init Failures");
     tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, 30);
+    tcase_add_unchecked_fixture(tc_term, suite_setup, NULL);
+    tcase_set_timeout(tc_term, 30);
     tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
     tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
     tcase_add_test(tc_term, test_repl_init_signal_handler_failure);
@@ -464,6 +465,11 @@ static Suite *repl_init_suite(void)
     suite_add_tcase(s, tc_term);
 
     TCase *tc_success = tcase_create("Successful Init");
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, 30);
+    tcase_add_unchecked_fixture(tc_success, suite_setup, NULL);
     tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);
     tcase_add_test(tc_success, test_repl_init_creates_agent);

@@ -35,8 +35,7 @@ START_TEST(test_cursor_position_simple_ascii) {
 }
 END_TEST
 // Test: cursor at start
-START_TEST(test_cursor_position_at_start)
-{
+START_TEST(test_cursor_position_at_start) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *text = "hello world";
     cursor_screen_pos_t pos = {0};
@@ -52,8 +51,7 @@ START_TEST(test_cursor_position_at_start)
 
 END_TEST
 // Test: cursor at end
-START_TEST(test_cursor_position_at_end)
-{
+START_TEST(test_cursor_position_at_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *text = "hello";
     cursor_screen_pos_t pos = {0};
@@ -69,8 +67,7 @@ START_TEST(test_cursor_position_at_end)
 
 END_TEST
 // Test: cursor position with newline
-START_TEST(test_cursor_position_with_newline)
-{
+START_TEST(test_cursor_position_with_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *text = "hi\nworld";
     cursor_screen_pos_t pos = {0};
@@ -87,8 +84,7 @@ START_TEST(test_cursor_position_with_newline)
 
 END_TEST
 // Test: cursor position with wrapping
-START_TEST(test_cursor_position_wrapping)
-{
+START_TEST(test_cursor_position_wrapping) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // 10 char line, terminal width 8 -> wraps at 8
     const char *text = "abcdefghij";
@@ -106,8 +102,7 @@ START_TEST(test_cursor_position_wrapping)
 
 END_TEST
 // Test: cursor position with CJK wide characters
-START_TEST(test_cursor_position_cjk_wide_chars)
-{
+START_TEST(test_cursor_position_cjk_wide_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "你好" - each char is 3 bytes UTF-8, 2 cells width
     const char *text = "\xe4\xbd\xa0\xe5\xa5\xbd"; // "你好"
@@ -125,8 +120,7 @@ START_TEST(test_cursor_position_cjk_wide_chars)
 
 END_TEST
 // Test: cursor position with emoji
-START_TEST(test_cursor_position_emoji)
-{
+START_TEST(test_cursor_position_emoji) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "hello 😀 world" - emoji is 4 bytes, 2 cells width
     const char *text = "hello \xf0\x9f\x98\x80 world";
@@ -145,8 +139,7 @@ START_TEST(test_cursor_position_emoji)
 
 END_TEST
 // Test: cursor position with combining characters
-START_TEST(test_cursor_position_combining_chars)
-{
+START_TEST(test_cursor_position_combining_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "e" + combining acute accent (0-width)
     const char *text = "e\xcc\x81";  // é as e + combining acute
@@ -164,8 +157,7 @@ START_TEST(test_cursor_position_combining_chars)
 
 END_TEST
 // Test: cursor position with control character
-START_TEST(test_cursor_position_control_char)
-{
+START_TEST(test_cursor_position_control_char) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // DELETE character (0x7F) - control character handling
     const char text[] = "hello\x7Fworld";
@@ -183,8 +175,7 @@ START_TEST(test_cursor_position_control_char)
 
 END_TEST
 // Test: cursor position at wrap boundary
-START_TEST(test_cursor_position_wrap_boundary)
-{
+START_TEST(test_cursor_position_wrap_boundary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // Exactly 8 chars, terminal width 8
     const char *text = "abcdefgh";
@@ -202,8 +193,7 @@ START_TEST(test_cursor_position_wrap_boundary)
 
 END_TEST
 // Test: cursor position with invalid UTF-8
-START_TEST(test_cursor_position_invalid_utf8)
-{
+START_TEST(test_cursor_position_invalid_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // Invalid UTF-8 sequence
     const char *text = "hello\xff\xfe";
@@ -220,8 +210,7 @@ START_TEST(test_cursor_position_invalid_utf8)
 
 END_TEST
 // Test: cursor position after SGR escape sequence
-START_TEST(test_cursor_position_ansi_sgr_reset)
-{
+START_TEST(test_cursor_position_ansi_sgr_reset) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "\x1b[0mhello" - cursor at byte 4 (after SGR reset) should be at screen col 0
     const char *text = "\x1b[0mhello";
@@ -238,8 +227,7 @@ START_TEST(test_cursor_position_ansi_sgr_reset)
 
 END_TEST
 // Test: cursor position with SGR prefix (256-color)
-START_TEST(test_cursor_position_ansi_sgr_256_color)
-{
+START_TEST(test_cursor_position_ansi_sgr_256_color) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "\x1b[38;5;242mtext" - cursor at byte 11 (after 256-color SGR) should be at screen col 0
     const char *text = "\x1b[38;5;242mtext";
@@ -256,8 +244,7 @@ START_TEST(test_cursor_position_ansi_sgr_256_color)
 
 END_TEST
 // Test: cursor in middle of colored text
-START_TEST(test_cursor_position_ansi_middle_colored)
-{
+START_TEST(test_cursor_position_ansi_middle_colored) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "\x1b[38;5;242mhello" - cursor at byte 13 (after "he") should be at screen col 2
     const char *text = "\x1b[38;5;242mhello";
@@ -274,8 +261,7 @@ START_TEST(test_cursor_position_ansi_middle_colored)
 
 END_TEST
 // Test: cursor after multiple escape sequences
-START_TEST(test_cursor_position_ansi_multiple)
-{
+START_TEST(test_cursor_position_ansi_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     // "\x1b[0m\x1b[38;5;242mtext" - cursor at byte 15 (after both escapes) should be at screen col 0
     const char *text = "\x1b[0m\x1b[38;5;242mtext";
@@ -294,8 +280,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: NULL ctx asserts
-START_TEST(test_cursor_position_null_ctx_asserts)
-{
+START_TEST(test_cursor_position_null_ctx_asserts) {
     const char *text = "hello";
     cursor_screen_pos_t pos = {0};
     calculate_cursor_screen_position(NULL, text, 5, 0, 80, &pos);
@@ -303,8 +288,7 @@ START_TEST(test_cursor_position_null_ctx_asserts)
 
 END_TEST
 // Test: NULL text asserts
-START_TEST(test_cursor_position_null_text_asserts)
-{
+START_TEST(test_cursor_position_null_text_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     cursor_screen_pos_t pos = {0};
     calculate_cursor_screen_position(ctx, NULL, 0, 0, 80, &pos);
@@ -313,8 +297,7 @@ START_TEST(test_cursor_position_null_text_asserts)
 
 END_TEST
 // Test: NULL pos_out asserts
-START_TEST(test_cursor_position_null_pos_out_asserts)
-{
+START_TEST(test_cursor_position_null_pos_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *text = "hello";
     calculate_cursor_screen_position(ctx, text, 5, 0, 80, NULL);

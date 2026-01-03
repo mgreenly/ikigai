@@ -12,7 +12,6 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -43,9 +42,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -54,7 +51,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "sender-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -160,8 +157,7 @@ static void suite_teardown(void)
 }
 
 // Test: /send creates mail record
-START_TEST(test_send_creates_mail)
-{
+START_TEST(test_send_creates_mail) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -191,10 +187,8 @@ START_TEST(test_send_creates_mail)
     ck_assert_uint_eq(count, 1);
 }
 END_TEST
-
 // Test: mail has correct from/to UUIDs
-START_TEST(test_send_correct_uuids)
-{
+START_TEST(test_send_correct_uuids) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -225,11 +219,10 @@ START_TEST(test_send_correct_uuids)
     ck_assert_str_eq(inbox[0]->from_uuid, "sender-uuid-123");
     ck_assert_str_eq(inbox[0]->to_uuid, "recipient-uuid-789");
 }
-END_TEST
 
+END_TEST
 // Test: mail body stored correctly
-START_TEST(test_send_body_stored)
-{
+START_TEST(test_send_body_stored) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -259,22 +252,20 @@ START_TEST(test_send_body_stored)
     ck_assert_uint_eq(count, 1);
     ck_assert_str_eq(inbox[0]->body, "Test message body");
 }
-END_TEST
 
+END_TEST
 // Test: non-existent recipient shows error
-START_TEST(test_send_nonexistent_recipient)
-{
+START_TEST(test_send_nonexistent_recipient) {
     res_t res = ik_cmd_send(test_ctx, repl, "nonexistent-uuid \"Message\"");
     ck_assert(is_ok(&res));
 
     // Verify error message in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: dead recipient shows "Recipient agent is dead" error
-START_TEST(test_send_dead_recipient_error)
-{
+START_TEST(test_send_dead_recipient_error) {
     // Create and register recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -304,11 +295,10 @@ START_TEST(test_send_dead_recipient_error)
     size_t final_lines = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(final_lines, initial_lines);
 }
-END_TEST
 
+END_TEST
 // Test: dead recipient does NOT create mail record
-START_TEST(test_send_dead_recipient_no_mail)
-{
+START_TEST(test_send_dead_recipient_no_mail) {
     // Create and register recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -341,11 +331,10 @@ START_TEST(test_send_dead_recipient_no_mail)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(count, 0);
 }
-END_TEST
 
+END_TEST
 // Test: self-mail is allowed (sender == recipient)
-START_TEST(test_send_self_mail_allowed)
-{
+START_TEST(test_send_self_mail_allowed) {
     // Send mail to self
     res_t res = ik_cmd_send(test_ctx, repl, "sender-uuid-123 \"Note to self\"");
     ck_assert(is_ok(&res));
@@ -360,11 +349,10 @@ START_TEST(test_send_self_mail_allowed)
     ck_assert_str_eq(inbox[0]->from_uuid, "sender-uuid-123");
     ck_assert_str_eq(inbox[0]->to_uuid, "sender-uuid-123");
 }
-END_TEST
 
+END_TEST
 // Test: empty body shows error
-START_TEST(test_send_empty_body)
-{
+START_TEST(test_send_empty_body) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -390,11 +378,10 @@ START_TEST(test_send_empty_body)
     size_t final_lines = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(final_lines, initial_lines);
 }
-END_TEST
 
+END_TEST
 // Test: confirmation displayed
-START_TEST(test_send_confirmation)
-{
+START_TEST(test_send_confirmation) {
     // Create recipient agent
     ik_agent_ctx_t *recipient = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(recipient);
@@ -420,12 +407,14 @@ START_TEST(test_send_confirmation)
     size_t final_lines = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_gt(final_lines, initial_lines);
 }
+
 END_TEST
 
 static Suite *send_suite(void)
 {
     Suite *s = suite_create("Send Command");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

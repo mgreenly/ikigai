@@ -10,7 +10,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -40,9 +39,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-4");
     cfg->openai_temperature = 0.7;
@@ -54,7 +51,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "parent-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -150,8 +147,7 @@ static void suite_teardown(void)
 }
 
 // Test: Fork with unterminated quoted string shows error
-START_TEST(test_fork_unterminated_quote_error)
-{
+START_TEST(test_fork_unterminated_quote_error) {
     res_t res = ik_cmd_fork(test_ctx, repl, "\"unterminated string");
     ck_assert(is_ok(&res));  // Returns OK but shows error
 
@@ -170,10 +166,8 @@ START_TEST(test_fork_unterminated_quote_error)
     ck_assert(found_error);
 }
 END_TEST
-
 // Test: Kill with parent not found (corrupt state)
-START_TEST(test_kill_parent_not_found_error)
-{
+START_TEST(test_kill_parent_not_found_error) {
     // Create child
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -207,11 +201,10 @@ START_TEST(test_kill_parent_not_found_error)
     (void)child;
     (void)parent_uuid;
 }
-END_TEST
 
+END_TEST
 // Test: Kill with UUID shows error when not found
-START_TEST(test_kill_uuid_not_found_shows_error)
-{
+START_TEST(test_kill_uuid_not_found_shows_error) {
     ik_agent_ctx_t *parent = repl->current;
 
     ik_scrollback_clear(parent->scrollback);
@@ -234,12 +227,14 @@ START_TEST(test_kill_uuid_not_found_shows_error)
     }
     ck_assert(found_error);
 }
+
 END_TEST
 
 static Suite *cmd_agent_coverage_suite(void)
 {
     Suite *s = suite_create("Commands Agent Coverage");
     TCase *tc = tcase_create("Error Paths");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

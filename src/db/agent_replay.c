@@ -5,6 +5,7 @@
 
 #include "../error.h"
 #include "../panic.h"
+#include "../tmp_ctx.h"
 #include "../wrapper.h"
 
 #include <assert.h>
@@ -24,8 +25,7 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(clear_id_out != NULL); // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for most recent clear event, optionally limited by max_id
     // max_id = 0 means no limit
@@ -88,8 +88,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(count_out != NULL);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for intermediate allocations
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Dynamic array for ranges (will be reversed at the end)
     size_t capacity = 8;
@@ -189,8 +188,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(count_out != NULL);    // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Build parameterized query
     // WHERE agent_uuid=$1 AND id>$2 AND ($3=0 OR id<=$3) ORDER BY created_at
@@ -284,8 +282,7 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(ctx_out != NULL);    // LCOV_EXCL_BR_LINE
 
     // Create temporary context for intermediate allocations
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Build replay ranges
     ik_replay_range_t *ranges = NULL;

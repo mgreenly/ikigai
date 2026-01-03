@@ -35,8 +35,7 @@ START_TEST(test_cursor_move_right_ascii) {
 
 END_TEST
 // Test move right with UTF-8 multi-byte character
-START_TEST(test_cursor_move_right_utf8)
-{
+START_TEST(test_cursor_move_right_utf8) {
     void *ctx = talloc_new(NULL);
     const char *text = "a\xC3\xA9" "b";  // "aéb" (4 bytes: a + C3 A9 + b)
     size_t text_len = 4;
@@ -61,8 +60,7 @@ START_TEST(test_cursor_move_right_utf8)
 
 END_TEST
 // Test move right with 4-byte emoji
-START_TEST(test_cursor_move_right_emoji)
-{
+START_TEST(test_cursor_move_right_emoji) {
     void *ctx = talloc_new(NULL);
     const char *text = "a\xF0\x9F\x8E\x89";  // "a🎉" (5 bytes: a + F0 9F 8E 89)
     size_t text_len = 5;
@@ -82,8 +80,7 @@ START_TEST(test_cursor_move_right_emoji)
 
 END_TEST
 // Test move right with combining character
-START_TEST(test_cursor_move_right_combining)
-{
+START_TEST(test_cursor_move_right_combining) {
     void *ctx = talloc_new(NULL);
     // e + combining acute accent (U+0301) + b = é + b
     const char *text = "e\xCC\x81" "b";  // e + combining acute (3 bytes) + b
@@ -107,8 +104,7 @@ START_TEST(test_cursor_move_right_combining)
 
 END_TEST
 // Test move right at end (no-op)
-START_TEST(test_cursor_move_right_at_end)
-{
+START_TEST(test_cursor_move_right_at_end) {
     void *ctx = talloc_new(NULL);
     const char *text = "abc";
     size_t text_len = 3;
@@ -129,8 +125,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test NULL cursor parameter assertion
-START_TEST(test_cursor_move_right_null_cursor)
-{
+START_TEST(test_cursor_move_right_null_cursor) {
     const char *text = "hello";
 
     /* cursor cannot be NULL - should abort */
@@ -139,8 +134,7 @@ START_TEST(test_cursor_move_right_null_cursor)
 
 END_TEST
 // Test NULL text parameter assertion
-START_TEST(test_cursor_move_right_null_text)
-{
+START_TEST(test_cursor_move_right_null_text) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_cursor_t *cursor = ik_input_buffer_cursor_create(ctx);
 
@@ -159,6 +153,10 @@ static Suite *cursor_move_right_suite(void)
     Suite *s = suite_create("CursorMoveRight");
 
     TCase *tc_move_right = tcase_create("MoveRight");
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
     tcase_add_test(tc_move_right, test_cursor_move_right_ascii);
     tcase_add_test(tc_move_right, test_cursor_move_right_utf8);
     tcase_add_test(tc_move_right, test_cursor_move_right_emoji);
@@ -168,6 +166,10 @@ static Suite *cursor_move_right_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_cursor, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_text, SIGABRT);

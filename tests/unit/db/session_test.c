@@ -119,8 +119,7 @@ START_TEST(test_db_session_create_success) {
 }
 END_TEST
 // Test: ik_db_session_get_active returns none when database is empty
-START_TEST(test_db_session_get_active_no_sessions)
-{
+START_TEST(test_db_session_get_active_no_sessions) {
     SKIP_IF_NO_DB();
 
     int64_t session_id = 0;
@@ -132,8 +131,7 @@ START_TEST(test_db_session_get_active_no_sessions)
 
 END_TEST
 // Test: ik_db_session_get_active finds active session
-START_TEST(test_db_session_get_active_with_active_session)
-{
+START_TEST(test_db_session_get_active_with_active_session) {
     SKIP_IF_NO_DB();
 
     // Create a session
@@ -151,8 +149,7 @@ START_TEST(test_db_session_get_active_with_active_session)
 
 END_TEST
 // Test: ik_db_session_get_active returns none when all sessions are ended
-START_TEST(test_db_session_get_active_only_ended_sessions)
-{
+START_TEST(test_db_session_get_active_only_ended_sessions) {
     SKIP_IF_NO_DB();
 
     // Create and end a session
@@ -173,8 +170,7 @@ START_TEST(test_db_session_get_active_only_ended_sessions)
 
 END_TEST
 // Test: ik_db_session_get_active returns most recent when multiple active sessions exist
-START_TEST(test_db_session_get_active_multiple_sessions)
-{
+START_TEST(test_db_session_get_active_multiple_sessions) {
     SKIP_IF_NO_DB();
 
     // Create first session
@@ -200,8 +196,7 @@ START_TEST(test_db_session_get_active_multiple_sessions)
 
 END_TEST
 // Test: ik_db_session_end sets ended_at timestamp
-START_TEST(test_db_session_end_success)
-{
+START_TEST(test_db_session_end_success) {
     SKIP_IF_NO_DB();
 
     // Create session
@@ -222,8 +217,7 @@ START_TEST(test_db_session_end_success)
 
 END_TEST
 // Test: Full session round-trip (create -> active -> end -> no active)
-START_TEST(test_db_session_round_trip)
-{
+START_TEST(test_db_session_round_trip) {
     SKIP_IF_NO_DB();
 
     // Step 1: Create session
@@ -251,8 +245,7 @@ START_TEST(test_db_session_round_trip)
 
 END_TEST
 // Test: Session ID is a valid positive integer (BIGSERIAL behavior)
-START_TEST(test_db_session_id_valid_bigserial)
-{
+START_TEST(test_db_session_id_valid_bigserial) {
     SKIP_IF_NO_DB();
 
     // Create multiple sessions and verify IDs are sequential
@@ -273,8 +266,7 @@ START_TEST(test_db_session_id_valid_bigserial)
 
 END_TEST
 // Test: started_at is automatically set on session creation
-START_TEST(test_db_session_started_at_automatic)
-{
+START_TEST(test_db_session_started_at_automatic) {
     SKIP_IF_NO_DB();
 
     // Create session
@@ -299,8 +291,7 @@ START_TEST(test_db_session_started_at_automatic)
 
 END_TEST
 // Test: ended_at is NULL after create, set after end
-START_TEST(test_db_session_ended_at_lifecycle)
-{
+START_TEST(test_db_session_ended_at_lifecycle) {
     SKIP_IF_NO_DB();
 
     // Create session
@@ -342,6 +333,7 @@ static Suite *db_session_suite(void)
     Suite *s = suite_create("db_session");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

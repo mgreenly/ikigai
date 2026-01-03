@@ -35,7 +35,6 @@ START_TEST(test_ctrl_left_arrow) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Ctrl+Right generates NAV_NEXT_SIBLING
 START_TEST(test_ctrl_right_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -64,8 +63,8 @@ START_TEST(test_ctrl_right_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl+Up generates NAV_PARENT
 START_TEST(test_ctrl_up_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -94,8 +93,8 @@ START_TEST(test_ctrl_up_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl+Down generates NAV_CHILD
 START_TEST(test_ctrl_down_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -124,8 +123,8 @@ START_TEST(test_ctrl_down_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: plain arrow left still works (no regression)
 START_TEST(test_plain_left_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -145,8 +144,8 @@ START_TEST(test_plain_left_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: plain arrow right still works (no regression)
 START_TEST(test_plain_right_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -166,8 +165,8 @@ START_TEST(test_plain_right_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: plain arrow up still works (no regression)
 START_TEST(test_plain_up_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -187,8 +186,8 @@ START_TEST(test_plain_up_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: plain arrow down still works (no regression)
 START_TEST(test_plain_down_arrow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -208,8 +207,8 @@ START_TEST(test_plain_down_arrow) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: invalid Ctrl+Arrow pattern (wrong modifier)
 START_TEST(test_invalid_ctrl_pattern) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -240,8 +239,8 @@ START_TEST(test_invalid_ctrl_pattern) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Ctrl pattern with invalid arrow key
 START_TEST(test_ctrl_pattern_invalid_key) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -271,6 +270,7 @@ START_TEST(test_ctrl_pattern_invalid_key) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Test suite
@@ -278,6 +278,10 @@ static Suite *input_nav_arrows_suite(void)
 {
     Suite *s = suite_create("Input Navigation Arrows");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_ctrl_left_arrow);

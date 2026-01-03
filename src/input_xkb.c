@@ -7,7 +7,7 @@
 #include <string.h>
 
 void ik_input_xkb_build_reverse_map(struct xkb_keymap *keymap, struct xkb_state *state,
-                                     ik_xkb_reverse_map_t *map)
+                                    ik_xkb_reverse_map_t *map)
 {
     assert(keymap != NULL);  // LCOV_EXCL_BR_LINE
     assert(state != NULL);   // LCOV_EXCL_BR_LINE
@@ -58,7 +58,7 @@ void ik_input_xkb_init_state(ik_input_parser_t *parser)
     };
 
     parser->xkb_keymap = xkb_keymap_new_from_names(parser->xkb_ctx, &names,
-                                                    XKB_KEYMAP_COMPILE_NO_FLAGS);
+                                                   XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (parser->xkb_keymap == NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Cannot test XKB keymap creation failure
         xkb_context_unref(parser->xkb_ctx);

@@ -87,8 +87,7 @@ START_TEST(test_vsnprintf_size_calc_failure) {
 }
 END_TEST
 // Test: vsnprintf formatting failure (line 57)
-START_TEST(test_vsnprintf_formatting_failure)
-{
+START_TEST(test_vsnprintf_formatting_failure) {
     // Mock vsnprintf to fail on second call (call #2 is actual formatting)
     // First call (size calculation) should succeed
     mock_vsnprintf_should_fail = true;
@@ -104,8 +103,7 @@ START_TEST(test_vsnprintf_formatting_failure)
 
 END_TEST
 // Test: vsnprintf truncation (line 61)
-START_TEST(test_vsnprintf_truncation)
-{
+START_TEST(test_vsnprintf_truncation) {
     // Mock vsnprintf to return value >= buf_size (simulate truncation)
     mock_vsnprintf_truncate = true;
 
@@ -119,8 +117,7 @@ START_TEST(test_vsnprintf_truncation)
 
 END_TEST
 // Test: Successful format after size calculation failure test
-START_TEST(test_format_success_after_error)
-{
+START_TEST(test_format_success_after_error) {
     // First, trigger an error
     mock_vsnprintf_should_fail = true;
     mock_vsnprintf_fail_on_call = 1;
@@ -150,6 +147,7 @@ static Suite *format_vsnprintf_errors_suite(void)
 {
     Suite *s = suite_create("Format vsnprintf Errors");
     TCase *tc = tcase_create("vsnprintf failures");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

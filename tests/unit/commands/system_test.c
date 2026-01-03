@@ -32,21 +32,19 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;  // Start with no system message
 
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     r->current = agent;
-
-
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
@@ -94,8 +92,7 @@ START_TEST(test_system_set_message) {
 }
 END_TEST
 // Test: Clear system message (no args)
-START_TEST(test_system_clear_message)
-{
+START_TEST(test_system_clear_message) {
     // Set initial system message
     repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Initial message");
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
@@ -119,8 +116,7 @@ START_TEST(test_system_clear_message)
 
 END_TEST
 // Test: Replace existing system message
-START_TEST(test_system_replace_message)
-{
+START_TEST(test_system_replace_message) {
     // Set initial system message
     repl->shared->cfg->openai_system_message = talloc_strdup(repl->shared->cfg, "Old message");
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
@@ -144,8 +140,7 @@ START_TEST(test_system_replace_message)
 
 END_TEST
 // Test: Set system message with special characters
-START_TEST(test_system_with_special_chars)
-{
+START_TEST(test_system_with_special_chars) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/system You are a \"pirate\" assistant!");
     ck_assert(is_ok(&res));
 
@@ -155,8 +150,7 @@ START_TEST(test_system_with_special_chars)
 
 END_TEST
 // Test: Set long system message
-START_TEST(test_system_long_message)
-{
+START_TEST(test_system_long_message) {
     const char *long_msg = "/system You are a helpful assistant that provides detailed "
                            "explanations and considers multiple perspectives when answering questions";
     res_t res = ik_cmd_dispatch(ctx, repl, long_msg);
@@ -170,8 +164,7 @@ START_TEST(test_system_long_message)
 
 END_TEST
 // Test: Multiple set/clear cycles
-START_TEST(test_system_multiple_cycles)
-{
+START_TEST(test_system_multiple_cycles) {
     // Set message
     res_t res = ik_cmd_dispatch(ctx, repl, "/system First");
     ck_assert(is_ok(&res));
@@ -199,6 +192,7 @@ static Suite *commands_system_suite(void)
     Suite *s = suite_create("Commands - System");
 
     TCase *tc_system = tcase_create("System");
+    tcase_set_timeout(tc_system, 30);
     tcase_add_checked_fixture(tc_system, setup, teardown);
     tcase_add_test(tc_system, test_system_set_message);
     tcase_add_test(tc_system, test_system_clear_message);

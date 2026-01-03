@@ -128,6 +128,12 @@ int posix_stat_(const char *pathname, struct stat *statbuf)
     return stat(pathname, statbuf);
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static void reset_mocks(void)
 {
     mock_open_fail = 0;
@@ -140,395 +146,175 @@ static void reset_mocks(void)
     mock_stat_fail_path = NULL;
 }
 
-// Test that ik_shared_ctx_init() succeeds
-START_TEST(test_shared_ctx_init_success)
-{
+// Test basic shared context initialization and memory management
+START_TEST(test_shared_ctx_init_and_memory) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
+    cfg->history_size = 100;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
+    // Test init success
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
 
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that shared_ctx is allocated under provided parent
-START_TEST(test_shared_ctx_parent_allocation)
-{
-    reset_mocks();
-    TALLOC_CTX *parent = talloc_new(NULL);
-    ck_assert_ptr_nonnull(parent);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(parent, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(parent, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-
-    // Verify parent relationship
+    // Test parent allocation
     TALLOC_CTX *actual_parent = talloc_parent(shared);
-    ck_assert_ptr_eq(actual_parent, parent);
+    ck_assert_ptr_eq(actual_parent, ctx);
 
-    talloc_free(parent);
-}
-END_TEST
-
-// Test that shared_ctx can be freed via talloc_free
-START_TEST(test_shared_ctx_can_be_freed)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-
-    // Free shared context directly
+    // Test can be freed
     int result = talloc_free(shared);
-    ck_assert_int_eq(result, 0);  // talloc_free returns 0 on success
+    ck_assert_int_eq(result, 0);
 
     talloc_free(ctx);
 }
 END_TEST
-
-// Test that shared_ctx stores cfg pointer
-START_TEST(test_shared_ctx_stores_cfg)
-{
+// Test that shared context stores and provides access to config
+START_TEST(test_shared_ctx_config) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    ck_assert_ptr_eq(shared->cfg, cfg);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that shared_ctx->cfg is accessible
-START_TEST(test_shared_ctx_cfg_accessible)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create cfg with specific value for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "test-model");
-    cfg->history_size = 100;  // Required for history initialization
+    cfg->history_size = 100;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
+    // Test cfg pointer stored
+    ck_assert_ptr_eq(shared->cfg, cfg);
+    // Test cfg accessible
     ck_assert_ptr_nonnull(shared->cfg);
     ck_assert_str_eq(shared->cfg->openai_model, "test-model");
 
     talloc_free(ctx);
 }
-END_TEST
 
-// Test that shared_ctx initializes term
-START_TEST(test_shared_ctx_term_initialized)
-{
+END_TEST
+// Test terminal and render initialization
+START_TEST(test_shared_ctx_terminal_and_render) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
+    cfg->history_size = 100;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
+    // Test term initialized
     ck_assert_ptr_nonnull(shared->term);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that shared_ctx initializes render
-START_TEST(test_shared_ctx_render_initialized)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
+    // Test render initialized
     ck_assert_ptr_nonnull(shared->render);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that render dimensions match term dimensions
-START_TEST(test_shared_ctx_render_matches_term_dimensions)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    ck_assert_ptr_nonnull(shared->term);
-    ck_assert_ptr_nonnull(shared->render);
-
-    // Verify dimensions match
+    // Test dimensions match
     ck_assert_int_eq(shared->render->rows, shared->term->screen_rows);
     ck_assert_int_eq(shared->render->cols, shared->term->screen_cols);
 
     talloc_free(ctx);
 }
-END_TEST
 
-// Test that shared_ctx->db_ctx is NULL when not configured
-START_TEST(test_shared_ctx_db_ctx_null_when_not_configured)
-{
+END_TEST
+// Test database context when not configured
+START_TEST(test_shared_ctx_database_unconfigured) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test (no db_connection_string)
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
+    cfg->history_size = 100;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
+    // Test db_ctx is NULL when not configured
     ck_assert_ptr_null(shared->db_ctx);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that shared_ctx->session_id is 0 when not configured
-START_TEST(test_shared_ctx_session_id_zero_when_not_configured)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test (no db_connection_string)
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Required for history initialization
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
+    // Test session_id is 0 when not configured
     ck_assert_int_eq(shared->session_id, 0);
 
     talloc_free(ctx);
 }
-END_TEST
 
-// Test that shared_ctx->history is initialized
-START_TEST(test_shared_ctx_history_initialized)
-{
+END_TEST
+// Test history initialization
+START_TEST(test_shared_ctx_history) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;  // Set history size
+    cfg->history_size = 250;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
+    // Test history initialized
     ck_assert_ptr_nonnull(shared->history);
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that history capacity matches config
-START_TEST(test_shared_ctx_history_capacity_matches_config)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 250;  // Set custom history size
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    ck_assert_ptr_nonnull(shared->history);
+    // Test capacity matches config
     ck_assert_uint_eq(shared->history->capacity, 250);
 
     talloc_free(ctx);
 }
-END_TEST
 
-// Test that debug_mgr is initialized
-START_TEST(test_shared_ctx_debug_mgr_initialized)
-{
+END_TEST
+// Test debug manager and pipes initialization
+START_TEST(test_shared_ctx_debug) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
     ik_shared_ctx_t *shared = NULL;
     res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
+    // Test debug_mgr initialized
     ck_assert_ptr_nonnull(shared->debug_mgr);
-    ck_assert(!shared->debug_enabled);  // Initially false
-
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test that debug pipes are created
-START_TEST(test_shared_ctx_debug_pipes_created)
-{
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;
-
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    ck_assert_ptr_nonnull(shared->debug_mgr);
+    ck_assert(!shared->debug_enabled);
+    // Test debug pipes created
     ck_assert_ptr_nonnull(shared->openai_debug_pipe);
     ck_assert_ptr_nonnull(shared->db_debug_pipe);
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that history load failure is gracefully handled
-START_TEST(test_shared_ctx_history_load_failure_graceful)
-{
+START_TEST(test_shared_ctx_history_load_failure_graceful) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Create minimal cfg for test
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
@@ -563,6 +349,7 @@ START_TEST(test_shared_ctx_history_load_failure_graceful)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *shared_suite(void)
@@ -570,20 +357,14 @@ static Suite *shared_suite(void)
     Suite *s = suite_create("Shared Context");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_add_test(tc_core, test_shared_ctx_init_success);
-    tcase_add_test(tc_core, test_shared_ctx_parent_allocation);
-    tcase_add_test(tc_core, test_shared_ctx_can_be_freed);
-    tcase_add_test(tc_core, test_shared_ctx_stores_cfg);
-    tcase_add_test(tc_core, test_shared_ctx_cfg_accessible);
-    tcase_add_test(tc_core, test_shared_ctx_term_initialized);
-    tcase_add_test(tc_core, test_shared_ctx_render_initialized);
-    tcase_add_test(tc_core, test_shared_ctx_render_matches_term_dimensions);
-    tcase_add_test(tc_core, test_shared_ctx_db_ctx_null_when_not_configured);
-    tcase_add_test(tc_core, test_shared_ctx_session_id_zero_when_not_configured);
-    tcase_add_test(tc_core, test_shared_ctx_history_initialized);
-    tcase_add_test(tc_core, test_shared_ctx_history_capacity_matches_config);
-    tcase_add_test(tc_core, test_shared_ctx_debug_mgr_initialized);
-    tcase_add_test(tc_core, test_shared_ctx_debug_pipes_created);
+    tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
+    tcase_add_test(tc_core, test_shared_ctx_init_and_memory);
+    tcase_add_test(tc_core, test_shared_ctx_config);
+    tcase_add_test(tc_core, test_shared_ctx_terminal_and_render);
+    tcase_add_test(tc_core, test_shared_ctx_database_unconfigured);
+    tcase_add_test(tc_core, test_shared_ctx_history);
+    tcase_add_test(tc_core, test_shared_ctx_debug);
     tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);
     suite_add_tcase(s, tc_core);
 

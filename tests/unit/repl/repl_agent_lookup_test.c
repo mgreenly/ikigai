@@ -57,8 +57,7 @@ static ik_agent_ctx_t *create_agent_with_uuid(const char *uuid)
 }
 
 // Test: Exact match returns correct agent
-START_TEST(test_exact_match)
-{
+START_TEST(test_exact_match) {
     // Create agents with different UUIDs
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("xyz789uvw456rst123opqn");
@@ -79,10 +78,8 @@ START_TEST(test_exact_match)
     ck_assert_ptr_eq(found, agent2);
 }
 END_TEST
-
 // Test: Prefix match (6 chars) returns correct agent
-START_TEST(test_prefix_match)
-{
+START_TEST(test_prefix_match) {
     // Create agents with different UUIDs
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("xyz789uvw456rst123opqn");
@@ -99,11 +96,10 @@ START_TEST(test_prefix_match)
     found = ik_repl_find_agent(repl, "xyz789");
     ck_assert_ptr_eq(found, agent2);
 }
-END_TEST
 
+END_TEST
 // Test: Ambiguous prefix returns NULL
-START_TEST(test_ambiguous_prefix)
-{
+START_TEST(test_ambiguous_prefix) {
     // Create agents with UUIDs that share a prefix
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abc456def789ghi123jklm");
@@ -124,11 +120,10 @@ START_TEST(test_ambiguous_prefix)
     found = ik_repl_find_agent(repl, "abc456");
     ck_assert_ptr_eq(found, agent2);
 }
-END_TEST
 
+END_TEST
 // Test: uuid_ambiguous returns true for ambiguous prefix
-START_TEST(test_uuid_ambiguous)
-{
+START_TEST(test_uuid_ambiguous) {
     // Create agents with UUIDs that share a 4-char prefix
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abcd123def456ghi789jklm");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abcd456def789ghi123jklm");
@@ -153,11 +148,10 @@ START_TEST(test_uuid_ambiguous)
     ambiguous = ik_repl_uuid_ambiguous(repl, "abc");
     ck_assert(!ambiguous);
 }
-END_TEST
 
+END_TEST
 // Test: Minimum 4 char prefix enforced
-START_TEST(test_minimum_prefix_length)
-{
+START_TEST(test_minimum_prefix_length) {
     // Create agent
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
 
@@ -178,11 +172,10 @@ START_TEST(test_minimum_prefix_length)
     found = ik_repl_find_agent(repl, "abc1");
     ck_assert_ptr_eq(found, agent1);
 }
-END_TEST
 
+END_TEST
 // Test: No match returns NULL
-START_TEST(test_no_match)
-{
+START_TEST(test_no_match) {
     // Create agent
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123def456ghi789jklm");
 
@@ -193,11 +186,10 @@ START_TEST(test_no_match)
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "xyz789");
     ck_assert_ptr_null(found);
 }
-END_TEST
 
+END_TEST
 // Test: Empty agent array returns NULL
-START_TEST(test_empty_array)
-{
+START_TEST(test_empty_array) {
     // No agents added
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "abc123");
     ck_assert_ptr_null(found);
@@ -205,11 +197,10 @@ START_TEST(test_empty_array)
     bool ambiguous = ik_repl_uuid_ambiguous(repl, "abc123");
     ck_assert(!ambiguous);
 }
-END_TEST
 
+END_TEST
 // Test: Exact match takes priority over prefix
-START_TEST(test_exact_match_priority)
-{
+START_TEST(test_exact_match_priority) {
     // Create agents where one UUID is a prefix of another (unlikely but test boundary)
     ik_agent_ctx_t *agent1 = create_agent_with_uuid("abc123");
     ik_agent_ctx_t *agent2 = create_agent_with_uuid("abc123def456ghi789jklm");
@@ -223,6 +214,7 @@ START_TEST(test_exact_match_priority)
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, "abc123");
     ck_assert_ptr_eq(found, agent1);
 }
+
 END_TEST
 
 // Create test suite
@@ -231,11 +223,21 @@ static Suite *repl_agent_lookup_suite(void)
     Suite *s = suite_create("Agent Lookup");
 
     TCase *tc_exact = tcase_create("Exact Match");
+    tcase_set_timeout(tc_exact, 30);
+    tcase_set_timeout(tc_exact, 30);
+    tcase_set_timeout(tc_exact, 30);
+    tcase_set_timeout(tc_exact, 30);
+    tcase_set_timeout(tc_exact, 30);
     tcase_add_checked_fixture(tc_exact, setup, teardown);
     tcase_add_test(tc_exact, test_exact_match);
     suite_add_tcase(s, tc_exact);
 
     TCase *tc_prefix = tcase_create("Prefix Match");
+    tcase_set_timeout(tc_prefix, 30);
+    tcase_set_timeout(tc_prefix, 30);
+    tcase_set_timeout(tc_prefix, 30);
+    tcase_set_timeout(tc_prefix, 30);
+    tcase_set_timeout(tc_prefix, 30);
     tcase_add_checked_fixture(tc_prefix, setup, teardown);
     tcase_add_test(tc_prefix, test_prefix_match);
     tcase_add_test(tc_prefix, test_ambiguous_prefix);
@@ -243,11 +245,21 @@ static Suite *repl_agent_lookup_suite(void)
     suite_add_tcase(s, tc_prefix);
 
     TCase *tc_ambiguous = tcase_create("Ambiguous Detection");
+    tcase_set_timeout(tc_ambiguous, 30);
+    tcase_set_timeout(tc_ambiguous, 30);
+    tcase_set_timeout(tc_ambiguous, 30);
+    tcase_set_timeout(tc_ambiguous, 30);
+    tcase_set_timeout(tc_ambiguous, 30);
     tcase_add_checked_fixture(tc_ambiguous, setup, teardown);
     tcase_add_test(tc_ambiguous, test_uuid_ambiguous);
     suite_add_tcase(s, tc_ambiguous);
 
     TCase *tc_edge = tcase_create("Edge Cases");
+    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, 30);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_no_match);
     tcase_add_test(tc_edge, test_empty_array);

@@ -20,6 +20,12 @@
 // Forward declaration for suite function
 static Suite *repl_resize_suite(void);
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 // Mock state for terminal operations
 static int mock_screen_rows = 24;
 static int mock_screen_cols = 80;
@@ -108,7 +114,7 @@ START_TEST(test_resize_updates_terminal_dimensions) {
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -141,14 +147,13 @@ START_TEST(test_resize_updates_terminal_dimensions) {
 }
 END_TEST
 // Test: ik_repl_handle_resize invalidates scrollback layout cache
-START_TEST(test_resize_invalidates_scrollback_layout)
-{
+START_TEST(test_resize_invalidates_scrollback_layout) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -188,14 +193,13 @@ START_TEST(test_resize_invalidates_scrollback_layout)
 
 END_TEST
 // Test: ik_repl_handle_resize handles ioctl failure gracefully
-START_TEST(test_resize_handles_ioctl_failure)
-{
+START_TEST(test_resize_handles_ioctl_failure) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Create REPL context
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -222,14 +226,13 @@ START_TEST(test_resize_handles_ioctl_failure)
 
 END_TEST
 // Test: SIGWINCH signal handler is installed
-START_TEST(test_sigwinch_handler_installed)
-{
+START_TEST(test_sigwinch_handler_installed) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Create REPL context (which installs SIGWINCH handler)
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -261,6 +264,11 @@ static Suite *repl_resize_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_resize_updates_terminal_dimensions);
     tcase_add_test(tc_core, test_resize_invalidates_scrollback_layout);
     tcase_add_test(tc_core, test_resize_handles_ioctl_failure);

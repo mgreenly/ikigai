@@ -37,8 +37,7 @@ END_TEST
 // Test: Overlong 3-byte encoding of '/' (U+002F)
 // Normal: 0x2F
 // Overlong: 0xE0 0x80 0xAF (INVALID - used in directory traversal attacks)
-START_TEST(test_utf8_overlong_3byte_slash)
-{
+START_TEST(test_utf8_overlong_3byte_slash) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -63,8 +62,7 @@ END_TEST
 // Test: Overlong 4-byte encoding (U+0001 encoded as 4 bytes)
 // Normal: 0x01
 // Overlong 4-byte: 0xF0 0x80 0x80 0x81 (INVALID - security risk)
-START_TEST(test_utf8_overlong_4byte)
-{
+START_TEST(test_utf8_overlong_4byte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -94,8 +92,7 @@ END_TEST
 // ========================================================================
 
 // Test: Invalid UTF-8 lead bytes 0xF8-0xFF (5-byte and 6-byte sequences, invalid in UTF-8)
-START_TEST(test_utf8_invalid_lead_byte_f8)
-{
+START_TEST(test_utf8_invalid_lead_byte_f8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -112,8 +109,7 @@ START_TEST(test_utf8_invalid_lead_byte_f8)
 
 END_TEST
 // Test: Continuation byte without lead byte
-START_TEST(test_utf8_continuation_without_lead)
-{
+START_TEST(test_utf8_continuation_without_lead) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -135,8 +131,7 @@ END_TEST
 // Test: UTF-16 high surrogate (U+D800) encoded in UTF-8
 // U+D800 = 1101 1000 0000 0000
 // Invalid 3-byte UTF-8: 0xED 0xA0 0x80
-START_TEST(test_utf8_surrogate_high)
-{
+START_TEST(test_utf8_surrogate_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -159,8 +154,7 @@ START_TEST(test_utf8_surrogate_high)
 
 END_TEST
 // Test: UTF-16 low surrogate (U+DFFF) should be rejected
-START_TEST(test_utf8_surrogate_low)
-{
+START_TEST(test_utf8_surrogate_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -188,8 +182,7 @@ END_TEST
 
 // Test: Codepoint beyond valid Unicode (> U+10FFFF)
 // U+110000 encoded as 4-byte UTF-8: 0xF4 0x90 0x80 0x80 (INVALID)
-START_TEST(test_utf8_codepoint_too_large)
-{
+START_TEST(test_utf8_codepoint_too_large) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -215,8 +208,7 @@ START_TEST(test_utf8_codepoint_too_large)
 
 END_TEST
 // Test: Null codepoint (U+0000) via UTF-8: 0xC0 0x80 (overlong encoding)
-START_TEST(test_utf8_null_codepoint_overlong)
-{
+START_TEST(test_utf8_null_codepoint_overlong) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -240,8 +232,7 @@ END_TEST
 // ========================================================================
 
 // Test: U+FFFD (replacement character) itself should work correctly
-START_TEST(test_utf8_replacement_char_U_FFFD)
-{
+START_TEST(test_utf8_replacement_char_U_FFFD) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -263,8 +254,7 @@ START_TEST(test_utf8_replacement_char_U_FFFD)
 
 END_TEST
 // Test: Valid boundary codepoints (U+0080, U+0800, U+10000)
-START_TEST(test_utf8_valid_boundary_codepoints)
-{
+START_TEST(test_utf8_valid_boundary_codepoints) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -296,8 +286,7 @@ START_TEST(test_utf8_valid_boundary_codepoints)
 
 END_TEST
 // Test: Maximum valid Unicode codepoint (U+10FFFF)
-START_TEST(test_utf8_max_valid_codepoint)
-{
+START_TEST(test_utf8_max_valid_codepoint) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

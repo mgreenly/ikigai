@@ -39,7 +39,6 @@ START_TEST(test_config_with_db_connection_string) {
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -53,10 +52,10 @@ START_TEST(test_config_with_db_connection_string) {
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://localhost/ikigai");
@@ -65,8 +64,9 @@ START_TEST(test_config_with_db_connection_string) {
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_config_without_db_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_without_db_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -78,7 +78,6 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -91,10 +90,10 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     fclose(f);
 
     // Load config - should succeed with NULL db_connection_string
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
@@ -103,8 +102,9 @@ END_TEST START_TEST(test_config_without_db_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_full_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_full_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -116,7 +116,6 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -130,10 +129,10 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://user:pass@localhost:5432/ikigai");
@@ -143,8 +142,9 @@ END_TEST START_TEST(test_config_with_full_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_unix_socket_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_unix_socket_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -156,7 +156,6 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -170,10 +169,10 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql:///ikigai?host=/var/run/postgresql");
@@ -183,8 +182,9 @@ END_TEST START_TEST(test_config_with_unix_socket_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_empty_db_connection_string)
-{
+END_TEST
+
+START_TEST(test_config_with_empty_db_connection_string) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -196,7 +196,6 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -210,10 +209,10 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     fclose(f);
 
     // Load config - should succeed with NULL db_connection_string
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
@@ -222,8 +221,9 @@ END_TEST START_TEST(test_config_with_empty_db_connection_string)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
-{
+END_TEST
+
+START_TEST(test_config_with_invalid_db_connection_string_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -235,7 +235,6 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -249,7 +248,8 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     fclose(f);
 
     // Load config - should fail with invalid type error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
@@ -258,13 +258,14 @@ END_TEST START_TEST(test_config_with_invalid_db_connection_string_type)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_structure_has_db_connection_string_field)
-{
+END_TEST
+
+START_TEST(test_config_structure_has_db_connection_string_field) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Test that we can directly access the db_connection_string field
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Field should be NULL by default
@@ -278,8 +279,9 @@ END_TEST START_TEST(test_config_structure_has_db_connection_string_field)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_with_db_connection_string_null_value)
-{
+END_TEST
+
+START_TEST(test_config_with_db_connection_string_null_value) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -291,7 +293,6 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -305,17 +306,17 @@ END_TEST START_TEST(test_config_with_db_connection_string_null_value)
     fclose(f);
 
     // Reset mock counter and set to return NULL on the call for db_connection_string
-    // Calls are: api_key, model, address, db_connection_string
+    // Calls are: model, address, db_connection_string
     // (system_message is null so yyjson_get_str_ is not called for it)
-    // So db_connection_string is the 4th call (index 3)
+    // So db_connection_string is the 3rd call (index 2)
     g_call_counter = 0;
-    g_return_null_on_call = 3;
+    g_return_null_on_call = 2;
 
     // Load config - should succeed with NULL db_connection_string due to mock
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Even though JSON has a value, mock returns NULL, so config should be NULL
     ck_assert_ptr_null(cfg->db_connection_string);
@@ -334,6 +335,7 @@ static Suite *config_suite(void)
 {
     Suite *s = suite_create("Config Database");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_with_db_connection_string);
     tcase_add_test(tc_core, test_config_without_db_connection_string);

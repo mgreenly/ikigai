@@ -87,8 +87,9 @@ START_TEST(test_grep_exec_with_matches) {
     unlink(file3);
     rmdir(dir);
 }
-END_TEST START_TEST(test_grep_exec_no_matches)
-{
+END_TEST
+
+START_TEST(test_grep_exec_no_matches) {
     // Create temporary test directory with no matching content
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -127,8 +128,9 @@ END_TEST START_TEST(test_grep_exec_no_matches)
     rmdir(dir);
 }
 
-END_TEST START_TEST(test_grep_exec_with_glob_filter)
-{
+END_TEST
+
+START_TEST(test_grep_exec_with_glob_filter) {
     // Create temporary test directory
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -174,8 +176,9 @@ END_TEST START_TEST(test_grep_exec_with_glob_filter)
     rmdir(dir);
 }
 
-END_TEST START_TEST(test_grep_exec_null_path_uses_cwd)
-{
+END_TEST
+
+START_TEST(test_grep_exec_null_path_uses_cwd) {
     // Create a temp file in current directory
     char oldcwd[256];
     getcwd(oldcwd, sizeof(oldcwd));
@@ -213,8 +216,9 @@ END_TEST START_TEST(test_grep_exec_null_path_uses_cwd)
     rmdir(dir);
 }
 
-END_TEST START_TEST(test_grep_exec_multiline_match)
-{
+END_TEST
+
+START_TEST(test_grep_exec_multiline_match) {
     // Test that line numbers are correct
     char test_dir[] = "/tmp/ikigai-grep-test-XXXXXX";
     char *dir = mkdtemp(test_dir);
@@ -260,6 +264,7 @@ static Suite *grep_execute_suite(void)
     Suite *s = suite_create("Grep Execution");
 
     TCase *tc_grep_exec = tcase_create("Grep Execution");
+    tcase_set_timeout(tc_grep_exec, 30);
     tcase_add_checked_fixture(tc_grep_exec, setup, teardown);
     tcase_add_test(tc_grep_exec, test_grep_exec_with_matches);
     tcase_add_test(tc_grep_exec, test_grep_exec_no_matches);

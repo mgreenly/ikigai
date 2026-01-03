@@ -10,7 +10,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -41,9 +40,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -52,7 +49,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "root-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -158,8 +155,7 @@ static void suite_teardown(void)
 }
 
 // Test: displays tree structure with single root agent
-START_TEST(test_agents_single_root)
-{
+START_TEST(test_agents_single_root) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
@@ -167,43 +163,38 @@ START_TEST(test_agents_single_root)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: current agent marked with *
-START_TEST(test_agents_current_marked)
-{
+START_TEST(test_agents_current_marked) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows status (running/dead)
-START_TEST(test_agents_shows_status)
-{
+START_TEST(test_agents_shows_status) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: root labeled
-START_TEST(test_agents_root_labeled)
-{
+START_TEST(test_agents_root_labeled) {
     res_t res = ik_cmd_agents(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: indentation reflects depth
-START_TEST(test_agents_indentation_depth)
-{
+START_TEST(test_agents_indentation_depth) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -246,11 +237,10 @@ START_TEST(test_agents_indentation_depth)
     // Child UUID should start after "  +-- " (6 chars)
     ck_assert_msg(strncmp(text, "  +-- ", 6) == 0, "Child should have '  +-- ' prefix");
 }
-END_TEST
 
+END_TEST
 // Test: non-current root alignment
-START_TEST(test_agents_root_alignment)
-{
+START_TEST(test_agents_root_alignment) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -285,11 +275,10 @@ START_TEST(test_agents_root_alignment)
     // Root should start with "  " (not "*") since child is current
     ck_assert_msg(text[0] == ' ' && text[1] == ' ', "Non-current root should have '  ' prefix");
 }
-END_TEST
 
+END_TEST
 // Test: depth > 1 (grandchild indentation)
-START_TEST(test_agents_grandchild_indentation)
-{
+START_TEST(test_agents_grandchild_indentation) {
     // Create child agent
     ik_agent_ctx_t *child = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
@@ -331,11 +320,10 @@ START_TEST(test_agents_grandchild_indentation)
     ck_assert_msg(strncmp(text, "      +-- ", 10) == 0,
                   "Grandchild should have '      +-- ' prefix (4 spaces + tree)");
 }
-END_TEST
 
+END_TEST
 // Test: summary count correct
-START_TEST(test_agents_summary_count)
-{
+START_TEST(test_agents_summary_count) {
     // Create child agents - one running, one dead
     ik_agent_ctx_t *child1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child1);
@@ -372,12 +360,14 @@ START_TEST(test_agents_summary_count)
     // Verify output exists (should show 2 running, 1 dead)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *agents_suite(void)
 {
     Suite *s = suite_create("Agents Command");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

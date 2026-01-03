@@ -1,0 +1,43 @@
+Load developer persona and task skills, then continue fixing gaps in task files.
+
+CONTEXT:
+- Project: ikigai (Linux coding agent, C codebase)
+- Working on: 8 task files in scratch/tasks/ for legacy OpenAI cleanup migration
+- Status: 7/13 critical gap fixes completed (70% done)
+- Remaining: 6 fixes needed to make tasks ready for unattended execution
+
+WHAT WAS COMPLETED:
+✅ Added complete struct definitions to tasks 1, 5
+✅ Specified JSON schemas (data_json, OpenAI API) to tasks 1, 7
+✅ Added algorithms (yyjson parsing, deep copy, geometric growth) to tasks 1, 5
+✅ Resolved system message contradiction across tasks 1, 4, 6
+
+WHAT'S LEFT TO DO (in priority order):
+1. HIGH: Add standardized error handling policy to all 8 tasks
+2. HIGH: Remove all line number references, replace with code patterns
+3. MED: Add fallback search patterns to task 2
+4. MED: Add test pattern reference to task 8
+5. MED: Split task 7 into 7a (deletion) and 7b (refactoring)
+6. Verification: Run checklist to confirm all tasks ready
+
+INSTRUCTIONS:
+1. Read scratch/resume-gap-fixing.md for complete details
+2. Use TodoWrite to track progress through remaining 6 fixes
+3. Start with HIGH priority tasks (error handling, line numbers)
+4. Run verification commands before declaring complete
+
+ESTIMATED TIME: 2-3 hours
+
+FILES TO MODIFY:
+- scratch/tasks/message-storage-dual-mode.md
+- scratch/tasks/migrate-repl-messages.md
+- scratch/tasks/migrate-agent-ops.md
+- scratch/tasks/migrate-restore.md
+- scratch/tasks/migrate-providers.md
+- scratch/tasks/remove-legacy-conversation.md
+- scratch/tasks/delete-legacy-files.md (will split into part1/part2)
+- scratch/tasks/verify-migration-complete.md
+- scratch/tasks/order.json (update for task 7 split)
+
+BEGIN WITH:
+Read scratch/resume-gap-fixing.md then start fixing error handling policy.

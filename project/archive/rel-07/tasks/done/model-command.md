@@ -1,0 +1,202 @@
+# Task: Update /model Command
+
+**Model:** sonnet/thinking
+**Depends on:** agent-provider-fields.md, configuration.md, provider-types.md
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+## Pre-Read
+
+**Skills:**
+- `/load source-code` - Map of source files by functional area
+
+**Source:**
+- `src/commands_basic.c` - Command handlers including /model
+- `src/completion.c` - Tab completion provider
+
+**Plan:**
+- `scratch/plan/README.md` - Q6 Extended Thinking section
+- `scratch/plan/thinking-abstraction.md` - User feedback and model capabilities
+
+## Objective
+
+Update `/model` command to support `MODEL/THINKING` syntax, infer provider from model prefix, update agent state with provider/model/thinking_level, and warn users when requesting thinking on models that don't support it. Implement model capability lookup to identify which models support thinking and their maximum budgets.
+
+## Interface
+
+Functions to implement:
+
+| Function | Purpose |
+|----------|---------|
+| `res_t cmd_model_parse(const char *input, char **model, char **thinking)` | Parse MODEL/THINKING syntax, returns OK/ERR |
+| `res_t ik_model_supports_thinking(const char *model, bool *supports)` | Check if model supports thinking |
+| `res_t ik_model_get_thinking_budget(const char *model, int32_t *budget)` | Get max thinking tokens for model, 0 if unsupported |
+
+**Note:** This task uses `ik_infer_provider()` from `provider-types.md` for provider inference.
+
+Structs to define:
+
+| Struct | Members | Purpose |
+|--------|---------|---------|
+| `ik_model_capability_t` | prefix (str), provider (str), supports_thinking (bool), max_thinking_tokens (int32_t) | Model capability lookup table entry |
+
+Data structures to create:
+
+| Structure | Purpose |
+|-----------|---------|
+| `MODEL_CAPABILITIES[]` | Static array of model capabilities for lookup |
+
+## Behaviors
+
+**Active Request Check:**
+- Check if an LLM request is currently active/streaming
+- If active, reject command with ERR_BUSY or appropriate error
+- Display error message: "Cannot switch models during active request"
+- Only allow model switching when idle (no active LLM request)
+
+**Command Parsing:**
+- Parse `/model MODEL/THINKING` syntax
+- Extract model name before `/`
+- Extract thinking level after `/`
+- Default to current thinking level if `/THINKING` omitted
+- Return ERR_INVALID_ARG for malformed input
+
+**Provider Inference:**
+- Use `ik_infer_provider()` from provider-types.md
+- Returns NULL for unknown models
+- Handle NULL return by returning ERR_NOT_FOUND
+
+**Model Capability Lookup:**
+- Search MODEL_CAPABILITIES array by prefix matching
+- Return thinking support status
+- Return max thinking token budget
+- Handle unknown models gracefully (assume no thinking)
+
+**Agent State Update:**
+- Update agent->provider
+- Update agent->model
+- Update agent->thinking_level
+- **Invalidate cached provider instance** (call `ik_agent_invalidate_provider()` to free old provider)
+- Persist to database
+- Next message send will lazy-load new provider via `ik_agent_get_provider()`
+
+**User Feedback:**
+- Display provider name and model
+- Display thinking level with concrete value:
+  - none -> "disabled"
+  - low -> "low (22,016 tokens)" for Anthropic
+  - medium -> "medium (43,008 tokens)" for Anthropic
+  - high -> "high (64,000 tokens)" for Anthropic
+- Warn if model doesn't support thinking but user requested it
+- Adjust feedback based on provider capabilities
+
+**Completion Updates:**
+- List models from all providers in tab completion
+- Include thinking level suffixes (/none, /low, /med, /high)
+- Organize by provider
+
+## Test Scenarios
+
+**Parsing:**
+- `/model claude-sonnet-4-5/med` -> model="claude-sonnet-4-5", thinking="med"
+- `/model gpt-5` -> model="gpt-5", thinking=current
+- `/model gemini-3.0-flash/high` -> model="gemini-3.0-flash", thinking="high"
+- `/model invalid/` -> ERR_INVALID_ARG
+
+**Provider Inference:**
+- "claude-sonnet-4-5" -> "anthropic"
+- "gpt-5" -> "openai"
+- "gpt-5-mini" -> "openai"
+- "gemini-3.0-flash" -> "google"
+- "unknown-model" -> ERR_NOT_FOUND
+
+**Capability Lookup:**
+- "claude-sonnet-4-5" -> supports_thinking=true, budget=64000
+- "gpt-5" -> supports_thinking=true, budget=0 (effort-based)
+- "gpt-5-mini" -> supports_thinking=true, budget=0 (effort-based)
+- "gemini-3.0-flash" -> supports_thinking=true, budget=0 (level-based)
+- "gemini-2.5-flash-lite" -> supports_thinking=true, budget=24576
+
+**Active Request Rejection:**
+- Agent has active LLM request streaming
+- Execute: `/model gpt-5`
+- Command rejected with error
+- Message displayed: "Cannot switch models during active request"
+- Agent state unchanged
+
+**Agent State:**
+- Before: provider="anthropic", model="claude-sonnet-4-5", thinking="none"
+- Execute: `/model gpt-5/high`
+- After: provider="openai", model="gpt-5", thinking="high"
+- Database updated correctly
+
+**Provider Invalidation:**
+- Agent has cached Anthropic provider instance
+- Execute: `/model gpt-5`
+- Cached provider instance freed (invalidated)
+- provider_instance set to NULL
+- Next `ik_agent_get_provider()` creates new OpenAI provider
+
+**User Feedback:**
+- `/model claude-sonnet-4-5/med` displays:
+  ```
+  Switched to Anthropic claude-sonnet-4-5
+    Thinking: medium (43,008 tokens)
+  ```
+- `/model gpt-5/none` displays:
+  ```
+  Switched to OpenAI gpt-5
+    Thinking: disabled
+  ```
+- `/model gpt-5-mini/high` displays:
+  ```
+  Switched to OpenAI gpt-5-mini
+    Thinking: high effort
+  ```
+
+**Completion:**
+- Tab completion after `/model ` shows:
+  ```
+  claude-sonnet-4-5    gpt-5           gemini-3.0-flash
+  claude-haiku-4-5     gpt-5-mini      gemini-3.0-pro
+  claude-opus-4-5      gpt-5-nano      gemini-2.5-flash-lite
+  ```
+- Tab completion after `/model claude-sonnet-4-5/` shows:
+  ```
+  none    low    med    high
+  ```
+
+## Postconditions
+
+- [ ] `/model` rejects execution during active LLM request with appropriate error
+- [ ] `/model` parses MODEL/THINKING syntax correctly
+- [ ] Provider inferred from model prefix
+- [ ] Agent state updated with provider/model/thinking_level
+- [ ] `ik_model_supports_thinking()` returns correct values
+- [ ] `ik_model_get_thinking_budget()` returns correct budgets
+- [ ] Warning displayed when requesting thinking on non-thinking model
+- [ ] Completion shows models from all providers
+- [ ] Completion shows thinking level suffixes
+- [ ] Database persists updated values
+- [ ] All tests compile without warnings
+- [ ] All tests pass
+- [ ] `make check` passes
+- [ ] Changes committed to git with message: `task: model-command.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

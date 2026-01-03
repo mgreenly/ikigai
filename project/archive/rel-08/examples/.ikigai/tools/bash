@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""
+Bash tool wrapper - executes shell commands and returns structured output.
+
+This demonstrates the external tool protocol:
+1. --schema flag returns tool schema as JSON
+2. Normal invocation accepts JSON params via stdin, returns JSON result
+
+Exit codes:
+- 0: Tool executed (check JSON for operation success/failure)
+- non-zero: Tool itself failed (crash, invalid JSON input)
+"""
+
+import sys
+import json
+import subprocess
+import os
+
+SCHEMA = {
+    "name": "bash",
+    "description": "Execute bash commands with output capture and error handling",
+    "parameters": {
+        "command": {
+            "type": "string",
+            "required": True,
+            "description": "The bash command to execute"
+        },
+        "timeout": {
+            "type": "integer",
+            "required": False,
+            "default": 30,
+            "description": "Command timeout in seconds"
+        },
+        "working_dir": {
+            "type": "string",
+            "required": False,
+            "default": ".",
+            "description": "Working directory for command execution"
+        }
+    },
+    "returns": {
+        "type": "object",
+        "properties": {
+            "stdout": {
+                "type": "string",
+                "description": "Standard output from command"
+            },
+            "stderr": {
+                "type": "string",
+                "description": "Standard error from command"
+            },
+            "exit_code": {
+                "type": "integer",
+                "description": "Process exit code"
+            },
+            "truncated": {
+                "type": "boolean",
+                "description": "Whether output was truncated due to size limits"
+            }
+        }
+    },
+    "output_limits": {
+        "max_stdout_bytes": 10240,
+        "max_stderr_bytes": 4096,
+        "description": "Output truncated if exceeds limits"
+    }
+}
+
+
+def output_schema():
+    """Return tool schema as JSON."""
+    print(json.dumps(SCHEMA, indent=2))
+    sys.exit(0)
+
+
+def execute_bash(params):
+    """Execute bash command and return structured result."""
+    # Extract parameters
+    command = params.get("command")
+    timeout = params.get("timeout", 30)
+    working_dir = params.get("working_dir", ".")
+
+    # Validate required params
+    if not command:
+        return {
+            "error": "Missing required parameter: command",
+            "error_code": "MISSING_PARAM"
+        }
+
+    # Validate working directory
+    if not os.path.isdir(working_dir):
+        return {
+            "error": f"Working directory does not exist: {working_dir}",
+            "error_code": "INVALID_WORKING_DIR"
+        }
+
+    # Execute command
+    try:
+        result = subprocess.run(
+            ["bash", "-c", command],
+            cwd=working_dir,
+            capture_output=True,
+            timeout=timeout,
+            text=True
+        )
+
+        # Handle output size limits
+        max_stdout = SCHEMA["output_limits"]["max_stdout_bytes"]
+        max_stderr = SCHEMA["output_limits"]["max_stderr_bytes"]
+
+        stdout = result.stdout
+        stderr = result.stderr
+        truncated = False
+
+        if len(stdout) > max_stdout:
+            stdout = stdout[:max_stdout] + "\n\n[OUTPUT TRUNCATED - exceeded 10KB limit]"
+            truncated = True
+
+        if len(stderr) > max_stderr:
+            stderr = stderr[:max_stderr] + "\n\n[STDERR TRUNCATED - exceeded 4KB limit]"
+            truncated = True
+
+        return {
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_code": result.returncode,
+            "truncated": truncated
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "error": f"Command timed out after {timeout} seconds",
+            "error_code": "TIMEOUT"
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to execute command: {str(e)}",
+            "error_code": "EXECUTION_FAILED"
+        }
+
+
+def main():
+    # Handle --schema flag
+    if len(sys.argv) > 1 and sys.argv[1] == "--schema":
+        output_schema()
+
+    # Read JSON input from stdin or argv[1]
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] != "--schema":
+            params = json.loads(sys.argv[1])
+        else:
+            params = json.loads(sys.stdin.read())
+    except json.JSONDecodeError as e:
+        result = {
+            "error": f"Invalid JSON input: {str(e)}",
+            "error_code": "INVALID_JSON"
+        }
+        print(json.dumps(result))
+        sys.exit(1)
+
+    # Execute and return result
+    result = execute_bash(params)
+    print(json.dumps(result, indent=2))
+    # Always exit 0 - operation errors are in JSON, not exit code
+    # Non-zero exit only for tool crashes (which would happen before this point)
+
+
+if __name__ == "__main__":
+    main()

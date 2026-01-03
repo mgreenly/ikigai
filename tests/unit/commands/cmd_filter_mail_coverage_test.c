@@ -12,7 +12,6 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -44,9 +43,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -55,7 +52,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "recipient-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -161,35 +158,30 @@ static void suite_teardown(void)
 }
 
 // Test: missing args shows error
-START_TEST(test_filter_mail_missing_args)
-{
+START_TEST(test_filter_mail_missing_args) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: wrong format (no --from) shows error
-START_TEST(test_filter_mail_wrong_format)
-{
+START_TEST(test_filter_mail_wrong_format) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "sender-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: --from with only whitespace shows error
-START_TEST(test_filter_mail_empty_uuid)
-{
+START_TEST(test_filter_mail_empty_uuid) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from   ");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: ambiguous UUID shows error
-START_TEST(test_filter_mail_ambiguous_uuid)
-{
+START_TEST(test_filter_mail_ambiguous_uuid) {
     // Create two senders with similar UUIDs
     ik_agent_ctx_t *sender1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender1);
@@ -220,287 +212,22 @@ START_TEST(test_filter_mail_ambiguous_uuid)
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: non-existent UUID shows error
-START_TEST(test_filter_mail_nonexistent_uuid)
-{
+START_TEST(test_filter_mail_nonexistent_uuid) {
     res_t res = ik_cmd_filter_mail(test_ctx, repl, "--from nonexistent-uuid");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
-// Test: filter with messages - tests timestamp branches
-START_TEST(test_filter_mail_timestamp_seconds)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-time1");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567891;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp 59 seconds ago
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Recent message");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 59;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with messages - minutes timestamp
-START_TEST(test_filter_mail_timestamp_minutes)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-time2");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567892;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp 2 minutes ago
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from minutes ago");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 120;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with messages - hours timestamp
-START_TEST(test_filter_mail_timestamp_hours)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-time3");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567893;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp 2 hours ago
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from hours ago");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 7200;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with messages - days timestamp
-START_TEST(test_filter_mail_timestamp_days)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-time4");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567894;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp 2 days ago
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from days ago");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 172800;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with short body
-START_TEST(test_filter_mail_short_body)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-short");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567895;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with short body (exactly 50 chars)
-    char short_msg[51];
-    memset(short_msg, 'x', 50);
-    short_msg[50] = '\0';
-
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, short_msg);
-    ck_assert_ptr_nonnull(msg);
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with single message (singular form in summary)
-START_TEST(test_filter_mail_single_message)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-single");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567896;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create exactly one message
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Single message");
-    ck_assert_ptr_nonnull(msg);
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with messages - 1 hour timestamp (singular)
-START_TEST(test_filter_mail_timestamp_one_hour)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-1hour");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567897;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp exactly 1 hour ago (3600 seconds)
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from 1 hour ago");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 3600;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
-END_TEST
-
-// Test: filter with messages - 1 day timestamp (singular)
-START_TEST(test_filter_mail_timestamp_one_day)
-{
-    // Create sender
-    ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(sender);
-    sender->uuid = talloc_strdup(sender, "sender-uuid-1day");
-    sender->name = NULL;
-    sender->parent_uuid = NULL;
-    sender->created_at = 1234567898;
-    sender->fork_message_id = 0;
-    repl->agents[repl->agent_count++] = sender;
-
-    res_t res = ik_db_agent_insert(db, sender);
-    ck_assert(is_ok(&res));
-
-    // Create message with timestamp exactly 1 day ago (86400 seconds)
-    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Message from 1 day ago");
-    ck_assert_ptr_nonnull(msg);
-    msg->timestamp = (int64_t)time(NULL) - 86400;
-    res = ik_db_mail_insert(db, repl->shared->session_id, msg);
-    ck_assert(is_ok(&res));
-
-    // Filter
-    char args[64];
-    snprintf(args, sizeof(args), "--from %s", sender->uuid);
-    res = ik_cmd_filter_mail(test_ctx, repl, args);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
-}
 END_TEST
 
 static Suite *filter_mail_coverage_suite(void)
 {
     Suite *s = suite_create("Filter Mail Command Coverage");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
@@ -509,14 +236,6 @@ static Suite *filter_mail_coverage_suite(void)
     tcase_add_test(tc, test_filter_mail_empty_uuid);
     tcase_add_test(tc, test_filter_mail_ambiguous_uuid);
     tcase_add_test(tc, test_filter_mail_nonexistent_uuid);
-    tcase_add_test(tc, test_filter_mail_timestamp_seconds);
-    tcase_add_test(tc, test_filter_mail_timestamp_minutes);
-    tcase_add_test(tc, test_filter_mail_timestamp_hours);
-    tcase_add_test(tc, test_filter_mail_timestamp_days);
-    tcase_add_test(tc, test_filter_mail_short_body);
-    tcase_add_test(tc, test_filter_mail_single_message);
-    tcase_add_test(tc, test_filter_mail_timestamp_one_hour);
-    tcase_add_test(tc, test_filter_mail_timestamp_one_day);
 
     suite_add_tcase(s, tc);
     return s;

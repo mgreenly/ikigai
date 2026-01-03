@@ -11,7 +11,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -74,6 +73,13 @@ ExecStatusType PQresultStatus(const PGresult *res)
     return PGRES_COMMAND_OK;
 }
 
+// Mock PQresultStatus_ (the actual function called by the code)
+ExecStatusType PQresultStatus_(const PGresult *res)
+{
+    (void)res;
+    return PGRES_COMMAND_OK;
+}
+
 // Mock PQclear (no-op)
 void PQclear(PGresult *res)
 {
@@ -98,11 +104,9 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create database context
@@ -125,7 +129,7 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     r->current = agent;
 
@@ -155,8 +159,7 @@ static void teardown(void)
 }
 
 // Test: /help command output is persisted with kind="command"
-START_TEST(test_help_persisted)
-{
+START_TEST(test_help_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -177,15 +180,13 @@ START_TEST(test_help_persisted)
     ck_assert(strstr(last_data_json, "\"command\":\"help\"") != NULL);
 }
 END_TEST
-
 // Test: /model command output is persisted
-START_TEST(test_model_persisted)
-{
+START_TEST(test_model_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_ok(&res));
 
-    // Should have called ik_db_message_insert once
-    ck_assert_int_eq(insert_call_count, 1);
+    // Should have called DB twice: once for agent update, once for message insert
+    ck_assert_int_eq(insert_call_count, 2);
 
     // Verify kind is "command"
     ck_assert_ptr_nonnull(last_kind);
@@ -194,18 +195,17 @@ START_TEST(test_model_persisted)
     // Verify content contains command and output
     ck_assert_ptr_nonnull(last_content);
     ck_assert(strncmp(last_content, "/model gpt-4\n", 13) == 0);
-    ck_assert(strstr(last_content, "Switched to model: gpt-4") != NULL);
+    ck_assert(strstr(last_content, "Switched to") != NULL);
 
     // Verify data_json contains command metadata
     ck_assert_ptr_nonnull(last_data_json);
     ck_assert(strstr(last_data_json, "\"command\":\"model\"") != NULL);
     ck_assert(strstr(last_data_json, "\"args\":\"gpt-4\"") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: /debug command output is persisted
-START_TEST(test_debug_persisted)
-{
+START_TEST(test_debug_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/debug on");
     ck_assert(is_ok(&res));
 
@@ -221,11 +221,10 @@ START_TEST(test_debug_persisted)
     ck_assert(strncmp(last_content, "/debug on\n", 10) == 0);
     ck_assert(strstr(last_content, "Debug output enabled") != NULL);
 }
-END_TEST
 
+END_TEST
 // Test: Command persistence without database context (should not crash)
-START_TEST(test_command_persist_no_db)
-{
+START_TEST(test_command_persist_no_db) {
     // Remove database context
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
@@ -239,11 +238,10 @@ START_TEST(test_command_persist_no_db)
     // Command should still execute and show output in scrollback
     ck_assert(ik_scrollback_get_line_count(repl->current->scrollback) > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Unknown command is not persisted
-START_TEST(test_unknown_command_not_persisted)
-{
+START_TEST(test_unknown_command_not_persisted) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unknown");
     ck_assert(is_err(&res));
     talloc_free(res.err);
@@ -251,12 +249,14 @@ START_TEST(test_unknown_command_not_persisted)
     // Should not have called ik_db_message_insert for error
     ck_assert_int_eq(insert_call_count, 0);
 }
+
 END_TEST
 
 static Suite *cmd_persist_suite(void)
 {
     Suite *s = suite_create("Command Persistence");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

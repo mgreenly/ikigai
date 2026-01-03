@@ -55,8 +55,7 @@ START_TEST(test_file_read_exec_valid_file) {
 }
 END_TEST
 // Test: file_read with non-existent file returns error
-START_TEST(test_file_read_exec_file_not_found)
-{
+START_TEST(test_file_read_exec_file_not_found) {
     const char *nonexistent = "/tmp/ikigai-file-read-nonexistent-xyz123.txt";
 
     // Execute file_read on non-existent file
@@ -72,8 +71,7 @@ START_TEST(test_file_read_exec_file_not_found)
 
 END_TEST
 // Test: file_read with unreadable file returns error
-START_TEST(test_file_read_exec_permission_denied)
-{
+START_TEST(test_file_read_exec_permission_denied) {
     // Create temporary test file
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
@@ -103,8 +101,7 @@ START_TEST(test_file_read_exec_permission_denied)
 
 END_TEST
 // Test: file_read with empty file returns empty output
-START_TEST(test_file_read_exec_empty_file)
-{
+START_TEST(test_file_read_exec_empty_file) {
     // Create temporary empty file
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
@@ -128,8 +125,7 @@ START_TEST(test_file_read_exec_empty_file)
 
 END_TEST
 // Test: file_read with large file works correctly
-START_TEST(test_file_read_exec_large_file)
-{
+START_TEST(test_file_read_exec_large_file) {
     // Create temporary file with large content
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
@@ -163,8 +159,7 @@ START_TEST(test_file_read_exec_large_file)
 
 END_TEST
 // Test: file_read with file containing special characters
-START_TEST(test_file_read_exec_special_characters)
-{
+START_TEST(test_file_read_exec_special_characters) {
     // Create temporary file with special characters
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
@@ -264,8 +259,7 @@ START_TEST(test_file_read_exec_fseek_error) {
 }
 END_TEST
 // Test: ftell error
-START_TEST(test_file_read_exec_ftell_error)
-{
+START_TEST(test_file_read_exec_ftell_error) {
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -288,8 +282,7 @@ START_TEST(test_file_read_exec_ftell_error)
 
 END_TEST
 // Test: second fseek error (rewind)
-START_TEST(test_file_read_exec_rewind_error)
-{
+START_TEST(test_file_read_exec_rewind_error) {
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -313,8 +306,7 @@ START_TEST(test_file_read_exec_rewind_error)
 
 END_TEST
 // Test: fread error
-START_TEST(test_file_read_exec_fread_error)
-{
+START_TEST(test_file_read_exec_fread_error) {
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -337,8 +329,7 @@ START_TEST(test_file_read_exec_fread_error)
 
 END_TEST
 // Test: fopen error with generic errno (not ENOENT or EACCES)
-START_TEST(test_file_read_exec_generic_fopen_error)
-{
+START_TEST(test_file_read_exec_generic_fopen_error) {
     const char *test_file = "/tmp/test";
 
     mock_fopen_errno = ENOMEM;  // Out of memory error
@@ -355,10 +346,8 @@ START_TEST(test_file_read_exec_generic_fopen_error)
 }
 
 END_TEST
-
 // Test: file too large error (generic error path)
-START_TEST(test_file_read_exec_file_too_large)
-{
+START_TEST(test_file_read_exec_file_too_large) {
     char test_file[] = "/tmp/ikigai-file-read-test-XXXXXX";
     int fd = mkstemp(test_file);
     ck_assert(fd >= 0);
@@ -390,6 +379,7 @@ static Suite *file_read_execute_suite(void)
     Suite *s = suite_create("File Read Execution");
 
     TCase *tc_file_read_exec = tcase_create("File Read Execution");
+    tcase_set_timeout(tc_file_read_exec, 30);
     tcase_add_checked_fixture(tc_file_read_exec, setup, teardown);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_valid_file);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_file_not_found);

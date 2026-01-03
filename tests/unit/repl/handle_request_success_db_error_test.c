@@ -12,7 +12,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 
@@ -57,6 +56,11 @@ res_t ik_db_message_insert_(void *db,
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -85,9 +89,8 @@ static void setup(void)
     repl->shared->logger = ik_logger_create(repl->shared, tmpdir);
     ck_assert_ptr_nonnull(repl->shared->logger);
 
-    // Create conversation
-    agent->conversation = ik_openai_conversation_create(test_ctx);
-    ck_assert_ptr_nonnull(agent->conversation);
+    // Messages array starts empty in new API
+    ck_assert_uint_eq(agent->message_count, 0);
     repl->current = agent;
 
     // Set up minimal database context (we use a dummy pointer since we're mocking)
@@ -117,13 +120,12 @@ START_TEST(test_db_error_no_debug_pipe) {
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 END_TEST
 // Test: DB error with logger (replaces debug pipe test)
-START_TEST(test_db_error_with_logger)
-{
+START_TEST(test_db_error_with_logger) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
 
@@ -133,7 +135,7 @@ START_TEST(test_db_error_with_logger)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should still be added to conversation despite DB error
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 
     // Note: Error is now logged via JSONL logger instead of debug pipe.
@@ -152,6 +154,12 @@ static Suite *handle_request_success_db_error_suite(void)
     Suite *s = suite_create("handle_request_success DB Error");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_db_error_no_debug_pipe);
     tcase_add_test(tc_core, test_db_error_with_logger);

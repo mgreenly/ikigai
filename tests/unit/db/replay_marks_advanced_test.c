@@ -185,8 +185,7 @@ START_TEST(test_complex_mark_rewind_scenario) {
 }
 END_TEST
 // Test rewind without target mark (mark not in stack) -> skip rewind, log error
-START_TEST(test_rewind_with_missing_mark)
-{
+START_TEST(test_rewind_with_missing_mark) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -215,8 +214,7 @@ START_TEST(test_rewind_with_missing_mark)
 
 END_TEST
 // Test rewind with malformed JSONB -> skip rewind, log error
-START_TEST(test_rewind_with_malformed_json)
-{
+START_TEST(test_rewind_with_malformed_json) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -245,8 +243,7 @@ START_TEST(test_rewind_with_malformed_json)
 
 END_TEST
 // Test rewind with invalid target_message_id -> skip rewind, log error
-START_TEST(test_rewind_with_invalid_target_id)
-{
+START_TEST(test_rewind_with_invalid_target_id) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -275,8 +272,7 @@ START_TEST(test_rewind_with_invalid_target_id)
 
 END_TEST
 // Test clear empties mark stack: [user, mark, clear, rewind] -> rewind fails (mark cleared)
-START_TEST(test_clear_empties_mark_stack)
-{
+START_TEST(test_clear_empties_mark_stack) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -323,8 +319,7 @@ START_TEST(test_clear_empties_mark_stack)
 
 END_TEST
 // Test mark stack geometric growth (add many marks, verify capacity doubling)
-START_TEST(test_mark_stack_growth)
-{
+START_TEST(test_mark_stack_growth) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -356,8 +351,7 @@ START_TEST(test_mark_stack_growth)
 
 END_TEST
 // Test multi-launch with marks: marks persist across app launches and replays
-START_TEST(test_marks_persist_across_launches)
-{
+START_TEST(test_marks_persist_across_launches) {
     SKIP_IF_NO_DB();
 
     // First "app launch" - create some messages with marks
@@ -410,6 +404,7 @@ static Suite *replay_marks_advanced_suite(void)
     Suite *s = suite_create("Replay Marks Advanced");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

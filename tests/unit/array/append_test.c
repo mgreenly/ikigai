@@ -30,8 +30,7 @@ START_TEST(test_array_append_first) {
 
 END_TEST
 // Test appending within capacity (no growth)
-START_TEST(test_array_append_no_growth)
-{
+START_TEST(test_array_append_no_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
@@ -58,8 +57,7 @@ START_TEST(test_array_append_no_growth)
 
 END_TEST
 // Test appending that triggers growth (doubling)
-START_TEST(test_array_append_with_growth)
-{
+START_TEST(test_array_append_with_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_array_create(ctx, sizeof(int32_t), 2);
@@ -88,16 +86,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion: append with NULL array
-START_TEST(test_array_append_null_array_asserts)
-{
+START_TEST(test_array_append_null_array_asserts) {
     int32_t value = 42;
     ik_array_append(NULL, &value);
 }
 
 END_TEST
 // Test assertion: append with NULL element
-START_TEST(test_array_append_null_element_asserts)
-{
+START_TEST(test_array_append_null_element_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
     ik_array_t *array = res.ok;
@@ -126,6 +122,10 @@ static Suite *array_append_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_array_append_null_array_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_array_append_null_element_asserts, SIGABRT);

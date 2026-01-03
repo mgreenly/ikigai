@@ -21,8 +21,9 @@ START_TEST(test_scrollback_layer_create_and_visibility) {
 
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_scrollback_layer_height_empty)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_height_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -37,8 +38,9 @@ END_TEST START_TEST(test_scrollback_layer_height_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_height_with_content)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_height_with_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -54,8 +56,9 @@ END_TEST START_TEST(test_scrollback_layer_height_with_content)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_render_empty)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_render_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -72,8 +75,9 @@ END_TEST START_TEST(test_scrollback_layer_render_empty)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_render_with_content)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_render_with_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -95,8 +99,9 @@ END_TEST START_TEST(test_scrollback_layer_render_with_content)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_render_row_count_zero)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_render_row_count_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -114,8 +119,9 @@ END_TEST START_TEST(test_scrollback_layer_render_row_count_zero)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_render_start_row_beyond_content)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_render_start_row_beyond_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -134,8 +140,9 @@ END_TEST START_TEST(test_scrollback_layer_render_start_row_beyond_content)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_layer_render_newline_conversion)
-{
+END_TEST
+
+START_TEST(test_scrollback_layer_render_newline_conversion) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -165,8 +172,9 @@ END_TEST START_TEST(test_scrollback_layer_render_newline_conversion)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
-{
+END_TEST
+
+START_TEST(test_scrollback_render_end_row_beyond_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback;
@@ -186,10 +194,8 @@ END_TEST START_TEST(test_scrollback_render_end_row_beyond_content)
 }
 
 END_TEST
-
 // Test: Render starting from middle of wrapped line
-START_TEST(test_scrollback_layer_render_partial_start)
-{
+START_TEST(test_scrollback_layer_render_partial_start) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create scrollback with width 10
@@ -213,11 +219,10 @@ START_TEST(test_scrollback_layer_render_partial_start)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render ending in middle of wrapped line (no trailing \r\n)
-START_TEST(test_scrollback_layer_render_partial_end)
-{
+START_TEST(test_scrollback_layer_render_partial_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 10);
@@ -238,11 +243,10 @@ START_TEST(test_scrollback_layer_render_partial_end)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render middle portion of wrapped line (skip start, stop before end)
-START_TEST(test_scrollback_layer_render_partial_middle)
-{
+START_TEST(test_scrollback_layer_render_partial_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 10);
@@ -262,11 +266,10 @@ START_TEST(test_scrollback_layer_render_partial_middle)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render with UTF-8 content (multi-byte chars)
-START_TEST(test_scrollback_layer_render_partial_utf8)
-{
+START_TEST(test_scrollback_layer_render_partial_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 5);
@@ -287,11 +290,10 @@ START_TEST(test_scrollback_layer_render_partial_utf8)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Render with ANSI escape sequences
-START_TEST(test_scrollback_layer_render_partial_ansi)
-{
+START_TEST(test_scrollback_layer_render_partial_ansi) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 10);
@@ -314,11 +316,10 @@ START_TEST(test_scrollback_layer_render_partial_ansi)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Single-row line doesn't break when rendered partially
-START_TEST(test_scrollback_layer_render_single_row_line)
-{
+START_TEST(test_scrollback_layer_render_single_row_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
@@ -336,11 +337,10 @@ START_TEST(test_scrollback_layer_render_single_row_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Multiple lines with first partial, last partial
-START_TEST(test_scrollback_layer_render_multiple_lines_partial)
-{
+START_TEST(test_scrollback_layer_render_multiple_lines_partial) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 10);
@@ -368,6 +368,7 @@ START_TEST(test_scrollback_layer_render_multiple_lines_partial)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_layer_suite(void)
@@ -375,6 +376,7 @@ static Suite *scrollback_layer_suite(void)
     Suite *s = suite_create("Scrollback Layer");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_scrollback_layer_create_and_visibility);
     tcase_add_test(tc_core, test_scrollback_layer_height_empty);
     tcase_add_test(tc_core, test_scrollback_layer_height_with_content);

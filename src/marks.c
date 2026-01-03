@@ -1,7 +1,7 @@
 #include "marks.h"
 
 #include "event_render.h"
-#include "openai/client.h"
+#include "message.h"
 #include "panic.h"
 #include "repl.h"
 #include "agent.h"
@@ -54,7 +54,7 @@ res_t ik_mark_create(ik_repl_ctx_t *repl, const char *label)
     if (mark == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Record current conversation position
-    mark->message_index = repl->current->conversation->message_count;
+    mark->message_index = repl->current->message_count;
 
     // Copy label if provided
     if (label != NULL) {
@@ -144,10 +144,10 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 
     // Truncate conversation to mark position
     // Free messages after the mark position
-    for (size_t i = target_mark->message_index; i < repl->current->conversation->message_count; i++) {
-        talloc_free(repl->current->conversation->messages[i]);
+    for (size_t i = target_mark->message_index; i < repl->current->message_count; i++) {
+        talloc_free(repl->current->messages[i]);
     }
-    repl->current->conversation->message_count = target_mark->message_index;
+    repl->current->message_count = target_mark->message_index;
 
     // Remove marks after the target position (but keep the target mark itself)
     size_t target_index = 0;
@@ -178,10 +178,19 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
     }
 
     // Render conversation messages using event renderer (no role prefixes)
-    for (size_t i = 0; i < repl->current->conversation->message_count; i++) {
-        ik_msg_t *msg = repl->current->conversation->messages[i];
-        result = ik_event_render(repl->current->scrollback, msg->kind, msg->content, "{}");
-        if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
+    for (size_t i = 0; i < repl->current->message_count; i++) {
+        ik_message_t *msg = repl->current->messages[i];
+        // Convert role to kind for rendering
+        const char *kind = NULL;
+        switch (msg->role) {
+            case IK_ROLE_USER: kind = "user"; break;
+            case IK_ROLE_ASSISTANT: kind = "assistant"; break;
+            case IK_ROLE_TOOL: kind = "tool_result"; break;
+        }
+        if (kind != NULL && msg->content_count > 0 && msg->content_blocks[0].type == IK_CONTENT_TEXT) {
+            result = ik_event_render(repl->current->scrollback, kind, msg->content_blocks[0].data.text.text, "{}");
+            if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
+        }
     }
 
     // Re-add mark indicators for remaining marks (including the target mark)

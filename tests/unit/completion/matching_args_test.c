@@ -41,7 +41,7 @@ static void setup(void)
     test_repl->shared = shared;
 
     // Initialize config with a default model
-    shared->cfg = talloc_zero(ctx, ik_cfg_t);
+    shared->cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(shared->cfg);
     shared->cfg->openai_model = talloc_strdup(shared->cfg, "gpt-4o");
     ck_assert_ptr_nonnull(shared->cfg->openai_model);
@@ -53,8 +53,7 @@ static void teardown(void)
 }
 
 // Test: /debug argument completion
-START_TEST(test_completion_debug_arguments)
-{
+START_TEST(test_completion_debug_arguments) {
     // "/debug " should complete to ["off", "on"] (order may vary by fzy score)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/debug ");
     ck_assert_ptr_nonnull(comp);
@@ -91,10 +90,8 @@ START_TEST(test_completion_debug_arguments)
     ck_assert_str_eq(comp->candidates[0], "off");
 }
 END_TEST
-
 // Test: /rewind argument completion with marks
-START_TEST(test_completion_rewind_arguments)
-{
+START_TEST(test_completion_rewind_arguments) {
     // Create test marks
     ik_mark_t *mark1 = talloc_zero(test_repl, ik_mark_t);
     mark1->label = talloc_strdup(mark1, "cp1");
@@ -120,104 +117,80 @@ START_TEST(test_completion_rewind_arguments)
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_ge(comp->count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: /rewind with no marks
-START_TEST(test_completion_rewind_no_marks)
-{
+START_TEST(test_completion_rewind_no_marks) {
     // No marks created - should return NULL
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/rewind ");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: /model argument completion
-START_TEST(test_completion_model_arguments)
-{
+START_TEST(test_completion_model_arguments) {
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model ");
     ck_assert_ptr_nonnull(comp);
     ck_assert(comp->count > 0);
 }
+
+END_TEST
+
+// Test: /model with thinking level (slash present)
+START_TEST(test_completion_model_thinking_level) {
+    // "/model claude-haiku-4-5/" should complete thinking levels
+    ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/model claude-haiku-4-5/");
+    ck_assert_ptr_nonnull(comp);
+    ck_assert(comp->count > 0);
+
+    // Verify thinking levels are present
+    bool found_none = false, found_low = false, found_med = false, found_high = false;
+    for (size_t i = 0; i < comp->count; i++) {
+        if (strcmp(comp->candidates[i], "none") == 0) found_none = true;
+        if (strcmp(comp->candidates[i], "low") == 0) found_low = true;
+        if (strcmp(comp->candidates[i], "med") == 0) found_med = true;
+        if (strcmp(comp->candidates[i], "high") == 0) found_high = true;
+    }
+    ck_assert(found_none);
+    ck_assert(found_low);
+    ck_assert(found_med);
+    ck_assert(found_high);
+}
+
 END_TEST
 
 // Test: Uppercase argument prefix (tests case handling in fzy)
-START_TEST(test_completion_argument_case_sensitive)
-{
+START_TEST(test_completion_argument_case_sensitive) {
     // With fzy, uppercase should still match (case-insensitive matching)
     // However, if no matches, that's also acceptable depending on fzy implementation
     ik_completion_create_for_arguments(ctx, test_repl, "/debug O");
     // Accept either matches or no matches - the important part is it doesn't crash
     // (either result is valid depending on fzy implementation)
 }
-END_TEST
 
+END_TEST
 // Test: No space in input (just command name)
-START_TEST(test_completion_no_space_in_input)
-{
+START_TEST(test_completion_no_space_in_input) {
     // "/debug" without space should return NULL (no argument completion)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/debug");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: Empty command name ("/ ")
-START_TEST(test_completion_empty_command_name)
-{
+START_TEST(test_completion_empty_command_name) {
     // "/ " should return NULL (empty command name)
     ik_completion_t *comp = ik_completion_create_for_arguments(ctx, test_repl, "/ ");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
-// Test: Clear completion state
-START_TEST(test_completion_clear)
-{
-    // Create a completion with multiple candidates
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_ge(comp->count, 2);
-    ck_assert_ptr_nonnull(comp->candidates);
-    ck_assert_ptr_nonnull(comp->prefix);
-
-    // Clear the completion
-    ik_completion_clear(comp);
-
-    // Verify all state is cleared
-    ck_assert_uint_eq(comp->count, 0);
-    ck_assert_uint_eq(comp->current, 0);
-    ck_assert_ptr_null(comp->candidates);
-    ck_assert_ptr_null(comp->prefix);
-    ck_assert_ptr_null(comp->original_input);
-}
-END_TEST
-
-// Test: Clear completion with original_input set
-START_TEST(test_completion_clear_with_original_input)
-{
-    // Create a completion and set original_input
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-
-    // Manually set original_input (this would normally be set during completion cycling)
-    comp->original_input = talloc_strdup(comp, "/m");
-    ck_assert_ptr_nonnull(comp->original_input);
-
-    // Clear the completion
-    ik_completion_clear(comp);
-
-    // Verify all state is cleared, including original_input
-    ck_assert_uint_eq(comp->count, 0);
-    ck_assert_uint_eq(comp->current, 0);
-    ck_assert_ptr_null(comp->candidates);
-    ck_assert_ptr_null(comp->prefix);
-    ck_assert_ptr_null(comp->original_input);
-}
 END_TEST
 
 static Suite *completion_matching_args_suite(void)
 {
     Suite *s = suite_create("Completion Argument Matching");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
@@ -226,13 +199,10 @@ static Suite *completion_matching_args_suite(void)
     tcase_add_test(tc, test_completion_rewind_arguments);
     tcase_add_test(tc, test_completion_rewind_no_marks);
     tcase_add_test(tc, test_completion_model_arguments);
+    tcase_add_test(tc, test_completion_model_thinking_level);
     tcase_add_test(tc, test_completion_argument_case_sensitive);
     tcase_add_test(tc, test_completion_no_space_in_input);
     tcase_add_test(tc, test_completion_empty_command_name);
-
-    // Completion clear tests
-    tcase_add_test(tc, test_completion_clear);
-    tcase_add_test(tc, test_completion_clear_with_original_input);
 
     suite_add_tcase(s, tc);
     return s;

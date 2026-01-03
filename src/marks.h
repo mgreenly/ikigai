@@ -15,9 +15,7 @@
  *
  * TODO(DI): This function violates DI principles by taking repl context instead of explicit dependencies.
  * It reaches into repl->current->conversation, repl->current->marks, and repl->current->scrollback.
- * Should be refactored to: ik_mark_create(TALLOC_CTX *ctx, ik_openai_conversation_t *conv,
- *                                         ik_mark_t ***marks_ptr, size_t *mark_count_ptr,
- *                                         ik_scrollback_t *scrollback, const char *label, ik_mark_t **out)
+ * Should be refactored to take explicit dependencies.
  * See tasks/init-mark-decouple.md for full refactoring plan.
  *
  * @param repl   REPL context

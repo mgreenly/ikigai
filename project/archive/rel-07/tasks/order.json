@@ -1,0 +1,64 @@
+{
+  "todo": [
+    {
+      "task": "task-0-foundation.md",
+      "group": "Foundation",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "message-storage-dual-mode.md",
+      "group": "Foundation",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "migrate-repl-messages.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "migrate-agent-ops.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "migrate-restore.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "migrate-providers.md",
+      "group": "Migration",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "remove-legacy-conversation.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "delete-legacy-files-part1.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "delete-legacy-files-part2.md",
+      "group": "Cleanup",
+      "model": "sonnet",
+      "thinking": "extended"
+    },
+    {
+      "task": "verify-migration-complete.md",
+      "group": "Verification",
+      "model": "opus",
+      "thinking": "extended"
+    }
+  ]
+}

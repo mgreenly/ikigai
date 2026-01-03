@@ -78,8 +78,7 @@ START_TEST(test_repl_process_action_ctrl_a) {
 }
 END_TEST
 /* Test: Process CTRL_E action (end of line) */
-START_TEST(test_repl_process_action_ctrl_e)
-{
+START_TEST(test_repl_process_action_ctrl_e) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -148,8 +147,7 @@ START_TEST(test_repl_process_action_ctrl_e)
 
 END_TEST
 /* Test: Process CTRL_K action (kill to end of line) */
-START_TEST(test_repl_process_action_ctrl_k)
-{
+START_TEST(test_repl_process_action_ctrl_k) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -235,8 +233,7 @@ START_TEST(test_repl_process_action_ctrl_k)
 
 END_TEST
 /* Test: Process CTRL_U action (kill line) */
-START_TEST(test_repl_process_action_ctrl_u)
-{
+START_TEST(test_repl_process_action_ctrl_u) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -320,8 +317,7 @@ START_TEST(test_repl_process_action_ctrl_u)
 
 END_TEST
 /* Test: Process CTRL_W action (delete word backward) */
-START_TEST(test_repl_process_action_ctrl_w)
-{
+START_TEST(test_repl_process_action_ctrl_w) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -404,6 +400,10 @@ static Suite *repl_readline_suite(void)
 {
     Suite *s = suite_create("REPL_Readline");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_repl_process_action_ctrl_a);

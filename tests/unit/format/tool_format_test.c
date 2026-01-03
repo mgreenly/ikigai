@@ -41,8 +41,7 @@ START_TEST(test_format_tool_call_glob_basic) {
 }
 END_TEST
 // Test: Format tool result with list of files
-START_TEST(test_format_tool_result_glob_files)
-{
+START_TEST(test_format_tool_result_glob_files) {
     const char *result =
         "{\"success\": true, \"data\": {\"output\": \"src/main.c\\nsrc/config.c\\nsrc/repl.c\", \"count\": 3}}";
 
@@ -56,8 +55,7 @@ START_TEST(test_format_tool_result_glob_files)
 
 END_TEST
 // Test: Format tool call with only required parameters
-START_TEST(test_format_tool_call_minimal)
-{
+START_TEST(test_format_tool_call_minimal) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_456", "glob", "{\"pattern\": \"*.h\"}");
     ck_assert_ptr_nonnull(call);
 
@@ -70,8 +68,7 @@ START_TEST(test_format_tool_call_minimal)
 
 END_TEST
 // Test: Format empty tool result
-START_TEST(test_format_tool_result_empty)
-{
+START_TEST(test_format_tool_result_empty) {
     const char *result = "{\"success\": true, \"data\": {\"output\": \"\", \"count\": 0}}";
 
     const char *formatted = ik_format_tool_result(ctx, "glob", result);
@@ -83,8 +80,7 @@ START_TEST(test_format_tool_result_empty)
 
 END_TEST
 // Test: Format tool result with NULL result_json
-START_TEST(test_format_tool_result_null_result)
-{
+START_TEST(test_format_tool_result_null_result) {
     const char *formatted = ik_format_tool_result(ctx, "glob", NULL);
     ck_assert_ptr_nonnull(formatted);
 
@@ -94,8 +90,7 @@ START_TEST(test_format_tool_result_null_result)
 
 END_TEST
 // Test: Format tool call with special characters in arguments
-START_TEST(test_format_tool_call_special_chars)
-{
+START_TEST(test_format_tool_call_special_chars) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_789", "grep",
                                                "{\"pattern\": \"test.*error\", \"path\": \"src/\"}");
     ck_assert_ptr_nonnull(call);
@@ -111,8 +106,7 @@ START_TEST(test_format_tool_call_special_chars)
 
 END_TEST
 // Test: Format tool result with large output (truncation handling)
-START_TEST(test_format_tool_result_large_output)
-{
+START_TEST(test_format_tool_result_large_output) {
     // Create a moderately large output string
     const char *large_result =
         "{\"success\": true, \"data\": {\"output\": \"file1\\nfile2\\nfile3\\nfile4\\nfile5\\nfile6\\nfile7\\nfile8\\nfile9\\nfile10\", \"count\": 10}}";
@@ -126,8 +120,7 @@ START_TEST(test_format_tool_result_large_output)
 
 END_TEST
 // Test: Format tool call preserves tool name
-START_TEST(test_format_tool_call_preserves_name)
-{
+START_TEST(test_format_tool_call_preserves_name) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_999", "file_read", "{\"path\": \"config.txt\"}");
     ck_assert_ptr_nonnull(call);
 
@@ -140,8 +133,7 @@ START_TEST(test_format_tool_call_preserves_name)
 
 END_TEST
 // Test: Format tool result preserves tool name
-START_TEST(test_format_tool_result_preserves_name)
-{
+START_TEST(test_format_tool_result_preserves_name) {
     const char *result = "{\"success\": true, \"data\": {\"content\": \"file data\"}}";
 
     const char *formatted = ik_format_tool_result(ctx, "file_read", result);
@@ -153,8 +145,7 @@ START_TEST(test_format_tool_result_preserves_name)
 
 END_TEST
 // Test: Format tool call with different tool names
-START_TEST(test_format_tool_call_different_names)
-{
+START_TEST(test_format_tool_call_different_names) {
     // Test bash tool
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bash", "bash", "{\"command\": \"ls\"}");
     ck_assert_ptr_nonnull(call);
@@ -166,8 +157,7 @@ START_TEST(test_format_tool_call_different_names)
 
 END_TEST
 // Test: Format tool result for different tool
-START_TEST(test_format_tool_result_bash_tool)
-{
+START_TEST(test_format_tool_result_bash_tool) {
     const char *result = "{\"success\": true, \"data\": {\"output\": \"some output\"}}";
 
     const char *formatted = ik_format_tool_result(ctx, "bash", result);
@@ -176,10 +166,8 @@ START_TEST(test_format_tool_result_bash_tool)
 }
 
 END_TEST
-
 // Test: Format tool call with multiple arguments (order may vary)
-START_TEST(test_format_tool_call_multiple_args)
-{
+START_TEST(test_format_tool_call_multiple_args) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_456", "file_read",
                                                "{\"path\": \"/src/main.c\", \"offset\": 0, \"limit\": 100}");
     ck_assert_ptr_nonnull(call);
@@ -195,10 +183,8 @@ START_TEST(test_format_tool_call_multiple_args)
 }
 
 END_TEST
-
 // Test: Format tool call with no arguments (empty object)
-START_TEST(test_format_tool_call_no_args)
-{
+START_TEST(test_format_tool_call_no_args) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_789", "some_tool", "{}");
     ck_assert_ptr_nonnull(call);
 
@@ -210,10 +196,8 @@ START_TEST(test_format_tool_call_no_args)
 }
 
 END_TEST
-
 // Test: Format tool call with empty string arguments
-START_TEST(test_format_tool_call_null_args)
-{
+START_TEST(test_format_tool_call_null_args) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_000", "tool_x", "");
     ck_assert_ptr_nonnull(call);
 
@@ -225,10 +209,8 @@ START_TEST(test_format_tool_call_null_args)
 }
 
 END_TEST
-
 // Test: Format tool call with invalid JSON (fallback)
-START_TEST(test_format_tool_call_invalid_json)
-{
+START_TEST(test_format_tool_call_invalid_json) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bad", "broken", "not valid json");
     ck_assert_ptr_nonnull(call);
 
@@ -240,10 +222,8 @@ START_TEST(test_format_tool_call_invalid_json)
 }
 
 END_TEST
-
 // Test: Format tool call with boolean value
-START_TEST(test_format_tool_call_bool_value)
-{
+START_TEST(test_format_tool_call_bool_value) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_bool", "file_write",
                                                "{\"path\": \"test.txt\", \"create\": true}");
     ck_assert_ptr_nonnull(call);
@@ -257,10 +237,8 @@ START_TEST(test_format_tool_call_bool_value)
 }
 
 END_TEST
-
 // Test: Format tool call with integer value
-START_TEST(test_format_tool_call_int_value)
-{
+START_TEST(test_format_tool_call_int_value) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_int", "tool", "{\"count\": 42}");
     ck_assert_ptr_nonnull(call);
 
@@ -271,10 +249,8 @@ START_TEST(test_format_tool_call_int_value)
 }
 
 END_TEST
-
 // Test: Format tool call with real/float value
-START_TEST(test_format_tool_call_real_value)
-{
+START_TEST(test_format_tool_call_real_value) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_real", "tool", "{\"ratio\": 3.14}");
     ck_assert_ptr_nonnull(call);
 
@@ -286,10 +262,8 @@ START_TEST(test_format_tool_call_real_value)
 }
 
 END_TEST
-
 // Test: Format tool call with null value
-START_TEST(test_format_tool_call_null_value)
-{
+START_TEST(test_format_tool_call_null_value) {
     ik_tool_call_t *call = ik_tool_call_create(ctx, "call_null", "tool", "{\"value\": null}");
     ck_assert_ptr_nonnull(call);
 
@@ -300,30 +274,24 @@ START_TEST(test_format_tool_call_null_value)
 }
 
 END_TEST
-
 // Test: Format tool result - short string array
-START_TEST(test_format_tool_result_short)
-{
+START_TEST(test_format_tool_result_short) {
     const char *formatted = ik_format_tool_result(ctx, "glob", "[\"a.c\", \"b.c\"]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "← glob: a.c, b.c");
 }
 
 END_TEST
-
 // Test: Format tool result - empty string
-START_TEST(test_format_tool_result_empty_string)
-{
+START_TEST(test_format_tool_result_empty_string) {
     const char *formatted = ik_format_tool_result(ctx, "bash", "\"\"");
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "← bash: (no output)");
 }
 
 END_TEST
-
 // Test: Format tool result - truncate by characters (>400 chars)
-START_TEST(test_format_tool_result_truncate_chars)
-{
+START_TEST(test_format_tool_result_truncate_chars) {
     // Create a string > 400 chars
     char long_content[500];
     memset(long_content, 'x', 450);
@@ -341,10 +309,8 @@ START_TEST(test_format_tool_result_truncate_chars)
 }
 
 END_TEST
-
 // Test: Format tool result - truncate by lines (>3 lines)
-START_TEST(test_format_tool_result_truncate_lines)
-{
+START_TEST(test_format_tool_result_truncate_lines) {
     const char *formatted = ik_format_tool_result(ctx, "grep", "\"line1\\nline2\\nline3\\nline4\\nline5\"");
     ck_assert_ptr_nonnull(formatted);
 
@@ -358,10 +324,8 @@ START_TEST(test_format_tool_result_truncate_lines)
 }
 
 END_TEST
-
 // Test: Format tool result - error object
-START_TEST(test_format_tool_result_error_object)
-{
+START_TEST(test_format_tool_result_error_object) {
     const char *formatted = ik_format_tool_result(ctx, "bash", "{\"error\": \"Command failed\", \"exit_code\": 1}");
     ck_assert_ptr_nonnull(formatted);
 
@@ -371,20 +335,16 @@ START_TEST(test_format_tool_result_error_object)
 }
 
 END_TEST
-
 // Test: Format tool result - array of strings joined with comma
-START_TEST(test_format_tool_result_array_of_strings)
-{
+START_TEST(test_format_tool_result_array_of_strings) {
     const char *formatted = ik_format_tool_result(ctx, "glob", "[\"file1.c\", \"file2.c\", \"file3.c\"]");
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "← glob: file1.c, file2.c, file3.c");
 }
 
 END_TEST
-
 // Test: Format tool result - exactly three lines (no truncation)
-START_TEST(test_format_tool_result_exactly_three_lines)
-{
+START_TEST(test_format_tool_result_exactly_three_lines) {
     const char *formatted = ik_format_tool_result(ctx, "grep", "\"line1\\nline2\\nline3\"");
     ck_assert_ptr_nonnull(formatted);
 
@@ -396,10 +356,8 @@ START_TEST(test_format_tool_result_exactly_three_lines)
 }
 
 END_TEST
-
 // Test: Format tool result - invalid JSON (fallback to raw)
-START_TEST(test_format_tool_result_invalid_json)
-{
+START_TEST(test_format_tool_result_invalid_json) {
     const char *formatted = ik_format_tool_result(ctx, "broken", "not json");
     ck_assert_ptr_nonnull(formatted);
 
@@ -408,10 +366,8 @@ START_TEST(test_format_tool_result_invalid_json)
 }
 
 END_TEST
-
 // Test: Format tool result - simple string content
-START_TEST(test_format_tool_result_simple_string)
-{
+START_TEST(test_format_tool_result_simple_string) {
     const char *formatted = ik_format_tool_result(ctx, "bash", "\"hello world\"");
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "← bash: hello world");
@@ -423,6 +379,7 @@ static Suite *tool_format_suite(void)
 {
     Suite *s = suite_create("Tool Formatting");
     TCase *tc = tcase_create("tool_format");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

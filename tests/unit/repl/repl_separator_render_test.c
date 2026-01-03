@@ -45,8 +45,7 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 }
 
 /* Test: Separator renders on empty scrollback */
-START_TEST(test_separator_renders_on_empty_scrollback)
-{
+START_TEST(test_separator_renders_on_empty_scrollback) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -122,9 +121,9 @@ START_TEST(test_separator_renders_on_empty_scrollback)
             // Check if the full line matches 40 box-drawing chars + \r\n
             bool match = true;
             for (size_t j = 0; j < 40; j++) {
-                if ((unsigned char)mock_write_buffer[i + j*3] != 0xE2 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 1] != 0x94 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 2] != 0x80) {
+                if ((unsigned char)mock_write_buffer[i + j * 3] != 0xE2 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 1] != 0x94 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 2] != 0x80) {
                     match = false;
                     break;
                 }
@@ -141,10 +140,8 @@ START_TEST(test_separator_renders_on_empty_scrollback)
 }
 
 END_TEST
-
 /* Test: Separator renders with scrollback content */
-START_TEST(test_separator_renders_with_scrollback)
-{
+START_TEST(test_separator_renders_with_scrollback) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -226,9 +223,9 @@ START_TEST(test_separator_renders_with_scrollback)
             // Check if the full line matches 40 box-drawing chars + \r\n
             bool match = true;
             for (size_t j = 0; j < 40; j++) {
-                if ((unsigned char)mock_write_buffer[i + j*3] != 0xE2 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 1] != 0x94 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 2] != 0x80) {
+                if ((unsigned char)mock_write_buffer[i + j * 3] != 0xE2 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 1] != 0x94 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 2] != 0x80) {
                     match = false;
                     break;
                 }
@@ -245,10 +242,8 @@ START_TEST(test_separator_renders_with_scrollback)
 }
 
 END_TEST
-
 /* Test: Separator does NOT render when visibility flag is false */
-START_TEST(test_separator_not_renders_when_invisible)
-{
+START_TEST(test_separator_not_renders_when_invisible) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -329,9 +324,9 @@ START_TEST(test_separator_not_renders_when_invisible)
             // Check if the full line matches 40 box-drawing chars + \r\n
             bool match = true;
             for (size_t j = 0; j < 40; j++) {
-                if ((unsigned char)mock_write_buffer[i + j*3] != 0xE2 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 1] != 0x94 ||
-                    (unsigned char)mock_write_buffer[i + j*3 + 2] != 0x80) {
+                if ((unsigned char)mock_write_buffer[i + j * 3] != 0xE2 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 1] != 0x94 ||
+                    (unsigned char)mock_write_buffer[i + j * 3 + 2] != 0x80) {
                     match = false;
                     break;
                 }
@@ -353,6 +348,11 @@ static Suite *repl_separator_render_suite(void)
 {
     Suite *s = suite_create("REPL_Separator_Render");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_separator_renders_on_empty_scrollback);
     tcase_add_test(tc_core, test_separator_renders_with_scrollback);

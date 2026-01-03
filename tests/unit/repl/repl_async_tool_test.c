@@ -1,4 +1,6 @@
 #include "agent.h"
+#include "message.h"
+#include "providers/provider.h"
 #include "../../test_utils.h"
 #include "../../../src/agent.h"
 #include <check.h>
@@ -7,7 +9,6 @@
 #include <unistd.h>
 #include "repl.h"
 #include "shared.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
 #include "config.h"
@@ -27,11 +28,12 @@ static char *last_insert_data_json = NULL;
 
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
-                             int64_t session_id,
-                             const char *agent_uuid,
-                             const char *kind,
-                             const char *content,
-                             const char *data_json) {
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *kind,
+                            const char *content,
+                            const char *data_json)
+{
     (void)db;
     (void)session_id;
     (void)agent_uuid;
@@ -88,7 +90,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -106,9 +108,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
@@ -140,13 +142,13 @@ START_TEST(test_start_tool_execution) {
     /* Start async tool execution */
     ik_repl_start_tool_execution(repl);
 
-    /* Verify thread was started - read under mutex to avoid data race */
+    /* Verify thread was started - read under mutex to avoid data race
+     * Note: We only check that running flag was set. Under TSAN, the thread
+     * may complete extremely quickly, so we can't assert !complete here. */
     pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     bool running = repl->current->tool_thread_running;
-    bool initial_complete = repl->current->tool_thread_complete;
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
     ck_assert(running);
-    ck_assert(!initial_complete);
 
     /* Verify state transition */
     ck_assert_int_eq(repl->current->state, IK_AGENT_STATE_EXECUTING_TOOL);
@@ -178,8 +180,7 @@ END_TEST
 /*
  * Test async tool execution completion
  */
-START_TEST(test_complete_tool_execution)
-{
+START_TEST(test_complete_tool_execution) {
     /* Start async tool execution first */
     ik_repl_start_tool_execution(repl);
 
@@ -202,15 +203,17 @@ START_TEST(test_complete_tool_execution)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 
-    /* First message should be tool_call */
-    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
-    ck_assert_str_eq(tc_msg->kind, "tool_call");
+    /* First message should be tool_call (assistant with tool_call content) */
+    ik_message_t *tc_msg = repl->current->messages[0];
+    ck_assert(tc_msg->role == IK_ROLE_ASSISTANT);
+    ck_assert(tc_msg->content_blocks[0].type == IK_CONTENT_TOOL_CALL);
 
     /* Second message should be tool_result */
-    ik_msg_t *result_msg = repl->current->conversation->messages[1];
-    ck_assert_str_eq(result_msg->kind, "tool_result");
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+    ck_assert(result_msg->content_blocks[0].type == IK_CONTENT_TOOL_RESULT);
 
     /* Verify thread state was reset */
     ck_assert(!repl->current->tool_thread_running);
@@ -225,14 +228,13 @@ END_TEST
 /*
  * Test async execution with file_read tool
  */
-START_TEST(test_async_tool_file_read)
-{
+START_TEST(test_async_tool_file_read) {
     /* Change to file_read tool */
     talloc_free(repl->current->pending_tool_call);
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_read123",
-                                                  "file_read",
-                                                  "{\"path\": \"/etc/hostname\"}");
+                                                           "call_read123",
+                                                           "file_read",
+                                                           "{\"path\": \"/etc/hostname\"}");
 
     /* Start and wait */
     ik_repl_start_tool_execution(repl);
@@ -253,7 +255,7 @@ START_TEST(test_async_tool_file_read)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify messages were added */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -261,8 +263,7 @@ END_TEST
 /*
  * Test async execution with debug pipe
  */
-START_TEST(test_async_tool_with_debug_pipe)
-{
+START_TEST(test_async_tool_with_debug_pipe) {
     /* Create debug pipe */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -288,17 +289,15 @@ START_TEST(test_async_tool_with_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST
-
 /*
  * Test async execution with database persistence
  */
-START_TEST(test_async_tool_db_persistence)
-{
+START_TEST(test_async_tool_db_persistence) {
     /* Set up database context */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 42;
@@ -325,17 +324,15 @@ START_TEST(test_async_tool_db_persistence)
     ck_assert_int_eq(db_insert_call_count, 2);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST
-
 /*
  * Test async execution without database context
  */
-START_TEST(test_async_tool_no_db_ctx)
-{
+START_TEST(test_async_tool_no_db_ctx) {
     /* Set db_ctx to NULL - should not persist */
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 42;
@@ -362,17 +359,15 @@ START_TEST(test_async_tool_no_db_ctx)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
 END_TEST
-
 /*
  * Test async execution without session ID
  */
-START_TEST(test_async_tool_no_session_id)
-{
+START_TEST(test_async_tool_no_session_id) {
     /* Set session_id to 0 - should not persist */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 0;
@@ -399,7 +394,7 @@ START_TEST(test_async_tool_no_session_id)
     ck_assert_int_eq(db_insert_call_count, 0);
 
     /* Verify execution still succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -412,6 +407,11 @@ static Suite *repl_async_tool_suite(void)
 {
     Suite *s = suite_create("REPL Async Tool Execution");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
 

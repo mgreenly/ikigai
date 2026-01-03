@@ -14,28 +14,28 @@ START_TEST(test_config_types_exist) {
 
     // This test verifies that the config types compile
     // We'll test actual functionality in later tests
-    ik_cfg_t *cfg = talloc(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
-    cfg->openai_api_key = talloc_strdup(ctx, "test_key");
     cfg->listen_address = talloc_strdup(ctx, "127.0.0.1");
     cfg->listen_port = 1984;
 
-    ck_assert_str_eq(cfg->openai_api_key, "test_key");
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg->listen_port, 1984);
 
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_load_function_exists)
-{
+END_TEST
+
+START_TEST(test_config_load_function_exists) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // This test verifies that ik_cfg_load function exists and can be called
+    // This test verifies that ik_config_load function exists and can be called
     // We expect it to fail since we haven't implemented it yet
-    res_t result = ik_cfg_load(ctx, "/tmp/nonexistent_test_config.json");
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, "/tmp/nonexistent_test_config.json", &config);
 
     // For now, just verify the function exists and returns a result
     // Later tests will verify actual behavior
@@ -44,8 +44,9 @@ END_TEST START_TEST(test_config_load_function_exists)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_directory)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -59,8 +60,9 @@ END_TEST START_TEST(test_config_auto_create_directory)
     unlink(test_config);
     rmdir(test_dir);
 
-    // Call ik_cfg_load - should create directory and file
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create directory and file
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -81,8 +83,9 @@ END_TEST START_TEST(test_config_auto_create_directory)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_with_existing_directory)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_with_existing_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -104,8 +107,9 @@ END_TEST START_TEST(test_config_auto_create_with_existing_directory)
     ck_assert_int_eq(stat(test_dir, &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
 
-    // Call ik_cfg_load - should create config in existing directory
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create config in existing directory
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_config, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
@@ -120,8 +124,9 @@ END_TEST START_TEST(test_config_auto_create_with_existing_directory)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_auto_create_defaults)
-{
+END_TEST
+
+START_TEST(test_config_auto_create_defaults) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -135,16 +140,13 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     unlink(test_config);
     rmdir(test_dir);
 
-    // Call ik_cfg_load - should create with defaults
-    res_t result = ik_cfg_load(ctx, test_config);
+    // Call ik_config_load - should create with defaults
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
-
-    // Load the config
-    ik_cfg_t *cfg = result.ok;
     ck_assert_ptr_nonnull(cfg);
 
     // Verify default values
-    ck_assert_str_eq(cfg->openai_api_key, "YOUR_API_KEY_HERE");
     ck_assert_str_eq(cfg->openai_model, "gpt-5-mini");
     ck_assert(cfg->openai_temperature >= 0.99 && cfg->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg->openai_max_completion_tokens, 4096);
@@ -158,8 +160,9 @@ END_TEST START_TEST(test_config_auto_create_defaults)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_load_invalid_json)
-{
+END_TEST
+
+START_TEST(test_config_load_invalid_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -173,7 +176,8 @@ END_TEST START_TEST(test_config_load_invalid_json)
     fclose(f);
 
     // Try to load - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
@@ -182,8 +186,9 @@ END_TEST START_TEST(test_config_load_invalid_json)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_memory_cleanup)
-{
+END_TEST
+
+START_TEST(test_config_memory_cleanup) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -194,20 +199,17 @@ END_TEST START_TEST(test_config_memory_cleanup)
     FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
-            "{\"openai_api_key\": \"test_key\", \"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
+            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f);
 
     // Load config
-    res_t result = ik_cfg_load(ctx, test_file);
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);
-
-    ik_cfg_t *cfg = result.ok;
     ck_assert_ptr_nonnull(cfg);
 
     // Verify all strings are on the config context (child of ctx)
-    ck_assert_ptr_nonnull(cfg->openai_api_key);
     ck_assert_ptr_nonnull(cfg->listen_address);
-    ck_assert_str_eq(cfg->openai_api_key, "test_key");
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg->listen_port, 8080);
 

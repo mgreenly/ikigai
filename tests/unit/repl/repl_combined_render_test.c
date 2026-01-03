@@ -104,10 +104,8 @@ START_TEST(test_render_frame_empty_scrollback) {
     mock_write_reset();
 }
 END_TEST
-
 /* Test: Render frame with scrollback content */
-START_TEST(test_render_frame_with_scrollback)
-{
+START_TEST(test_render_frame_with_scrollback) {
     mock_write_reset();
     void *ctx = talloc_new(NULL);
     res_t res;
@@ -193,6 +191,10 @@ static Suite *repl_combined_render_suite(void)
     Suite *s = suite_create("REPL Combined Rendering");
 
     TCase *tc_render = tcase_create("Combined Render");
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, 30);
     tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_render_frame_empty_scrollback);
     tcase_add_test(tc_render, test_render_frame_with_scrollback);

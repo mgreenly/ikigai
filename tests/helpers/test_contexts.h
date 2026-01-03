@@ -31,7 +31,7 @@
  *
  * 3. Create shared context with custom config:
  *    @code
- *    ik_cfg_t *cfg = test_cfg_create(ctx);
+ *    ik_config_t *cfg = test_cfg_create(ctx);
  *    cfg->history_size = 250;  // Customize as needed
  *    ik_shared_ctx_t *shared = NULL;
  *    res_t res = test_shared_ctx_create_with_cfg(ctx, cfg, &shared);
@@ -39,7 +39,7 @@
  */
 
 // Create minimal config suitable for testing (no database, no API key)
-ik_cfg_t *test_cfg_create(TALLOC_CTX *ctx);
+ik_config_t *test_cfg_create(TALLOC_CTX *ctx);
 
 // Create shared_ctx with test defaults
 res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out);
@@ -52,5 +52,5 @@ res_t test_repl_create(TALLOC_CTX *ctx,
 
 // Create shared with custom config
 res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
-                                       ik_cfg_t *cfg,
+                                       ik_config_t *cfg,
                                        ik_shared_ctx_t **out);

@@ -27,7 +27,7 @@ ik_scroll_result_t ik_scroll_detector_process_arrow(
     ik_scroll_detector_t *det,
     ik_input_action_type_t arrow_type,
     int64_t timestamp_ms
-)
+    )
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
     assert(arrow_type == IK_INPUT_ARROW_UP || arrow_type == IK_INPUT_ARROW_DOWN);  // LCOV_EXCL_BR_LINE
@@ -86,7 +86,7 @@ ik_scroll_result_t ik_scroll_detector_process_arrow(
 ik_scroll_result_t ik_scroll_detector_check_timeout(
     ik_scroll_detector_t *det,
     int64_t timestamp_ms
-)
+    )
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -122,7 +122,7 @@ ik_scroll_result_t ik_scroll_detector_check_timeout(
 int64_t ik_scroll_detector_get_timeout_ms(
     ik_scroll_detector_t *det,
     int64_t timestamp_ms
-)
+    )
 {
     assert(det != NULL);  // LCOV_EXCL_BR_LINE
 

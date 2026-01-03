@@ -28,7 +28,7 @@ char *talloc_asprintf_(TALLOC_CTX *ctx, const char *fmt, ...);
 
 // ========== Test Config Helper ==========
 // Creates a minimal config for testing (does not require config file)
-ik_cfg_t *ik_test_create_config(TALLOC_CTX *ctx);
+ik_config_t *ik_test_create_config(TALLOC_CTX *ctx);
 
 // ========== File I/O Helpers ==========
 // Load a file into a talloc-allocated string
@@ -103,7 +103,7 @@ res_t ik_test_db_create(const char *db_name);
 /**
  * Run migrations on test database
  *
- * Applies all migrations from ./migrations/ directory.
+ * Applies all migrations from ./share/ikigai/migrations/ directory.
  *
  * @param ctx Talloc context for temporary allocations
  * @param db_name Database name to migrate
@@ -161,7 +161,29 @@ res_t ik_test_db_truncate_all(ik_db_ctx_t *db);
  */
 res_t ik_test_db_destroy(const char *db_name);
 
-// ========== Terminal Reset Utilities ==========
+/**
+ * Set IKIGAI_LOG_DIR to a unique path based on test file.
+ * Call this in suite_setup() before any logger is created.
+ *
+ * @param file_path  Pass __FILE__ to derive unique directory name
+ */
+void ik_test_set_log_dir(const char *file_path);
+
+// ========== Terminal Utilities ==========
+
+/**
+ * Sanitize ANSI escape sequences for safe display
+ *
+ * Replaces ESC (0x1b) characters with "<ESC>" so terminal escape sequences
+ * can be logged without executing them. Useful for debug output in tests
+ * that capture render output.
+ *
+ * @param ctx Talloc context for allocation
+ * @param input Input buffer (may contain binary data)
+ * @param len Length of input buffer
+ * @return Sanitized string (null-terminated), or NULL on allocation failure
+ */
+char *ik_test_sanitize_ansi(TALLOC_CTX *ctx, const char *input, size_t len);
 
 /**
  * Reset terminal state after tests that may emit escape sequences.

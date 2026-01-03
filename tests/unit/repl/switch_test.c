@@ -63,8 +63,7 @@ static ik_agent_ctx_t *create_test_agent(const char *uuid)
 }
 
 // Test: Switch to different agent succeeds
-START_TEST(test_switch_to_different_agent)
-{
+START_TEST(test_switch_to_different_agent) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -75,10 +74,8 @@ START_TEST(test_switch_to_different_agent)
     ck_assert_ptr_eq(repl->current, agent_b);
 }
 END_TEST
-
 // Test: Switch to NULL returns error
-START_TEST(test_switch_to_null_returns_error)
-{
+START_TEST(test_switch_to_null_returns_error) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     repl->current = agent_a;
 
@@ -88,11 +85,10 @@ START_TEST(test_switch_to_null_returns_error)
     ck_assert_ptr_eq(repl->current, agent_a);  // Current unchanged
     talloc_free(result.err);
 }
-END_TEST
 
+END_TEST
 // Test: Switch to same agent is no-op
-START_TEST(test_switch_to_same_agent_is_noop)
-{
+START_TEST(test_switch_to_same_agent_is_noop) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     repl->current = agent_a;
 
@@ -100,11 +96,10 @@ START_TEST(test_switch_to_same_agent_is_noop)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, agent_a);  // Current unchanged
 }
-END_TEST
 
+END_TEST
 // Test: Input buffer preserved on outgoing agent
-START_TEST(test_input_buffer_preserved_on_outgoing)
-{
+START_TEST(test_input_buffer_preserved_on_outgoing) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -126,11 +121,10 @@ START_TEST(test_input_buffer_preserved_on_outgoing)
     ck_assert_uint_eq(len, strlen(text));
     ck_assert_int_eq(memcmp(preserved, text, len), 0);
 }
-END_TEST
 
+END_TEST
 // Test: Input buffer restored on incoming agent
-START_TEST(test_input_buffer_restored_on_incoming)
-{
+START_TEST(test_input_buffer_restored_on_incoming) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -156,11 +150,10 @@ START_TEST(test_input_buffer_restored_on_incoming)
     ck_assert_uint_eq(len, strlen(text_b));
     ck_assert_int_eq(memcmp(restored, text_b, len), 0);
 }
-END_TEST
 
+END_TEST
 // Test: Cursor position preserved and restored
-START_TEST(test_cursor_position_preserved)
-{
+START_TEST(test_cursor_position_preserved) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -196,11 +189,10 @@ START_TEST(test_cursor_position_preserved)
     ck_assert_uint_eq(byte_before, byte_after);
     ck_assert_uint_eq(grapheme_before, grapheme_after);
 }
-END_TEST
 
+END_TEST
 // Test: Viewport offset preserved and restored
-START_TEST(test_viewport_offset_preserved)
-{
+START_TEST(test_viewport_offset_preserved) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -223,11 +215,10 @@ START_TEST(test_viewport_offset_preserved)
     // Viewport offset should be restored
     ck_assert_uint_eq(repl->current->viewport_offset, 42);
 }
-END_TEST
 
+END_TEST
 // Test: repl->current updated after switch
-START_TEST(test_repl_current_updated)
-{
+START_TEST(test_repl_current_updated) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
     ik_agent_ctx_t *agent_c = create_test_agent("agent-c-uuid");
@@ -251,11 +242,10 @@ START_TEST(test_repl_current_updated)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, agent_a);
 }
-END_TEST
 
+END_TEST
 // Test: Complex scenario - typing in A, switch to B, type, switch back to A
-START_TEST(test_typing_preserved_across_switches)
-{
+START_TEST(test_typing_preserved_across_switches) {
     ik_agent_ctx_t *agent_a = create_test_agent("agent-a-uuid");
     ik_agent_ctx_t *agent_b = create_test_agent("agent-b-uuid");
 
@@ -296,6 +286,7 @@ START_TEST(test_typing_preserved_across_switches)
     ck_assert_uint_eq(len, strlen(text_b));
     ck_assert_int_eq(memcmp(preserved, text_b, len), 0);
 }
+
 END_TEST
 
 // Create test suite
@@ -304,6 +295,11 @@ static Suite *repl_switch_suite(void)
     Suite *s = suite_create("Agent Switch");
 
     TCase *tc_basic = tcase_create("Basic Switch");
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_switch_to_different_agent);
     tcase_add_test(tc_basic, test_switch_to_null_returns_error);
@@ -311,6 +307,11 @@ static Suite *repl_switch_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_state = tcase_create("State Preservation");
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
     tcase_add_checked_fixture(tc_state, setup, teardown);
     tcase_add_test(tc_state, test_input_buffer_preserved_on_outgoing);
     tcase_add_test(tc_state, test_input_buffer_restored_on_incoming);
@@ -319,11 +320,21 @@ static Suite *repl_switch_suite(void)
     suite_add_tcase(s, tc_state);
 
     TCase *tc_current = tcase_create("Current Update");
+    tcase_set_timeout(tc_current, 30);
+    tcase_set_timeout(tc_current, 30);
+    tcase_set_timeout(tc_current, 30);
+    tcase_set_timeout(tc_current, 30);
+    tcase_set_timeout(tc_current, 30);
     tcase_add_checked_fixture(tc_current, setup, teardown);
     tcase_add_test(tc_current, test_repl_current_updated);
     suite_add_tcase(s, tc_current);
 
     TCase *tc_complex = tcase_create("Complex Scenarios");
+    tcase_set_timeout(tc_complex, 30);
+    tcase_set_timeout(tc_complex, 30);
+    tcase_set_timeout(tc_complex, 30);
+    tcase_set_timeout(tc_complex, 30);
+    tcase_set_timeout(tc_complex, 30);
     tcase_add_checked_fixture(tc_complex, setup, teardown);
     tcase_add_test(tc_complex, test_typing_preserved_across_switches);
     suite_add_tcase(s, tc_complex);

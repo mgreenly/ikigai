@@ -17,6 +17,6 @@
    Helgrind:Race
    ...
    fun:__tz_convert
-   fun:ik_log_format_timestamp
+   fun:ik_log_format_timestamp_impl
    ...
 }

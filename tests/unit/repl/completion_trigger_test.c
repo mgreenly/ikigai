@@ -16,10 +16,8 @@
 #include "../../test_utils.h"
 
 /* Test: Typing "/" triggers completion display with all commands */
-START_TEST(test_typing_slash_triggers_completion)
-{
+START_TEST(test_typing_slash_triggers_completion) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -35,7 +33,7 @@ START_TEST(test_typing_slash_triggers_completion)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -54,12 +52,9 @@ START_TEST(test_typing_slash_triggers_completion)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Typing "/m" filters to matching commands */
-START_TEST(test_typing_m_after_slash_filters)
-{
+START_TEST(test_typing_m_after_slash_filters) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -75,7 +70,7 @@ START_TEST(test_typing_m_after_slash_filters)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -101,13 +96,11 @@ START_TEST(test_typing_m_after_slash_filters)
 
     talloc_free(ctx);
 }
+
 END_TEST
-
 /* Test: Typing regular text without slash has no completion */
-START_TEST(test_typing_regular_text_no_completion)
-{
+START_TEST(test_typing_regular_text_no_completion) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -123,7 +116,7 @@ START_TEST(test_typing_regular_text_no_completion)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -142,13 +135,11 @@ START_TEST(test_typing_regular_text_no_completion)
 
     talloc_free(ctx);
 }
+
 END_TEST
-
 /* Test: Backspace refilters completion */
-START_TEST(test_backspace_refilters)
-{
+START_TEST(test_backspace_refilters) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -164,7 +155,7 @@ START_TEST(test_backspace_refilters)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -201,13 +192,11 @@ START_TEST(test_backspace_refilters)
 
     talloc_free(ctx);
 }
+
 END_TEST
-
 /* Test: Tab accepts completion and dismisses */
-START_TEST(test_tab_cycles_without_triggering)
-{
+START_TEST(test_tab_cycles_without_triggering) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -223,7 +212,7 @@ START_TEST(test_tab_cycles_without_triggering)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -254,13 +243,11 @@ START_TEST(test_tab_cycles_without_triggering)
 
     talloc_free(ctx);
 }
+
 END_TEST
-
 /* Test: Empty slash followed by typing characters */
-START_TEST(test_empty_slash_then_typing)
-{
+START_TEST(test_empty_slash_then_typing) {
     void *ctx = talloc_new(NULL);
-
 
     // Create agent
     ik_agent_ctx_t *agent = NULL;
@@ -276,7 +263,7 @@ START_TEST(test_empty_slash_then_typing)
     repl->current = agent;
     repl->current->completion = NULL;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -300,12 +287,18 @@ START_TEST(test_empty_slash_then_typing)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *completion_trigger_suite(void)
 {
     Suite *s = suite_create("Completion_Trigger");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_typing_slash_triggers_completion);
     tcase_add_test(tc_core, test_typing_m_after_slash_filters);

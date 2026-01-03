@@ -83,8 +83,7 @@ static void add_agent_to_array(ik_agent_ctx_t *agent)
 }
 
 // Test: nav_parent switches to parent
-START_TEST(test_nav_parent_switches_to_parent)
-{
+START_TEST(test_nav_parent_switches_to_parent) {
     // Create parent and child
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
     ik_agent_ctx_t *child = create_test_agent("child-uuid", "parent-uuid", 200);
@@ -99,10 +98,8 @@ START_TEST(test_nav_parent_switches_to_parent)
     ck_assert_ptr_eq(repl->current, parent);
 }
 END_TEST
-
 // Test: nav_parent at root = no action
-START_TEST(test_nav_parent_at_root_no_action)
-{
+START_TEST(test_nav_parent_at_root_no_action) {
     // Create root agent
     ik_agent_ctx_t *root = create_test_agent("root-uuid", NULL, 100);
 
@@ -113,11 +110,10 @@ START_TEST(test_nav_parent_at_root_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, root);  // No change
 }
-END_TEST
 
+END_TEST
 // Test: nav_child switches to child
-START_TEST(test_nav_child_switches_to_child)
-{
+START_TEST(test_nav_child_switches_to_child) {
     // Create parent and child
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
     ik_agent_ctx_t *child = create_test_agent("child-uuid", "parent-uuid", 200);
@@ -131,11 +127,10 @@ START_TEST(test_nav_child_switches_to_child)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);
 }
-END_TEST
 
+END_TEST
 // Test: nav_child selects most recent running child
-START_TEST(test_nav_child_selects_most_recent_child)
-{
+START_TEST(test_nav_child_selects_most_recent_child) {
     // Create parent and 3 children
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
     ik_agent_ctx_t *child1 = create_test_agent("child1-uuid", "parent-uuid", 200);
@@ -153,11 +148,10 @@ START_TEST(test_nav_child_selects_most_recent_child)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child3);  // Most recent
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with no children = no action
-START_TEST(test_nav_child_no_children_no_action)
-{
+START_TEST(test_nav_child_no_children_no_action) {
     // Create parent with no children
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
 
@@ -168,11 +162,10 @@ START_TEST(test_nav_child_no_children_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, parent);  // No change
 }
-END_TEST
 
+END_TEST
 // Test: nav_child skips dead children (not in agents array)
-START_TEST(test_nav_child_skips_dead_children)
-{
+START_TEST(test_nav_child_skips_dead_children) {
     // Create parent and 2 children
     // Only child1 is in agents[] (running), child2 is dead (not in array)
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
@@ -188,11 +181,10 @@ START_TEST(test_nav_child_skips_dead_children)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child1);  // Only running child
 }
-END_TEST
 
+END_TEST
 // Test: nav_parent with dead parent = no action
-START_TEST(test_nav_parent_with_dead_parent_no_action)
-{
+START_TEST(test_nav_parent_with_dead_parent_no_action) {
     // Create child with parent_uuid pointing to a dead parent (not in agents[])
     ik_agent_ctx_t *child = create_test_agent("child-uuid", "dead-parent-uuid", 200);
 
@@ -203,11 +195,10 @@ START_TEST(test_nav_parent_with_dead_parent_no_action)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);  // No change - parent not found
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with multiple children of different parents
-START_TEST(test_nav_child_with_mixed_children)
-{
+START_TEST(test_nav_child_with_mixed_children) {
     // Create parent1, parent2, and their children
     ik_agent_ctx_t *parent1 = create_test_agent("parent1-uuid", NULL, 100);
     ik_agent_ctx_t *parent2 = create_test_agent("parent2-uuid", NULL, 150);
@@ -228,11 +219,10 @@ START_TEST(test_nav_child_with_mixed_children)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child3_of_p1);  // Most recent child of parent1
 }
-END_TEST
 
+END_TEST
 // Test: nav_child with zero created_at (legacy data)
-START_TEST(test_nav_child_with_zero_created_at)
-{
+START_TEST(test_nav_child_with_zero_created_at) {
     // Create parent and child with created_at = 0 (simulating legacy data)
     ik_agent_ctx_t *parent = create_test_agent("parent-uuid", NULL, 100);
     ik_agent_ctx_t *child = create_test_agent("child-uuid", "parent-uuid", 0);
@@ -247,6 +237,7 @@ START_TEST(test_nav_child_with_zero_created_at)
     ck_assert(is_ok(&result));
     ck_assert_ptr_eq(repl->current, child);
 }
+
 END_TEST
 
 // Create suite
@@ -255,6 +246,11 @@ static Suite *nav_parent_child_suite(void)
     Suite *s = suite_create("Parent/Child Navigation");
 
     TCase *tc_nav = tcase_create("Navigation");
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
     tcase_add_checked_fixture(tc_nav, setup, teardown);
     tcase_add_test(tc_nav, test_nav_parent_switches_to_parent);
     tcase_add_test(tc_nav, test_nav_parent_at_root_no_action);

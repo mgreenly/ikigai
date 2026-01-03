@@ -19,8 +19,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
-#include "../../../src/openai/client_multi.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../test_utils.h"
@@ -88,6 +87,16 @@ static ik_repl_ctx_t *repl;
 static ik_db_ctx_t *mock_db_ctx;
 static int db_debug_pipe_fds[2];
 
+// Mock start_stream for provider - defined here so it can be referenced in static initializer
+static res_t db_test_mock_start_stream(void *ctx, const ik_request_t *req,
+                                       ik_stream_cb_t stream_cb, void *stream_ctx,
+                                       ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+{
+    (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+    return OK(NULL);
+}
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -116,7 +125,7 @@ static void setup(void)
     repl->current = agent;
 
     // Create config
-    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_cfg_t));
+    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_config_t));
     ck_assert_ptr_nonnull(shared->cfg);
     shared->cfg->openai_model = talloc_strdup_(shared->cfg, "gpt-4");
     shared->cfg->openai_temperature = 0.7;
@@ -131,11 +140,22 @@ static void setup(void)
     ck_assert_ptr_nonnull(repl->current->input_buffer);
 
     // Create conversation
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
-    // Create multi client (opaque pointer)
-    repl->current->multi = talloc_zero_(repl, 1);
-    ck_assert_ptr_nonnull(repl->current->multi);
+    // Set agent model (required for send_to_llm check)
+    repl->current->model = talloc_strdup(repl->current, "gpt-4");
+
+    // Create mock provider (opaque pointer)
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = db_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+    };
+    ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
+    mock_provider->name = "mock";
+    mock_provider->vt = &mock_vt;
+    mock_provider->ctx = talloc_zero_(repl->current, 1);
+    repl->current->provider_instance = mock_provider;
+    ck_assert_ptr_nonnull(repl->current->provider_instance);
 
     // Create terminal context
     repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
@@ -183,8 +203,7 @@ static void teardown(void)
 }
 
 // Test message submission when session_id is 0 (no active session)
-START_TEST(test_message_submission_no_session)
-{
+START_TEST(test_message_submission_no_session) {
     // Set session_id to 0 (no active session)
     repl->shared->db_ctx = mock_db_ctx;
     repl->shared->session_id = 0;
@@ -204,9 +223,9 @@ START_TEST(test_message_submission_no_session)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->message_count, 1);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[0]->content_count > 0);
 
     // No DB operation should have occurred, so no error logged
     fflush(repl->shared->db_debug_pipe->write_end);
@@ -220,8 +239,7 @@ START_TEST(test_message_submission_no_session)
 
 END_TEST
 // Test DB error when db_debug_pipe->write_end is NULL (but db_debug_pipe exists)
-START_TEST(test_db_error_null_write_end)
-{
+START_TEST(test_db_error_null_write_end) {
     // Set write_end to NULL but keep db_debug_pipe allocated
     fclose(repl->shared->db_debug_pipe->write_end);
     repl->shared->db_debug_pipe->write_end = NULL;
@@ -244,16 +262,14 @@ START_TEST(test_db_error_null_write_end)
     ck_assert(is_ok(&result));
 
     // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
-    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->current->conversation->messages[0]->content, test_text);
+    ck_assert_uint_eq(repl->current->message_count, 1);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[0]->content_count > 0);
 }
 
 END_TEST
-
 // Test backspace success path (line 79 error path is defensive)
-START_TEST(test_backspace_error_path)
-{
+START_TEST(test_backspace_error_path) {
     // Note: line 79 is a defensive error check in backspace handling
     // The actual error path is very difficult to trigger without mocking
     // ik_input_buffer_backspace, as it would require cursor manipulation
@@ -278,11 +294,10 @@ START_TEST(test_backspace_error_path)
     ck_assert_uint_eq(len, 1);
     ck_assert_int_eq(text[0], 'x');
 }
-END_TEST
 
+END_TEST
 // Test ESC with completion original_input revert (lines 134-137)
-START_TEST(test_escape_revert_original_input)
-{
+START_TEST(test_escape_revert_original_input) {
     // Set up completion with original_input
     repl->current->completion = talloc_zero_(repl, sizeof(ik_completion_t));
     ck_assert_ptr_nonnull(repl->current->completion);
@@ -313,12 +328,18 @@ START_TEST(test_escape_revert_original_input)
     // Verify completion was dismissed
     ck_assert_ptr_null(repl->current->completion);
 }
+
 END_TEST
 
 static Suite *repl_actions_db_error_suite(void)
 {
     Suite *s = suite_create("REPL Actions DB Error Advanced");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_message_submission_no_session);

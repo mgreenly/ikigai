@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-res_t ik_tool_response_error(TALLOC_CTX *ctx, const char *error_msg, char **out) {
+res_t ik_tool_response_error(TALLOC_CTX *ctx, const char *error_msg, char **out)
+{
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(error_msg != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);       // LCOV_EXCL_BR_LINE
@@ -37,7 +38,8 @@ res_t ik_tool_response_error(TALLOC_CTX *ctx, const char *error_msg, char **out)
     return OK(result);
 }
 
-res_t ik_tool_response_success(TALLOC_CTX *ctx, const char *output, char **out) {
+res_t ik_tool_response_success(TALLOC_CTX *ctx, const char *output, char **out)
+{
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(output != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
@@ -71,10 +73,11 @@ res_t ik_tool_response_success(TALLOC_CTX *ctx, const char *output, char **out) 
 }
 
 res_t ik_tool_response_success_ex(TALLOC_CTX *ctx,
-                                   const char *output,
-                                   ik_tool_field_adder_t add_fields,
-                                   void *user_ctx,
-                                   char **out) {
+                                  const char *output,
+                                  ik_tool_field_adder_t add_fields,
+                                  void *user_ctx,
+                                  char **out)
+{
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(output != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);    // LCOV_EXCL_BR_LINE
@@ -113,9 +116,9 @@ res_t ik_tool_response_success_ex(TALLOC_CTX *ctx,
 }
 
 res_t ik_tool_response_success_with_data(TALLOC_CTX *ctx,
-                                          ik_tool_data_adder_t add_data,
-                                          void *user_ctx,
-                                          char **out)
+                                         ik_tool_data_adder_t add_data,
+                                         void *user_ctx,
+                                         char **out)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(add_data != NULL);  // LCOV_EXCL_BR_LINE

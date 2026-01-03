@@ -1,0 +1,104 @@
+#!/bin/bash
+# harness/quality - Run all quality checks in fix-point loop
+#
+# Runs: filesize → check → complexity → sanitize → tsan → valgrind → helgrind → coverage
+#
+# If any step makes commits, restarts from the beginning.
+# Stops on first failure.
+#
+# Usage: ./run [--dry-run]
+#   --dry-run: Pass to all sub-tasks to identify issues without fixing
+
+set -e
+
+START_TIME=$SECONDS
+
+log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    printf '%s | %-10s | %s\n' "$timestamp" "quality" "$1"
+}
+
+format_elapsed() {
+    local total=$1
+    local hours=$((total / 3600))
+    local mins=$(((total % 3600) / 60))
+    local secs=$((total % 60))
+    if [ $hours -gt 0 ]; then
+        echo "${hours}h ${mins}m ${secs}s"
+    elif [ $mins -gt 0 ]; then
+        echo "${mins}m ${secs}s"
+    else
+        echo "${secs}s"
+    fi
+}
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Verify clean workspace before starting
+if [ -n "$(git status --porcelain)" ]; then
+    log "ERROR: Git workspace is not clean. Commit or stash changes before running quality checks."
+    git status --short
+    exit 1
+fi
+
+# Pass all arguments to sub-tasks
+ARGS="$@"
+
+STEPS=(
+    "filesize"
+    "check"
+    "complexity"
+    "sanitize"
+    "tsan"
+    "valgrind"
+    "helgrind"
+    "coverage"
+)
+
+run_step() {
+    local step="$1"
+    local head_before head_after step_exit
+
+    head_before=$(git rev-parse HEAD)
+    "$HARNESS_DIR/$step/run" $ARGS
+    step_exit=$?
+    head_after=$(git rev-parse HEAD)
+
+    if [ "$head_before" != "$head_after" ]; then
+        return 1  # commits made, signal restart
+    fi
+
+    if [ $step_exit -ne 0 ]; then
+        return 2  # step failed with no commits, unrecoverable
+    fi
+
+    return 0  # passed, continue
+}
+
+pass=1
+while true; do
+    log "Quality pass $pass"
+    restart=false
+
+    for step in "${STEPS[@]}"; do
+        run_step "$step"
+        result=$?
+
+        if [ $result -eq 1 ]; then
+            log "Step '$step' made commits, restarting from beginning"
+            restart=true
+            break
+        elif [ $result -eq 2 ]; then
+            log "Step '$step' failed with no progress, stopping"
+            exit 1
+        fi
+    done
+
+    if [ "$restart" = false ]; then
+        log "All quality checks passed (elapsed: $(format_elapsed $((SECONDS - START_TIME))))"
+        break
+    fi
+
+    ((pass++))
+done

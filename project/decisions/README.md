@@ -21,6 +21,10 @@ This directory contains architecture decision records (ADRs) documenting key des
 
 - [fresh-webapp-framework.md](fresh-webapp-framework.md) - Why Fresh for Webapp Framework
 
+## Development Workflow
+
+- [git-workflow-release-branches.md](git-workflow-release-branches.md) - Why Release Branches with Worktrees
+
 ---
 
 Each ADR follows a consistent format:

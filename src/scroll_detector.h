@@ -40,25 +40,16 @@ ik_scroll_detector_t *ik_scroll_detector_create(void *parent);
 
 // Process an arrow event
 // May return NONE (buffered), SCROLL_*, or ARROW_*
-ik_scroll_result_t ik_scroll_detector_process_arrow(
-    ik_scroll_detector_t *det,
-    ik_input_action_type_t arrow_type,  // ARROW_UP or ARROW_DOWN
-    int64_t timestamp_ms
-);
+ik_scroll_result_t ik_scroll_detector_process_arrow(ik_scroll_detector_t *det, ik_input_action_type_t arrow_type,  // ARROW_UP or ARROW_DOWN
+                                                    int64_t timestamp_ms);
 
 // Check if timeout expired and flush pending event
 // Called from event loop when select() times out
 // Returns ARROW_* if pending event flushed, NONE otherwise
-ik_scroll_result_t ik_scroll_detector_check_timeout(
-    ik_scroll_detector_t *det,
-    int64_t timestamp_ms
-);
+ik_scroll_result_t ik_scroll_detector_check_timeout(ik_scroll_detector_t *det, int64_t timestamp_ms);
 
 // Get timeout for select() (returns -1 if no pending, else ms until flush)
-int64_t ik_scroll_detector_get_timeout_ms(
-    ik_scroll_detector_t *det,
-    int64_t timestamp_ms
-);
+int64_t ik_scroll_detector_get_timeout_ms(ik_scroll_detector_t *det, int64_t timestamp_ms);
 
 // Flush pending event immediately (for non-arrow input)
 // Returns ARROW_* if pending event flushed, NONE otherwise

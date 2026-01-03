@@ -135,8 +135,7 @@ int PQgetisnull(const PGresult *res, int row_number, int column_number)
 }
 
 // Test: ik_agent_find_clear handles query failure (line 56)
-START_TEST(test_find_clear_query_failure)
-{
+START_TEST(test_find_clear_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -153,10 +152,8 @@ START_TEST(test_find_clear_query_failure)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ik_agent_find_clear handles parse failure (line 67)
-START_TEST(test_find_clear_parse_failure)
-{
+START_TEST(test_find_clear_parse_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -173,11 +170,10 @@ START_TEST(test_find_clear_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_query_range handles query failure (line 216)
-START_TEST(test_query_range_query_failure)
-{
+START_TEST(test_query_range_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -201,11 +197,10 @@ START_TEST(test_query_range_query_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_query_range handles message ID parse failure (line 241)
-START_TEST(test_query_range_message_id_parse_failure)
-{
+START_TEST(test_query_range_message_id_parse_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -230,11 +225,10 @@ START_TEST(test_query_range_message_id_parse_failure)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_query_range with NULL content field (line 255)
-START_TEST(test_query_range_null_content)
-{
+START_TEST(test_query_range_null_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -263,11 +257,10 @@ START_TEST(test_query_range_null_content)
     mock_null_content = false;
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_query_range with NULL data_json field (line 263)
-START_TEST(test_query_range_null_data)
-{
+START_TEST(test_query_range_null_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -296,6 +289,7 @@ START_TEST(test_query_range_null_data)
     mock_null_data = false;
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Setup function to reset mock state before each test
@@ -314,6 +308,7 @@ static Suite *agent_replay_errors_suite(void)
     Suite *s = suite_create("Agent Replay Errors");
 
     TCase *tc_errors = tcase_create("Errors");
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, NULL);
     tcase_add_test(tc_errors, test_find_clear_query_failure);
     tcase_add_test(tc_errors, test_find_clear_parse_failure);

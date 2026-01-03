@@ -10,8 +10,7 @@
 #include "../../../src/scrollback.h"
 
 // Test: Render user event adds blank line
-START_TEST(test_event_render_user_adds_blank_line)
-{
+START_TEST(test_event_render_user_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -37,10 +36,8 @@ START_TEST(test_event_render_user_adds_blank_line)
 }
 
 END_TEST
-
 // Test: Render event trims trailing newlines
-START_TEST(test_event_render_trims_trailing_newlines)
-{
+START_TEST(test_event_render_trims_trailing_newlines) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -65,10 +62,8 @@ START_TEST(test_event_render_trims_trailing_newlines)
 }
 
 END_TEST
-
 // Test: Render mark event adds blank line
-START_TEST(test_event_render_mark_adds_blank_line)
-{
+START_TEST(test_event_render_mark_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -93,10 +88,8 @@ START_TEST(test_event_render_mark_adds_blank_line)
 }
 
 END_TEST
-
 // Test: Render tool_call event adds blank line
-START_TEST(test_event_render_tool_call_adds_blank_line)
-{
+START_TEST(test_event_render_tool_call_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -120,10 +113,8 @@ START_TEST(test_event_render_tool_call_adds_blank_line)
 }
 
 END_TEST
-
 // Test: Empty content produces no output (no double blank line)
-START_TEST(test_event_render_empty_content_no_double_blank)
-{
+START_TEST(test_event_render_empty_content_no_double_blank) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -137,10 +128,8 @@ START_TEST(test_event_render_empty_content_no_double_blank)
 }
 
 END_TEST
-
 // Test: Multiline content gets one blank line after
-START_TEST(test_event_render_multiline_content)
-{
+START_TEST(test_event_render_multiline_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -171,6 +160,7 @@ static Suite *event_render_spacing_suite(void)
     Suite *s = suite_create("Event Render Spacing");
 
     TCase *tc_spacing = tcase_create("Spacing");
+    tcase_set_timeout(tc_spacing, 30);
     tcase_add_test(tc_spacing, test_event_render_user_adds_blank_line);
     tcase_add_test(tc_spacing, test_event_render_trims_trailing_newlines);
     tcase_add_test(tc_spacing, test_event_render_mark_adds_blank_line);

@@ -2,34 +2,32 @@
 #pragma once
 
 #include "error.h"
-#include "openai/client.h"
-#include "openai/client_multi.h"
+#include "providers/provider.h"
 
 // Forward declaration
 struct ik_repl_ctx_t;
 
 /**
- * @brief Streaming callback for OpenAI API responses
+ * @brief Stream callback for provider API responses
  *
- * Called for each content chunk received during streaming.
- * Appends the chunk to the scrollback buffer.
+ * Called during perform() as data arrives from the network.
+ * Handles normalized stream events (text deltas, thinking, tool calls, etc.).
+ * Updates UI incrementally as content streams in.
  *
- * @param chunk   Content chunk (null-terminated string)
+ * @param event   Stream event (text delta, tool call, etc.)
  * @param ctx     Agent context pointer
  * @return        OK(NULL) to continue, ERR(...) to abort
  */
-res_t ik_repl_streaming_callback(const char *chunk, void *ctx);
+res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx);
 
 /**
- * @brief Completion callback for HTTP requests
+ * @brief Completion callback for provider requests
  *
- * Called when an HTTP request completes (success or failure).
- * Stores error information in agent context for display by completion handler.
+ * Called from info_read() when an HTTP request completes (success or failure).
+ * Stores response metadata and finalizes streaming state.
  *
- * NOTE: This function is tested manually (see Tasks 7.10-7.14 in tasks.md)
- *
- * @param completion   Completion information (status, error message)
+ * @param completion   Completion information (usage, metadata, error)
  * @param ctx          Agent context pointer
  * @return             OK(NULL) on success, ERR(...) on failure
  */
-res_t ik_repl_http_completion_callback(const ik_http_completion_t *completion, void *ctx);
+res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, void *ctx);

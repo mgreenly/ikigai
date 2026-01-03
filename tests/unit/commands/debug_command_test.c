@@ -30,9 +30,8 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     ik_debug_pipe_manager_t *debug_mgr = res.ok;
     ck_assert_ptr_nonnull(debug_mgr);
 
-
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -45,13 +44,12 @@ static ik_repl_ctx_t *create_test_repl(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     r->current = agent;
-
 
     r->shared = shared;
 
@@ -93,8 +91,7 @@ END_TEST
 /**
  * Test: /debug off disables debug output
  */
-START_TEST(test_debug_off)
-{
+START_TEST(test_debug_off) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL
@@ -127,8 +124,7 @@ END_TEST
 /**
  * Test: /debug (no args) shows current status
  */
-START_TEST(test_debug_status)
-{
+START_TEST(test_debug_status) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL
@@ -155,8 +151,7 @@ END_TEST
 /**
  * Test: /debug (no args) shows ON when enabled
  */
-START_TEST(test_debug_status_on)
-{
+START_TEST(test_debug_status_on) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL and enable debug
@@ -184,8 +179,7 @@ END_TEST
 /**
  * Test: /debug with invalid argument shows error
  */
-START_TEST(test_debug_invalid_arg)
-{
+START_TEST(test_debug_invalid_arg) {
     void *ctx = talloc_new(NULL);
 
     // Create minimal REPL

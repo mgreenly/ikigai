@@ -34,9 +34,9 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
 }
 
 void ik_tool_add_string_parameter(yyjson_mut_doc *doc,
-                              yyjson_mut_val *properties,
-                              const char *name,
-                              const char *description)
+                                  yyjson_mut_val *properties,
+                                  const char *name,
+                                  const char *description)
 {
     assert(doc != NULL); // LCOV_EXCL_BR_LINE
     assert(properties != NULL); // LCOV_EXCL_BR_LINE
@@ -165,7 +165,7 @@ yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc)
 }
 
 yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
-                                               const ik_tool_schema_def_t *def)
+                                              const ik_tool_schema_def_t *def)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(def != NULL);  // LCOV_EXCL_BR_LINE
@@ -194,6 +194,7 @@ yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
 
     if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Failed");  // LCOV_EXCL_BR_LINE
     if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_bool(doc, parameters, "additionalProperties", false)) PANIC("Failed");  // LCOV_EXCL_BR_LINE
 
     // Build required array from params marked as required
     yyjson_mut_val *required = yyjson_mut_arr(doc);

@@ -64,8 +64,6 @@ void ik_spinner_advance(ik_spinner_state_t *state);
 // Create completion layer (wraps completion context)
 // The layer renders tab completion suggestions below input buffer
 // visible_ptr and completion_ptr are raw pointers that must remain valid
-ik_layer_t *ik_completion_layer_create(TALLOC_CTX *ctx,
-                                       const char *name,
-                                       ik_completion_t **completion_ptr);
+ik_layer_t *ik_completion_layer_create(TALLOC_CTX *ctx, const char *name, ik_completion_t **completion_ptr);
 
 #endif // IK_LAYER_WRAPPERS_H

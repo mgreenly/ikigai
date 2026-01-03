@@ -1,0 +1,125 @@
+# Task: Delete Legacy OpenAI Source Files
+
+**Model:** sonnet/none
+**Depends on:** openai-equivalence-validation.md
+
+## Context
+
+**Working directory:** Project root (where `Makefile` lives)
+**All paths are relative to project root**, not to this task file.
+
+
+## Preconditions
+
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+## Pre-Read
+
+**Skills:**
+- `/load makefile` - Build system structure
+
+**Source:**
+- `src/openai/` - Legacy files to delete (list below)
+- `src/providers/openai/` - New implementation (must exist and compile)
+- `Makefile` - Build configuration to update
+
+## Objective
+
+Delete the 19 legacy files in `src/openai/` after verifying the new provider implementation compiles and no code outside `src/providers/openai/` references them.
+
+## Files to Delete
+
+| File | Replacement |
+|------|-------------|
+| `src/openai/client.c` | `src/providers/openai/client.c` |
+| `src/openai/client.h` | `src/providers/openai/client.h` |
+| `src/openai/client.o` | Build artifact (remove) |
+| `src/openai/client_msg.c` | `src/providers/openai/request.c` |
+| `src/openai/client_multi.c` | `src/providers/openai/adapter.c` |
+| `src/openai/client_multi.h` | `src/providers/openai/adapter.h` |
+| `src/openai/client_multi_callbacks.c` | `src/providers/openai/streaming.c` |
+| `src/openai/client_multi_callbacks.h` | `src/providers/openai/streaming.h` |
+| `src/openai/client_multi_internal.h` | Internal header (migrated) |
+| `src/openai/client_multi_request.c` | `src/providers/openai/request.c` |
+| `src/openai/client_multi_request.o` | Build artifact (remove) |
+| `src/openai/client_serialize.c` | `src/providers/openai/request.c` |
+| `src/openai/http_handler.c` | `src/providers/common/http_multi.c` |
+| `src/openai/http_handler.h` | `src/providers/common/http_multi.h` |
+| `src/openai/http_handler_internal.h` | `src/providers/common/http_multi_internal.h` |
+| `src/openai/sse_parser.c` | `src/providers/common/sse_parser.c` |
+| `src/openai/sse_parser.h` | `src/providers/common/sse_parser.h` |
+| `src/openai/tool_choice.c` | `src/providers/common/tool_choice.c` |
+| `src/openai/tool_choice.h` | `src/providers/common/tool_choice.h` |
+
+**Note:** This includes all source files, headers, internal headers, and build artifacts (.o files).
+
+## Behaviors
+
+**Step 1: Verify no external references**
+```bash
+# Must return empty (no references outside providers/openai/)
+grep -r '#include.*"openai/' src/ | grep -v 'src/providers/openai/'
+grep -r 'ik_openai_' src/ | grep -v 'src/providers/openai/'
+```
+
+**Step 2: Verify new implementation compiles**
+```bash
+make clean && make all
+# Must succeed with no errors
+```
+
+**Step 3: Delete legacy files**
+```bash
+rm -f src/openai/client.c src/openai/client.h src/openai/client.o
+rm -f src/openai/client_msg.c
+rm -f src/openai/client_multi.c src/openai/client_multi.h
+rm -f src/openai/client_multi_callbacks.c src/openai/client_multi_callbacks.h
+rm -f src/openai/client_multi_internal.h
+rm -f src/openai/client_multi_request.c src/openai/client_multi_request.o
+rm -f src/openai/client_serialize.c
+rm -f src/openai/http_handler.c src/openai/http_handler.h src/openai/http_handler_internal.h
+rm -f src/openai/sse_parser.c src/openai/sse_parser.h
+rm -f src/openai/tool_choice.c src/openai/tool_choice.h
+```
+
+**Step 4: Update Makefile**
+
+Remove these from `SRCS` or source list:
+```
+src/openai/client.c
+src/openai/client_msg.c
+src/openai/client_multi.c
+src/openai/client_multi_callbacks.c
+src/openai/client_multi_request.c
+src/openai/client_serialize.c
+src/openai/http_handler.c
+src/openai/sse_parser.c
+src/openai/tool_choice.c
+```
+
+**Note:** Headers (.h files) and build artifacts (.o files) do not need to be removed from Makefile.
+
+**Step 5: Verify build still works**
+```bash
+make clean && make all
+# Must succeed
+```
+
+## Postconditions
+
+- [ ] `grep -r '#include.*"openai/' src/ | grep -v 'src/providers/'` returns empty
+- [ ] All 19 files listed above are deleted
+- [ ] Makefile no longer references deleted .c files
+- [ ] `make clean && make all` succeeds
+- [ ] `src/openai/` directory is empty
+- [ ] Changes committed to git with message: `task: cleanup-openai-source.md - <summary>`
+  - If `make check` passed: success message
+  - If `make check` failed: add `(WIP - <reason>)` and return `{"ok": false, "reason": "..."}`
+- [ ] Clean worktree (verify: `git status --porcelain` is empty)
+
+
+
+## Success Criteria
+
+Return `{"ok": true}` only if all postconditions are met.
+Return `{"ok": false, "reason": "..."}` if validation fails (still commit the WIP).

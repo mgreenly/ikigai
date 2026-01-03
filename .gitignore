@@ -1,15 +1,16 @@
 build/
 build-*/
 /bin/
+/reports/
 dist/
-/rel-07/
 /demo.md
 /banner.md
-coverage/
+/coverage/
 .envrc
 tags
 
 **/*.py
+__pycache__/
 
 **/core.*
 **/vgcore.*
@@ -28,6 +29,7 @@ coverage_html/
 .agents/db/
 .agents/deno/
 .ikigai/deno/
+.claude/logs/
 
 # Nginx runtime
 .agents/httpd/pid/

@@ -111,8 +111,7 @@ static void test_teardown(void)
 // ========== Tests ==========
 
 // Test: Insert creates record
-START_TEST(test_db_mail_insert_creates_record)
-{
+START_TEST(test_db_mail_insert_creates_record) {
     SKIP_IF_NO_DB();
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "agent-2", "Hello!");
@@ -132,10 +131,8 @@ START_TEST(test_db_mail_insert_creates_record)
     PQclear(result);
 }
 END_TEST
-
 // Test: Insert sets msg->id
-START_TEST(test_db_mail_insert_sets_msg_id)
-{
+START_TEST(test_db_mail_insert_sets_msg_id) {
     SKIP_IF_NO_DB();
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "agent-2", "Hello!");
@@ -148,11 +145,10 @@ START_TEST(test_db_mail_insert_sets_msg_id)
     // msg->id should be set to the database ID
     ck_assert(msg->id > 0);
 }
-END_TEST
 
+END_TEST
 // Test: Inbox returns messages for recipient only
-START_TEST(test_db_mail_inbox_filters_by_recipient)
-{
+START_TEST(test_db_mail_inbox_filters_by_recipient) {
     SKIP_IF_NO_DB();
 
     // Insert messages to different recipients
@@ -175,11 +171,10 @@ START_TEST(test_db_mail_inbox_filters_by_recipient)
     ck_assert_str_eq(inbox[0]->to_uuid, "agent-2");
     ck_assert_str_eq(inbox[1]->to_uuid, "agent-2");
 }
-END_TEST
 
+END_TEST
 // Test: Inbox orders unread first
-START_TEST(test_db_mail_inbox_orders_unread_first)
-{
+START_TEST(test_db_mail_inbox_orders_unread_first) {
     SKIP_IF_NO_DB();
 
     // Insert messages
@@ -207,11 +202,10 @@ START_TEST(test_db_mail_inbox_orders_unread_first)
     ck_assert(!inbox[1]->read);  // Second or Third
     ck_assert(inbox[2]->read);   // First (marked as read)
 }
-END_TEST
 
+END_TEST
 // Test: Inbox orders by timestamp desc
-START_TEST(test_db_mail_inbox_orders_by_timestamp_desc)
-{
+START_TEST(test_db_mail_inbox_orders_by_timestamp_desc) {
     SKIP_IF_NO_DB();
 
     // Insert messages with different timestamps
@@ -239,11 +233,10 @@ START_TEST(test_db_mail_inbox_orders_by_timestamp_desc)
     ck_assert_int_eq(inbox[1]->timestamp, 2000);  // Middle
     ck_assert_int_eq(inbox[2]->timestamp, 1000);  // Old
 }
-END_TEST
 
+END_TEST
 // Test: Mark read updates read flag
-START_TEST(test_db_mail_mark_read_updates_flag)
-{
+START_TEST(test_db_mail_mark_read_updates_flag) {
     SKIP_IF_NO_DB();
 
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "agent-2", "Test");
@@ -267,6 +260,7 @@ START_TEST(test_db_mail_mark_read_updates_flag)
     ck_assert_str_eq(PQgetvalue(result, 0, 0), "1");
     PQclear(result);
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========
@@ -276,6 +270,7 @@ static Suite *mail_ops_suite(void)
     Suite *s = suite_create("Mail Operations");
 
     TCase *tc_insert = tcase_create("Insert");
+    tcase_set_timeout(tc_insert, 30);
     tcase_add_unchecked_fixture(tc_insert, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_insert, test_setup, test_teardown);
     tcase_add_test(tc_insert, test_db_mail_insert_creates_record);
@@ -283,6 +278,7 @@ static Suite *mail_ops_suite(void)
     suite_add_tcase(s, tc_insert);
 
     TCase *tc_inbox = tcase_create("Inbox");
+    tcase_set_timeout(tc_inbox, 30);
     tcase_add_unchecked_fixture(tc_inbox, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_inbox, test_setup, test_teardown);
     tcase_add_test(tc_inbox, test_db_mail_inbox_filters_by_recipient);
@@ -291,6 +287,7 @@ static Suite *mail_ops_suite(void)
     suite_add_tcase(s, tc_inbox);
 
     TCase *tc_mark = tcase_create("Mark Read");
+    tcase_set_timeout(tc_mark, 30);
     tcase_add_unchecked_fixture(tc_mark, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_mark, test_setup, test_teardown);
     tcase_add_test(tc_mark, test_db_mail_mark_read_updates_flag);

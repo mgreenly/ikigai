@@ -18,8 +18,7 @@
 // ========== ik_agent_restore() Tests ==========
 
 // Test: ik_agent_restore() creates agent from DB row successfully
-START_TEST(test_agent_restore_creates_from_db_row)
-{
+START_TEST(test_agent_restore_creates_from_db_row) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -41,15 +40,14 @@ START_TEST(test_agent_restore_creates_from_db_row)
     ck_assert_ptr_nonnull(agent);
     ck_assert_ptr_nonnull(agent->scrollback);
     ck_assert_ptr_nonnull(agent->layer_cake);
-    ck_assert_ptr_nonnull(agent->conversation);
+    // Messages array starts empty (NULL) with count 0
+    ck_assert_uint_eq(agent->message_count, 0);
 
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: ik_agent_restore() uses row UUID, not generated
-START_TEST(test_agent_restore_uses_row_uuid_not_generated)
-{
+START_TEST(test_agent_restore_uses_row_uuid_not_generated) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -72,11 +70,10 @@ START_TEST(test_agent_restore_uses_row_uuid_not_generated)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets fork_message_id from row
-START_TEST(test_agent_restore_sets_fork_message_id)
-{
+START_TEST(test_agent_restore_sets_fork_message_id) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -99,11 +96,10 @@ START_TEST(test_agent_restore_sets_fork_message_id)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets parent_uuid from row
-START_TEST(test_agent_restore_sets_parent_uuid)
-{
+START_TEST(test_agent_restore_sets_parent_uuid) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -126,11 +122,10 @@ START_TEST(test_agent_restore_sets_parent_uuid)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets created_at from row
-START_TEST(test_agent_restore_sets_created_at)
-{
+START_TEST(test_agent_restore_sets_created_at) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -153,11 +148,10 @@ START_TEST(test_agent_restore_sets_created_at)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets name from row if present
-START_TEST(test_agent_restore_sets_name_if_present)
-{
+START_TEST(test_agent_restore_sets_name_if_present) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -180,11 +174,10 @@ START_TEST(test_agent_restore_sets_name_if_present)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: ik_agent_restore() sets name to NULL if not present in row
-START_TEST(test_agent_restore_null_name_if_not_present)
-{
+START_TEST(test_agent_restore_null_name_if_not_present) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -207,6 +200,7 @@ START_TEST(test_agent_restore_null_name_if_not_present)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_restore_suite(void)
@@ -214,6 +208,7 @@ static Suite *agent_restore_suite(void)
     Suite *s = suite_create("Agent Restore");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_agent_restore_creates_from_db_row);
     tcase_add_test(tc_core, test_agent_restore_uses_row_uuid_not_generated);
     tcase_add_test(tc_core, test_agent_restore_sets_fork_message_id);

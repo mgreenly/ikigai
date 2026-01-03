@@ -54,8 +54,7 @@ START_TEST(test_delete_word_backward_mixed_case_digits) {
 
 END_TEST
 /* Test: delete_word_backward with only non-word characters */
-START_TEST(test_delete_word_backward_only_punctuation)
-{
+START_TEST(test_delete_word_backward_only_punctuation) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -87,8 +86,7 @@ START_TEST(test_delete_word_backward_only_punctuation)
 
 END_TEST
 /* Test: delete_word_backward with punctuation boundaries (Bash/readline behavior) */
-START_TEST(test_delete_word_backward_punctuation_boundaries)
-{
+START_TEST(test_delete_word_backward_punctuation_boundaries) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -121,8 +119,7 @@ START_TEST(test_delete_word_backward_punctuation_boundaries)
 
 END_TEST
 /* Test: delete_word_backward with various whitespace (tab, CR, space-only) */
-START_TEST(test_delete_word_backward_whitespace_variants)
-{
+START_TEST(test_delete_word_backward_whitespace_variants) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -180,8 +177,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL input_buffer should assert */
-START_TEST(test_delete_word_backward_null_input_buffer_asserts)
-{
+START_TEST(test_delete_word_backward_null_input_buffer_asserts) {
     /* input_buffer cannot be NULL - should abort */
     ik_input_buffer_delete_word_backward(NULL);
 }
@@ -193,6 +189,10 @@ static Suite *input_buffer_delete_word_backward_advanced_suite(void)
 {
     Suite *s = suite_create("Input Buffer Delete Word Backward - Advanced");
     TCase *tc_advanced = tcase_create("Advanced");
+    tcase_set_timeout(tc_advanced, 30);
+    tcase_set_timeout(tc_advanced, 30);
+    tcase_set_timeout(tc_advanced, 30);
+    tcase_set_timeout(tc_advanced, 30);
 
     /* Advanced edge case tests */
     tcase_add_test(tc_advanced, test_delete_word_backward_mixed_case_digits);
@@ -205,6 +205,10 @@ static Suite *input_buffer_delete_word_backward_advanced_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_delete_word_backward_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

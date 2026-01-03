@@ -40,7 +40,6 @@ START_TEST(test_file_read_all_success) {
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Return error for missing file
 START_TEST(test_file_read_all_file_not_found) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -54,8 +53,8 @@ START_TEST(test_file_read_all_file_not_found) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Handle empty file
 START_TEST(test_file_read_all_empty_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -80,6 +79,7 @@ START_TEST(test_file_read_all_empty_file) {
     unlink(template);
     talloc_free(ctx);
 }
+
 END_TEST
 
 #ifndef SKIP_SIGNAL_TESTS
@@ -91,8 +91,8 @@ START_TEST(test_file_read_all_null_ctx) {
     // This should trigger an assertion failure
     ik_file_read_all(NULL, "/tmp/test.txt", &out_content, &out_size);
 }
-END_TEST
 
+END_TEST
 // Test: Assert on NULL path
 START_TEST(test_file_read_all_null_path) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -104,8 +104,8 @@ START_TEST(test_file_read_all_null_path) {
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Assert on NULL output pointer
 START_TEST(test_file_read_all_null_out) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -116,6 +116,7 @@ START_TEST(test_file_read_all_null_out) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 #endif
 
@@ -124,15 +125,18 @@ static Suite *file_utils_suite(void)
     Suite *s = suite_create("File Utils");
 
     TCase *tc_success = tcase_create("Success Cases");
+    tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_file_read_all_success);
     tcase_add_test(tc_success, test_file_read_all_empty_file);
     suite_add_tcase(s, tc_success);
 
     TCase *tc_error = tcase_create("Error Cases");
+    tcase_set_timeout(tc_error, 30);
     tcase_add_test(tc_error, test_file_read_all_file_not_found);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_assert = tcase_create("Assertion Cases");
+    tcase_set_timeout(tc_assert, 30);
 #ifndef SKIP_SIGNAL_TESTS
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_path, SIGABRT);

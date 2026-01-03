@@ -46,7 +46,9 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char 
 // @param properties The properties object to add to
 // @param name Parameter name
 // @param description Parameter description
-void ik_tool_add_string_parameter(yyjson_mut_doc *doc, yyjson_mut_val *properties, const char *name,
+void ik_tool_add_string_parameter(yyjson_mut_doc *doc,
+                                  yyjson_mut_val *properties,
+                                  const char *name,
                                   const char *description);
 
 // Build JSON schema for the glob tool.
@@ -108,8 +110,7 @@ yyjson_mut_val *ik_tool_build_bash_schema(yyjson_mut_doc *doc);
 // @param doc The yyjson mutable document to build the schema in
 // @param def Tool schema definition containing name, description, and parameters
 // @return Pointer to the schema object (owned by doc), or NULL on error
-yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc,
-                                               const ik_tool_schema_def_t *def);
+yyjson_mut_val *ik_tool_build_schema_from_def(yyjson_mut_doc *doc, const ik_tool_schema_def_t *def);
 
 // Build array containing all 5 tool schemas.
 //

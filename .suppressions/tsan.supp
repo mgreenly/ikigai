@@ -1,0 +1,10 @@
+# ThreadSanitizer suppressions for ikigai
+# See: https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
+
+# Talloc memory pool reuse
+# When CK_FORK=no, tests share the same process and talloc reuses freed memory.
+# TSAN incorrectly reports this as use-after-free because it doesn't understand
+# that talloc has reallocated the memory for the new test.
+race:talloc_strdup
+race:talloc_strndup
+race:__talloc

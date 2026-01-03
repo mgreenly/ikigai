@@ -1,0 +1,12 @@
+{
+  "preload": [
+    "meta",
+    "cdd",
+    "task",
+    "align",
+    "git",
+    "principles",
+    "harness"
+  ],
+  "advertise": []
+}

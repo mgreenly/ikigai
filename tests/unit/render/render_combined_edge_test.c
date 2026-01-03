@@ -41,8 +41,7 @@ START_TEST(test_render_combined_invalid_scrollback_start) {
 }
 END_TEST
 /* Test: Scrollback line_count exceeding available lines gets clamped */
-START_TEST(test_render_combined_scrollback_count_clamping)
-{
+START_TEST(test_render_combined_scrollback_count_clamping) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 
@@ -70,8 +69,7 @@ START_TEST(test_render_combined_scrollback_count_clamping)
 
 END_TEST
 /* Test: Scrollback line containing embedded newline characters */
-START_TEST(test_render_combined_scrollback_with_newlines)
-{
+START_TEST(test_render_combined_scrollback_with_newlines) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 
@@ -101,8 +99,7 @@ START_TEST(test_render_combined_scrollback_with_newlines)
 
 END_TEST
 /* Test: Invalid UTF-8 in input buffer text causes cursor position calculation to fail */
-START_TEST(test_render_combined_invalid_utf8_in_input_buffer)
-{
+START_TEST(test_render_combined_invalid_utf8_in_input_buffer) {
     void *ctx = talloc_new(NULL);
     ik_render_ctx_t *render_ctx = NULL;
 

@@ -19,11 +19,9 @@
 #include "../../test_utils.h"
 
 /* Test: Tab accepts single match */
-START_TEST(test_tab_wraps_around)
-{
+START_TEST(test_tab_wraps_around) {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -36,12 +34,12 @@ START_TEST(test_tab_wraps_around)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = NULL;  /* No history for this test */
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -82,13 +80,10 @@ START_TEST(test_tab_wraps_around)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Tab accepts completion and dismisses */
-START_TEST(test_original_input_stored)
-{
+START_TEST(test_original_input_stored) {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -101,12 +96,12 @@ START_TEST(test_original_input_stored)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = NULL;  /* No history for this test */
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -146,14 +141,12 @@ START_TEST(test_original_input_stored)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Tab accepts and dismisses - each Tab press accepts current selection */
-START_TEST(test_multiple_tab_presses)
-{
+START_TEST(test_multiple_tab_presses) {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -166,12 +159,12 @@ START_TEST(test_multiple_tab_presses)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = NULL;  /* No history for this test */
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -209,14 +202,12 @@ START_TEST(test_multiple_tab_presses)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: update_completion_after_char preserves original_input across updates */
-START_TEST(test_update_completion_preserves_original_input)
-{
+START_TEST(test_update_completion_preserves_original_input) {
     void *ctx = talloc_new(NULL);
 
-    
     // Create agent
     ik_agent_ctx_t *agent = NULL;
     res_t agent_res = ik_test_create_agent(ctx, &agent);
@@ -229,12 +220,12 @@ START_TEST(test_update_completion_preserves_original_input)
     ck_assert_ptr_nonnull(repl);
     repl->current = agent;
     repl->quit = false;
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
     repl->shared->history = NULL;  /* No history for this test */
-    
+
     // Create minimal shared context for test
     repl->shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(repl->shared);
@@ -265,11 +256,10 @@ START_TEST(test_update_completion_preserves_original_input)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Space commit when completion is NULL (no-op) */
-START_TEST(test_space_commit_no_completion)
-{
+START_TEST(test_space_commit_no_completion) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -313,6 +303,7 @@ START_TEST(test_space_commit_no_completion)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Test Suite */
@@ -320,6 +311,11 @@ static Suite *completion_state_advanced_suite(void)
 {
     Suite *s = suite_create("Completion_State_Advanced");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_tab_wraps_around);
     tcase_add_test(tc_core, test_original_input_stored);

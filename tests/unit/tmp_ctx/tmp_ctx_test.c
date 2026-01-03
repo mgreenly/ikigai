@@ -3,16 +3,14 @@
 #include <check.h>
 #include <talloc.h>
 
-START_TEST(test_tmp_ctx_create_returns_non_null)
-{
+START_TEST(test_tmp_ctx_create_returns_non_null) {
     TALLOC_CTX *tmp = tmp_ctx_create();
     ck_assert_ptr_nonnull(tmp);
     talloc_free(tmp);
 }
 END_TEST
 
-START_TEST(test_tmp_ctx_can_allocate)
-{
+START_TEST(test_tmp_ctx_can_allocate) {
     TALLOC_CTX *tmp = tmp_ctx_create();
     ck_assert_ptr_nonnull(tmp);
 
@@ -23,10 +21,10 @@ START_TEST(test_tmp_ctx_can_allocate)
 
     talloc_free(tmp);
 }
+
 END_TEST
 
-START_TEST(test_tmp_ctx_can_be_freed)
-{
+START_TEST(test_tmp_ctx_can_be_freed) {
     TALLOC_CTX *tmp = tmp_ctx_create();
     ck_assert_ptr_nonnull(tmp);
 
@@ -34,12 +32,14 @@ START_TEST(test_tmp_ctx_can_be_freed)
     int32_t result = talloc_free(tmp);
     ck_assert_int_eq(result, 0);
 }
+
 END_TEST
 
 static Suite *tmp_ctx_suite(void)
 {
     Suite *s = suite_create("TmpCtx");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_test(tc, test_tmp_ctx_create_returns_non_null);
     tcase_add_test(tc, test_tmp_ctx_can_allocate);

@@ -17,7 +17,8 @@
 #include "../../../src/error.h"
 #include "../../../src/logger.h"
 #include "../../../src/marks.h"
-#include "../../../src/openai/client.h"
+#include "../../../src/message.h"
+#include "../../../src/providers/provider.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -39,9 +40,11 @@ static char log_file_path[512];
 
 // Mock result for PQexecParams failure
 static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel
+static PGresult *mock_success_result = (PGresult *)2;  // Non-null sentinel for success
 static ExecStatusType mock_status = PGRES_FATAL_ERROR;
+static bool use_success_mock = false;
 
-// Mock pq_exec_params_ to fail
+// Mock pq_exec_params_ to fail or succeed based on flag
 PGresult *pq_exec_params_(PGconn *conn,
                           const char *command,
                           int nParams,
@@ -60,8 +63,8 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)paramFormats;
     (void)resultFormat;
 
-    // Return a mock result that simulates failure
-    return mock_failed_result;
+    // Return success or failure mock based on flag
+    return use_success_mock ? mock_success_result : mock_failed_result;
 }
 
 // Mock PQresultStatus to return our configured status
@@ -69,6 +72,9 @@ ExecStatusType PQresultStatus(const PGresult *res)
 {
     if (res == mock_failed_result) {
         return mock_status;
+    }
+    if (res == mock_success_result) {
+        return PGRES_COMMAND_OK;
     }
     // Should not reach here in tests
     return PGRES_FATAL_ERROR;
@@ -98,12 +104,10 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create REPL context
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -113,14 +117,12 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
 
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-
-    agent->conversation = conv;
     r->current = agent;
 
     r->shared = shared;
@@ -162,6 +164,7 @@ static void test_setup(void)
 
     // Reset mock status
     mock_status = PGRES_FATAL_ERROR;
+    use_success_mock = false;
 }
 
 // Per-test teardown
@@ -237,8 +240,7 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
 }
 END_TEST
 // Test: DB error during mark persistence with label
-START_TEST(test_mark_db_insert_error_with_label)
-{
+START_TEST(test_mark_db_insert_error_with_label) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -288,8 +290,7 @@ START_TEST(test_mark_db_insert_error_with_label)
 
 END_TEST
 // Test: Rewind error handling when mark not found (lines 132-137)
-START_TEST(test_rewind_error_handling)
-{
+START_TEST(test_rewind_error_handling) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -311,8 +312,7 @@ START_TEST(test_rewind_error_handling)
 END_TEST
 // Test: DB error during rewind persistence
 // Note: This test verifies that rewind works in memory even when DB is unavailable
-START_TEST(test_rewind_db_insert_error)
-{
+START_TEST(test_rewind_db_insert_error) {
     // Set up mock DB context
     ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
     mock_db->conn = (PGconn *)0x1234;
@@ -327,8 +327,8 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Add a message
-    ik_msg_t *msg = ik_openai_msg_create(repl->current->conversation, "user", "test");
-    res = ik_openai_conversation_add_msg(repl->current->conversation, msg);
+    ik_message_t *msg = ik_message_create_text(test_ctx, IK_ROLE_USER, "test");
+    res = ik_agent_add_message(repl->current, msg);
     ck_assert(is_ok(&res));
 
     // Rewind - should succeed in memory even with DB issues
@@ -336,11 +336,39 @@ START_TEST(test_rewind_db_insert_error)
     ck_assert(is_ok(&res));
 
     // Rewind should succeed in memory
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 
     // Note: The logger output won't be generated in this test because
     // target_message_id is 0 (no DB query succeeds with mocks), so the
     // db_persist_failed log only happens when target_message_id > 0
+}
+
+END_TEST
+// Test: DB success during mark persistence (covers line 98 false branch)
+START_TEST(test_mark_db_insert_success) {
+    // Set up mock DB context
+    ik_db_ctx_t *mock_db = talloc_zero(test_ctx, ik_db_ctx_t);
+    mock_db->conn = (PGconn *)0x1234;
+    repl->shared->db_ctx = mock_db;
+    repl->shared->session_id = 1;
+
+    // Set mock to succeed
+    use_success_mock = true;
+
+    // Create labeled mark - DB insert will succeed
+    res_t res = ik_cmd_mark(test_ctx, repl, "success_label");
+    ck_assert(is_ok(&res));
+
+    // Mark should be created in memory
+    ck_assert_uint_eq(repl->current->mark_count, 1);
+    ck_assert_str_eq(repl->current->marks[0]->label, "success_label");
+
+    // Read log file - should be empty or minimal (no error logged)
+    char *log_output = read_log_file();
+    // Either file doesn't exist or it doesn't contain db_persist_failed
+    if (log_output != NULL) {
+        ck_assert(strstr(log_output, "db_persist_failed") == NULL);
+    }
 }
 
 END_TEST
@@ -353,11 +381,13 @@ static Suite *commands_mark_db_suite(void)
 
     // All tests use mocks (no real database)
     TCase *tc_db_errors = tcase_create("Database Error Handling");
+    tcase_set_timeout(tc_db_errors, 30);
     tcase_add_checked_fixture(tc_db_errors, test_setup, test_teardown);
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_null_label);
     tcase_add_test(tc_db_errors, test_mark_db_insert_error_with_label);
     tcase_add_test(tc_db_errors, test_rewind_error_handling);
     tcase_add_test(tc_db_errors, test_rewind_db_insert_error);
+    tcase_add_test(tc_db_errors, test_mark_db_insert_success);
     suite_add_tcase(s, tc_db_errors);
 
     return s;

@@ -6,7 +6,6 @@
 #include "error.h"
 
 typedef struct {
-    char *openai_api_key;
     char *openai_model;
     double openai_temperature;
     int32_t openai_max_completion_tokens;
@@ -17,9 +16,13 @@ typedef struct {
     int32_t max_tool_turns;
     int64_t max_output_size;
     int32_t history_size;
-} ik_cfg_t;
+    char *default_provider;  // NEW: "anthropic", "openai", "google"
+} ik_config_t;
 
-res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path);
+res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out);
+
+// Get default provider name with env var override support
+const char *ik_config_get_default_provider(ik_config_t *config);
 
 // internal helper function (exposed for testing)
 res_t ik_cfg_expand_tilde(TALLOC_CTX *ctx, const char *path);

@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -149,9 +148,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -160,7 +157,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "current-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -208,8 +205,7 @@ static void teardown(void)
 }
 
 // Test: /delete-mail with "not found" error takes error path (line 377)
-START_TEST(test_delete_mail_not_found_error_path)
-{
+START_TEST(test_delete_mail_not_found_error_path) {
     // Reset call count for this test
     call_count = 0;
 
@@ -228,6 +224,7 @@ static Suite *delete_mail_db_errors_suite(void)
 {
     Suite *s = suite_create("Delete Mail Command DB Errors");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

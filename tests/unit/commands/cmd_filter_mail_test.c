@@ -12,7 +12,6 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -44,9 +43,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -55,7 +52,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "recipient-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -161,8 +158,7 @@ static void suite_teardown(void)
 }
 
 // Test: filters by sender UUID
-START_TEST(test_filter_mail_by_sender)
-{
+START_TEST(test_filter_mail_by_sender) {
     // Create two senders
     ik_agent_ctx_t *sender1 = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender1);
@@ -190,13 +186,13 @@ START_TEST(test_filter_mail_by_sender)
 
     // Create messages from both senders
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender1->uuid,
-                                              repl->current->uuid, "Message from sender1");
+                                             repl->current->uuid, "Message from sender1");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender2->uuid,
-                                              repl->current->uuid, "Message from sender2");
+                                             repl->current->uuid, "Message from sender2");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -211,10 +207,8 @@ START_TEST(test_filter_mail_by_sender)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: partial UUID matching works
-START_TEST(test_filter_mail_partial_uuid)
-{
+START_TEST(test_filter_mail_partial_uuid) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -230,7 +224,7 @@ START_TEST(test_filter_mail_partial_uuid)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -242,11 +236,10 @@ START_TEST(test_filter_mail_partial_uuid)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: shows "(filtered by ...)" in header
-START_TEST(test_filter_mail_shows_header)
-{
+START_TEST(test_filter_mail_shows_header) {
     // Create sender
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -262,7 +255,7 @@ START_TEST(test_filter_mail_shows_header)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -276,11 +269,10 @@ START_TEST(test_filter_mail_shows_header)
     // Verify output exists
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: no matches shows empty result
-START_TEST(test_filter_mail_no_matches)
-{
+START_TEST(test_filter_mail_no_matches) {
     // Create sender (but don't send any messages)
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -303,12 +295,14 @@ START_TEST(test_filter_mail_no_matches)
     // Verify output exists (should show empty result)
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *filter_mail_suite(void)
 {
     Suite *s = suite_create("Filter Mail Command");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

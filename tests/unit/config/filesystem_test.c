@@ -68,7 +68,8 @@ START_TEST(test_config_mkdir_failure) {
     mock_mkdir_errno = EACCES;
 
     // Attempt to load config - should fail when creating directory
-    res_t res = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -81,8 +82,7 @@ START_TEST(test_config_mkdir_failure) {
 }
 END_TEST
 /* Test: stat succeeds (directory exists) */
-START_TEST(test_config_stat_directory_exists)
-{
+START_TEST(test_config_stat_directory_exists) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Use /tmp which always exists
@@ -96,12 +96,13 @@ START_TEST(test_config_stat_directory_exists)
     FILE *f = fopen(test_config, "w");
     if (f) {
         fprintf(f,
-                "{\"openai_api_key\":\"test\",\"openai_model\":\"gpt-4-turbo\",\"openai_temperature\":0.7,\"openai_max_completion_tokens\":4096,\"openai_system_message\":null,\"listen_address\":\"127.0.0.1\",\"listen_port\":1984,\"max_tool_turns\":50,\"max_output_size\":1048576}\n");
+                "{\"openai_model\":\"gpt-4-turbo\",\"openai_temperature\":0.7,\"openai_max_completion_tokens\":4096,\"openai_system_message\":null,\"listen_address\":\"127.0.0.1\",\"listen_port\":1984,\"max_tool_turns\":50,\"max_output_size\":1048576}\n");
         fclose(f);
     }
 
     // Load config - should succeed
-    res_t res = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify success
     ck_assert(is_ok(&res));

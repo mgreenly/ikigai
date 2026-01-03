@@ -32,8 +32,7 @@ START_TEST(test_cursor_up_empty_input_buffer) {
 }
 END_TEST
 // Test: cursor_down on empty input_buffer should not crash
-START_TEST(test_cursor_down_empty_input_buffer)
-{
+START_TEST(test_cursor_down_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -62,8 +61,7 @@ START_TEST(test_cursor_down_empty_input_buffer)
 
 END_TEST
 // Test: cursor_up after delete to empty should not crash
-START_TEST(test_cursor_up_after_delete_to_empty)
-{
+START_TEST(test_cursor_up_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -97,8 +95,7 @@ START_TEST(test_cursor_up_after_delete_to_empty)
 
 END_TEST
 // Test: cursor_down after delete to empty should not crash
-START_TEST(test_cursor_down_after_delete_to_empty)
-{
+START_TEST(test_cursor_down_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -132,8 +129,7 @@ START_TEST(test_cursor_down_after_delete_to_empty)
 
 END_TEST
 // Test: Ctrl+A on empty input_buffer should not crash
-START_TEST(test_ctrl_a_empty_input_buffer)
-{
+START_TEST(test_ctrl_a_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -159,8 +155,7 @@ START_TEST(test_ctrl_a_empty_input_buffer)
 
 END_TEST
 // Test: Ctrl+E on empty input_buffer should not crash
-START_TEST(test_ctrl_e_empty_input_buffer)
-{
+START_TEST(test_ctrl_e_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -186,8 +181,7 @@ START_TEST(test_ctrl_e_empty_input_buffer)
 
 END_TEST
 // Test: Ctrl+K on empty input_buffer should not crash
-START_TEST(test_ctrl_k_empty_input_buffer)
-{
+START_TEST(test_ctrl_k_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -213,8 +207,7 @@ START_TEST(test_ctrl_k_empty_input_buffer)
 
 END_TEST
 // Test: Ctrl+U on empty input_buffer should not crash
-START_TEST(test_ctrl_u_empty_input_buffer)
-{
+START_TEST(test_ctrl_u_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -240,8 +233,7 @@ START_TEST(test_ctrl_u_empty_input_buffer)
 
 END_TEST
 // Test: Ctrl+A after delete to empty should not crash
-START_TEST(test_ctrl_a_after_delete_to_empty)
-{
+START_TEST(test_ctrl_a_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -264,8 +256,7 @@ START_TEST(test_ctrl_a_after_delete_to_empty)
 
 END_TEST
 // Test: Ctrl+E after delete to empty should not crash
-START_TEST(test_ctrl_e_after_delete_to_empty)
-{
+START_TEST(test_ctrl_e_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -288,8 +279,7 @@ START_TEST(test_ctrl_e_after_delete_to_empty)
 
 END_TEST
 // Test: Ctrl+K after delete to empty should not crash
-START_TEST(test_ctrl_k_after_delete_to_empty)
-{
+START_TEST(test_ctrl_k_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -312,8 +302,7 @@ START_TEST(test_ctrl_k_after_delete_to_empty)
 
 END_TEST
 // Test: Ctrl+U after delete to empty should not crash
-START_TEST(test_ctrl_u_after_delete_to_empty)
-{
+START_TEST(test_ctrl_u_after_delete_to_empty) {
     void *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -341,6 +330,10 @@ static Suite *empty_input_buffer_navigation_suite(void)
     Suite *s = suite_create("empty_input_buffer_navigation");
 
     TCase *tc_empty = tcase_create("empty_input_buffer");
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
+    tcase_set_timeout(tc_empty, 30);
     tcase_set_timeout(tc_empty, 30);
     tcase_add_test(tc_empty, test_cursor_up_empty_input_buffer);
     tcase_add_test(tc_empty, test_cursor_down_empty_input_buffer);

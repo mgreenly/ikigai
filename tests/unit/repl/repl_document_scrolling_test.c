@@ -38,7 +38,8 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-static void reset_mock(void) {
+static void reset_mock(void)
+{
     mock_output_len = 0;
     memset(mock_output, 0, sizeof(mock_output));
 }
@@ -134,14 +135,12 @@ START_TEST(test_separator_scrolls_offscreen) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: When scrolled up, input buffer should NOT appear in output
  *
  * Similar to above, but specifically checks that input buffer content is scrolled off.
  */
-START_TEST(test_input_buffer_scrolls_offscreen)
-{
+START_TEST(test_input_buffer_scrolls_offscreen) {
     reset_mock();
     void *ctx = talloc_new(NULL);
     res_t res;
@@ -204,15 +203,13 @@ START_TEST(test_input_buffer_scrolls_offscreen)
 }
 
 END_TEST
-
 /**
  * Test: When scrolled to bottom, last scrollback line appears directly above separator
  *
  * This verifies the key invariant: the last line of scrollback is ALWAYS adjacent
  * to the separator line when both are visible.
  */
-START_TEST(test_scrollback_adjacent_to_separator)
-{
+START_TEST(test_scrollback_adjacent_to_separator) {
     reset_mock();
     void *ctx = talloc_new(NULL);
     res_t res;
@@ -295,6 +292,10 @@ static Suite *repl_document_scrolling_suite(void)
     Suite *s = suite_create("REPL Document Scrolling (Unified Model)");
 
     TCase *tc_scrolling = tcase_create("Document Scrolling");
+    tcase_set_timeout(tc_scrolling, 30);
+    tcase_set_timeout(tc_scrolling, 30);
+    tcase_set_timeout(tc_scrolling, 30);
+    tcase_set_timeout(tc_scrolling, 30);
     tcase_set_timeout(tc_scrolling, 30);
     tcase_add_test(tc_scrolling, test_separator_scrolls_offscreen);
     tcase_add_test(tc_scrolling, test_input_buffer_scrolls_offscreen);

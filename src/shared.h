@@ -31,7 +31,7 @@
  * synchronization for multi-agent access.
  */
 typedef struct ik_shared_ctx {
-    ik_cfg_t *cfg;  // Configuration (borrowed, not owned)
+    ik_config_t *cfg;  // Configuration (borrowed, not owned)
     ik_logger_t *logger;     // Logger instance (DI pattern)
     ik_term_ctx_t *term;    // Terminal context
     ik_render_ctx_t *render; // Render context
@@ -52,4 +52,9 @@ typedef struct ik_shared_ctx {
 // ikigai_path: path to ikigai directory (e.g., ".ikigai")
 // logger: pre-created logger instance (ownership transferred)
 // out: receives allocated shared context
-res_t ik_shared_ctx_init(TALLOC_CTX *ctx, ik_cfg_t *cfg, const char *working_dir, const char *ikigai_path, ik_logger_t *logger, ik_shared_ctx_t **out);
+res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
+                         ik_config_t *cfg,
+                         const char *working_dir,
+                         const char *ikigai_path,
+                         ik_logger_t *logger,
+                         ik_shared_ctx_t **out);

@@ -25,7 +25,6 @@
 #include "../../src/db/session.h"
 #include "../../src/error.h"
 #include "../../src/msg.h"
-#include "../../src/openai/client.h"
 #include "../../src/tool.h"
 #include "../test_utils.h"
 
@@ -290,8 +289,7 @@ END_TEST
  * Test that tool execution correctly handles file not found without crashing.
  * This is a simpler unit-style test within the integration suite.
  */
-START_TEST(test_tool_exec_file_read_handles_missing_file)
-{
+START_TEST(test_tool_exec_file_read_handles_missing_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Execute tool on non-existent file
@@ -330,6 +328,7 @@ static Suite *file_read_error_suite(void)
     Suite *s = suite_create("File Read Error Integration");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_core, test_setup, test_teardown);
     tcase_add_test(tc_core, test_file_read_error_end_to_end);

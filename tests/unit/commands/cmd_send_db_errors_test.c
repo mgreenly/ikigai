@@ -11,7 +11,6 @@
 #include "../../../src/db/mail.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -62,7 +61,10 @@ PGresult *pq_exec_params_(PGconn *conn,
     (void)resultFormat;
 
     // Check if this is an agent_get query
-    if (command != NULL && strstr(command, "SELECT uuid, name, parent_uuid, fork_message_id, status") != NULL && strstr(command, "FROM agents WHERE uuid") != NULL) {
+    if (command != NULL && strstr(command,
+                                  "SELECT uuid, name, parent_uuid, fork_message_id, status") != NULL && strstr(command,
+                                                                                                               "FROM agents WHERE uuid")
+        != NULL) {
         if (mock_agent_get_fail) {
             return mock_failed_result;
         }
@@ -157,9 +159,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -168,7 +168,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "sender-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -230,8 +230,7 @@ static void teardown(void)
 }
 
 // Test: /send propagates ik_db_agent_get error (line 110)
-START_TEST(test_send_db_agent_get_error)
-{
+START_TEST(test_send_db_agent_get_error) {
     // Enable agent_get failure
     mock_agent_get_fail = true;
 
@@ -244,10 +243,8 @@ START_TEST(test_send_db_agent_get_error)
     talloc_free(res.err);
 }
 END_TEST
-
 // Test: /send propagates ik_db_mail_insert error (line 136)
-START_TEST(test_send_db_mail_insert_error)
-{
+START_TEST(test_send_db_mail_insert_error) {
     // Enable mail_insert failure
     mock_mail_insert_fail = true;
 
@@ -259,12 +256,14 @@ START_TEST(test_send_db_mail_insert_error)
 
     talloc_free(res.err);
 }
+
 END_TEST
 
 static Suite *send_db_errors_suite(void)
 {
     Suite *s = suite_create("Send Command DB Errors");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

@@ -8,9 +8,9 @@
 #include <assert.h>
 
 size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
-                                              size_t line_index,
-                                              size_t terminal_width,
-                                              size_t start_row_offset)
+                                             size_t line_index,
+                                             size_t terminal_width,
+                                             size_t start_row_offset)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -76,10 +76,10 @@ size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
 }
 
 size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
-                                            size_t line_index,
-                                            size_t terminal_width,
-                                            size_t end_row_offset,
-                                            bool *is_line_end_out)
+                                           size_t line_index,
+                                           size_t terminal_width,
+                                           size_t end_row_offset,
+                                           bool *is_line_end_out)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
     assert(is_line_end_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -156,13 +156,13 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
 }
 
 void ik_scrollback_calc_byte_range_for_rows(ik_scrollback_t *scrollback,
-                                             size_t line_index,
-                                             size_t terminal_width,
-                                             size_t start_row_offset,
-                                             size_t row_count,
-                                             size_t *start_byte_out,
-                                             size_t *end_byte_out,
-                                             bool *is_line_end_out)
+                                            size_t line_index,
+                                            size_t terminal_width,
+                                            size_t start_row_offset,
+                                            size_t row_count,
+                                            size_t *start_byte_out,
+                                            size_t *end_byte_out,
+                                            bool *is_line_end_out)
 {
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
     assert(start_byte_out != NULL);  // LCOV_EXCL_BR_LINE
@@ -170,10 +170,10 @@ void ik_scrollback_calc_byte_range_for_rows(ik_scrollback_t *scrollback,
     assert(is_line_end_out != NULL);  // LCOV_EXCL_BR_LINE
 
     *start_byte_out = ik_scrollback_calc_start_byte_for_row(scrollback, line_index,
-                                                             terminal_width, start_row_offset);
+                                                            terminal_width, start_row_offset);
 
     size_t end_row_offset = start_row_offset + row_count - 1;
     *end_byte_out = ik_scrollback_calc_end_byte_for_row(scrollback, line_index,
-                                                         terminal_width, end_row_offset,
-                                                         is_line_end_out);
+                                                        terminal_width, end_row_offset,
+                                                        is_line_end_out);
 }

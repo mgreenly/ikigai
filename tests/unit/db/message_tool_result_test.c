@@ -35,8 +35,9 @@ START_TEST(test_tool_result_message_create_returns_nonnull) {
         );
     ck_assert_ptr_nonnull(msg);
 }
-END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_kind_is_tool_result) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -49,8 +50,9 @@ END_TEST START_TEST(test_tool_result_message_kind_is_tool_result)
     ck_assert_str_eq(msg->kind, "tool_result");
 }
 
-END_TEST START_TEST(test_tool_result_message_content_is_summary)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_content_is_summary) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -63,8 +65,9 @@ END_TEST START_TEST(test_tool_result_message_content_is_summary)
     ck_assert_str_eq(msg->content, "3 files found");
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_tool_call_id) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -78,8 +81,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_tool_call_id)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "call_abc123"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_name) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -93,8 +97,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_name)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "glob"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_output) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -108,8 +113,9 @@ END_TEST START_TEST(test_tool_result_message_data_json_contains_output)
     ck_assert_ptr_nonnull(strstr(msg->data_json, "src/main.c"));
 }
 
-END_TEST START_TEST(test_tool_result_message_data_json_contains_success)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_data_json_contains_success) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -130,8 +136,7 @@ END_TEST
  * Talloc hierarchy tests
  */
 
-START_TEST(test_tool_result_message_talloc_hierarchy)
-{
+START_TEST(test_tool_result_message_talloc_hierarchy) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_abc123",
@@ -156,8 +161,7 @@ END_TEST
  * Different content strings
  */
 
-START_TEST(test_tool_result_message_with_different_summary)
-{
+START_TEST(test_tool_result_message_with_different_summary) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_xyz789",
@@ -171,8 +175,9 @@ START_TEST(test_tool_result_message_with_different_summary)
     ck_assert_str_eq(msg->kind, "tool_result");
 }
 
-END_TEST START_TEST(test_tool_result_message_success_false)
-{
+END_TEST
+
+START_TEST(test_tool_result_message_success_false) {
     ik_msg_t *msg = ik_msg_create_tool_result(
         ctx,
         "call_error123",
@@ -198,6 +203,7 @@ static Suite *tool_result_message_suite(void)
     Suite *s = suite_create("Tool Result Message Creation");
 
     TCase *tc_basic = tcase_create("Basic Creation");
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_tool_result_message_create_returns_nonnull);
     tcase_add_test(tc_basic, test_tool_result_message_kind_is_tool_result);
@@ -205,6 +211,7 @@ static Suite *tool_result_message_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_data_json = tcase_create("Data JSON Content");
+    tcase_set_timeout(tc_data_json, 30);
     tcase_add_checked_fixture(tc_data_json, setup, teardown);
     tcase_add_test(tc_data_json, test_tool_result_message_data_json_contains_tool_call_id);
     tcase_add_test(tc_data_json, test_tool_result_message_data_json_contains_name);
@@ -213,11 +220,13 @@ static Suite *tool_result_message_suite(void)
     suite_add_tcase(s, tc_data_json);
 
     TCase *tc_hierarchy = tcase_create("Talloc Hierarchy");
+    tcase_set_timeout(tc_hierarchy, 30);
     tcase_add_checked_fixture(tc_hierarchy, setup, teardown);
     tcase_add_test(tc_hierarchy, test_tool_result_message_talloc_hierarchy);
     suite_add_tcase(s, tc_hierarchy);
 
     TCase *tc_variants = tcase_create("Variant Inputs");
+    tcase_set_timeout(tc_variants, 30);
     tcase_add_checked_fixture(tc_variants, setup, teardown);
     tcase_add_test(tc_variants, test_tool_result_message_with_different_summary);
     tcase_add_test(tc_variants, test_tool_result_message_success_false);

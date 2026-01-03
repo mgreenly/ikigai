@@ -99,8 +99,9 @@ START_TEST(test_db_init_empty_conn_str) {
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
 }
-END_TEST START_TEST(test_db_init_malformed_conn_str)
-{
+END_TEST
+
+START_TEST(test_db_init_malformed_conn_str) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Malformed connection string should either:
@@ -117,8 +118,7 @@ END_TEST START_TEST(test_db_init_malformed_conn_str)
 END_TEST
 // ========== Connection Error Tests ==========
 
-START_TEST(test_db_init_connection_refused)
-{
+START_TEST(test_db_init_connection_refused) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Use invalid host that should result in connection refused/timeout
@@ -129,8 +129,9 @@ START_TEST(test_db_init_connection_refused)
     ck_assert_ptr_null(db_ctx);
 }
 
-END_TEST START_TEST(test_db_init_postgres_scheme)
-{
+END_TEST
+
+START_TEST(test_db_init_postgres_scheme) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Test postgres:// scheme (alternative to postgresql://)
@@ -143,8 +144,9 @@ END_TEST START_TEST(test_db_init_postgres_scheme)
     ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
 }
 
-END_TEST START_TEST(test_db_init_key_value_format)
-{
+END_TEST
+
+START_TEST(test_db_init_key_value_format) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Test libpq key=value format
@@ -160,8 +162,7 @@ END_TEST START_TEST(test_db_init_key_value_format)
 END_TEST
 // ========== Successful Connection Tests ==========
 
-START_TEST(test_db_init_success)
-{
+START_TEST(test_db_init_success) {
     SKIP_IF_NO_DB();
 
     ik_db_ctx_t *db_ctx = NULL;
@@ -174,8 +175,9 @@ START_TEST(test_db_init_success)
     ck_assert_ptr_nonnull(db_ctx->conn);
 }
 
-END_TEST START_TEST(test_db_init_talloc_hierarchy)
-{
+END_TEST
+
+START_TEST(test_db_init_talloc_hierarchy) {
     SKIP_IF_NO_DB();
 
     ik_db_ctx_t *db_ctx = NULL;
@@ -192,8 +194,9 @@ END_TEST START_TEST(test_db_init_talloc_hierarchy)
     ck_assert_ptr_eq(parent, test_ctx);
 }
 
-END_TEST START_TEST(test_db_init_destructor_cleanup)
-{
+END_TEST
+
+START_TEST(test_db_init_destructor_cleanup) {
     SKIP_IF_NO_DB();
 
     TALLOC_CTX *local_ctx = talloc_new(NULL);
@@ -214,8 +217,9 @@ END_TEST START_TEST(test_db_init_destructor_cleanup)
     // If we get here without crashes, destructor worked correctly
 }
 
-END_TEST START_TEST(test_db_init_connection_string_variants)
-{
+END_TEST
+
+START_TEST(test_db_init_connection_string_variants) {
     SKIP_IF_NO_DB();
 
     // Test various valid connection string formats
@@ -232,8 +236,7 @@ END_TEST START_TEST(test_db_init_connection_string_variants)
 END_TEST
 // ========== Memory Cleanup Tests ==========
 
-START_TEST(test_db_init_cleanup_on_error)
-{
+START_TEST(test_db_init_cleanup_on_error) {
     TALLOC_CTX *local_ctx = talloc_new(NULL);
     ik_db_ctx_t *db_ctx = NULL;
 
@@ -250,8 +253,7 @@ START_TEST(test_db_init_cleanup_on_error)
 END_TEST
 // ========== Migration Error Tests ==========
 
-START_TEST(test_db_init_migration_failure)
-{
+START_TEST(test_db_init_migration_failure) {
     SKIP_IF_NO_DB();
 
     char *conn_str = get_test_conn_str(test_ctx);
@@ -290,11 +292,9 @@ START_TEST(test_db_init_migration_failure)
 }
 
 END_TEST
-
 // ========== Transaction Tests ==========
 
-START_TEST(test_db_transaction_success)
-{
+START_TEST(test_db_transaction_success) {
     SKIP_IF_NO_DB();
 
     ik_db_ctx_t *db_ctx = NULL;
@@ -329,6 +329,7 @@ static Suite *connection_suite(void)
     Suite *s = suite_create("db_connection");
 
     TCase *tc_validation = tcase_create("connection_string_validation");
+    tcase_set_timeout(tc_validation, 30);
     tcase_add_unchecked_fixture(tc_validation, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_validation, test_setup, test_teardown);
     tcase_add_test(tc_validation, test_db_init_empty_conn_str);
@@ -336,6 +337,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_connection = tcase_create("connection_errors");
+    tcase_set_timeout(tc_connection, 30);
     tcase_add_unchecked_fixture(tc_connection, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_connection, test_setup, test_teardown);
     tcase_add_test(tc_connection, test_db_init_connection_refused);
@@ -344,6 +346,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_connection);
 
     TCase *tc_success = tcase_create("successful_connection");
+    tcase_set_timeout(tc_success, 30);
     tcase_add_unchecked_fixture(tc_success, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_success, test_setup, test_teardown);
     tcase_add_test(tc_success, test_db_init_success);
@@ -353,18 +356,21 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_success);
 
     TCase *tc_cleanup = tcase_create("memory_cleanup");
+    tcase_set_timeout(tc_cleanup, 30);
     tcase_add_unchecked_fixture(tc_cleanup, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_cleanup, test_setup, test_teardown);
     tcase_add_test(tc_cleanup, test_db_init_cleanup_on_error);
     suite_add_tcase(s, tc_cleanup);
 
     TCase *tc_migration = tcase_create("migration_errors");
+    tcase_set_timeout(tc_migration, 30);
     tcase_add_unchecked_fixture(tc_migration, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_migration, test_setup, test_teardown);
     tcase_add_test(tc_migration, test_db_init_migration_failure);
     suite_add_tcase(s, tc_migration);
 
     TCase *tc_transactions = tcase_create("transactions");
+    tcase_set_timeout(tc_transactions, 30);
     tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
     tcase_add_test(tc_transactions, test_db_transaction_success);

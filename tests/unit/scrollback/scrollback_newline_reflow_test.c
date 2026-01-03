@@ -16,8 +16,7 @@
  * A line with embedded newlines like "Line1\nLine2\nLine3" should count
  * as at least 3 physical lines (one per newline-delimited segment).
  */
-START_TEST(test_scrollback_newline_basic_count)
-{
+START_TEST(test_scrollback_newline_basic_count) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -33,15 +32,13 @@ START_TEST(test_scrollback_newline_basic_count)
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Newline reflow preserves minimum line count
  *
  * When terminal width changes, lines with embedded newlines should still
  * count at least as many physical lines as they have newline-delimited segments.
  */
-START_TEST(test_scrollback_newline_reflow)
-{
+START_TEST(test_scrollback_newline_reflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -63,16 +60,15 @@ START_TEST(test_scrollback_newline_reflow)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Trailing newline counts as empty line
  *
  * A line ending with a newline like "content\n" should count the trailing
  * empty segment as an additional physical line.
  */
-START_TEST(test_scrollback_trailing_newline)
-{
+START_TEST(test_scrollback_trailing_newline) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -92,8 +88,8 @@ START_TEST(test_scrollback_trailing_newline)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Long segments wrap correctly after reflow
  *
@@ -101,8 +97,7 @@ END_TEST
  * it should wrap to multiple rows. This should work both on initial
  * append and after resize.
  */
-START_TEST(test_scrollback_long_segment_reflow)
-{
+START_TEST(test_scrollback_long_segment_reflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -139,15 +134,14 @@ START_TEST(test_scrollback_long_segment_reflow)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Multiple newlines create empty line segments
  *
  * Lines like "A\n\nB" should count empty segments between consecutive newlines.
  */
-START_TEST(test_scrollback_consecutive_newlines)
-{
+START_TEST(test_scrollback_consecutive_newlines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -167,6 +161,7 @@ START_TEST(test_scrollback_consecutive_newlines)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_newline_reflow_suite(void)

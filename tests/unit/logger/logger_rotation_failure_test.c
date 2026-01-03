@@ -10,6 +10,7 @@
 #include <talloc.h>
 #include "../../../src/logger.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils.h"
 
 // Helper: setup temp directory
 static char test_dir[256];
@@ -20,7 +21,14 @@ static void setup_test(void)
 {
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_logger_rotation_test_%d", getpid());
     mkdir(test_dir, 0755);
-    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
+
+    // When IKIGAI_LOG_DIR is set by suite_setup, use that path
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir != NULL) {
+        snprintf(log_file_path, sizeof(log_file_path), "%s/current.log", log_dir);
+    } else {
+        snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
+    }
     test_ctx = talloc_new(NULL);
 }
 
@@ -31,12 +39,17 @@ static void teardown_test(void)
         test_ctx = NULL;
     }
     unlink(log_file_path);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
+
+    // Only clean up test_dir if IKIGAI_LOG_DIR is not set
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir == NULL) {
+        char logs_dir[512];
+        snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+        rmdir(logs_dir);
+        char ikigai_dir[512];
+        snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+        rmdir(ikigai_dir);
+    }
     rmdir(test_dir);
 }
 
@@ -53,7 +66,8 @@ static char *read_log_file(void)
 }
 
 // Mock posix_rename_ to always fail
-int posix_rename_(const char *old, const char *new) {
+int posix_rename_(const char *old, const char *new)
+{
     (void)old;
     (void)new;
     errno = EACCES;
@@ -61,8 +75,7 @@ int posix_rename_(const char *old, const char *new) {
 }
 
 // Test: log file rotation failure is handled gracefully
-START_TEST(test_logger_rotation_failure_ignored)
-{
+START_TEST(test_logger_rotation_failure_ignored) {
     setup_test();
 
     // Create first logger and write to it
@@ -97,6 +110,12 @@ START_TEST(test_logger_rotation_failure_ignored)
 }
 END_TEST
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 static Suite *logger_rotation_failure_suite(void)
 {
     Suite *s;
@@ -104,6 +123,7 @@ static Suite *logger_rotation_failure_suite(void)
 
     s = suite_create("Logger Rotation Failure");
     tc_core = tcase_create("Core");
+    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
 
     tcase_add_test(tc_core, test_logger_rotation_failure_ignored);
 

@@ -29,8 +29,7 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-START_TEST(test_history_dedup_consecutive_identical)
-{
+START_TEST(test_history_dedup_consecutive_identical) {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "mycommand");
     ck_assert(is_ok(&res));
@@ -47,8 +46,7 @@ START_TEST(test_history_dedup_consecutive_identical)
 }
 END_TEST
 
-START_TEST(test_history_dedup_reuse_moves_to_end)
-{
+START_TEST(test_history_dedup_reuse_moves_to_end) {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -61,10 +59,10 @@ START_TEST(test_history_dedup_reuse_moves_to_end)
     ck_assert_str_eq(hist->entries[1], "cmd3");
     ck_assert_str_eq(hist->entries[2], "cmd1");
 }
+
 END_TEST
 
-START_TEST(test_history_dedup_reuse_middle_entry)
-{
+START_TEST(test_history_dedup_reuse_middle_entry) {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -79,10 +77,10 @@ START_TEST(test_history_dedup_reuse_middle_entry)
     ck_assert_str_eq(hist->entries[2], "cmd4");
     ck_assert_str_eq(hist->entries[3], "cmd2");
 }
+
 END_TEST
 
-START_TEST(test_history_dedup_case_sensitive)
-{
+START_TEST(test_history_dedup_case_sensitive) {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "mycommand");
     ck_assert(is_ok(&res));
@@ -94,10 +92,10 @@ START_TEST(test_history_dedup_case_sensitive)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 2);
 }
+
 END_TEST
 
-START_TEST(test_history_dedup_whitespace_significant)
-{
+START_TEST(test_history_dedup_whitespace_significant) {
     hist = ik_history_create(ctx, 10);
     res_t res = ik_history_add(hist, "my command");
     ck_assert(is_ok(&res));
@@ -109,10 +107,10 @@ START_TEST(test_history_dedup_whitespace_significant)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(hist->count, 2);
 }
+
 END_TEST
 
-START_TEST(test_history_dedup_respects_capacity)
-{
+START_TEST(test_history_dedup_respects_capacity) {
     hist = ik_history_create(ctx, 3);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -125,10 +123,10 @@ START_TEST(test_history_dedup_respects_capacity)
     ck_assert_str_eq(hist->entries[1], "cmd3");
     ck_assert_str_eq(hist->entries[2], "cmd1");
 }
+
 END_TEST
 
-START_TEST(test_history_dedup_identical_with_pending)
-{
+START_TEST(test_history_dedup_identical_with_pending) {
     hist = ik_history_create(ctx, 10);
     ik_history_add(hist, "cmd1");
     ik_history_add(hist, "cmd2");
@@ -147,6 +145,7 @@ START_TEST(test_history_dedup_identical_with_pending)
     ck_assert(!ik_history_is_browsing(hist));  // No longer browsing
     ck_assert_uint_eq(hist->index, hist->count);  // Index should equal count
 }
+
 END_TEST
 
 // Suite setup
@@ -155,6 +154,7 @@ static Suite *history_core_dedup_suite(void)
     Suite *s = suite_create("History Core Deduplication");
 
     TCase *tc_dedup = tcase_create("Deduplication");
+    tcase_set_timeout(tc_dedup, 30);
     tcase_add_checked_fixture(tc_dedup, setup, teardown);
     tcase_add_test(tc_dedup, test_history_dedup_consecutive_identical);
     tcase_add_test(tc_dedup, test_history_dedup_reuse_moves_to_end);

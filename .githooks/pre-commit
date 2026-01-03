@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook for VCR fixture credential leak detection
+#
+# This hook scans VCR cassette files in tests/fixtures/ for API credentials
+# that should have been redacted but weren't.
+#
+# To enable: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+# Color output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Get list of staged fixture files
+staged_fixtures=$(git diff --cached --name-only --diff-filter=ACM | grep '^tests/fixtures/' || true)
+
+if [ -z "$staged_fixtures" ]; then
+    # No fixture files staged, allow commit
+    exit 0
+fi
+
+echo "Scanning VCR fixtures for credential leaks..."
+
+# Track if any leaks found
+found_leak=0
+
+# Patterns to detect
+declare -A patterns=(
+    ["Unredacted Bearer token"]='Bearer [^R]'
+    ["OpenAI API key"]='sk-'
+    ["Anthropic API key"]='sk-ant-'
+    ["Google API key"]='AIza'
+    ["Brave API token"]='BSA'
+)
+
+# Scan each staged fixture
+for file in $staged_fixtures; do
+    for pattern_name in "${!patterns[@]}"; do
+        pattern="${patterns[$pattern_name]}"
+
+        # Search for pattern in staged content
+        if git diff --cached --diff-filter=ACM -- "$file" | grep -E "$pattern" > /dev/null 2>&1; then
+            echo -e "${RED}ERROR: $pattern_name detected in $file${NC}"
+            echo -e "${YELLOW}Pattern: $pattern${NC}"
+
+            # Show matching lines (context)
+            echo "Matching lines:"
+            git diff --cached --diff-filter=ACM -- "$file" | grep -E "$pattern" | head -n 3
+            echo ""
+
+            found_leak=1
+        fi
+    done
+done
+
+if [ $found_leak -eq 1 ]; then
+    echo -e "${RED}COMMIT REJECTED: Credential leak detected in fixtures${NC}"
+    echo ""
+    echo "VCR fixtures must have API credentials redacted:"
+    echo "  - Bearer tokens: 'Bearer REDACTED'"
+    echo "  - x-api-key headers: 'REDACTED'"
+    echo "  - x-goog-api-key headers: 'REDACTED'"
+    echo ""
+    echo "To fix:"
+    echo "  1. Re-record fixtures with VCR credential redaction enabled"
+    echo "  2. Manually edit the fixture to replace credentials with REDACTED"
+    echo "  3. Verify with: grep -rE 'Bearer [^R]|sk-|sk-ant-|AIza|BSA' tests/fixtures/"
+    exit 1
+fi
+
+echo "No credential leaks detected in fixtures."
+exit 0

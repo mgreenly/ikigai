@@ -68,8 +68,7 @@ START_TEST(test_kill_line_basic) {
 
 END_TEST
 /* Test: kill_line on first line */
-START_TEST(test_kill_line_first_line)
-{
+START_TEST(test_kill_line_first_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -120,8 +119,7 @@ START_TEST(test_kill_line_first_line)
 
 END_TEST
 /* Test: kill_line on last line (no trailing newline) */
-START_TEST(test_kill_line_last_line)
-{
+START_TEST(test_kill_line_last_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -168,8 +166,7 @@ START_TEST(test_kill_line_last_line)
 
 END_TEST
 /* Test: kill_line on empty line */
-START_TEST(test_kill_line_empty_line)
-{
+START_TEST(test_kill_line_empty_line) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -221,8 +218,7 @@ START_TEST(test_kill_line_empty_line)
 
 END_TEST
 /* Test: kill_line followed by insert (reproduces crash bug) */
-START_TEST(test_kill_line_then_insert)
-{
+START_TEST(test_kill_line_then_insert) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -279,8 +275,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL input_buffer should assert */
-START_TEST(test_kill_line_null_input_buffer_asserts)
-{
+START_TEST(test_kill_line_null_input_buffer_asserts) {
     /* input_buffer cannot be NULL - should abort */
     ik_input_buffer_kill_line(NULL);
 }
@@ -292,6 +287,10 @@ static Suite *input_buffer_kill_line_suite(void)
 {
     Suite *s = suite_create("Input Buffer Kill Line");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_kill_line_basic);
@@ -305,6 +304,10 @@ static Suite *input_buffer_kill_line_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_kill_line_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

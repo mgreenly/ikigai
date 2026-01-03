@@ -54,8 +54,7 @@ START_TEST(test_repl_process_action_arrow_left) {
 
 END_TEST
 /* Test: Process ARROW_RIGHT action */
-START_TEST(test_repl_process_action_arrow_right)
-{
+START_TEST(test_repl_process_action_arrow_right) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -99,8 +98,7 @@ START_TEST(test_repl_process_action_arrow_right)
 
 END_TEST
 /* Test: Process CTRL_C action sets quit flag */
-START_TEST(test_repl_process_action_ctrl_c)
-{
+START_TEST(test_repl_process_action_ctrl_c) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -129,8 +127,7 @@ START_TEST(test_repl_process_action_ctrl_c)
 
 END_TEST
 /* Test: Process ARROW_LEFT at start (no-op) */
-START_TEST(test_repl_process_action_left_at_start)
-{
+START_TEST(test_repl_process_action_left_at_start) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -163,8 +160,7 @@ START_TEST(test_repl_process_action_left_at_start)
 
 END_TEST
 /* Test: Process ARROW_RIGHT at end (no-op) */
-START_TEST(test_repl_process_action_right_at_end)
-{
+START_TEST(test_repl_process_action_right_at_end) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -202,8 +198,7 @@ START_TEST(test_repl_process_action_right_at_end)
 
 END_TEST
 /* Test: Process UNKNOWN action (no-op) */
-START_TEST(test_repl_process_action_unknown)
-{
+START_TEST(test_repl_process_action_unknown) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -242,16 +237,14 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
-START_TEST(test_repl_process_action_null_repl_asserts)
-{
+START_TEST(test_repl_process_action_null_repl_asserts) {
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = 'a'};
     ik_repl_process_action(NULL, &action);
 }
 
 END_TEST
 /* Test: NULL parameter assertions */
-START_TEST(test_repl_process_action_null_action_asserts)
-{
+START_TEST(test_repl_process_action_null_action_asserts) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buf = NULL;
     input_buf = ik_input_buffer_create(ctx);
@@ -268,8 +261,7 @@ END_TEST
 #endif
 
 /* Test: Arrow up */
-START_TEST(test_repl_process_action_arrow_up)
-{
+START_TEST(test_repl_process_action_arrow_up) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -323,8 +315,7 @@ START_TEST(test_repl_process_action_arrow_up)
 
 END_TEST
 /* Test: Arrow down */
-START_TEST(test_repl_process_action_arrow_down)
-{
+START_TEST(test_repl_process_action_arrow_down) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -383,6 +374,10 @@ static Suite *repl_navigation_suite(void)
 {
     Suite *s = suite_create("REPL_Navigation");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_repl_process_action_arrow_left);
     tcase_add_test(tc_core, test_repl_process_action_arrow_right);
@@ -397,6 +392,10 @@ static Suite *repl_navigation_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_repl_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_action_asserts, SIGABRT);

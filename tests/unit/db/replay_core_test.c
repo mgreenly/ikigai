@@ -143,8 +143,7 @@ START_TEST(test_replay_linear_sequence) {
 }
 END_TEST
 // Test: Clear semantics [user, assistant, clear, user] -> [user]
-START_TEST(test_replay_clear_semantics)
-{
+START_TEST(test_replay_clear_semantics) {
     SKIP_IF_NO_DB();
 
     // Insert initial clear
@@ -180,8 +179,7 @@ START_TEST(test_replay_clear_semantics)
 
 END_TEST
 // Test: System message [clear, system, user, assistant] -> [system, user, assistant]
-START_TEST(test_replay_system_message)
-{
+START_TEST(test_replay_system_message) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -217,8 +215,7 @@ START_TEST(test_replay_system_message)
 
 END_TEST
 // Test: Empty event stream [] -> []
-START_TEST(test_replay_empty_stream)
-{
+START_TEST(test_replay_empty_stream) {
     SKIP_IF_NO_DB();
 
     // Don't insert any messages
@@ -234,8 +231,7 @@ START_TEST(test_replay_empty_stream)
 
 END_TEST
 // Test: Mark and rewind events are skipped (deferred to Task 7b)
-START_TEST(test_replay_skip_mark_rewind)
-{
+START_TEST(test_replay_skip_mark_rewind) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -273,8 +269,7 @@ START_TEST(test_replay_skip_mark_rewind)
 
 END_TEST
 // Test: Geometric growth of context array
-START_TEST(test_replay_geometric_growth)
-{
+START_TEST(test_replay_geometric_growth) {
     SKIP_IF_NO_DB();
 
     // Insert clear
@@ -312,6 +307,7 @@ static Suite *replay_core_suite(void)
     Suite *s = suite_create("Replay Core");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

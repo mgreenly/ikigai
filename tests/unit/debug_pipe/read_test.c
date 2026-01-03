@@ -43,8 +43,7 @@ START_TEST(test_debug_pipe_read_single_line) {
 }
 END_TEST
 /* Test: Read single line without prefix */
-START_TEST(test_debug_pipe_read_no_prefix)
-{
+START_TEST(test_debug_pipe_read_no_prefix) {
     void *ctx = talloc_new(NULL);
 
     /* Create debug pipe without prefix */
@@ -71,8 +70,7 @@ START_TEST(test_debug_pipe_read_no_prefix)
 
 END_TEST
 /* Test: Read partial line (no newline) */
-START_TEST(test_debug_pipe_read_partial_line)
-{
+START_TEST(test_debug_pipe_read_partial_line) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -107,8 +105,7 @@ START_TEST(test_debug_pipe_read_partial_line)
 
 END_TEST
 /* Test: Read multiple lines in single read */
-START_TEST(test_debug_pipe_read_multiple_lines)
-{
+START_TEST(test_debug_pipe_read_multiple_lines) {
     void *ctx = talloc_new(NULL);
     const char *prefix = "[multi]";
 
@@ -136,8 +133,7 @@ START_TEST(test_debug_pipe_read_multiple_lines)
 
 END_TEST
 /* Test: Empty line handling */
-START_TEST(test_debug_pipe_read_empty_lines)
-{
+START_TEST(test_debug_pipe_read_empty_lines) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -164,8 +160,7 @@ START_TEST(test_debug_pipe_read_empty_lines)
 
 END_TEST
 /* Test: No data available (non-blocking) */
-START_TEST(test_debug_pipe_read_no_data)
-{
+START_TEST(test_debug_pipe_read_no_data) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -184,8 +179,7 @@ START_TEST(test_debug_pipe_read_no_data)
 
 END_TEST
 /* Test: Read from closed pipe (EOF) */
-START_TEST(test_debug_pipe_read_eof)
-{
+START_TEST(test_debug_pipe_read_eof) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, "[test]");
@@ -209,8 +203,7 @@ START_TEST(test_debug_pipe_read_eof)
 
 END_TEST
 /* Test: Read many lines (>16 to trigger array growth) */
-START_TEST(test_debug_pipe_read_many_lines)
-{
+START_TEST(test_debug_pipe_read_many_lines) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, "[test]");
@@ -243,8 +236,7 @@ START_TEST(test_debug_pipe_read_many_lines)
 
 END_TEST
 /* Test: Read very long line (>1024 chars to trigger buffer growth) */
-START_TEST(test_debug_pipe_read_long_line)
-{
+START_TEST(test_debug_pipe_read_long_line) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, "[test]");
@@ -316,8 +308,9 @@ START_TEST(test_debug_pipe_read_eagain) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_debug_pipe_read_ewouldblock)
-{
+END_TEST
+
+START_TEST(test_debug_pipe_read_ewouldblock) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -341,8 +334,9 @@ END_TEST START_TEST(test_debug_pipe_read_ewouldblock)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_debug_pipe_read_error)
-{
+END_TEST
+
+START_TEST(test_debug_pipe_read_error) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -372,6 +366,7 @@ static Suite *debug_pipe_read_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Read");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_debug_pipe_read_single_line);

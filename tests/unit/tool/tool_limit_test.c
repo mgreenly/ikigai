@@ -71,6 +71,7 @@ START_TEST(test_add_limit_metadata_null_input) {
     char *result = ik_tool_result_add_limit_metadata(ctx, NULL, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle malformed JSON input
 START_TEST(test_add_limit_metadata_malformed_json) {
@@ -80,6 +81,7 @@ START_TEST(test_add_limit_metadata_malformed_json) {
     char *result = ik_tool_result_add_limit_metadata(ctx, bad_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle empty JSON string
 START_TEST(test_add_limit_metadata_empty_json) {
@@ -89,6 +91,7 @@ START_TEST(test_add_limit_metadata_empty_json) {
     char *result = ik_tool_result_add_limit_metadata(ctx, empty_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Handle JSON array (not object)
 START_TEST(test_add_limit_metadata_json_array) {
@@ -98,6 +101,7 @@ START_TEST(test_add_limit_metadata_json_array) {
     char *result = ik_tool_result_add_limit_metadata(ctx, array_json, max_tool_turns);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 // Test: Different max_tool_turns value
 START_TEST(test_add_limit_metadata_different_limit) {
@@ -117,6 +121,7 @@ START_TEST(test_add_limit_metadata_different_limit) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 // Test: Complex JSON with nested structures
 START_TEST(test_add_limit_metadata_complex_json) {
@@ -155,6 +160,7 @@ START_TEST(test_add_limit_metadata_complex_json) {
 
     yyjson_doc_free(doc);
 }
+
 END_TEST
 
 /*
@@ -166,6 +172,7 @@ static Suite *tool_limit_suite(void)
     Suite *s = suite_create("Tool Limit Metadata");
 
     TCase *tc_basic = tcase_create("Basic Tests");
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_add_limit_metadata_basic);
     tcase_add_test(tc_basic, test_add_limit_metadata_null_input);

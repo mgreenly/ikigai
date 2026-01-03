@@ -1,0 +1,8 @@
+{"_request": {"method": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=REDACTED&alt=sse", "headers": {"content-type": "application/json"}, "body": "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Hello!\"}]}],\"generationConfig\":{\"maxOutputTokens\":1024,\"thinkingConfig\":{\"includeThoughts\":true,\"thinkingBudget\":21888}}}"}}
+{"_response": {"status": 200, "headers": {"content-type": "text/event-stream"}}}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Let me think\",\"thought\":true}],\"role\":\"model\"}}],\"modelVersion\":\"gemini-2.5-flash\"}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" about this...\",\"thought\":true}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" I should greet\",\"thought\":true}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" the user.\",\"thought\":true}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}}]}\n\n"}
+{"_chunk": "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"! How can I help you?\"}],\"role\":\"model\"},\"finishReason\":\"STOP\"}],\"usageMetadata\":{\"promptTokenCount\":5,\"candidatesTokenCount\":25,\"thoughtsTokenCount\":15,\"totalTokenCount\":45}}\n\n"}

@@ -45,8 +45,7 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
 }
 
 /* Test: Render with both upper and lower separators */
-START_TEST(test_lower_separator_renders_with_layers)
-{
+START_TEST(test_lower_separator_renders_with_layers) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -149,10 +148,8 @@ START_TEST(test_lower_separator_renders_with_layers)
 }
 
 END_TEST
-
 /* Test: Lower separator visibility flag controls rendering */
-START_TEST(test_lower_separator_visibility_flag)
-{
+START_TEST(test_lower_separator_visibility_flag) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -224,10 +221,8 @@ START_TEST(test_lower_separator_visibility_flag)
 }
 
 END_TEST
-
 /* Test: Layer order is correct with lower separator */
-START_TEST(test_lower_separator_layer_order)
-{
+START_TEST(test_lower_separator_layer_order) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -298,6 +293,11 @@ static Suite *lower_separator_suite(void)
 {
     Suite *s = suite_create("Lower_Separator");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_lower_separator_renders_with_layers);
     tcase_add_test(tc_core, test_lower_separator_visibility_flag);

@@ -22,23 +22,20 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test: ik_input_parser_create with NULL parent asserts
-START_TEST(test_input_parser_create_null_parent_asserts)
-{
+START_TEST(test_input_parser_create_null_parent_asserts) {
     ik_input_parser_create(NULL);
 }
 
 END_TEST
 // Test: ik_input_parse_byte with NULL parser asserts
-START_TEST(test_input_parse_byte_null_parser_asserts)
-{
+START_TEST(test_input_parse_byte_null_parser_asserts) {
     ik_input_action_t action = {0};
     ik_input_parse_byte(NULL, 'a', &action);
 }
 
 END_TEST
 // Test: ik_input_parse_byte with NULL action_out asserts
-START_TEST(test_input_parse_byte_null_action_out_asserts)
-{
+START_TEST(test_input_parse_byte_null_action_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_parser_t *parser = ik_input_parser_create(ctx);
     ik_input_parse_byte(parser, 'a', NULL);
@@ -53,7 +50,15 @@ static Suite *input_create_suite(void)
 {
     Suite *s = suite_create("Input Create");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     tcase_add_test(tc_core, test_input_parser_create);

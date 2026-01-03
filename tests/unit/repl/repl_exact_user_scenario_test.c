@@ -33,7 +33,8 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-static void reset_mock(void) {
+static void reset_mock(void)
+{
     mock_output_len = 0;
     memset(mock_output, 0, sizeof(mock_output));
 }
@@ -144,6 +145,10 @@ static Suite *exact_scenario_suite(void)
     Suite *s = suite_create("Exact User Scenario");
 
     TCase *tc_scenario = tcase_create("Scenario");
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
     tcase_set_timeout(tc_scenario, 30);
     tcase_add_test(tc_scenario, test_exact_user_scenario);
     suite_add_tcase(s, tc_scenario);

@@ -67,7 +67,6 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     yyjson_mut_doc_set_root(doc, root);
 
     // add the objects
-    yyjson_mut_obj_add_str(doc, root, "openai_api_key", "YOUR_API_KEY_HERE");
     yyjson_mut_obj_add_str(doc, root, "openai_model", "gpt-5-mini");
     yyjson_mut_obj_add_real(doc, root, "openai_temperature", 1.0);
     yyjson_mut_obj_add_int(doc, root, "openai_max_completion_tokens", 4096);
@@ -88,10 +87,11 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     return OK(NULL);
 }
 
-res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
+res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(path != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL); // LCOV_EXCL_BR_LINE
 
     // expand tilde in path
     char *expanded_path = TRY(ik_cfg_expand_tilde(ctx, path));
@@ -120,11 +120,10 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // Allocate config structure
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Extract fields
-    yyjson_val *api_key = yyjson_obj_get_(root, "openai_api_key");
     yyjson_val *model = yyjson_obj_get_(root, "openai_model");
     yyjson_val *temperature = yyjson_obj_get_(root, "openai_temperature");
     yyjson_val *max_completion_tokens = yyjson_obj_get_(root, "openai_max_completion_tokens");
@@ -135,14 +134,7 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     yyjson_val *max_tool_turns = yyjson_obj_get_(root, "max_tool_turns");
     yyjson_val *max_output_size = yyjson_obj_get_(root, "max_output_size");
     yyjson_val *history_size = yyjson_obj_get_(root, "history_size");
-
-    // validate openai_api_key
-    if (!api_key) {
-        return ERR(ctx, PARSE, "Missing openai_api_key");
-    }
-    if (!yyjson_is_str(api_key)) {
-        return ERR(ctx, PARSE, "Invalid type for openai_api_key");
-    }
+    yyjson_val *default_provider = yyjson_obj_get_(root, "default_provider");
 
     // validate openai_model
     if (!model) {
@@ -260,7 +252,6 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     }
 
     // copy values to config
-    cfg->openai_api_key = talloc_strdup(cfg, yyjson_get_str_(api_key));
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
     cfg->openai_temperature = temperature_value;
     cfg->openai_max_completion_tokens = (int32_t)max_completion_tokens_value;
@@ -286,6 +277,42 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path)
     cfg->max_output_size = max_output_size_value;
     cfg->history_size = history_size_value;
 
+    // parse default_provider (optional)
+    if (default_provider) {
+        if (!yyjson_is_str(default_provider)) {
+            return ERR(ctx, PARSE, "Invalid type for default_provider");
+        }
+        const char *provider_str = yyjson_get_str_(default_provider);
+        // Empty string treated as unset
+        if (provider_str && provider_str[0] != '\0') {
+            cfg->default_provider = talloc_strdup(cfg, provider_str);
+        } else {
+            cfg->default_provider = NULL;
+        }
+    } else {
+        cfg->default_provider = NULL;
+    }
+
     // no cleanup required talloc frees everything when ctx is freed
-    return OK(cfg);
+    *out = cfg;
+    return OK(NULL);
+}
+
+const char *ik_config_get_default_provider(ik_config_t *config)
+{
+    assert(config != NULL); // LCOV_EXCL_BR_LINE
+
+    // Check environment variable first
+    const char *env_provider = getenv("IKIGAI_DEFAULT_PROVIDER");
+    if (env_provider && env_provider[0] != '\0') {
+        return env_provider;
+    }
+
+    // Use config file value
+    if (config->default_provider && config->default_provider[0] != '\0') {
+        return config->default_provider;
+    }
+
+    // Fall back to hardcoded default
+    return "openai";
 }

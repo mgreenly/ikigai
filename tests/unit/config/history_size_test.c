@@ -8,8 +8,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-START_TEST(test_config_history_size_default)
-{
+START_TEST(test_config_history_size_default) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -20,7 +19,6 @@ START_TEST(test_config_history_size_default)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -33,10 +31,10 @@ START_TEST(test_config_history_size_default)
     fclose(f);
 
     // Load config - should succeed with default history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Default history_size should be 10000
     ck_assert_int_eq(cfg->history_size, 10000);
@@ -47,8 +45,7 @@ START_TEST(test_config_history_size_default)
 }
 END_TEST
 
-START_TEST(test_config_history_size_custom)
-{
+START_TEST(test_config_history_size_custom) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -59,7 +56,6 @@ START_TEST(test_config_history_size_custom)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -73,10 +69,10 @@ START_TEST(test_config_history_size_custom)
     fclose(f);
 
     // Load config - should succeed with custom history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Custom history_size should be 5000
     ck_assert_int_eq(cfg->history_size, 5000);
@@ -85,10 +81,10 @@ START_TEST(test_config_history_size_custom)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
-START_TEST(test_config_history_size_zero)
-{
+START_TEST(test_config_history_size_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -99,7 +95,6 @@ START_TEST(test_config_history_size_zero)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -113,7 +108,9 @@ START_TEST(test_config_history_size_zero)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -121,10 +118,10 @@ START_TEST(test_config_history_size_zero)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
-START_TEST(test_config_history_size_negative)
-{
+START_TEST(test_config_history_size_negative) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -135,7 +132,6 @@ START_TEST(test_config_history_size_negative)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -149,7 +145,9 @@ START_TEST(test_config_history_size_negative)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -157,10 +155,10 @@ START_TEST(test_config_history_size_negative)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
-START_TEST(test_config_history_size_large_value)
-{
+START_TEST(test_config_history_size_large_value) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -171,7 +169,6 @@ START_TEST(test_config_history_size_large_value)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -185,10 +182,10 @@ START_TEST(test_config_history_size_large_value)
     fclose(f);
 
     // Load config - should succeed with large history_size
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 1000000);
 
@@ -196,10 +193,10 @@ START_TEST(test_config_history_size_large_value)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
-START_TEST(test_config_history_size_exceeds_int32)
-{
+START_TEST(test_config_history_size_exceeds_int32) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -210,7 +207,6 @@ START_TEST(test_config_history_size_exceeds_int32)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -224,7 +220,9 @@ START_TEST(test_config_history_size_exceeds_int32)
     fclose(f);
 
     // Load config - should fail with OUT_OF_RANGE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -232,10 +230,10 @@ START_TEST(test_config_history_size_exceeds_int32)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
-START_TEST(test_config_history_size_invalid_type)
-{
+START_TEST(test_config_history_size_invalid_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -246,7 +244,6 @@ START_TEST(test_config_history_size_invalid_type)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -260,7 +257,9 @@ START_TEST(test_config_history_size_invalid_type)
     fclose(f);
 
     // Load config - should fail with PARSE error
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
@@ -268,12 +267,14 @@ START_TEST(test_config_history_size_invalid_type)
     unlink(test_config);
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *config_history_size_suite(void)
 {
     Suite *s = suite_create("Config History Size");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_history_size_default);
     tcase_add_test(tc_core, test_config_history_size_custom);

@@ -17,7 +17,6 @@ START_TEST(test_ansi_colors_enabled_default) {
     ck_assert(ik_ansi_colors_enabled());
 }
 END_TEST
-
 // Test: colors disabled when NO_COLOR is set to any value
 START_TEST(test_ansi_colors_disabled_no_color_set) {
     // Set NO_COLOR to "1"
@@ -33,8 +32,8 @@ START_TEST(test_ansi_colors_disabled_no_color_set) {
     // Clean up
     unsetenv("NO_COLOR");
 }
-END_TEST
 
+END_TEST
 // Test: colors disabled when NO_COLOR is set to empty string
 START_TEST(test_ansi_colors_disabled_no_color_empty) {
     // Set NO_COLOR to empty string
@@ -50,8 +49,8 @@ START_TEST(test_ansi_colors_disabled_no_color_empty) {
     // Clean up
     unsetenv("NO_COLOR");
 }
-END_TEST
 
+END_TEST
 // Test: colors disabled when TERM=dumb
 START_TEST(test_ansi_colors_disabled_term_dumb) {
     // Set TERM to "dumb"
@@ -67,8 +66,8 @@ START_TEST(test_ansi_colors_disabled_term_dumb) {
     // Clean up
     unsetenv("TERM");
 }
-END_TEST
 
+END_TEST
 // Test: colors enabled when TERM=xterm-256color
 START_TEST(test_ansi_colors_enabled_term_xterm) {
     // Set TERM to "xterm-256color"
@@ -84,8 +83,8 @@ START_TEST(test_ansi_colors_enabled_term_xterm) {
     // Clean up
     unsetenv("TERM");
 }
-END_TEST
 
+END_TEST
 // Test: NO_COLOR takes precedence over TERM
 START_TEST(test_ansi_no_color_precedence) {
     // Set both NO_COLOR and TERM to a color-capable terminal
@@ -102,9 +101,11 @@ START_TEST(test_ansi_no_color_precedence) {
     unsetenv("NO_COLOR");
     unsetenv("TERM");
 }
+
 END_TEST
 
-static Suite *ansi_config_suite(void) {
+static Suite *ansi_config_suite(void)
+{
     Suite *s;
     TCase *tc_core;
 
@@ -123,7 +124,8 @@ static Suite *ansi_config_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s;
     SRunner *sr;

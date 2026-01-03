@@ -15,8 +15,7 @@
 #include "../../test_utils.h"
 
 // Test: Scroll up increases viewport_offset by 3
-START_TEST(test_scroll_up_increases_offset)
-{
+START_TEST(test_scroll_up_increases_offset) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -62,10 +61,8 @@ START_TEST(test_scroll_up_increases_offset)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: Scroll down decreases viewport_offset by 3
-START_TEST(test_scroll_down_decreases_offset)
-{
+START_TEST(test_scroll_down_decreases_offset) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -110,11 +107,10 @@ START_TEST(test_scroll_down_decreases_offset)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Scroll up clamps at max offset
-START_TEST(test_scroll_up_clamps_at_max)
-{
+START_TEST(test_scroll_up_clamps_at_max) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -161,11 +157,10 @@ START_TEST(test_scroll_up_clamps_at_max)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Scroll down clamps at 0
-START_TEST(test_scroll_down_clamps_at_zero)
-{
+START_TEST(test_scroll_down_clamps_at_zero) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -209,11 +204,10 @@ START_TEST(test_scroll_down_clamps_at_zero)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Scroll actions don't affect input buffer content
-START_TEST(test_scroll_preserves_input_buffer)
-{
+START_TEST(test_scroll_preserves_input_buffer) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -284,11 +278,10 @@ START_TEST(test_scroll_preserves_input_buffer)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Scroll up with empty input buffer (covers input_buffer_rows == 0 branch)
-START_TEST(test_scroll_up_empty_input_buffer)
-{
+START_TEST(test_scroll_up_empty_input_buffer) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal
@@ -332,11 +325,10 @@ START_TEST(test_scroll_up_empty_input_buffer)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: Scroll up when document fits entirely on screen (covers document_height <= screen_rows branch)
-START_TEST(test_scroll_up_small_document)
-{
+START_TEST(test_scroll_up_small_document) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with large terminal
@@ -384,6 +376,7 @@ START_TEST(test_scroll_up_small_document)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 // Create test suite
@@ -392,6 +385,10 @@ static Suite *repl_scroll_suite(void)
     Suite *s = suite_create("REPL Scroll Actions");
 
     TCase *tc_scroll = tcase_create("Scroll");
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
+    tcase_set_timeout(tc_scroll, 30);
     tcase_set_timeout(tc_scroll, 30);
     tcase_add_test(tc_scroll, test_scroll_up_increases_offset);
     tcase_add_test(tc_scroll, test_scroll_down_decreases_offset);

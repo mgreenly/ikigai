@@ -1,6 +1,7 @@
 #include "mail.h"
 #include "pg_result.h"
 #include "../error.h"
+#include "../tmp_ctx.h"
 #include "../wrapper.h"
 
 #include <assert.h>
@@ -17,8 +18,7 @@ res_t ik_db_mail_insert(ik_db_ctx_t *db, int64_t session_id,
     assert(session_id > 0);              // LCOV_EXCL_BR_LINE
     assert(msg != NULL);                 // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query =
         "INSERT INTO mail (session_id, from_uuid, to_uuid, body, timestamp) "
@@ -68,8 +68,7 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *ctx,
     assert(out != NULL);           // LCOV_EXCL_BR_LINE
     assert(count != NULL);         // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query =
         "SELECT id, from_uuid, to_uuid, body, timestamp, read "
@@ -145,8 +144,7 @@ res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id)
     assert(db->conn != NULL);  // LCOV_EXCL_BR_LINE
     assert(mail_id > 0);       // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query = "UPDATE mail SET read = 1 WHERE id = $1";
 
@@ -179,8 +177,7 @@ res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
     assert(mail_id > 0);             // LCOV_EXCL_BR_LINE
     assert(recipient_uuid != NULL);  // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query = "DELETE FROM mail WHERE id = $1 AND to_uuid = $2";
 
@@ -228,8 +225,7 @@ res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *ctx,
     assert(out != NULL);        // LCOV_EXCL_BR_LINE
     assert(count != NULL);      // LCOV_EXCL_BR_LINE
 
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query =
         "SELECT id, from_uuid, to_uuid, body, timestamp, read "

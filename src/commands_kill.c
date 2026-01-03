@@ -37,7 +37,7 @@ static size_t collect_descendants(ik_repl_ctx_t *repl,
             strcmp(repl->agents[i]->parent_uuid, uuid) == 0) {
             // Recurse first (depth-first)
             count += collect_descendants(repl, repl->agents[i]->uuid,
-                                        out + count, max - count);
+                                         out + count, max - count);
 
             // Then add this child
             if (count < max) {     // LCOV_EXCL_BR_LINE
@@ -80,18 +80,19 @@ static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
 
     // Record cascade kill event (Q20)
     char *metadata_json = talloc_asprintf(ctx,
-        "{\"killed_by\": \"user\", \"target\": \"%s\", \"cascade\": true, \"count\": %zu}",
-        uuid, count + 1);
+                                          "{\"killed_by\": \"user\", \"target\": \"%s\", \"cascade\": true, \"count\": %zu}",
+                                          uuid,
+                                          count + 1);
     if (metadata_json == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
 
     res = ik_db_message_insert(repl->shared->db_ctx,
-        repl->shared->session_id,
-        repl->current->uuid,
-        "agent_killed",
-        NULL,
-        metadata_json);
+                               repl->shared->session_id,
+                               repl->current->uuid,
+                               "agent_killed",
+                               NULL,
+                               metadata_json);
     talloc_free(metadata_json);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
@@ -154,7 +155,7 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
         const char *uuid = repl->current->uuid;
         ik_agent_ctx_t *parent = ik_repl_find_agent(repl,
-            repl->current->parent_uuid);
+                                                    repl->current->parent_uuid);
 
         if (parent == NULL) {
             return ERR(ctx, INVALID_ARG, "Parent agent not found");
@@ -162,17 +163,17 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
         // Record kill event in parent's history (Q20)
         char *metadata_json = talloc_asprintf(ctx,
-            "{\"killed_by\": \"user\", \"target\": \"%s\"}", uuid);
+                                              "{\"killed_by\": \"user\", \"target\": \"%s\"}", uuid);
         if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
             PANIC("Out of memory");  // LCOV_EXCL_LINE
         }
 
         res_t res = ik_db_message_insert(repl->shared->db_ctx,
-            repl->shared->session_id,
-            parent->uuid,
-            "agent_killed",
-            NULL,
-            metadata_json);
+                                         repl->shared->session_id,
+                                         parent->uuid,
+                                         "agent_killed",
+                                         NULL,
+                                         metadata_json);
         talloc_free(metadata_json);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             return res;     // LCOV_EXCL_LINE
@@ -266,17 +267,17 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Record kill event in current agent's history (Q20)
     char *metadata_json = talloc_asprintf(ctx,
-        "{\"killed_by\": \"user\", \"target\": \"%s\"}", target_uuid);
+                                          "{\"killed_by\": \"user\", \"target\": \"%s\"}", target_uuid);
     if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
 
     res_t res = ik_db_message_insert(repl->shared->db_ctx,
-        repl->shared->session_id,
-        repl->current->uuid,
-        "agent_killed",
-        NULL,
-        metadata_json);
+                                     repl->shared->session_id,
+                                     repl->current->uuid,
+                                     "agent_killed",
+                                     NULL,
+                                     metadata_json);
     talloc_free(metadata_json);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return res;     // LCOV_EXCL_LINE

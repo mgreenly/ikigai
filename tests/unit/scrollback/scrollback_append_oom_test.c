@@ -44,8 +44,7 @@ START_TEST(test_scrollback_append_oom_array_realloc) {
 }
 END_TEST
 // Test: OOM handling during append (text_lengths reallocation failure)
-START_TEST(test_scrollback_append_oom_lengths_realloc)
-{
+START_TEST(test_scrollback_append_oom_lengths_realloc) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -77,8 +76,7 @@ START_TEST(test_scrollback_append_oom_lengths_realloc)
 
 END_TEST
 // Test: OOM handling during append (layouts reallocation failure)
-START_TEST(test_scrollback_append_oom_layouts_realloc)
-{
+START_TEST(test_scrollback_append_oom_layouts_realloc) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
@@ -110,8 +108,7 @@ START_TEST(test_scrollback_append_oom_layouts_realloc)
 
 END_TEST
 // Test: OOM handling during append (buffer reallocation failure)
-START_TEST(test_scrollback_append_oom_buffer_realloc)
-{
+START_TEST(test_scrollback_append_oom_buffer_realloc) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 

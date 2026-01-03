@@ -155,8 +155,7 @@ END_TEST
  *
  * Simpler test: scroll all the way to top and verify line 9 is visible
  */
-START_TEST(test_scrollback_visible_when_scrolled_to_top)
-{
+START_TEST(test_scrollback_visible_when_scrolled_to_top) {
     void *ctx = talloc_new(NULL);
 
     // Create terminal context (10 rows)
@@ -249,6 +248,10 @@ static Suite *scrollback_visibility_suite(void)
     Suite *s = suite_create("Scrollback Visibility");
 
     TCase *tc_visibility = tcase_create("Visibility");
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
     tcase_set_timeout(tc_visibility, 30);
     tcase_add_test(tc_visibility, test_scrollback_fills_viewport_when_scrolled_up);
     tcase_add_test(tc_visibility, test_scrollback_visible_when_scrolled_to_top);

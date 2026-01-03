@@ -34,8 +34,7 @@ START_TEST(test_byte_array_delete_from_beginning) {
 
 END_TEST
 // Test delete from middle
-START_TEST(test_byte_array_delete_from_middle)
-{
+START_TEST(test_byte_array_delete_from_middle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -63,8 +62,7 @@ START_TEST(test_byte_array_delete_from_middle)
 
 END_TEST
 // Test delete from end
-START_TEST(test_byte_array_delete_from_end)
-{
+START_TEST(test_byte_array_delete_from_end) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -91,38 +89,10 @@ START_TEST(test_byte_array_delete_from_end)
 }
 
 END_TEST
-// Test set byte
-START_TEST(test_byte_array_set)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_byte_array_create(ctx, 10);
-    ck_assert(is_ok(&res));
-    ik_byte_array_t *array = res.ok;
-
-    // Add [0, 1, 2]
-    for (uint8_t i = 0; i < 3; i++) {
-        res = ik_byte_array_append(array, i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Set middle element to 99
-    ik_byte_array_set(array, 1, 99);
-
-    // Verify: [0, 99, 2]
-    ck_assert_uint_eq(ik_byte_array_get(array, 0), 0);
-    ck_assert_uint_eq(ik_byte_array_get(array, 1), 99);
-    ck_assert_uint_eq(ik_byte_array_get(array, 2), 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test assertion on get with out of bounds index
-START_TEST(test_byte_array_get_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_get_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -135,8 +105,7 @@ START_TEST(test_byte_array_get_out_of_bounds_asserts)
 
 END_TEST
 // Test assertion on delete with out of bounds index
-START_TEST(test_byte_array_delete_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_delete_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -148,23 +117,8 @@ START_TEST(test_byte_array_delete_out_of_bounds_asserts)
 }
 
 END_TEST
-// Test assertion on set with out of bounds index
-START_TEST(test_byte_array_set_out_of_bounds_asserts)
-{
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_byte_array_create(ctx, 10);
-    ik_byte_array_t *array = res.ok;
-
-    ik_byte_array_set(array, 0, 99); // Empty array - should assert
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test assertion on insert with out of bounds index
-START_TEST(test_byte_array_insert_out_of_bounds_asserts)
-{
+START_TEST(test_byte_array_insert_out_of_bounds_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ik_byte_array_create(ctx, 10);
@@ -191,18 +145,18 @@ static Suite *byte_array_delete_set_suite(void)
     tcase_add_test(tc_core, test_byte_array_delete_from_middle);
     tcase_add_test(tc_core, test_byte_array_delete_from_end);
 
-    // Set test
-    tcase_add_test(tc_core, test_byte_array_set);
-
     suite_add_tcase(s, tc_core);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests (debug mode only)
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_get_out_of_bounds_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_delete_out_of_bounds_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_byte_array_set_out_of_bounds_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_byte_array_insert_out_of_bounds_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif

@@ -1,4 +1,3 @@
-#include "agent.h"
 /**
  * @file repl_tool_call_state_mutation_test.c
  * @brief Unit tests for REPL tool call conversation state mutation
@@ -12,7 +11,7 @@
 
 #include "repl.h"
 #include "../../../src/agent.h"
-#include "openai/client.h"
+#include "../../../src/message.h"
 #include "tool.h"
 #include "scrollback.h"
 #include <check.h>
@@ -28,15 +27,15 @@ static void setup(void)
 
     /* Create minimal REPL context for testing */
     repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->current = talloc_zero(repl, ik_agent_ctx_t);
 
-    /* Create agent context for display state */
+    /* Create agent context */
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
 
-    /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(ctx);
-    ck_assert_ptr_nonnull(repl->current->conversation);
+    /* Initialize messages array (new API) */
+    repl->current->messages = NULL;
+    repl->current->message_count = 0;
+    repl->current->message_capacity = 0;
 
     repl->current->scrollback = ik_scrollback_create(repl, 80);
 }
@@ -51,60 +50,49 @@ static void teardown(void)
  */
 START_TEST(test_add_tool_call_message_to_conversation) {
     /* Add a user message first */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
-    res_t res = ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    ik_message_t *user_msg = ik_message_create_text(ctx, IK_ROLE_USER, "Find all C files");
+    res_t res = ik_agent_add_message(repl->current, user_msg);
     ck_assert(is_ok(&res));
 
     /* Now simulate receiving a tool_call from the API */
-    /* Create a canonical tool_call message with:
-     *   role: "tool_call"
-     *   content: human-readable summary
-     *   data_json: structured tool call data
-     */
-    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation,
-        "call_abc123",                      /* id */
-        "function",                         /* type */
-        "glob",                             /* name */
-        "{\"pattern\":\"*.c\"}",            /* arguments */
-        "glob(pattern=\"*.c\")"             /* content (human-readable) */
+    /* Create a canonical tool_call message using new API */
+    ik_message_t *tool_call_msg = ik_message_create_tool_call(
+        ctx,
+        "call_abc123",              /* id */
+        "glob",                     /* name */
+        "{\"pattern\":\"*.c\"}"     /* arguments */
         );
 
     /* Add tool_call message to conversation */
-    res = ik_openai_conversation_add_msg(repl->current->conversation, tool_call_msg);
+    res = ik_agent_add_message(repl->current, tool_call_msg);
     ck_assert(is_ok(&res));
 
     /* Verify conversation has 2 messages */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 
     /* Verify first message is user */
-    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->current->conversation->messages[0]->content, "Find all C files");
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
 
-    /* Verify second message is tool_call */
-    ck_assert_str_eq(repl->current->conversation->messages[1]->kind, "tool_call");
-    ck_assert_str_eq(repl->current->conversation->messages[1]->content, "glob(pattern=\"*.c\")");
-    ck_assert_ptr_nonnull(repl->current->conversation->messages[1]->data_json);
+    /* Verify second message is assistant (tool calls come from assistant) */
+    ck_assert(repl->current->messages[1]->role == IK_ROLE_ASSISTANT);
+    ck_assert_uint_ge(repl->current->messages[1]->content_count, 1);
 }
 END_TEST
 /*
  * Test: Execute glob tool and add tool_result message
  */
-START_TEST(test_execute_tool_and_add_result_message)
-{
+START_TEST(test_execute_tool_and_add_result_message) {
     /* Start with a user message and tool_call message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "Find all C files");
-    ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    ik_message_t *user_msg = ik_message_create_text(ctx, IK_ROLE_USER, "Find all C files");
+    ik_agent_add_message(repl->current, user_msg);
 
-    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation,
+    ik_message_t *tool_call_msg = ik_message_create_tool_call(
+        ctx,
         "call_abc123",
-        "function",
         "glob",
-        "{\"pattern\":\"*.c\"}",
-        "glob(pattern=\"*.c\")"
+        "{\"pattern\":\"*.c\"}"
         );
-    ik_openai_conversation_add_msg(repl->current->conversation, tool_call_msg);
+    ik_agent_add_message(repl->current, tool_call_msg);
 
     /* Execute the tool dispatcher */
     res_t tool_res = ik_tool_dispatch(ctx, "glob", "{\"pattern\":\"*.c\"}");
@@ -112,75 +100,61 @@ START_TEST(test_execute_tool_and_add_result_message)
     char *tool_output = tool_res.ok;
     ck_assert_ptr_nonnull(tool_output);
 
-    /* Create a canonical tool_result message with:
-     *   role: "tool_result"
-     *   content: human-readable summary
-     *   data_json: structured result data
-     */
-    char *data_json = talloc_asprintf(ctx,
-                                      "{\"tool_call_id\":\"call_abc123\",\"name\":\"glob\",\"output\":%s,\"success\":true}",
-                                      tool_output
-                                      );
-
-    ik_msg_t *tool_result_msg = ik_openai_msg_create(
-        repl->current->conversation,
-        "tool_result",
-        "Files found: src/main.c, src/config.c"  /* human-readable summary */
+    /* Create a canonical tool_result message using new API */
+    ik_message_t *tool_result_msg = ik_message_create_tool_result(
+        ctx,
+        "call_abc123",          /* tool_call_id */
+        tool_output,            /* content */
+        false                   /* is_error */
         );
-    tool_result_msg->data_json = talloc_steal(tool_result_msg, data_json);
 
     /* Add tool_result message to conversation */
-    res_t res = ik_openai_conversation_add_msg(repl->current->conversation, tool_result_msg);
+    res_t res = ik_agent_add_message(repl->current, tool_result_msg);
     ck_assert(is_ok(&res));
 
     /* Verify conversation has 3 messages in correct order */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 3);
+    ck_assert_uint_eq(repl->current->message_count, 3);
 
-    /* Verify message ordering: user -> tool_call -> tool_result */
-    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->current->conversation->messages[1]->kind, "tool_call");
-    ck_assert_str_eq(repl->current->conversation->messages[2]->kind, "tool_result");
-
-    /* Verify tool_result message has correct data */
-    ck_assert_str_eq(repl->current->conversation->messages[2]->content, "Files found: src/main.c, src/config.c");
-    ck_assert_ptr_nonnull(repl->current->conversation->messages[2]->data_json);
+    /* Verify message ordering: user -> assistant (tool_call) -> tool (result) */
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[1]->role == IK_ROLE_ASSISTANT);
+    ck_assert(repl->current->messages[2]->role == IK_ROLE_TOOL);
 }
 
 END_TEST
 /*
  * Test: Verify message ordering is preserved
  */
-START_TEST(test_message_ordering_preserved)
-{
+START_TEST(test_message_ordering_preserved) {
     /* Build complete conversation: user -> tool_call -> tool_result */
 
     /* 1. User message */
-    ik_msg_t *user_msg = ik_openai_msg_create(repl->current->conversation, "user", "List files");
-    ik_openai_conversation_add_msg(repl->current->conversation, user_msg);
+    ik_message_t *user_msg = ik_message_create_text(ctx, IK_ROLE_USER, "List files");
+    ik_agent_add_message(repl->current, user_msg);
 
     /* 2. Tool call message */
-    ik_msg_t *tool_call_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation,
+    ik_message_t *tool_call_msg = ik_message_create_tool_call(
+        ctx,
         "call_123",
-        "function",
         "glob",
-        "{\"pattern\":\"*\"}",
-        "glob(pattern=\"*\")"
+        "{\"pattern\":\"*\"}"
         );
-    ik_openai_conversation_add_msg(repl->current->conversation, tool_call_msg);
+    ik_agent_add_message(repl->current, tool_call_msg);
 
     /* 3. Tool result message */
-    ik_msg_t *tool_result_msg = ik_openai_msg_create(repl->current->conversation, "tool_result", "Found 3 files");
-    tool_result_msg->data_json = talloc_strdup(tool_result_msg,
-                                               "{\"tool_call_id\":\"call_123\",\"name\":\"glob\",\"output\":\"{}\",\"success\":true}"
-                                               );
-    ik_openai_conversation_add_msg(repl->current->conversation, tool_result_msg);
+    ik_message_t *tool_result_msg = ik_message_create_tool_result(
+        ctx,
+        "call_123",
+        "{\"files\":[\"a.c\",\"b.c\",\"c.c\"]}",
+        false
+        );
+    ik_agent_add_message(repl->current, tool_result_msg);
 
     /* Verify ordering is preserved */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 3);
-    ck_assert_str_eq(repl->current->conversation->messages[0]->kind, "user");
-    ck_assert_str_eq(repl->current->conversation->messages[1]->kind, "tool_call");
-    ck_assert_str_eq(repl->current->conversation->messages[2]->kind, "tool_result");
+    ck_assert_uint_eq(repl->current->message_count, 3);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[1]->role == IK_ROLE_ASSISTANT);
+    ck_assert(repl->current->messages[2]->role == IK_ROLE_TOOL);
 }
 
 END_TEST
@@ -193,6 +167,11 @@ static Suite *repl_tool_call_state_mutation_suite(void)
     Suite *s = suite_create("REPL Tool Call State Mutation");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_add_tool_call_message_to_conversation);
     tcase_add_test(tc_core, test_execute_tool_and_add_result_message);

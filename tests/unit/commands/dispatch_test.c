@@ -9,7 +9,6 @@
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
@@ -43,11 +42,9 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation (needed for mark/rewind commands)
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
 
     // Create config (needed for model/system commands)
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_model = talloc_strdup(cfg, "gpt-5-mini");
     ck_assert_ptr_nonnull(cfg->openai_model);
@@ -55,16 +52,13 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-
-    agent->conversation = conv;
     r->current = agent;
-
 
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
@@ -130,8 +124,7 @@ START_TEST(test_cmd_get_all) {
 }
 END_TEST
 // Test: Dispatch valid command (clear)
-START_TEST(test_dispatch_clear_command)
-{
+START_TEST(test_dispatch_clear_command) {
     // Add some content to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
     ck_assert(is_ok(&res));
@@ -147,8 +140,7 @@ START_TEST(test_dispatch_clear_command)
 
 END_TEST
 // Test: Dispatch valid command (help)
-START_TEST(test_dispatch_help_command)
-{
+START_TEST(test_dispatch_help_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -167,8 +159,7 @@ START_TEST(test_dispatch_help_command)
 
 END_TEST
 // Test: Dispatch command with arguments (mark)
-START_TEST(test_dispatch_mark_with_args)
-{
+START_TEST(test_dispatch_mark_with_args) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/mark checkpoint1");
     ck_assert(is_ok(&res));
 
@@ -188,8 +179,7 @@ START_TEST(test_dispatch_mark_with_args)
 
 END_TEST
 // Test: Dispatch unknown command
-START_TEST(test_dispatch_unknown_command)
-{
+START_TEST(test_dispatch_unknown_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unknown");
     ck_assert(is_err(&res));
 
@@ -204,8 +194,7 @@ START_TEST(test_dispatch_unknown_command)
 
 END_TEST
 // Test: Dispatch empty command (just "/")
-START_TEST(test_dispatch_empty_command)
-{
+START_TEST(test_dispatch_empty_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/");
     ck_assert(is_err(&res));
 
@@ -220,8 +209,7 @@ START_TEST(test_dispatch_empty_command)
 
 END_TEST
 // Test: Dispatch command with leading/trailing whitespace
-START_TEST(test_dispatch_command_with_whitespace)
-{
+START_TEST(test_dispatch_command_with_whitespace) {
     // Add content to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Test line", 9);
     ck_assert(is_ok(&res));
@@ -237,8 +225,7 @@ START_TEST(test_dispatch_command_with_whitespace)
 
 END_TEST
 // Test: Dispatch command with slash and whitespace
-START_TEST(test_dispatch_slash_whitespace)
-{
+START_TEST(test_dispatch_slash_whitespace) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/   ");
     ck_assert(is_err(&res));
 
@@ -253,13 +240,13 @@ START_TEST(test_dispatch_slash_whitespace)
 
 END_TEST
 // Test: Dispatch model command with argument
-START_TEST(test_dispatch_model_with_arg)
-{
+START_TEST(test_dispatch_model_with_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4-turbo");
     ck_assert(is_ok(&res));
 
-    // Verify model changed
-    ck_assert_str_eq(repl->shared->cfg->openai_model, "gpt-4-turbo");
+    // Verify model changed in agent state
+    ck_assert_str_eq(repl->current->model, "gpt-4-turbo");
+    ck_assert_str_eq(repl->current->provider, "openai");
 
     // Verify scrollback received confirmation message
     const char *line = NULL;
@@ -267,13 +254,13 @@ START_TEST(test_dispatch_model_with_arg)
     res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Switched to model: gpt-4-turbo");
+    ck_assert(strstr(line, "Switched to") != NULL);
+    ck_assert(strstr(line, "gpt-4-turbo") != NULL);
 }
 
 END_TEST
 // Test: Dispatch rewind command with argument
-START_TEST(test_dispatch_rewind_with_arg)
-{
+START_TEST(test_dispatch_rewind_with_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/rewind checkpoint1");
     ck_assert(is_ok(&res));
 
@@ -288,8 +275,7 @@ START_TEST(test_dispatch_rewind_with_arg)
 
 END_TEST
 // Test: Dispatch system command with multiword argument
-START_TEST(test_dispatch_system_with_multiword_arg)
-{
+START_TEST(test_dispatch_system_with_multiword_arg) {
     res_t res =
         ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
     ck_assert(is_ok(&res));
@@ -309,6 +295,7 @@ static Suite *commands_dispatch_suite(void)
 {
     Suite *s = suite_create("Commands/Dispatch");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

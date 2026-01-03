@@ -162,7 +162,8 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     close(pipefd[0]);
     close(saved_stdout);
 
-    fprintf(stderr, "\n=== Rendered Output ===\n%s\n===\n", output);
+    char *sanitized = ik_test_sanitize_ansi(ctx, output, (size_t)bytes_read);
+    fprintf(stderr, "\n=== Rendered Output ===\n%s\n===\n", sanitized ? sanitized : "(sanitize failed)");
 
     // Verify earlier lines are now visible (lines 0-4)
     fprintf(stderr, "Checking for earlier lines:\n");
@@ -195,6 +196,10 @@ static Suite *page_up_scrollback_suite(void)
     Suite *s = suite_create("Page Up Scrollback");
 
     TCase *tc_pageup = tcase_create("PageUp");
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
     tcase_set_timeout(tc_pageup, 30);
     tcase_add_test(tc_pageup, test_page_up_shows_earlier_scrollback);
     suite_add_tcase(s, tc_pageup);

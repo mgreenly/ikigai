@@ -20,8 +20,7 @@ START_TEST(test_pp_header_valid) {
 }
 END_TEST
 // Test: ik_pp_header with indentation
-START_TEST(test_pp_header_indented)
-{
+START_TEST(test_pp_header_indented) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -36,8 +35,7 @@ START_TEST(test_pp_header_indented)
 
 END_TEST
 // Test: ik_pp_pointer with valid pointer
-START_TEST(test_pp_pointer_valid)
-{
+START_TEST(test_pp_pointer_valid) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -52,8 +50,7 @@ START_TEST(test_pp_pointer_valid)
 
 END_TEST
 // Test: ik_pp_pointer with NULL pointer
-START_TEST(test_pp_pointer_null)
-{
+START_TEST(test_pp_pointer_null) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -67,8 +64,7 @@ START_TEST(test_pp_pointer_null)
 
 END_TEST
 // Test: ik_pp_size_t with various values
-START_TEST(test_pp_size_t_values)
-{
+START_TEST(test_pp_size_t_values) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -84,8 +80,7 @@ START_TEST(test_pp_size_t_values)
 
 END_TEST
 // Test: ik_pp_int32 with positive and negative values
-START_TEST(test_pp_int32_values)
-{
+START_TEST(test_pp_int32_values) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -101,8 +96,7 @@ START_TEST(test_pp_int32_values)
 
 END_TEST
 // Test: ik_pp_uint32 with various values
-START_TEST(test_pp_uint32_values)
-{
+START_TEST(test_pp_uint32_values) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -118,8 +112,7 @@ START_TEST(test_pp_uint32_values)
 
 END_TEST
 // Test: ik_pp_string with simple string
-START_TEST(test_pp_string_simple)
-{
+START_TEST(test_pp_string_simple) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -134,8 +127,7 @@ START_TEST(test_pp_string_simple)
 
 END_TEST
 // Test: ik_pp_string with special characters
-START_TEST(test_pp_string_special_chars)
-{
+START_TEST(test_pp_string_special_chars) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -150,8 +142,7 @@ START_TEST(test_pp_string_special_chars)
 
 END_TEST
 // Test: ik_pp_string with NULL string
-START_TEST(test_pp_string_null)
-{
+START_TEST(test_pp_string_null) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -165,8 +156,7 @@ START_TEST(test_pp_string_null)
 
 END_TEST
 // Test: ik_pp_string with empty string
-START_TEST(test_pp_string_empty)
-{
+START_TEST(test_pp_string_empty) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -180,8 +170,7 @@ START_TEST(test_pp_string_empty)
 
 END_TEST
 // Test: ik_pp_string with control characters
-START_TEST(test_pp_string_control_chars)
-{
+START_TEST(test_pp_string_control_chars) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -197,8 +186,7 @@ START_TEST(test_pp_string_control_chars)
 
 END_TEST
 // Test: ik_pp_bool with true and false
-START_TEST(test_pp_bool_values)
-{
+START_TEST(test_pp_bool_values) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
@@ -213,8 +201,7 @@ START_TEST(test_pp_bool_values)
 
 END_TEST
 // Test: Indentation respected across all helpers
-START_TEST(test_indentation_consistent)
-{
+START_TEST(test_indentation_consistent) {
     void *tmp_ctx = talloc_new(NULL);
     ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 

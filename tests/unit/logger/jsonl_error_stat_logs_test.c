@@ -32,8 +32,7 @@ int posix_stat_(const char *pathname, struct stat *statbuf)
 }
 
 #if !defined(SKIP_SIGNAL_TESTS)
-START_TEST(test_stat_eacces_logs_panics)
-{
+START_TEST(test_stat_eacces_logs_panics) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
     mkdir(test_dir, 0755);

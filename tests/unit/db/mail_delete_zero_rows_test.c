@@ -72,8 +72,7 @@ char *PQcmdTuples(PGresult *res)
 }
 
 // Test: ik_db_mail_delete handles zero rows affected
-START_TEST(test_db_mail_delete_zero_rows_affected)
-{
+START_TEST(test_db_mail_delete_zero_rows_affected) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
@@ -93,6 +92,7 @@ static Suite *db_mail_delete_zero_rows_suite(void)
     Suite *s = suite_create("db_mail_delete_zero_rows");
 
     TCase *tc = tcase_create("ZeroRows");
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_db_mail_delete_zero_rows_affected);
 
     suite_add_tcase(s, tc);

@@ -2,6 +2,7 @@
 
 #include "../error.h"
 #include "../logger.h"
+#include "../tmp_ctx.h"
 #include "../vendor/yyjson/yyjson.h"
 #include "../wrapper.h"
 #include "pg_result.h"
@@ -280,9 +281,7 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx,
   assert(session_id > 0);       // LCOV_EXCL_BR_LINE
 
   // Create temporary context for query
-  TALLOC_CTX *tmp = talloc_new(NULL);
-  if (tmp == NULL)          // LCOV_EXCL_BR_LINE
-    PANIC("Out of memory"); // LCOV_EXCL_LINE
+  TALLOC_CTX *tmp = tmp_ctx_create();
 
   // Allocate context structure on provided context
   ik_replay_context_t *context = talloc_zero(ctx, ik_replay_context_t);

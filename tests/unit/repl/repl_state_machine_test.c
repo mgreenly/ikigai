@@ -114,8 +114,7 @@ START_TEST(test_repl_initial_state_is_idle) {
 }
 END_TEST
 /* Test: When state is IDLE, spinner is hidden and input is visible */
-START_TEST(test_repl_state_idle_visibility)
-{
+START_TEST(test_repl_state_idle_visibility) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -135,8 +134,7 @@ START_TEST(test_repl_state_idle_visibility)
 
 END_TEST
 /* Test: When state is WAITING_FOR_LLM, spinner is visible and input is hidden */
-START_TEST(test_repl_state_waiting_for_llm_visibility)
-{
+START_TEST(test_repl_state_waiting_for_llm_visibility) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -156,8 +154,7 @@ START_TEST(test_repl_state_waiting_for_llm_visibility)
 
 END_TEST
 /* Test: State transition IDLE -> WAITING_FOR_LLM */
-START_TEST(test_repl_state_transition_idle_to_waiting)
-{
+START_TEST(test_repl_state_transition_idle_to_waiting) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -180,8 +177,7 @@ START_TEST(test_repl_state_transition_idle_to_waiting)
 
 END_TEST
 /* Test: State transition WAITING_FOR_LLM -> IDLE */
-START_TEST(test_repl_state_transition_waiting_to_idle)
-{
+START_TEST(test_repl_state_transition_waiting_to_idle) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -204,8 +200,7 @@ START_TEST(test_repl_state_transition_waiting_to_idle)
 
 END_TEST
 /* Test: Transition function IDLE -> WAITING_FOR_LLM */
-START_TEST(test_repl_transition_to_waiting_for_llm_function)
-{
+START_TEST(test_repl_transition_to_waiting_for_llm_function) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -227,8 +222,7 @@ START_TEST(test_repl_transition_to_waiting_for_llm_function)
 
 END_TEST
 /* Test: Transition function WAITING_FOR_LLM -> IDLE */
-START_TEST(test_repl_transition_to_idle_function)
-{
+START_TEST(test_repl_transition_to_idle_function) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -254,8 +248,7 @@ START_TEST(test_repl_transition_to_idle_function)
 
 END_TEST
 /* Test: Full cycle IDLE -> WAITING -> IDLE */
-START_TEST(test_repl_state_full_cycle)
-{
+START_TEST(test_repl_state_full_cycle) {
     void *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
@@ -284,6 +277,10 @@ static Suite *repl_state_machine_suite(void)
     Suite *s = suite_create("REPL State Machine");
 
     TCase *tc_state = tcase_create("State Machine");
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, 30);
     tcase_set_timeout(tc_state, 30);
     tcase_add_test(tc_state, test_repl_initial_state_is_idle);
     tcase_add_test(tc_state, test_repl_state_idle_visibility);

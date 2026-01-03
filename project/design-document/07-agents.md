@@ -255,14 +255,14 @@ await platform.context.rewind(checkpoint);  // Roll back if needed
 // Exclude specific exchanges from future context
 await platform.context.exclude(response.id);
 
-// Low-level: direct memory block management
-await platform.memory.blocks.create({
+// Low-level: direct StoredAsset management
+await platform.storedAssets.create({
     label: "task_state",
     value: JSON.stringify({ processed: 0, errors: [] }),
 });
 
 // Update as work progresses
-await platform.memory.blocks.update("task_state", {
+await platform.storedAssets.update("task_state", {
     value: JSON.stringify({ processed: 47, errors: ["item-23"] }),
 });
 

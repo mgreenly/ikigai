@@ -47,8 +47,7 @@ static char *read_log_file(void)
 }
 
 // Test: ik_log_create returns non-NULL doc with empty root object
-START_TEST(test_log_create_returns_doc)
-{
+START_TEST(test_log_create_returns_doc) {
     yyjson_mut_doc *doc = ik_log_create();
     ck_assert_ptr_nonnull(doc);
 
@@ -60,10 +59,8 @@ START_TEST(test_log_create_returns_doc)
     yyjson_mut_doc_free(doc);
 }
 END_TEST
-
 // Test: ik_log_debug_json writes JSONL to file
-START_TEST(test_log_debug_writes_jsonl)
-{
+START_TEST(test_log_debug_writes_jsonl) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -84,11 +81,10 @@ START_TEST(test_log_debug_writes_jsonl)
 
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: output has "level":"debug" field
-START_TEST(test_log_debug_has_level_field)
-{
+START_TEST(test_log_debug_has_level_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -113,11 +109,10 @@ START_TEST(test_log_debug_has_level_field)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: output has "timestamp" field
-START_TEST(test_log_debug_has_timestamp_field)
-{
+START_TEST(test_log_debug_has_timestamp_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -141,11 +136,10 @@ START_TEST(test_log_debug_has_timestamp_field)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: output has "logline" field containing original doc
-START_TEST(test_log_debug_has_logline_field)
-{
+START_TEST(test_log_debug_has_logline_field) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -179,11 +173,10 @@ START_TEST(test_log_debug_has_logline_field)
     yyjson_doc_free(parsed);
     teardown_logger();
 }
-END_TEST
 
+END_TEST
 // Test: output is valid single-line JSON
-START_TEST(test_log_debug_is_single_line_json)
-{
+START_TEST(test_log_debug_is_single_line_json) {
     setup_logger();
 
     yyjson_mut_doc *doc = ik_log_create();
@@ -218,6 +211,7 @@ START_TEST(test_log_debug_is_single_line_json)
 
     teardown_logger();
 }
+
 END_TEST
 
 static Suite *logger_jsonl_suite(void)

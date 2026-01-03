@@ -51,8 +51,7 @@ static bool get_first_archive(const char *logs_dir, char *archive_path, size_t p
 }
 
 // Test: First init with no existing log - no rotation
-START_TEST(test_init_no_existing_log_no_rotation)
-{
+START_TEST(test_init_no_existing_log_no_rotation) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_rotation_test_%d", getpid());
 
@@ -83,10 +82,8 @@ START_TEST(test_init_no_existing_log_no_rotation)
     rmdir(test_dir);
 }
 END_TEST
-
 // Test: Existing current.log gets rotated to timestamped archive
-START_TEST(test_init_rotates_existing_log)
-{
+START_TEST(test_init_rotates_existing_log) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_rotation_test_%d", getpid());
 
@@ -138,11 +135,10 @@ START_TEST(test_init_rotates_existing_log)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
-END_TEST
 
+END_TEST
 // Test: Multiple initializations create multiple archives
-START_TEST(test_multiple_rotations_create_multiple_archives)
-{
+START_TEST(test_multiple_rotations_create_multiple_archives) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_rotation_test_%d", getpid());
 
@@ -211,11 +207,10 @@ START_TEST(test_multiple_rotations_create_multiple_archives)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
-END_TEST
 
+END_TEST
 // Test: Archived filename has correct timestamp format (no colons for filesystem safety)
-START_TEST(test_archive_filename_format)
-{
+START_TEST(test_archive_filename_format) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_rotation_test_%d", getpid());
 
@@ -268,6 +263,7 @@ START_TEST(test_archive_filename_format)
     rmdir(ikigai_dir);
     rmdir(test_dir);
 }
+
 END_TEST
 
 static Suite *logger_jsonl_rotation_suite(void)

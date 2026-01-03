@@ -60,8 +60,7 @@ static PGresult *exec_query(PGconn *conn, const char *query)
 }
 
 // Test that agents table exists
-START_TEST(test_agents_table_exists)
-{
+START_TEST(test_agents_table_exists) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -73,10 +72,10 @@ START_TEST(test_agents_table_exists)
     }
 
     PGresult *res = exec_query(db->conn,
-        "SELECT EXISTS ("
-        "  SELECT FROM information_schema.tables "
-        "  WHERE table_schema = 'public' AND table_name = 'agents'"
-        ")");
+                               "SELECT EXISTS ("
+                               "  SELECT FROM information_schema.tables "
+                               "  WHERE table_schema = 'public' AND table_name = 'agents'"
+                               ")");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
     ck_assert_str_eq(PQgetvalue(res, 0, 0), "t");
@@ -84,10 +83,8 @@ START_TEST(test_agents_table_exists)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test that agent_status enum exists with correct values
-START_TEST(test_agent_status_enum)
-{
+START_TEST(test_agent_status_enum) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -99,9 +96,9 @@ START_TEST(test_agent_status_enum)
     }
 
     PGresult *res = exec_query(db->conn,
-        "SELECT enumlabel FROM pg_enum "
-        "WHERE enumtypid = 'agent_status'::regtype "
-        "ORDER BY enumsortorder");
+                               "SELECT enumlabel FROM pg_enum "
+                               "WHERE enumtypid = 'agent_status'::regtype "
+                               "ORDER BY enumsortorder");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
     ck_assert_int_eq(PQntuples(res), 2);
@@ -110,11 +107,10 @@ START_TEST(test_agent_status_enum)
     PQclear(res);
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that all required columns exist
-START_TEST(test_required_columns_exist)
-{
+START_TEST(test_required_columns_exist) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -133,25 +129,24 @@ START_TEST(test_required_columns_exist)
     for (size_t i = 0; i < sizeof(columns) / sizeof(columns[0]); i++) {
         char query[256];
         snprintf(query, sizeof(query),
-            "SELECT column_name FROM information_schema.columns "
-            "WHERE table_name = 'agents' AND column_name = '%s'",
-            columns[i]);
+                 "SELECT column_name FROM information_schema.columns "
+                 "WHERE table_name = 'agents' AND column_name = '%s'",
+                 columns[i]);
 
         PGresult *res = exec_query(db->conn, query);
         ck_assert_msg(PQresultStatus(res) == PGRES_TUPLES_OK,
-            "Query failed for column %s", columns[i]);
+                      "Query failed for column %s", columns[i]);
         ck_assert_msg(PQntuples(res) == 1,
-            "Column %s does not exist", columns[i]);
+                      "Column %s does not exist", columns[i]);
         PQclear(res);
     }
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that required indexes exist
-START_TEST(test_required_indexes_exist)
-{
+START_TEST(test_required_indexes_exist) {
     if (!db_available) return;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -170,20 +165,21 @@ START_TEST(test_required_indexes_exist)
     for (size_t i = 0; i < sizeof(indexes) / sizeof(indexes[0]); i++) {
         char query[256];
         snprintf(query, sizeof(query),
-            "SELECT indexname FROM pg_indexes "
-            "WHERE tablename = 'agents' AND indexname = '%s'",
-            indexes[i]);
+                 "SELECT indexname FROM pg_indexes "
+                 "WHERE tablename = 'agents' AND indexname = '%s'",
+                 indexes[i]);
 
         PGresult *res = exec_query(db->conn, query);
         ck_assert_msg(PQresultStatus(res) == PGRES_TUPLES_OK,
-            "Query failed for index %s", indexes[i]);
+                      "Query failed for index %s", indexes[i]);
         ck_assert_msg(PQntuples(res) == 1,
-            "Index %s does not exist", indexes[i]);
+                      "Index %s does not exist", indexes[i]);
         PQclear(res);
     }
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agents_schema_suite(void)

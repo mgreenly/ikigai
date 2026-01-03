@@ -97,8 +97,7 @@ START_TEST(test_repl_render_frame_empty_input_buffer) {
 }
 END_TEST
 /* Test: Render frame with multi-line text */
-START_TEST(test_repl_render_frame_multiline)
-{
+START_TEST(test_repl_render_frame_multiline) {
     void *ctx = talloc_new(NULL);
 
     // Manually construct REPL context components
@@ -158,8 +157,7 @@ START_TEST(test_repl_render_frame_multiline)
 
 END_TEST
 /* Test: Render frame with cursor at various positions */
-START_TEST(test_repl_render_frame_cursor_positions)
-{
+START_TEST(test_repl_render_frame_cursor_positions) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -237,8 +235,7 @@ START_TEST(test_repl_render_frame_cursor_positions)
 
 END_TEST
 /* Test: Render frame with UTF-8 multi-byte characters */
-START_TEST(test_repl_render_frame_utf8)
-{
+START_TEST(test_repl_render_frame_utf8) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -286,8 +283,7 @@ END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 /* Test: NULL parameter assertions */
-START_TEST(test_repl_render_frame_null_repl_asserts)
-{
+START_TEST(test_repl_render_frame_null_repl_asserts) {
     /* repl cannot be NULL - should abort */
     ik_repl_render_frame(NULL);
 }
@@ -299,6 +295,10 @@ static Suite *repl_render_suite(void)
 {
     Suite *s = suite_create("REPL_Render");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Basic rendering tests */
     tcase_add_test(tc_core, test_repl_render_frame_empty_input_buffer);
@@ -311,6 +311,10 @@ static Suite *repl_render_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_render_frame_null_repl_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

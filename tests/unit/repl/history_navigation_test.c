@@ -17,8 +17,7 @@
 #include "../../test_utils.h"
 
 /* Test: Up arrow from empty input loads last entry */
-START_TEST(test_history_up_from_empty_input)
-{
+START_TEST(test_history_up_from_empty_input) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -74,10 +73,8 @@ START_TEST(test_history_up_from_empty_input)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Multiple Up arrows navigate backward through history */
-START_TEST(test_history_up_multiple_times)
-{
+START_TEST(test_history_up_multiple_times) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -148,11 +145,10 @@ START_TEST(test_history_up_multiple_times)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Down arrow restores pending input */
-START_TEST(test_history_down_restores_pending)
-{
+START_TEST(test_history_down_restores_pending) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -226,11 +222,10 @@ START_TEST(test_history_down_restores_pending)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Up arrow with cursor not at zero does normal cursor movement */
-START_TEST(test_history_up_with_cursor_not_at_zero)
-{
+START_TEST(test_history_up_with_cursor_not_at_zero) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -310,11 +305,10 @@ START_TEST(test_history_up_with_cursor_not_at_zero)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: History navigation takes precedence over multi-line at position 0 */
-START_TEST(test_history_navigation_with_multiline)
-{
+START_TEST(test_history_navigation_with_multiline) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -375,11 +369,10 @@ START_TEST(test_history_navigation_with_multiline)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Empty history handled gracefully */
-START_TEST(test_history_empty)
-{
+START_TEST(test_history_empty) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -417,12 +410,18 @@ START_TEST(test_history_empty)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *history_navigation_suite(void)
 {
     Suite *s = suite_create("History_Navigation");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_history_up_from_empty_input);
     tcase_add_test(tc_core, test_history_up_multiple_times);

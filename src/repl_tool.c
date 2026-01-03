@@ -6,6 +6,7 @@
 #include "event_render.h"
 #include "format.h"
 #include "logger.h"
+#include "message.h"
 #include "panic.h"
 #include "shared.h"
 #include "tool.h"
@@ -15,6 +16,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <talloc.h>
+#include "vendor/yyjson/yyjson.h"
 
 // Arguments passed to the worker thread.
 // All strings are copied into tool_thread_ctx so the thread owns them.
@@ -70,9 +72,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 1. Add tool_call message to conversation (canonical format)
     char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        repl->current->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(repl->current->conversation, tc_msg);
+    ik_message_t *tc_msg = ik_message_create_tool_call(repl->current, tc->id, tc->name, tc->arguments);
+    res_t result = ik_agent_add_message(repl->current, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -90,9 +91,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     char *result_json = tool_res.ok;
 
     // 3. Add tool result message to conversation
-    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        repl->current->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(repl->current->conversation, result_msg);
+    ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
+    result = ik_agent_add_message(repl->current, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
@@ -113,9 +113,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     // 5. Persist to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_call", formatted_call, tc_msg->data_json);
+                              repl->current->uuid, "tool_call", formatted_call, "{}");
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_result", formatted_result, result_msg->data_json);
+                              repl->current->uuid, "tool_result", formatted_result, "{}");
     }
 
     // 6. Clear pending tool call
@@ -221,9 +221,78 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     char *summary = talloc_asprintf(agent, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    ik_msg_t *tc_msg = ik_openai_msg_create_tool_call(
-        agent->conversation, tc->id, "function", tc->name, tc->arguments, summary);
-    res_t result = ik_openai_conversation_add_msg(agent->conversation, tc_msg);
+    ik_message_t *tc_msg = ik_message_create_tool_call_with_thinking(
+        agent,
+        agent->pending_thinking_text,
+        agent->pending_thinking_signature,
+        agent->pending_redacted_data,
+        tc->id, tc->name, tc->arguments);
+
+    // 2. Format for display (needed before clearing thinking for database)
+    const char *formatted_call = ik_format_tool_call(agent, tc);
+    const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
+
+    // 3. Persist to database (before clearing thinking fields)
+    if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
+        // Build data_json with tool call details and thinking (inline - no static function)
+        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+        if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        yyjson_mut_val *root = yyjson_mut_obj(doc);
+        if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_set_root(doc, root);
+
+        // Tool call fields
+        yyjson_mut_obj_add_str(doc, root, "tool_call_id", tc->id);  // LCOV_EXCL_BR_LINE
+        yyjson_mut_obj_add_str(doc, root, "tool_name", tc->name);  // LCOV_EXCL_BR_LINE
+        yyjson_mut_obj_add_str(doc, root, "tool_args", tc->arguments);  // LCOV_EXCL_BR_LINE
+
+        // Thinking block (if present)
+        if (agent->pending_thinking_text != NULL) {
+            yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
+            if (thinking_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            yyjson_mut_obj_add_str(doc, thinking_obj, "text", agent->pending_thinking_text);  // LCOV_EXCL_BR_LINE
+            if (agent->pending_thinking_signature != NULL) {
+                yyjson_mut_obj_add_str(doc, thinking_obj, "signature", agent->pending_thinking_signature);  // LCOV_EXCL_BR_LINE
+            }
+            yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj);
+        }
+
+        // Redacted thinking (if present)
+        if (agent->pending_redacted_data != NULL) {
+            yyjson_mut_val *redacted_obj = yyjson_mut_obj(doc);
+            if (redacted_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            yyjson_mut_obj_add_str(doc, redacted_obj, "data", agent->pending_redacted_data);  // LCOV_EXCL_BR_LINE
+            yyjson_mut_obj_add_val(doc, root, "redacted_thinking", redacted_obj);
+        }
+
+        char *json = yyjson_mut_write(doc, 0, NULL);
+        char *data_json = talloc_strdup(agent, json);
+        free(json);
+        yyjson_mut_doc_free(doc);
+        if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
+                              agent->uuid, "tool_call", formatted_call, data_json);
+        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
+                              agent->uuid, "tool_result", formatted_result, "{}");
+        talloc_free(data_json);
+    }
+
+    // Clear pending thinking after use
+    if (agent->pending_thinking_text != NULL) {
+        talloc_free(agent->pending_thinking_text);
+        agent->pending_thinking_text = NULL;
+    }
+    if (agent->pending_thinking_signature != NULL) {
+        talloc_free(agent->pending_thinking_signature);
+        agent->pending_thinking_signature = NULL;
+    }
+    if (agent->pending_redacted_data != NULL) {
+        talloc_free(agent->pending_redacted_data);
+        agent->pending_redacted_data = NULL;
+    }
+
+    res_t result = ik_agent_add_message(agent, tc_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_call is added
@@ -235,10 +304,9 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
-    // 2. Add tool result message to conversation
-    ik_msg_t *result_msg = ik_openai_msg_create_tool_result(
-        agent->conversation, tc->id, result_json);
-    result = ik_openai_conversation_add_msg(agent->conversation, result_msg);
+    // 4. Add tool result message to conversation
+    ik_message_t *result_msg = ik_message_create_tool_result(agent, tc->id, result_json, false);
+    result = ik_agent_add_message(agent, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
 
     // Debug output when tool_result is added
@@ -250,21 +318,11 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
-    // 3. Display in scrollback via event renderer
-    const char *formatted_call = ik_format_tool_call(agent, tc);
+    // 5. Display in scrollback via event renderer
     ik_event_render(agent->scrollback, "tool_call", formatted_call, "{}");
-    const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
     ik_event_render(agent->scrollback, "tool_result", formatted_result, "{}");
 
-    // 4. Persist to database
-    if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
-        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_call", formatted_call, tc_msg->data_json);
-        ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_result", formatted_result, result_msg->data_json);
-    }
-
-    // 5. Clean up
+    // 6. Clean up
     talloc_free(summary);
     talloc_free(agent->pending_tool_call);
     agent->pending_tool_call = NULL;

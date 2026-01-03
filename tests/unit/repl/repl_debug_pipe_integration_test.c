@@ -86,8 +86,7 @@ END_TEST
  * Verifies that when debug is disabled, output written to a debug pipe
  * is drained but does NOT appear in scrollback.
  */
-START_TEST(test_debug_pipe_disabled)
-{
+START_TEST(test_debug_pipe_disabled) {
     void *ctx = talloc_new(NULL);
 
     // Create debug manager
@@ -138,6 +137,10 @@ static Suite *debug_pipe_integration_suite(void)
     Suite *s = suite_create("Debug Pipe Integration");
 
     TCase *tc_integration = tcase_create("Event Loop Integration");
+    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, 30);
     tcase_set_timeout(tc_integration, 30);
     tcase_add_test(tc_integration, test_debug_pipe_enabled);
     tcase_add_test(tc_integration, test_debug_pipe_disabled);

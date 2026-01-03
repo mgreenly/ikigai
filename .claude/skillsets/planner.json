@@ -1,0 +1,38 @@
+{
+  "preload": [
+    "align",
+    "principles",
+    "planner",
+    "meta",
+    "cdd",
+    "source-code",
+    "ddd",
+    "di",
+    "errors",
+    "style",
+    "tdd",
+    "naming",
+    "log",
+    "patterns/vtable",
+    "patterns/result-type",
+    "patterns/arena-allocator",
+    "task-authoring"
+  ],
+  "advertise": [
+    {"skill": "patterns/adapter", "description": "Interface compatibility wrappers"},
+    {"skill": "patterns/callback-context", "description": "Callback with void* context passing"},
+    {"skill": "patterns/chain-of-responsibility", "description": "Handler chain delegation"},
+    {"skill": "patterns/command", "description": "Action encapsulation and queuing"},
+    {"skill": "patterns/composite", "description": "Tree structures with uniform interface"},
+    {"skill": "patterns/context-struct", "description": "State bundling for function groups"},
+    {"skill": "patterns/facade", "description": "Simplified interface over subsystem"},
+    {"skill": "patterns/factory", "description": "Object creation abstraction"},
+    {"skill": "patterns/interpreter", "description": "DSL/language parsing patterns"},
+    {"skill": "patterns/iterator", "description": "Collection traversal abstraction"},
+    {"skill": "patterns/observer", "description": "Event subscription and notification"},
+    {"skill": "patterns/opaque-pointer", "description": "Encapsulation via incomplete types"},
+    {"skill": "patterns/proxy", "description": "Controlled access wrapper"},
+    {"skill": "patterns/state-machine", "description": "State transition management"},
+    {"skill": "patterns/strategy", "description": "Algorithm selection at runtime"}
+  ]
+}

@@ -149,8 +149,7 @@ END_TEST
  *   - Separator should be at the last visible row (terminal_rows - 1)
  *   - Input buffer is off-screen (input_buffer_start_row == terminal_rows)
  */
-START_TEST(test_separator_last_row_input_buffer_offscreen)
-{
+START_TEST(test_separator_last_row_input_buffer_offscreen) {
     void *ctx = talloc_new(NULL);
 
     // Terminal: 10 rows
@@ -269,6 +268,10 @@ static Suite *separator_separator_suite(void)
     Suite *s = suite_create("Separator visibility: Separator Last Line");
 
     TCase *tc_sep = tcase_create("Separator");
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
     tcase_set_timeout(tc_sep, 30);
     tcase_add_test(tc_sep, test_separator_as_last_visible_line);
     tcase_add_test(tc_sep, test_separator_last_row_input_buffer_offscreen);

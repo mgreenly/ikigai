@@ -51,8 +51,7 @@ START_TEST(test_debug_pipe_create_with_prefix) {
 }
 END_TEST
 /* Test: Create debug pipe without prefix */
-START_TEST(test_debug_pipe_create_no_prefix)
-{
+START_TEST(test_debug_pipe_create_no_prefix) {
     void *ctx = talloc_new(NULL);
 
     /* Create debug pipe with NULL prefix */
@@ -75,8 +74,7 @@ START_TEST(test_debug_pipe_create_no_prefix)
 
 END_TEST
 /* Test: Pipe write/read connectivity */
-START_TEST(test_debug_pipe_connectivity)
-{
+START_TEST(test_debug_pipe_connectivity) {
     void *ctx = talloc_new(NULL);
 
     res_t res = ik_debug_pipe_create(ctx, NULL);
@@ -166,8 +164,9 @@ START_TEST(test_debug_pipe_create_fcntl_getfl_failure) {
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_debug_pipe_create_fcntl_setfl_failure)
-{
+END_TEST
+
+START_TEST(test_debug_pipe_create_fcntl_setfl_failure) {
     void *ctx = talloc_new(NULL);
 
     /* Enable fcntl(F_SETFL) failure */
@@ -221,6 +220,7 @@ static Suite *debug_pipe_create_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Create");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_debug_pipe_create_with_prefix);

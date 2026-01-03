@@ -179,6 +179,10 @@ static Suite *repl_viewport_defensive_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     // Line 101-106: Input buffer before viewport (this is testable!)
     tcase_add_test(tc_core, test_viewport_input_buffer_before_viewport);

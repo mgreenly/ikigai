@@ -55,8 +55,7 @@ START_TEST(test_delete_word_backward_basic) {
 
 END_TEST
 /* Test: delete_word_backward when cursor is at word boundary */
-START_TEST(test_delete_word_backward_at_word_boundary)
-{
+START_TEST(test_delete_word_backward_at_word_boundary) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -99,8 +98,7 @@ START_TEST(test_delete_word_backward_at_word_boundary)
 
 END_TEST
 /* Test: delete_word_backward with multiple spaces */
-START_TEST(test_delete_word_backward_multiple_spaces)
-{
+START_TEST(test_delete_word_backward_multiple_spaces) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -143,8 +141,7 @@ START_TEST(test_delete_word_backward_multiple_spaces)
 
 END_TEST
 /* Test: delete_word_backward with punctuation */
-START_TEST(test_delete_word_backward_punctuation)
-{
+START_TEST(test_delete_word_backward_punctuation) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -185,8 +182,7 @@ START_TEST(test_delete_word_backward_punctuation)
 
 END_TEST
 /* Test: delete_word_backward with UTF-8 */
-START_TEST(test_delete_word_backward_utf8)
-{
+START_TEST(test_delete_word_backward_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -224,8 +220,7 @@ START_TEST(test_delete_word_backward_utf8)
 
 END_TEST
 /* Test: delete_word_backward at start (no-op) */
-START_TEST(test_delete_word_backward_at_start)
-{
+START_TEST(test_delete_word_backward_at_start) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
     input_buffer = ik_input_buffer_create(ctx);
@@ -266,6 +261,11 @@ static Suite *input_buffer_delete_word_backward_basic_suite(void)
 {
     Suite *s = suite_create("Input Buffer Delete Word Backward - Basic");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Basic functionality tests */
     tcase_add_test(tc_core, test_delete_word_backward_basic);

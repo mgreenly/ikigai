@@ -14,8 +14,7 @@
 #include "../../../src/wrapper.h"
 
 /* Test: handle_ready adds blank lines after each debug line when enabled */
-START_TEST(test_debug_mgr_handle_ready_adds_blank_lines)
-{
+START_TEST(test_debug_mgr_handle_ready_adds_blank_lines) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
@@ -72,10 +71,8 @@ START_TEST(test_debug_mgr_handle_ready_adds_blank_lines)
 }
 
 END_TEST
-
 /* Test: handle_ready with debug disabled reads but discards (no blank lines) */
-START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines)
-{
+START_TEST(test_debug_mgr_handle_ready_disabled_no_blank_lines) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
@@ -125,8 +122,7 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
 }
 
 /* Test: handle_ready when read fails with error */
-START_TEST(test_debug_mgr_handle_ready_read_error)
-{
+START_TEST(test_debug_mgr_handle_ready_read_error) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -165,6 +161,7 @@ static Suite *debug_pipe_spacing_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Spacing");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_adds_blank_lines);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_disabled_no_blank_lines);

@@ -173,6 +173,12 @@ static void reset_mocks(void)
     }
 }
 
+// Suite-level setup: Set log directory
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
 /* Test: Submit line fails when event render fails */
 START_TEST(test_submit_line_event_render_fails) {
     void *ctx = talloc_new(NULL);
@@ -180,7 +186,7 @@ START_TEST(test_submit_line_event_render_fails) {
 
     // Setup REPL
     ik_repl_ctx_t *repl = NULL;
-    ik_cfg_t *cfg = ik_test_create_config(ctx);
+    ik_config_t *cfg = ik_test_create_config(ctx);
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -225,7 +231,11 @@ static Suite *repl_submit_line_error_suite(void)
 
     TCase *tc_error = tcase_create("Error Handling");
     tcase_set_timeout(tc_error, 30);
-    tcase_add_unchecked_fixture(tc_error, NULL, reset_mocks);
+    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, 30);
+    tcase_add_unchecked_fixture(tc_error, suite_setup, reset_mocks);
+    tcase_set_timeout(tc_error, 30);
     tcase_add_test(tc_error, test_submit_line_event_render_fails);
     suite_add_tcase(s, tc_error);
 

@@ -123,8 +123,7 @@ END_TEST
  *
  * When input buffer is visible after separator, we need \r\n to advance to next line
  */
-START_TEST(test_separator_has_trailing_newline_when_input_buffer_visible)
-{
+START_TEST(test_separator_has_trailing_newline_when_input_buffer_visible) {
     void *ctx = talloc_new(NULL);
 
     // Create render context
@@ -208,8 +207,7 @@ END_TEST
  * When input buffer is visible but separator is not rendered,
  * scrollback should have \r\n after last line to advance to input buffer
  */
-START_TEST(test_input_buffer_without_separator)
-{
+START_TEST(test_input_buffer_without_separator) {
     void *ctx = talloc_new(NULL);
 
     // Create render context

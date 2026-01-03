@@ -1,12 +1,13 @@
 #include "agent.h"
 
+#include "config.h"
 #include "db/agent.h"
+#include "db/agent_row.h"
 #include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
-#include "openai/client.h"
-#include "openai/client_multi.h"
 #include "panic.h"
+#include "providers/provider.h"
 #include "scrollback.h"
 #include "shared.h"
 #include "uuid.h"
@@ -16,7 +17,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
+
+// Forward declarations to avoid type conflicts during migration
+typedef struct ik_provider ik_provider_t;
+extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
 
 static int agent_destructor(ik_agent_ctx_t *agent)
 {
@@ -46,6 +52,12 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->repl = NULL;  // Set by caller after creation
     agent->created_at = time(NULL);
 
+    // Initialize provider configuration (set by ik_agent_apply_defaults)
+    agent->provider = NULL;
+    agent->model = NULL;
+    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->provider_instance = NULL;
+
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
     int32_t term_cols = (shared->term != NULL) ? shared->term->screen_cols : 80;     // LCOV_EXCL_BR_LINE
@@ -65,13 +77,13 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->message_capacity = 0;
     agent->marks = NULL;
     agent->mark_count = 0;
 
     // Initialize LLM interaction state (per-agent)
-    agent->multi = ik_openai_multi_create(agent).ok;  // Created immediately for event loop
-    if (agent->multi == NULL) PANIC("Failed to create curl_multi handle");  // LCOV_EXCL_BR_LINE
     agent->curl_still_running = 0;
     agent->state = IK_AGENT_STATE_IDLE;
     agent->assistant_response = NULL;
@@ -79,7 +91,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->http_error_message = NULL;
     agent->response_model = NULL;
     agent->response_finish_reason = NULL;
-    agent->response_completion_tokens = 0;
+    agent->response_input_tokens = 0;
+    agent->response_output_tokens = 0;
+    agent->response_thinking_tokens = 0;
 
     // Initialize spinner state (per-agent - embedded in agent struct)
     agent->spinner_state.frame_index = 0;
@@ -102,9 +116,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
-        &agent->input_buffer_visible,
-        &agent->input_text,
-        &agent->input_text_len);
+                                               &agent->input_buffer_visible,
+                                               &agent->input_text,
+                                               &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
@@ -115,6 +129,11 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize viewport offset
     agent->viewport_offset = 0;
+
+    // Initialize pending thinking fields
+    agent->pending_thinking_text = NULL;
+    agent->pending_thinking_signature = NULL;
+    agent->pending_redacted_data = NULL;
 
     // Initialize tool execution state
     agent->pending_tool_call = NULL;
@@ -163,6 +182,12 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->shared = shared;
     agent->repl = NULL;  // Set by caller after restore
 
+    // Initialize provider configuration (populated by ik_agent_restore_from_row)
+    agent->provider = NULL;
+    agent->model = NULL;
+    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->provider_instance = NULL;
+
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
     int32_t term_cols = (shared->term != NULL) ? shared->term->screen_cols : 80;     // LCOV_EXCL_BR_LINE
@@ -182,13 +207,13 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->completion = NULL;  // Created on Tab press, destroyed on completion
 
     // Initialize conversation state (per-agent)
-    agent->conversation = ik_openai_conversation_create(agent);
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->message_capacity = 0;
     agent->marks = NULL;
     agent->mark_count = 0;
 
     // Initialize LLM interaction state (per-agent)
-    agent->multi = ik_openai_multi_create(agent).ok;  // Created immediately for event loop
-    if (agent->multi == NULL) PANIC("Failed to create curl_multi handle");  // LCOV_EXCL_BR_LINE
     agent->curl_still_running = 0;
     agent->state = IK_AGENT_STATE_IDLE;
     agent->assistant_response = NULL;
@@ -196,7 +221,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->http_error_message = NULL;
     agent->response_model = NULL;
     agent->response_finish_reason = NULL;
-    agent->response_completion_tokens = 0;
+    agent->response_input_tokens = 0;
+    agent->response_output_tokens = 0;
+    agent->response_thinking_tokens = 0;
 
     // Initialize spinner state (per-agent - embedded in agent struct)
     agent->spinner_state.frame_index = 0;
@@ -219,9 +246,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
-        &agent->input_buffer_visible,
-        &agent->input_text,
-        &agent->input_text_len);
+                                               &agent->input_buffer_visible,
+                                               &agent->input_text,
+                                               &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
@@ -259,88 +286,10 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
 res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
 {
-    assert(child != NULL);   // LCOV_EXCL_BR_LINE
-    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
-    assert(child->conversation != NULL);   // LCOV_EXCL_BR_LINE
-    assert(parent->conversation != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Copy each message from parent to child
-    for (size_t i = 0; i < parent->conversation->message_count; i++) {
-        ik_msg_t *src_msg = parent->conversation->messages[i];
-
-        // Create a new message with copied content
-        ik_msg_t *new_msg = ik_openai_msg_create(child->conversation, src_msg->kind, src_msg->content);
-
-        // Copy data_json if present
-        if (src_msg->data_json != NULL) {
-            new_msg->data_json = talloc_strdup(new_msg, src_msg->data_json);
-            if (new_msg->data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        }
-
-        // Add to child's conversation
-        res_t add_res = ik_openai_conversation_add_msg(child->conversation, new_msg);
-        if (is_err(&add_res)) {     // LCOV_EXCL_BR_LINE
-            return add_res;     // LCOV_EXCL_LINE
-        }
-    }
-
-    return OK(NULL);
+    // Delegate to ik_agent_clone_messages which handles deep copying
+    return ik_agent_clone_messages(child, parent);
 }
 
-bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent)
-{
-    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
-    return agent->tool_thread_running;
-}
-
-// State transition functions (moved from repl.c)
-// These now operate on a specific agent instead of repl->current,
-// enabling proper multi-agent support.
-
-void ik_agent_transition_to_waiting_for_llm(ik_agent_ctx_t *agent)
-{
-    assert(agent != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    assert(agent->state == IK_AGENT_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    // Show spinner, hide input
-    agent->spinner_state.visible = true;
-    agent->input_buffer_visible = false;
-}
-
-void ik_agent_transition_to_idle(ik_agent_ctx_t *agent)
-{
-    assert(agent != NULL);   /* LCOV_EXCL_BR_LINE */
-
-    // Update state with mutex protection for thread safety
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    assert(agent->state == IK_AGENT_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
-    agent->state = IK_AGENT_STATE_IDLE;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    // Hide spinner, show input
-    agent->spinner_state.visible = false;
-    agent->input_buffer_visible = true;
-}
-
-void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
-{
-    assert(agent != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    assert(agent->state == IK_AGENT_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-}
-
-void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent)
-{
-    assert(agent != NULL); /* LCOV_EXCL_BR_LINE */
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    assert(agent->state == IK_AGENT_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-}
+// State transition functions moved to agent_state.c
+// Provider and configuration functions moved to agent_provider.c
+// Message management functions moved to agent_messages.c

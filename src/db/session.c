@@ -4,6 +4,7 @@
 
 #include "../error.h"
 #include "../panic.h"
+#include "../tmp_ctx.h"
 #include "../wrapper.h"
 
 #include <assert.h>
@@ -20,8 +21,7 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
     assert(session_id_out != NULL); // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Insert new session and return its ID
     const char *query = "INSERT INTO sessions DEFAULT VALUES RETURNING id";
@@ -57,8 +57,7 @@ res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
     assert(session_id_out != NULL); // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for most recent active session (ended_at IS NULL)
     // Order by started_at DESC, then id DESC for tiebreaker (within same transaction)
@@ -98,8 +97,7 @@ res_t ik_db_session_end(ik_db_ctx_t *db_ctx, int64_t session_id)
     assert(session_id > 0);   // LCOV_EXCL_BR_LINE
 
     // Create temporary context for query result
-    TALLOC_CTX *tmp = talloc_new(NULL);
-    if (tmp == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Update session to set ended_at = NOW()
     const char *query = "UPDATE sessions SET ended_at = NOW() WHERE id = $1";

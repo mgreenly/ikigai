@@ -89,7 +89,6 @@ START_TEST(test_render_mark_yyjson_get_str_returns_null) {
 }
 
 END_TEST
-
 // Test: Render mark event when scrollback append fails
 // This tests the error handling at lines 85-87 in event_render.c
 START_TEST(test_render_mark_scrollback_append_fails) {
@@ -120,6 +119,7 @@ static Suite *event_render_edge_cases_suite(void)
     Suite *s = suite_create("Event Render Edge Cases");
 
     TCase *tc_mocked = tcase_create("Mocked Behavior");
+    tcase_set_timeout(tc_mocked, 30);
     tcase_add_unchecked_fixture(tc_mocked, NULL, reset_mocks);
     tcase_add_test(tc_mocked, test_render_mark_yyjson_get_str_returns_null);
     tcase_add_test(tc_mocked, test_render_mark_scrollback_append_fails);

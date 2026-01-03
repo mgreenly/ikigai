@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-size_t ik_ansi_skip_csi(const char *text, size_t len, size_t pos) {
+size_t ik_ansi_skip_csi(const char *text, size_t len, size_t pos)
+{
     // Check if we have enough space for ESC + '['
     if (pos + 1 >= len) {
         return 0;
@@ -45,10 +46,11 @@ size_t ik_ansi_skip_csi(const char *text, size_t len, size_t pos) {
     return 0;
 }
 
-size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color) {
+size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color)
+{
     // Format: \x1b[38;5;<color>m
     // Use snprintf to format the sequence
-    int32_t written = snprintf(buf, buf_size, "\x1b[38;5;%"PRIu8"m", color);
+    int32_t written = snprintf(buf, buf_size, "\x1b[38;5;%" PRIu8 "m", color);
 
     // snprintf returns negative on error
     if (written < 0) { // LCOV_EXCL_BR_LINE
@@ -67,7 +69,8 @@ size_t ik_ansi_fg_256(char *buf, size_t buf_size, uint8_t color) {
 // Global color state
 static bool g_colors_enabled = true;
 
-void ik_ansi_init(void) {
+void ik_ansi_init(void)
+{
     // Start with colors enabled
     g_colors_enabled = true;
 
@@ -87,6 +90,7 @@ void ik_ansi_init(void) {
     }
 }
 
-bool ik_ansi_colors_enabled(void) {
+bool ik_ansi_colors_enabled(void)
+{
     return g_colors_enabled;
 }

@@ -24,11 +24,11 @@ static int compare_scores(const void *a, const void *b)
 }
 
 ik_fzy_result_t *ik_fzy_filter(TALLOC_CTX *ctx,
-                                const char **candidates,
-                                size_t candidate_count,
-                                const char *search,
-                                size_t max_results,
-                                size_t *count_out)
+                               const char **candidates,
+                               size_t candidate_count,
+                               const char *search,
+                               size_t max_results,
+                               size_t *count_out)
 {
     assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(candidates != NULL);  // LCOV_EXCL_BR_LINE

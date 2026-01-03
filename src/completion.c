@@ -15,7 +15,6 @@
 // Maximum number of completion suggestions to return
 #define MAX_COMPLETIONS 15
 
-
 // Argument provider function type
 typedef struct {
     const char **args;
@@ -25,27 +24,64 @@ typedef struct {
 /**
  * Provide arguments for /model command
  *
- * Returns a hardcoded list of available models.
+ * Returns a list of available models from all providers.
  */
 static arg_provider_result_t provide_model_args(TALLOC_CTX *ctx, ik_repl_ctx_t *repl)
 {
     (void)ctx;   // Unused - using static array
     (void)repl;  // Unused - using static array
 
+    // Complete list of models from all providers
     static const char *model_list[] = {
-        "claude-opus-4-5",
+        // Anthropic
+        "claude-haiku-4-5",
         "claude-sonnet-4-5",
+        "claude-opus-4-5",
+        // OpenAI
+        "gpt-4",
+        "gpt-4-turbo",
         "gpt-4o",
         "gpt-4o-mini",
+        "gpt-3.5-turbo",
+        "gpt-5",
         "gpt-5-mini",
+        "gpt-5-nano",
         "o1",
         "o1-mini",
-        "o3-mini"
+        "o1-preview",
+        "o3-mini",
+        // Google
+        "gemini-2.5-flash-lite",
+        "gemini-3.0-flash",
+        "gemini-3.0-pro"
     };
 
     arg_provider_result_t result;
     result.args = model_list;
     result.count = sizeof(model_list) / sizeof(model_list[0]);
+    return result;
+}
+
+/**
+ * Provide thinking level arguments for /model command
+ *
+ * Returns thinking levels: none, low, med, high
+ */
+static arg_provider_result_t provide_thinking_args(TALLOC_CTX *ctx, ik_repl_ctx_t *repl)
+{
+    (void)ctx;   // Unused - using static array
+    (void)repl;  // Unused - using static array
+
+    static const char *thinking_levels[] = {
+        "none",
+        "low",
+        "med",
+        "high"
+    };
+
+    arg_provider_result_t result;
+    result.args = thinking_levels;
+    result.count = sizeof(thinking_levels) / sizeof(thinking_levels[0]);
     return result;
 }
 
@@ -105,7 +141,7 @@ static arg_provider_result_t provide_rewind_args(TALLOC_CTX *ctx, ik_repl_ctx_t 
 }
 
 ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
-                                                    const char *prefix)
+                                                   const char *prefix)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(prefix != NULL);    // LCOV_EXCL_BR_LINE
@@ -158,33 +194,6 @@ ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
     return comp;
 }
 
-void ik_completion_clear(ik_completion_t *completion)
-{
-    assert(completion != NULL);     // LCOV_EXCL_BR_LINE
-
-    // Reset all state fields to indicate no active completion
-    completion->count = 0;
-    completion->current = 0;
-
-    // Free and clear candidate array
-    if (completion->candidates != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->candidates);
-        completion->candidates = NULL;
-    }
-
-    // Free and clear prefix
-    if (completion->prefix != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->prefix);
-        completion->prefix = NULL;
-    }
-
-    // Free and clear original_input if it exists
-    if (completion->original_input != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(completion->original_input);
-        completion->original_input = NULL;
-    }
-}
-
 const char *ik_completion_get_current(const ik_completion_t *comp)
 {
     assert(comp != NULL);  // LCOV_EXCL_BR_LINE
@@ -215,27 +224,9 @@ void ik_completion_prev(ik_completion_t *comp)
     }
 }
 
-bool ik_completion_matches_prefix(const ik_completion_t *comp,
-                                   const char *current_input)
-{
-    assert(comp != NULL);          // LCOV_EXCL_BR_LINE
-    assert(current_input != NULL); // LCOV_EXCL_BR_LINE
-
-    size_t prefix_len = strlen(comp->prefix);
-    size_t input_len = strlen(current_input);
-
-    // Current input must be at least as long as the prefix
-    if (input_len < prefix_len) {     // LCOV_EXCL_BR_LINE
-        return false;
-    }
-
-    // Check if current input starts with the stored prefix
-    return strncmp(current_input, comp->prefix, prefix_len) == 0;     // LCOV_EXCL_BR_LINE
-}
-
 ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
-                                                     ik_repl_ctx_t *repl,
-                                                     const char *input)
+                                                    ik_repl_ctx_t *repl,
+                                                    const char *input)
 {
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(repl != NULL);   // LCOV_EXCL_BR_LINE
@@ -269,7 +260,17 @@ ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
     arg_provider_result_t provider_result;
 
     if (strcmp(cmd_name, "model") == 0) {
-        provider_result = provide_model_args(ctx, repl);
+        // Check if we're completing thinking level (after "/")
+        const char *slash = strchr(arg_prefix, '/');
+        if (slash != NULL) {
+            // Complete thinking level after slash
+            provider_result = provide_thinking_args(ctx, repl);
+            // Update arg_prefix to start after the slash
+            arg_prefix = slash + 1;
+        } else {
+            // Complete model name
+            provider_result = provide_model_args(ctx, repl);
+        }
     } else if (strcmp(cmd_name, "debug") == 0) {
         provider_result = provide_debug_args(ctx, repl);
     } else if (strcmp(cmd_name, "rewind") == 0) {

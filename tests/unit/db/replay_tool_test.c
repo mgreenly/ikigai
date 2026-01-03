@@ -149,8 +149,7 @@ START_TEST(test_replay_tool_call_message) {
 }
 END_TEST
 // Test: Replay session with tool_result, verify in context
-START_TEST(test_replay_tool_result_message)
-{
+START_TEST(test_replay_tool_result_message) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -181,8 +180,7 @@ START_TEST(test_replay_tool_result_message)
 
 END_TEST
 // Test: User → tool_call → tool_result → assistant sequence
-START_TEST(test_replay_full_tool_conversation)
-{
+START_TEST(test_replay_full_tool_conversation) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -225,8 +223,7 @@ START_TEST(test_replay_full_tool_conversation)
 
 END_TEST
 // Test: Verify data_json is preserved for serialization
-START_TEST(test_replay_tool_message_preserves_data_json)
-{
+START_TEST(test_replay_tool_message_preserves_data_json) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -236,7 +233,8 @@ START_TEST(test_replay_tool_message_preserves_data_json)
     // Insert tool_call with complex data_json
     const char *complex_data =
         "{\"id\":\"call_xyz\",\"type\":\"function\",\"function\":{\"name\":\"grep\",\"arguments\":\"{\\\"pattern\\\":\\\"TODO\\\",\\\"path\\\":\\\"src/\\\"}\"}}";
-    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")", complex_data);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_call", "grep(pattern=\"TODO\", path=\"src/\")",
+                               complex_data);
     ck_assert(is_ok(&res));
 
     // Load and replay
@@ -256,8 +254,7 @@ START_TEST(test_replay_tool_message_preserves_data_json)
 
 END_TEST
 // Test: Session with multiple tool call/result pairs
-START_TEST(test_replay_multiple_tool_calls)
-{
+START_TEST(test_replay_multiple_tool_calls) {
     SKIP_IF_NO_DB();
 
     // Insert clear first
@@ -321,6 +318,7 @@ static Suite *replay_tool_suite(void)
     Suite *s = suite_create("Replay Tool Messages");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

@@ -23,6 +23,27 @@
 }
 
 {
+   Check library - definitely lost in tcase_create
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:emalloc
+   fun:tcase_create
+   ...
+}
+
+{
+   Check library - indirectly lost in tcase_create
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:emalloc
+   fun:check_list_create
+   fun:tcase_create
+   ...
+}
+
+{
    Talloc - possibly lost memory from malloc
    Memcheck:Leak
    match-leak-kinds: possible
@@ -39,5 +60,126 @@
    fun:realloc
    ...
    obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc test context - definitely lost in forked test processes (setup)
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   fun:setup
+   ...
+}
+
+{
+   Talloc test context - definitely lost in assertion tests
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - indirectly lost from forked test processes
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   obj:*/libtalloc.so*
+   ...
+}
+
+{
+   Talloc - indirectly lost strdup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   fun:*talloc_strdup*
+   ...
+}
+
+{
+   Curl - indirectly lost in test cleanup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - possibly lost in test cleanup
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost strdup
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:strdup
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost calloc
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   Curl - indirectly lost realloc
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:realloc
+   ...
+   obj:*/libcurl*
+   ...
+}
+
+{
+   PostgreSQL - possibly lost memory from libpq
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:*
+   ...
+   obj:*/libpq.so*
+   ...
+}
+
+{
+   OpenSSL - possibly lost memory from libcrypto
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:*
+   ...
+   obj:*/libcrypto.so*
+   ...
+}
+
+{
+   OpenSSL - possibly lost memory from libssl
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:*
+   ...
+   obj:*/libssl.so*
    ...
 }

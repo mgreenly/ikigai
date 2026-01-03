@@ -4,6 +4,7 @@
  */
 
 #include "../../../src/history.h"
+#include "../../../src/history_io.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
@@ -64,8 +65,7 @@ static void teardown(void)
 }
 
 // Test: Creates .ikigai directory when it doesn't exist
-START_TEST(test_history_ensure_directory_creates)
-{
+START_TEST(test_history_ensure_directory_creates) {
     // Verify directory doesn't exist
     struct stat st;
     ck_assert_int_eq(stat(".ikigai", &st), -1);
@@ -84,10 +84,8 @@ START_TEST(test_history_ensure_directory_creates)
     ck_assert_uint_eq(mode, 0755);
 }
 END_TEST
-
 // Test: Succeeds when directory already exists (idempotent)
-START_TEST(test_history_ensure_directory_exists)
-{
+START_TEST(test_history_ensure_directory_exists) {
     // Create directory first
     ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
 
@@ -102,11 +100,10 @@ START_TEST(test_history_ensure_directory_exists)
     ck_assert_int_eq(stat(".ikigai", &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
 }
-END_TEST
 
+END_TEST
 // Test: Handle permission denied error
-START_TEST(test_history_ensure_directory_permission_denied)
-{
+START_TEST(test_history_ensure_directory_permission_denied) {
     // Mock mkdir to fail with EACCES
     // We'll do this by creating a file at .ikigai path (not a directory)
     FILE *f = fopen(".ikigai", "w");
@@ -122,12 +119,14 @@ START_TEST(test_history_ensure_directory_permission_denied)
     ck_assert(strstr(error_message(res.err), ".ikigai") != NULL);
     ck_assert(strstr(error_message(res.err), "Failed") != NULL);
 }
+
 END_TEST
 
 static Suite *history_directory_suite(void)
 {
     Suite *s = suite_create("History Directory");
     TCase *tc = tcase_create("directory");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_history_ensure_directory_creates);

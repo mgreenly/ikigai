@@ -8,12 +8,16 @@
 #include "wrapper_base.h"
 
 #ifdef NDEBUG
+#include "agent.h"
 #include "db/connection.h"
 #include "db/message.h"
 #include "config.h"
+#include "providers/request.h"
+#include "providers/common/http_multi.h"
 #include "scrollback.h"
 #include "msg.h"
-#include "openai/client.h"
+#include "repl.h"
+#include "logger.h"
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
@@ -35,9 +39,58 @@ MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, si
     return ik_scrollback_append_line((ik_scrollback_t *)scrollback, text, length);
 }
 
-MOCKABLE res_t ik_openai_conversation_add_msg_(ik_openai_conversation_t *conv, ik_msg_t *msg)
+MOCKABLE res_t ik_repl_render_frame_(void *repl)
 {
-    return ik_openai_conversation_add_msg(conv, msg);
+    return ik_repl_render_frame((ik_repl_ctx_t *)repl);
+}
+
+MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out)
+{
+    return ik_agent_get_provider((ik_agent_ctx_t *)agent, (ik_provider_t **)provider_out);
+}
+
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+}
+
+MOCKABLE res_t ik_http_multi_create_(void *parent, void **out)
+{
+    res_t r = ik_http_multi_create(parent);
+    if (is_ok(&r)) {
+        *out = r.ok;
+    }
+    return r;
+}
+
+MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger)
+{
+    ik_http_multi_info_read((ik_http_multi_t *)http_multi, (ik_logger_t *)logger);
+}
+
+MOCKABLE void ik_agent_start_tool_execution_(void *agent)
+{
+    ik_agent_start_tool_execution((ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent)
+{
+    return ik_agent_should_continue_tool_loop((const ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent)
+{
+    ik_repl_submit_tool_loop_continuation((ik_repl_ctx_t *)repl, (ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg)
+{
+    return ik_agent_add_message((ik_agent_ctx_t *)agent, (ik_message_t *)msg);
+}
+
+MOCKABLE void ik_agent_transition_to_idle_(void *agent)
+{
+    ik_agent_transition_to_idle((ik_agent_ctx_t *)agent);
 }
 
 #else
@@ -53,7 +106,16 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
                                      const char *content,
                                      const char *data_json);
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
-MOCKABLE res_t ik_openai_conversation_add_msg_(void *conv, void *msg);
+MOCKABLE res_t ik_repl_render_frame_(void *repl);
+MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out);
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out);
+MOCKABLE res_t ik_http_multi_create_(void *parent, void **out);
+MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
+MOCKABLE void ik_agent_start_tool_execution_(void *agent);
+MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent);
+MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent);
+MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg);
+MOCKABLE void ik_agent_transition_to_idle_(void *agent);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

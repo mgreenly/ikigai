@@ -12,7 +12,6 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -44,9 +43,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -55,7 +52,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "recipient-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -161,8 +158,7 @@ static void suite_teardown(void)
 }
 
 // Test: delete-mail removes message from database
-START_TEST(test_delete_mail_removes_message)
-{
+START_TEST(test_delete_mail_removes_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -178,8 +174,8 @@ START_TEST(test_delete_mail_removes_message)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid,
-                                             "Message to be deleted");
+                                            repl->current->uuid,
+                                            "Message to be deleted");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -205,10 +201,8 @@ START_TEST(test_delete_mail_removes_message)
     ck_assert_uint_eq(count, 0);
 }
 END_TEST
-
 // Test: confirmation message displayed
-START_TEST(test_delete_mail_shows_confirmation)
-{
+START_TEST(test_delete_mail_shows_confirmation) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -224,8 +218,8 @@ START_TEST(test_delete_mail_shows_confirmation)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid,
-                                             "Another message");
+                                            repl->current->uuid,
+                                            "Another message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -237,11 +231,10 @@ START_TEST(test_delete_mail_shows_confirmation)
     // Verify confirmation in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: non-existent ID shows error
-START_TEST(test_delete_mail_nonexistent_id)
-{
+START_TEST(test_delete_mail_nonexistent_id) {
     // Try to delete non-existent message
     res_t res = ik_cmd_delete_mail(test_ctx, repl, "999999");
     ck_assert(is_ok(&res));
@@ -249,11 +242,10 @@ START_TEST(test_delete_mail_nonexistent_id)
     // Verify error message in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: ID from different agent (not recipient) shows error
-START_TEST(test_delete_mail_different_agent)
-{
+START_TEST(test_delete_mail_different_agent) {
     // Create sender and another recipient
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -281,8 +273,8 @@ START_TEST(test_delete_mail_different_agent)
 
     // Send message to other agent
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             other->uuid,
-                                             "Message for other agent");
+                                            other->uuid,
+                                            "Message for other agent");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -302,11 +294,10 @@ START_TEST(test_delete_mail_different_agent)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: deleted mail no longer appears in /check-mail
-START_TEST(test_delete_mail_not_in_check_mail)
-{
+START_TEST(test_delete_mail_not_in_check_mail) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -322,15 +313,15 @@ START_TEST(test_delete_mail_not_in_check_mail)
 
     // Create two messages
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid,
-                                              "First message");
+                                             repl->current->uuid,
+                                             "First message");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid,
-                                              "Second message");
+                                             repl->current->uuid,
+                                             "Second message");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -353,11 +344,10 @@ START_TEST(test_delete_mail_not_in_check_mail)
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(count, 1);
 }
-END_TEST
 
+END_TEST
 // Test: deleted mail cannot be read
-START_TEST(test_delete_mail_cannot_read_after)
-{
+START_TEST(test_delete_mail_cannot_read_after) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -373,8 +363,8 @@ START_TEST(test_delete_mail_cannot_read_after)
 
     // Create message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid,
-                                             "Message to delete and then try to read");
+                                            repl->current->uuid,
+                                            "Message to delete and then try to read");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg);
     ck_assert(is_ok(&res));
@@ -393,11 +383,10 @@ START_TEST(test_delete_mail_cannot_read_after)
     // Verify error appears in scrollback
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: delete by position with multiple messages
-START_TEST(test_delete_by_position_multi_message)
-{
+START_TEST(test_delete_by_position_multi_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(sender);
@@ -413,16 +402,16 @@ START_TEST(test_delete_by_position_multi_message)
 
     // Create first message
     ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid,
-                                              "First message");
+                                             repl->current->uuid,
+                                             "First message");
     ck_assert_ptr_nonnull(msg1);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg1);
     ck_assert(is_ok(&res));
 
     // Create second message
     ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, sender->uuid,
-                                              repl->current->uuid,
-                                              "Second message");
+                                             repl->current->uuid,
+                                             "Second message");
     ck_assert_ptr_nonnull(msg2);
     res = ik_db_mail_insert(db, repl->shared->session_id, msg2);
     ck_assert(is_ok(&res));
@@ -451,12 +440,14 @@ START_TEST(test_delete_by_position_multi_message)
     // Verify the remaining message is NOT the one we deleted
     ck_assert_str_ne(inbox[0]->body, position_2_body);
 }
+
 END_TEST
 
 static Suite *delete_mail_suite(void)
 {
     Suite *s = suite_create("Delete Mail Command");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

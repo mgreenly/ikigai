@@ -35,8 +35,7 @@ START_TEST(test_debug_mgr_create) {
 }
 END_TEST
 /* Test: Add pipe to manager */
-START_TEST(test_debug_mgr_add_pipe)
-{
+START_TEST(test_debug_mgr_add_pipe) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
@@ -64,8 +63,7 @@ START_TEST(test_debug_mgr_add_pipe)
 
 END_TEST
 /* Test: Add multiple pipes (verify array growth) */
-START_TEST(test_debug_mgr_add_multiple_pipes)
-{
+START_TEST(test_debug_mgr_add_multiple_pipes) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager */
@@ -101,8 +99,7 @@ START_TEST(test_debug_mgr_add_multiple_pipes)
 
 END_TEST
 /* Test: Add pipes to fd_set */
-START_TEST(test_debug_mgr_add_to_fdset)
-{
+START_TEST(test_debug_mgr_add_to_fdset) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add 3 pipes */
@@ -147,8 +144,7 @@ START_TEST(test_debug_mgr_add_to_fdset)
 
 END_TEST
 /* Test: Handle ready pipes with debug_enabled=true */
-START_TEST(test_debug_mgr_handle_ready_enabled)
-{
+START_TEST(test_debug_mgr_handle_ready_enabled) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -201,8 +197,7 @@ START_TEST(test_debug_mgr_handle_ready_enabled)
 
 END_TEST
 /* Test: Handle ready pipes with debug_enabled=false */
-START_TEST(test_debug_mgr_handle_ready_disabled)
-{
+START_TEST(test_debug_mgr_handle_ready_disabled) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -247,8 +242,7 @@ START_TEST(test_debug_mgr_handle_ready_disabled)
 
 END_TEST
 /* Test: Handle multiple pipes but only some are ready */
-START_TEST(test_debug_mgr_handle_ready_partial)
-{
+START_TEST(test_debug_mgr_handle_ready_partial) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add 3 pipes */
@@ -338,8 +332,7 @@ START_TEST(test_debug_mgr_add_pipe_creation_failure) {
 
 END_TEST
 /* Test: add_to_fdset when max_fd is already larger than pipe fds */
-START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
-{
+START_TEST(test_debug_mgr_add_to_fdset_max_fd_large) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -371,8 +364,7 @@ START_TEST(test_debug_mgr_add_to_fdset_max_fd_large)
 
 END_TEST
 /* Test: handle_ready when pipe has data but no complete line */
-START_TEST(test_debug_mgr_handle_ready_no_newline)
-{
+START_TEST(test_debug_mgr_handle_ready_no_newline) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -413,8 +405,7 @@ START_TEST(test_debug_mgr_handle_ready_no_newline)
 
 END_TEST
 /* Test: handle_ready when pipe has no data (tests lines==NULL branch) */
-START_TEST(test_debug_mgr_handle_ready_no_data)
-{
+START_TEST(test_debug_mgr_handle_ready_no_data) {
     void *ctx = talloc_new(NULL);
 
     /* Create manager and add pipe */
@@ -448,8 +439,7 @@ START_TEST(test_debug_mgr_handle_ready_no_data)
 
 END_TEST
 /* Test: Destructor properly cleans up read_fd */
-START_TEST(test_debug_pipe_destructor)
-{
+START_TEST(test_debug_pipe_destructor) {
     void *ctx = talloc_new(NULL);
 
     /* Create a pipe */
@@ -476,6 +466,7 @@ static Suite *debug_pipe_manager_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Manager");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_debug_mgr_create);

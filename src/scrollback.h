@@ -230,9 +230,9 @@ res_t ik_scrollback_copy_from(ik_scrollback_t *dest, const ik_scrollback_t *src)
  * - byte_offset_out must not be NULL
  */
 res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
-                                                    size_t line_index,
-                                                    size_t display_col,
-                                                    size_t *byte_offset_out);
+                                                   size_t line_index,
+                                                   size_t display_col,
+                                                   size_t *byte_offset_out);
 
 /**
  * @brief Calculate starting byte offset for rendering from a row offset
@@ -250,9 +250,9 @@ res_t ik_scrollback_get_byte_offset_at_display_col(ik_scrollback_t *scrollback,
  * - scrollback must not be NULL
  */
 size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
-                                              size_t line_index,
-                                              size_t terminal_width,
-                                              size_t start_row_offset);
+                                             size_t line_index,
+                                             size_t terminal_width,
+                                             size_t start_row_offset);
 
 /**
  * @brief Calculate ending byte offset for rendering a row range
@@ -273,10 +273,10 @@ size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
  * - is_line_end_out must not be NULL
  */
 size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
-                                            size_t line_index,
-                                            size_t terminal_width,
-                                            size_t end_row_offset,
-                                            bool *is_line_end_out);
+                                           size_t line_index,
+                                           size_t terminal_width,
+                                           size_t end_row_offset,
+                                           bool *is_line_end_out);
 
 /**
  * @brief Calculate byte range for rendering physical rows within a logical line
@@ -301,12 +301,12 @@ size_t ik_scrollback_calc_end_byte_for_row(ik_scrollback_t *scrollback,
  * - is_line_end_out must not be NULL
  */
 void ik_scrollback_calc_byte_range_for_rows(ik_scrollback_t *scrollback,
-                                             size_t line_index,
-                                             size_t terminal_width,
-                                             size_t start_row_offset,
-                                             size_t row_count,
-                                             size_t *start_byte_out,
-                                             size_t *end_byte_out,
-                                             bool *is_line_end_out);
+                                            size_t line_index,
+                                            size_t terminal_width,
+                                            size_t start_row_offset,
+                                            size_t row_count,
+                                            size_t *start_byte_out,
+                                            size_t *end_byte_out,
+                                            bool *is_line_end_out);
 
 #endif // IKIGAI_SCROLLBACK_H

@@ -4,8 +4,7 @@
 #include "../../../src/scrollback.h"
 
 // Test 1: Column 0 returns byte offset 0
-START_TEST(test_byte_offset_at_col_zero)
-{
+START_TEST(test_byte_offset_at_col_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(sb, "Hello World", 11);
@@ -18,10 +17,8 @@ START_TEST(test_byte_offset_at_col_zero)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test 2: Column 5 of ASCII text returns byte 5
-START_TEST(test_byte_offset_ascii)
-{
+START_TEST(test_byte_offset_ascii) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(sb, "Hello World", 11);
@@ -33,11 +30,10 @@ START_TEST(test_byte_offset_ascii)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 3: UTF-8 multi-byte characters (e is 2 bytes, 1 column)
-START_TEST(test_byte_offset_utf8_multibyte)
-{
+START_TEST(test_byte_offset_utf8_multibyte) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     // "cafe" = 5 bytes: c(1) a(1) f(1) e(2) = 4 display cols
@@ -51,11 +47,10 @@ START_TEST(test_byte_offset_utf8_multibyte)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 4: Wide characters (CJK: 3 bytes, 2 columns each)
-START_TEST(test_byte_offset_wide_chars)
-{
+START_TEST(test_byte_offset_wide_chars) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     // (nihon) = 9 bytes, 6 display cols (each char is 3 bytes, 2 cols)
@@ -74,11 +69,10 @@ START_TEST(test_byte_offset_wide_chars)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 5: ANSI escape sequences are skipped (0 display width)
-START_TEST(test_byte_offset_with_ansi)
-{
+START_TEST(test_byte_offset_with_ansi) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     // "\x1b[31mHello\x1b[0m" = red "Hello" reset
@@ -98,11 +92,10 @@ START_TEST(test_byte_offset_with_ansi)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 6: Column beyond text length returns end of text
-START_TEST(test_byte_offset_beyond_text)
-{
+START_TEST(test_byte_offset_beyond_text) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(sb, "Short", 5);
@@ -115,11 +108,10 @@ START_TEST(test_byte_offset_beyond_text)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 7: Empty line returns 0
-START_TEST(test_byte_offset_empty_line)
-{
+START_TEST(test_byte_offset_empty_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(sb, "", 0);
@@ -131,11 +123,10 @@ START_TEST(test_byte_offset_empty_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 8: Invalid line index returns error
-START_TEST(test_byte_offset_invalid_line)
-{
+START_TEST(test_byte_offset_invalid_line) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     ik_scrollback_append_line(sb, "Test", 4);
@@ -146,11 +137,10 @@ START_TEST(test_byte_offset_invalid_line)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test 9: Mixed content (ASCII + ANSI + UTF-8)
-START_TEST(test_byte_offset_mixed_content)
-{
+START_TEST(test_byte_offset_mixed_content) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
     // "Hi \x1b[1mWorld\x1b[0m" = "Hi " + ANSI(4) + "World" + ANSI(4)
@@ -165,12 +155,17 @@ START_TEST(test_byte_offset_mixed_content)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *scrollback_byte_offset_suite(void)
 {
     Suite *s = suite_create("Scrollback Byte Offset");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_byte_offset_at_col_zero);

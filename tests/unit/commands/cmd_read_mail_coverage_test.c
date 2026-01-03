@@ -12,7 +12,6 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/mail/msg.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -44,9 +43,7 @@ static void setup_repl(void)
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(test_ctx);
-
-    ik_cfg_t *cfg = talloc_zero(test_ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(test_ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     repl = talloc_zero(test_ctx, ik_repl_ctx_t);
@@ -55,7 +52,7 @@ static void setup_repl(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = sb;
-    agent->conversation = conv;
+
     agent->uuid = talloc_strdup(agent, "recipient-uuid-123");
     agent->name = NULL;
     agent->parent_uuid = NULL;
@@ -161,54 +158,50 @@ static void suite_teardown(void)
 }
 
 // Test: missing args shows error
-START_TEST(test_read_mail_missing_args)
-{
+START_TEST(test_read_mail_missing_args) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
 END_TEST
-
 // Test: empty args shows error
-START_TEST(test_read_mail_empty_args)
-{
+START_TEST(test_read_mail_empty_args) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, "");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (non-numeric) shows error
-START_TEST(test_read_mail_invalid_id_format)
-{
+START_TEST(test_read_mail_invalid_id_format) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, "abc");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (zero) shows error
-START_TEST(test_read_mail_invalid_id_zero)
-{
+START_TEST(test_read_mail_invalid_id_zero) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, "0");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
-END_TEST
 
+END_TEST
 // Test: invalid ID (negative) shows error
-START_TEST(test_read_mail_invalid_id_negative)
-{
+START_TEST(test_read_mail_invalid_id_negative) {
     res_t res = ik_cmd_read_mail(test_ctx, repl, "-5");
     ck_assert(is_ok(&res));
     ck_assert_uint_ge(ik_scrollback_get_line_count(repl->current->scrollback), 1);
 }
+
 END_TEST
 
 static Suite *read_mail_coverage_suite(void)
 {
     Suite *s = suite_create("Read Mail Command Coverage");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

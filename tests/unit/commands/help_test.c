@@ -10,7 +10,6 @@
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../../src/openai/client.h"
 #include "../../test_utils.h"
 
 #include <check.h>
@@ -33,12 +32,9 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ck_assert_ptr_nonnull(scrollback);
 
     // Create conversation (needed for mark/rewind commands)
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
-
 
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -49,14 +45,12 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-
-    agent->conversation = conv;
     r->current = agent;
 
     r->current->marks = NULL;
@@ -95,8 +89,7 @@ START_TEST(test_help_shows_header) {
 }
 END_TEST
 // Test: Help command includes all commands
-START_TEST(test_help_includes_all_commands)
-{
+START_TEST(test_help_includes_all_commands) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -111,8 +104,7 @@ START_TEST(test_help_includes_all_commands)
 
 END_TEST
 // Test: Help command lists clear
-START_TEST(test_help_lists_clear)
-{
+START_TEST(test_help_lists_clear) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -129,8 +121,7 @@ START_TEST(test_help_lists_clear)
 
 END_TEST
 // Test: Help command lists mark
-START_TEST(test_help_lists_mark)
-{
+START_TEST(test_help_lists_mark) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -147,8 +138,7 @@ START_TEST(test_help_lists_mark)
 
 END_TEST
 // Test: Help command lists rewind
-START_TEST(test_help_lists_rewind)
-{
+START_TEST(test_help_lists_rewind) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -165,8 +155,7 @@ START_TEST(test_help_lists_rewind)
 
 END_TEST
 // Test: Help command lists help (self-reference)
-START_TEST(test_help_lists_help)
-{
+START_TEST(test_help_lists_help) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -183,8 +172,7 @@ START_TEST(test_help_lists_help)
 
 END_TEST
 // Test: Help command lists model
-START_TEST(test_help_lists_model)
-{
+START_TEST(test_help_lists_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -201,8 +189,7 @@ START_TEST(test_help_lists_model)
 
 END_TEST
 // Test: Help command lists system
-START_TEST(test_help_lists_system)
-{
+START_TEST(test_help_lists_system) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
@@ -219,8 +206,7 @@ START_TEST(test_help_lists_system)
 
 END_TEST
 // Test: Help command with arguments (args should be ignored)
-START_TEST(test_help_with_arguments)
-{
+START_TEST(test_help_with_arguments) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help foo bar");
     ck_assert(is_ok(&res));
 
@@ -239,6 +225,7 @@ static Suite *commands_help_suite(void)
 {
     Suite *s = suite_create("Commands/Help");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

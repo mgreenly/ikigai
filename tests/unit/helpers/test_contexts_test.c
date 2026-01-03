@@ -112,25 +112,21 @@ static void reset_mocks(void)
 }
 
 // Test that test_cfg_create() returns valid config
-START_TEST(test_cfg_create_returns_valid_config)
-{
+START_TEST(test_cfg_create_returns_valid_config) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    ik_cfg_t *cfg = test_cfg_create(ctx);
+    ik_config_t *cfg = test_cfg_create(ctx);
 
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 100);
     ck_assert_ptr_null(cfg->db_connection_string);
-    ck_assert_ptr_null(cfg->openai_api_key);
 
     talloc_free(ctx);
 }
 END_TEST
-
 // Test that test_shared_ctx_create() succeeds
-START_TEST(test_shared_ctx_create_succeeds)
-{
+START_TEST(test_shared_ctx_create_succeeds) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -147,11 +143,10 @@ START_TEST(test_shared_ctx_create_succeeds)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test that test_repl_create() creates both contexts
-START_TEST(test_repl_create_creates_both_contexts)
-{
+START_TEST(test_repl_create_creates_both_contexts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -167,11 +162,10 @@ START_TEST(test_repl_create_creates_both_contexts)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test cleanup via talloc_free works
-START_TEST(test_cleanup_via_talloc_free)
-{
+START_TEST(test_cleanup_via_talloc_free) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -188,17 +182,16 @@ START_TEST(test_cleanup_via_talloc_free)
     int free_result = talloc_free(ctx);
     ck_assert_int_eq(free_result, 0);
 }
-END_TEST
 
+END_TEST
 // Test that test_shared_ctx_create_with_cfg() works
-START_TEST(test_shared_ctx_create_with_custom_cfg)
-{
+START_TEST(test_shared_ctx_create_with_custom_cfg) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     // Create custom config
-    ik_cfg_t *cfg = talloc_zero(ctx, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 250;
     cfg->openai_model = talloc_strdup(cfg, "custom-model");
@@ -214,6 +207,7 @@ START_TEST(test_shared_ctx_create_with_custom_cfg)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *test_contexts_suite(void)
@@ -221,6 +215,7 @@ static Suite *test_contexts_suite(void)
     Suite *s = suite_create("Test Contexts Helpers");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_cfg_create_returns_valid_config);
     tcase_add_test(tc_core, test_shared_ctx_create_succeeds);
     tcase_add_test(tc_core, test_repl_create_creates_both_contexts);

@@ -66,8 +66,7 @@ START_TEST(test_viewport_empty_scrollback) {
 }
 END_TEST
 /* Test: Viewport with small scrollback (both visible) */
-START_TEST(test_viewport_small_scrollback)
-{
+START_TEST(test_viewport_small_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with mocked terminal (24 rows)
@@ -128,8 +127,7 @@ START_TEST(test_viewport_small_scrollback)
 
 END_TEST
 /* Test: Viewport with large scrollback (scrollback overflows) */
-START_TEST(test_viewport_large_scrollback)
-{
+START_TEST(test_viewport_large_scrollback) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with small terminal (10 rows)
@@ -195,8 +193,7 @@ START_TEST(test_viewport_large_scrollback)
 
 END_TEST
 /* Test: Viewport offset clamping (don't scroll past top) */
-START_TEST(test_viewport_offset_clamping)
-{
+START_TEST(test_viewport_offset_clamping) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with terminal (10 rows)
@@ -253,8 +250,7 @@ START_TEST(test_viewport_offset_clamping)
 
 END_TEST
 /* Test: Viewport when terminal height equals input buffer height (no room for scrollback) */
-START_TEST(test_viewport_no_scrollback_room)
-{
+START_TEST(test_viewport_no_scrollback_room) {
     void *ctx = talloc_new(NULL);
 
     // Create REPL context with terminal that exactly matches input buffer height
@@ -325,6 +321,10 @@ static Suite *repl_viewport_suite(void)
     Suite *s = suite_create("REPL Viewport Calculation");
 
     TCase *tc_viewport = tcase_create("Viewport");
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
     tcase_set_timeout(tc_viewport, 30);
     tcase_add_test(tc_viewport, test_viewport_empty_scrollback);
     tcase_add_test(tc_viewport, test_viewport_small_scrollback);

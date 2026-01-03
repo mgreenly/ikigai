@@ -25,8 +25,7 @@ static void teardown(void)
 }
 
 // Test: Single match
-START_TEST(test_single_match)
-{
+START_TEST(test_single_match) {
     // "/cl" should match only "/clear"
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/cl");
     ck_assert_ptr_nonnull(comp);
@@ -36,10 +35,8 @@ START_TEST(test_single_match)
     ck_assert_str_eq(comp->prefix, "/cl");
 }
 END_TEST
-
 // Test: Multiple matches (sorted by score)
-START_TEST(test_multiple_matches_sorted)
-{
+START_TEST(test_multiple_matches_sorted) {
     // "/m" should match "mark" and "model" (sorted by fzy score, not alphabetically)
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);
@@ -62,20 +59,18 @@ START_TEST(test_multiple_matches_sorted)
     ck_assert_uint_eq(comp->current, 0);
     ck_assert_str_eq(comp->prefix, "/m");
 }
-END_TEST
 
+END_TEST
 // Test: No matches (returns NULL)
-START_TEST(test_no_matches)
-{
+START_TEST(test_no_matches) {
     // "/xyz" should match nothing
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/xyz");
     ck_assert_ptr_null(comp);
 }
-END_TEST
 
+END_TEST
 // Test: Empty prefix (just "/") matches all commands (up to max 10)
-START_TEST(test_empty_prefix_all_commands)
-{
+START_TEST(test_empty_prefix_all_commands) {
     // "/" should match all commands
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/");
     ck_assert_ptr_nonnull(comp);
@@ -83,7 +78,8 @@ START_TEST(test_empty_prefix_all_commands)
 
     // Verify all commands are present (order determined by fzy score, not alphabetical)
     bool found[15] = {false};
-    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail", "read-mail", "delete-mail", "filter-mail", "agents", "system"};
+    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail",
+                              "read-mail", "delete-mail", "filter-mail", "agents", "system"};
 
     for (size_t i = 0; i < comp->count; i++) {
         for (size_t j = 0; j < 15; j++) {
@@ -98,32 +94,29 @@ START_TEST(test_empty_prefix_all_commands)
         ck_assert(found[i]);
     }
 }
-END_TEST
 
+END_TEST
 // Test: Uppercase prefix (tests case handling in fzy)
-START_TEST(test_case_sensitive_matching)
-{
+START_TEST(test_case_sensitive_matching) {
     // With fzy, uppercase should still match (case-insensitive matching)
     // However, if no matches, that's also acceptable depending on fzy implementation
     ik_completion_create_for_commands(ctx, "/M");
     // Accept either matches or no matches - the important part is it doesn't crash
     // (either result is valid depending on fzy implementation)
 }
-END_TEST
 
+END_TEST
 // Test: Prefix matching only (non-prefix patterns don't match)
-START_TEST(test_fuzzy_matching)
-{
+START_TEST(test_fuzzy_matching) {
     // "ml" should NOT match "model" because "model" doesn't start with "ml"
     // Only prefix-based matching is supported for command completion
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/ml");
     ck_assert_ptr_null(comp);  // No prefix match, so returns NULL
 }
-END_TEST
 
+END_TEST
 // Test: Navigation - next with wraparound
-START_TEST(test_navigation_next_wraparound)
-{
+START_TEST(test_navigation_next_wraparound) {
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_ge(comp->count, 2);  // At least mark and model
@@ -149,11 +142,10 @@ START_TEST(test_navigation_next_wraparound)
     ck_assert_uint_eq(comp->current, 0);
     ck_assert_str_eq(ik_completion_get_current(comp), initial);
 }
-END_TEST
 
+END_TEST
 // Test: Navigation - prev with wraparound
-START_TEST(test_navigation_prev_wraparound)
-{
+START_TEST(test_navigation_prev_wraparound) {
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_ge(comp->count, 2);  // At least mark and model
@@ -182,11 +174,10 @@ START_TEST(test_navigation_prev_wraparound)
     ck_assert_uint_eq(comp->current, 0);
     ck_assert_str_eq(ik_completion_get_current(comp), initial);
 }
-END_TEST
 
+END_TEST
 // Test: Get current candidate
-START_TEST(test_get_current)
-{
+START_TEST(test_get_current) {
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
     ck_assert_ptr_nonnull(comp);
 
@@ -200,48 +191,10 @@ START_TEST(test_get_current)
     ck_assert_ptr_nonnull(current);
     ck_assert_str_eq(current, "model");
 }
+
 END_TEST
-
-// Test: Prefix matching validation - valid match
-START_TEST(test_prefix_matching_valid)
-{
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-
-    // "/mar" still starts with "/m"
-    ck_assert(ik_completion_matches_prefix(comp, "/mar"));
-
-    // "/model" still starts with "/m"
-    ck_assert(ik_completion_matches_prefix(comp, "/model"));
-
-    // Exact match
-    ck_assert(ik_completion_matches_prefix(comp, "/m"));
-}
-END_TEST
-
-// Test: Prefix matching validation - invalid match
-START_TEST(test_prefix_matching_invalid)
-{
-    ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/m");
-    ck_assert_ptr_nonnull(comp);
-
-    // "/h" does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "/h"));
-
-    // "/clear" does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "/clear"));
-
-    // Empty string does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, ""));
-
-    // "m" (no slash) does not start with "/m"
-    ck_assert(!ik_completion_matches_prefix(comp, "m"));
-}
-END_TEST
-
 // Test: Single character prefix
-START_TEST(test_single_char_prefix)
-{
+START_TEST(test_single_char_prefix) {
     // "/c" should match "clear" and "check-mail"
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/c");
     ck_assert_ptr_nonnull(comp);
@@ -250,22 +203,20 @@ START_TEST(test_single_char_prefix)
     ck_assert(strcmp(comp->candidates[0], "clear") == 0 || strcmp(comp->candidates[0], "check-mail") == 0);
     ck_assert(strcmp(comp->candidates[1], "clear") == 0 || strcmp(comp->candidates[1], "check-mail") == 0);
 }
-END_TEST
 
+END_TEST
 // Test: Exact command name as prefix
-START_TEST(test_exact_command_as_prefix)
-{
+START_TEST(test_exact_command_as_prefix) {
     // "/clear" should match "clear"
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/clear");
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_eq(comp->count, 1);
     ck_assert_str_eq(comp->candidates[0], "clear");
 }
-END_TEST
 
+END_TEST
 // Test: Navigation with single candidate
-START_TEST(test_navigation_single_candidate)
-{
+START_TEST(test_navigation_single_candidate) {
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/cl");
     ck_assert_ptr_nonnull(comp);
     ck_assert_uint_eq(comp->count, 1);
@@ -279,11 +230,10 @@ START_TEST(test_navigation_single_candidate)
     ik_completion_prev(comp);
     ck_assert_uint_eq(comp->current, 0);
 }
-END_TEST
 
+END_TEST
 // Test: Memory ownership (talloc child of context)
-START_TEST(test_memory_ownership)
-{
+START_TEST(test_memory_ownership) {
     void *test_ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(test_ctx);
 
@@ -295,12 +245,14 @@ START_TEST(test_memory_ownership)
     talloc_free(test_ctx);
     // If this doesn't crash, ownership is correct
 }
+
 END_TEST
 
 static Suite *completion_matching_suite(void)
 {
     Suite *s = suite_create("Completion Matching");
     TCase *tc = tcase_create("Core");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
@@ -313,8 +265,6 @@ static Suite *completion_matching_suite(void)
     tcase_add_test(tc, test_navigation_next_wraparound);
     tcase_add_test(tc, test_navigation_prev_wraparound);
     tcase_add_test(tc, test_get_current);
-    tcase_add_test(tc, test_prefix_matching_valid);
-    tcase_add_test(tc, test_prefix_matching_invalid);
     tcase_add_test(tc, test_single_char_prefix);
     tcase_add_test(tc, test_exact_command_as_prefix);
     tcase_add_test(tc, test_navigation_single_candidate);

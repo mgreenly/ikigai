@@ -6,8 +6,7 @@
 #include <time.h>
 
 // Test create allocates message
-START_TEST(test_msg_create_allocates_message)
-{
+START_TEST(test_msg_create_allocates_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -18,10 +17,8 @@ START_TEST(test_msg_create_allocates_message)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test fields copied correctly
-START_TEST(test_msg_create_copies_fields)
-{
+START_TEST(test_msg_create_copies_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -41,11 +38,10 @@ START_TEST(test_msg_create_copies_fields)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test timestamp set to current time
-START_TEST(test_msg_create_sets_timestamp)
-{
+START_TEST(test_msg_create_sets_timestamp) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -59,11 +55,10 @@ START_TEST(test_msg_create_sets_timestamp)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test read defaults to false
-START_TEST(test_msg_create_read_defaults_false)
-{
+START_TEST(test_msg_create_read_defaults_false) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -74,11 +69,10 @@ START_TEST(test_msg_create_read_defaults_false)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test id defaults to 0 (set on insert)
-START_TEST(test_msg_create_id_defaults_zero)
-{
+START_TEST(test_msg_create_id_defaults_zero) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -89,11 +83,10 @@ START_TEST(test_msg_create_id_defaults_zero)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test freed with talloc_free
-START_TEST(test_msg_freed_with_talloc_free)
-{
+START_TEST(test_msg_freed_with_talloc_free) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -104,12 +97,14 @@ START_TEST(test_msg_freed_with_talloc_free)
     int result = talloc_free(ctx);
     ck_assert_int_eq(result, 0);
 }
+
 END_TEST
 
 static Suite *msg_suite(void)
 {
     Suite *s = suite_create("Mail Message");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_msg_create_allocates_message);
     tcase_add_test(tc_core, test_msg_create_copies_fields);

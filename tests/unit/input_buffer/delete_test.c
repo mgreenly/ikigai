@@ -39,8 +39,7 @@ START_TEST(test_backspace_ascii) {
 
 END_TEST
 /* Test: Backspace UTF-8 character */
-START_TEST(test_backspace_utf8)
-{
+START_TEST(test_backspace_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -81,8 +80,7 @@ START_TEST(test_backspace_utf8)
 
 END_TEST
 /* Test: Backspace emoji (4-byte UTF-8) */
-START_TEST(test_backspace_emoji)
-{
+START_TEST(test_backspace_emoji) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -111,8 +109,7 @@ START_TEST(test_backspace_emoji)
 
 END_TEST
 /* Test: Backspace at start (no-op) */
-START_TEST(test_backspace_at_start)
-{
+START_TEST(test_backspace_at_start) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -136,8 +133,7 @@ START_TEST(test_backspace_at_start)
 
 END_TEST
 /* Test: Delete ASCII character */
-START_TEST(test_delete_ascii)
-{
+START_TEST(test_delete_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -169,8 +165,7 @@ START_TEST(test_delete_ascii)
 
 END_TEST
 /* Test: Delete UTF-8 character */
-START_TEST(test_delete_utf8)
-{
+START_TEST(test_delete_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -202,8 +197,7 @@ START_TEST(test_delete_utf8)
 
 END_TEST
 /* Test: Delete 3-byte UTF-8 character */
-START_TEST(test_delete_utf8_3byte)
-{
+START_TEST(test_delete_utf8_3byte) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -235,8 +229,7 @@ START_TEST(test_delete_utf8_3byte)
 
 END_TEST
 /* Test: Delete emoji (4-byte UTF-8) */
-START_TEST(test_delete_emoji)
-{
+START_TEST(test_delete_emoji) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -265,8 +258,7 @@ START_TEST(test_delete_emoji)
 
 END_TEST
 /* Test: Delete at end (no-op) */
-START_TEST(test_delete_at_end)
-{
+START_TEST(test_delete_at_end) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -302,6 +294,10 @@ static Suite *input_buffer_delete_suite(void)
 {
     Suite *s = suite_create("Input Buffer Delete");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */

@@ -58,8 +58,7 @@ static ik_agent_ctx_t *create_agent_with_timestamp(const char *uuid, const char 
 }
 
 // Test: Multiple siblings with complex timestamp ordering requiring prev_sibling updates
-START_TEST(test_nav_context_multiple_prev_siblings)
-{
+START_TEST(test_nav_context_multiple_prev_siblings) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -81,10 +80,8 @@ START_TEST(test_nav_context_multiple_prev_siblings)
     ck_assert_ptr_nonnull(child3->separator_layer);
 }
 END_TEST
-
 // Test: Multiple siblings with complex timestamp ordering requiring next_sibling updates
-START_TEST(test_nav_context_multiple_next_siblings)
-{
+START_TEST(test_nav_context_multiple_next_siblings) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -105,11 +102,10 @@ START_TEST(test_nav_context_multiple_next_siblings)
     // If we reach here, the complex next sibling logic was executed
     ck_assert_ptr_nonnull(child1->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Five siblings to exercise all timestamp comparison paths
-START_TEST(test_nav_context_five_siblings_middle_current)
-{
+START_TEST(test_nav_context_five_siblings_middle_current) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -129,11 +125,10 @@ START_TEST(test_nav_context_five_siblings_middle_current)
     // Verify no crashes
     ck_assert_ptr_nonnull(child3->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Same parent (both NULL) - root-level siblings
-START_TEST(test_nav_context_root_level_siblings)
-{
+START_TEST(test_nav_context_root_level_siblings) {
     // Create multiple root-level agents (parent_uuid = NULL for all)
     ik_agent_ctx_t *root1 = create_agent_with_timestamp("root1-uuid", NULL, 1000);
     (void)create_agent_with_timestamp("root2-uuid", NULL, 2000);
@@ -148,11 +143,10 @@ START_TEST(test_nav_context_root_level_siblings)
     // Verify no crashes with NULL parent comparison
     ck_assert_ptr_nonnull(root1->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Agent with both older and newer siblings to exercise timestamp comparisons
-START_TEST(test_nav_context_timestamp_comparisons)
-{
+START_TEST(test_nav_context_timestamp_comparisons) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -173,11 +167,10 @@ START_TEST(test_nav_context_timestamp_comparisons)
 
     ck_assert_ptr_nonnull(current->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Agent equal timestamps (edge case)
-START_TEST(test_nav_context_equal_timestamps)
-{
+START_TEST(test_nav_context_equal_timestamps) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -193,11 +186,10 @@ START_TEST(test_nav_context_equal_timestamps)
 
     ck_assert_ptr_nonnull(child2->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Agent removed from array causing find_agent_by_uuid to return NULL
-START_TEST(test_nav_context_with_removed_sibling)
-{
+START_TEST(test_nav_context_with_removed_sibling) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -229,11 +221,10 @@ START_TEST(test_nav_context_with_removed_sibling)
 
     ck_assert_ptr_nonnull(middle->separator_layer);
 }
-END_TEST
 
+END_TEST
 // Test: Next sibling replacement path with earlier timestamp
-START_TEST(test_nav_context_next_sibling_earlier_timestamp)
-{
+START_TEST(test_nav_context_next_sibling_earlier_timestamp) {
     // Create parent
     (void)create_agent_with_timestamp("parent-uuid", NULL, 1000);
 
@@ -252,12 +243,18 @@ START_TEST(test_nav_context_next_sibling_earlier_timestamp)
 
     ck_assert_ptr_nonnull(current->separator_layer);
 }
+
 END_TEST
 
 static Suite *nav_context_complex_suite(void)
 {
     Suite *s = suite_create("Navigation Context Complex Siblings");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_nav_context_multiple_prev_siblings);

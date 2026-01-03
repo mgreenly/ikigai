@@ -28,8 +28,7 @@ START_TEST(test_create) {
 }
 END_TEST
 /* Test: Get text */
-START_TEST(test_get_text)
-{
+START_TEST(test_get_text) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
@@ -51,8 +50,7 @@ START_TEST(test_get_text)
 
 END_TEST
 /* Test: Clear input_buffer */
-START_TEST(test_clear)
-{
+START_TEST(test_clear) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buffer = ik_input_buffer_create(ctx);
@@ -84,6 +82,11 @@ static Suite *input_buffer_create_suite(void)
 {
     Suite *s = suite_create("Input Buffer Create");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_create);

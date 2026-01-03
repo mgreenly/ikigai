@@ -130,8 +130,7 @@ START_TEST(test_repl_render_frame_with_layers_visible_input) {
 
 END_TEST
 /* Test: Render with layer-based rendering and scrolling */
-START_TEST(test_repl_render_frame_with_layers_scrolling)
-{
+START_TEST(test_repl_render_frame_with_layers_scrolling) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -216,8 +215,7 @@ START_TEST(test_repl_render_frame_with_layers_scrolling)
 
 END_TEST
 /* Test: IO write error handling */
-START_TEST(test_repl_render_frame_write_failure)
-{
+START_TEST(test_repl_render_frame_write_failure) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -296,6 +294,11 @@ static Suite *repl_render_layers_suite(void)
 {
     Suite *s = suite_create("REPL_Render_Layers");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     /* Layer-based rendering tests */
     tcase_add_test(tc_core, test_repl_render_frame_with_layers_visible_input);

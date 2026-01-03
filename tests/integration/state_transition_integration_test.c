@@ -38,8 +38,7 @@ START_TEST(test_state_confusion_utf8_then_escape) {
 }
 END_TEST
 // Test: Start escape sequence, then send UTF-8 lead byte
-START_TEST(test_state_confusion_escape_then_utf8)
-{
+START_TEST(test_state_confusion_escape_then_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -65,8 +64,7 @@ END_TEST
 // ========================================================================
 
 // Test: Alternating ESC and regular bytes
-START_TEST(test_rapid_esc_transitions)
-{
+START_TEST(test_rapid_esc_transitions) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -96,8 +94,7 @@ START_TEST(test_rapid_esc_transitions)
 
 END_TEST
 // Test: Multiple incomplete UTF-8 sequences in a row
-START_TEST(test_multiple_incomplete_utf8)
-{
+START_TEST(test_multiple_incomplete_utf8) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 

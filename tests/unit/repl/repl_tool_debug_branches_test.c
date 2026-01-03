@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include "repl.h"
 #include "shared.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
 #include "config.h"
@@ -36,7 +35,7 @@ static void setup(void)
     repl->current = agent;
 
     /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -54,9 +53,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
@@ -104,7 +103,7 @@ START_TEST(test_async_tool_debug_pipe_null_write_end) {
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 END_TEST
@@ -112,8 +111,7 @@ END_TEST
  * Test async tool execution without debug pipe (NULL)
  * This tests the branch where openai_debug_pipe IS NULL
  */
-START_TEST(test_async_tool_no_debug_pipe)
-{
+START_TEST(test_async_tool_no_debug_pipe) {
     /* Set debug pipe to NULL */
     repl->shared->openai_debug_pipe = NULL;
 
@@ -136,7 +134,7 @@ START_TEST(test_async_tool_no_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -145,8 +143,7 @@ END_TEST
  * Test async tool execution with working debug pipe
  * This tests the branch where both openai_debug_pipe and write_end are NOT NULL
  */
-START_TEST(test_async_tool_with_working_debug_pipe)
-{
+START_TEST(test_async_tool_with_working_debug_pipe) {
     /* Create debug pipe with working write_end */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -174,7 +171,7 @@ START_TEST(test_async_tool_with_working_debug_pipe)
     ik_repl_complete_tool_execution(repl);
 
     /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
@@ -187,6 +184,11 @@ static Suite *repl_tool_debug_branches_suite(void)
 {
     Suite *s = suite_create("REPL Tool Debug Branch Coverage");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
 

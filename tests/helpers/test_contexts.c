@@ -1,18 +1,20 @@
+// NOTE: Calling test files must call ik_test_set_log_dir(__FILE__)
+// before using these helpers to ensure proper log isolation.
+
 #include "test_contexts.h"
 
 #include "logger.h"
 #include "panic.h"
 #include "wrapper.h"
 
-ik_cfg_t *test_cfg_create(TALLOC_CTX *ctx)
+ik_config_t *test_cfg_create(TALLOC_CTX *ctx)
 {
-    ik_cfg_t *cfg = talloc_zero_(ctx, sizeof(ik_cfg_t));
+    ik_config_t *cfg = talloc_zero_(ctx, sizeof(ik_config_t));
     if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Minimal defaults for testing
     cfg->history_size = 100;
     cfg->db_connection_string = NULL;  // No database in tests by default
-    cfg->openai_api_key = NULL;        // No API key in tests
     cfg->openai_model = NULL;
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 4096;
@@ -27,7 +29,7 @@ ik_cfg_t *test_cfg_create(TALLOC_CTX *ctx)
 
 res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 {
-    ik_cfg_t *cfg = test_cfg_create(ctx);
+    ik_config_t *cfg = test_cfg_create(ctx);
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Use /tmp for test logger directory
@@ -55,7 +57,7 @@ res_t test_repl_create(TALLOC_CTX *ctx,
 }
 
 res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
-                                       ik_cfg_t *cfg,
+                                       ik_config_t *cfg,
                                        ik_shared_ctx_t **out)
 {
     // Create logger before calling init

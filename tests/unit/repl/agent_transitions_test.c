@@ -46,8 +46,7 @@ static ik_agent_ctx_t *create_test_agent(void *ctx)
 }
 
 /* Test: Transition from IDLE to WAITING_FOR_LLM */
-START_TEST(test_agent_transition_to_waiting_for_llm)
-{
+START_TEST(test_agent_transition_to_waiting_for_llm) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -67,10 +66,8 @@ START_TEST(test_agent_transition_to_waiting_for_llm)
     talloc_free(ctx);
 }
 END_TEST
-
 /* Test: Transition from WAITING_FOR_LLM to IDLE */
-START_TEST(test_agent_transition_to_idle)
-{
+START_TEST(test_agent_transition_to_idle) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -93,11 +90,10 @@ START_TEST(test_agent_transition_to_idle)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Transition from WAITING_FOR_LLM to EXECUTING_TOOL */
-START_TEST(test_agent_transition_to_executing_tool)
-{
+START_TEST(test_agent_transition_to_executing_tool) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -119,11 +115,10 @@ START_TEST(test_agent_transition_to_executing_tool)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Transition from EXECUTING_TOOL back to WAITING_FOR_LLM */
-START_TEST(test_agent_transition_from_executing_tool)
-{
+START_TEST(test_agent_transition_from_executing_tool) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -145,11 +140,10 @@ START_TEST(test_agent_transition_from_executing_tool)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 /* Test: Full tool execution cycle */
-START_TEST(test_agent_full_tool_cycle)
-{
+START_TEST(test_agent_full_tool_cycle) {
     void *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
@@ -182,6 +176,7 @@ START_TEST(test_agent_full_tool_cycle)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *agent_transitions_suite(void)
@@ -189,6 +184,10 @@ static Suite *agent_transitions_suite(void)
     Suite *s = suite_create("Agent State Transitions");
 
     TCase *tc_transitions = tcase_create("State Transitions");
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
+    tcase_set_timeout(tc_transitions, 30);
     tcase_set_timeout(tc_transitions, 30);
     tcase_add_test(tc_transitions, test_agent_transition_to_waiting_for_llm);
     tcase_add_test(tc_transitions, test_agent_transition_to_idle);

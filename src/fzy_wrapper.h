@@ -21,10 +21,10 @@ typedef struct {
 // max_results: maximum number of results to return (e.g., 10)
 // count_out: set to number of results returned
 ik_fzy_result_t *ik_fzy_filter(TALLOC_CTX *ctx,
-                                const char **candidates,
-                                size_t candidate_count,
-                                const char *search,
-                                size_t max_results,
-                                size_t *count_out);
+                               const char **candidates,
+                               size_t candidate_count,
+                               const char *search,
+                               size_t max_results,
+                               size_t *count_out);
 
 #endif

@@ -117,8 +117,7 @@ START_TEST(test_migration_empty_schema_metadata) {
 }
 END_TEST
 // Test: Migration file without .sql extension is skipped
-START_TEST(test_migration_no_extension_skipped)
-{
+START_TEST(test_migration_no_extension_skipped) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -156,8 +155,7 @@ START_TEST(test_migration_no_extension_skipped)
 
 END_TEST
 // Test: Unreadable migration file (file open fails)
-START_TEST(test_migration_file_open_failure)
-{
+START_TEST(test_migration_file_open_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -190,8 +188,7 @@ START_TEST(test_migration_file_open_failure)
 
 END_TEST
 // Test: Migration file read failure (directory opened as file)
-START_TEST(test_migration_file_read_failure)
-{
+START_TEST(test_migration_file_read_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -256,6 +253,7 @@ static Suite *migration_suite(void)
     Suite *s = suite_create("db_migration_errors");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, migration_test_setup, NULL);
     tcase_add_test(tc_core, test_migration_empty_schema_metadata);
     tcase_add_test(tc_core, test_migration_no_extension_skipped);

@@ -1,0 +1,267 @@
+/**
+ * @file request_responses_coverage1_test.c
+ * @brief Coverage tests for OpenAI Responses API request serialization (Part 1)
+ *
+ * Tests for reasoning, tool choice, and input format edge cases.
+ */
+
+#include "request_responses_test_helpers.h"
+
+/* ================================================================
+ * Reasoning Invalid Level Test
+ * ================================================================ */
+
+START_TEST(test_reasoning_invalid_level) {
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    req->thinking.level = 999;     // Invalid level
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *reasoning = yyjson_obj_get(yyjson_doc_get_root(doc), "reasoning");
+    ck_assert_ptr_null(reasoning);
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Tool Choice Tests
+ * ================================================================ */
+
+START_TEST(test_tool_choice_auto) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+    req->tool_choice_mode = 0;
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_tool_choice_none) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+    req->tool_choice_mode = 1;
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "none");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_tool_choice_required) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+    req->tool_choice_mode = 2;
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "required");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_tool_choice_default_case) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+    ik_request_add_tool(req, "test_tool", "Test description", "{\"type\":\"object\"}", true);
+    req->tool_choice_mode = 999;
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *tool_choice = yyjson_obj_get(yyjson_doc_get_root(doc), "tool_choice");
+    ck_assert_str_eq(yyjson_get_str(tool_choice), "auto");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Multi-turn Input Array Test
+ * ================================================================ */
+
+START_TEST(test_multi_turn_input_array) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "First message");
+    ik_request_add_message(req, IK_ROLE_ASSISTANT, "Response");
+    ik_request_add_message(req, IK_ROLE_USER, "Second message");
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+    ck_assert(yyjson_is_arr(input));
+    ck_assert_uint_eq((unsigned int)yyjson_arr_size(input), 3U);
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_single_assistant_message_array) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+
+    // Single assistant message should use array format, not string
+    ik_request_add_message(req, IK_ROLE_ASSISTANT, "Response");
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+    ck_assert(yyjson_is_arr(input));
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Multiple Text Blocks Test
+ * ================================================================ */
+
+START_TEST(test_multiple_text_blocks) {
+    ik_request_t *req = NULL;
+    res_t r = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&r));
+    ik_request_add_message(req, IK_ROLE_USER, "First block");
+
+    // Add second text block to same message
+    ik_message_t *msg = &req->messages[0];
+    size_t n = msg->content_count;
+    msg->content_blocks = talloc_realloc(req, msg->content_blocks, ik_content_block_t, (unsigned int)(n + 1U));
+    msg->content_count = n + 1U;
+    msg->content_blocks[n].type = IK_CONTENT_TEXT;
+    msg->content_blocks[n].data.text.text = talloc_strdup(req, "Second block");
+
+    char *json = NULL;
+    r = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+    ck_assert(!is_err(&r));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *input = yyjson_obj_get(yyjson_doc_get_root(doc), "input");
+    ck_assert_str_eq(yyjson_get_str(input), "First block\n\nSecond block");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Valid Reasoning Effort Test
+ * ================================================================ */
+
+START_TEST(test_valid_reasoning_effort) {
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "o1", &req);
+    ck_assert(!is_err(&create_result));
+
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    // Set a valid thinking level (e.g., 1 = low)
+    req->thinking.level = 1;
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(json);
+
+    // Verify reasoning object with effort field
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
+    ck_assert_ptr_nonnull(reasoning);
+    yyjson_val *effort = yyjson_obj_get(reasoning, "effort");
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(yyjson_get_str(effort), "low");
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+/* ================================================================
+ * Test Suite
+ * ================================================================ */
+
+static Suite *request_responses_coverage1_suite(void)
+{
+    Suite *s = suite_create("OpenAI Responses API Coverage Tests (Part 1)");
+
+    TCase *tc_reasoning = tcase_create("Reasoning Edge Cases");
+    tcase_set_timeout(tc_reasoning, 30);
+    tcase_add_checked_fixture(tc_reasoning, request_responses_setup, request_responses_teardown);
+    tcase_add_test(tc_reasoning, test_reasoning_invalid_level);
+    tcase_add_test(tc_reasoning, test_valid_reasoning_effort);
+    suite_add_tcase(s, tc_reasoning);
+
+    TCase *tc_tool_choice = tcase_create("Tool Choice Edge Cases");
+    tcase_set_timeout(tc_tool_choice, 30);
+    tcase_add_checked_fixture(tc_tool_choice, request_responses_setup, request_responses_teardown);
+    tcase_add_test(tc_tool_choice, test_tool_choice_auto);
+    tcase_add_test(tc_tool_choice, test_tool_choice_none);
+    tcase_add_test(tc_tool_choice, test_tool_choice_required);
+    tcase_add_test(tc_tool_choice, test_tool_choice_default_case);
+    suite_add_tcase(s, tc_tool_choice);
+
+    TCase *tc_input = tcase_create("Input Formats");
+    tcase_set_timeout(tc_input, 30);
+    tcase_add_checked_fixture(tc_input, request_responses_setup, request_responses_teardown);
+    tcase_add_test(tc_input, test_multi_turn_input_array);
+    tcase_add_test(tc_input, test_single_assistant_message_array);
+    tcase_add_test(tc_input, test_multiple_text_blocks);
+    suite_add_tcase(s, tc_input);
+
+    return s;
+}
+
+int main(void)
+{
+    int32_t number_failed;
+    Suite *s = request_responses_coverage1_suite();
+    SRunner *sr = srunner_create(s);
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}

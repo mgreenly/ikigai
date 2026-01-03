@@ -56,8 +56,9 @@ START_TEST(test_wrap_pg_result_basic) {
     // talloc_free should trigger destructor and call PQclear
     // No explicit PQclear needed - destructor handles it
 }
-END_TEST START_TEST(test_wrap_pg_result_null_handling)
-{
+END_TEST
+
+START_TEST(test_wrap_pg_result_null_handling) {
     // Wrapping NULL should work (defensive programming)
     ik_pg_result_wrapper_t *wrapper = ik_db_wrap_pg_result(test_ctx, NULL);
     ck_assert_ptr_nonnull(wrapper);
@@ -66,8 +67,9 @@ END_TEST START_TEST(test_wrap_pg_result_null_handling)
     // talloc_free should handle NULL pg_result gracefully
 }
 
-END_TEST START_TEST(test_wrap_pg_result_auto_cleanup)
-{
+END_TEST
+
+START_TEST(test_wrap_pg_result_auto_cleanup) {
     TALLOC_CTX *tmp_ctx = talloc_new(test_ctx);
     ck_assert_ptr_nonnull(tmp_ctx);
 
@@ -92,6 +94,7 @@ static Suite *pg_result_suite(void)
     Suite *s = suite_create("db/pg_result");
 
     TCase *tc_basic = tcase_create("basic");
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, test_setup, test_teardown);
     tcase_add_test(tc_basic, test_wrap_pg_result_basic);
     tcase_add_test(tc_basic, test_wrap_pg_result_null_handling);

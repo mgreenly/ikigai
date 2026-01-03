@@ -12,7 +12,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/marks.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -60,11 +59,8 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
-
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -74,14 +70,12 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
 
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
 
-
-    agent->conversation = conv;
     r->current = agent;
 
     r->shared = shared;
@@ -126,8 +120,7 @@ START_TEST(test_gmtime_failure) {
 }
 END_TEST
 // Test: strftime failure in get_iso8601_timestamp (line 32)
-START_TEST(test_strftime_failure)
-{
+START_TEST(test_strftime_failure) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 
@@ -144,8 +137,7 @@ START_TEST(test_strftime_failure)
 
 END_TEST
 // Test: gmtime failure with unlabeled mark
-START_TEST(test_gmtime_failure_unlabeled)
-{
+START_TEST(test_gmtime_failure_unlabeled) {
     // Mock gmtime to fail
     mock_gmtime_should_fail = true;
 
@@ -162,8 +154,7 @@ START_TEST(test_gmtime_failure_unlabeled)
 
 END_TEST
 // Test: strftime failure with unlabeled mark
-START_TEST(test_strftime_failure_unlabeled)
-{
+START_TEST(test_strftime_failure_unlabeled) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 
@@ -180,8 +171,7 @@ START_TEST(test_strftime_failure_unlabeled)
 
 END_TEST
 // Test: Successful mark creation after gmtime failure
-START_TEST(test_mark_success_after_gmtime_failure)
-{
+START_TEST(test_mark_success_after_gmtime_failure) {
     // First, trigger gmtime failure
     mock_gmtime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
@@ -202,8 +192,7 @@ START_TEST(test_mark_success_after_gmtime_failure)
 
 END_TEST
 // Test: Successful mark creation after strftime failure
-START_TEST(test_mark_success_after_strftime_failure)
-{
+START_TEST(test_mark_success_after_strftime_failure) {
     // First, trigger strftime failure
     mock_strftime_should_fail = true;
     res_t res = ik_mark_create(repl, "fail_mark");
@@ -224,8 +213,7 @@ START_TEST(test_mark_success_after_strftime_failure)
 
 END_TEST
 // Test: ik_cmd_mark error propagation when gmtime fails (covers commands_mark.c lines 79-80)
-START_TEST(test_cmd_mark_gmtime_error_propagation)
-{
+START_TEST(test_cmd_mark_gmtime_error_propagation) {
     // Mock gmtime to fail
     mock_gmtime_should_fail = true;
 
@@ -243,8 +231,7 @@ START_TEST(test_cmd_mark_gmtime_error_propagation)
 
 END_TEST
 // Test: ik_cmd_mark error propagation when strftime fails (covers commands_mark.c lines 79-80)
-START_TEST(test_cmd_mark_strftime_error_propagation)
-{
+START_TEST(test_cmd_mark_strftime_error_propagation) {
     // Mock strftime to fail
     mock_strftime_should_fail = true;
 
@@ -266,6 +253,7 @@ static Suite *mark_library_errors_suite(void)
 {
     Suite *s = suite_create("Mark Library Errors");
     TCase *tc = tcase_create("gmtime/strftime failures");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

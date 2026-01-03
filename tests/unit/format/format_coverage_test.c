@@ -44,6 +44,7 @@ START_TEST(test_format_tool_call_json_array) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: [1, 2, 3]");
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_bool_false) {
@@ -53,6 +54,7 @@ START_TEST(test_format_tool_call_bool_false) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: enabled=false");
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_array_value) {
@@ -62,6 +64,7 @@ START_TEST(test_format_tool_call_array_value) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "→ tool:") != NULL && strstr(formatted, "items=") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_object_value) {
@@ -71,6 +74,7 @@ START_TEST(test_format_tool_call_object_value) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "→ tool:") != NULL && strstr(formatted, "config=") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_zero_length_content) {
@@ -78,6 +82,7 @@ START_TEST(test_format_tool_result_zero_length_content) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strlen(formatted) > 0);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_array_with_numbers) {
@@ -86,6 +91,7 @@ START_TEST(test_format_tool_result_array_with_numbers) {
     ck_assert(strstr(formatted, "← tool:") != NULL);
     ck_assert(strstr(formatted, "1") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_array_mixed_types) {
@@ -93,6 +99,7 @@ START_TEST(test_format_tool_result_array_mixed_types) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "str") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_null_content_path) {
@@ -100,6 +107,7 @@ START_TEST(test_format_tool_result_null_content_path) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_first_vs_subsequent) {
@@ -109,6 +117,7 @@ START_TEST(test_format_tool_call_first_vs_subsequent) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "a=") != NULL && strstr(formatted, "b=") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_json_number) {
@@ -118,6 +127,7 @@ START_TEST(test_format_tool_call_json_number) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool: 42");
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_number) {
@@ -125,6 +135,7 @@ START_TEST(test_format_tool_result_number) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "42") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_boolean) {
@@ -132,6 +143,7 @@ START_TEST(test_format_tool_result_boolean) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "true") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_null_value) {
@@ -139,6 +151,7 @@ START_TEST(test_format_tool_result_null_value) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "null") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_real_value) {
@@ -148,6 +161,7 @@ START_TEST(test_format_tool_call_real_value) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "price=") != NULL && strstr(formatted, "3.14") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_null_value) {
@@ -157,6 +171,7 @@ START_TEST(test_format_tool_call_null_value) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "value=null") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_empty_string) {
@@ -164,6 +179,7 @@ START_TEST(test_format_tool_result_empty_string) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "(no output)") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_empty_object) {
@@ -173,6 +189,7 @@ START_TEST(test_format_tool_call_empty_object) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert_str_eq(formatted, "→ tool");
 }
+
 END_TEST
 
 START_TEST(test_format_tool_call_nested_object) {
@@ -182,6 +199,7 @@ START_TEST(test_format_tool_call_nested_object) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "nested=") != NULL);
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_simple_object) {
@@ -189,6 +207,7 @@ START_TEST(test_format_tool_result_simple_object) {
     ck_assert_ptr_nonnull(formatted);
     ck_assert(strstr(formatted, "← tool:") != NULL);
 }
+
 END_TEST
 
 // Mock control for ik_format_yyjson_val_write_wrapper
@@ -226,6 +245,7 @@ START_TEST(test_format_tool_result_array_numbers_oom) {
     ck_assert(strstr(formatted, "← tool:") != NULL);
     g_mock_yyjson_val_write_return_null = false;
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_object_oom) {
@@ -235,6 +255,7 @@ START_TEST(test_format_tool_result_object_oom) {
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "(no output)") != NULL);
     g_mock_yyjson_val_write_return_null = false;
 }
+
 END_TEST
 
 START_TEST(test_format_tool_result_null_root) {
@@ -244,12 +265,14 @@ START_TEST(test_format_tool_result_null_root) {
     ck_assert(strstr(formatted, "← tool:") != NULL && strstr(formatted, "(no output)") != NULL);
     g_mock_yyjson_doc_get_root_return_null = false;
 }
+
 END_TEST
 
 START_TEST(test_yyjson_obj_iter_init_wrapper_null_obj) {
     yyjson_obj_iter iter;
     ik_format_yyjson_obj_iter_init_wrapper(NULL, &iter);
 }
+
 END_TEST
 
 START_TEST(test_yyjson_obj_iter_next_wrapper_null_iter) {
@@ -257,6 +280,7 @@ START_TEST(test_yyjson_obj_iter_next_wrapper_null_iter) {
     yyjson_val *result = ik_format_yyjson_obj_iter_next_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 
 START_TEST(test_yyjson_obj_iter_get_val_wrapper_null_key) {
@@ -264,6 +288,7 @@ START_TEST(test_yyjson_obj_iter_get_val_wrapper_null_key) {
     yyjson_val *result = ik_format_yyjson_obj_iter_get_val_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 
 START_TEST(test_yyjson_val_write_wrapper_null_val) {
@@ -271,12 +296,14 @@ START_TEST(test_yyjson_val_write_wrapper_null_val) {
     char *result = ik_format_yyjson_val_write_wrapper(NULL);
     ck_assert_ptr_null(result);
 }
+
 END_TEST
 
 static Suite *format_coverage_suite(void)
 {
     Suite *s = suite_create("Format Coverage");
     TCase *tc = tcase_create("edge_cases");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

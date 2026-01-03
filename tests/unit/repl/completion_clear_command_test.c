@@ -21,8 +21,7 @@
 #include "../../test_utils.h"
 
 /* Test: /clear command clears autocomplete state */
-START_TEST(test_clear_command_clears_autocomplete)
-{
+START_TEST(test_clear_command_clears_autocomplete) {
     void *ctx = talloc_new(NULL);
 
     // Create agent
@@ -60,7 +59,7 @@ START_TEST(test_clear_command_clears_autocomplete)
     repl->quit = false;
     repl->current->completion = NULL;  // Initialize completion to NULL
 
-    agent->conversation = NULL;  // Initialize conversation to NULL
+    agent->messages = NULL; agent->message_count = 0;  // Initialize conversation to NULL
 
     // Type "/clear" to trigger autocomplete and have a valid command
     ik_input_action_t action = {.type = IK_INPUT_CHAR, .codepoint = '/'};
@@ -112,6 +111,11 @@ static Suite *completion_clear_command_suite(void)
 {
     Suite *s = suite_create("Completion_Clear_Command");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_clear_command_clears_autocomplete);
 

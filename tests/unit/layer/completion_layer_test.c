@@ -8,8 +8,7 @@
 #include <string.h>
 
 // Test: completion layer visibility when NULL
-START_TEST(test_completion_layer_visibility_null)
-{
+START_TEST(test_completion_layer_visibility_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = NULL;
@@ -21,10 +20,8 @@ START_TEST(test_completion_layer_visibility_null)
     talloc_free(ctx);
 }
 END_TEST
-
 // Test: completion layer visibility when not NULL
-START_TEST(test_completion_layer_visibility_not_null)
-{
+START_TEST(test_completion_layer_visibility_not_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -36,11 +33,10 @@ START_TEST(test_completion_layer_visibility_not_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer height when NULL
-START_TEST(test_completion_layer_height_null)
-{
+START_TEST(test_completion_layer_height_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = NULL;
@@ -51,11 +47,10 @@ START_TEST(test_completion_layer_height_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer height equals number of candidates
-START_TEST(test_completion_layer_height_matches_count)
-{
+START_TEST(test_completion_layer_height_matches_count) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -67,11 +62,10 @@ START_TEST(test_completion_layer_height_matches_count)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with no completion
-START_TEST(test_completion_layer_render_null)
-{
+START_TEST(test_completion_layer_render_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = NULL;
@@ -83,11 +77,10 @@ START_TEST(test_completion_layer_render_null)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with single candidate
-START_TEST(test_completion_layer_render_single)
-{
+START_TEST(test_completion_layer_render_single) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/clear");
@@ -115,11 +108,10 @@ START_TEST(test_completion_layer_render_single)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render with multiple candidates
-START_TEST(test_completion_layer_render_multiple)
-{
+START_TEST(test_completion_layer_render_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -145,11 +137,10 @@ START_TEST(test_completion_layer_render_multiple)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer selection highlight with ANSI reverse video and bold
-START_TEST(test_completion_layer_selection_highlight)
-{
+START_TEST(test_completion_layer_selection_highlight) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -170,11 +161,10 @@ START_TEST(test_completion_layer_selection_highlight)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer selection highlight moves with current selection
-START_TEST(test_completion_layer_selection_highlight_moves)
-{
+START_TEST(test_completion_layer_selection_highlight_moves) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -200,11 +190,10 @@ START_TEST(test_completion_layer_selection_highlight_moves)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: highlight follows Tab cycling through all candidates
-START_TEST(test_highlight_follows_current)
-{
+START_TEST(test_highlight_follows_current) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -242,11 +231,10 @@ START_TEST(test_highlight_follows_current)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: highlight cycles correctly through all candidates and wraps
-START_TEST(test_highlight_cycles_correctly)
-{
+START_TEST(test_highlight_cycles_correctly) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -292,11 +280,10 @@ START_TEST(test_highlight_cycles_correctly)
 
     talloc_free(ctx);
 }
-END_TEST
 
+END_TEST
 // Test: completion layer render formatting (padding and alignment)
-START_TEST(test_completion_layer_render_formatting)
-{
+START_TEST(test_completion_layer_render_formatting) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_completion_t *completion = ik_completion_create_for_commands(ctx, "/m");
@@ -313,6 +300,7 @@ START_TEST(test_completion_layer_render_formatting)
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 static Suite *completion_layer_suite(void)
@@ -320,16 +308,19 @@ static Suite *completion_layer_suite(void)
     Suite *s = suite_create("Completion Layer");
 
     TCase *tc_visibility = tcase_create("Visibility");
+    tcase_set_timeout(tc_visibility, 30);
     tcase_add_test(tc_visibility, test_completion_layer_visibility_null);
     tcase_add_test(tc_visibility, test_completion_layer_visibility_not_null);
     suite_add_tcase(s, tc_visibility);
 
     TCase *tc_height = tcase_create("Height");
+    tcase_set_timeout(tc_height, 30);
     tcase_add_test(tc_height, test_completion_layer_height_null);
     tcase_add_test(tc_height, test_completion_layer_height_matches_count);
     suite_add_tcase(s, tc_height);
 
     TCase *tc_render = tcase_create("Render");
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_completion_layer_render_null);
     tcase_add_test(tc_render, test_completion_layer_render_single);
     tcase_add_test(tc_render, test_completion_layer_render_multiple);
@@ -337,6 +328,7 @@ static Suite *completion_layer_suite(void)
     suite_add_tcase(s, tc_render);
 
     TCase *tc_highlight = tcase_create("Selection Highlight");
+    tcase_set_timeout(tc_highlight, 30);
     tcase_add_test(tc_highlight, test_completion_layer_selection_highlight);
     tcase_add_test(tc_highlight, test_completion_layer_selection_highlight_moves);
     tcase_add_test(tc_highlight, test_highlight_follows_current);

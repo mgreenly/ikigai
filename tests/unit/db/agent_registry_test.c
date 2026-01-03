@@ -107,8 +107,7 @@ static void test_teardown(void)
 // ========== Insert Tests ==========
 
 // Test: Insert root agent (parent_uuid = NULL) succeeds
-START_TEST(test_insert_root_agent_success)
-{
+START_TEST(test_insert_root_agent_success) {
     SKIP_IF_NO_DB();
 
     // Create minimal agent context for testing
@@ -123,10 +122,8 @@ START_TEST(test_insert_root_agent_success)
     ck_assert(is_ok(&res));
 }
 END_TEST
-
 // Test: Insert child agent (parent_uuid set) succeeds
-START_TEST(test_insert_child_agent_success)
-{
+START_TEST(test_insert_child_agent_success) {
     SKIP_IF_NO_DB();
 
     // First insert parent
@@ -151,11 +148,10 @@ START_TEST(test_insert_child_agent_success)
     res_t child_res = ik_db_agent_insert(db, &child);
     ck_assert(is_ok(&child_res));
 }
-END_TEST
 
+END_TEST
 // Test: Inserted record has status = 'running'
-START_TEST(test_insert_agent_status_running)
-{
+START_TEST(test_insert_agent_status_running) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent = {0};
@@ -181,11 +177,10 @@ START_TEST(test_insert_agent_status_running)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: Inserted record has correct created_at
-START_TEST(test_insert_agent_created_at)
-{
+START_TEST(test_insert_agent_created_at) {
     SKIP_IF_NO_DB();
 
     int64_t expected_timestamp = time(NULL);
@@ -217,11 +212,10 @@ START_TEST(test_insert_agent_created_at)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: Duplicate uuid fails (PRIMARY KEY violation)
-START_TEST(test_insert_duplicate_uuid_fails)
-{
+START_TEST(test_insert_duplicate_uuid_fails) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent1 = {0};
@@ -245,11 +239,10 @@ START_TEST(test_insert_duplicate_uuid_fails)
     res_t res2 = ik_db_agent_insert(db, &agent2);
     ck_assert(is_err(&res2));
 }
-END_TEST
 
+END_TEST
 // Test: Agent with NULL name succeeds (name is optional)
-START_TEST(test_insert_agent_null_name)
-{
+START_TEST(test_insert_agent_null_name) {
     SKIP_IF_NO_DB();
 
     ik_agent_ctx_t agent = {0};
@@ -273,11 +266,10 @@ START_TEST(test_insert_agent_null_name)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: fork_message_id is correctly stored
-START_TEST(test_insert_agent_fork_message_id)
-{
+START_TEST(test_insert_agent_fork_message_id) {
     SKIP_IF_NO_DB();
 
     // Insert parent first
@@ -316,13 +308,12 @@ START_TEST(test_insert_agent_fork_message_id)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // ========== Mark Dead Tests ==========
 
 // Test: mark_dead updates status to 'dead'
-START_TEST(test_mark_dead_updates_status)
-{
+START_TEST(test_mark_dead_updates_status) {
     SKIP_IF_NO_DB();
 
     // First insert an agent with status='running'
@@ -353,11 +344,10 @@ START_TEST(test_mark_dead_updates_status)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: mark_dead sets ended_at timestamp
-START_TEST(test_mark_dead_sets_ended_at)
-{
+START_TEST(test_mark_dead_sets_ended_at) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -401,11 +391,10 @@ START_TEST(test_mark_dead_sets_ended_at)
 
     PQclear(result);
 }
-END_TEST
 
+END_TEST
 // Test: mark_dead on already-dead agent is no-op (idempotent)
-START_TEST(test_mark_dead_idempotent)
-{
+START_TEST(test_mark_dead_idempotent) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
@@ -454,11 +443,10 @@ START_TEST(test_mark_dead_idempotent)
     ck_assert_str_eq(status, "dead");
     PQclear(result3);
 }
-END_TEST
 
+END_TEST
 // Test: mark_dead on non-existent uuid returns error
-START_TEST(test_mark_dead_nonexistent_uuid)
-{
+START_TEST(test_mark_dead_nonexistent_uuid) {
     SKIP_IF_NO_DB();
 
     // Try to mark a non-existent agent as dead
@@ -467,6 +455,7 @@ START_TEST(test_mark_dead_nonexistent_uuid)
     // Should succeed (0 rows affected is not an error, just a no-op)
     ck_assert(is_ok(&mark_res));
 }
+
 END_TEST
 
 // ========== Suite Configuration ==========
@@ -476,6 +465,7 @@ static Suite *agent_registry_suite(void)
     Suite *s = suite_create("Agent Registry");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

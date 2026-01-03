@@ -412,8 +412,7 @@ static void cleanup_test_dir(const char *test_dir)
  * - Create REPL in a test directory
  * - Verify .ikigai/logs/current.log is created
  */
-START_TEST(test_logger_init_on_repl_startup)
-{
+START_TEST(test_logger_init_on_repl_startup) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_%d", (int)getpid());
 
@@ -440,7 +439,6 @@ START_TEST(test_logger_init_on_repl_startup)
     cleanup_test_dir(test_dir);
 }
 END_TEST
-
 /**
  * Test: Logger reinit rotates previous log
  *
@@ -449,8 +447,7 @@ END_TEST
  * - Verify previous current.log was rotated to timestamped file
  * - Verify new current.log is created
  */
-START_TEST(test_logger_reinit_rotates_log)
-{
+START_TEST(test_logger_reinit_rotates_log) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_reinit_%d", (int)getpid());
 
@@ -491,8 +488,8 @@ START_TEST(test_logger_reinit_rotates_log)
     chdir(orig_cwd);
     cleanup_test_dir(test_dir);
 }
-END_TEST
 
+END_TEST
 /**
  * Test: Multiple reinit cycles
  *
@@ -500,8 +497,7 @@ END_TEST
  * - Reinit multiple times
  * - Verify each reinit creates a new rotated file and current.log always exists
  */
-START_TEST(test_logger_multiple_reinit_cycles)
-{
+START_TEST(test_logger_multiple_reinit_cycles) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_multi_%d", (int)getpid());
 
@@ -541,6 +537,7 @@ START_TEST(test_logger_multiple_reinit_cycles)
     chdir(orig_cwd);
     cleanup_test_dir(test_dir);
 }
+
 END_TEST
 
 static Suite *repl_logger_suite(void)

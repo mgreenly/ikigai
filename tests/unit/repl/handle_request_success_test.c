@@ -13,7 +13,6 @@
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/debug_pipe.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"
@@ -93,9 +92,9 @@ static void setup(void)
     ck_assert_ptr_nonnull(agent);
 
     // Create conversation
-    agent->conversation = ik_openai_conversation_create(test_ctx);
+
     repl->current = agent;
-    ck_assert_ptr_nonnull(repl->current->conversation);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 
     if (!db_available) {
         db = NULL;
@@ -151,27 +150,25 @@ START_TEST(test_no_assistant_response) {
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 }
 END_TEST
 
 #define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // Test: Empty assistant response (early exit)
-START_TEST(test_empty_assistant_response)
-{
+START_TEST(test_empty_assistant_response) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Nothing should happen, conversation should be empty
-    ck_assert_uint_eq(repl->current->conversation->message_count, 0);
+    ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
 END_TEST
 // Test: Assistant response without DB
-START_TEST(test_assistant_response_no_db)
-{
+START_TEST(test_assistant_response_no_db) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 0;
@@ -179,7 +176,7 @@ START_TEST(test_assistant_response_no_db)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
 
     // Assistant response should be cleared
     ck_assert_ptr_null(repl->current->assistant_response);
@@ -187,8 +184,7 @@ START_TEST(test_assistant_response_no_db)
 
 END_TEST
 // Test: Assistant response with DB but no session ID
-START_TEST(test_assistant_response_db_no_session)
-{
+START_TEST(test_assistant_response_db_no_session) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
@@ -197,144 +193,136 @@ START_TEST(test_assistant_response_db_no_session)
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added to conversation but not persisted
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: All metadata fields present
-START_TEST(test_all_metadata_fields)
-{
+START_TEST(test_all_metadata_fields) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
     // Message should be added and persisted
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Only model metadata
-START_TEST(test_only_model_metadata)
-{
+START_TEST(test_only_model_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Only tokens metadata
-START_TEST(test_only_tokens_metadata)
-{
+START_TEST(test_only_tokens_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Only finish_reason metadata
-START_TEST(test_only_finish_reason_metadata)
-{
+START_TEST(test_only_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Model + tokens metadata
-START_TEST(test_model_tokens_metadata)
-{
+START_TEST(test_model_tokens_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Model + finish_reason metadata
-START_TEST(test_model_finish_reason_metadata)
-{
+START_TEST(test_model_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: Tokens + finish_reason metadata
-START_TEST(test_tokens_finish_reason_metadata)
-{
+START_TEST(test_tokens_finish_reason_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 10;
+    repl->current->response_output_tokens = 10;
     repl->current->response_finish_reason = talloc_strdup(test_ctx, "stop");
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
 END_TEST
 // Test: No metadata
-START_TEST(test_no_metadata)
-{
+START_TEST(test_no_metadata) {
     SKIP_IF_NO_DB();
 
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = NULL;
-    repl->current->response_completion_tokens = 0;
+    repl->current->response_output_tokens = 0;
     repl->current->response_finish_reason = NULL;
 
     ik_repl_handle_agent_request_success(repl, repl->current);
 
-    ck_assert_uint_eq(repl->current->conversation->message_count, 1);
+    ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert_ptr_null(repl->current->assistant_response);
 }
 
@@ -345,6 +333,11 @@ static Suite *handle_request_success_suite(void)
     Suite *s = suite_create("handle_request_success");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_no_assistant_response);

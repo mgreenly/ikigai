@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include "../../../src/logger.h"
 
-START_TEST(test_shutdown_when_null)
-{
+START_TEST(test_shutdown_when_null) {
     // Call shutdown without init - should handle NULL gracefully
     ik_log_shutdown();
     // Should not crash

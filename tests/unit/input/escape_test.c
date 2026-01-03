@@ -33,8 +33,7 @@ START_TEST(test_input_parse_arrow_up) {
 
 END_TEST
 // Test: parse arrow down escape sequence
-START_TEST(test_input_parse_arrow_down)
-{
+START_TEST(test_input_parse_arrow_down) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -55,8 +54,7 @@ START_TEST(test_input_parse_arrow_down)
 
 END_TEST
 // Test: parse arrow left escape sequence
-START_TEST(test_input_parse_arrow_left)
-{
+START_TEST(test_input_parse_arrow_left) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -77,8 +75,7 @@ START_TEST(test_input_parse_arrow_left)
 
 END_TEST
 // Test: parse arrow right escape sequence
-START_TEST(test_input_parse_arrow_right)
-{
+START_TEST(test_input_parse_arrow_right) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -99,8 +96,7 @@ START_TEST(test_input_parse_arrow_right)
 
 END_TEST
 // Test: parse delete escape sequence
-START_TEST(test_input_parse_delete)
-{
+START_TEST(test_input_parse_delete) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -124,8 +120,7 @@ START_TEST(test_input_parse_delete)
 
 END_TEST
 // Test: parse invalid escape sequence resets parser
-START_TEST(test_input_parse_invalid_escape)
-{
+START_TEST(test_input_parse_invalid_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -151,8 +146,7 @@ START_TEST(test_input_parse_invalid_escape)
 
 END_TEST
 // Test: buffer overflow protection
-START_TEST(test_input_parse_buffer_overflow)
-{
+START_TEST(test_input_parse_buffer_overflow) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -191,8 +185,7 @@ START_TEST(test_input_parse_buffer_overflow)
 
 END_TEST
 // Test: invalid delete-like sequence (ESC [ X ~ where X is not '3', '5', or '6')
-START_TEST(test_input_parse_invalid_delete_like_sequence)
-{
+START_TEST(test_input_parse_invalid_delete_like_sequence) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -218,8 +211,7 @@ START_TEST(test_input_parse_invalid_delete_like_sequence)
 
 END_TEST
 // Test: incomplete escape sequence at boundary
-START_TEST(test_input_parse_escape_partial_at_boundary)
-{
+START_TEST(test_input_parse_escape_partial_at_boundary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -244,8 +236,7 @@ START_TEST(test_input_parse_escape_partial_at_boundary)
 
 END_TEST
 // Test: unrecognized CSI sequence with letter
-START_TEST(test_input_parse_unrecognized_csi_sequence)
-{
+START_TEST(test_input_parse_unrecognized_csi_sequence) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -267,8 +258,7 @@ START_TEST(test_input_parse_unrecognized_csi_sequence)
 
 END_TEST
 // Test: unrecognized CSI sequence with middle range letter
-START_TEST(test_input_parse_unrecognized_csi_middle_letter)
-{
+START_TEST(test_input_parse_unrecognized_csi_middle_letter) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -291,8 +281,7 @@ START_TEST(test_input_parse_unrecognized_csi_middle_letter)
 
 END_TEST
 // Test: unrecognized single character escape
-START_TEST(test_input_parse_unrecognized_single_char_escape)
-{
+START_TEST(test_input_parse_unrecognized_single_char_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -327,8 +316,7 @@ START_TEST(test_input_parse_unrecognized_single_char_escape)
 
 END_TEST
 // Test: parse page up escape sequence
-START_TEST(test_input_parse_page_up)
-{
+START_TEST(test_input_parse_page_up) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -352,8 +340,7 @@ START_TEST(test_input_parse_page_up)
 
 END_TEST
 // Test: parse page down escape sequence
-START_TEST(test_input_parse_page_down)
-{
+START_TEST(test_input_parse_page_down) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -376,10 +363,8 @@ START_TEST(test_input_parse_page_down)
 }
 
 END_TEST
-
 // Test: double ESC sequence (ESC ESC) - first ESC should be treated as escape action
-START_TEST(test_input_parse_double_escape)
-{
+START_TEST(test_input_parse_double_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_input_action_t action = {0};
 
@@ -406,6 +391,10 @@ static Suite *input_escape_suite(void)
 {
     Suite *s = suite_create("Input Escape");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_input_parse_arrow_up);

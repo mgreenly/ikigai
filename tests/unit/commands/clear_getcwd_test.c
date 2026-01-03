@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
-#include "../../../src/openai/client.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
@@ -30,12 +29,8 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     ik_scrollback_t *scrollback = ik_scrollback_create(parent, 80);
     ck_assert_ptr_nonnull(scrollback);
 
-    // Create conversation
-    ik_openai_conversation_t *conv = ik_openai_conversation_create(parent);
-    ck_assert_ptr_nonnull(conv);
-
     // Create minimal config
-    ik_cfg_t *cfg = talloc_zero(parent, ik_cfg_t);
+    ik_config_t *cfg = talloc_zero(parent, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
 
     // Create shared context
@@ -46,12 +41,11 @@ static ik_repl_ctx_t *create_test_repl_minimal(void *parent)
     // Create minimal REPL context
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
-    
-    // Create agent context
+
+    // Create agent context (messages array starts empty)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
-    agent->conversation = conv;
     r->current = agent;
 
     r->shared = shared;
@@ -82,8 +76,7 @@ char *posix_getcwd_(char *buf, size_t size)
 }
 
 // Test: Clear when getcwd fails
-START_TEST(test_clear_getcwd_failure)
-{
+START_TEST(test_clear_getcwd_failure) {
     // Execute /clear - should fail when getcwd returns NULL
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_err(&res));
@@ -100,6 +93,7 @@ static Suite *commands_clear_getcwd_suite(void)
 {
     Suite *s = suite_create("Commands/Clear getcwd");
     TCase *tc = tcase_create("GetCWD Failure");
+    tcase_set_timeout(tc, 30);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_clear_getcwd_failure);

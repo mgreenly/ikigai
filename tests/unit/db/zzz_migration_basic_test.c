@@ -114,8 +114,7 @@ START_TEST(test_migration_fresh_database) {
 }
 END_TEST
 // Test: Migration SQL execution failure
-START_TEST(test_migration_sql_execution_failure)
-{
+START_TEST(test_migration_sql_execution_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -143,8 +142,7 @@ START_TEST(test_migration_sql_execution_failure)
 
 END_TEST
 // Test: Successful migration with multiple files
-START_TEST(test_migration_multiple_files_success)
-{
+START_TEST(test_migration_multiple_files_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -188,8 +186,7 @@ START_TEST(test_migration_multiple_files_success)
 
 END_TEST
 // Test: Skip already-applied migrations
-START_TEST(test_migration_skip_applied)
-{
+START_TEST(test_migration_skip_applied) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -221,8 +218,7 @@ START_TEST(test_migration_skip_applied)
 
 END_TEST
 // Test: Empty migrations directory (no pending migrations)
-START_TEST(test_migration_empty_directory)
-{
+START_TEST(test_migration_empty_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -242,8 +238,7 @@ START_TEST(test_migration_empty_directory)
 
 END_TEST
 // Test: Migration with SELECT statement (PGRES_TUPLES_OK result)
-START_TEST(test_migration_with_select)
-{
+START_TEST(test_migration_with_select) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char conn_str[256];
     ik_test_db_conn_str(conn_str, sizeof(conn_str), DB_NAME);
@@ -315,6 +310,7 @@ static Suite *migration_suite(void)
     Suite *s = suite_create("db_migration_basic");
 
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, migration_test_setup, NULL);
     tcase_add_test(tc_core, test_migration_fresh_database);
     tcase_add_test(tc_core, test_migration_sql_execution_failure);

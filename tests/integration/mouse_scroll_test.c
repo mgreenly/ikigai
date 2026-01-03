@@ -153,8 +153,7 @@ static void reset_mocks(void)
     memset(write_lengths, 0, sizeof(write_lengths));
 }
 
-START_TEST(test_terminal_init_enters_alt_screen)
-{
+START_TEST(test_terminal_init_enters_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -167,8 +166,7 @@ START_TEST(test_terminal_init_enters_alt_screen)
 }
 END_TEST
 
-START_TEST(test_terminal_cleanup_exits_alt_screen)
-{
+START_TEST(test_terminal_cleanup_exits_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -180,10 +178,8 @@ START_TEST(test_terminal_cleanup_exits_alt_screen)
     ck_assert_int_eq(alt_screen_exit_count, 1);
     talloc_free(ctx);
 }
+
 END_TEST
-
-
-
 
 // Create test suite
 static Suite *mouse_scroll_suite(void)

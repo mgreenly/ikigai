@@ -1,0 +1,8 @@
+{
+  "preload": [
+    "git",
+    "errors",
+    "style"
+  ],
+  "advertise": []
+}

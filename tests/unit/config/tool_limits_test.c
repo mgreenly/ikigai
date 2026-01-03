@@ -19,7 +19,6 @@ START_TEST(test_config_with_valid_max_tool_turns) {
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -31,10 +30,10 @@ START_TEST(test_config_with_valid_max_tool_turns) {
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
-    ck_assert(!result.is_err);
+    ik_config_t *cfg = NULL;
 
-    ik_cfg_t *cfg = result.ok;
+    res_t result = ik_config_load(ctx, test_config, &cfg);
+    ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->max_tool_turns, 50);
     ck_assert_int_eq(cfg->max_output_size, 1048576);
@@ -42,8 +41,9 @@ START_TEST(test_config_with_valid_max_tool_turns) {
     unlink(test_config);
     talloc_free(ctx);
 }
-END_TEST START_TEST(test_config_missing_max_tool_turns)
-{
+END_TEST
+
+START_TEST(test_config_missing_max_tool_turns) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -53,7 +53,6 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -64,7 +63,9 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
@@ -72,8 +73,9 @@ END_TEST START_TEST(test_config_missing_max_tool_turns)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_missing_max_output_size)
-{
+END_TEST
+
+START_TEST(test_config_missing_max_output_size) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -83,7 +85,6 @@ END_TEST START_TEST(test_config_missing_max_output_size)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -94,7 +95,9 @@ END_TEST START_TEST(test_config_missing_max_output_size)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
@@ -102,8 +105,9 @@ END_TEST START_TEST(test_config_missing_max_output_size)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
-{
+END_TEST
+
+START_TEST(test_config_max_tool_turns_out_of_range_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -113,7 +117,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -125,7 +128,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -133,8 +138,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
-{
+END_TEST
+
+START_TEST(test_config_max_tool_turns_out_of_range_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -144,7 +150,6 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -156,7 +161,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -164,8 +171,9 @@ END_TEST START_TEST(test_config_max_tool_turns_out_of_range_high)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
-{
+END_TEST
+
+START_TEST(test_config_max_output_size_out_of_range_low) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -175,7 +183,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -187,7 +194,9 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -195,8 +204,9 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_low)
     talloc_free(ctx);
 }
 
-END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
-{
+END_TEST
+
+START_TEST(test_config_max_output_size_out_of_range_high) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -206,7 +216,6 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\n"
-            "  \"openai_api_key\": \"test-key\",\n"
             "  \"openai_model\": \"gpt-5-mini\",\n"
             "  \"openai_temperature\": 1.0,\n"
             "  \"openai_max_completion_tokens\": 4096,\n"
@@ -218,7 +227,9 @@ END_TEST START_TEST(test_config_max_output_size_out_of_range_high)
             "}\n");
     fclose(f);
 
-    res_t result = ik_cfg_load(ctx, test_config);
+    ik_config_t *config = NULL;
+
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
@@ -232,6 +243,7 @@ static Suite *tool_limits_suite(void)
 {
     Suite *s = suite_create("Config Tool Limits");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_with_valid_max_tool_turns);
     tcase_add_test(tc_core, test_config_missing_max_tool_turns);

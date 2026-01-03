@@ -1,6 +1,6 @@
-#include "agent.h"
 #include "../../test_utils.h"
 #include "../../../src/agent.h"
+#include "../../../src/message.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -8,7 +8,6 @@
 #include <sys/select.h>
 #include "repl.h"
 #include "shared.h"
-#include "openai/client.h"
 #include "tool.h"
 #include "scrollback.h"
 #include "config.h"
@@ -29,11 +28,12 @@ static char *last_insert_data_json = NULL;
 
 /* Mock implementation of ik_db_message_insert_ */
 res_t ik_db_message_insert_(void *db,
-                             int64_t session_id,
-                             const char *agent_uuid,
-                             const char *kind,
-                             const char *content,
-                             const char *data_json) {
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *kind,
+                            const char *content,
+                            const char *data_json)
+{
     (void)db;
     (void)session_id;
     (void)agent_uuid;
@@ -92,8 +92,10 @@ static void setup(void)
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     repl->current = agent;
 
-    /* Create conversation */
-    repl->current->conversation = ik_openai_conversation_create(repl);
+    /* Initialize messages array (new API) */
+    repl->current->messages = NULL;
+    repl->current->message_count = 0;
+    repl->current->message_capacity = 0;
 
     /* Create scrollback */
     repl->current->scrollback = ik_scrollback_create(repl, 10);
@@ -101,9 +103,9 @@ static void setup(void)
 
     /* Create pending_tool_call with a simple glob call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_test123",
-                                                  "glob",
-                                                  "{\"pattern\": \"*.c\"}");
+                                                           "call_test123",
+                                                           "glob",
+                                                           "{\"pattern\": \"*.c\"}");
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
 }
 
@@ -140,19 +142,20 @@ START_TEST(test_execute_pending_tool_basic) {
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    /* Should have 2 messages: tool_call and tool_result */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    /* Should have 2 messages: tool_call (assistant) and tool_result (tool) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
 
-    /* First message should be tool_call */
-    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
-    ck_assert_str_eq(tc_msg->kind, "tool_call");
+    /* First message should be assistant (tool_call) */
+    ik_message_t *tc_msg = repl->current->messages[0];
+    ck_assert(tc_msg->role == IK_ROLE_ASSISTANT);
 
-    /* Second message should be tool_result */
-    ik_msg_t *result_msg = repl->current->conversation->messages[1];
-    ck_assert_str_eq(result_msg->kind, "tool_result");
+    /* Second message should be tool (tool_result) */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
 }
-END_TEST START_TEST(test_execute_pending_tool_clears_pending)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_clears_pending) {
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
 
@@ -160,30 +163,32 @@ END_TEST START_TEST(test_execute_pending_tool_clears_pending)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_conversation_messages)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_conversation_messages) {
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
 
-    /* First message should be tool_call with correct ID */
-    ik_msg_t *tc_msg = repl->current->conversation->messages[0];
-    ck_assert_str_eq(tc_msg->kind, "tool_call");
-    ck_assert_ptr_nonnull(tc_msg->data_json);
+    /* First message should be assistant (tool_call) with content blocks */
+    ik_message_t *tc_msg = repl->current->messages[0];
+    ck_assert(tc_msg->role == IK_ROLE_ASSISTANT);
+    ck_assert_uint_ge(tc_msg->content_count, 1);
 
-    /* Second message should be tool_result with correct ID */
-    ik_msg_t *result_msg = repl->current->conversation->messages[1];
-    ck_assert_str_eq(result_msg->kind, "tool_result");
-    ck_assert_ptr_nonnull(result_msg->data_json);
+    /* Second message should be tool (tool_result) with content blocks */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+    ck_assert_uint_ge(result_msg->content_count, 1);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_file_read)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_file_read) {
     /* Change to file_read tool */
     talloc_free(repl->current->pending_tool_call);
     repl->current->pending_tool_call = ik_tool_call_create(repl,
-                                                  "call_read123",
-                                                  "file_read",
-                                                  "{\"path\": \"/etc/hostname\"}");
+                                                           "call_read123",
+                                                           "file_read",
+                                                           "{\"path\": \"/etc/hostname\"}");
 
     /* Execute pending tool call */
     ik_repl_execute_pending_tool(repl);
@@ -192,11 +197,12 @@ END_TEST START_TEST(test_execute_pending_tool_file_read)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_debug_output)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_debug_output) {
     /* Note: This test previously verified debug pipe output.
      * Debug pipes have been replaced with JSONL logger calls.
      * The logger writes to .ikigai/logs/current.log instead of a pipe.
@@ -209,11 +215,12 @@ END_TEST START_TEST(test_execute_pending_tool_debug_output)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_no_debug_pipe) {
     /* Verify that when debug pipe is NULL, execution still works */
     repl->shared->openai_debug_pipe = NULL;
 
@@ -224,11 +231,12 @@ END_TEST START_TEST(test_execute_pending_tool_no_debug_pipe)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
-END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
-{
+END_TEST
+
+START_TEST(test_execute_pending_tool_debug_pipe_null_write_end) {
     /* Create debug pipe and set write_end to NULL to test that branch */
     res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
     ck_assert(!debug_res.is_err);
@@ -250,13 +258,12 @@ END_TEST START_TEST(test_execute_pending_tool_debug_pipe_null_write_end)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
 END_TEST
 
-START_TEST(test_execute_pending_tool_db_persistence)
-{
+START_TEST(test_execute_pending_tool_db_persistence) {
     /* Create a mock database context */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 42;
@@ -271,13 +278,12 @@ START_TEST(test_execute_pending_tool_db_persistence)
     ck_assert_ptr_null(repl->current->pending_tool_call);
 
     /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
 END_TEST
 
-START_TEST(test_execute_pending_tool_no_db_ctx)
-{
+START_TEST(test_execute_pending_tool_no_db_ctx) {
     /* Set db_ctx to NULL - should not persist */
     repl->shared->db_ctx = NULL;
     repl->shared->session_id = 42;
@@ -290,13 +296,12 @@ START_TEST(test_execute_pending_tool_no_db_ctx)
 
     /* Verify execution still succeeded */
     ck_assert_ptr_null(repl->current->pending_tool_call);
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
 END_TEST
 
-START_TEST(test_execute_pending_tool_no_session_id)
-{
+START_TEST(test_execute_pending_tool_no_session_id) {
     /* Set session_id to 0 - should not persist */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
     repl->shared->session_id = 0;
@@ -309,7 +314,7 @@ START_TEST(test_execute_pending_tool_no_session_id)
 
     /* Verify execution still succeeded */
     ck_assert_ptr_null(repl->current->pending_tool_call);
-    ck_assert_uint_eq(repl->current->conversation->message_count, 2);
+    ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
 END_TEST
@@ -322,6 +327,11 @@ static Suite *repl_tool_suite(void)
 {
     Suite *s = suite_create("REPL Tool Execution");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
 

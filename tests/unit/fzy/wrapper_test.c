@@ -16,8 +16,7 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-START_TEST(test_fzy_filter_basic)
-{
+START_TEST(test_fzy_filter_basic) {
     const char *candidates[] = {"mark", "model", "clear", "help"};
     size_t count = 0;
 
@@ -30,8 +29,7 @@ START_TEST(test_fzy_filter_basic)
 }
 END_TEST
 
-START_TEST(test_fzy_filter_no_match)
-{
+START_TEST(test_fzy_filter_no_match) {
     const char *candidates[] = {"mark", "model"};
     size_t count = 0;
 
@@ -40,10 +38,10 @@ START_TEST(test_fzy_filter_no_match)
     ck_assert_ptr_null(results);
     ck_assert_uint_eq(count, 0);
 }
+
 END_TEST
 
-START_TEST(test_fzy_filter_max_results)
-{
+START_TEST(test_fzy_filter_max_results) {
     const char *candidates[] = {"a", "ab", "abc", "abcd", "abcde"};
     size_t count = 0;
 
@@ -52,10 +50,10 @@ START_TEST(test_fzy_filter_max_results)
     ck_assert_ptr_nonnull(results);
     ck_assert_uint_eq(count, 3);  // Limited to 3
 }
+
 END_TEST
 
-START_TEST(test_fzy_filter_empty_search_string)
-{
+START_TEST(test_fzy_filter_empty_search_string) {
     const char *candidates[] = {"mark", "model", "clear"};
     size_t count = 0;
 
@@ -65,10 +63,10 @@ START_TEST(test_fzy_filter_empty_search_string)
     ck_assert_ptr_nonnull(results);
     ck_assert_uint_eq(count, 3);
 }
+
 END_TEST
 
-START_TEST(test_fzy_filter_single_candidate)
-{
+START_TEST(test_fzy_filter_single_candidate) {
     const char *candidates[] = {"hello"};
     size_t count = 0;
 
@@ -78,10 +76,10 @@ START_TEST(test_fzy_filter_single_candidate)
     ck_assert_uint_eq(count, 1);
     ck_assert_str_eq(results[0].candidate, "hello");
 }
+
 END_TEST
 
-START_TEST(test_fzy_filter_single_candidate_no_match)
-{
+START_TEST(test_fzy_filter_single_candidate_no_match) {
     const char *candidates[] = {"hello"};
     size_t count = 0;
 
@@ -90,10 +88,10 @@ START_TEST(test_fzy_filter_single_candidate_no_match)
     ck_assert_ptr_null(results);
     ck_assert_uint_eq(count, 0);
 }
+
 END_TEST
 
-START_TEST(test_fzy_filter_score_ordering)
-{
+START_TEST(test_fzy_filter_score_ordering) {
     const char *candidates[] = {"mark", "model", "m"};
     size_t count = 0;
 
@@ -105,6 +103,7 @@ START_TEST(test_fzy_filter_score_ordering)
     ck_assert(results[0].score >= results[1].score);
     ck_assert(results[1].score >= results[2].score);
 }
+
 END_TEST
 
 static Suite *fzy_wrapper_suite(void)

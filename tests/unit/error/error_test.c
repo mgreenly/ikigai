@@ -69,8 +69,7 @@ START_TEST(test_ok_construction) {
 
 END_TEST
 // Test ERR() construction
-START_TEST(test_err_construction)
-{
+START_TEST(test_err_construction) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ERR(ctx, INVALID_ARG, "Test error: %d", 42);
@@ -87,8 +86,7 @@ START_TEST(test_err_construction)
 
 END_TEST
 // Test error message extraction
-START_TEST(test_error_message)
-{
+START_TEST(test_error_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Test with custom message
@@ -105,8 +103,7 @@ START_TEST(test_error_message)
 
 END_TEST
 // Test CHECK macro with success
-START_TEST(test_try_success)
-{
+START_TEST(test_try_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_propagate(ctx, false);
@@ -119,8 +116,7 @@ START_TEST(test_try_success)
 
 END_TEST
 // Test CHECK macro with error propagation
-START_TEST(test_try_error)
-{
+START_TEST(test_try_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_propagate(ctx, true);
@@ -133,8 +129,7 @@ START_TEST(test_try_error)
 
 END_TEST
 // Test TRY macro with success - extracts ok value
-START_TEST(test_try_macro_success)
-{
+START_TEST(test_try_macro_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_try_extract(ctx, false);
@@ -148,8 +143,7 @@ START_TEST(test_try_macro_success)
 
 END_TEST
 // Test TRY macro with error - propagates error
-START_TEST(test_try_macro_error)
-{
+START_TEST(test_try_macro_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_try_extract(ctx, true);
@@ -162,8 +156,7 @@ START_TEST(test_try_macro_error)
 
 END_TEST
 // Test talloc hierarchy - error freed with context
-START_TEST(test_talloc_error_freed)
-{
+START_TEST(test_talloc_error_freed) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_error(ctx);
@@ -180,8 +173,7 @@ START_TEST(test_talloc_error_freed)
 
 END_TEST
 // Test talloc hierarchy - success value freed with context
-START_TEST(test_talloc_ok_freed)
-{
+START_TEST(test_talloc_ok_freed) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = helper_success(ctx);
@@ -196,8 +188,7 @@ START_TEST(test_talloc_ok_freed)
 
 END_TEST
 // Test error formatting
-START_TEST(test_error_fprintf)
-{
+START_TEST(test_error_fprintf) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     res_t res = ERR(ctx, OUT_OF_RANGE, "Formatted error");
@@ -221,8 +212,7 @@ START_TEST(test_error_fprintf)
 
 END_TEST
 // Test nested contexts
-START_TEST(test_nested_contexts)
-{
+START_TEST(test_nested_contexts) {
     TALLOC_CTX *root = talloc_new(NULL);
     TALLOC_CTX *child = talloc_new(root);
 
@@ -237,8 +227,7 @@ START_TEST(test_nested_contexts)
 
 END_TEST
 // Test error message with empty string (should fall back to error code string)
-START_TEST(test_error_message_empty)
-{
+START_TEST(test_error_message_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create error with empty message string
@@ -259,8 +248,7 @@ START_TEST(test_error_message_empty)
 
 END_TEST
 // Test error fprintf with NULL file field in error
-START_TEST(test_error_fprintf_null_file)
-{
+START_TEST(test_error_fprintf_null_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Manually create an error with NULL file field
@@ -286,8 +274,7 @@ START_TEST(test_error_fprintf_null_file)
 
 END_TEST
 // Test error code to string conversion
-START_TEST(test_error_code_str)
-{
+START_TEST(test_error_code_str) {
     ck_assert_str_eq(error_code_str(OK), "OK");
     ck_assert_str_eq(error_code_str(ERR_INVALID_ARG), "Invalid argument");
     ck_assert_str_eq(error_code_str(ERR_OUT_OF_RANGE), "Out of range");
@@ -296,14 +283,17 @@ START_TEST(test_error_code_str)
     ck_assert_str_eq(error_code_str(ERR_DB_CONNECT), "Database connection error");
     ck_assert_str_eq(error_code_str(ERR_DB_MIGRATE), "Database migration error");
     ck_assert_str_eq(error_code_str(ERR_OUT_OF_MEMORY), "Out of memory");
+    ck_assert_str_eq(error_code_str(ERR_AGENT_NOT_FOUND), "Agent not found");
+    ck_assert_str_eq(error_code_str(ERR_PROVIDER), "Provider error");
+    ck_assert_str_eq(error_code_str(ERR_MISSING_CREDENTIALS), "Missing credentials");
+    ck_assert_str_eq(error_code_str(ERR_NOT_IMPLEMENTED), "Not implemented");
 }
 
 END_TEST
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
 // Test error code to string conversion with invalid code (should PANIC)
-START_TEST(test_error_code_str_invalid)
-{
+START_TEST(test_error_code_str_invalid) {
     error_code_str((err_code_t)999);  // Invalid code - should PANIC
 }
 
@@ -338,6 +328,10 @@ static Suite *error_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
     tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_error_code_str_invalid, SIGABRT);
     suite_add_tcase(s, tc_assertions);

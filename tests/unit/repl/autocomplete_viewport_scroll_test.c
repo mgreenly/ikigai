@@ -139,7 +139,6 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     talloc_free(ctx);
 }
 END_TEST
-
 /**
  * Test: Document height does NOT include completion when inactive
  *
@@ -210,6 +209,7 @@ START_TEST(test_autocomplete_viewport_without_completion) {
 
     talloc_free(ctx);
 }
+
 END_TEST
 
 /* Create test suite */
@@ -218,6 +218,10 @@ static Suite *autocomplete_viewport_scroll_suite(void)
     Suite *s = suite_create("Autocomplete Viewport Scroll");
 
     TCase *tc_viewport = tcase_create("Viewport");
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
     tcase_set_timeout(tc_viewport, 30);
     tcase_add_test(tc_viewport, test_autocomplete_viewport_includes_completion_height);
     tcase_add_test(tc_viewport, test_autocomplete_viewport_without_completion);

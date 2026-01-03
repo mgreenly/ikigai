@@ -29,8 +29,7 @@ START_TEST(test_cursor_initialized) {
 }
 END_TEST
 /* Test: Cursor advances after inserting ASCII */
-START_TEST(test_cursor_after_insert_ascii)
-{
+START_TEST(test_cursor_after_insert_ascii) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -63,8 +62,7 @@ START_TEST(test_cursor_after_insert_ascii)
 
 END_TEST
 /* Test: Cursor advances correctly for UTF-8 */
-START_TEST(test_cursor_after_insert_utf8)
-{
+START_TEST(test_cursor_after_insert_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -101,8 +99,7 @@ START_TEST(test_cursor_after_insert_utf8)
 
 END_TEST
 /* Test: Cursor after newline insert */
-START_TEST(test_cursor_after_newline)
-{
+START_TEST(test_cursor_after_newline) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -129,8 +126,7 @@ START_TEST(test_cursor_after_newline)
 
 END_TEST
 /* Test: Cursor after backspace */
-START_TEST(test_cursor_after_backspace)
-{
+START_TEST(test_cursor_after_backspace) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -158,8 +154,7 @@ START_TEST(test_cursor_after_backspace)
 
 END_TEST
 /* Test: Cursor after backspace UTF-8 */
-START_TEST(test_cursor_after_backspace_utf8)
-{
+START_TEST(test_cursor_after_backspace_utf8) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -186,8 +181,7 @@ START_TEST(test_cursor_after_backspace_utf8)
 
 END_TEST
 /* Test: Cursor after delete (stays same) */
-START_TEST(test_cursor_after_delete)
-{
+START_TEST(test_cursor_after_delete) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -221,8 +215,7 @@ START_TEST(test_cursor_after_delete)
 
 END_TEST
 /* Test: Cursor after clear */
-START_TEST(test_cursor_after_clear)
-{
+START_TEST(test_cursor_after_clear) {
     void *ctx = talloc_new(NULL);
     ik_input_buffer_t *input_buffer = NULL;
 
@@ -255,6 +248,10 @@ static Suite *input_buffer_cursor_sync_suite(void)
 {
     Suite *s = suite_create("Input Buffer Cursor Sync");
     TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     tcase_set_timeout(tc_core, 30);
 
     /* Normal tests */
