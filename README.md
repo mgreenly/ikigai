@@ -2,10 +2,7 @@
 
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
-
-An operating environment for living agents.
-
-Build, deploy, and coordinate multi-agent systems through a terminal interface (ikigai) and autonomous runtime (iki-genba). Agents fork like processes, communicate through mailboxes, learn continuously through structured memory, and run autonomously.
+An experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
 
 Why? Because I want to and no one can stop me!
 
