@@ -33,10 +33,10 @@ All intelligence is in the sub-agents. You are just a dispatcher.
 ### Step 1: Preconditions
 
 ```bash
-git status --porcelain
+jj diff --summary
 ```
 
-If output is non-empty: print "Error: Git workspace must be clean before pruning." and stop.
+If output is non-empty: print "Error: Working copy must be clean before pruning." and stop.
 
 ### Step 2: Get Candidates
 
@@ -80,17 +80,17 @@ File: <file>
 Line: <line>
 
 Steps:
-1. Read `.claude/library/git/SKILL.md` for commit conventions
+1. Read `.claude/library/jj/SKILL.md` for commit conventions
 2. Read the file and locate the function at the specified line
 3. Remove the function (and any preceding doc comment block)
 4. Run `make bin/ikigai`
-   - If FAILS: run `mkdir -p .claude/data && echo "<function>" >> .claude/data/dead-code-false-positives.txt && git checkout -- <file>`
+   - If FAILS: run `mkdir -p .claude/data && echo "<function>" >> .claude/data/dead-code-false-positives.txt && jj restore <file>`
    - Report: SKIPPED: <function> - false positive (recorded)
 5. Run `make check`
    - If PASSES: commit with message "refactor: remove dead code <function>" and report: SUCCESS: <function>
    - If FAILS: try to fix/remove failing tests, then `make check` again
 6. If tests fixed and pass: commit and report SUCCESS: <function> (N tests modified)
-7. If still failing: `git checkout -- .` and report: SKIPPED: <function> - test fixes failed
+7. If still failing: `jj restore` and report: SKIPPED: <function> - test fixes failed
 
 Response format (first word must be SUCCESS or SKIPPED):
 SUCCESS: <function> [optional details]

@@ -135,7 +135,7 @@ Skillsets are JSON arrays listing skills to load together.
   "quality",
   "coverage",
   "zero-debt",
-  "git"
+  "jj"
 ]
 ```
 

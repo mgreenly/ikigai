@@ -18,7 +18,7 @@ You are the refactoring orchestrator.
 
 Run in order. If ANY fails, report and **STOP**:
 
-1. `git status --porcelain` - abort if uncommitted changes
+1. `jj diff --summary` - abort if uncommitted changes
 2. Check release/tasks/order.json - abort if pending tasks exist
 3. `make lint` - abort if fails
 4. `make check` - abort if fails
@@ -27,7 +27,7 @@ Run in order. If ANY fails, report and **STOP**:
 
 ```bash
 mkdir -p release/plan release/tasks release/tmp
-echo "[$(date -Iseconds)] REFACTOR START: commit=$(git rev-parse HEAD)" > release/details.log
+echo "[$(date -Iseconds)] REFACTOR START: commit=$(jj log -r @ --no-graph -T 'commit_id.short()')" > release/details.log
 .claude/library/task/init.ts
 ```
 

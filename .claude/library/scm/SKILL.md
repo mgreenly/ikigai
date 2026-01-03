@@ -6,66 +6,64 @@ description: Source Code Management skill for the ikigai project
 # Source Code Management
 
 ## Description
-Git workflow for preserving all work. Never lose uncommitted code.
+jj workflow for preserving all work. Nothing is ever lost.
 
 ## Core Principle
 
-**Every change is committed. Nothing is ever lost.**
+**Every change is automatically tracked. Nothing is ever lost.**
 
-You work in a feature worktree that will be squash-merged before release. Individual commit frequency doesn't matter - what matters is that every state is recoverable.
+In jj, the working copy (`@`) is always a commit. There's no staging area. Every file save is immediately part of the current commit. This makes "losing work" nearly impossible.
 
 ## Rules
 
 ### 1. Commit After Every Testable Change
 
-After each TDD cycle (Red → Green → Verify), commit immediately:
+After each TDD cycle (Red → Green → Verify), finalize and start fresh:
 
 ```bash
-git add -A && git commit -m "descriptive message"
+jj commit -m "descriptive message"
 ```
 
-Don't batch commits. Don't wait for "a good stopping point." The worktree will be squash-merged anyway - frequent commits only help you.
+This creates a new empty working copy. Don't batch commits. Don't wait for "a good stopping point." The worktree will be squash-merged anyway - frequent commits only help you.
 
-### 2. Never Have Uncommitted Code at Risk
+### 2. jj Auto-Tracks Everything
 
-Before any operation that could lose work:
-- Before running `git checkout`
-- Before running `git reset`
-- Before running `git stash` (prefer commit instead)
-- Before closing the session
-- Before switching branches
+Unlike git, jj has no "uncommitted code at risk" - your working copy IS a commit being edited. However, before operations that modify history:
+- Before running `jj restore` (discards working copy changes)
+- Before running `jj abandon` (removes commits)
+- Before closing the session (commit to finalize)
 
-Commit first. Always.
+Finalize with `jj commit` or `jj describe` first.
 
-### 3. Experiments: Commit, Try, Revert
+### 3. Experiments: Commit, Try, Backout
 
 When experimenting:
 
 ```bash
 # 1. Commit the experiment
-git add -A && git commit -m "experiment: trying X approach"
+jj commit -m "experiment: trying X approach"
 
 # 2. Test/evaluate the experiment
 
 # 3a. If keeping: continue working
-# 3b. If discarding: revert cleanly
-git revert HEAD --no-edit
+# 3b. If discarding: backout cleanly
+jj backout -r @-
 ```
 
-The experiment is preserved in history even after reverting. You can always recover it.
+The experiment is preserved in history even after backing out. You can always recover it.
 
-### 4. Unknown Changes: Commit First, Understand Later
+### 4. Unknown Changes: Describe First, Understand Later
 
 If you encounter changes you don't understand:
 
 ```bash
 # Wrong: discard unknown changes
-git checkout -- .  # DANGEROUS - loses work
+jj restore  # DANGEROUS - loses working copy changes
 
 # Right: preserve then investigate
-git add -A && git commit -m "checkpoint: unknown changes"
-git log -p HEAD~1..HEAD  # examine what changed
-# Later: revert if unwanted
+jj commit -m "checkpoint: unknown changes"
+jj diff -r @-  # examine what changed
+# Later: backout if unwanted
 ```
 
 ### 5. Discarding Code: Commit, Then Delete
@@ -74,28 +72,39 @@ Even when intentionally removing code:
 
 ```bash
 # 1. Commit current state
-git add -A && git commit -m "checkpoint before removing X"
+jj commit -m "checkpoint before removing X"
 
 # 2. Delete the code
 # 3. Commit the deletion
-git add -A && git commit -m "remove X"
+jj commit -m "remove X"
 ```
 
 Now you can recover the deleted code from history if needed.
 
 ## Why This Matters
 
-- **Recovery**: Any past state is one `git checkout` away
-- **Debugging**: `git bisect` finds which commit broke something
+- **Recovery**: Any past state is one `jj edit` away
+- **Debugging**: Use `jj log` and manual bisection to find issues
 - **Confidence**: Experiment freely knowing nothing is lost
 - **Squash merge**: All these commits collapse to one clean commit at release
+
+## Key Commands
+
+| Task | Command |
+|------|---------|
+| Finalize and start new | `jj commit -m "message"` |
+| Update current commit message | `jj describe -m "message"` |
+| Squash into parent | `jj squash` |
+| Discard working copy changes | `jj restore` |
+| Backout a commit | `jj backout -r <revision>` |
+| View recent history | `jj log` |
+| View diff of revision | `jj diff -r <revision>` |
 
 ## Anti-patterns
 
 | Don't | Do Instead |
 |-------|------------|
-| `git checkout -- .` | Commit first, then revert |
-| `git stash` | Commit to a branch |
-| `git reset --hard` | Commit first, then reset |
+| `jj restore` without thinking | Commit first, then restore |
+| `jj abandon` without checking | Ensure commit is truly unwanted |
 | Batch multiple changes in one commit | Commit after each testable change |
-| Leave session with uncommitted work | Commit before stopping |
+| Leave session without finalizing | Commit or describe before stopping |

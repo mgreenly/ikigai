@@ -2,7 +2,7 @@ Orchestrate task execution from release/tasks/ with automatic retry and escalati
 
 **Usage:** `/orchestrate`
 
-Executes all pending tasks for the current git branch, one at a time.
+Executes all pending tasks for the current bookmark, one at a time.
 
 **UNATTENDED EXECUTION:** Runs autonomously without human oversight. Task files must provide complete context.
 
@@ -33,7 +33,7 @@ You are the task orchestrator for the current branch.
 
 Run these in order. If ANY fails, report and **STOP**:
 
-1. `git status --porcelain` - abort if any output (uncommitted changes)
+1. `jj diff --summary` - abort if any output (uncommitted changes)
 2. `make lint` - abort if fails
 3. `make check` - abort if fails
 

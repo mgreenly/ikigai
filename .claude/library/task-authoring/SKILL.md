@@ -161,15 +161,15 @@ Task instructions should emphasize:
 
 **Why this matters:** Complete task authoring prevents unattended failures and prevents sub-agents from spawning research/explore agents, which would balloon token usage across the orchestration loop.
 
-## Git Workflow Requirements
+## jj Workflow Requirements
 
-Every task MUST follow this git workflow:
+Every task MUST follow this jj workflow:
 
 ### Pre-condition: Clean Workspace
 
-Before starting, verify git workspace is clean:
+Before starting, verify working copy has no changes:
 ```bash
-git status --porcelain
+jj diff --summary
 ```
 
 If output is non-empty, STOP and fail the task. Previous task did not complete properly.
@@ -221,24 +221,24 @@ Committing partial work for debugging and escalation.
 
 **Rollback operations:**
 
-Find all commits for a task:
+Find all commits for a task (search commit descriptions):
 ```bash
-git log --grep="task(provider-types.md)"
+jj log --no-graph -T 'description' | grep "task(provider-types.md)"
 ```
 
-Revert a specific task:
+Backout a specific commit:
 ```bash
-git revert <commit-hash>
+jj backout -r <revision>
 ```
 
-See task commits in log:
+See recent commits:
 ```bash
-git log --oneline --grep="^task("
+jj log --limit 20
 ```
 
 ### Reporting Task Status
 
-The git commit records what happened. The task must ALSO report its status to the orchestration system:
+The jj commit records what happened. The task must ALSO report its status to the orchestration system:
 - Use `/task-done <name>` for success
 - Use `/task-fail <name>` for partial or failed (allows retry/escalation)
 
@@ -279,7 +279,7 @@ Do not introduce new dependencies.
 
 ## Preconditions
 
-- [ ] Git workspace is clean (verify with `git status --porcelain`)
+- [ ] Working copy is clean (verify with `jj diff --summary`)
 
 ## Objective
 
@@ -317,8 +317,7 @@ Structs to define (members and purpose, not C code):
 After completing work (whether success, partial, or failed), commit all changes:
 
 ```bash
-git add -A
-git commit -m "$(cat <<'EOF'
+jj commit -m "$(cat <<'EOF'
 task([exact-filename.md]): [success|partial|failed] - [brief description]
 
 [Optional: Details about what was accomplished, failures, or remaining work]
@@ -328,7 +327,7 @@ EOF
 
 **Example:**
 ```bash
-git commit -m "$(cat <<'EOF'
+jj commit -m "$(cat <<'EOF'
 task(provider-types.md): success - implemented provider type definitions
 
 All provider factory functions complete, tests passing, make check clean.
@@ -346,5 +345,5 @@ Report status to orchestration:
 - [ ] All tests pass
 - [ ] `make check` passes
 - [ ] All changes committed using commit message template
-- [ ] Git workspace is clean (no uncommitted changes)
+- [ ] Working copy is clean (no uncommitted changes)
 ```

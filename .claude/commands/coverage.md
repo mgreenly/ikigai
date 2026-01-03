@@ -62,7 +62,7 @@ For each file in the todo list, spawn a fix sub-agent:
 
 Load these skills:
 - `/skillset coverage` - Coverage methodology and patterns
-- `/load git` - Git conventions for commits
+- `/load jj` - jj conventions for commits
 
 ## Task
 
@@ -115,7 +115,7 @@ This generates: `reports/coverage/unit/<test_path>.coverage.txt`
 3. Check coverage map for existing tests
 4. **Start with easiest wins** - implement and verify
 5. Run targeted coverage after each change
-6. **Commit after each successful improvement** (follow git skill conventions)
+6. **Commit after each successful improvement** (follow jj skill conventions)
 7. Repeat steps 4-6 for next-easiest wins
 8. When gains slow OR context reaches 140K: run `make lint && make check`, commit remaining work, report and stop
 

@@ -7,8 +7,8 @@ Load a skillset (composite skill set) from `.claude/skillsets/`.
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
 - `coverage` - For achieving and maintaining 100% test coverage
 - `debugger` - For debugging and troubleshooting issues
-- `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, git)
-- `implementor` - Base skillset for task execution (minimal: git, errors, style)
+- `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
+- `implementor` - Base skillset for task execution (minimal: jj, errors, style)
 - `meta` - For improving the .claude/ system
 - `orchestrator` - For running task execution loops (lean, no preloaded skills)
 - `planner` - For creating implementation plans and task files
@@ -44,8 +44,8 @@ For `advertise`: Skills you can load with `/load <skill>` when you determine you
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
 - `coverage` - For achieving and maintaining 100% test coverage
 - `debugger` - For debugging and troubleshooting issues
-- `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, git)
-- `implementor` - Base skillset for task execution (minimal: git, errors, style)
+- `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
+- `implementor` - Base skillset for task execution (minimal: jj, errors, style)
 - `meta` - For improving the .claude/ system
 - `orchestrator` - For running task execution loops (lean, no preloaded skills)
 - `planner` - For creating implementation plans and task files

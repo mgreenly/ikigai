@@ -352,55 +352,50 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
         return True, stdout
 
 
-def git_get_modified_files() -> set[str]:
-    """Get set of currently modified/untracked files."""
-    code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+def jj_get_modified_files() -> set[str]:
+    """Get set of currently modified files."""
+    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
     files = set()
     for line in stdout.strip().split('\n'):
         if line.strip():
-            parts = line[3:].split(' -> ')
-            files.add(parts[-1])
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                files.add(parts[1])
     return files
 
 
-def git_has_changes() -> bool:
+def jj_has_changes() -> bool:
     """Check if there are uncommitted changes."""
-    return bool(git_get_modified_files())
+    return bool(jj_get_modified_files())
 
 
-def git_commit(gap: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
+def jj_commit(gap: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
     """Commit only files that changed during fix attempt."""
-    files_after = git_get_modified_files()
+    files_after = jj_get_modified_files()
     new_changes = files_after - files_before
 
     if not new_changes:
         return False
 
-    for f in new_changes:
-        run_cmd(["git", "add", f])
-
     source_file = Path(gap["file"]).name
     msg = f"test: add coverage for {source_file}\n\nharness/coverage | {model_name} | attempt {attempt}"
 
-    code, _, _ = run_cmd(["git", "commit", "-m", msg])
+    code, _, _ = run_cmd(["jj", "commit", "-m", msg])
     return code == 0
 
 
-def git_revert(files_before: set[str] | None = None) -> None:
+def jj_revert(files_before: set[str] | None = None) -> None:
     """Revert changes made during fix attempt."""
     if files_before is not None:
-        files_after = git_get_modified_files()
+        files_after = jj_get_modified_files()
         new_changes = files_after - files_before
         if new_changes:
             log("Reverting uncommitted changes...")
             for f in new_changes:
-                run_cmd(["git", "checkout", f])
-            # Also clean any new untracked files
-            run_cmd(["git", "clean", "-fd", "tests/"])
-    elif git_has_changes():
+                run_cmd(["jj", "restore", f])
+    elif jj_has_changes():
         log("Reverting uncommitted changes...")
-        run_cmd(["git", "checkout", "."])
-        run_cmd(["git", "clean", "-fd"])
+        run_cmd(["jj", "restore"])
 
 
 def get_file_coverage(source_file: str) -> tuple[int, int, int]:
@@ -435,7 +430,7 @@ def try_fix_file(gap: dict, timeout: int) -> bool:
     initial_funcs = gap["funcs_pct"]
     initial_branches = gap["branches_pct"]
 
-    files_before = git_get_modified_files()
+    files_before = jj_get_modified_files()
 
     for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
         model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
@@ -457,23 +452,23 @@ def try_fix_file(gap: dict, timeout: int) -> bool:
 
         if coverage_passed:
             log(f"{model_name} SUCCESS - coverage thresholds met")
-            git_commit(gap, model_name, attempt, files_before)
+            jj_commit(gap, model_name, attempt, files_before)
             return True
 
         # Check if we made progress on this file
         new_lines, new_funcs, new_branches = get_file_coverage(source_file)
         if new_lines > initial_lines or new_funcs > initial_funcs or new_branches > initial_branches:
             log(f"{model_name} PARTIAL - improved coverage, committing")
-            git_commit(gap, model_name, attempt, files_before)
+            jj_commit(gap, model_name, attempt, files_before)
             # Update initial values for next attempt
             initial_lines, initial_funcs, initial_branches = new_lines, new_funcs, new_branches
-            files_before = git_get_modified_files()
+            files_before = jj_get_modified_files()
         else:
             log(f"{model_name} FAILED (no coverage improvement)")
 
     # Exhausted all attempts
     log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
-    git_revert(files_before)
+    jj_revert(files_before)
     return False
 
 

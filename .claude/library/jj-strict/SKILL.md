@@ -1,18 +1,18 @@
 ---
-name: git-strict
-description: Git Strict skill for the ikigai project
+name: jj-strict
+description: Jujutsu Strict skill for the ikigai project
 ---
 
-# Git Strict
+# Jujutsu Strict
 
 ## Description
-Strict git operations for release management. Requires all quality gates to pass.
+Strict jj operations for release management. Requires all quality gates to pass.
 
-## Git Configuration
+## Configuration
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
-- **Primary branch**: main
-- **Upstream**: github/main
+- **Primary branch**: main (bookmark)
+- **Upstream**: origin/main
 
 ## Commit Policy
 
@@ -20,9 +20,9 @@ Strict git operations for release management. Requires all quality gates to pass
 
 Do NOT include attributions in commit messages:
 - No "Co-Authored-By: Claude <noreply@anthropic.com>"
-- No "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+- No "Generated with [Claude Code](https://claude.com/claude-code)"
 
-A pre-commit hook enforces this. Commits will be rejected if these lines are present.
+This is enforced via CI or pre-push checks. Commits with these lines will be rejected on push.
 
 ### Pre-Commit Requirements (MANDATORY)
 
@@ -40,36 +40,54 @@ Never commit with ANY known issue - even "pre-existing" or "in another file".
 
 **Exception**: Pre-commit checks can be SKIPPED if the commit contains ONLY documentation changes:
 - Changes to *.md files (README, docs/, .agents/, etc.)
-- Changes to .gitignore, .editorconfig, or similar config files
+- Changes to config files (.gitignore, .editorconfig, etc.)
 - NO changes to source code (*.c, *.h), Makefile, or build configuration
 
 If ANY source code file is modified, ALL pre-commit checks are required.
 
 ## Permitted Operations
 
-This skill permits ALL git operations including:
+This skill permits ALL jj operations including:
 
-- Merging to `main` branch (after all checks pass)
-- Creating tags
+- Modifying the `main` bookmark (after all checks pass)
+- Creating release bookmarks/tags
 - Creating releases
-- Force pushing (use with caution)
-- All standard git operations
+- Force pushing (jj handles automatically)
+- All standard jj operations
 
 ## Pre-Merge Checklist
 
-Before merging to `main`:
+Before updating `main`:
 
 1. All pre-commit checks pass (see above)
-2. Branch is up-to-date with main (rebase if needed)
+2. Bookmark is rebased on latest main
 3. All CI checks pass (if configured)
 4. Code review complete (if required by project policy)
 
+## Release Workflow
+
+```bash
+# Ensure on latest main
+jj git fetch
+jj rebase -d main
+
+# Run all quality checks
+make fmt && make check && make lint && make coverage && make check-dynamic
+
+# Create release bookmark
+jj bookmark create rel-XX
+
+# Push to remote
+jj git push --bookmark rel-XX
+jj git push --bookmark main
+```
+
 ## Tagging Convention
 
-Use semantic versioning: `vMAJOR.MINOR.PATCH`
+Use semantic versioning via bookmarks: `vMAJOR.MINOR.PATCH`
 
-Example:
 ```bash
-git tag -a v1.2.3 -m "Release v1.2.3: Brief description"
-git push origin v1.2.3
+jj bookmark create v1.2.3
+jj describe -m "Release v1.2.3: Brief description"
+jj git push --bookmark v1.2.3
 ```

@@ -7,20 +7,20 @@ description: Release skill for the ikigai project
 
 Release management for the ikigai project. One commit per release on main, with corresponding tag.
 
-## Git Configuration
+## Configuration
 
 - **Remote**: origin (github.com:mgreenly/ikigai.git)
-- **Primary branch**: main
+- **Primary branch**: main (bookmark)
 - **Release pattern**: One squashed commit per release
 
 ## Branch Structure
 
 ```
 main
-├── rel-01  (tag)
-├── rel-02  (tag)
-├── rel-03  (tag)
-└── rel-04  (tag)
+├── rel-01  (bookmark/tag)
+├── rel-02  (bookmark/tag)
+├── rel-03  (bookmark/tag)
+└── rel-04  (bookmark/tag)
 ```
 
 Each release is a single commit. History is linear with no merge commits.
@@ -79,16 +79,19 @@ rel-##: Short description
 
 ### 1. Prepare Release
 
-Ensure all work is on a feature branch or accumulated commits are ready.
+Ensure all work is committed and ready. Use `jj log` to review history.
 
 ### 2. Squash to Single Commit
 
 ```bash
-# From main, soft reset to previous release
-git reset --soft <previous-release-commit>
+# Squash all commits since last release into one
+jj squash --from <first-commit> --into <last-release>
 
-# Create release commit with full changelog
-git commit -m "$(cat <<'EOF'
+# Or interactively fold commits
+jj fold --from <range>
+
+# Describe the release commit
+jj describe -m "$(cat <<'EOF'
 rel-##: Description
 
 <changelog body>
@@ -96,17 +99,17 @@ EOF
 )"
 ```
 
-### 3. Tag the Release
+### 3. Create Release Bookmark
 
 ```bash
-git tag rel-##
+jj bookmark create rel-##
 ```
 
 ### 4. Push
 
 ```bash
-git push --force origin main
-git push origin rel-##
+jj git push --bookmark main
+jj git push --bookmark rel-##
 ```
 
 ## CHANGELOG.md
@@ -130,24 +133,32 @@ Before creating a release commit:
 5. `make check-dynamic` - Sanitizers pass
 6. Update `CHANGELOG.md` with release notes
 
-## Rebuilding Commit Messages
+## Updating Commit Messages
 
-To update a commit message from the changelog:
+To update a commit message:
 
 ```bash
-git commit --amend -m "$(cat <<'EOF'
+# Edit any mutable commit
+jj describe <revision> -m "$(cat <<'EOF'
 <new message from CHANGELOG.md>
 EOF
 )"
-git push --force origin main
+
+# Push updated bookmark
+jj git push --bookmark main
 ```
 
 ## Rewriting History
 
-To rewrite multiple commit messages:
+jj makes history rewriting natural:
 
 ```bash
-# Use filter-branch with msg-filter
-git filter-branch -f --msg-filter 'script.sh' -- --all
-git push --force origin main
+# Edit an old commit
+jj edit <revision>
+# Make changes, they're automatically part of that commit
+jj new  # Return to tip
+
+# Rebase descendants automatically happen
 ```
+
+For bulk message updates, use `jj describe` on each commit or script with `jj log` templates.

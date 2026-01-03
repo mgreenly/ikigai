@@ -1,6 +1,6 @@
 {
   "preload": [
-    "git",
+    "jj",
     "errors",
     "style"
   ],
