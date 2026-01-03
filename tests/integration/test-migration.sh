@@ -2,7 +2,7 @@
 # Automated migration test script
 # Tests database migration validity, idempotency, and constraints
 #
-# Usage: ./scripts/test-migration.sh
+# Usage: ./tests/integration/test-migration.sh
 # Exit codes: 0 = success, non-zero = failure
 
 set -euo pipefail

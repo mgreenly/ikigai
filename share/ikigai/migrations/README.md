@@ -21,7 +21,7 @@ The initial schema implements the event stream architecture with:
 An automated test script validates migration correctness:
 
 ```bash
-./scripts/test-migration.sh
+./tests/integration/test-migration.sh
 ```
 
 The test script:

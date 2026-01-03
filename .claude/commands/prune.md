@@ -2,7 +2,7 @@
 description: Remove dead code (functions unreachable from main) using sub-agents.
 ---
 
-Remove functions identified as dead code by `scripts/dead-code.sh`.
+Remove functions identified as dead code by `.claude/scripts/dead-code.sh`.
 
 **Usage:**
 - `/prune` - Identify and remove unreachable functions one at a time
@@ -41,7 +41,7 @@ If output is non-empty: print "Error: Git workspace must be clean before pruning
 ### Step 2: Get Candidates
 
 ```bash
-./scripts/dead-code.sh
+./.claude/scripts/dead-code.sh
 ```
 
 - If output starts with "No orphaned functions": print "No dead code found." and stop.

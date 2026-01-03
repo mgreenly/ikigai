@@ -4,7 +4,7 @@ sys.dont_write_bytecode = True
 """
 harness/prune - Automated dead code removal loop
 
-Runs scripts/dead-code.sh, removes functions one at a time with escalation,
+Runs .claude/scripts/dead-code.sh, removes functions one at a time with escalation,
 commits on success, records false positives, continues until all processed
 or no progress is made.
 """
@@ -165,13 +165,13 @@ def git_revert() -> None:
 
 def get_dead_code_candidates() -> list[dict]:
     """
-    Run scripts/dead-code.sh and parse output.
+    Run .claude/scripts/dead-code.sh and parse output.
     Returns list of {function, file, line} dicts.
     """
     log("Running dead-code analysis...")
     spinner = Spinner("Analyzing dead code")
     spinner.start()
-    code, stdout, stderr = run_cmd(["./scripts/dead-code.sh"])
+    code, stdout, stderr = run_cmd(["./.claude/scripts/dead-code.sh"])
     spinner.stop()
 
     if code != 0:
