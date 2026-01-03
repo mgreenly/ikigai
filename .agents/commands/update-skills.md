@@ -71,7 +71,7 @@ Include ALL targets. Keep descriptions actionable and concise.
 Analyze the database layer and update `.agents/skills/database.md`.
 
 Instructions:
-1. Read all migrations/*.sql files to document the current schema
+1. Read all share/ikigai/migrations/*.sql files to document the current schema
 2. Read src/db/*.h files for struct definitions and function signatures
 3. Read src/db/*.c files for implementation overview
 4. Write the skill file with:

@@ -131,7 +131,7 @@ res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, ik_db_ctx_t **out_ct
   - `out_ctx`: Output parameter for database context (must not be NULL)
 - **Returns:** `OK` with db_ctx on success, `ERR` on failure
 - **Error Codes:** `ERR_INVALID_ARG`, `ERR_DB_CONNECT`, `ERR_DB_MIGRATE`
-- **Behavior:** Establishes connection and runs migrations from `./migrations/`
+- **Behavior:** Establishes connection and runs migrations from `./share/ikigai/migrations/`
 
 ### ik_db_init_with_migrations
 Initialize database connection with custom migrations directory.
@@ -370,7 +370,7 @@ res_t ik_test_db_create(const char *db_name);
 - Uses admin database connection to drop/create
 
 #### ik_test_db_migrate
-Run migrations on test database from `./migrations/` directory.
+Run migrations on test database from `./share/ikigai/migrations/` directory.
 ```c
 res_t ik_test_db_migrate(TALLOC_CTX *ctx, const char *db_name);
 ```
@@ -439,8 +439,8 @@ TEST_DB_URL_PREFIX = "postgresql://ikigai:ikigai@localhost/"
 
 | File | Purpose |
 |------|---------|
-| `migrations/001-initial-schema.sql` | Initial database schema with sessions and messages tables |
-| `migrations/999-auto-test.sql` | Test migration for migration system validation |
+| `share/ikigai/migrations/001-initial-schema.sql` | Initial database schema with sessions and messages tables |
+| `share/ikigai/migrations/999-auto-test.sql` | Test migration for migration system validation |
 | `src/db/connection.h` | Database connection API (init, destructor) |
 | `src/db/connection.c` | Connection implementation with validation and migration runner |
 | `src/db/session.h` | Session CRUD API (create, get_active, end) |

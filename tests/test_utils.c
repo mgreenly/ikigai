@@ -295,7 +295,7 @@ res_t ik_test_db_migrate(TALLOC_CTX *ctx, const char *db_name)
     }
 
     // Run migrations
-    res = ik_db_migrate(db, "migrations");
+    res = ik_db_migrate(db, "share/ikigai/migrations");
     if (is_err(&res)) {
         // Reparent error to NULL before freeing tmp_ctx (error is attached to db, which is a child of tmp_ctx)
         if (ctx == NULL) {

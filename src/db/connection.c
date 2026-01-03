@@ -62,7 +62,7 @@ static bool validate_conn_str(const char *conn_str)
 
 res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
 {
-    return ik_db_init_with_migrations(ctx, conn_str, "migrations", out_ctx);
+    return ik_db_init_with_migrations(ctx, conn_str, "share/ikigai/migrations", out_ctx);
 }
 
 res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx)

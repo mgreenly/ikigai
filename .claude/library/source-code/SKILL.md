@@ -106,7 +106,7 @@ Comprehensive reference for all C source files in the Ikigai REPL project organi
 
 ## Database Layer
 
-- `src/db/connection.c` - PostgreSQL connection management with connection string validation and automatic migrations.
+- `src/db/connection.c` - PostgreSQL connection management with connection string validation and automatic migrations (from `share/ikigai/migrations/`).
 - `src/db/migration.c` - Database schema migration system with version tracking and directory scanning.
 - `src/db/session.c` - Session management for creating and querying conversation sessions.
 - `src/db/message.c` - Message persistence with event kind validation, parameterized queries, and conversation/metadata filtering.

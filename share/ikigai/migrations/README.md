@@ -40,7 +40,7 @@ When schema changes are needed:
 
 ### 1. Create New Migration File
 
-Create `migrations/00N-descriptive-name.sql` where N is the next sequential number.
+Create `share/ikigai/migrations/00N-descriptive-name.sql` where N is the next sequential number.
 
 ### 2. Migration File Structure
 
@@ -63,13 +63,13 @@ COMMIT;
 
 ```bash
 # Apply to test database
-cat migrations/00N-descriptive-name.sql | psql ikigai_test
+cat share/ikigai/migrations/00N-descriptive-name.sql | psql ikigai_test
 
 # Verify schema_metadata updated
 psql ikigai_test -c "SELECT * FROM schema_metadata"
 
 # Test idempotency if applicable
-cat migrations/00N-descriptive-name.sql | psql ikigai_test
+cat share/ikigai/migrations/00N-descriptive-name.sql | psql ikigai_test
 ```
 
 ### 4. Update Migration Runner
