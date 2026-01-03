@@ -29,10 +29,13 @@ ESCALATION_LADDER = {
     3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
 }
 
-SCRIPT_DIR = Path(__file__).parent.resolve()
+SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 DEFAULT_TIMEOUT = 900
+
+# Global flag to disable spinner (set by --no-spinner)
+SPINNER_ENABLED = True
 
 
 class Spinner:
@@ -60,6 +63,8 @@ class Spinner:
         sys.stdout.flush()
 
     def start(self) -> None:
+        if not SPINNER_ENABLED:
+            return
         self.running = True
         self.start_time = time.time()
         self.thread = threading.Thread(target=self._spin, daemon=True)
@@ -369,9 +374,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Automated Valgrind Memcheck error fix loop")
     parser.add_argument("--dry-run", action="store_true",
                         help="Identify memory errors without fixing them")
+    parser.add_argument("--no-spinner", action="store_true",
+                        help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
+
+    global SPINNER_ENABLED
+    if args.no_spinner:
+        SPINNER_ENABLED = False
 
     opts = []
     if args.dry_run:
