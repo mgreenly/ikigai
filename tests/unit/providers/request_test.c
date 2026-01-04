@@ -72,44 +72,6 @@ START_TEST(test_content_block_tool_result_error) {
 
 END_TEST
 
-START_TEST(test_content_block_thinking) {
-    ik_content_block_t *block = ik_content_block_thinking(test_ctx,
-                                                          "Let me think about this...",
-                                                          NULL);
-
-    ck_assert_ptr_nonnull(block);
-    ck_assert_int_eq(block->type, IK_CONTENT_THINKING);
-    ck_assert_str_eq(block->data.thinking.text, "Let me think about this...");
-    ck_assert_ptr_null(block->data.thinking.signature);
-}
-
-END_TEST
-
-START_TEST(test_content_block_thinking_with_signature) {
-    ik_content_block_t *block = ik_content_block_thinking(test_ctx,
-                                                          "Deep reasoning here...",
-                                                          "EqQBCgIYAhIM...");
-
-    ck_assert_ptr_nonnull(block);
-    ck_assert_int_eq(block->type, IK_CONTENT_THINKING);
-    ck_assert_str_eq(block->data.thinking.text, "Deep reasoning here...");
-    ck_assert_str_eq(block->data.thinking.signature, "EqQBCgIYAhIM...");
-}
-
-END_TEST
-
-START_TEST(test_content_block_thinking_null_signature) {
-    ik_content_block_t *block = ik_content_block_thinking(test_ctx,
-                                                          "Thinking without signature",
-                                                          NULL);
-
-    ck_assert_ptr_nonnull(block);
-    ck_assert_int_eq(block->type, IK_CONTENT_THINKING);
-    ck_assert_str_eq(block->data.thinking.text, "Thinking without signature");
-    ck_assert_ptr_null(block->data.thinking.signature);
-}
-
-END_TEST
 /* ================================================================
  * Request Builder Tests
  * ================================================================ */
@@ -200,7 +162,14 @@ START_TEST(test_request_add_message_blocks) {
 
     /* Create multiple content blocks */
     ik_content_block_t *blocks = talloc_array(test_ctx, ik_content_block_t, 2);
-    blocks[0] = *ik_content_block_thinking(test_ctx, "Thinking...", NULL);
+
+    /* Inline thinking block creation (instead of calling ik_content_block_thinking) */
+    ik_content_block_t *thinking_block = talloc_zero(test_ctx, ik_content_block_t);
+    thinking_block->type = IK_CONTENT_THINKING;
+    thinking_block->data.thinking.text = talloc_strdup(thinking_block, "Thinking...");
+    thinking_block->data.thinking.signature = NULL;
+    blocks[0] = *thinking_block;
+
     blocks[1] = *ik_content_block_text(test_ctx, "Answer");
 
     res_t result = ik_request_add_message_blocks(req, IK_ROLE_ASSISTANT, blocks, 2);
@@ -299,9 +268,6 @@ static Suite *request_suite(void)
     tcase_add_test(tc_content_blocks, test_content_block_tool_call);
     tcase_add_test(tc_content_blocks, test_content_block_tool_result);
     tcase_add_test(tc_content_blocks, test_content_block_tool_result_error);
-    tcase_add_test(tc_content_blocks, test_content_block_thinking);
-    tcase_add_test(tc_content_blocks, test_content_block_thinking_with_signature);
-    tcase_add_test(tc_content_blocks, test_content_block_thinking_null_signature);
     suite_add_tcase(s, tc_content_blocks);
 
     TCase *tc_request = tcase_create("Request Builders");

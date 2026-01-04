@@ -79,27 +79,6 @@ ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *to
     return block;
 }
 
-ik_content_block_t *ik_content_block_thinking(TALLOC_CTX *ctx, const char *text,
-                                                const char *signature) {
-    assert(text != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_content_block_t *block = talloc_zero(ctx, ik_content_block_t);
-    if (!block) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    block->type = IK_CONTENT_THINKING;
-    block->data.thinking.text = talloc_strdup(block, text);
-    if (!block->data.thinking.text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    if (signature != NULL) {
-        block->data.thinking.signature = talloc_strdup(block, signature);
-        if (!block->data.thinking.signature) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    } else {
-        block->data.thinking.signature = NULL;
-    }
-
-    return block;
-}
-
 /* ================================================================
  * Request Builder Functions
  * ================================================================ */
