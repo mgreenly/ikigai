@@ -197,6 +197,15 @@ $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test: $(BUILDDIR)/tests/
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
+# Special case: cmd_fork_coverage_test requires its own mocks
+$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_mocks.o: tests/unit/commands/cmd_fork_coverage_test_mocks.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test: $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test.o $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_mocks.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
 # Note: Provider factory test no longer needs separate stubs since stubs.c
 # is now part of MODULE_OBJ and will be replaced when actual providers are implemented
 
