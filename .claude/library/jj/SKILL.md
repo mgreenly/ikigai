@@ -64,6 +64,7 @@ If you need to perform any of these operations, stop and inform the user they ne
 | Commit (new working copy) | `jj commit -m "msg"` |
 | Squash into parent | `jj squash` |
 | Create bookmark | `jj bookmark create <name>` |
+| Update bookmark to @ | `jj bookmark set <name>` |
 | Push bookmark | `jj git push --bookmark <name>` |
 | Fetch from remote | `jj git fetch` |
 | Restore working copy | `jj restore` |
@@ -83,3 +84,6 @@ jj "bookmarks" are equivalent to git "branches". They're just named pointers to 
 - `◆` = immutable (protected, can't change)
 - `○` = mutable (can still edit)
 - `@` = current working copy
+
+### "Update the bookmark"
+When the user says "update the bookmark", find the most recent bookmark in `@`'s ancestry and move it to `@` using `jj bookmark set <name>`.
