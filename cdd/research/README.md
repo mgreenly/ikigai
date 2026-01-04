@@ -49,6 +49,30 @@ Research conducted to validate and inform the rel-08 external tool architecture 
 - Error handling and adaptation
 - Output truncation handling
 
+### Schema Validation
+
+**[schema-validation-research.md](schema-validation-research.md)** - JSON Schema validation options:
+- yyjson has no schema validation (parser only)
+- Available C libraries (jsonschema-c, jsonc-daccord) depend on json-c
+- Recommendation: manual structural validation (~100-200 lines)
+- We validate schema structure, not data against schema
+
+### Tool Schema Format
+
+**[tool-schema-format.md](tool-schema-format.md)** - Canonical `--schema` output format:
+- JSON Schema (Draft 2020-12 compatible subset)
+- Required fields: name, description, parameters
+- Supported types: string, integer, number, boolean, array, object, enum
+- Concrete example using file_edit tool
+
+### Provider Schema Translation
+
+**[provider-schema-translation.md](provider-schema-translation.md)** - How schemas translate to each provider:
+- OpenAI: wrap in function object, add strict:true, additionalProperties:false
+- Anthropic: rename parameters to input_schema
+- Google: wrap in functionDeclarations, remove additionalProperties
+- Validation timing and responsibilities
+
 ## Key Findings Summary
 
 ### 1. Thread Model Integration
@@ -81,6 +105,18 @@ GNU standards place helper executables in `$(libexecdir)/$(package)` (typically 
 
 **Verdict:** Follow FHS. Use `PREFIX/libexec/ikigai/` for system tools.
 
+### 6. Schema Validation Strategy
+
+yyjson is a JSON parser, not a schema validator. Available C libraries for JSON Schema validation depend on json-c (not yyjson). We only need to validate schema structure (not data against schema), so manual validation is sufficient.
+
+**Verdict:** Implement ~100-200 lines of structural validation. No new dependencies.
+
+### 7. Provider Schema Translation
+
+All three providers (OpenAI, Anthropic, Google) use JSON Schema for tool parameters, but with minor format differences. Translation is straightforward: OpenAI needs strict mode wrapping, Anthropic renames a field, Google removes unsupported fields.
+
+**Verdict:** One canonical format, three simple transforms. Provider code already does this.
+
 ## Research Methodology
 
 Primary research method: Analyze existing ikigai codebase to understand current patterns, then design minimal changes for external tool support.
@@ -95,6 +131,9 @@ Primary research method: Analyze existing ikigai codebase to understand current 
 | Schema via --schema flag | ✓ Researched | Common pattern (like --help, --version) |
 | Response wrapper | ✓ Researched | Distinguishes tool errors from execution errors |
 | Wrapper for testability | ✓ Researched | Best practice for C testing |
+| JSON Schema validation | ✓ Researched | Manual validation, no external library needed |
+| Tool schema format | ✓ Researched | JSON Schema subset, file_edit as reference |
+| Provider translation | ✓ Researched | Minor transforms per provider, well-defined |
 
 ## Next Steps
 
