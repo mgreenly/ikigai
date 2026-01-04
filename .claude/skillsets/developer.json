@@ -20,5 +20,7 @@
     "tdd",
     "testability"
   ],
-  "advertise": []
+  "advertise": [
+    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"}
+  ]
 }

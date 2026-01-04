@@ -8,6 +8,7 @@
     "user-stories"
   ],
   "advertise": [
+    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
     {"skill": "source-code", "description": "Map of all src/*.c files by functional area"},
     {"skill": "task-authoring", "description": "Creating task files for orchestration"},
     {"skill": "task", "description": "Task execution tracking and commands"}
