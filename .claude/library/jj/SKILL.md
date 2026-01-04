@@ -37,8 +37,6 @@ Run `make check` periodically to catch issues early.
 This skill does NOT permit:
 - Modifying the `main` bookmark locally
 - Merging into main locally
-- Creating tags
-- Creating releases
 - Force pushing to main
 
 **Merges to main only happen via GitHub PRs.** All work is done on feature bookmarks, pushed to origin, and merged through pull requests on GitHub. Never merge locally.
@@ -48,6 +46,7 @@ This skill does NOT permit:
 - Commit to feature/fix bookmarks
 - Push feature/fix bookmarks to remote
 - Create new bookmarks
+- Create and push tags
 - Fetch from remote
 - Rebase commits
 - Create new commits on any mutable revision
@@ -70,6 +69,9 @@ This skill does NOT permit:
 | Edit existing commit | `jj edit <revision>` |
 | Create commit on revision | `jj new <revision>` |
 | Rebase | `jj rebase -d <destination>` |
+| Create tag | `jj tag set <name> -r <revision>` |
+| Push tag | `git push origin <tag>` |
+| List tags | `jj tag list` |
 
 ## Key Concepts
 
