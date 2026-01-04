@@ -111,9 +111,24 @@ export function getNextEscalation(
   };
 }
 
+// CDD directory from environment
+export function getCddDir(): string {
+  const cddDir = Deno.env.get("CDD_DIR");
+  if (!cddDir) {
+    console.error(JSON.stringify({
+      success: false,
+      error: "CDD_DIR environment variable not set",
+      code: "CDD_DIR_NOT_SET",
+      hint: "Usage: export CDD_DIR=/path/to/workspace"
+    }));
+    Deno.exit(1);
+  }
+  return cddDir;
+}
+
 // Paths
 export function getTasksDir(): string {
-  return "cdd/tasks";
+  return join(getCddDir(), "tasks");
 }
 
 export function getOrderPath(): string {

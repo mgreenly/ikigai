@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env
 
 /**
  * List tasks from order.json and filesystem

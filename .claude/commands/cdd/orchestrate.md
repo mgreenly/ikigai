@@ -1,6 +1,8 @@
-Orchestrate task execution from cdd/tasks/ with automatic retry and escalation.
+Orchestrate task execution from $CDD_DIR/tasks/ with automatic retry and escalation.
 
 **Usage:** `/orchestrate`
+
+**Requires:** `$CDD_DIR` environment variable must be set to the workspace directory.
 
 Executes all pending tasks for the current bookmark, one at a time.
 
@@ -62,7 +64,7 @@ Run these in order. If ANY fails, report and **STOP**:
 4. `.claude/scripts/task/start.ts <task.name>` - mark in_progress
 5. Spawn ONE sub-agent (NOT in background):
    ```
-   Execute task: cdd/tasks/<task.name>
+   Execute task: $CDD_DIR/tasks/<task.name>
 
    Read the task file and execute it. The task provides all needed skills, files, and context.
 
