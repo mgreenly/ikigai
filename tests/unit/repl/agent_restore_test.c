@@ -18,6 +18,8 @@
 #include "../../../src/shared.h"
 #include "../../../src/logger.h"
 #include "../../../src/scrollback.h"
+#include "../../../src/layer.h"
+#include "../../../src/layer_wrappers.h"
 #include "../../test_utils.h"
 #include <check.h>
 #include <talloc.h>
@@ -180,6 +182,18 @@ static ik_repl_ctx_t *create_test_repl(void)
     repl->agents[0] = agent0;
     repl->agent_count = 1;
     repl->current = agent0;
+
+    return repl;
+}
+
+// Helper: Create repl with lower_separator_layer
+static ik_repl_ctx_t *create_test_repl_with_lower_separator(void)
+{
+    ik_repl_ctx_t *repl = create_test_repl();
+
+    // Create lower separator layer (as done in repl_init.c)
+    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
+    ck_assert_ptr_nonnull(repl->lower_separator_layer);
 
     return repl;
 }
@@ -417,6 +431,38 @@ START_TEST(test_restore_agents_handles_restore_failure_gracefully) {
 
 END_TEST
 
+// Test: restore_child_agent adds lower_separator_layer when present
+START_TEST(test_restore_child_agent_adds_lower_separator_layer) {
+    SKIP_IF_NO_DB();
+
+    // Insert Agent 0
+    insert_agent("agent0-sep-test-123", NULL, 1000, 0);
+    insert_message("agent0-sep-test-123", "clear", NULL);
+
+    // Insert child agent
+    insert_agent("child1-sep-test-123", "agent0-sep-test-123", 2000, 0);
+
+    // Create repl with lower_separator_layer
+    ik_repl_ctx_t *repl = create_test_repl_with_lower_separator();
+    talloc_free(repl->current->uuid);
+    repl->current->uuid = talloc_strdup(repl->current, "agent0-sep-test-123");
+
+    // Call restore_agents
+    res_t res = ik_repl_restore_agents(repl, db);
+    ck_assert(is_ok(&res));
+
+    // Verify child agent was restored
+    ck_assert_uint_eq(repl->agent_count, 2);
+    ik_agent_ctx_t *child = repl->agents[1];
+    ck_assert_ptr_nonnull(child);
+
+    // Verify lower_separator_layer was added to child's layer cake
+    // The layer cake should contain the lower_separator_layer
+    ck_assert_ptr_nonnull(child->layer_cake);
+    ck_assert_ptr_nonnull(repl->lower_separator_layer);
+}
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *agent_restore_suite(void)
@@ -445,6 +491,7 @@ static Suite *agent_restore_suite(void)
     tcase_add_test(tc_core, test_restore_agents_handles_mark_events);
     tcase_add_test(tc_core, test_restore_agents_handles_empty_history);
     tcase_add_test(tc_core, test_restore_agents_handles_restore_failure_gracefully);
+    tcase_add_test(tc_core, test_restore_child_agent_adds_lower_separator_layer);
 
     suite_add_tcase(s, tc_core);
     return s;
