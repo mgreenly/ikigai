@@ -16,6 +16,7 @@
 * **Never run parallel make** - Different targets use incompatible flags
 * **Never use AskUserQuestion tool** - Forbidden in this project
 * **Never use git commands** - This is a jj (Jujutsu) project; always use `jj` commands instead of `git`
+* **Never merge to main locally** - All merges to main happen via GitHub PRs only
 
 ## Available Skills
 
