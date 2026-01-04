@@ -9,13 +9,33 @@
 # Usage: ./run [--dry-run]
 #   --dry-run: Pass to all sub-tasks to identify issues without fixing
 
-set -e
-
 START_TIME=$SECONDS
 
 log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     printf '%s | %-10s | %s\n' "$timestamp" "quality" "$1"
+}
+
+# Run a command and exit with error message if it fails
+# Usage: run_cmd "description" command [args...]
+run_cmd() {
+    local desc="$1"
+    shift
+    local output exit_code
+
+    output=$("$@" 2>&1)
+    exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        log "FATAL: $desc failed (exit $exit_code)"
+        log "Command: $*"
+        if [ -n "$output" ]; then
+            log "Output: $output"
+        fi
+        exit 1
+    fi
+
+    echo "$output"
 }
 
 format_elapsed() {
@@ -36,7 +56,12 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Verify clean workspace before starting
-if [ -n "$(jj diff --summary)" ]; then
+dirty=$(jj diff --summary 2>&1) || {
+    log "FATAL: jj diff --summary failed"
+    log "Output: $dirty"
+    exit 1
+}
+if [ -n "$dirty" ]; then
     log "ERROR: Working copy is not clean. Commit changes before running quality checks."
     jj status
     exit 1
@@ -60,10 +85,12 @@ run_step() {
     local step="$1"
     local head_before head_after step_exit
 
-    head_before=$(jj log -r @ --no-graph -T 'commit_id.short()')
+    head_before=$(run_cmd "jj log (before $step)" jj log -r @ --no-graph -T 'commit_id.short()')
+
     "$HARNESS_DIR/$step/run" $ARGS
     step_exit=$?
-    head_after=$(jj log -r @ --no-graph -T 'commit_id.short()')
+
+    head_after=$(run_cmd "jj log (after $step)" jj log -r @ --no-graph -T 'commit_id.short()')
 
     if [ "$head_before" != "$head_after" ]; then
         return 1  # commits made, signal restart
