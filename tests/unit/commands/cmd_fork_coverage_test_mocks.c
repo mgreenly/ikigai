@@ -14,12 +14,12 @@
 
 #include <talloc.h>
 
-static res_t mock_start_stream(void *ctx,
-                               const ik_request_t *req,
-                               ik_stream_cb_t stream_cb,
-                               void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb,
-                               void *completion_ctx);
+res_t mock_start_stream(void *ctx,
+                        const ik_request_t *req,
+                        ik_stream_cb_t stream_cb,
+                        void *stream_ctx,
+                        ik_provider_completion_cb_t completion_cb,
+                        void *completion_ctx);
 
 // Mock control flags
 static bool mock_get_provider_should_fail = false;
@@ -88,9 +88,9 @@ res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **r
 }
 
 // Mock start_stream function for provider
-static res_t mock_start_stream(void *ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+res_t mock_start_stream(void *ctx, const ik_request_t *req,
+                        ik_stream_cb_t stream_cb, void *stream_ctx,
+                        ik_provider_completion_cb_t completion_cb, void *completion_ctx)
 {
     (void)ctx;
     (void)req;

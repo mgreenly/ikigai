@@ -7,6 +7,27 @@
 #define CMD_FORK_COVERAGE_TEST_MOCKS_H
 
 #include <stdbool.h>
+#include "../../../src/error.h"
+#include "../../../src/providers/provider.h"
+#include "../../../src/providers/provider_vtable.h"
+#include "../../../src/providers/request.h"
+
+/**
+ * @brief Mock implementation of start_stream for testing
+ * @param ctx Provider context
+ * @param req Request to stream
+ * @param stream_cb Callback for stream events
+ * @param stream_ctx Context for stream callback
+ * @param completion_cb Callback for completion
+ * @param completion_ctx Context for completion callback
+ * @return OK(NULL) on success, ERR(...) on failure
+ */
+res_t mock_start_stream(void *ctx,
+                        const ik_request_t *req,
+                        ik_stream_cb_t stream_cb,
+                        void *stream_ctx,
+                        ik_provider_completion_cb_t completion_cb,
+                        void *completion_ctx);
 
 /**
  * @brief Control whether mock provider should fail
