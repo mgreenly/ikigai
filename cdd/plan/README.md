@@ -7,6 +7,7 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 | Document | Purpose |
 |----------|---------|
 | [architecture.md](architecture.md) | Structs, functions, data flow, migration phases |
+| [memory-management.md](memory-management.md) | Ownership rules, talloc patterns, thread memory model |
 | [removal-specification.md](removal-specification.md) | Complete specification for removing internal tool system (Phase 1) |
 | [integration-specification.md](integration-specification.md) | Exact struct/function changes for new code integration |
 | [tool-discovery-execution.md](tool-discovery-execution.md) | Discovery protocol, execution flow, build system, /refresh command |
@@ -17,8 +18,9 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 ## Reading Order
 
 1. **architecture.md** - Start here for what we're building
-2. **tool-discovery-execution.md** - Deep dive on discovery and execution specifics
-3. **error-codes.md** - Reference for error handling
+2. **memory-management.md** - Ownership rules and talloc patterns
+3. **tool-discovery-execution.md** - Deep dive on discovery and execution specifics
+4. **error-codes.md** - Reference for error handling
 
 Note: `architecture-current.md` is reference only - describes the existing system for context when needed.
 
