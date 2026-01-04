@@ -13,16 +13,6 @@
 #include "providers/provider.h"
 
 /**
- * Serialize internal request to Anthropic JSON format (non-streaming)
- *
- * @param ctx      Talloc context for error allocation
- * @param req      Internal request structure
- * @param out_json Output: JSON string (allocated on ctx)
- * @return         OK with JSON string, ERR on failure
- */
-res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json);
-
-/**
  * Serialize internal request to Anthropic JSON format with streaming enabled
  *
  * @param ctx      Talloc context for error allocation

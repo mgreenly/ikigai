@@ -50,33 +50,6 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Branch Coverage Tests
  * ================================================================ */
 
-START_TEST(test_serialize_request_no_stream) {
-    ik_request_t *req = create_basic_request(test_ctx);
-    char *json = NULL;
-
-    // Test non-streaming serialization
-    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(json);
-
-    // Parse and validate JSON structure
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert_ptr_nonnull(root);
-
-    // Check stream is not present or false
-    yyjson_val *stream = yyjson_obj_get(root, "stream");
-    // When stream=false, the field should not be added
-    ck_assert_ptr_null(stream);
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
 START_TEST(test_serialize_request_thinking_budget_negative) {
     ik_request_t *req = create_basic_request(test_ctx);
     // Use a non-Claude model that returns -1 for thinking budget
@@ -132,33 +105,6 @@ START_TEST(test_serialize_request_max_tokens_exceeds_budget) {
 
 END_TEST
 
-START_TEST(test_serialize_request_message_with_invalid_tool_call_json) {
-    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
-    req->model = talloc_strdup(req, "claude-3-5-sonnet-20241022");
-    req->max_output_tokens = 1024;
-    req->thinking.level = IK_THINKING_NONE;
-
-    // Add a message with a tool_call content block containing invalid JSON
-    req->message_count = 1;
-    req->messages = talloc_array(req, ik_message_t, 1);
-    req->messages[0].role = IK_ROLE_ASSISTANT;
-    req->messages[0].content_count = 1;
-    req->messages[0].content_blocks = talloc_array(req, ik_content_block_t, 1);
-    req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL;
-    req->messages[0].content_blocks[0].data.tool_call.id = talloc_strdup(req, "call_123");
-    req->messages[0].content_blocks[0].data.tool_call.name = talloc_strdup(req, "test_tool");
-    req->messages[0].content_blocks[0].data.tool_call.arguments = talloc_strdup(req, "{invalid json}");
-
-    char *json = NULL;
-    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
-
-    // Should fail because of invalid JSON in tool_call arguments
-    ck_assert(is_err(&r));
-    ck_assert_str_eq(r.err->msg, "Failed to serialize messages");
-}
-
-END_TEST
-
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -170,10 +116,8 @@ static Suite *anthropic_request_suite_2(void)
     TCase *tc_branch = tcase_create("Branch Coverage");
     tcase_set_timeout(tc_branch, 30);
     tcase_add_unchecked_fixture(tc_branch, setup, teardown);
-    tcase_add_test(tc_branch, test_serialize_request_no_stream);
     tcase_add_test(tc_branch, test_serialize_request_thinking_budget_negative);
     tcase_add_test(tc_branch, test_serialize_request_max_tokens_exceeds_budget);
-    tcase_add_test(tc_branch, test_serialize_request_message_with_invalid_tool_call_json);
     suite_add_tcase(s, tc_branch);
 
     return s;
