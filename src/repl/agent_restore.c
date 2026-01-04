@@ -156,6 +156,12 @@ static void restore_child_agent(
 
     agent->repl = repl;
 
+    // Add shared lower separator to restored agent's layer cake
+    if (repl->lower_separator_layer != NULL) {
+        res = ik_layer_cake_add_layer(agent->layer_cake, repl->lower_separator_layer);
+        if (is_err(&res)) PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
+    }
+
     // Restore provider configuration from DB row
     ik_agent_restore_from_row(agent, agent_row);
 
