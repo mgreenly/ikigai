@@ -7,4 +7,4 @@ Run coverage checks and fix gaps using sub-agents.
 
 ---
 
-Run `check-coverage --no-spinner` and report the results.
+Run `.claude/scripts/check-coverage --no-spinner` and report the results.

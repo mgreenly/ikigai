@@ -7,4 +7,4 @@ Run complexity checks and fix complex functions using sub-agents.
 
 ---
 
-Run `check-complexity --no-spinner` and report the results.
+Run `.claude/scripts/check-complexity --no-spinner` and report the results.

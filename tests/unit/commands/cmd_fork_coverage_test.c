@@ -3,6 +3,8 @@
  * @brief Unit tests for /fork command - coverage gaps
  */
 
+#include "cmd_fork_coverage_test_mocks.h"
+
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
@@ -10,6 +12,8 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
+#include "../../../src/layer.h"
+#include "../../../src/layer_wrappers.h"
 #include "../../../src/providers/provider.h"
 #include "../../../src/providers/provider_vtable.h"
 #include "../../../src/providers/request.h"
@@ -23,98 +27,6 @@
 #include <inttypes.h>
 #include <talloc.h>
 
-// Mock posix_rename_ to prevent PANIC during logger rotation
-int posix_rename_(const char *oldpath, const char *newpath)
-{
-    (void)oldpath;
-    (void)newpath;
-    return 0;
-}
-
-static res_t mock_start_stream(void *ctx,
-                               const ik_request_t *req,
-                               ik_stream_cb_t stream_cb,
-                               void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb,
-                               void *completion_ctx);
-
-// Mock control flags
-static bool mock_get_provider_should_fail = false;
-static bool mock_build_request_should_fail = false;
-static bool mock_start_stream_should_fail = false;
-static TALLOC_CTX *mock_err_ctx = NULL;
-
-// Mock ik_agent_get_provider_
-res_t ik_agent_get_provider_(void *agent, void **provider_out)
-{
-    if (mock_get_provider_should_fail) {
-        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-        return ERR(mock_err_ctx, PROVIDER, "Mock provider error: Failed to get provider");
-    }
-
-    ik_agent_ctx_t *ag = (ik_agent_ctx_t *)agent;
-
-    // Lazily create provider_instance if NULL (mimics real behavior)
-    if (ag->provider_instance == NULL) {
-        ik_provider_t *provider = talloc_zero(ag, ik_provider_t);
-        if (provider == NULL) {
-            if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-            return ERR(mock_err_ctx, OUT_OF_MEMORY, "Out of memory");
-        }
-        provider->ctx = ag;
-
-        ik_provider_vtable_t *vt = talloc_zero(provider, ik_provider_vtable_t);
-        if (vt == NULL) {
-            if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-            return ERR(mock_err_ctx, OUT_OF_MEMORY, "Out of memory");
-        }
-        vt->start_stream = mock_start_stream;
-        provider->vt = vt;
-        ag->provider_instance = provider;
-    }
-
-    *provider_out = ag->provider_instance;
-    return OK(NULL);
-}
-
-// Mock ik_request_build_from_conversation_
-res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
-{
-    (void)agent;
-
-    if (mock_build_request_should_fail) {
-        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-        return ERR(mock_err_ctx, INVALID_ARG, "Mock request error: Failed to build request");
-    }
-
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    if (req == NULL) {
-        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-        return ERR(mock_err_ctx, OUT_OF_MEMORY, "Out of memory");
-    }
-    *req_out = req;
-    return OK(NULL);
-}
-
-// Mock start_stream function for provider
-static res_t mock_start_stream(void *ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb, void *completion_ctx)
-{
-    (void)ctx;
-    (void)req;
-    (void)stream_cb;
-    (void)stream_ctx;
-    (void)completion_cb;
-    (void)completion_ctx;
-
-    if (mock_start_stream_should_fail) {
-        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
-        return ERR(mock_err_ctx, PROVIDER, "Mock stream error: Failed to start stream");
-    }
-
-    return OK(NULL);
-}
 
 // Test fixtures
 static const char *DB_NAME;
@@ -221,9 +133,7 @@ static void setup(void)
     setup_repl();
 
     // Reset mock flags
-    mock_get_provider_should_fail = false;
-    mock_build_request_should_fail = false;
-    mock_start_stream_should_fail = false;
+    ik_test_mock_reset_flags();
 }
 
 static void teardown(void)
@@ -297,7 +207,7 @@ END_TEST
 // Test: Line 98: ik_agent_get_provider returns error
 START_TEST(test_fork_prompt_provider_error) {
     // Enable mock failure for provider
-    mock_get_provider_should_fail = true;
+    ik_test_mock_set_provider_failure(true);
 
     // Fork with prompt to trigger handle_fork_prompt
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Test provider error\"");
@@ -316,7 +226,7 @@ END_TEST
 // Test: Line 109: ik_request_build_from_conversation returns error
 START_TEST(test_fork_prompt_build_request_error) {
     // Enable mock failure for request building
-    mock_build_request_should_fail = true;
+    ik_test_mock_set_request_failure(true);
 
     // Fork with prompt to trigger handle_fork_prompt
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Test request build error\"");
@@ -330,9 +240,9 @@ START_TEST(test_fork_prompt_build_request_error) {
 END_TEST
 // Test: Lines 107-127: Success path in handle_fork_prompt
 START_TEST(test_fork_prompt_success_path) {
-    mock_get_provider_should_fail = false;
-    mock_build_request_should_fail = false;
-    mock_start_stream_should_fail = false;
+    ik_test_mock_set_provider_failure(false);
+    ik_test_mock_set_request_failure(false);
+    ik_test_mock_set_stream_failure(false);
 
     res_t res = ik_cmd_fork(test_ctx, repl, "\"Test successful prompt handling\"");
     ck_assert(is_ok(&res));
@@ -435,6 +345,21 @@ START_TEST(test_fork_already_in_progress) {
 }
 END_TEST
 
+// Test: Lines 205-207: Add lower_separator_layer to child agent
+START_TEST(test_fork_with_lower_separator_layer) {
+    bool lower_separator_visible = false;
+    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &lower_separator_visible);
+    ck_assert_ptr_nonnull(repl->lower_separator_layer);
+
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    ik_agent_ctx_t *child = repl->current;
+    ck_assert_ptr_nonnull(child);
+    ck_assert_ptr_nonnull(child->layer_cake);
+}
+END_TEST
+
 static Suite *cmd_fork_coverage_suite(void)
 {
     Suite *s = suite_create("Fork Command Coverage");
@@ -454,6 +379,7 @@ static Suite *cmd_fork_coverage_suite(void)
     tcase_add_test(tc, test_fork_supports_thinking);
     tcase_add_test(tc, test_fork_parse_error_display);
     tcase_add_test(tc, test_fork_already_in_progress);
+    tcase_add_test(tc, test_fork_with_lower_separator_layer);
 
     suite_add_tcase(s, tc);
     return s;

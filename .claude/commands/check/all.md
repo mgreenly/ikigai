@@ -7,4 +7,4 @@ Run tests and fix failures using sub-agents.
 
 ---
 
-Run `check-all --no-spinner` and report the results.
+Run `.claude/scripts/check-all --no-spinner` and report the results.
