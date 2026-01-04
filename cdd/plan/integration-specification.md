@@ -210,6 +210,132 @@ TOOL_SCAN_NOT_STARTED
 
 See `removal-specification.md` for complete list.
 
+## Multi-Provider Integration
+
+This section specifies the changes needed for Anthropic and Google providers to use the external tool registry. Without these changes, these providers will call `ik_tool_build_all()` which will be deleted in Phase 3.
+
+### Anthropic Provider Integration
+
+**File:** `src/providers/anthropic/request.h`
+
+**Current signature:**
+
+| Parameter | Type |
+|-----------|------|
+| ctx | `TALLOC_CTX *` |
+| req | `const ik_request_t *` |
+| out_json | `char **` |
+
+**New signature:** Add `registry` parameter:
+
+| Parameter | Type | Notes |
+|-----------|------|-------|
+| ctx | `TALLOC_CTX *` | |
+| req | `const ik_request_t *` | |
+| registry | `ik_tool_registry_t *` | NEW: can be NULL |
+| out_json | `char **` | |
+
+**Function:** `ik_anthropic_serialize_request_stream()`
+
+**Behavioral change:**
+- **Before:** Uses `req->tools` and `req->tool_count` from the request struct (tools already populated)
+- **After:** If registry is non-NULL, calls `ik_tool_registry_build_anthropic(registry, doc)`. If NULL, uses empty tools array.
+
+**Schema transformation:** Anthropic uses `input_schema` key for tool parameters (not `parameters`). The registry's `ik_tool_registry_build_anthropic()` function must:
+1. Wrap each tool in `{name, description, input_schema}` format
+2. Keep `additionalProperties` as-is (passthrough)
+3. Keep `required` array as-is
+
+### Google Provider Integration
+
+**File:** `src/providers/google/request.h`
+
+**Current signature:**
+
+| Parameter | Type |
+|-----------|------|
+| ctx | `TALLOC_CTX *` |
+| req | `const ik_request_t *` |
+| out_json | `char **` |
+
+**New signature:** Add `registry` parameter:
+
+| Parameter | Type | Notes |
+|-----------|------|-------|
+| ctx | `TALLOC_CTX *` | |
+| req | `const ik_request_t *` | |
+| registry | `ik_tool_registry_t *` | NEW: can be NULL |
+| out_json | `char **` | |
+
+**Function:** `ik_google_serialize_request()`
+
+**Behavioral change:**
+- **Before:** Uses `req->tools` and `req->tool_count` from the request struct (tools already populated)
+- **After:** If registry is non-NULL, calls `ik_tool_registry_build_google(registry, doc)`. If NULL, uses empty tools array.
+
+**Schema transformation:** Google uses `functionDeclarations` array format. The registry's `ik_tool_registry_build_google()` function must:
+1. Wrap tools in `{tools: [{functionDeclarations: [...]}]}` structure
+2. Remove `additionalProperties` field (Gemini doesn't support it)
+3. Keep `required` array as-is
+
+### Call Chain: Anthropic Provider
+
+```
+Caller (REPL or similar)
+  └─> ik_anthropic_serialize_request_stream(ctx, req, registry, &json)
+      └─> ik_tool_registry_build_anthropic(registry, doc)  ← NEW
+          └─> Iterates registry entries
+          └─> Transforms each schema to Anthropic format (input_schema key)
+          └─> Returns yyjson_mut_val* tools array
+```
+
+### Call Chain: Google Provider
+
+```
+Caller (REPL or similar)
+  └─> ik_google_serialize_request(ctx, req, registry, &json)
+      └─> ik_tool_registry_build_google(registry, doc)  ← NEW
+          └─> Iterates registry entries
+          └─> Wraps in functionDeclarations structure
+          └─> Removes additionalProperties from each schema
+          └─> Returns yyjson_mut_val* tools object
+```
+
+### Registry Build Functions
+
+**File:** `src/tool_registry.h`
+
+Add provider-specific build functions:
+
+| Function | Provider | Schema Key | `additionalProperties` |
+|----------|----------|------------|------------------------|
+| `ik_tool_registry_build_all()` | OpenAI | `parameters` | Add `false` |
+| `ik_tool_registry_build_anthropic()` | Anthropic | `input_schema` | Passthrough |
+| `ik_tool_registry_build_google()` | Google | `parameters` | Remove |
+
+**Function signatures:**
+
+```c
+// OpenAI format (existing)
+yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
+
+// Anthropic format (new)
+yyjson_mut_val *ik_tool_registry_build_anthropic(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
+
+// Google format (new)
+yyjson_mut_val *ik_tool_registry_build_google(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
+```
+
+### Summary of Provider Schema Differences
+
+| Provider | Wrapper Format | Schema Key | `additionalProperties` | `required` |
+|----------|----------------|------------|------------------------|------------|
+| OpenAI | `{type: "function", function: {...}}` | `parameters` | Add `false` | Add ALL properties |
+| Anthropic | `{name, description, input_schema}` | `input_schema` | Passthrough | Keep as-is |
+| Google | `{functionDeclarations: [...]}` | `parameters` | Remove | Keep as-is |
+
+Reference: See `cdd/plan/architecture.md` "Schema Transformation" section for complete provider format details.
+
 ## Discovery Startup Integration
 
 ### Initialization Sequence (Phases 2-5: Blocking API)
