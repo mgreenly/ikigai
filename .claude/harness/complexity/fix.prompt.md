@@ -52,7 +52,7 @@ Before starting, load these skills for context:
 
 Before reporting done, run:
 1. `make check` - ensure tests still pass
-2. `make complexity` - ensure complexity is now acceptable
+2. `make check-complexity` - ensure complexity is now acceptable
 
 ## When Done
 

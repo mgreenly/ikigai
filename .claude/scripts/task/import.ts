@@ -5,8 +5,8 @@
  *
  * Usage: deno run --allow-read --allow-write import.ts [tasks-directory]
  *
- * Defaults to release/tasks if no directory specified.
- * Reads source order.json, copies it to release/tasks/order.json,
+ * Defaults to cdd/tasks if no directory specified.
+ * Reads source order.json, copies it to cdd/tasks/order.json,
  * and moves all task files to pending/ directory.
  */
 
@@ -28,7 +28,7 @@ interface OrderFile {
 }
 
 async function main() {
-  const tasksDir = Deno.args[0] || "release/tasks";
+  const tasksDir = Deno.args[0] || "cdd/tasks";
 
   // Read order.json
   const orderPath = join(tasksDir, "order.json");

@@ -11,12 +11,12 @@ description: Researcher role for the ikigai project
 
 1. **Research** - Use WebSearch/WebFetch to collect verified facts from official sources
 2. **User Stories** - Document requirements as terminal interaction transcripts
-3. **Document** - Write findings to `release/research/` with source citations
+3. **Document** - Write findings to `cdd/research/` with source citations
 
 ## Outputs
 
-- `release/research/*.md` - Facts from internet (APIs, specs, protocols)
-- `release/user-stories/*.md` - User actions and expected system responses
+- `cdd/research/*.md` - Facts from internet (APIs, specs, protocols)
+- `cdd/user-stories/*.md` - User actions and expected system responses
 
 ## Mindset
 

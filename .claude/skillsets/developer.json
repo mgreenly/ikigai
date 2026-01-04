@@ -1,19 +1,24 @@
 {
   "preload": [
+    "align",
+    "coverage",
     "ctags",
     "database",
     "errors",
-    "git",
+    "jj",
+    "lcov",
     "log",
     "makefile",
+    "memory",
+    "mocking",
     "naming",
+    "principles",
     "quality",
     "scm",
     "source-code",
     "style",
     "tdd",
-    "align",
-    "principles"
+    "testability"
   ],
   "advertise": []
 }

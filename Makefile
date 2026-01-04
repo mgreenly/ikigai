@@ -154,7 +154,7 @@ EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_f
 EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint complexity filesize cloc ci install-deps coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -898,7 +898,7 @@ fmt:
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
 
-complexity:
+check-complexity:
 	@echo "Checking complexity in src/*.c..."
 	@output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) src/*.c 2>&1); \
 	if echo "$$output" | grep -q "^Complexity Scores$$"; then \
@@ -939,7 +939,7 @@ complexity:
 	fi
 	@echo "🟢 All complexity checks passed"
 
-filesize:
+check-filesize:
 	@echo "Checking file sizes (max: $(MAX_FILE_BYTES) bytes)..."
 	@failed=0; \
 	for file in $$(find src -name "*.c" -o -name "*.h" | grep -v vendor); do \
@@ -979,7 +979,7 @@ filesize:
 	fi
 	@echo "🟢 All file size checks passed"
 
-lint: complexity filesize
+lint: check-complexity check-filesize
 
 cloc:
 	@cloc src/ tests/ Makefile
@@ -990,8 +990,8 @@ tags:
 ci:
 	@echo "Running CI checks..."
 	@$(MAKE) filesize
-	@$(MAKE) complexity
-	@$(MAKE) coverage
+	@$(MAKE) check-complexity
+	@$(MAKE) check-coverage
 	@$(MAKE) check-unit
 	@$(MAKE) check-integration
 	@$(MAKE) check-sanitize
@@ -1011,7 +1011,7 @@ coverage-map:
 	@BUILDDIR=build-coverage $(MAKE) build-tests CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
 	@BUILDDIR=build-coverage .claude/scripts/generate-coverage-map.sh
 
-coverage:
+check-coverage:
 	@echo "Building with coverage instrumentation..."
 	@$(MAKE) clean
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
@@ -1125,11 +1125,11 @@ help:
 	@echo "  check-dynamic   - Run all dynamic analysis (all of the above)"
 	@echo ""
 	@echo "Quality assurance:"
-	@echo "  coverage        - Generate text-based coverage report (requires lcov)"
+	@echo "  check-coverage  - Generate text-based coverage report (requires lcov)"
 	@echo "  lint            - Run all lint checks (complexity + filesize)"
-	@echo "  complexity      - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
+	@echo "  check-complexity - Check code complexity (threshold: $(COMPLEXITY_THRESHOLD))"
 	@echo "  filesize        - Check file sizes (max: $(MAX_FILE_BYTES) bytes)"
-	@echo "  ci              - Run all CI checks (lint + coverage + dynamic + release)"
+	@echo "  ci              - Run all CI checks (lint + check-coverage + dynamic + release)"
 	@echo ""
 	@echo "Distribution targets:"
 	@echo "  distro-images       - Build all Docker images (distros/*/Dockerfile)"

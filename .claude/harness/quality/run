@@ -1,7 +1,7 @@
 #!/bin/bash
 # harness/quality - Run all quality checks in fix-point loop
 #
-# Runs: filesize → check → complexity → sanitize → tsan → valgrind → helgrind → coverage
+# Runs: check-filesize → check → check-complexity → check-sanitize → check-tsan → check-valgrind → check-helgrind → check-coverage
 #
 # If any step makes commits, restarts from the beginning.
 # Stops on first failure.
@@ -32,13 +32,13 @@ format_elapsed() {
     fi
 }
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 HARNESS_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Verify clean workspace before starting
-if [ -n "$(git status --porcelain)" ]; then
-    log "ERROR: Git workspace is not clean. Commit or stash changes before running quality checks."
-    git status --short
+if [ -n "$(jj diff --summary)" ]; then
+    log "ERROR: Working copy is not clean. Commit changes before running quality checks."
+    jj status
     exit 1
 fi
 
@@ -60,10 +60,10 @@ run_step() {
     local step="$1"
     local head_before head_after step_exit
 
-    head_before=$(git rev-parse HEAD)
+    head_before=$(jj log -r @ --no-graph -T 'commit_id.short()')
     "$HARNESS_DIR/$step/run" $ARGS
     step_exit=$?
-    head_after=$(git rev-parse HEAD)
+    head_after=$(jj log -r @ --no-graph -T 'commit_id.short()')
 
     if [ "$head_before" != "$head_after" ]; then
         return 1  # commits made, signal restart

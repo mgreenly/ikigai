@@ -40,7 +40,7 @@ TEST_FIX_LADDER = {
     3: ("opus", "128000", "opus:ultrathink"),
 }
 
-SCRIPT_DIR = Path(__file__).parent.resolve()
+SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 COMMENT_OUT_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 ANALYZE_SINGLE_TEST_PROMPT_TEMPLATE = SCRIPT_DIR / "analyze-single-test.prompt.md"
@@ -125,42 +125,40 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tu
     return result.returncode, result.stdout or "", result.stderr or ""
 
 
-def git_is_clean() -> bool:
-    """Check if git workspace is clean."""
-    code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+def jj_is_clean() -> bool:
+    """Check if working copy is clean."""
+    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
     return code == 0 and not stdout.strip()
 
 
-def git_get_modified_files() -> set[str]:
-    """Get set of currently modified/untracked files."""
-    code, stdout, _ = run_cmd(["git", "status", "--porcelain"])
+def jj_get_modified_files() -> set[str]:
+    """Get set of currently modified files."""
+    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
     files = set()
-    for line in stdout.split('\n'):
-        if len(line) >= 4:  # XY + space + at least 1 char filename
-            # Format: XY PATH or XY ORIG -> PATH (for renames)
-            parts = line[3:].split(' -> ')
-            files.add(parts[-1])
+    for line in stdout.strip().split('\n'):
+        if line.strip():
+            parts = line.split(None, 1)
+            if len(parts) == 2:
+                files.add(parts[1])
     return files
 
 
-def git_commit(function: str, model_name: str) -> bool:
+def jj_commit(function: str, model_name: str) -> bool:
     """Commit all current changes."""
-    if git_is_clean():
+    if jj_is_clean():
         return False
 
-    run_cmd(["git", "add", "-A"])
     msg = f"refactor: remove dead code {function}\n\nharness/prune | {model_name}"
 
-    code, _, _ = run_cmd(["git", "commit", "-m", msg])
+    code, _, _ = run_cmd(["jj", "commit", "-m", msg])
     return code == 0
 
 
-def git_revert() -> None:
-    """Revert all uncommitted changes (tracked and untracked)."""
-    if not git_is_clean():
+def jj_revert() -> None:
+    """Revert all uncommitted changes."""
+    if not jj_is_clean():
         log("Reverting uncommitted changes...")
-        run_cmd(["git", "reset", "--hard"])
-        run_cmd(["git", "clean", "-fd"])
+        run_cmd(["jj", "restore"])
 
 
 def get_dead_code_candidates() -> list[dict]:
@@ -501,8 +499,7 @@ def record_false_positive(function: str) -> None:
             f.write(f"{function}\n")
         log(f"Recorded false positive: {function}")
         # Commit the false positive so workspace stays clean
-        run_cmd(["git", "add", str(FALSE_POSITIVES_FILE)])
-        run_cmd(["git", "commit", "-m", f"chore: record false positive {function}"])
+        run_cmd(["jj", "commit", "-m", f"chore: record false positive {function}"])
 
 
 def run_build() -> bool:
@@ -604,12 +601,12 @@ def build_single_test(test_file: str) -> tuple[bool, str]:
 def abort_with_debug(test_file: str, build_output: str) -> None:
     """Show debug info and abort for investigation."""
     log("ABORTING FOR INVESTIGATION:")
-    log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+    log(f"  Files changed: {', '.join(sorted(jj_get_modified_files()))}")
     log(f"  Build errors:")
     for line in build_output.strip().split('\n')[-20:]:
         log(f"    {line}")
     log("")
-    log("Workspace left dirty for investigation. Run 'git diff' to see changes.")
+    log("Workspace left dirty for investigation. Run 'jj diff' to see changes.")
     sys.exit(1)
 
 
@@ -671,10 +668,10 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
     file = candidate["file"]
 
     # Defensive: ensure clean workspace before starting
-    if not git_is_clean():
+    if not jj_is_clean():
         log("WARNING: Dirty workspace detected - cleaning before attempt")
-        git_revert()
-        if not git_is_clean():
+        jj_revert()
+        if not jj_is_clean():
             log("ERROR: Could not clean workspace")
             return False, "dirty workspace"
 
@@ -688,19 +685,19 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
     success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
     if not success:
         log(f"  {model_name} invocation FAILED: {error}")
-        git_revert()
+        jj_revert()
         return False, "comment out failed"
 
-    if git_is_clean():
+    if jj_is_clean():
         log(f"  Agent made no changes")
         return False, "no changes made"
 
-    log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+    log(f"  Files changed: {', '.join(sorted(jj_get_modified_files()))}")
 
     # Check production build
     if not run_build():
         log(f"  False positive - function is used in production")
-        git_revert()
+        jj_revert()
         record_false_positive(function)
         return False, "false positive"
 
@@ -708,7 +705,7 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
 
     # REVERT - function exists again so tests can build
     log(f"  Reverting #if 0 - function restored for test fixes")
-    git_revert()
+    jj_revert()
 
     # ============================================================
     # Phase 2: Find and process tests one at a time
@@ -722,14 +719,14 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
         success, error = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
         if not success:
             log(f"  Delete failed: {error}")
-            git_revert()
+            jj_revert()
             return False, "delete failed"
         if not run_build():
             log(f"  Build failed after delete")
-            git_revert()
+            jj_revert()
             return False, "build failed"
         log(f"SUCCESS - removed {function}")
-        git_commit(function, model_name)
+        jj_commit(function, model_name)
         return True, "removed"
 
     log(f"Phase 2: Fix {len(broken_tests)} test file(s)")
@@ -790,7 +787,7 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
 
             if action is None:
                 log(f"      Classification exhausted - skipping function")
-                git_revert()
+                jj_revert()
                 return False, f"classification exhausted for {test_name}"
 
             # Perform action with escalation
@@ -837,11 +834,11 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
                     abort_with_debug(test_file, build_output)
 
                 log(f"      Build failed - reverting")
-                git_revert()
+                jj_revert()
 
             if not test_fixed:
                 log(f"      FAILED to {action} {test_name}")
-                git_revert()
+                jj_revert()
                 return False, f"could not {action} {test_name}"
 
         test_files_modified.append(test_file)
@@ -859,7 +856,7 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
                 if debug:
                     abort_with_debug(test_file, build_output)
                 log(f"    TCase cleanup broke build")
-                git_revert()
+                jj_revert()
                 return False, "tcase cleanup failed"
 
         # Delete file if empty
@@ -878,12 +875,12 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
             log(f"  Tests failed")
             if debug:
                 log("ABORTING FOR INVESTIGATION:")
-                log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+                log(f"  Files changed: {', '.join(sorted(jj_get_modified_files()))}")
                 log("")
                 log("Workspace left dirty for investigation.")
                 log("Run 'make check TEST=<file>' to see test errors.")
                 sys.exit(1)
-            git_revert()
+            jj_revert()
             return False, "tests failed"
 
     # ============================================================
@@ -894,14 +891,14 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
     success, error = invoke_claude(prompt, REMOVE_MODEL[0], REMOVE_MODEL[1], REMOVE_MODEL[2], timeout)
     if not success:
         log(f"  Delete failed: {error}")
-        git_revert()
+        jj_revert()
         return False, "delete function failed"
 
     # Final verification
     log(f"  Final build verification")
     if not run_build():
         log(f"  Build failed after function deletion")
-        git_revert()
+        jj_revert()
         return False, "final build failed"
 
     if remaining_tests:
@@ -910,12 +907,12 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
             log(f"  Tests failed after function deletion")
             if debug:
                 log("ABORTING FOR INVESTIGATION:")
-                log(f"  Files changed: {', '.join(sorted(git_get_modified_files()))}")
+                log(f"  Files changed: {', '.join(sorted(jj_get_modified_files()))}")
                 log("")
                 log("Workspace left dirty for investigation.")
                 log("Run 'make check TEST=<file>' to see test errors.")
                 sys.exit(1)
-            git_revert()
+            jj_revert()
             return False, "final tests failed"
 
     # ============================================================
@@ -929,7 +926,7 @@ def try_remove_function(candidate: dict, timeout: int, debug: bool = False) -> t
     summary = ", ".join(summary_parts) if summary_parts else "no test changes"
 
     log(f"SUCCESS - removed {function} ({summary})")
-    git_commit(function, final_model_name)
+    jj_commit(function, final_model_name)
     return True, "removed"
 
 
@@ -948,6 +945,8 @@ def main() -> int:
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     parser.add_argument("--debug", action="store_true",
                         help="On first failure, show details and abort without reverting")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Maximum number of functions to process (default: all)")
     args = parser.parse_args()
 
     if args.no_spinner:
@@ -962,12 +961,14 @@ def main() -> int:
         opts.append(f"timeout={args.time_out}s")
     if args.debug:
         opts.append("debug")
+    if args.limit:
+        opts.append(f"limit={args.limit}")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
-    # Precondition: git must be clean
-    if not git_is_clean():
-        log("ERROR: Git workspace must be clean before pruning.")
+    # Precondition: working copy must be clean
+    if not jj_is_clean():
+        log("ERROR: Working copy must be clean before pruning.")
         return 1
 
     # Get candidates
@@ -986,6 +987,11 @@ def main() -> int:
         return 0
 
     log(f"Found {len(candidates)} dead code candidates")
+
+    # Apply limit if specified
+    if args.limit and args.limit < len(candidates):
+        log(f"Limiting to first {args.limit} candidates")
+        candidates = candidates[:args.limit]
 
     # Dry-run: just list candidates and exit
     if args.dry_run:
