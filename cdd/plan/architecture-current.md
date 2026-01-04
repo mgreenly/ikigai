@@ -4,7 +4,7 @@ Reference document describing the existing internal tool system. This is what we
 
 ## Components
 
-**1. Tool Schema Definitions** (`src/tool.c`, `src/tool.h`)
+**1. Tool Schema Definitions** (`src/providers/request_tools.c`, lines 22-79)
 
 Static compile-time definitions for each tool:
 
@@ -22,17 +22,19 @@ static const ik_tool_schema_def_t glob_schema_def = {
 };
 ```
 
-**2. Schema Builder** (`src/tool.c`)
+**2. Schema Builder** (`src/providers/request_tools.c`, lines 88-155)
 
-Builds JSON schema array for LLM:
+Builds JSON parameter schema from tool definition:
 
 ```c
-yyjson_mut_val *ik_tool_build_all(yyjson_mut_doc *doc)
+static char *build_tool_parameters_json(TALLOC_CTX *ctx, const ik_tool_schema_def_t *def)
 {
-    // Creates array with all 5 tools: glob, file_read, grep, file_write, bash
-    // Returns yyjson array ready for LLM API request
+    // Creates JSON schema string for a single tool's parameters
+    // Called during request building for each of the 5 tools
 }
 ```
+
+Note: The legacy `ik_tool_build_all()` function in `src/tool.c` still exists but is NOT used by the main flow.
 
 **3. Tool Dispatcher** (`src/tool_dispatcher.c`)
 
@@ -67,17 +69,25 @@ res_t ik_tool_exec_bash(void *parent, const char *command)
 
 **Integration Point A: LLM Request Building**
 
-Location: `src/providers/openai/request_chat.c` (approximate line 191)
+Location: `src/providers/request_tools.c` (lines 283-298)
 
 ```c
-/* Build and add tools array */
-yyjson_mut_val *tools_arr = ik_tool_build_all(doc);
-if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) {
-    PANIC("Failed to add tools array to JSON");
+const ik_tool_schema_def_t *tool_defs[] = {
+    &glob_schema_def,
+    &file_read_schema_def,
+    &grep_schema_def,
+    &file_write_schema_def,
+    &bash_schema_def
+};
+
+for (size_t i = 0; i < 5; i++) {
+    char *params_json = build_tool_parameters_json(req, tool_defs[i]);
+    res = ik_request_add_tool(req, tool_defs[i]->name, tool_defs[i]->description, params_json, false);
+    // ...
 }
 ```
 
-**Purpose:** Adds tool schemas to OpenAI API request so LLM knows available tools.
+**Purpose:** `ik_request_build_from_conversation()` populates `req->tools[]` from hard-coded static definitions. Provider serializers then iterate over `req->tools[]` to build the API-specific JSON.
 
 **Integration Point B: Tool Execution**
 
@@ -96,13 +106,17 @@ char *result_json = tool_res.ok;
 
 ```
 1. ikigai starts
-   └─> Compile-time: all tool schemas exist in binary
+   └─> Compile-time: all tool schema definitions exist in binary
+       (static structs in src/providers/request_tools.c)
 
 2. User sends message
-   └─> OpenAI client builds request
-       └─> [Integration Point A] Calls ik_tool_build_all()
-           └─> Returns static JSON schema array
-               └─> Sends to LLM API
+   └─> ik_request_build_from_conversation() creates request
+       └─> [Integration Point A] Loops over hard-coded tool_defs[]
+           └─> Calls ik_request_add_tool() for each tool
+               └─> Populates req->tools[] array
+   └─> Provider serializer iterates req->tools[]
+       └─> Builds API-specific JSON format
+           └─> Sends to LLM API
 
 3. LLM responds with tool call
    └─> REPL extracts tool_name, arguments

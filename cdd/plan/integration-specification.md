@@ -29,56 +29,68 @@ The tool registry lives in `ik_shared_ctx_t` because:
 ### Call Chain (Current)
 
 ```
-ik_repl_actions_llm.c (or similar)
-  └─> ik_openai_multi_request.c:ik_openai_multi_start_request_ex()
-      └─> ik_providers/openai/request_chat.c:ik_openai_serialize_chat_request(parent, request, tool_choice)
-          └─> ik_tool_build_all(doc)  ← BEING REPLACED
+ik_repl_actions_llm.c:ik_repl_action_submit_to_llm()
+  └─> ik_request_build_from_conversation(agent, agent, &req)  [src/providers/request_tools.c:246]
+      └─> Hard-coded tool definitions (lines 283-298)  ← BEING REPLACED
+      └─> ik_request_add_tool() for each tool
+      └─> Populates req->tools[] array
+  └─> Provider serializer (e.g., ik_anthropic_serialize_request_stream)
+      └─> Reads req->tools[] and req->tool_count (already populated)
 ```
 
-### Function Signature Change: ik_openai_serialize_chat_request
+### Function Signature Change: ik_request_build_from_conversation
 
-**File:** `src/providers/openai/request.h` and `src/providers/openai/request_chat.c`
+**File:** `src/providers/request.h` and `src/providers/request_tools.c`
 
 **Current signature:**
 
 | Parameter | Type |
 |-----------|------|
-| parent | `void *` |
-| request | `const ik_openai_request_t *` |
-| tool_choice | `ik_tool_choice_t` |
+| ctx | `TALLOC_CTX *` |
+| agent | `void *` |
+| out | `ik_request_t **` |
 
 **New signature:** Add `registry` parameter:
 
 | Parameter | Type | Notes |
 |-----------|------|-------|
-| parent | `void *` | |
-| request | `const ik_openai_request_t *` | |
-| tool_choice | `ik_tool_choice_t` | |
+| ctx | `TALLOC_CTX *` | |
+| agent | `void *` | |
 | registry | `ik_tool_registry_t *` | NEW: can be NULL |
+| out | `ik_request_t **` | |
 
 **Behavioral change:**
-- **Before:** Calls `ik_tool_build_all(doc)` to get static tool definitions
-- **After:** If registry is non-NULL, calls `ik_tool_registry_build_all(registry, doc)`. If NULL, uses empty tools array.
+- **Before:** Hard-codes tool definitions in lines 283-298, calls `ik_request_add_tool()` for each
+- **After:** If registry is non-NULL, iterates `ik_tool_registry_iter()` and calls `ik_request_add_tool()` for each entry. If NULL, uses empty tools array.
 
 ### Call Site Changes
 
-**File:** Caller of `ik_openai_serialize_chat_request()`
+**File:** `src/repl_actions_llm.c` (line ~148)
 
-**Change:** Pass registry (from shared context) as fourth argument to `ik_openai_serialize_chat_request()`.
+**Change:** Pass registry (from shared context) to `ik_request_build_from_conversation()`.
 
-**Problem:** The caller may not have direct access to shared context.
+**Current call:**
+```c
+result = ik_request_build_from_conversation(agent, agent, &req);
+```
 
-**Solution:** Pass registry through the call chain from the shared context.
+**New call:**
+```c
+result = ik_request_build_from_conversation(agent, agent, agent->shared->tool_registry, &req);
+```
 
 ### Option A: Pass registry through call chain (Recommended)
 
-**Implementation:** Thread the registry parameter through the request building functions.
+**Implementation:** Pass the registry directly to request building at the call site.
 
-**Approach:** Add registry parameter to request building functions in the call chain.
+**Approach:** Add registry parameter to `ik_request_build_from_conversation()`.
 
-**Usage:** Pass `shared->tool_registry` from the REPL context down to `ik_openai_serialize_chat_request()`.
+**Usage:** Pass `agent->shared->tool_registry` at each call site:
+- `src/repl_actions_llm.c:148`
+- `src/repl_tool_completion.c:55` (via wrapper)
+- `src/commands_fork.c:109` (via wrapper)
 
-**Recommendation:** This makes the dependency explicit and avoids storing duplicate references.
+**Recommendation:** This makes the dependency explicit and keeps tool population in request building, not serialization.
 
 ## Tool Execution Integration
 
@@ -187,7 +199,7 @@ TOOL_SCAN_NOT_STARTED
 | File | Change |
 |------|--------|
 | `src/shared.h` | Add `tool_registry` and `tool_scan_state` fields |
-| `src/providers/openai/request.h` | Add `registry` parameter to `ik_openai_serialize_chat_request` |
+| `src/providers/request.h` | Add `registry` parameter to `ik_request_build_from_conversation` |
 
 **Phase 6 adds:**
 | `src/repl.h` | Add `tool_discovery` field to `ik_repl_ctx_t` |
@@ -197,8 +209,11 @@ TOOL_SCAN_NOT_STARTED
 | File | Change |
 |------|--------|
 | `src/shared.c` | Initialize registry fields in `ik_shared_ctx_init` |
-| `src/providers/openai/request_chat.c` | Update `ik_openai_serialize_chat_request` to use registry |
-| Caller(s) of serialize_chat_request | Pass registry to serialize_chat_request |
+| `src/providers/request_tools.c` | Update `ik_request_build_from_conversation` to use registry instead of hard-coded tools |
+| `src/repl_actions_llm.c` | Pass `agent->shared->tool_registry` to `ik_request_build_from_conversation` |
+| `src/repl_tool_completion.c` | Pass registry to `ik_request_build_from_conversation` (via wrapper) |
+| `src/commands_fork.c` | Pass registry to `ik_request_build_from_conversation` (via wrapper) |
+| `src/wrapper_internal.h` | Update wrapper to accept registry parameter |
 | `src/repl_tool.c` | Replace `ik_tool_dispatch` with registry lookup + external exec |
 | `src/repl_init.c` | Call blocking `ik_tool_discovery_run()` at startup |
 
@@ -212,94 +227,66 @@ See `removal-specification.md` for complete list.
 
 ## Multi-Provider Integration
 
-This section specifies the changes needed for Anthropic and Google providers to use the external tool registry. Without these changes, these providers will call `ik_tool_build_all()` which will be deleted in Phase 3.
+This section clarifies how Anthropic and Google providers work with the tool system. Provider serializers do NOT call `ik_tool_build_all()` or any tool building function directly. Instead, they read from `req->tools[]` which is populated by `ik_request_build_from_conversation()`.
 
-### Anthropic Provider Integration
+### Key Architecture Point
 
-**File:** `src/providers/anthropic/request.h`
+**Tool population happens in request building, not serialization:**
 
-**Current signature:**
+1. `ik_request_build_from_conversation()` populates `req->tools[]` with tool definitions
+2. Provider serializers read `req->tools` and `req->tool_count` to serialize tools
+3. Each provider transforms the tool schema to its own format during serialization
 
-| Parameter | Type |
-|-----------|------|
-| ctx | `TALLOC_CTX *` |
-| req | `const ik_request_t *` |
-| out_json | `char **` |
+This means the registry integration happens in ONE place (`ik_request_build_from_conversation`), not in each provider serializer.
 
-**New signature:** Add `registry` parameter:
+### Anthropic Provider
 
-| Parameter | Type | Notes |
-|-----------|------|-------|
-| ctx | `TALLOC_CTX *` | |
-| req | `const ik_request_t *` | |
-| registry | `ik_tool_registry_t *` | NEW: can be NULL |
-| out_json | `char **` | |
+**File:** `src/providers/anthropic/request.c`
 
 **Function:** `ik_anthropic_serialize_request_stream()`
 
-**Behavioral change:**
-- **Before:** Uses `req->tools` and `req->tool_count` from the request struct (tools already populated)
-- **After:** If registry is non-NULL, calls `ik_tool_registry_build_anthropic(registry, doc)`. If NULL, uses empty tools array.
+**Current behavior:** Reads `req->tools` and `req->tool_count` from the request struct, transforms to Anthropic format.
 
-**Schema transformation:** Anthropic uses `input_schema` key for tool parameters (not `parameters`). The registry's `ik_tool_registry_build_anthropic()` function must:
-1. Wrap each tool in `{name, description, input_schema}` format
-2. Keep `additionalProperties` as-is (passthrough)
-3. Keep `required` array as-is
+**No signature change needed.** The provider already reads from `req->tools[]`, so once `ik_request_build_from_conversation()` populates tools from the registry, Anthropic serialization works automatically.
 
-### Google Provider Integration
+**Schema transformation (existing):** Anthropic uses `input_schema` key for tool parameters. The serializer:
+1. Wraps each tool in `{name, description, input_schema}` format
+2. Keeps `additionalProperties` as-is (passthrough)
+3. Keeps `required` array as-is
 
-**File:** `src/providers/google/request.h`
+### Google Provider
 
-**Current signature:**
-
-| Parameter | Type |
-|-----------|------|
-| ctx | `TALLOC_CTX *` |
-| req | `const ik_request_t *` |
-| out_json | `char **` |
-
-**New signature:** Add `registry` parameter:
-
-| Parameter | Type | Notes |
-|-----------|------|-------|
-| ctx | `TALLOC_CTX *` | |
-| req | `const ik_request_t *` | |
-| registry | `ik_tool_registry_t *` | NEW: can be NULL |
-| out_json | `char **` | |
+**File:** `src/providers/google/request.c`
 
 **Function:** `ik_google_serialize_request()`
 
-**Behavioral change:**
-- **Before:** Uses `req->tools` and `req->tool_count` from the request struct (tools already populated)
-- **After:** If registry is non-NULL, calls `ik_tool_registry_build_google(registry, doc)`. If NULL, uses empty tools array.
+**Current behavior:** Reads `req->tools` and `req->tool_count` from the request struct, transforms to Google format.
 
-**Schema transformation:** Google uses `functionDeclarations` array format. The registry's `ik_tool_registry_build_google()` function must:
-1. Wrap tools in `{tools: [{functionDeclarations: [...]}]}` structure
-2. Remove `additionalProperties` field (Gemini doesn't support it)
-3. Keep `required` array as-is
+**No signature change needed.** The provider already reads from `req->tools[]`, so once `ik_request_build_from_conversation()` populates tools from the registry, Google serialization works automatically.
 
-### Call Chain: Anthropic Provider
+**Schema transformation (existing):** Google uses `functionDeclarations` array format. The serializer:
+1. Wraps tools in `{tools: [{functionDeclarations: [...]}]}` structure
+2. Removes `additionalProperties` field (Gemini doesn't support it)
+3. Keeps `required` array as-is
 
-```
-Caller (REPL or similar)
-  └─> ik_anthropic_serialize_request_stream(ctx, req, registry, &json)
-      └─> ik_tool_registry_build_anthropic(registry, doc)  ← NEW
-          └─> Iterates registry entries
-          └─> Transforms each schema to Anthropic format (input_schema key)
-          └─> Returns yyjson_mut_val* tools array
-```
-
-### Call Chain: Google Provider
+### Call Chain: All Providers
 
 ```
-Caller (REPL or similar)
-  └─> ik_google_serialize_request(ctx, req, registry, &json)
-      └─> ik_tool_registry_build_google(registry, doc)  ← NEW
-          └─> Iterates registry entries
-          └─> Wraps in functionDeclarations structure
-          └─> Removes additionalProperties from each schema
-          └─> Returns yyjson_mut_val* tools object
+ik_repl_actions_llm.c:ik_repl_action_submit_to_llm()
+  └─> ik_request_build_from_conversation(agent, agent, registry, &req)
+      └─> ik_tool_registry_iter(registry) or fallback  ← NEW
+      └─> ik_request_add_tool() for each tool
+      └─> req->tools[] now populated
+  └─> Provider-specific serializer (Anthropic/Google/OpenAI)
+      └─> Reads req->tools[] (already populated)
+      └─> Transforms to provider-specific JSON format
 ```
+
+### OpenAI Provider Note
+
+OpenAI provider may use a different call path through `ik_openai_serialize_chat_request()`. If this function calls `ik_tool_build_all()` directly (bypassing `req->tools`), it will need to be updated to either:
+1. Read from `req->tools[]` like other providers, OR
+2. Accept a registry parameter and call `ik_tool_registry_build_all(registry, doc)`
 
 ### Registry Build Functions
 

@@ -210,85 +210,66 @@ bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_v
 
 **DELETE.** Header for tool_response.c - delete together with implementation.
 
-### 5. src/providers/openai/request_chat.c
+### 5. src/providers/request_tools.c
 
-**Purpose:** Replace call to `ik_tool_build_all()` with stub that returns empty tools array.
+**Purpose:** Remove hard-coded internal tool definitions and skip tool population in request building.
 
-**Current code (lines 190-195):**
+**Note:** This is the ACTUAL location where tools are added to requests. The provider serializers (OpenAI, Anthropic, Google) just iterate over the pre-populated `req->tools[]` array - they don't call `ik_tool_build_all()`.
+
+**Current code (lines 283-298):**
 ```c
-    /* Build and add tools array */
-    yyjson_mut_val *tools_arr = ik_tool_build_all(doc);
-    if (tools_arr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to add tools array to JSON"); // LCOV_EXCL_LINE
-    }
-```
+    const ik_tool_schema_def_t *tool_defs[] = {
+        &glob_schema_def,
+        &file_read_schema_def,
+        &grep_schema_def,
+        &file_write_schema_def,
+        &bash_schema_def
+    };
 
-**Replace with (empty tools array stub):**
-```c
-    /* Build and add tools array - TODO(rel-08): Replace with ik_tool_registry_build_all() */
-    yyjson_mut_val *tools_arr = yyjson_mut_arr(doc);
-    if (tools_arr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    /* Empty tools array - no tools available until external tool system is implemented */
-    if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-        PANIC("Failed to add tools array to JSON"); // LCOV_EXCL_LINE
-    }
-```
-
-**Rationale:** Phase 1 removes internal tools but doesn't yet implement external tools. This stub allows the system to compile and run without tools. Phase 2 will replace this stub with registry-based tool building.
-
-### 5a. src/providers/anthropic/request.c
-
-**Purpose:** Replace tool serialization with stub that returns empty tools array.
-
-**Current code (lines 123-170):**
-The current implementation iterates over `req->tools` and `req->tool_count` to build the tools array using `input_schema` format.
-
-**Replace with (empty tools array stub):**
-
-Replace the tools serialization block (lines 123-201) with:
-```c
-    // Add tools - TODO(rel-08): Replace with ik_tool_registry_build_anthropic()
-    // Empty tools array - no tools available until external tool system is implemented
-    if (req->tool_count > 0) {
-        yyjson_mut_val *tools_arr = yyjson_mut_arr(doc);
-        if (!tools_arr) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        /* Stub: no tools sent to Anthropic until external tool system implemented */
-        if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
+    for (size_t i = 0; i < 5; i++) {
+        char *params_json = build_tool_parameters_json(req, tool_defs[i]);
+        res = ik_request_add_tool(req, tool_defs[i]->name, tool_defs[i]->description, params_json, false);
+        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(req);  // LCOV_EXCL_LINE
+            return res;        // LCOV_EXCL_LINE
         }
     }
 ```
 
-**Rationale:** Anthropic provider currently reads from `req->tools` which is populated by internal tool system. After removal, this code would reference undefined tool definitions. The stub ensures compilation succeeds and requests go through without tools.
-
-### 5b. src/providers/google/request.c
-
-**Purpose:** Replace tool serialization with stub that returns empty tools structure.
-
-**Current code (lines 123-191):**
-The `serialize_tools()` function iterates over `req->tools` and `req->tool_count` to build the `functionDeclarations` array, removing `additionalProperties` from each schema.
-
-**Replace with (empty tools stub):**
-
-Replace the `serialize_tools()` function body with:
+**Replace with (skip tool population stub):**
 ```c
-static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                             const ik_request_t *req)
-{
-    assert(doc != NULL);  // LCOV_EXCL_BR_LINE
-    assert(root != NULL); // LCOV_EXCL_BR_LINE
-    assert(req != NULL);  // LCOV_EXCL_BR_LINE
-
-    // TODO(rel-08): Replace with ik_tool_registry_build_google()
-    // Stub: no tools sent to Google until external tool system implemented
-    (void)req; // Suppress unused parameter warning
-    return true;
-}
+    // TODO(rel-08): Replace with external tool registry lookup
+    // Internal tools removed - no tools available until external tool system is implemented
+    // Provider serializers will send empty tools array since req->tool_count == 0
+    (void)0; // No-op placeholder
 ```
 
-**Rationale:** Google provider currently reads from `req->tools` which is populated by internal tool system. After removal, this code would reference undefined tool definitions. The stub ensures compilation succeeds and requests go through without tools.
+**Also remove** the static tool definition structs at the top of the file (lines 22-79):
+- `glob_params[]`, `glob_schema_def`
+- `file_read_params[]`, `file_read_schema_def`
+- `grep_params[]`, `grep_schema_def`
+- `file_write_params[]`, `file_write_schema_def`
+- `bash_params[]`, `bash_schema_def`
+
+**Also remove** the `build_tool_parameters_json()` helper function (lines 88-155) since it's only used by the deleted tool population code.
+
+**Rationale:** Phase 1 removes internal tools but doesn't yet implement external tools. With `req->tool_count` remaining 0, all provider serializers will correctly skip tool serialization or send empty arrays. Phase 2 will replace this stub with registry-based tool building.
+
+### 5a. src/providers/openai/request_chat.c
+
+**No changes needed.** This file correctly iterates over `req->tools[]` (lines 276-301). Since `req->tool_count` will be 0 after the request_tools.c stub, the `if (req->tool_count > 0)` check at line 277 will skip tool serialization entirely.
+
+### 5b. src/providers/anthropic/request.c
+
+**No changes needed.** This file correctly iterates over `req->tools[]` (lines 122-201). Since `req->tool_count` will be 0 after the request_tools.c stub, the `if (req->tool_count > 0)` check at line 123 will skip tool serialization entirely.
+
+The existing code structure handles empty tools gracefully - no modifications required.
+
+### 5c. src/providers/google/request.c
+
+**No changes needed.** The `serialize_tools()` function (lines 123-191) correctly checks `if (req->tool_count == 0) { return true; }` at line 130. Since `req->tool_count` will be 0 after the request_tools.c stub, it will return early without serializing any tools.
+
+The existing code structure handles empty tools gracefully - no modifications required.
 
 ### 6. src/repl_tool.c
 
@@ -433,7 +414,7 @@ This removal is Phase 1 of the external tool migration. After this phase:
 - Tool calls return "not yet implemented" error
 - Foundation is clean for Phase 2: implementing external tool infrastructure
 
-Phase 2 will replace the stubs in `src/providers/openai/request_chat.c` and `src/repl_tool.c` with registry-based tool building and external tool execution.
+Phase 2 will replace the stub in `src/providers/request_tools.c` (for tool population) and `src/repl_tool.c` (for tool execution) with registry-based tool building and external tool execution.
 
 ## Dependencies
 
@@ -448,22 +429,31 @@ Files we're deleting have these include dependencies:
 - `src/tool_grep.c` includes: `tool.h`, `tool_response.h`, `line_array.h`, `file_utils.h`, `panic.h`, `wrapper.h`
 
 After deletion, these headers are still used by:
-- `tool.h` - Used by `src/tool_arg_parser.c`, `src/providers/openai/request_chat.c`, `src/repl_tool.c`
+- `tool.h` - Used by `src/tool_arg_parser.c`, `src/repl_tool.c` (and transitively via `agent.h` by other files, but only for `ik_tool_call_t` type)
 - `tool_response.h` - DELETE (no remaining callers)
+
+Note: `src/providers/request_tools.c` includes `agent.h` which includes `tool.h`. After removing the tool definitions from request_tools.c, it will no longer use the `ik_tool_param_def_t` and `ik_tool_schema_def_t` types being removed from tool.h.
 
 ## Summary
 
 **Total files deleted:** 26 (9 source files + 17 test files)
   - Source: tool.c, tool_dispatcher.c, tool_bash.c, tool_file_read.c, tool_file_write.c, tool_glob.c, tool_grep.c, tool_response.c, tool_response.h
-**Total files modified:** 6 (tool.h, openai/request_chat.c, anthropic/request.c, google/request.c, repl_tool.c, Makefile)
-**Files kept unchanged:** 1 (tool_arg_parser.c)
+**Total files modified:** 4 (tool.h, request_tools.c, repl_tool.c, Makefile)
+**Files kept unchanged:** 4 (tool_arg_parser.c, openai/request_chat.c, anthropic/request.c, google/request.c)
 **Lines removed from tool.h:** ~235 lines (functions and types)
 **Lines kept in tool.h:** ~50 lines (ik_tool_call_t and arg parsing functions)
 
-### Provider Stub Summary
+### Stub Location Summary
 
-| Provider | File | Stub Change |
-|----------|------|-------------|
-| OpenAI | `src/providers/openai/request_chat.c` | Replace `ik_tool_build_all()` with empty array |
-| Anthropic | `src/providers/anthropic/request.c` | Replace tools serialization block with empty array |
-| Google | `src/providers/google/request.c` | Replace `serialize_tools()` body with no-op |
+| Component | File | Change |
+|-----------|------|--------|
+| Tool Population | `src/providers/request_tools.c` | Remove tool definitions and skip `ik_request_add_tool()` calls |
+| Tool Execution | `src/repl_tool.c` | Replace `ik_tool_dispatch()` with "not implemented" stub |
+
+### Provider Serializers (No Changes Needed)
+
+| Provider | File | Status |
+|----------|------|--------|
+| OpenAI | `src/providers/openai/request_chat.c` | Already handles `tool_count == 0` correctly |
+| Anthropic | `src/providers/anthropic/request.c` | Already handles `tool_count == 0` correctly |
+| Google | `src/providers/google/request.c` | Already handles `tool_count == 0` correctly |
