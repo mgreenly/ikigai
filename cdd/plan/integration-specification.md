@@ -288,31 +288,6 @@ OpenAI provider may use a different call path through `ik_openai_serialize_chat_
 1. Read from `req->tools[]` like other providers, OR
 2. Accept a registry parameter and call `ik_tool_registry_build_all(registry, doc)`
 
-### Registry Build Functions
-
-**File:** `src/tool_registry.h`
-
-Add provider-specific build functions:
-
-| Function | Provider | Schema Key | `additionalProperties` |
-|----------|----------|------------|------------------------|
-| `ik_tool_registry_build_all()` | OpenAI | `parameters` | Add `false` |
-| `ik_tool_registry_build_anthropic()` | Anthropic | `input_schema` | Passthrough |
-| `ik_tool_registry_build_google()` | Google | `parameters` | Remove |
-
-**Function signatures:**
-
-```c
-// OpenAI format (existing)
-yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
-
-// Anthropic format (new)
-yyjson_mut_val *ik_tool_registry_build_anthropic(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
-
-// Google format (new)
-yyjson_mut_val *ik_tool_registry_build_google(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
-```
-
 ### Summary of Provider Schema Differences
 
 | Provider | Wrapper Format | Schema Key | `additionalProperties` | `required` |
