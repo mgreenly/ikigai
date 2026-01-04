@@ -54,17 +54,6 @@ ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
 ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
                                                   const char *content, bool is_error);
 
-/**
- * Create thinking content block with signature
- *
- * @param ctx       Talloc parent context
- * @param text      Thinking text (will be copied)
- * @param signature Cryptographic signature (will be copied, can be NULL)
- * @return          Allocated content block
- */
-ik_content_block_t *ik_content_block_thinking(TALLOC_CTX *ctx, const char *text,
-                                               const char *signature);
-
 /* ================================================================
  * Request Builder Functions
  * ================================================================ */
