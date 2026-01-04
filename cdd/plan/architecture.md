@@ -33,6 +33,10 @@ ik_tool_registry_entry_t *ik_tool_registry_lookup(ik_tool_registry_t *registry, 
 
 // Build tools array for LLM
 yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_mut_doc *doc);
+
+// Iterate over registry entries (direct array access)
+// Usage: for (size_t i = 0; i < registry->count; i++) { entry = &registry->entries[i]; ... }
+// Fields entries[] and count are public for iteration
 ```
 
 ### Tool Discovery Engine (`src/tool_discovery.c`)

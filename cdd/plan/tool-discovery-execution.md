@@ -404,33 +404,51 @@ ikigai/
 
 ### Makefile Integration
 
-Tools compile like test binaries (separate executables, independent link steps):
+Tools use direct compilation (source to binary, no intermediate object files):
 
 ```makefile
-# Tool binaries (C implementations)
-TOOL_BASH_SOURCES = src/tools/bash/main.c
-TOOL_BASH_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(TOOL_BASH_SOURCES))
+# Shared sources for all tools
+TOOL_COMMON_SRCS = src/error.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c
 
-TOOL_FILE_READ_SOURCES = src/tools/file_read/main.c
-TOOL_FILE_READ_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(TOOL_FILE_READ_SOURCES))
+# All tools
+TOOLS = libexec/ikigai/bash libexec/ikigai/file-read libexec/ikigai/file-write \
+        libexec/ikigai/file-edit libexec/ikigai/glob libexec/ikigai/grep
 
-# Similar patterns for file_write, glob, grep...
+.PHONY: tools tool-bash tool-file-read tool-file-write tool-file-edit tool-glob tool-grep
 
-# Compiled tools
-libexec/ikigai/bash: $(TOOL_BASH_OBJ)
-	@mkdir -p libexec/ikigai
-	$(CC) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS)
+tools: $(TOOLS)
 
-libexec/ikigai/file-read: $(TOOL_FILE_READ_OBJ)
-	@mkdir -p libexec/ikigai
-	$(CC) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS)
+tool-bash: libexec/ikigai/bash
+tool-file-read: libexec/ikigai/file-read
+tool-file-write: libexec/ikigai/file-write
+tool-file-edit: libexec/ikigai/file-edit
+tool-glob: libexec/ikigai/glob
+tool-grep: libexec/ikigai/grep
 
-# Similar rules for file-write, glob, grep...
+# Individual tool builds
+libexec/ikigai/bash: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/bash/main.c $(TOOL_COMMON_SRCS) -ltalloc
 
-TOOL_TARGETS = libexec/ikigai/bash libexec/ikigai/file-read libexec/ikigai/file-write libexec/ikigai/file-edit libexec/ikigai/glob libexec/ikigai/grep
+libexec/ikigai/file-read: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/file_read/main.c $(TOOL_COMMON_SRCS) -ltalloc
+
+libexec/ikigai/file-write: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/file_write/main.c $(TOOL_COMMON_SRCS) -ltalloc
+
+libexec/ikigai/file-edit: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) -ltalloc
+
+libexec/ikigai/glob: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/glob/main.c $(TOOL_COMMON_SRCS) -ltalloc
+
+libexec/ikigai/grep: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(CFLAGS) -o $@ src/tools/grep/main.c $(TOOL_COMMON_SRCS) -ltalloc
+
+libexec/ikigai:
+	mkdir -p $@
 
 # Add to all target
-all: $(CLIENT_TARGET) $(TOOL_TARGETS)
+all: $(CLIENT_TARGET) $(TOOLS)
 ```
 
 ### Installation

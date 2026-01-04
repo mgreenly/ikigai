@@ -69,3 +69,22 @@ This file tracks issues found and resolved in CDD plan documents.
    - Added note that `ik_tool_build_all()` in `src/tool.c` is legacy/unused
 
 **Status:** Resolved
+
+## 2026-01-04: Missing Registry Iterator Specification
+
+**Issue:** `integration-specification.md` referenced `ik_tool_registry_iter()` function for iterating registry entries, but `architecture.md` never declared this function. Sub-agents implementing request building would find no specification for how to iterate.
+
+**Locations affected:**
+- `cdd/plan/integration-specification.md` line 64: referenced `ik_tool_registry_iter()`
+- `cdd/plan/integration-specification.md` line 277: referenced `ik_tool_registry_iter()` in call chain
+- `cdd/plan/architecture.md`: no iterator function declared
+
+**Resolution:**
+1. Added iterator documentation to `architecture.md` clarifying that `entries[]` and `count` are public for direct array iteration
+2. Updated `integration-specification.md` to use direct array iteration pattern (`registry->entries[0..count-1]`) instead of non-existent function
+
+**Files modified:**
+- `cdd/plan/architecture.md` - Added iteration usage comment documenting public access to entries/count
+- `cdd/plan/integration-specification.md` - Changed two references from `ik_tool_registry_iter()` to direct array iteration
+
+**Status:** Resolved

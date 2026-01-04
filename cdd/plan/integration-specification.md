@@ -61,7 +61,7 @@ ik_repl_actions_llm.c:ik_repl_action_submit_to_llm()
 
 **Behavioral change:**
 - **Before:** Hard-codes tool definitions in lines 283-298, calls `ik_request_add_tool()` for each
-- **After:** If registry is non-NULL, iterates `ik_tool_registry_iter()` and calls `ik_request_add_tool()` for each entry. If NULL, uses empty tools array.
+- **After:** If registry is non-NULL, iterates `registry->entries[0..count-1]` and calls `ik_request_add_tool()` for each entry. If NULL, uses empty tools array.
 
 ### Call Site Changes
 
@@ -274,7 +274,7 @@ This means the registry integration happens in ONE place (`ik_request_build_from
 ```
 ik_repl_actions_llm.c:ik_repl_action_submit_to_llm()
   └─> ik_request_build_from_conversation(agent, agent, registry, &req)
-      └─> ik_tool_registry_iter(registry) or fallback  ← NEW
+      └─> for (i = 0; i < registry->count; i++) iterate entries  ← NEW
       └─> ik_request_add_tool() for each tool
       └─> req->tools[] now populated
   └─> Provider-specific serializer (Anthropic/Google/OpenAI)
