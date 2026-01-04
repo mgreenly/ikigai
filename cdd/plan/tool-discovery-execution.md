@@ -352,10 +352,15 @@ When `tool_success: false`:
 **See architecture.md for authoritative phase breakdown with human verification gates.**
 
 Summary:
-1. **Phase 1:** Remove internal tools
-2. **Phase 2:** Sync infrastructure (blocking discovery)
-3. **Phase 3:** First tool (bash)
-4. **Phase 4:** Remaining tools (one at a time)
+1. **Phase 1:** First tool (bash) - standalone executable
+2. **Phase 2:** Remaining tools (one at a time)
+   - 2a: file_read
+   - 2b: file_write
+   - 2c: file_edit
+   - 2d: glob
+   - 2e: grep
+3. **Phase 3:** Remove internal tools
+4. **Phase 4:** Sync infrastructure (blocking discovery)
 5. **Phase 5:** Commands (/tool, /refresh)
 6. **Phase 6:** Async optimization
 

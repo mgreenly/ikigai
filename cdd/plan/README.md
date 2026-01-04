@@ -30,6 +30,11 @@ Note: `architecture-current.md` is reference only - describes the existing syste
 
 1. **Phase 1:** First tool (bash) - standalone executable
 2. **Phase 2:** Remaining tools (one at a time) - standalone executables
+   - 2a: file_read
+   - 2b: file_write
+   - 2c: file_edit
+   - 2d: glob
+   - 2e: grep
 3. **Phase 3:** Remove internal tools
 4. **Phase 4:** Sync infrastructure (async internals, blocking API)
 5. **Phase 5:** Commands (/tool, /refresh)
