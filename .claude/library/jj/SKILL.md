@@ -15,14 +15,6 @@ Standard jj operations for day-to-day development work.
 
 ## Commit Policy
 
-### Attribution Rules (MANDATORY)
-
-Do NOT include attributions in commit messages:
-- No "Co-Authored-By: Claude <noreply@anthropic.com>"
-- No "Generated with [Claude Code](https://claude.com/claude-code)"
-
-This is enforced via CI or pre-push checks. Commits with these lines will be rejected on push.
-
 ### Commit Workflow
 
 jj has no staging area. All file changes are automatically part of the working copy commit.

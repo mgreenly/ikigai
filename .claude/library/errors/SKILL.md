@@ -58,6 +58,9 @@ typedef struct err {
 | `ERR_DB_MIGRATE` | 6 | Database migration failures |
 | `ERR_OUT_OF_MEMORY` | 7 | Memory allocation failures |
 | `ERR_AGENT_NOT_FOUND` | 8 | Agent not found in array |
+| `ERR_PROVIDER` | 9 | Provider error |
+| `ERR_MISSING_CREDENTIALS` | 10 | Missing credentials |
+| `ERR_NOT_IMPLEMENTED` | 11 | Not implemented |
 
 ## Macros
 

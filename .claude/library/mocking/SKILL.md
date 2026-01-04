@@ -114,6 +114,12 @@ void test_write_error_handling(void) {
 | `yyjson_mut_obj_add_str_()` | `yyjson_mut_obj_add_str()` |
 | `yyjson_mut_obj_add_int_()` | `yyjson_mut_obj_add_int()` |
 | `yyjson_mut_obj_add_uint_()` | `yyjson_mut_obj_add_uint()` |
+| `yyjson_mut_obj_()` | `yyjson_mut_obj()` |
+| `yyjson_mut_arr_()` | `yyjson_mut_arr()` |
+| `yyjson_mut_obj_add_val_()` | `yyjson_mut_obj_add_val()` |
+| `yyjson_mut_arr_add_val_()` | `yyjson_mut_arr_add_val()` |
+| `yyjson_mut_obj_add_bool_()` | `yyjson_mut_obj_add_bool()` |
+| `yyjson_val_mut_copy_()` | `yyjson_val_mut_copy()` |
 
 ### libcurl (Easy API)
 | Wrapper | Wraps |
@@ -146,6 +152,7 @@ void test_write_error_handling(void) {
 | `PQgetvalue_()` | `PQgetvalue()` |
 | `pq_exec_()` | `PQexec()` |
 | `pq_exec_params_()` | `PQexecParams()` |
+| `PQresultStatus_()` | `PQresultStatus()` |
 
 ### pthread
 | Wrapper | Wraps |
@@ -163,7 +170,16 @@ void test_write_error_handling(void) {
 | `ik_db_init_()` | `ik_db_init()` |
 | `ik_db_message_insert_()` | `ik_db_message_insert()` |
 | `ik_scrollback_append_line_()` | `ik_scrollback_append_line()` |
-| `ik_openai_conversation_add_msg_()` | `ik_openai_conversation_add_msg()` |
+| `ik_repl_render_frame_()` | `ik_repl_render_frame()` |
+| `ik_agent_get_provider_()` | `ik_agent_get_provider()` |
+| `ik_request_build_from_conversation_()` | `ik_request_build_from_conversation()` |
+| `ik_http_multi_create_()` | `ik_http_multi_create()` |
+| `ik_http_multi_info_read_()` | `ik_http_multi_info_read()` |
+| `ik_agent_start_tool_execution_()` | `ik_agent_start_tool_execution()` |
+| `ik_agent_should_continue_tool_loop_()` | `ik_agent_should_continue_tool_loop()` |
+| `ik_repl_submit_tool_loop_continuation_()` | `ik_repl_submit_tool_loop_continuation()` |
+| `ik_agent_add_message_()` | `ik_agent_add_message()` |
+| `ik_agent_transition_to_idle_()` | `ik_agent_transition_to_idle()` |
 
 ## Adding New Wrappers
 

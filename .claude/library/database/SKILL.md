@@ -17,7 +17,7 @@ Tracks applied migrations for incremental schema updates.
 |----------------|---------|----------------|-------------------------------|
 | schema_version | INTEGER | PRIMARY KEY    | Current schema version number |
 
-**Current version:** 4
+**Current version:** 5
 
 ### sessions
 Groups messages by conversation session with persistent state across app launches.
@@ -57,6 +57,7 @@ Event stream storage for conversation timeline with support for replay, rollback
 - `agent_killed`: Agent termination event
 - `command`: Slash command output for persistence across restarts
 - `fork`: Fork event recorded in both parent and child histories
+- `usage`: Token usage tracking event
 
 **Indexes:**
 - `idx_messages_session`: `(session_id, created_at)` for chronological event stream processing
@@ -75,6 +76,9 @@ Agent registry tracking agent lifecycle, parent-child relationships, and status 
 | status          | agent_status | NOT NULL, DEFAULT 'running'          | Agent status (running/dead)              |
 | created_at      | BIGINT       | NOT NULL                             | Unix epoch timestamp (seconds)           |
 | ended_at        | BIGINT       | NULL                                 | Unix epoch timestamp (NULL if running)   |
+| provider        | TEXT         | NULL                                 | LLM provider (anthropic, openai, etc.)   |
+| model           | TEXT         | NULL                                 | Model identifier (claude-opus-4.5, etc.) |
+| thinking_level  | TEXT         | NULL                                 | Thinking budget/level for extended thinking |
 
 **Enum Types:**
 - `agent_status`: `'running'`, `'dead'`
@@ -136,7 +140,7 @@ typedef struct {
 - `system`, `user`, `assistant`, `tool_call`, `tool_result`, `tool`
 
 **Metadata kinds** (not included in LLM context):
-- `clear`, `mark`, `rewind`, `agent_killed`, `command`, `fork`
+- `clear`, `mark`, `rewind`, `agent_killed`, `command`, `fork`, `usage`
 
 ### ik_replay_mark_t
 Checkpoint information for conversation rollback.
@@ -197,7 +201,10 @@ typedef struct {
     char *fork_message_id;
     char *status;
     int64_t created_at;
-    int64_t ended_at;  // 0 if still running
+    int64_t ended_at;        // 0 if still running
+    char *provider;          // LLM provider (nullable)
+    char *model;             // Model identifier (nullable)
+    char *thinking_level;    // Thinking budget/level (nullable)
 } ik_db_agent_row_t;
 ```
 
@@ -345,7 +352,7 @@ bool ik_db_message_is_valid_kind(const char *kind);
 - **Parameters:**
   - `kind`: The kind string to validate (may be NULL)
 - **Returns:** true if kind is valid, false otherwise
-- **Valid Kinds:** clear, system, user, assistant, tool_call, tool_result, mark, rewind, agent_killed, command, fork
+- **Valid Kinds:** clear, system, user, assistant, tool_call, tool_result, mark, rewind, agent_killed, command, fork, usage
 
 ### ik_msg_create_tool_result
 Create a canonical tool result message with kind="tool_result".
@@ -482,6 +489,22 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
   - `out_message_id`: Output parameter for last message ID (must not be NULL)
 - **Returns:** `OK` on success, `ERR` on failure
 - **Behavior:** Returns maximum message ID for agent. Used during fork to record fork point. Returns 0 if agent has no messages.
+
+### ik_db_agent_update_provider
+Update agent provider configuration.
+```c
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
+                                   const char *provider, const char *model,
+                                   const char *thinking_level);
+```
+- **Parameters:**
+  - `db_ctx`: Database context (must not be NULL)
+  - `uuid`: Agent UUID to update (must not be NULL)
+  - `provider`: Provider name (may be NULL)
+  - `model`: Model identifier (may be NULL)
+  - `thinking_level`: Thinking budget/level (may be NULL)
+- **Returns:** `OK` on success, `ERR_DB_CONNECT` on database error
+- **Behavior:** Updates provider, model, and thinking_level atomically. NULL values clear the configuration. Returns OK if agent not found (UPDATE affects 0 rows).
 
 ## Mail API
 
@@ -704,6 +727,7 @@ res_t ik_db_migrate(ik_db_ctx_t *db_ctx, const char *migrations_dir);
 - **002-agents-table.sql**: Creates `agents` table with agent_status enum, parent_uuid FK, and indexes
 - **003-messages-agent-uuid.sql**: Adds `agent_uuid` column to messages table with FK and index
 - **004-mail-table.sql**: Creates `mail` table for inter-agent messaging with indexes
+- **005-multi-provider.sql**: Adds `provider`, `model`, and `thinking_level` columns to agents table for multi-provider support; truncates all tables for clean slate
 
 ## PGresult Memory Management
 
@@ -870,14 +894,19 @@ TEST_DB_URL_PREFIX = "postgresql://ikigai:ikigai@localhost/"
 | `share/ikigai/migrations/002-agents-table.sql` | Agent registry table with parent-child relationships |
 | `share/ikigai/migrations/003-messages-agent-uuid.sql` | Add agent_uuid column to messages table |
 | `share/ikigai/migrations/004-mail-table.sql` | Inter-agent mail table for message passing |
+| `share/ikigai/migrations/005-multi-provider.sql` | Add provider, model, thinking_level to agents table |
 | `src/db/connection.h` | Database connection API (init, destructor, transactions) |
 | `src/db/connection.c` | Connection implementation with validation and migration runner |
 | `src/db/session.h` | Session CRUD API (create, get_active, end) |
 | `src/db/session.c` | Session implementation with parameterized queries |
 | `src/db/message.h` | Message insertion API and tool result helpers |
 | `src/db/message.c` | Message implementation with kind validation and yyjson |
-| `src/db/agent.h` | Agent registry API (insert, mark_dead, queries) |
+| `src/db/agent.h` | Agent registry API (insert, mark_dead, queries, update_provider) |
 | `src/db/agent.c` | Agent implementation with parent-child queries |
+| `src/db/agent_row.h` | Agent row parsing helper API |
+| `src/db/agent_row.c` | Agent row parsing from PGresult |
+| `src/db/agent_zero.h` | Agent 0 (root agent) creation API |
+| `src/db/agent_zero.c` | Agent 0 creation and orphan message adoption |
 | `src/db/mail.h` | Mail API (insert, inbox, mark_read, delete) |
 | `src/db/mail.c` | Mail implementation with inbox filtering |
 | `src/db/replay.h` | Replay context structures and message loading API |
