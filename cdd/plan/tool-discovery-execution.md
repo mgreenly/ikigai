@@ -149,20 +149,23 @@ def execute(params):
   "name": "tool_name",
   "description": "Brief description of what this tool does",
   "parameters": {
-    "param1": {
-      "type": "string",
-      "description": "Parameter description",
-      "required": true
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "field1": {"type": "string", "description": "..."}
-    }
+      "param1": {
+        "type": "string",
+        "description": "Parameter description"
+      },
+      "param2": {
+        "type": "integer",
+        "description": "Optional parameter"
+      }
+    },
+    "required": ["param1"]
   }
 }
 ```
+
+**Format:** JSON Schema (Draft 2020-12 compatible subset). See `cdd/research/tool-schema-format.md` for complete specification.
 
 **Timeout:** 1 second per tool (aggressive but fair - schema should be instant)
 

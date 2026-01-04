@@ -16,12 +16,6 @@ cat - Read file contents
 Parameters:
   path (string, required)
     Path to file
-
-Returns:
-  content (string)
-    File contents
-  error (string)
-    Error message if failed
 ```
 
 ## Walkthrough
@@ -46,4 +40,3 @@ Tool 'nonexistent' not found. Run /tool to see available tools.
 - Shows the exact schema the LLM receives
 - Useful for debugging custom tools
 - Parameters show type, required flag, description
-- Returns show structure the LLM will parse

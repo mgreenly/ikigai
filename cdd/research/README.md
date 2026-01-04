@@ -20,35 +20,6 @@ Research conducted to validate and inform the rel-08 external tool architecture 
 - Mocking and stubbing approaches
 - C testing frameworks (CMocka, Unity)
 
-### Token Efficiency
-
-**[token-efficiency.md](token-efficiency.md)** - External tools at zero overhead:
-- Why bash-wrapped tools have overhead
-- ikigai's protocol makes external tools identical to built-in
-- Extensibility without penalty
-
-### Skills + Tools Model
-
-**[skill-tool-model.md](skill-tool-model.md)** - Extension architecture beyond rel-08:
-- Skills = context (when/why), Tools = action (what)
-- We control both ends - no vendor context flooding
-- MCP only useful for unplanned/ad-hoc situations
-- Direct APIs beat vendor abstractions
-
-### Error Message Examples
-
-**[error-message-examples.md](error-message-examples.md)** - Example LLM conversations showing error handling:
-- Missing credentials flow
-- Invalid credentials, rate limits
-- How LLM relays helpful error messages to users
-
-### LLM Interaction Examples
-
-**[llm-interaction-examples.md](llm-interaction-examples.md)** - Example conversations showing tool usage:
-- Tool calls and structured responses
-- Error handling and adaptation
-- Output truncation handling
-
 ### Schema Validation
 
 **[schema-validation-research.md](schema-validation-research.md)** - JSON Schema validation options:

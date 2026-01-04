@@ -25,18 +25,14 @@ if [ "$1" = "--schema" ]; then
   "name": "cat",
   "description": "Read file contents",
   "parameters": {
-    "path": {
-      "type": "string",
-      "description": "Path to file",
-      "required": true
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "content": {"type": "string", "description": "File contents"},
-      "error": {"type": "string", "description": "Error message if failed"}
-    }
+      "path": {
+        "type": "string",
+        "description": "Path to file"
+      }
+    },
+    "required": ["path"]
   }
 }
 EOF

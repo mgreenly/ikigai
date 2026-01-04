@@ -296,76 +296,72 @@ The external tool system integrates with `src/repl_tool.c` by:
 
 ## Tool Schema Format
 
-External tool returns via `--schema`:
+External tools return JSON Schema format via `--schema`:
 
 ```json
 {
   "name": "bash",
   "description": "Execute a shell command",
   "parameters": {
-    "command": {
-      "type": "string",
-      "description": "Command to execute",
-      "required": true
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "stdout": {"type": "string"},
-      "stderr": {"type": "string"},
-      "exit_code": {"type": "integer"}
-    }
+      "command": {
+        "type": "string",
+        "description": "Command to execute"
+      }
+    },
+    "required": ["command"]
   }
 }
 ```
 
-ikigai transforms for LLM (adds provider wrapper + response wrapper).
+**Format:** JSON Schema (Draft 2020-12 compatible subset). See `cdd/research/tool-schema-format.md` for complete specification.
+
+ikigai transforms for each LLM provider. See `cdd/research/provider-schema-translation.md` for provider-specific formats.
 
 ### Schema Transformation
 
-External tools return a simple JSON schema format via `--schema`, but LLM providers like OpenAI require a specific function calling format. The transformation happens inside `ik_tool_registry_build_all()` when building the tools array for API requests.
+External tools return JSON Schema format. Each LLM provider requires slightly different wrapping. Transformation happens in provider-specific request serializers.
 
-**Transformation helper function:**
+**Transformation functions:**
 
 ```c
-// src/tool_registry.c
-yyjson_mut_val *ik_tool_schema_to_openai(yyjson_mut_doc *doc, yyjson_val *tool_schema);
+// Each provider has its own transformation in request serialization
+// src/providers/openai/request_chat.c - OpenAI format
+// src/providers/anthropic/request.c - Anthropic format
+// src/providers/google/request.c - Google format
 ```
 
-**Field mapping:**
+**Provider differences:**
 
-| External Format | OpenAI Format | Transformation |
-|-----------------|---------------|----------------|
-| `name` | `function.name` | Direct copy |
-| `description` | `function.description` | Direct copy |
-| `parameters` object | `function.parameters.properties` | Extract `required` fields into array |
+| Provider | Wrapper | Schema Key | `additionalProperties` | `required` Array |
+|----------|---------|------------|------------------------|------------------|
+| OpenAI | `{type: "function", function: {...}}` | `parameters` | Add `false` | Add ALL properties |
+| Anthropic | none | `input_schema` | Passthrough | Keep as-is |
+| Google | `functionDeclarations[]` | `parameters` | Remove | Keep as-is |
 
-**Detailed transformation:**
+**OpenAI strict mode quirk:** OpenAI's structured outputs require `strict: true` and ALL properties in `required[]`, even optional ones.
 
-1. **Top-level wrapper:** OpenAI requires `"type": "function"` with nested `"function"` object
-2. **Parameters object:**
-   - External: flat object with `name: {type, description, required}` entries
-   - OpenAI: `parameters.type = "object"`, `parameters.properties = {...}`, `parameters.required = [...]`
-3. **Required field extraction:** Iterate external parameters, collect names where `required: true`, build array
-
-**Input example (external tool schema):**
+**Input example (canonical JSON Schema from tool):**
 
 ```json
 {
   "name": "bash",
   "description": "Execute a shell command",
   "parameters": {
-    "command": {
-      "type": "string",
-      "description": "Command to execute",
-      "required": true
-    }
+    "type": "object",
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "Command to execute"
+      }
+    },
+    "required": ["command"]
   }
 }
 ```
 
-**Output example (OpenAI function format):**
+**Output example (OpenAI format):**
 
 ```json
 {
@@ -373,6 +369,7 @@ yyjson_mut_val *ik_tool_schema_to_openai(yyjson_mut_doc *doc, yyjson_val *tool_s
   "function": {
     "name": "bash",
     "description": "Execute a shell command",
+    "strict": true,
     "parameters": {
       "type": "object",
       "properties": {
@@ -381,7 +378,8 @@ yyjson_mut_val *ik_tool_schema_to_openai(yyjson_mut_doc *doc, yyjson_val *tool_s
           "description": "Command to execute"
         }
       },
-      "required": ["command"]
+      "required": ["command"],
+      "additionalProperties": false
     }
   }
 }
@@ -389,10 +387,9 @@ yyjson_mut_val *ik_tool_schema_to_openai(yyjson_mut_doc *doc, yyjson_val *tool_s
 
 **Implementation notes:**
 
-- `ik_tool_registry_build_all()` iterates all registry entries, calling `ik_tool_schema_to_openai()` for each
-- The `returns` field from external schema is ignored (not part of OpenAI function schema)
-- Empty parameters object results in `"parameters": {"type": "object", "properties": {}}` (no required array)
-- Invalid external schemas are skipped with debug message (don't crash registry building)
+- `ik_tool_registry_build_all()` returns canonical schemas; provider serializers transform
+- Invalid schemas are skipped with debug message (don't crash registry building)
+- See `cdd/research/provider-schema-translation.md` for complete provider formats
 
 ## Tool Result Format
 

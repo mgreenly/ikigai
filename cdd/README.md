@@ -32,15 +32,24 @@ This doesn't replace bash. You won't wrap everything. But when something gets ca
 ## Scope
 
 **In this release:**
-- Remove internal tool system completely
 - External tool infrastructure (registry, discovery, execution)
-- Migrate 5 built-in tools to external: bash, file_read, file_write, glob, grep
-- Add new file_edit tool (search-and-replace editing)
+- 6 external tools: bash, file_read, file_write, file_edit, glob, grep
 - Tool discovery from two locations (system + user)
-- Tool execution with JSON protocol
+- Tool execution with JSON protocol (JSON Schema for tool schemas)
 - Response wrapper (distinguishes tool errors from ikigai errors)
 - `/tool` and `/tool NAME` commands
 - `/refresh` command to reload tools
+- Remove internal tool system
+
+## Migration Order
+
+External tools must work before internal tools are removed. See `plan/README.md` for detailed phases.
+
+1. **Build external tools** - Standalone executables, tested independently
+2. **Remove internal tools** - Delete old tool system
+3. **Build infrastructure** - Registry, discovery, execution (blocking API)
+4. **Add commands** - /tool, /refresh
+5. **Async optimization** - Non-blocking startup (optional enhancement)
 
 **Not in this release:**
 - Additional tools (web search, etc.) - future releases

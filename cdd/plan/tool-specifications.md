@@ -13,24 +13,14 @@ Execute shell commands via `/bin/sh`.
   "name": "bash",
   "description": "Execute a shell command and return output",
   "parameters": {
-    "command": {
-      "type": "string",
-      "description": "Shell command to execute",
-      "required": true
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "command": {
         "type": "string",
-        "description": "Combined stdout and stderr from command"
-      },
-      "exit_code": {
-        "type": "integer",
-        "description": "Command exit code (0 = success)"
+        "description": "Shell command to execute"
       }
-    }
+    },
+    "required": ["command"]
   }
 }
 ```
@@ -106,30 +96,22 @@ Read file contents from filesystem.
   "name": "file_read",
   "description": "Read contents of a file",
   "parameters": {
-    "file_path": {
-      "type": "string",
-      "description": "Absolute or relative path to file",
-      "required": true
-    },
-    "offset": {
-      "type": "integer",
-      "description": "Line number to start reading from (1-based)",
-      "required": false
-    },
-    "limit": {
-      "type": "integer",
-      "description": "Number of lines to read",
-      "required": false
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "file_path": {
         "type": "string",
-        "description": "File contents (entire file or specified range)"
+        "description": "Absolute or relative path to file"
+      },
+      "offset": {
+        "type": "integer",
+        "description": "Line number to start reading from (1-based)"
+      },
+      "limit": {
+        "type": "integer",
+        "description": "Number of lines to read"
       }
-    }
+    },
+    "required": ["file_path"]
   }
 }
 ```
@@ -231,29 +213,18 @@ Write content to filesystem.
   "name": "file_write",
   "description": "Write content to a file (creates or overwrites)",
   "parameters": {
-    "file_path": {
-      "type": "string",
-      "description": "Absolute or relative path to file",
-      "required": true
-    },
-    "content": {
-      "type": "string",
-      "description": "Content to write to file",
-      "required": true
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "file_path": {
         "type": "string",
-        "description": "Success message with bytes written"
+        "description": "Absolute or relative path to file"
       },
-      "bytes": {
-        "type": "integer",
-        "description": "Number of bytes written"
+      "content": {
+        "type": "string",
+        "description": "Content to write to file"
       }
-    }
+    },
+    "required": ["file_path", "content"]
   }
 }
 ```
@@ -339,39 +310,26 @@ Edit file by replacing exact text matches.
   "name": "file_edit",
   "description": "Edit a file by replacing exact text matches. You must read the file before editing.",
   "parameters": {
-    "file_path": {
-      "type": "string",
-      "description": "Absolute or relative path to file",
-      "required": true
-    },
-    "old_string": {
-      "type": "string",
-      "description": "Exact text to find and replace",
-      "required": true
-    },
-    "new_string": {
-      "type": "string",
-      "description": "Text to replace old_string with",
-      "required": true
-    },
-    "replace_all": {
-      "type": "boolean",
-      "description": "Replace all occurrences (default: false, fails if not unique)",
-      "required": false
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "file_path": {
         "type": "string",
-        "description": "Success message with replacement count"
+        "description": "Absolute or relative path to file"
       },
-      "replacements": {
-        "type": "integer",
-        "description": "Number of replacements made"
+      "old_string": {
+        "type": "string",
+        "description": "Exact text to find and replace"
+      },
+      "new_string": {
+        "type": "string",
+        "description": "Text to replace old_string with"
+      },
+      "replace_all": {
+        "type": "boolean",
+        "description": "Replace all occurrences (default: false, fails if not unique)"
       }
-    }
+    },
+    "required": ["file_path", "old_string", "new_string"]
   }
 }
 ```
@@ -476,29 +434,18 @@ Find files matching pattern.
   "name": "glob",
   "description": "Find files matching a glob pattern",
   "parameters": {
-    "pattern": {
-      "type": "string",
-      "description": "Glob pattern (e.g., '*.txt', 'src/**/*.c')",
-      "required": true
-    },
-    "path": {
-      "type": "string",
-      "description": "Directory to search in (default: current directory)",
-      "required": false
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "pattern": {
         "type": "string",
-        "description": "Newline-separated list of matching file paths"
+        "description": "Glob pattern (e.g., '*.txt', 'src/**/*.c')"
       },
-      "count": {
-        "type": "integer",
-        "description": "Number of matching files"
+      "path": {
+        "type": "string",
+        "description": "Directory to search in (default: current directory)"
       }
-    }
+    },
+    "required": ["pattern"]
   }
 }
 ```
@@ -583,34 +530,22 @@ Search file contents using regular expressions.
   "name": "grep",
   "description": "Search for pattern in files using regular expressions",
   "parameters": {
-    "pattern": {
-      "type": "string",
-      "description": "Regular expression pattern (POSIX extended)",
-      "required": true
-    },
-    "glob": {
-      "type": "string",
-      "description": "Glob pattern to filter files (e.g., '*.c')",
-      "required": false
-    },
-    "path": {
-      "type": "string",
-      "description": "Directory to search in (default: current directory)",
-      "required": false
-    }
-  },
-  "returns": {
     "type": "object",
     "properties": {
-      "output": {
+      "pattern": {
         "type": "string",
-        "description": "Matching lines in format 'filename:line_number: content'"
+        "description": "Regular expression pattern (POSIX extended)"
       },
-      "count": {
-        "type": "integer",
-        "description": "Number of matching lines"
+      "glob": {
+        "type": "string",
+        "description": "Glob pattern to filter files (e.g., '*.c')"
+      },
+      "path": {
+        "type": "string",
+        "description": "Directory to search in (default: current directory)"
       }
-    }
+    },
+    "required": ["pattern"]
   }
 }
 ```
