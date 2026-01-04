@@ -102,6 +102,62 @@ START_TEST(test_serialize_messages_failure) {
 }
 END_TEST
 
+START_TEST(test_serialize_request_non_streaming) {
+    // Test lines 230-233: Non-streaming version of serialize_request
+
+    ik_request_t *req = create_basic_request(test_ctx);
+    char *json = NULL;
+
+    // Call the non-streaming version
+    res_t r = ik_anthropic_serialize_request(test_ctx, req, &json);
+
+    // Should succeed
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse the JSON to verify it doesn't contain stream field
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *stream_field = yyjson_obj_get(root, "stream");
+
+    // Non-streaming request should NOT have stream field
+    ck_assert_ptr_null(stream_field);
+
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_request_streaming_with_verification) {
+    // Test line 77 branch 1: Ensure stream=true path is tested
+
+    ik_request_t *req = create_basic_request(test_ctx);
+    char *json = NULL;
+
+    // Call the streaming version
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+
+    // Should succeed
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(json);
+
+    // Parse the JSON to verify it contains stream field set to true
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *stream_field = yyjson_obj_get(root, "stream");
+
+    // Streaming request MUST have stream field set to true
+    ck_assert_ptr_nonnull(stream_field);
+    ck_assert(yyjson_is_bool(stream_field));
+    ck_assert(yyjson_get_bool(stream_field) == true);
+
+    yyjson_doc_free(doc);
+}
+END_TEST
+
 
 /* ================================================================
  * Test Suite Setup
@@ -115,6 +171,8 @@ static Suite *request_coverage_suite(void)
     tcase_set_timeout(tc_coverage, 30);
     tcase_add_unchecked_fixture(tc_coverage, setup, teardown);
     tcase_add_test(tc_coverage, test_serialize_messages_failure);
+    tcase_add_test(tc_coverage, test_serialize_request_non_streaming);
+    tcase_add_test(tc_coverage, test_serialize_request_streaming_with_verification);
     suite_add_tcase(s, tc_coverage);
 
     return s;
