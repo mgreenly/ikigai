@@ -194,8 +194,8 @@ The REPL owns the tool registry and passes it to the OpenAI client during reques
 **Function signature change:**
 
 ```c
-// src/openai/client.c
-res_t ik_openai_create_request(TALLOC_CTX *ctx,
+// src/providers/openai/request_chat.c
+res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx,
                                 ik_tool_registry_t *tool_registry,  // NEW: Registry parameter
                                 ik_chat_ctx_t *chat_ctx,
                                 ik_openai_request_t **out_request);
@@ -212,7 +212,7 @@ res_t result = ik_openai_create_request(
     &request
 );
 
-// Inside ik_openai_create_request():
+// Inside ik_openai_serialize_chat_request():
 yyjson_mut_val *tools_array = ik_tool_registry_build_all(tool_registry, doc);
 if (tools_array && yyjson_mut_arr_size(tools_array) > 0) {
     yyjson_mut_obj_add_val(doc, root, "tools", tools_array);
@@ -557,7 +557,7 @@ res_t ik_cmd_refresh(void *ctx, ik_repl_ctx_t *repl, const char *args);
 - `src/tool_arg_parser.c` - Useful for external tools
 
 **Stub integration points:**
-- `src/openai/client.c` - Return empty tools array
+- `src/providers/openai/request_chat.c` - Return empty tools array
 - `src/repl_tool.c` - Return "no tools available" error
 
 **⏸ STOP: Human Verification**
@@ -581,7 +581,7 @@ res_t ik_cmd_refresh(void *ctx, ik_repl_ctx_t *repl, const char *args);
 **Integration:**
 - `src/shared.h` - Add `tool_registry` and `tool_scan_state` fields
 - `src/repl_init.c` - Call blocking `ik_tool_discovery_run()` at startup
-- `src/openai/client.c` - Use `ik_tool_registry_build_all()`
+- `src/providers/openai/request_chat.c` - Use `ik_tool_registry_build_all()`
 - `src/repl_tool.c` - Use registry lookup + `ik_tool_external_exec()`
 
 **Key constraint:** Discovery is BLOCKING. `ik_tool_discovery_run()` blocks until all tools are scanned. No event loop integration yet.

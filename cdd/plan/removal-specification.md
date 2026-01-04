@@ -210,7 +210,7 @@ bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_v
 
 **DELETE.** Header for tool_response.c - delete together with implementation.
 
-### 5. src/openai/client.c
+### 5. src/providers/openai/request_chat.c
 
 **Purpose:** Replace call to `ik_tool_build_all()` with stub that returns empty tools array.
 
@@ -380,7 +380,7 @@ This removal is Phase 1 of the external tool migration. After this phase:
 - Tool calls return "not yet implemented" error
 - Foundation is clean for Phase 2: implementing external tool infrastructure
 
-Phase 2 will replace the stubs in `src/openai/client.c` and `src/repl_tool.c` with registry-based tool building and external tool execution.
+Phase 2 will replace the stubs in `src/providers/openai/request_chat.c` and `src/repl_tool.c` with registry-based tool building and external tool execution.
 
 ## Dependencies
 
@@ -395,7 +395,7 @@ Files we're deleting have these include dependencies:
 - `src/tool_grep.c` includes: `tool.h`, `tool_response.h`, `line_array.h`, `file_utils.h`, `panic.h`, `wrapper.h`
 
 After deletion, these headers are still used by:
-- `tool.h` - Used by `src/tool_arg_parser.c`, `src/openai/client.c`, `src/repl_tool.c`
+- `tool.h` - Used by `src/tool_arg_parser.c`, `src/providers/openai/request_chat.c`, `src/repl_tool.c`
 - `tool_response.h` - DELETE (no remaining callers)
 
 ## Summary

@@ -72,7 +72,7 @@ ik_tool_wrap_failure()
 
 Two places in existing code need modification:
 
-1. **LLM request building** (`src/openai/client.c`) - Replace `ik_tool_build_all()` with `ik_tool_registry_build_all()`
+1. **LLM request building** (`src/providers/openai/request_chat.c`) - Replace `ik_tool_build_all()` with `ik_tool_registry_build_all()`
 
 2. **Tool execution** (`src/repl_tool.c`) - Replace `ik_tool_dispatch()` with registry lookup + `ik_tool_external_exec()`
 

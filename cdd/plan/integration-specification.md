@@ -31,13 +31,13 @@ The tool registry lives in `ik_shared_ctx_t` because:
 ```
 ik_repl_actions_llm.c (or similar)
   └─> ik_openai_multi_request.c:ik_openai_multi_start_request_ex()
-      └─> ik_openai_client.c:ik_openai_serialize_request(parent, request, tool_choice)
+      └─> ik_providers/openai/request_chat.c:ik_openai_serialize_chat_request(parent, request, tool_choice)
           └─> ik_tool_build_all(doc)  ← BEING REPLACED
 ```
 
-### Function Signature Change: ik_openai_serialize_request
+### Function Signature Change: ik_openai_serialize_chat_request
 
-**File:** `src/openai/client.h` and `src/openai/client.c`
+**File:** `src/providers/openai/request.h` and `src/providers/openai/request_chat.c`
 
 **Current signature:**
 
@@ -62,33 +62,23 @@ ik_repl_actions_llm.c (or similar)
 
 ### Call Site Changes
 
-**File:** `src/openai/client_multi_request.c`
+**File:** Caller of `ik_openai_serialize_chat_request()`
 
-**Change:** Pass registry (from multi context) as fourth argument to `ik_openai_serialize_request()`.
+**Change:** Pass registry (from shared context) as fourth argument to `ik_openai_serialize_chat_request()`.
 
-**Problem:** `client_multi_request.c` doesn't have access to shared context.
+**Problem:** The caller may not have direct access to shared context.
 
-**Solution:** Add registry to `ik_openai_multi` context (Option A below).
+**Solution:** Pass registry through the call chain from the shared context.
 
-### Option A: Add to ik_openai_multi (Recommended)
+### Option A: Pass registry through call chain (Recommended)
 
-**File:** `src/openai/client_multi.h`
+**Implementation:** Thread the registry parameter through the request building functions.
 
-**Add field:**
+**Approach:** Add registry parameter to request building functions in the call chain.
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `tool_registry` | `ik_tool_registry_t *` | Borrowed reference to shared registry |
+**Usage:** Pass `shared->tool_registry` from the REPL context down to `ik_openai_serialize_chat_request()`.
 
-**Initialization:** When multi is created, set `multi->tool_registry = shared->tool_registry`.
-
-**Usage:** In `client_multi_request.c`, access registry via `multi->tool_registry`.
-
-### Option B: Thread through call chain
-
-Add registry parameter to all functions in the call chain from REPL down to serialize_request. More invasive but more explicit.
-
-**Recommendation:** Use Option A - less invasive, mirrors how other shared state is accessed.
+**Recommendation:** This makes the dependency explicit and avoids storing duplicate references.
 
 ## Tool Execution Integration
 
@@ -197,8 +187,7 @@ TOOL_SCAN_NOT_STARTED
 | File | Change |
 |------|--------|
 | `src/shared.h` | Add `tool_registry` and `tool_scan_state` fields |
-| `src/openai/client.h` | Add `registry` parameter to `ik_openai_serialize_request` |
-| `src/openai/client_multi.h` | Add `tool_registry` field to multi context |
+| `src/providers/openai/request.h` | Add `registry` parameter to `ik_openai_serialize_chat_request` |
 
 **Phase 6 adds:**
 | `src/repl.h` | Add `tool_discovery` field to `ik_repl_ctx_t` |
@@ -208,9 +197,8 @@ TOOL_SCAN_NOT_STARTED
 | File | Change |
 |------|--------|
 | `src/shared.c` | Initialize registry fields in `ik_shared_ctx_init` |
-| `src/openai/client.c` | Update `ik_openai_serialize_request` to use registry |
-| `src/openai/client_multi_request.c` | Pass registry to serialize_request |
-| `src/openai/client_multi.c` | Store registry reference when multi created |
+| `src/providers/openai/request_chat.c` | Update `ik_openai_serialize_chat_request` to use registry |
+| Caller(s) of serialize_chat_request | Pass registry to serialize_chat_request |
 | `src/repl_tool.c` | Replace `ik_tool_dispatch` with registry lookup + external exec |
 | `src/repl_init.c` | Call blocking `ik_tool_discovery_run()` at startup |
 

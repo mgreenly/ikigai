@@ -67,7 +67,7 @@ res_t ik_tool_exec_bash(void *parent, const char *command)
 
 **Integration Point A: LLM Request Building**
 
-Location: `src/openai/client.c:191`
+Location: `src/providers/openai/request_chat.c` (approximate line 191)
 
 ```c
 /* Build and add tools array */
