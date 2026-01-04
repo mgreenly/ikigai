@@ -1,13 +1,15 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env
 
 /**
  * Import tasks from a source order.json + task files
  *
- * Usage: deno run --allow-read --allow-write import.ts [tasks-directory]
+ * Usage: CDD_DIR=/path/to/workspace deno run --allow-read --allow-write --allow-env import.ts [tasks-directory]
  *
- * Defaults to cdd/tasks if no directory specified.
- * Reads source order.json, copies it to cdd/tasks/order.json,
+ * Defaults to $CDD_DIR/tasks if no directory specified.
+ * Reads source order.json, copies it to $CDD_DIR/tasks/order.json,
  * and moves all task files to pending/ directory.
+ *
+ * Requires $CDD_DIR environment variable to be set.
  */
 
 import {
@@ -18,6 +20,7 @@ import {
   appendHistory,
   writeOrder,
   getTaskPath,
+  getTasksDir,
   type TaskEntry,
 } from "./mod.ts";
 import { join } from "jsr:@std/path@1";
@@ -28,7 +31,8 @@ interface OrderFile {
 }
 
 async function main() {
-  const tasksDir = Deno.args[0] || "cdd/tasks";
+  // Use argument if provided, otherwise use $CDD_DIR/tasks
+  const tasksDir = Deno.args[0] || getTasksDir();
 
   // Read order.json
   const orderPath = join(tasksDir, "order.json");

@@ -7,12 +7,22 @@ description: File-based task execution tracking for orchestration workflows
 
 File-based execution state tracking. Task order and metadata live in `order.json`, task status is tracked by filesystem location, and all events are logged to `history.jsonl`.
 
-**Storage:** `cdd/tasks/` directory with status subdirectories
+## Workspace Configuration
+
+**All task scripts require the `$CDD_DIR` environment variable.**
+
+```bash
+export CDD_DIR=/path/to/workspace
+```
+
+Scripts will abort with a clear JSON error if `$CDD_DIR` is not set.
+
+**Storage:** `$CDD_DIR/tasks/` directory with status subdirectories
 
 ## Directory Structure
 
 ```
-cdd/tasks/
+$CDD_DIR/tasks/
 ├── pending/         # Tasks not yet started
 ├── in_progress/     # Currently running (should only have 1)
 ├── completed/       # Successfully finished
@@ -42,7 +52,7 @@ Use Bash tool to execute scripts directly:
 
 ```bash
 .claude/scripts/task/init.ts          # Initialize directory structure
-.claude/scripts/task/import.ts        # Import from cdd/tasks/order.json
+.claude/scripts/task/import.ts        # Import from $CDD_DIR/tasks/order.json
 .claude/scripts/task/import.ts path   # Import from custom path
 .claude/scripts/task/next.ts          # Get next pending task or stop
 .claude/scripts/task/start.ts <name>  # Mark in_progress
@@ -118,7 +128,7 @@ Append-only audit log with one event per line:
 
 **Ownership:** Only the orchestrator manipulates task state. Sub-agents executing tasks must NOT use task commands.
 
-**Visibility:** Task status is always visible via `ls cdd/tasks/*/` - no hidden state in databases.
+**Visibility:** Task status is always visible via `ls $CDD_DIR/tasks/*/` - no hidden state in databases.
 
 **Stops:** When `next.ts` returns `type: "stop"`, the orchestrator must exit and wait for user to run `continue.ts <stop-id>` before resuming.
 
@@ -126,7 +136,7 @@ Append-only audit log with one event per line:
 
 ## Task Files
 
-Tasks are created in `cdd/tasks/` with an `order.json`:
+Tasks are created in `$CDD_DIR/tasks/` with an `order.json`:
 
 ```json
 {
@@ -137,13 +147,13 @@ Tasks are created in `cdd/tasks/` with an `order.json`:
 ```
 
 After running `import.ts`:
-- Source `order.json` content becomes `cdd/tasks/order.json`
+- Source `order.json` content becomes `$CDD_DIR/tasks/order.json`
 - Task files move to `pending/` directory
 - Import events logged to `history.jsonl`
 
-Temp files during execution go in `cdd/tmp/`.
+Temp files during execution go in `$CDD_DIR/tmp/`.
 
-**Note:** The `cdd/` directory may contain other files and directories beyond `tasks/` and `tmp/` (such as `research/`, `user-stories/`, `plan/`, etc.). These are permitted and will be ignored by task execution.
+**Note:** The `$CDD_DIR/` directory may contain other files and directories beyond `tasks/` and `tmp/` (such as `research/`, `user-stories/`, `plan/`, etc.). These are permitted and will be ignored by task execution.
 
 ## JSON Response Format
 

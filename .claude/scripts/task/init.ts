@@ -1,14 +1,16 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env
 
 /**
  * Initialize task directory structure
  *
- * Usage: deno run --allow-read --allow-write init.ts
+ * Usage: CDD_DIR=/path/to/workspace deno run --allow-read --allow-write --allow-env init.ts
  *
- * Creates the cdd/tasks directory structure:
+ * Creates the $CDD_DIR/tasks directory structure:
  * - pending/, in_progress/, completed/, failed/ directories
  * - order.json (empty task list)
  * - history.jsonl (empty file)
+ *
+ * Requires $CDD_DIR environment variable to be set.
  */
 
 import {
