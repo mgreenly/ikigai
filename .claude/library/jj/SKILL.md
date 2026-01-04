@@ -35,14 +35,13 @@ Run `make check` periodically to catch issues early.
 ## Prohibited Operations
 
 This skill does NOT permit:
-- Modifying the `main` bookmark
+- Modifying the `main` bookmark locally
+- Merging into main locally
 - Creating tags
 - Creating releases
 - Force pushing to main
 
-These operations require the `jj-strict` skill which enforces quality gates.
-
-If you need to perform any of these operations, stop and inform the user they need to load the `jj-strict` skill.
+**Merges to main only happen via GitHub PRs.** All work is done on feature bookmarks, pushed to origin, and merged through pull requests on GitHub. Never merge locally.
 
 ## Permitted Operations
 
