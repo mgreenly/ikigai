@@ -32,7 +32,7 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-COVERAGE_DIR = PROJECT_ROOT / "coverage"
+COVERAGE_DIR = PROJECT_ROOT / "reports" / "coverage"
 DEFAULT_TIMEOUT = 900
 
 # Global flag to disable spinner (set by --no-spinner)
