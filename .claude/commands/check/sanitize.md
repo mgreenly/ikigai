@@ -7,4 +7,4 @@ Run sanitizer checks and fix errors using sub-agents.
 
 ---
 
-Run `check-sanitize --no-spinner` and report the results.
+Run `.claude/scripts/check-sanitize --no-spinner` and report the results.

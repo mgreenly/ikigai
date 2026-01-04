@@ -7,4 +7,4 @@ Run ThreadSanitizer checks and fix data races using sub-agents.
 
 ---
 
-Run `check-tsan --no-spinner` and report the results.
+Run `.claude/scripts/check-tsan --no-spinner` and report the results.

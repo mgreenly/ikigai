@@ -7,4 +7,4 @@ Run Valgrind Memcheck and fix memory errors using sub-agents.
 
 ---
 
-Run `check-valgrind --no-spinner` and report the results.
+Run `.claude/scripts/check-valgrind --no-spinner` and report the results.

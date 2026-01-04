@@ -7,4 +7,4 @@ Run all quality checks in a fix-point loop until stable.
 
 ---
 
-Run `check-quality --no-spinner` and report the results.
+Run `.claude/scripts/check-quality --no-spinner` and report the results.

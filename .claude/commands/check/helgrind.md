@@ -7,4 +7,4 @@ Run Valgrind Helgrind and fix thread errors using sub-agents.
 
 ---
 
-Run `check-helgrind --no-spinner` and report the results.
+Run `.claude/scripts/check-helgrind --no-spinner` and report the results.

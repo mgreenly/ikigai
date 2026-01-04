@@ -7,4 +7,4 @@ Run file size checks and fix oversized files using sub-agents.
 
 ---
 
-Run `check-filesize --no-spinner` and report the results.
+Run `.claude/scripts/check-filesize --no-spinner` and report the results.

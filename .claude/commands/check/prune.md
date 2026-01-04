@@ -8,4 +8,4 @@ Remove dead code using sub-agents.
 
 ---
 
-Run `check-prune --no-spinner {{args}}` and report the results.
+Run `.claude/scripts/check-prune --no-spinner {{args}}` and report the results.
