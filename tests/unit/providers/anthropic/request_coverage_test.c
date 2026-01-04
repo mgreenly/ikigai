@@ -21,6 +21,9 @@
 
 static TALLOC_CTX *test_ctx;
 
+// Note: serialize_request_internal is static and cannot be tested directly
+// We need to find another way to test the non-streaming path
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -130,6 +133,10 @@ START_TEST(test_serialize_request_streaming_with_verification) {
     yyjson_doc_free(doc);
 }
 END_TEST
+
+// Note: We cannot test the non-streaming path directly as serialize_request_internal
+// is a static function. The non-streaming path appears to be dead code since
+// only ik_anthropic_serialize_request_stream is exposed in the public API.
 
 
 /* ================================================================
