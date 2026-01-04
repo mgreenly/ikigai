@@ -276,6 +276,19 @@ def build_prompt(gap: dict, details: dict) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
+    # Check if prune ran recently (via env var from quality harness)
+    after_prune = os.environ.get("AFTER_PRUNE") == "1"
+    if after_prune:
+        prune_context = """
+## Context
+
+A prune pass recently removed dead code. Do NOT add functions to src/ to increase
+coverage - if code was removed, it was intentional. Focus only on adding tests for
+existing production code.
+
+"""
+        template = template.replace("## The Coverage Gap", prune_context + "## The Coverage Gap")
+
     # Format gap details
     gap_description = []
     if details["uncovered_lines"]:

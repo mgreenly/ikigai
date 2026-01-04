@@ -70,6 +70,18 @@ fi
 # Pass all arguments to sub-tasks
 ARGS="$@"
 
+# Check if prune ran recently (look for prune commits in recent history)
+check_prune_ran() {
+    # Check last 10 commits for prune messages
+    jj log -r 'ancestors(@, 10)' --no-graph -T 'description' 2>/dev/null | grep -q "harness/prune"
+}
+
+# Set AFTER_PRUNE for coverage if prune ran
+if check_prune_ran; then
+    export AFTER_PRUNE=1
+    log "Detected recent prune commits - coverage will be aware"
+fi
+
 STEPS=(
     "compile"
     "filesize"
