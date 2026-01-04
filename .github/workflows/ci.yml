@@ -60,13 +60,13 @@ jobs:
       run: make check-filesize
 
     - name: Check complexity
-      run: make complexity
+      run: make check-complexity
 
     - name: Clean test directories
       run: rm -rf /tmp/.ikigai
 
     - name: Run tests with coverage
-      run: make coverage
+      run: make check-coverage
 
     - name: Clean before sanitizer build
       run: |
