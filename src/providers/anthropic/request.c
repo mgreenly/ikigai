@@ -227,6 +227,11 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
     return OK(result);
 }
 
+res_t ik_anthropic_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
+{
+    return serialize_request_internal(ctx, req, false, out_json);
+}
+
 res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
 {
     return serialize_request_internal(ctx, req, true, out_json);
