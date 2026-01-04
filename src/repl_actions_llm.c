@@ -70,13 +70,6 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
     } else {
         res_t result = ik_cmd_dispatch(repl, repl, command_text);
         if (is_err(&result)) {
-            const char *err_msg = error_message(result.err);
-            char *display_msg = talloc_asprintf(repl, "Error: %s", err_msg);
-            if (display_msg != NULL) {  // LCOV_EXCL_BR_LINE
-                ik_scrollback_append_line(repl->current->scrollback,  // LCOV_EXCL_LINE
-                                          display_msg, strlen(display_msg));  // LCOV_EXCL_LINE
-                talloc_free(display_msg);  // LCOV_EXCL_LINE
-            }  // LCOV_EXCL_LINE
             talloc_free(result.err);
         }
     }

@@ -1,6 +1,16 @@
 {
   "tasks": [
-    {"task": "duplicate-errors.md", "group": "UI Fixes", "model": "sonnet", "thinking": "thinking"},
-    {"task": "separator-missing.md", "group": "UI Fixes", "model": "sonnet", "thinking": "thinking"}
+    {
+      "task": "duplicate-errors.md",
+      "group": "UI Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
+      "task": "separator-missing.md",
+      "group": "UI Fixes",
+      "model": "sonnet",
+      "thinking": "thinking"
+    }
   ]
 }
