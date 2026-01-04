@@ -5,7 +5,7 @@
  *
  * Usage: deno run --allow-read --allow-write init.ts
  *
- * Creates the release/tasks directory structure:
+ * Creates the cdd/tasks directory structure:
  * - pending/, in_progress/, completed/, failed/ directories
  * - order.json (empty task list)
  * - history.jsonl (empty file)

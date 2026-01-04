@@ -22,22 +22,22 @@ Use user/agent interactive development time during the Research and Plan phases 
 **What:** Build foundational understanding before design decisions.
 
 **Artifacts:**
-- `release/README.md` - High-level description of release features
-- `release/user-stories/` - User actions and expected system responses
-- `release/research/` - Facts gathered from internet, docs, codebase
+- `cdd/README.md` - High-level description of release features
+- `cdd/user-stories/` - User actions and expected system responses
+- `cdd/research/` - Facts gathered from internet, docs, codebase
 
 **Why this phase exists:** Decisions made without research are assumptions. Research surfaces constraints, prior art, and edge cases that would otherwise appear during execution (when fixing is expensive).
 
-**Key insight:** Research artifacts become reference material for task execution. Sub-agents can read `release/research/` without re-fetching from the internet. The research phase pays the lookup cost once.
+**Key insight:** Research artifacts become reference material for task execution. Sub-agents can read `cdd/research/` without re-fetching from the internet. The research phase pays the lookup cost once.
 
 ### 2. Plan
 
 **What:** Transform research into implementation decisions and executable task files.
 
 **Artifacts:**
-- `release/plan/` - Implementation decisions, architecture choices, detailed designs
-- `release/tasks/` - Individual task files (one per unit of work)
-- `release/tasks/order.json` - Execution order and task metadata
+- `cdd/plan/` - Implementation decisions, architecture choices, detailed designs
+- `cdd/tasks/` - Individual task files (one per unit of work)
+- `cdd/tasks/order.json` - Execution order and task metadata
 
 **Why this phase exists:** Planning is the translation layer between "what we want" (research) and "what to do" (tasks). It makes architectural decisions explicit and breaks work into parallelizable units.
 
@@ -48,7 +48,7 @@ Use user/agent interactive development time during the Research and Plan phases 
 **What:** Iterative review of the complete plan before committing to execution.
 
 **Artifacts:**
-- `release/verified.md` - Log of concerns raised and resolved
+- `cdd/verified.md` - Log of concerns raised and resolved
 
 **Process:**
 ```
@@ -87,7 +87,7 @@ while (concerns feel substantive):
 ## Directory Structure
 
 ```
-release/
+cdd/
 ├── README.md          # High-level release description
 ├── user-stories/      # User actions and system responses
 │   └── README.md      # Index/overview
@@ -106,7 +106,7 @@ release/
 
 Each directory serves a distinct abstraction level. Content should not leak between levels.
 
-### release/plan/ - Coordination Layer
+### cdd/plan/ - Coordination Layer
 
 Plan documents **coordinate everything shared between tasks**. If two tasks must agree on something, the plan decides it.
 
@@ -124,7 +124,7 @@ Plan documents **coordinate everything shared between tasks**. If two tasks must
 
 **DO NOT include:** Implementation code, detailed algorithms, function bodies.
 
-### release/tasks/ - Implementation Units
+### cdd/tasks/ - Implementation Units
 
 Task files specify **what this task implements** from the plan:
 - Which functions from the plan this task implements
@@ -145,7 +145,7 @@ The sub-agent writes the actual code. The task tells them what to write and how 
 Artifacts form a hierarchy of authority:
 
 ```
-release/README.md (authoritative)
+cdd/README.md (authoritative)
         ↓
 user-stories + research (derived)
         ↓
@@ -166,10 +166,10 @@ user-stories + research (derived)
 ## Lifecycle
 
 ```
-Create empty release/ → Research → Plan → Verify → Execute → Delete release/
+Create empty cdd/ → Research → Plan → Verify → Execute → Delete cdd/
 ```
 
-The `release/` directory is ephemeral. It exists only for the duration of the release workflow. After successful execution, it's deleted. The work lives in the codebase; the pipeline artifacts are disposable.
+The `cdd/` directory is ephemeral. It exists only for the duration of the release workflow. After successful execution, it's deleted. The work lives in the codebase; the pipeline artifacts are disposable.
 
 ## Efficiency Principles
 

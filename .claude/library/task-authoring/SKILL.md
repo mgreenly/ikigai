@@ -89,7 +89,7 @@ Default to `sonnet/none` and escalate only when complexity demands it.
 - Working directory is project root (where `Makefile` lives)
 - All paths are relative to project root, not to the task file
 
-This prevents sub-agents from misinterpreting paths like `release/plan/` as relative to `release/tasks/`.
+This prevents sub-agents from misinterpreting paths like `cdd/plan/` as relative to `cdd/tasks/`.
 
 ### Skill Loading
 
@@ -268,7 +268,7 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 - `path/to/file.h` - What to learn from it
 
 **Plan:**
-- `release/plan/relevant.md` - Sections to reference
+- `cdd/plan/relevant.md` - Sections to reference
 
 ## Libraries
 

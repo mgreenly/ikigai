@@ -16,9 +16,9 @@ description: Planner role for the ikigai project
 
 ## Outputs
 
-- `release/plan/*.md` - Architecture decisions, interface designs, library choices
-- `release/tasks/*.md` - Individual task files for orchestration
-- `release/tasks/order.json` - Execution order and task metadata
+- `cdd/plan/*.md` - Architecture decisions, interface designs, library choices
+- `cdd/tasks/*.md` - Individual task files for orchestration
+- `cdd/tasks/order.json` - Execution order and task metadata
 
 ## Plan Content
 

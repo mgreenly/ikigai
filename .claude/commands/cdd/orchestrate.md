@@ -1,4 +1,4 @@
-Orchestrate task execution from release/tasks/ with automatic retry and escalation.
+Orchestrate task execution from cdd/tasks/ with automatic retry and escalation.
 
 **Usage:** `/orchestrate`
 
@@ -40,14 +40,14 @@ Run these in order. If ANY fails, report and **STOP**:
 ## INITIALIZE
 
 ```bash
-.claude/library/task/init.ts
-.claude/library/task/import.ts
+.claude/scripts/task/init.ts
+.claude/scripts/task/import.ts
 ```
 
 ## EXECUTION LOOP
 
-1. **Check context limit**: If token usage ≥ 140,000, run `.claude/library/task/stats.ts` and stop with message: `⚠ Stopped at 140k token limit. Resume with /orchestrate to continue.`
-2. `.claude/library/task/next.ts` - get next task or stop
+1. **Check context limit**: If token usage ≥ 140,000, run `.claude/scripts/task/stats.ts` and stop with message: `⚠ Stopped at 140k token limit. Resume with /orchestrate to continue.`
+2. `.claude/scripts/task/next.ts` - get next task or stop
 3. Check response type:
    - If `data.type` is `"stop"` → report stop message and exit:
      ```
@@ -55,27 +55,27 @@ Run these in order. If ANY fails, report and **STOP**:
 
      <data.message>
 
-     Run this to continue: .claude/library/task/continue.ts <data.stop>
+     Run this to continue: .claude/scripts/task/continue.ts <data.stop>
      ```
-   - If `data.type` is `"task"` and `data.task` is null → run `.claude/library/task/stats.ts` and stop
+   - If `data.type` is `"task"` and `data.task` is null → run `.claude/scripts/task/stats.ts` and stop
    - If `data.type` is `"task"` and `data.task` exists → continue to step 4
-4. `.claude/library/task/start.ts <task.name>` - mark in_progress
+4. `.claude/scripts/task/start.ts <task.name>` - mark in_progress
 5. Spawn ONE sub-agent (NOT in background):
    ```
-   Execute task: release/tasks/<task.name>
+   Execute task: cdd/tasks/<task.name>
 
    Read the task file and execute it. The task provides all needed skills, files, and context.
 
    Return ONLY JSON: {"ok": true} or {"ok": false, "reason": "..."}
    ```
-6. On success: `.claude/library/task/done.ts <task.name>`
+6. On success: `.claude/scripts/task/done.ts <task.name>`
    Report: `✓ <data.name> [<data.elapsed>] | To stop: <data.remaining_to_stop> (<data.eta_to_stop>) | Total: <data.remaining_total> (<data.eta_total>)` → loop to step 1
-7. On failure: `.claude/library/task/escalate.ts <task.name> "<reason>"`
+7. On failure: `.claude/scripts/task/escalate.ts <task.name> "<reason>"`
    - If escalated: loop to step 1
    - If at max level: mark failed, report `✗ <task.name> failed. Human review needed.`, stop
 
 ## COMPLETION
 
-Run `.claude/library/task/stats.ts` and report summary.
+Run `.claude/scripts/task/stats.ts` and report summary.
 
 Begin orchestration now.

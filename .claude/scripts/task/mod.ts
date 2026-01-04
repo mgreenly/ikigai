@@ -113,7 +113,7 @@ export function getNextEscalation(
 
 // Paths
 export function getTasksDir(): string {
-  return "release/tasks";
+  return "cdd/tasks";
 }
 
 export function getOrderPath(): string {
