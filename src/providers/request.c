@@ -100,19 +100,6 @@ ik_content_block_t *ik_content_block_thinking(TALLOC_CTX *ctx, const char *text,
     return block;
 }
 
-ik_content_block_t *ik_content_block_redacted_thinking(TALLOC_CTX *ctx, const char *data) {
-    assert(data != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_content_block_t *block = talloc_zero(ctx, ik_content_block_t);
-    if (!block) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    block->type = IK_CONTENT_REDACTED_THINKING;
-    block->data.redacted_thinking.data = talloc_strdup(block, data);
-    if (!block->data.redacted_thinking.data) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    return block;
-}
-
 /* ================================================================
  * Request Builder Functions
  * ================================================================ */

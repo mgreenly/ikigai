@@ -33,7 +33,8 @@ Before starting, load these skills for context:
 ## Constraints
 
 - Do NOT add coverage for other files
-- Do NOT refactor source code to make it more testable (fix tests only)
+- Do NOT add functions or code to src/ files unless they are called by existing production code
+- You may freely add tests, test helpers, and test fixtures in tests/
 - Do NOT add LCOV_EXCL markers for code that CAN be tested
 - Keep test additions focused and minimal
 
