@@ -1,6 +1,7 @@
 build/
 build-*/
 /bin/
+/cdd/
 /reports/
 dist/
 /demo.md
