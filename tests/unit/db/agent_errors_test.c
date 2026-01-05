@@ -268,67 +268,6 @@ START_TEST(test_agent_list_running_ended_at_parse_failure) {
 }
 
 END_TEST
-// Test: ik_db_agent_get_parent handles query failure (line 407)
-START_TEST(test_agent_get_parent_query_failure) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
-
-    mock_query_fail = true;
-    mock_parse_fail = false;
-
-    ik_db_agent_row_t *row = NULL;
-    res_t res = ik_db_agent_get_parent(db, ctx, "child-uuid", &row);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert(strstr(res.err->msg, "Failed to get parent") != NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: ik_db_agent_get_parent handles created_at parse failure (line 451)
-START_TEST(test_agent_get_parent_created_at_parse_failure) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
-
-    mock_query_fail = false;
-    mock_parse_fail = true;
-    mock_parse_fail_column = 5; // created_at is column 5
-    mock_getvalue_call_count = 0;
-
-    ik_db_agent_row_t *row = NULL;
-    res_t res = ik_db_agent_get_parent(db, ctx, "child-uuid", &row);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
-    ck_assert(strstr(res.err->msg, "Failed to parse created_at") != NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test: ik_db_agent_get_parent handles ended_at parse failure (line 457)
-START_TEST(test_agent_get_parent_ended_at_parse_failure) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
-
-    mock_query_fail = false;
-    mock_parse_fail = true;
-    mock_parse_fail_column = 6; // ended_at is column 6
-    mock_getvalue_call_count = 0;
-
-    ik_db_agent_row_t *row = NULL;
-    res_t res = ik_db_agent_get_parent(db, ctx, "child-uuid", &row);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_PARSE);
-    ck_assert(strstr(res.err->msg, "Failed to parse ended_at") != NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test: ik_db_ensure_agent_zero handles root query failure (line 483)
 START_TEST(test_ensure_agent_zero_root_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -411,9 +350,6 @@ static Suite *db_agent_errors_suite(void)
     tcase_add_test(tc_errors, test_agent_list_running_query_failure);
     tcase_add_test(tc_errors, test_agent_list_running_created_at_parse_failure);
     tcase_add_test(tc_errors, test_agent_list_running_ended_at_parse_failure);
-    tcase_add_test(tc_errors, test_agent_get_parent_query_failure);
-    tcase_add_test(tc_errors, test_agent_get_parent_created_at_parse_failure);
-    tcase_add_test(tc_errors, test_agent_get_parent_ended_at_parse_failure);
     tcase_add_test(tc_errors, test_ensure_agent_zero_root_query_failure);
     tcase_add_test(tc_errors, test_agent_get_last_message_id_query_failure);
     tcase_add_test(tc_errors, test_agent_get_last_message_id_parse_failure);

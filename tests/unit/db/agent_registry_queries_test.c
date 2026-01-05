@@ -243,124 +243,6 @@ START_TEST(test_list_running_excludes_dead) {
 }
 
 END_TEST
-// Test: get_parent returns parent row for child agent
-START_TEST(test_get_parent_returns_parent) {
-    SKIP_IF_NO_DB();
-
-    // Insert parent
-    ik_agent_ctx_t parent = {0};
-    parent.uuid = talloc_strdup(test_ctx, "parent-get-test");
-    parent.name = talloc_strdup(test_ctx, "Parent Agent");
-    parent.parent_uuid = NULL;
-    parent.created_at = 1000;
-    parent.fork_message_id = 0;
-
-    res_t parent_res = ik_db_agent_insert(db, &parent);
-    ck_assert(is_ok(&parent_res));
-
-    // Insert child
-    ik_agent_ctx_t child = {0};
-    child.uuid = talloc_strdup(test_ctx, "child-get-parent-test");
-    child.name = talloc_strdup(test_ctx, "Child Agent");
-    child.parent_uuid = talloc_strdup(test_ctx, "parent-get-test");
-    child.created_at = 2000;
-    child.fork_message_id = 99;
-
-    res_t child_res = ik_db_agent_insert(db, &child);
-    ck_assert(is_ok(&child_res));
-
-    // Get parent
-    ik_db_agent_row_t *parent_row = NULL;
-    res_t get_res = ik_db_agent_get_parent(db, test_ctx, child.uuid, &parent_row);
-    ck_assert(is_ok(&get_res));
-    ck_assert(parent_row != NULL);
-
-    // Verify parent fields
-    ck_assert_str_eq(parent_row->uuid, "parent-get-test");
-    ck_assert_str_eq(parent_row->name, "Parent Agent");
-}
-
-END_TEST
-// Test: get_parent returns NULL for root agent (no parent)
-START_TEST(test_get_parent_null_for_root) {
-    SKIP_IF_NO_DB();
-
-    // Insert root agent
-    ik_agent_ctx_t root = {0};
-    root.uuid = talloc_strdup(test_ctx, "root-agent");
-    root.name = talloc_strdup(test_ctx, "Root Agent");
-    root.parent_uuid = NULL;
-    root.created_at = time(NULL);
-    root.fork_message_id = 0;
-
-    res_t insert_res = ik_db_agent_insert(db, &root);
-    ck_assert(is_ok(&insert_res));
-
-    // Get parent - should be NULL
-    ik_db_agent_row_t *parent_row = NULL;
-    res_t get_res = ik_db_agent_get_parent(db, test_ctx, root.uuid, &parent_row);
-    ck_assert(is_ok(&get_res));
-    ck_assert(parent_row == NULL);
-}
-
-END_TEST
-// Test: get_parent allows iterative chain walking
-START_TEST(test_get_parent_chain_walking) {
-    SKIP_IF_NO_DB();
-
-    // Insert grandparent
-    ik_agent_ctx_t grandparent = {0};
-    grandparent.uuid = talloc_strdup(test_ctx, "grandparent");
-    grandparent.name = talloc_strdup(test_ctx, "Grandparent");
-    grandparent.parent_uuid = NULL;
-    grandparent.created_at = 1000;
-    grandparent.fork_message_id = 0;
-
-    res_t gp_res = ik_db_agent_insert(db, &grandparent);
-    ck_assert(is_ok(&gp_res));
-
-    // Insert parent
-    ik_agent_ctx_t parent = {0};
-    parent.uuid = talloc_strdup(test_ctx, "parent-chain");
-    parent.name = talloc_strdup(test_ctx, "Parent");
-    parent.parent_uuid = talloc_strdup(test_ctx, "grandparent");
-    parent.created_at = 2000;
-    parent.fork_message_id = 10;
-
-    res_t p_res = ik_db_agent_insert(db, &parent);
-    ck_assert(is_ok(&p_res));
-
-    // Insert child
-    ik_agent_ctx_t child = {0};
-    child.uuid = talloc_strdup(test_ctx, "child-chain");
-    child.name = talloc_strdup(test_ctx, "Child");
-    child.parent_uuid = talloc_strdup(test_ctx, "parent-chain");
-    child.created_at = 3000;
-    child.fork_message_id = 20;
-
-    res_t c_res = ik_db_agent_insert(db, &child);
-    ck_assert(is_ok(&c_res));
-
-    // Walk chain: child -> parent -> grandparent -> NULL
-    ik_db_agent_row_t *row1 = NULL;
-    res_t res1 = ik_db_agent_get_parent(db, test_ctx, "child-chain", &row1);
-    ck_assert(is_ok(&res1));
-    ck_assert(row1 != NULL);
-    ck_assert_str_eq(row1->uuid, "parent-chain");
-
-    ik_db_agent_row_t *row2 = NULL;
-    res_t res2 = ik_db_agent_get_parent(db, test_ctx, row1->uuid, &row2);
-    ck_assert(is_ok(&res2));
-    ck_assert(row2 != NULL);
-    ck_assert_str_eq(row2->uuid, "grandparent");
-
-    ik_db_agent_row_t *row3 = NULL;
-    res_t res3 = ik_db_agent_get_parent(db, test_ctx, row2->uuid, &row3);
-    ck_assert(is_ok(&res3));
-    ck_assert(row3 == NULL);  // Root has no parent
-}
-
-END_TEST
 
 // ========== Suite Configuration ==========
 
@@ -381,9 +263,6 @@ static Suite *agent_registry_queries_suite(void)
     tcase_add_test(tc_core, test_get_nonexistent_uuid);
     tcase_add_test(tc_core, test_list_running_only_running);
     tcase_add_test(tc_core, test_list_running_excludes_dead);
-    tcase_add_test(tc_core, test_get_parent_returns_parent);
-    tcase_add_test(tc_core, test_get_parent_null_for_root);
-    tcase_add_test(tc_core, test_get_parent_chain_walking);
 
     suite_add_tcase(s, tc_core);
     return s;
