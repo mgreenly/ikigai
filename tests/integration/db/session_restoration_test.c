@@ -243,11 +243,17 @@ START_TEST(test_active_session_with_multiple_sessions)
 {
     SKIP_IF_NO_DB();
 
-    // Create session 1 and end it
+    // Create session 1 and end it (using raw SQL to set ended_at)
     int64_t session1_id = 0;
     ik_db_session_create(db, &session1_id);
     ik_db_message_insert(db, session1_id, NULL, "user", "Session 1", "{}");
-    ik_db_session_end(db, session1_id);
+
+    // Inline the logic of ik_db_session_end: UPDATE sessions SET ended_at = NOW()
+    char sql[256];
+    snprintf(sql, sizeof(sql), "UPDATE sessions SET ended_at = NOW() WHERE id = %ld", session1_id);
+    PGresult *res = PQexec(db->conn, sql);
+    ck_assert_int_eq(PQresultStatus(res), PGRES_COMMAND_OK);
+    PQclear(res);
 
     // Create session 2 (leave active)
     int64_t session2_id = 0;
@@ -259,25 +265,6 @@ START_TEST(test_active_session_with_multiple_sessions)
     res_t get_res = ik_db_session_get_active(db, &active_id);
     ck_assert(is_ok(&get_res));
     ck_assert_int_eq(active_id, session2_id);
-}
-END_TEST
-
-// Test 6: Ended sessions are not restored
-START_TEST(test_ended_sessions_not_restored)
-{
-    SKIP_IF_NO_DB();
-
-    // Create session and end it
-    int64_t session_id = 0;
-    ik_db_session_create(db, &session_id);
-    ik_db_message_insert(db, session_id, NULL, "user", "Message", "{}");
-    ik_db_session_end(db, session_id);
-
-    // Try to get active session - should return 0 (none)
-    int64_t active_id = 0;
-    res_t get_res = ik_db_session_get_active(db, &active_id);
-    ck_assert(is_ok(&get_res));
-    ck_assert_int_eq(active_id, 0);  // No active session
 }
 END_TEST
 
@@ -323,7 +310,6 @@ static Suite *session_restoration_suite(void)
     tcase_add_test(tc_core, test_multi_launch_conversation);
     tcase_add_test(tc_core, test_clear_persists_across_launches);
     tcase_add_test(tc_core, test_active_session_with_multiple_sessions);
-    tcase_add_test(tc_core, test_ended_sessions_not_restored);
     tcase_add_test(tc_core, test_most_recent_active_session);
 
     suite_add_tcase(s, tc_core);

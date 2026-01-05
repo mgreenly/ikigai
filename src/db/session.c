@@ -91,36 +91,3 @@ res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
     return OK(NULL);
 }
 
-res_t ik_db_session_end(ik_db_ctx_t *db_ctx, int64_t session_id)
-{
-    assert(db_ctx != NULL);   // LCOV_EXCL_BR_LINE
-    assert(session_id > 0);   // LCOV_EXCL_BR_LINE
-
-    // Create temporary context for query result
-    TALLOC_CTX *tmp = tmp_ctx_create();
-
-    // Update session to set ended_at = NOW()
-    const char *query = "UPDATE sessions SET ended_at = NOW() WHERE id = $1";
-
-    // Convert session_id to string for parameter
-    char id_str[32];
-    snprintf(id_str, sizeof(id_str), "%lld", (long long)session_id);
-
-    const char *param_values[1];
-    param_values[0] = id_str;
-
-    ik_pg_result_wrapper_t *res_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
-                                                   param_values, NULL, NULL, 0));
-    PGresult *res = res_wrapper->pg_result;
-
-    // Check query execution status
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        const char *pq_err = PQerrorMessage(db_ctx->conn);
-        talloc_free(tmp);  // Destructor automatically calls PQclear
-        return ERR(db_ctx, IO, "Failed to end session: %s", pq_err);
-    }
-
-    talloc_free(tmp);  // Destructor automatically calls PQclear
-    return OK(NULL);
-}

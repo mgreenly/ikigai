@@ -138,20 +138,6 @@ START_TEST(test_replay_nonexistent_session)
 }
 END_TEST
 
-// Test 3: End non-existent session (should succeed silently)
-START_TEST(test_end_nonexistent_session)
-{
-    SKIP_IF_NO_DB();
-
-    // Try to end non-existent session
-    int64_t nonexistent_session = 999999;
-    res_t end_res = ik_db_session_end(db, nonexistent_session);
-
-    // Should succeed (UPDATE with no matching rows)
-    ck_assert(is_ok(&end_res));
-}
-END_TEST
-
 // Test 4: Get active session from empty database
 START_TEST(test_get_active_empty_database)
 {
@@ -197,7 +183,6 @@ static Suite *error_handling_suite(void)
 
     tcase_add_test(tc_core, test_message_insert_invalid_session);
     tcase_add_test(tc_core, test_replay_nonexistent_session);
-    tcase_add_test(tc_core, test_end_nonexistent_session);
     tcase_add_test(tc_core, test_get_active_empty_database);
     tcase_add_test(tc_core, test_multiple_errors_dont_crash);
 

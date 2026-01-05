@@ -157,8 +157,16 @@ START_TEST(test_db_session_get_active_only_ended_sessions) {
     res_t create_res = ik_db_session_create(db, &session_id);
     ck_assert(is_ok(&create_res));
 
-    res_t end_res = ik_db_session_end(db, session_id);
-    ck_assert(is_ok(&end_res));
+    // Directly update the session to mark it as ended (inline ik_db_session_end logic)
+    const char *end_query = "UPDATE sessions SET ended_at = NOW() WHERE id = $1";
+    const char *param_values[1];
+    char id_str[32];
+    snprintf(id_str, sizeof(id_str), "%lld", (long long)session_id);
+    param_values[0] = id_str;
+
+    PGresult *end_result = PQexecParams(db->conn, end_query, 1, NULL, param_values, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(end_result), PGRES_COMMAND_OK);
+    PQclear(end_result);
 
     // Get active session - should find none
     int64_t found_id = 0;
@@ -195,27 +203,6 @@ START_TEST(test_db_session_get_active_multiple_sessions) {
 }
 
 END_TEST
-// Test: ik_db_session_end sets ended_at timestamp
-START_TEST(test_db_session_end_success) {
-    SKIP_IF_NO_DB();
-
-    // Create session
-    int64_t session_id = 0;
-    res_t create_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&create_res));
-
-    // End session
-    res_t res = ik_db_session_end(db, session_id);
-    ck_assert(is_ok(&res));
-
-    // Verify ended_at is set by checking that no active session exists
-    int64_t found_id = 0;
-    res_t get_res = ik_db_session_get_active(db, &found_id);
-    ck_assert(is_ok(&get_res));
-    ck_assert_int_eq(found_id, 0);
-}
-
-END_TEST
 // Test: Full session round-trip (create -> active -> end -> no active)
 START_TEST(test_db_session_round_trip) {
     SKIP_IF_NO_DB();
@@ -232,9 +219,16 @@ START_TEST(test_db_session_round_trip) {
     ck_assert(is_ok(&active_res));
     ck_assert_int_eq(active_id, created_id);
 
-    // Step 3: End session
-    res_t end_res = ik_db_session_end(db, created_id);
-    ck_assert(is_ok(&end_res));
+    // Step 3: End session (inline logic)
+    const char *end_query = "UPDATE sessions SET ended_at = NOW() WHERE id = $1";
+    const char *param_values[1];
+    char id_str[32];
+    snprintf(id_str, sizeof(id_str), "%lld", (long long)created_id);
+    param_values[0] = id_str;
+
+    PGresult *end_result = PQexecParams(db->conn, end_query, 1, NULL, param_values, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(end_result), PGRES_COMMAND_OK);
+    PQclear(end_result);
 
     // Step 4: Verify no active session
     int64_t after_end_id = 0;
@@ -290,41 +284,6 @@ START_TEST(test_db_session_started_at_automatic) {
 }
 
 END_TEST
-// Test: ended_at is NULL after create, set after end
-START_TEST(test_db_session_ended_at_lifecycle) {
-    SKIP_IF_NO_DB();
-
-    // Create session
-    int64_t session_id = 0;
-    res_t create_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&create_res));
-
-    // Verify ended_at is NULL after creation
-    const char *query = "SELECT ended_at FROM sessions WHERE id = $1";
-    const char *param_values[1];
-    char id_str[32];
-    snprintf(id_str, sizeof(id_str), "%lld", (long long)session_id);
-    param_values[0] = id_str;
-
-    PGresult *result1 = PQexecParams(db->conn, query, 1, NULL, param_values, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(result1), PGRES_TUPLES_OK);
-    ck_assert_int_eq(PQntuples(result1), 1);
-    ck_assert(PQgetisnull(result1, 0, 0));
-    PQclear(result1);
-
-    // End session
-    res_t end_res = ik_db_session_end(db, session_id);
-    ck_assert(is_ok(&end_res));
-
-    // Verify ended_at is NOT NULL after ending
-    PGresult *result2 = PQexecParams(db->conn, query, 1, NULL, param_values, NULL, NULL, 0);
-    ck_assert_int_eq(PQresultStatus(result2), PGRES_TUPLES_OK);
-    ck_assert_int_eq(PQntuples(result2), 1);
-    ck_assert(!PQgetisnull(result2, 0, 0));
-    PQclear(result2);
-}
-
-END_TEST
 
 // ========== Suite Configuration ==========
 
@@ -346,11 +305,9 @@ static Suite *db_session_suite(void)
     tcase_add_test(tc_core, test_db_session_get_active_with_active_session);
     tcase_add_test(tc_core, test_db_session_get_active_only_ended_sessions);
     tcase_add_test(tc_core, test_db_session_get_active_multiple_sessions);
-    tcase_add_test(tc_core, test_db_session_end_success);
     tcase_add_test(tc_core, test_db_session_round_trip);
     tcase_add_test(tc_core, test_db_session_id_valid_bigserial);
     tcase_add_test(tc_core, test_db_session_started_at_automatic);
-    tcase_add_test(tc_core, test_db_session_ended_at_lifecycle);
 
     suite_add_tcase(s, tc_core);
     return s;

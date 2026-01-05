@@ -29,16 +29,5 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
  */
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 
-/**
- * End a session
- *
- * Updates the specified session to set ended_at = NOW().
- * After this call, the session will no longer be returned by get_active.
- *
- * @param db_ctx Database context (must not be NULL)
- * @param session_id Session ID to end (must be > 0)
- * @return OK on success, ERR on failure
- */
-res_t ik_db_session_end(ik_db_ctx_t *db_ctx, int64_t session_id);
 
 #endif // IK_DB_SESSION_H
