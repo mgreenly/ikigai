@@ -108,3 +108,35 @@ This would cause the sub-agent to either fail compilation (undefined `registry` 
 - `cdd/tasks/discovery-infrastructure.md` - Added function signature change specification, call site updates, and updated postconditions
 
 **Status:** Resolved
+
+## 2026-01-04: Incorrect Wrapper Function Call Sites in discovery-infrastructure.md
+
+**Issue:** The task file `cdd/tasks/discovery-infrastructure.md` showed incorrect function names for call sites 2 and 3. The task specified updating calls to `ik_request_build_from_conversation()` but the actual source code uses the wrapper function `ik_request_build_from_conversation_()` (with trailing underscore).
+
+**Locations affected:**
+- `cdd/tasks/discovery-infrastructure.md` lines 279-286: Showed `ik_request_build_from_conversation(ctx, agent, &req)` for call site 2
+- Actual code at `src/repl_tool_completion.c:55`: Uses `ik_request_build_from_conversation_(agent, agent, (void **)&req)`
+- `cdd/tasks/discovery-infrastructure.md` lines 288-295: Showed `ik_request_build_from_conversation(ctx, agent, &req)` for call site 3
+- Actual code at `src/commands_fork.c:109`: Uses `ik_request_build_from_conversation_(repl->current, repl->current, (void **)&req)`
+
+Additionally, the wrapper function signature change was only vaguely mentioned ("If there's a wrapper function...") without providing explicit old/new signatures.
+
+**Why critical:** Sub-agent would:
+1. Look for the wrong function name in source code
+2. Not know how to update the wrapper function signature
+3. Fail to compile due to mismatched function signatures
+
+**Resolution:** Updated `cdd/tasks/discovery-infrastructure.md`:
+1. Corrected call site 2 to show actual wrapper function: `ik_request_build_from_conversation_(agent, agent, (void **)&req)`
+2. Corrected call site 3 to show actual wrapper function: `ik_request_build_from_conversation_(repl->current, repl->current, (void **)&req)`
+3. Added explicit item 4 with complete wrapper function signature changes for:
+   - `src/wrapper_internal.h` inline implementation (~line 52-55)
+   - `src/wrapper_internal.h` declaration (~line 111)
+   - `src/wrapper_internal.c` implementation (~line 59-62)
+4. Changed section title from "ALL THREE REQUIRED" to "ALL FOUR REQUIRED"
+5. Updated postconditions to include wrapper_internal.h/c in the 4 call sites
+
+**Files modified:**
+- `cdd/tasks/discovery-infrastructure.md` - Corrected wrapper function names, added explicit signature changes
+
+**Status:** Resolved

@@ -263,11 +263,11 @@ Add forward declaration at top of header:
 typedef struct ik_tool_registry ik_tool_registry_t;
 ```
 
-### Call Site Updates (ALL THREE REQUIRED)
+### Call Site Updates (ALL FOUR REQUIRED)
 
-Update every call site to pass the registry:
+Update every call site to pass the registry. Note: Some call sites use the direct function, others use the wrapper function (trailing underscore).
 
-**1. src/repl_actions_llm.c (~line 148):**
+**1. src/repl_actions_llm.c (~line 148) - DIRECT FUNCTION:**
 ```c
 // Old:
 result = ik_request_build_from_conversation(agent, agent, &req);
@@ -276,27 +276,68 @@ result = ik_request_build_from_conversation(agent, agent, &req);
 result = ik_request_build_from_conversation(agent, agent, agent->shared->tool_registry, &req);
 ```
 
-**2. src/repl_tool_completion.c (~line 55):**
+**2. src/repl_tool_completion.c (~line 55) - WRAPPER FUNCTION:**
 ```c
 // Old:
-result = ik_request_build_from_conversation(ctx, agent, &req);
+result = ik_request_build_from_conversation_(agent, agent, (void **)&req);
 
 // New:
-result = ik_request_build_from_conversation(ctx, agent, agent->shared->tool_registry, &req);
+result = ik_request_build_from_conversation_(agent, agent, agent->shared->tool_registry, (void **)&req);
 ```
 
-**3. src/commands_fork.c (~line 109):**
+**3. src/commands_fork.c (~line 109) - WRAPPER FUNCTION:**
 ```c
 // Old:
-result = ik_request_build_from_conversation(ctx, agent, &req);
+res = ik_request_build_from_conversation_(repl->current, repl->current, (void **)&req);
 
 // New:
-result = ik_request_build_from_conversation(ctx, agent, agent->shared->tool_registry, &req);
+res = ik_request_build_from_conversation_(repl->current, repl->current, repl->current->shared->tool_registry, (void **)&req);
 ```
 
-**4. src/wrapper_internal.h and src/wrapper_internal.c:**
+**4. src/wrapper_internal.h and src/wrapper_internal.c - WRAPPER FUNCTION SIGNATURE:**
 
-If there's a wrapper function for `ik_request_build_from_conversation`, update its signature to accept and forward the registry parameter.
+The wrapper function `ik_request_build_from_conversation_()` MUST be updated to accept and forward the registry parameter.
+
+**src/wrapper_internal.h - Update inline implementation (~line 52-55):**
+```c
+// Old:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+}
+
+// New:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_tool_registry_t *)registry, (ik_request_t **)req_out);
+}
+```
+
+**src/wrapper_internal.h - Update declaration (~line 111):**
+```c
+// Old:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out);
+
+// New:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out);
+```
+
+**src/wrapper_internal.c - Update implementation (~line 59-62):**
+```c
+// Old:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+}
+
+// New:
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    return ik_request_build_from_conversation(ctx, agent, (ik_tool_registry_t *)registry, (ik_request_t **)req_out);
+}
+```
+
+**Note:** Add forward declaration or include for `ik_tool_registry_t` in wrapper_internal.h if needed.
 
 ### src/providers/request_tools.c
 
@@ -424,7 +465,7 @@ Report status:
 - [ ] 8 new files created (4 .h + 4 .c)
 - [ ] shared.h has tool_registry field
 - [ ] request.h has updated ik_request_build_from_conversation signature with registry parameter
-- [ ] All 3 call sites updated (repl_actions_llm.c, repl_tool_completion.c, commands_fork.c)
+- [ ] All 4 call sites updated (repl_actions_llm.c, repl_tool_completion.c, commands_fork.c, wrapper_internal.h/c)
 - [ ] repl_init.c calls discovery
 - [ ] repl_tool.c uses registry + external exec
 - [ ] `make clean && make` succeeds
