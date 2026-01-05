@@ -241,17 +241,84 @@ if (entry == NULL) {
 args->agent->tool_thread_result = wrapped_result;
 ```
 
+### Function Signature Change: ik_request_build_from_conversation
+
+The `registry` parameter must be added to make tools available during request building.
+
+**File: src/providers/request.h**
+
+Update declaration:
+```c
+// Old:
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_request_t **out);
+
+// New:
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent,
+                                          ik_tool_registry_t *registry,
+                                          ik_request_t **out);
+```
+
+Add forward declaration at top of header:
+```c
+typedef struct ik_tool_registry ik_tool_registry_t;
+```
+
+### Call Site Updates (ALL THREE REQUIRED)
+
+Update every call site to pass the registry:
+
+**1. src/repl_actions_llm.c (~line 148):**
+```c
+// Old:
+result = ik_request_build_from_conversation(agent, agent, &req);
+
+// New:
+result = ik_request_build_from_conversation(agent, agent, agent->shared->tool_registry, &req);
+```
+
+**2. src/repl_tool_completion.c (~line 55):**
+```c
+// Old:
+result = ik_request_build_from_conversation(ctx, agent, &req);
+
+// New:
+result = ik_request_build_from_conversation(ctx, agent, agent->shared->tool_registry, &req);
+```
+
+**3. src/commands_fork.c (~line 109):**
+```c
+// Old:
+result = ik_request_build_from_conversation(ctx, agent, &req);
+
+// New:
+result = ik_request_build_from_conversation(ctx, agent, agent->shared->tool_registry, &req);
+```
+
+**4. src/wrapper_internal.h and src/wrapper_internal.c:**
+
+If there's a wrapper function for `ik_request_build_from_conversation`, update its signature to accept and forward the registry parameter.
+
 ### src/providers/request_tools.c
 
-Replace stub with registry iteration:
+Update function implementation to accept registry parameter and iterate it:
 
 ```c
-if (registry != NULL) {
-    for (size_t i = 0; i < registry->count; i++) {
-        ik_tool_registry_entry_t *entry = &registry->entries[i];
-        // Extract name, description, parameters from entry->schema_root
-        // Call ik_request_add_tool() for each
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent,
+                                          ik_tool_registry_t *registry,
+                                          ik_request_t **out)
+{
+    // ... existing setup code ...
+
+    // Replace hard-coded tool definitions with registry iteration:
+    if (registry != NULL) {
+        for (size_t i = 0; i < registry->count; i++) {
+            ik_tool_registry_entry_t *entry = &registry->entries[i];
+            // Extract name, description, parameters from entry->schema_root
+            // Call ik_request_add_tool() for each
+        }
     }
+
+    // ... rest of function ...
 }
 ```
 
@@ -296,6 +363,8 @@ Report status:
 
 - [ ] 8 new files created (4 .h + 4 .c)
 - [ ] shared.h has tool_registry field
+- [ ] request.h has updated ik_request_build_from_conversation signature with registry parameter
+- [ ] All 3 call sites updated (repl_actions_llm.c, repl_tool_completion.c, commands_fork.c)
 - [ ] repl_init.c calls discovery
 - [ ] repl_tool.c uses registry + external exec
 - [ ] `make clean && make` succeeds

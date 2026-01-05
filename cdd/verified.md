@@ -88,3 +88,23 @@ This file tracks issues found and resolved in CDD plan documents.
 - `cdd/plan/integration-specification.md` - Changed two references from `ik_tool_registry_iter()` to direct array iteration
 
 **Status:** Resolved
+
+## 2026-01-04: Missing Function Signature Change Specification in discovery-infrastructure.md
+
+**Issue:** The task file `cdd/tasks/discovery-infrastructure.md` showed code using a `registry` variable in the request_tools.c section, but never specified:
+1. The function signature change required for `ik_request_build_from_conversation()` to accept a registry parameter
+2. The header update required in `src/providers/request.h`
+3. The three call sites that must be updated: `repl_actions_llm.c:148`, `repl_tool_completion.c:55`, `commands_fork.c:109`
+
+This would cause the sub-agent to either fail compilation (undefined `registry` variable) or invent an incorrect solution (global variable, ad-hoc mechanism). Even if the agent inferred the need for a signature change, missing call site updates would cause "too few arguments" compilation errors in subsequent tasks.
+
+**Resolution:** Added comprehensive specification to `cdd/tasks/discovery-infrastructure.md`:
+- Added "Function Signature Change: ik_request_build_from_conversation" section with old/new signatures
+- Added "Call Site Updates (ALL THREE REQUIRED)" section with exact code changes for each call site
+- Updated request_tools.c section to show complete function signature in implementation
+- Added postconditions to verify signature change and call site updates
+
+**Files modified:**
+- `cdd/tasks/discovery-infrastructure.md` - Added function signature change specification, call site updates, and updated postconditions
+
+**Status:** Resolved
