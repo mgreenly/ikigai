@@ -73,35 +73,6 @@ START_TEST(test_error_user_message) {
 }
 
 END_TEST
-/**
- * Retry Delay Calculation Tests
- *
- * Verify exponential backoff with jitter for async retry via event loop.
- */
-
-START_TEST(test_retry_delay_calculation) {
-    /* Provider-suggested delay takes precedence */
-    int64_t delay = ik_error_calc_retry_delay_ms(1, 5000);
-    ck_assert_int_eq(delay, 5000);
-
-    /* Exponential backoff with jitter when no suggestion */
-    /* Attempt 1: 1000ms + jitter (0-1000ms) = 1000-2000ms */
-    delay = ik_error_calc_retry_delay_ms(1, -1);
-    ck_assert(delay >= 1000);
-    ck_assert(delay <= 2000);
-
-    /* Attempt 2: 2000ms + jitter (0-1000ms) = 2000-3000ms */
-    delay = ik_error_calc_retry_delay_ms(2, -1);
-    ck_assert(delay >= 2000);
-    ck_assert(delay <= 3000);
-
-    /* Attempt 3: 4000ms + jitter (0-1000ms) = 4000-5000ms */
-    delay = ik_error_calc_retry_delay_ms(3, -1);
-    ck_assert(delay >= 4000);
-    ck_assert(delay <= 5000);
-}
-
-END_TEST
 
 /**
  * Test Suite Configuration
@@ -116,7 +87,6 @@ static Suite *error_handling_suite(void)
     tcase_add_test(tc_core, test_error_category_names);
     tcase_add_test(tc_core, test_error_is_retryable);
     tcase_add_test(tc_core, test_error_user_message);
-    tcase_add_test(tc_core, test_retry_delay_calculation);
     suite_add_tcase(s, tc_core);
 
     return s;

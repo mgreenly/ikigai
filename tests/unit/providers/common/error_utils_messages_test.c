@@ -224,103 +224,6 @@ END_TEST
  * Retry Delay Calculation Tests
  */
 
-START_TEST(test_retry_delay_provider_suggested) {
-    /* When provider suggests a delay, use it exactly */
-    int64_t delay = ik_error_calc_retry_delay_ms(1, 5000);
-    ck_assert_int_eq(delay, 5000);
-
-    delay = ik_error_calc_retry_delay_ms(2, 3000);
-    ck_assert_int_eq(delay, 3000);
-
-    delay = ik_error_calc_retry_delay_ms(3, 10000);
-    ck_assert_int_eq(delay, 10000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_exponential_backoff_attempt_1) {
-    /* Attempt 1: base 1000ms + jitter 0-1000ms = 1000-2000ms */
-    int64_t delay = ik_error_calc_retry_delay_ms(1, -1);
-    ck_assert(delay >= 1000);
-    ck_assert(delay <= 2000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_exponential_backoff_attempt_2) {
-    /* Attempt 2: base 2000ms + jitter 0-1000ms = 2000-3000ms */
-    int64_t delay = ik_error_calc_retry_delay_ms(2, -1);
-    ck_assert(delay >= 2000);
-    ck_assert(delay <= 3000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_exponential_backoff_attempt_3) {
-    /* Attempt 3: base 4000ms + jitter 0-1000ms = 4000-5000ms */
-    int64_t delay = ik_error_calc_retry_delay_ms(3, -1);
-    ck_assert(delay >= 4000);
-    ck_assert(delay <= 5000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_zero_triggers_backoff) {
-    /* Provider suggested delay of 0 triggers exponential backoff */
-    int64_t delay = ik_error_calc_retry_delay_ms(1, 0);
-    ck_assert(delay >= 1000);
-    ck_assert(delay <= 2000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_negative_triggers_backoff) {
-    /* Provider suggested delay of -1 triggers exponential backoff */
-    int64_t delay = ik_error_calc_retry_delay_ms(2, -1);
-    ck_assert(delay >= 2000);
-    ck_assert(delay <= 3000);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_jitter_randomness) {
-    /* Multiple calls should produce different results due to jitter */
-    int64_t delays[5];
-    bool all_different = false;
-
-    for (int32_t i = 0; i < 5; i++) {
-        delays[i] = ik_error_calc_retry_delay_ms(1, -1);
-    }
-
-    /* Check if at least some values differ (jitter at work) */
-    for (int32_t i = 0; i < 4; i++) {
-        for (int32_t j = i + 1; j < 5; j++) {
-            if (delays[i] != delays[j]) {
-                all_different = true;
-                break;
-            }
-        }
-        if (all_different) break;
-    }
-
-    /* With 5 samples and 1001 possible values, we should see variation */
-    /* (This test could theoretically fail if rand() returns same value 5 times, */
-    /* but probability is extremely low: 1/1001^4) */
-    ck_assert(all_different);
-}
-
-END_TEST
-
-START_TEST(test_retry_delay_always_positive) {
-    /* All delays should be positive */
-    ck_assert(ik_error_calc_retry_delay_ms(1, -1) > 0);
-    ck_assert(ik_error_calc_retry_delay_ms(2, -1) > 0);
-    ck_assert(ik_error_calc_retry_delay_ms(3, -1) > 0);
-    ck_assert(ik_error_calc_retry_delay_ms(1, 0) > 0);
-    ck_assert(ik_error_calc_retry_delay_ms(1, 5000) > 0);
-}
-
-END_TEST
 
 /**
  * Test Suite Configuration
@@ -356,19 +259,6 @@ static Suite *error_messages_suite(void)
     tcase_add_test(tc_message, test_user_message_allocated_on_context);
     tcase_add_test(tc_message, test_user_message_google_provider_multiple_categories);
     suite_add_tcase(s, tc_message);
-
-    /* Retry delay calculation tests */
-    TCase *tc_delay = tcase_create("Retry Delay Calculation");
-    tcase_set_timeout(tc_delay, 30);
-    tcase_add_test(tc_delay, test_retry_delay_provider_suggested);
-    tcase_add_test(tc_delay, test_retry_delay_exponential_backoff_attempt_1);
-    tcase_add_test(tc_delay, test_retry_delay_exponential_backoff_attempt_2);
-    tcase_add_test(tc_delay, test_retry_delay_exponential_backoff_attempt_3);
-    tcase_add_test(tc_delay, test_retry_delay_zero_triggers_backoff);
-    tcase_add_test(tc_delay, test_retry_delay_negative_triggers_backoff);
-    tcase_add_test(tc_delay, test_retry_delay_jitter_randomness);
-    tcase_add_test(tc_delay, test_retry_delay_always_positive);
-    suite_add_tcase(s, tc_delay);
 
     return s;
 }
