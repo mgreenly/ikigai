@@ -57,31 +57,45 @@ Use user/agent interactive development time during the Research and Plan phases 
 
 ### 3. Verify (Sub-phase of Plan)
 
-**What:** Iterative review of the complete plan before committing to execution.
+**What:** Two-stage iterative verification following the artifact pyramid.
 
 **Artifacts:**
-- `$CDD_DIR/verified.md` - Log of concerns raised and resolved
+- `$CDD_DIR/verified.md` - Log of items verified and issues resolved
 
-**Process:**
+**Stage 1 - Plan Verification:**
 ```
-while (concerns feel substantive):
-    ask: "What is the most likely reason this plan will not succeed?"
-    if concern is substantive:
-        fix interactively with agent
-        log concern as resolved in verified.md
-    else:
-        done (concerns have become artificial)
+/cdd:gap-plan  # Verify README/user-stories → plan alignment
+fix gaps
+/cdd:gap-plan  # Repeat until clean
 ```
+
+Checks alignment down the pyramid:
+- README/research/user-stories → plan
+- Naming, error handling, memory management conventions
+- Integration points, build changes, migrations
+
+**Stage 2 - Task Verification:**
+```
+/cdd:gap-tasks  # Verify plan → tasks alignment
+fix gaps
+/cdd:gap-tasks  # Repeat until clean
+```
+
+Checks task completeness:
+- All plan items covered by tasks
+- Task sequencing and dependencies
+- TDD workflow, test coverage, baseline skills
+- Task scope and acceptance criteria
 
 **Why this phase exists:** This is the **last moment of full context visibility**. Once execution begins, each sub-agent sees only its task. Cross-cutting issues, inconsistencies between tasks, missing dependencies - these can only be caught while the complete picture is visible.
 
 **Key insights:**
-- The question is intentionally open-ended, leveraging LLM reasoning over checklists
-- `verified.md` prevents re-raising resolved concerns in subsequent iterations
-- Termination is by human judgment: when suggestions shift from "this will cause problems" to "well theoretically..." - that's the signal
-- Models don't naturally say "we're done" - they manufacture concerns indefinitely if pushed
+- Specific checklists prevent vague "find issues" prompts
+- `verified.md` prevents re-checking completed items
+- Token budgets (140k per command) enable thorough verification
+- Pyramid approach: verify each transition separately (foundation→plan, plan→tasks)
 
-**Convergence pattern:** Each fix surfaces the next-highest-priority concern. Quality improves until objections become artificial. This is convergence by diminishing quality of objections, not absence of objections.
+**Convergence pattern:** Each gap-finding run identifies the highest-priority issue. After fixing, re-run. When no substantive gaps remain, verification is complete.
 
 ### 4. Execute
 
