@@ -64,9 +64,11 @@ Run these in order. If ANY fails, report and **STOP**:
 4. `.claude/scripts/task/start.ts <task.name>` - mark in_progress
 5. Spawn ONE sub-agent (NOT in background):
    ```
+   /skillset implementor
+
    Execute task: $CDD_DIR/tasks/<task.name>
 
-   Read the task file and execute it. The task provides all needed skills, files, and context.
+   Read the task file and execute it. Baseline skills loaded (jj, errors, style, tdd). Task file lists additional skills needed.
 
    Return ONLY JSON: {"ok": true} or {"ok": false, "reason": "..."}
    ```

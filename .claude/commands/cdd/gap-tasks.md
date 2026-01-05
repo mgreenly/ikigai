@@ -28,8 +28,11 @@ Consider these (and other relevant gaps you identify):
 2. **Task sequencing** - Are task dependencies correct? Can tasks be executed in the specified order?
 3. **Task scope** - Are tasks appropriately sized (not too large to execute in one session)?
 4. **Acceptance criteria** - Does each task have clear criteria for "done"?
-5. **Test tasks** - Are there tasks for writing tests where the plan requires them?
-6. **Build tasks** - If the plan identifies Makefile changes, is there a task for it?
-7. **Migration tasks** - If the plan identifies DB migrations, is there a task for it?
+5. **Test coverage** - Does each implementation task include test implementation following TDD workflow?
+6. **TDD workflow** - Do tasks include explicit Red/Green/Verify steps in Test Implementation section?
+7. **Test-first ordering** - Are test scenarios defined before implementation details in each task?
+8. **Baseline skills** - Do tasks avoid listing jj/errors/style/tdd (these are pre-loaded via implementor skillset)?
+9. **Build tasks** - If the plan identifies Makefile changes, is there a task for it?
+10. **Migration tasks** - If the plan identifies DB migrations, is there a task for it?
 
 This list is not exhaustive. Identify other gaps relevant to the specific tasks.
