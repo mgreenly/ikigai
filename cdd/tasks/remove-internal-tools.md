@@ -177,13 +177,27 @@ Remove from CLIENT_SOURCES, MODULE_SOURCES, MODULE_SOURCES_NO_DB:
 Keep:
 - `src/tool_arg_parser.c`
 
-## Verification Steps
+## Test Specification
 
-After changes:
+**Reference:** `cdd/plan/test-specification.md` → "Phase 3: Remove Internal Tools"
+
+**No new tests to create.** This is a removal task.
+
+**Existing tests to KEEP (verify still pass):**
+- `tests/unit/tool/tool_arg_parser_test.c`
+- `tests/unit/tool/tool_call_test.c`
+
+**Tests being DELETED (17 files):**
+- All tests in `tests/unit/tool/` except the two above
+- All tests in `tests/integration/` matching `tool_*`
+
+**Verification Steps:**
 1. `make clean && make` - Must compile without errors
-2. `make check` - All tests must pass (kept tests for tool_arg_parser and tool_call)
+2. `make check` - All remaining tests pass
 3. `bin/ikigai` - Must start and show prompt
-4. LLM requests work (with empty tools array)
+4. LLM requests work (with stub tools response)
+
+**Coverage impact:** Coverage percentage may temporarily drop as internal tool code is removed but external tool tests not yet added. This is expected.
 
 ## Completion
 

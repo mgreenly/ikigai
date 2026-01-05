@@ -144,8 +144,35 @@ if (repl->shared->tool_scan_state == TOOL_SCAN_IN_PROGRESS) {
 4. Discovery typically completes in <1 second
 5. No race conditions - registry immutable after discovery complete
 
-## Testing
+## Test Specification
 
+**Reference:** `cdd/plan/test-specification.md` → "Phase 6: Async Optimization"
+
+**Unit test file:** `tests/unit/tool_discovery/async_test.c`
+
+**Goals:** Test async discovery primitives and fd integration.
+
+| Test | Goal |
+|------|------|
+| `test_async_start_returns_state` | `ik_tool_discovery_start()` returns non-NULL |
+| `test_async_add_fds_populates_fdset` | Adds fds to select() fdset |
+| `test_async_process_fds_handles_data` | Parses schemas from ready fds |
+| `test_async_is_complete_initially_false` | Not complete immediately after start |
+| `test_async_is_complete_after_all_respond` | Complete when all tools respond |
+| `test_async_finalize_cleans_up` | Resources freed, state cleared |
+
+**Mocking:** Create mock tools as shell scripts in temp directory.
+
+**Integration test file:** `tests/integration/tool_discovery_async_test.c`
+
+**Goals:** Test startup timing and submit-during-discovery behavior.
+
+| Test | Goal |
+|------|------|
+| `test_startup_immediate` | REPL loop entered before discovery complete |
+| `test_submit_waits_for_discovery` | LLM submit blocks until discovery done |
+
+**Manual verification:**
 1. Startup is visibly faster (terminal appears before tools loaded)
 2. Submit during discovery waits correctly
 3. All tools still discovered correctly

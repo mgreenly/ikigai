@@ -73,12 +73,30 @@ When making LLM request with Claude model:
 3. For each tool, transforms to Anthropic format with `input_schema`
 4. Final request JSON includes `tools` array with all 6 tools
 
-## Verification
+## Test Specification
 
-Add test or logging to verify:
+**Reference:** `cdd/plan/test-specification.md` → "Phase 4: Provider Integration" → "provider-anthropic.md"
+
+**Test file to create:** `tests/unit/providers/anthropic/tools_serialize_test.c`
+
+**Goals:** Verify tools from registry serialized to Anthropic format with `input_schema`.
+
+| Test | Goal |
+|------|------|
+| `test_serialize_tools_empty` | No tools → no tools array in request |
+| `test_serialize_tools_single` | Single tool has Anthropic format |
+| `test_serialize_tools_input_schema` | Parameters wrapped in `input_schema` key |
+| `test_serialize_tools_all_fields` | name, description, input_schema all present |
+| `test_serialize_preserves_additionalProperties` | additionalProperties passed through |
+
+**Mocking:** Create mock registry with known entries, verify JSON output structure.
+
+**Pattern:** Follow `tests/unit/providers/anthropic/request_serialize_test.c`
+
+**Integration verification:**
 1. Request to Claude includes tools array
-2. Each tool has correct Anthropic format
-3. Schema transformation is correct (input_schema key)
+2. Each tool has `input_schema` (not `parameters`)
+3. `make check` passes
 
 ## Files to Review/Modify
 

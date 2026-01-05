@@ -333,13 +333,73 @@ src/tool_external.c
 src/tool_wrapper.c
 ```
 
-## Test Scenarios
+## Test Specification
 
-1. `make check` - All tests pass
+**Reference:** `cdd/plan/test-specification.md` → "Phase 2: Discovery Infrastructure"
+
+**Unit test files to create:**
+
+### 1. tests/unit/tool_registry/registry_test.c
+
+**Goals:** Test registry data structure creation, lookup, and schema building.
+
+| Test | Goal |
+|------|------|
+| `test_registry_create` | Returns non-NULL, count=0 |
+| `test_registry_lookup_empty` | Lookup on empty returns NULL |
+| `test_registry_lookup_not_found` | Non-existent name returns NULL |
+| `test_registry_lookup_found` | After add, lookup returns entry |
+| `test_registry_build_all_empty` | Empty registry → empty array |
+| `test_registry_build_all_entries` | Returns JSON array with schemas |
+
+**Mocking:** None - pure data structure
+
+### 2. tests/unit/tool_discovery/discovery_test.c
+
+**Goals:** Test directory scanning, schema parsing, error handling.
+
+| Test | Goal |
+|------|------|
+| `test_discovery_empty_dirs` | Empty dirs → success, 0 tools |
+| `test_discovery_nonexistent_dir` | Non-existent dir handled gracefully |
+| `test_discovery_invalid_schema` | Invalid JSON logged, tool skipped |
+| `test_discovery_timeout` | Non-responding tool skipped after 1s |
+| `test_discovery_user_overrides_system` | Same name in user dir wins |
+
+**Mocking:** Create temp directories with mock shell scripts that echo JSON
+
+### 3. tests/unit/tool_external/external_exec_test.c
+
+**Goals:** Test tool execution with JSON I/O, timeouts, errors.
+
+| Test | Goal |
+|------|------|
+| `test_exec_success` | Valid tool returns JSON |
+| `test_exec_invalid_json_output` | Non-JSON output → error |
+| `test_exec_timeout` | 30s timeout → error |
+| `test_exec_nonexistent_path` | Missing tool → error |
+| `test_exec_permission_denied` | Non-executable → error |
+
+**Mocking:** Temp shell scripts as mock tools
+
+### 4. tests/unit/tool_wrapper/wrapper_test.c
+
+**Goals:** Test success/failure envelope building.
+
+| Test | Goal |
+|------|------|
+| `test_wrap_success_simple` | Wraps in success envelope |
+| `test_wrap_success_nested` | Nested JSON preserved |
+| `test_wrap_failure_all_fields` | All fields populated |
+| `test_wrap_failure_null_fields` | NULL optional fields handled |
+
+**Mocking:** None - pure JSON building
+
+### Integration verification:
+1. `make check` - All new tests pass
 2. Start ikigai - Registry populates with 6 tools
-3. `/tool` command (once implemented) lists tools
-4. LLM request includes tools array
-5. Tool call executes external process
+3. LLM request includes tools array
+4. Tool call executes external process
 
 ## Completion
 

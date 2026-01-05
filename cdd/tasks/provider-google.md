@@ -71,14 +71,31 @@ Google uses `functionDeclarations` array:
 - **MUST remove** `additionalProperties` field (Gemini doesn't support it)
 - Keeps `required` array as-is
 
-## Expected Behavior
+## Test Specification
 
-When making LLM request with Gemini model:
+**Reference:** `cdd/plan/test-specification.md` → "Phase 4: Provider Integration" → "provider-google.md"
+
+**Test file to create:** `tests/unit/providers/google/tools_serialize_test.c`
+
+**Goals:** Verify tools serialized to Gemini `functionDeclarations` format.
+
+| Test | Goal |
+|------|------|
+| `test_serialize_function_declarations` | Tools wrapped in functionDeclarations array |
+| `test_serialize_removes_additional_properties` | additionalProperties stripped from schema |
+| `test_serialize_preserves_required` | required array preserved |
+| `test_serialize_parameters_key` | Uses `parameters` key (not `input_schema`) |
+
+**Mocking:** Create mock registry with known entries including additionalProperties.
+
+**Pattern:** Follow `tests/unit/providers/google/request_test.c`
+
+**Expected Behavior (verify in tests):**
 1. `ik_request_build_from_conversation()` populates `req->tools[]` from registry
 2. `ik_google_serialize_request()` reads `req->tools[]`
-3. For each tool, transforms to Gemini format in `functionDeclarations`
-4. `additionalProperties` field is removed from schema
-5. Final request JSON includes tools array
+3. Each tool wrapped in `functionDeclarations` array
+4. `additionalProperties` field removed from schema
+5. `make check` passes
 
 ## Files to Review/Modify
 

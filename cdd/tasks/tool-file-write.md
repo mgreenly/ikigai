@@ -120,12 +120,26 @@ libexec/ikigai/file-write: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | lib
 	$(CC) $(CFLAGS) -o $@ src/tools/file_write/main.c $(TOOL_COMMON_SRCS) -ltalloc
 ```
 
-## Test Scenarios
+## Test Specification
 
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-file-write.md"
+
+**Testing approach:** Shell-based manual verification.
+
+**Manual verification commands:**
 1. `libexec/ikigai/file-write --schema` - Returns valid JSON schema
-2. `echo '{"file_path":"/tmp/test.txt","content":"hello"}' | libexec/ikigai/file-write` - Writes file, returns byte count
-3. `echo '{"file_path":"/etc/passwd","content":"x"}' | libexec/ikigai/file-write` - Returns PERMISSION_DENIED
-4. `echo '{"file_path":"/nonexistent/x","content":"x"}' | libexec/ikigai/file-write` - Returns OPEN_FAILED
+2. `echo '{"file_path":"/tmp/test.txt","content":"hello"}' | libexec/ikigai/file-write` - Writes, returns byte count
+3. `cat /tmp/test.txt` - Verify content is "hello"
+4. `echo '{"file_path":"/etc/passwd","content":"x"}' | libexec/ikigai/file-write` - PERMISSION_DENIED
+5. `echo '{"file_path":"/nonexistent/x","content":"x"}' | libexec/ikigai/file-write` - OPEN_FAILED
+6. `echo '{"file_path":"/tmp/empty.txt","content":""}' | libexec/ikigai/file-write` - Creates 0-byte file
+
+**Behaviors to verify:**
+- Creates file if not exists
+- Overwrites file if exists (truncates first)
+- Empty content creates 0-byte file
+- Byte count in response matches strlen(content)
+- Success message uses basename (not full path)
 
 ## Completion
 

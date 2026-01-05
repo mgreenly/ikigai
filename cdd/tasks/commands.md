@@ -120,6 +120,37 @@ In `src/commands.c`, add to command table:
 {"refresh", "Reload tool registry from disk", ik_cmd_refresh},
 ```
 
+## Test Specification
+
+**Reference:** `cdd/plan/test-specification.md` → "Phase 5: Commands"
+
+**Test file to create:** `tests/unit/commands/cmd_tool_test.c`
+
+**Goals:** Test `/tool` list, `/tool NAME` inspect, and `/refresh` reload.
+
+| Test | Goal |
+|------|------|
+| `test_tool_list_all` | `/tool` lists all tools with descriptions |
+| `test_tool_list_empty_registry` | Empty registry shows appropriate message |
+| `test_tool_inspect_valid` | `/tool bash` shows full schema |
+| `test_tool_inspect_unknown` | `/tool unknown` returns ERR_INVALID_ARG |
+| `test_refresh_reloads_registry` | `/refresh` clears and repopulates |
+| `test_refresh_reports_count` | Output includes tool count |
+
+**Mocking:**
+- Create mock registry with known entries
+- Override discovery function for `/refresh` test
+
+**Pattern:** Follow `tests/unit/commands/dispatch_test.c`
+
+**Fixture setup:**
+```c
+static ik_repl_ctx_t *create_test_repl_with_registry(void *parent) {
+    // Create REPL with shared->tool_registry populated
+    // Add mock entries: bash, file_read (known schemas)
+}
+```
+
 ## Implementation Notes
 
 1. Access registry via `repl->shared->tool_registry`

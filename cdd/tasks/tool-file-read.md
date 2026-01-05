@@ -119,12 +119,25 @@ libexec/ikigai/file-read: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libex
 	$(CC) $(CFLAGS) -o $@ src/tools/file_read/main.c $(TOOL_COMMON_SRCS) -ltalloc
 ```
 
-## Test Scenarios
+## Test Specification
 
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-file-read.md"
+
+**Testing approach:** Shell-based manual verification (no unit test file for external tools).
+
+**Manual verification commands:**
 1. `libexec/ikigai/file-read --schema` - Returns valid JSON schema
 2. `echo '{"file_path":"/etc/hostname"}' | libexec/ikigai/file-read` - Returns file contents
-3. `echo '{"file_path":"/nonexistent"}' | libexec/ikigai/file-read` - Returns FILE_NOT_FOUND error
-4. `echo '{"file_path":"Makefile","offset":1,"limit":5}' | libexec/ikigai/file-read` - Returns first 5 lines
+3. `echo '{"file_path":"/nonexistent"}' | libexec/ikigai/file-read` - Returns FILE_NOT_FOUND
+4. `echo '{"file_path":"Makefile","offset":1,"limit":5}' | libexec/ikigai/file-read` - First 5 lines
+5. `echo '{"file_path":"Makefile","offset":99999}' | libexec/ikigai/file-read` - Empty output (not error)
+
+**Behaviors to verify:**
+- Entire file read when no offset/limit specified
+- Line-based offset (1-based indexing)
+- Offset beyond EOF returns empty output (success with empty string)
+- Permission denied returns PERMISSION_DENIED error code
+- File contents preserved exactly including newlines
 
 ## Completion
 

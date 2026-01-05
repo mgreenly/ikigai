@@ -71,14 +71,32 @@ OpenAI uses function wrapper with strict mode:
 - **MUST add** `additionalProperties: false`
 - **MUST add** ALL property names to `required[]` (even optional ones)
 
-## Expected Behavior
+## Test Specification
 
-When making LLM request with GPT model:
+**Reference:** `cdd/plan/test-specification.md` → "Phase 4: Provider Integration" → "provider-openai.md"
+
+**Test file to create:** `tests/unit/providers/openai/tools_serialize_test.c`
+
+**Goals:** Verify tools wrapped in function type with strict mode transformations.
+
+| Test | Goal |
+|------|------|
+| `test_serialize_function_wrapper` | Each tool has `{type:"function", function:{...}}` |
+| `test_serialize_strict_true` | `strict:true` added to function object |
+| `test_serialize_additional_properties_false` | `additionalProperties:false` in parameters |
+| `test_serialize_all_properties_required` | All property names in required array |
+| `test_serialize_optional_becomes_required` | Optional props added to required for strict |
+
+**Mocking:** Create mock registry with tools having optional properties.
+
+**Pattern:** Follow `tests/unit/providers/openai/request_chat_test.c`
+
+**Expected Behavior (verify in tests):**
 1. `ik_request_build_from_conversation()` populates `req->tools[]` from registry
 2. `ik_openai_serialize_chat_request()` reads `req->tools[]`
-3. For each tool, wraps in function type with `strict: true`
-4. Adds `additionalProperties: false` to parameters
-5. Ensures all properties are in `required[]`
+3. Each tool wrapped in `{type: "function", function: {...}}`
+4. `strict: true` and `additionalProperties: false` added
+5. All properties in `required[]` (strict mode quirk)
 
 ## OpenAI Strict Mode Quirk
 

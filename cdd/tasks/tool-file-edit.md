@@ -135,13 +135,53 @@ libexec/ikigai/file-edit: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libex
 	$(CC) $(CFLAGS) -o $@ src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) -ltalloc
 ```
 
-## Test Scenarios
+## Test Specification
 
-1. `libexec/ikigai/file-edit --schema` - Returns valid JSON schema
-2. Create test file, replace unique string - Returns replacements: 1
-3. Replace with replace_all: true on multiple matches - Returns correct count
-4. Attempt replace on non-unique string without replace_all - Returns NOT_UNIQUE error
-5. old_string == new_string - Returns INVALID_ARG error
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-file-edit.md"
+
+**Testing approach:** Shell-based manual verification with temp files.
+
+**Manual verification commands:**
+```bash
+# 1. Schema
+libexec/ikigai/file-edit --schema
+
+# 2. Unique replacement
+echo "hello world" > /tmp/edit_test.txt
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"world","new_string":"universe"}' | libexec/ikigai/file-edit
+cat /tmp/edit_test.txt  # Should be "hello universe"
+
+# 3. Multiple with replace_all
+echo "foo bar foo" > /tmp/edit_test.txt
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"foo","new_string":"baz","replace_all":true}' | libexec/ikigai/file-edit
+# Should return replacements: 2
+
+# 4. Not unique error
+echo "foo bar foo" > /tmp/edit_test.txt
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"foo","new_string":"x"}' | libexec/ikigai/file-edit
+# Should return NOT_UNIQUE
+
+# 5. No-op error
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"x","new_string":"x"}' | libexec/ikigai/file-edit
+# Should return INVALID_ARG
+
+# 6. Empty old_string error
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"","new_string":"x"}' | libexec/ikigai/file-edit
+# Should return INVALID_ARG
+
+# 7. Not found
+echo '{"file_path":"/tmp/edit_test.txt","old_string":"nonexistent","new_string":"x"}' | libexec/ikigai/file-edit
+# Should return NOT_FOUND
+```
+
+**Behaviors to verify:**
+- Single unique match: replaces, returns replacements:1
+- Multiple matches + replace_all:false: returns NOT_UNIQUE
+- Multiple matches + replace_all:true: replaces all, returns count
+- old_string == new_string: returns INVALID_ARG
+- Empty old_string: returns INVALID_ARG
+- Not found: returns NOT_FOUND
+- Atomic write (write to temp, rename)
 
 ## Completion
 

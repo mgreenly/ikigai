@@ -12,6 +12,7 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 | [integration-specification.md](integration-specification.md) | Exact struct/function changes for new code integration |
 | [tool-discovery-execution.md](tool-discovery-execution.md) | Discovery protocol, execution flow, build system, /refresh command |
 | [tool-specifications.md](tool-specifications.md) | Complete schemas, behavior, and error handling for 6 external tools |
+| [test-specification.md](test-specification.md) | **TDD guidance:** Test files, scenarios, and patterns for each task |
 | [error-codes.md](error-codes.md) | Standard error codes for ikigai and tools |
 | [architecture-current.md](architecture-current.md) | Reference: existing internal tool system (what we're replacing) |
 
@@ -20,7 +21,8 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 1. **architecture.md** - Start here for what we're building
 2. **memory-management.md** - Ownership rules and talloc patterns
 3. **tool-discovery-execution.md** - Deep dive on discovery and execution specifics
-4. **error-codes.md** - Reference for error handling
+4. **test-specification.md** - TDD guidance for each task
+5. **error-codes.md** - Reference for error handling
 
 Note: `architecture-current.md` is reference only - describes the existing system for context when needed.
 

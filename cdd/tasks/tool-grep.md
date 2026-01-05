@@ -132,12 +132,27 @@ libexec/ikigai/grep: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	$(CC) $(CFLAGS) -o $@ src/tools/grep/main.c $(TOOL_COMMON_SRCS) -ltalloc
 ```
 
-## Test Scenarios
+## Test Specification
 
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-grep.md"
+
+**Testing approach:** Shell-based manual verification.
+
+**Manual verification commands:**
 1. `libexec/ikigai/grep --schema` - Returns valid JSON schema
 2. `echo '{"pattern":"main","glob":"*.c","path":"src"}' | libexec/ikigai/grep` - Finds main in .c files
-3. `echo '{"pattern":"nonexistent_string"}' | libexec/ikigai/grep` - Returns count: 0
+3. `echo '{"pattern":"nonexistent_string"}' | libexec/ikigai/grep` - Returns count:0 (success)
 4. `echo '{"pattern":"[invalid"}' | libexec/ikigai/grep` - Returns INVALID_PATTERN error
+5. `echo '{"pattern":"^#include"}' | libexec/ikigai/grep` - Tests regex anchor
+
+**Behaviors to verify:**
+- POSIX extended regex (REG_EXTENDED) matching
+- Output format: `filename:line_number: line_content`
+- Invalid regex returns INVALID_PATTERN with regcomp error message
+- No matches returns count:0 (success, not error)
+- Glob filter limits files searched
+- Skips non-regular files (directories, symlinks)
+- Multiple matches from same file all included
 
 ## Completion
 

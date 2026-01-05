@@ -124,12 +124,25 @@ libexec/ikigai/glob: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	$(CC) $(CFLAGS) -o $@ src/tools/glob/main.c $(TOOL_COMMON_SRCS) -ltalloc
 ```
 
-## Test Scenarios
+## Test Specification
 
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-glob.md"
+
+**Testing approach:** Shell-based manual verification.
+
+**Manual verification commands:**
 1. `libexec/ikigai/glob --schema` - Returns valid JSON schema
 2. `echo '{"pattern":"*.c","path":"src"}' | libexec/ikigai/glob` - Returns list of .c files
-3. `echo '{"pattern":"nonexistent*"}' | libexec/ikigai/glob` - Returns count: 0 (not error)
+3. `echo '{"pattern":"nonexistent*"}' | libexec/ikigai/glob` - Returns count:0 (success, not error)
 4. `echo '{"pattern":"*"}' | libexec/ikigai/glob` - Lists current directory
+
+**Behaviors to verify:**
+- Pattern matching returns sorted list (lexicographic from glob())
+- No matches returns count:0 with success envelope
+- Output format: one path per line, no trailing newline after last
+- Path parameter prepended to pattern correctly
+- GLOB_NOSPACE returns OUT_OF_MEMORY error
+- GLOB_ABORTED returns READ_ERROR error
 
 ## Completion
 

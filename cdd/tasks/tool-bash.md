@@ -122,13 +122,25 @@ libexec/ikigai:
 	mkdir -p $@
 ```
 
-## Test Scenarios
+## Test Specification
 
-Manual verification (not unit tests for this task):
+**Reference:** `cdd/plan/test-specification.md` → "Phase 1: External Tools" → "tool-bash.md"
+
+**Testing approach:** External tools are standalone executables tested via shell commands (no unit test file).
+
+**Manual verification commands (run in order.json stop):**
 1. `libexec/ikigai/bash --schema` - Returns valid JSON schema
 2. `echo '{"command":"echo hello"}' | libexec/ikigai/bash` - Returns `{"output":"hello","exit_code":0}`
-3. `echo '{"command":"nonexistent"}' | libexec/ikigai/bash` - Returns `{"output":"...not found...","exit_code":127}`
-4. `echo '{}' | libexec/ikigai/bash` - Handles missing command gracefully (return error JSON, not crash)
+3. `echo '{"command":"false"}' | libexec/ikigai/bash` - Returns non-zero exit_code
+4. `echo '{}' | libexec/ikigai/bash` - Returns error JSON (missing command)
+
+**Behaviors to verify:**
+- Output buffer grows dynamically for large output
+- Trailing newline stripped from output
+- Exit code extracted via `WEXITSTATUS(pclose())`
+- popen() failure returns exit_code 127
+
+**If helper functions extracted:** Create `tests/unit/tools/bash_helpers_test.c` following patterns in test-specification.md
 
 ## Implementation Notes
 
