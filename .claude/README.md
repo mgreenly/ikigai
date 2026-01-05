@@ -1,223 +1,184 @@
 # .claude Directory
 
-Claude Code configuration and skills for the ikigai project. This directory is completely independent of `.agents/` and `.ikigai/`.
+Agent infrastructure for the ikigai project. This directory contains the knowledge system, automation harnesses, and executable scripts that support Claude Code workflows.
 
-## Structure
+## Architecture
+
+The `.claude/` directory is organized around three core concepts:
+
+1. **Knowledge system** - Skills and skillsets that provide domain context
+2. **Automation system** - Harnesses and scripts that enforce quality gates
+3. **Integration system** - Commands, hooks, and settings that bind to Claude Code
+
+## Directory Structure
 
 ```
 .claude/
-├── commands/      # Slash commands for manual invocation
-├── data/          # Runtime data (gitignored)
+├── commands/      # Slash command definitions
+├── library/       # Knowledge modules (skills)
+├── skillsets/     # Composite skill collections
+├── scripts/       # Executable automation scripts
+├── harness/       # Quality check automation loops
 ├── hooks/         # Event-triggered hooks
-├── library/       # Skill library (manual load only via /load)
-├── skillsets/     # Composite skill sets
+├── data/          # Runtime data (gitignored)
 └── settings.json  # Claude Code configuration
 ```
 
-## Key Concepts
+**Quick links:** [commands/](commands/) • [library/](library/) • [skillsets/](skillsets/) • [scripts/](scripts/) • [harness/](harness/) • [hooks/](hooks/) • [settings.json](settings.json)
 
-### Auto-Discovery vs Manual Loading
+## Knowledge System
 
-**Auto-Discovery (Disabled):**
-- Claude Code auto-discovers skills from `.claude/skills/`
-- We keep this directory empty to prevent automatic context loading
-- Minimizes token usage and gives explicit control
+### [library/](library/)
 
-**Manual Loading:**
-- All skills stored in `.claude/library/`
-- Use `/load <skill>` to explicitly load when needed
-- Only loads what you request, when you request it
+Skills are knowledge modules. Each skill is a directory containing `SKILL.md` with domain-specific context.
 
-## Commands
+**Meta perspective:** Skills solve the token efficiency problem. Instead of loading all project knowledge into every conversation, skills are loaded on-demand when their domain becomes relevant.
 
-### `/load [skill...]`
+**Organization:**
+- Flat structure: [library/database/SKILL.md](library/database/SKILL.md)
+- Nested structure: [library/patterns/observer/SKILL.md](library/patterns/observer/SKILL.md)
 
-Load one or more skills from the library.
+**Loading:** Manual only via `/load <skill>` command. No auto-discovery.
 
-**Examples:**
-```bash
-/load                          # Load default skill
-/load tdd                      # Load TDD skill
-/load patterns/observer        # Load nested skill
-/load tdd database mocking     # Load multiple skills
-```
+**Examples to explore:**
+- [database](library/database/SKILL.md) - PostgreSQL schema and query patterns
+- [cdd](library/cdd/SKILL.md) - Context Driven Development pipeline
+- [task](library/task/SKILL.md) - File-based task orchestration
+- [tdd](library/tdd/SKILL.md) - Test-Driven Development workflow
 
-### `/skillset <name>`
+### [skillsets/](skillsets/)
 
-Load a skillset (composite skill set).
+Skillsets are JSON files that bundle related skills for specific workflows.
 
-**Available skillsets:**
-- `architect` - Architectural decisions (DDD, DI, patterns)
-- `coverage` - Test coverage enforcement
-- `debugger` - Debugging workflows
-- `developer` - Feature development
-- `meta` - .claude/ system maintenance
-- `orchestrator` - Task orchestration
-- `refactor` - Code refactoring
-- `researcher` - Research and planning
-- `security` - Security review
-
-### `/update-skills`
-
-Update auto-generated skills by analyzing the codebase.
-
-**Updates:**
-- `source-code` - Map of src/*.c files
-- `makefile` - Make targets reference
-- `database` - Schema and database API
-- `mocking` - MOCKABLE wrappers
-- `errors` - Error codes enum
-
-## Skills
-
-### Format
-
-All skills use the directory format:
-
-```
-.claude/library/skill-name/
-└── SKILL.md
-```
-
-**SKILL.md structure:**
-```yaml
----
-name: skill-name
-description: What this skill does and when to use it
----
-
-# Skill Title
-
-## Section
-Content...
-```
-
-### Organization
-
-**Top-level skills:** `.claude/library/<skill>/SKILL.md`
-- `default`, `database`, `tdd`, `mocking`, etc.
-
-**Nested skills:** `.claude/library/<category>/<skill>/SKILL.md`
-- `patterns/observer`, `patterns/factory`
-- `security/memory-safety`, `security/input-validation`
-- `refactoring/smells`, `refactoring/techniques`
-
-**Special skill:** `task/` includes TypeScript implementation files for the task database system. The database itself is stored at `.claude/data/tasks.db` (gitignored).
-
-### Loading Nested Skills
-
-```bash
-/load patterns/observer        # Load specific pattern
-/load security/memory-safety   # Load security skill
-/load refactoring/techniques   # Load refactoring skill
-```
-
-## Skillsets
-
-Skillsets are JSON arrays listing skills to load together.
+**Meta perspective:** Skillsets map to workflow phases. Each phase needs different context - research needs internet facts, implementation needs coding patterns, debugging needs troubleshooting techniques. Skillsets provide phase-appropriate context bundles.
 
 **Format:**
 ```json
-[
-  "default",
-  "skill-a",
-  "patterns/skill-b"
-]
-```
-
-**Example (`developer.json`):**
-```json
-[
-  "default",
-  "tdd",
-  "style",
-  "naming",
-  "quality",
-  "coverage",
-  "zero-debt",
-  "jj"
-]
-```
-
-All skills are loaded from `.claude/library/` - no special handling for nested paths.
-
-## Hooks
-
-Event-triggered shell scripts in `.claude/hooks/`:
-
-- `session_start.sh` - Session initialization
-- `session_end.sh` - Session cleanup
-- `user_prompt.sh` - Before processing user input
-- `stop.sh` - Agent stop
-- `subagent_stop.sh` - Sub-agent stop
-- `pre_tool_use.sh` - Before tool execution
-- `post_tool_use.sh` - After tool execution
-- `permission_request.sh` - Permission requests
-- `notification.sh` - Notifications
-- `pre_compact.sh` - Before context compaction
-
-Hooks are configured in `settings.json`.
-
-## Settings
-
-`settings.json` configures hook bindings.
-
-**Example:**
-```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/session_start.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
+  "preload": ["skill-a", "skill-b"],
+  "advertise": [
+    {"skill": "skill-c", "description": "..."}
+  ]
 }
 ```
 
-## Migration Notes
+- `preload`: Load immediately
+- `advertise`: Reference only (load on-demand)
 
-This directory was migrated from `.agents/` to create separation between:
-- **`.claude/`** - Claude Code specific infrastructure
-- **`.agents/`** - Legacy/alternative agent system
-- **`.ikigai/`** - ikigai agent infrastructure
+**Examples to explore:**
+- [meta.json](skillsets/meta.json) - Agent system maintenance
+- [planner.json](skillsets/planner.json) - Architecture and task breakdown
+- [developer.json](skillsets/developer.json) - Feature development (TDD, style, naming, coverage)
 
-All skills converted from flat `.md` files to directory format with YAML frontmatter.
+## Automation System
 
-## Best Practices
+### [scripts/](scripts/)
 
-1. **Keep auto-discovery empty** - Don't create `.claude/skills/` to avoid automatic loading
-2. **Use `/load` explicitly** - Manual loading gives you control
-3. **Organize by category** - Use nested paths for related skills
-4. **Update skill frontmatter** - Ensure `name` and `description` fields are accurate
-5. **Use skillsets for workflows** - Bundle commonly-used skills together
-6. **Keep skills focused** - One domain per skill, concise content
+Executable TypeScript/shell scripts for task management and quality checks.
 
-## Quick Reference
+**Meta perspective:** Scripts are the executable layer. Skills provide knowledge, scripts provide action. Scripts manipulate state (task lifecycle), invoke tools (make targets), and enforce invariants (quality gates).
 
-**Load default context:**
-```bash
-/load
+**Organization by function:**
+- [scripts/task/](scripts/task/) - Task orchestration (init, start, done, fail, escalate)
+- `scripts/check-*` - Quality check invocations (symlinks to harness runners)
+
+**Examples to explore:**
+- [scripts/task/init.ts](scripts/task/init.ts) - Initialize task directory structure
+- [scripts/task/escalate.ts](scripts/task/escalate.ts) - Bump task capability level
+- [scripts/task/next.ts](scripts/task/next.ts) - Get next pending task or stop
+- [scripts/check-quality](scripts/check-quality) - Run all quality harnesses
+
+### [harness/](harness/)
+
+Automated quality check loops. Each harness runs a make target, spawns fix sub-agents on failure, and escalates on exhaustion.
+
+**Meta perspective:** Harnesses enforce non-negotiable quality gates through mechanical iteration. They embody the principle "systems enforce standards" - no human willpower required, just run the loop until clean.
+
+**Structure per harness:**
+- `harness/<name>/run` - Executable runner script
+- `harness/<name>/fix.prompt.md` - Fix agent instructions
+
+**Examples to explore:**
+- [harness/quality/](harness/quality/) - Orchestrate all quality checks
+- [harness/sanitize/](harness/sanitize/) - Fix AddressSanitizer errors
+- [harness/valgrind/](harness/valgrind/) - Fix Valgrind memory errors
+- [harness/coverage/](harness/coverage/) - Enforce 100% test coverage
+
+## Integration System
+
+### [commands/](commands/)
+
+Slash command definitions. Markdown files with frontmatter + prompt template.
+
+**Meta perspective:** Commands are the user-facing API to the automation system. They provide convenient invocation patterns for complex multi-step workflows.
+
+**Format:**
+```markdown
+---
+description: What the command does
+---
+
+Prompt template. Use {{args}} for arguments.
 ```
 
-**Load specific skill:**
-```bash
-/load database
-```
+**Examples to explore:**
+- [commands/load.md](commands/load.md) - Load skills from library
+- [commands/skillset.md](commands/skillset.md) - Load composite skill sets
+- [commands/update.md](commands/update.md) - Update auto-generated skills
 
-**Load developer skillset:**
-```bash
-/skillset developer
-```
+### [hooks/](hooks/)
 
-**Update auto-generated skills:**
-```bash
-/update-skills
-```
+Event-triggered shell scripts that execute on Claude Code lifecycle events.
+
+**Meta perspective:** Hooks are the integration seam between Claude Code's execution model and project-specific tooling. They allow injecting custom behavior without modifying Claude Code itself.
+
+**Events:** session_start, user_prompt, pre_tool_use, post_tool_use, etc.
+
+**Examples to explore:**
+- [hooks/session_start.sh](hooks/session_start.sh) - Session initialization
+- [hooks/user_prompt.sh](hooks/user_prompt.sh) - Before processing user input
+- [hooks/post_tool_use.sh](hooks/post_tool_use.sh) - After tool execution
+
+### [settings.json](settings.json)
+
+Claude Code configuration binding hooks to events.
+
+**Meta perspective:** Settings map the event namespace (Claude Code's lifecycle) to the handler namespace (this project's hooks). It's the wiring diagram.
+
+### [data/](data/)
+
+Persistent configuration data for automation workflows.
+
+**Meta perspective:** Configuration state that workflows accumulate over time. Version controlled because it represents learned knowledge - false positive lists, known exceptions, curated exclusions that improve automation accuracy.
+
+**Examples to explore:**
+- [data/prune-false-positives.txt](data/prune-false-positives.txt) - Known false positives for dead code detection
+
+## Design Philosophy
+
+**Explicit over implicit:** No auto-discovery. Load skills manually. Opt-in, not opt-out.
+
+**Minimal preload:** Skillsets load only what's necessary for their workflow. Token efficiency through discipline.
+
+**Separation of concerns:** Knowledge (skills) separate from action (scripts) separate from invocation (commands).
+
+**Mechanical enforcement:** Quality gates enforced by harnesses, not code review. Systems > willpower.
+
+## Usage Patterns
+
+**Research phase:** `/skillset researcher` → internet facts, codebase exploration
+
+**Planning phase:** `/skillset planner` → architecture decisions, task breakdown
+
+**Implementation phase:** `/skillset developer` → TDD, patterns, quality gates
+
+**Quality enforcement:** `/check-quality` → run all harnesses until stable
+
+**Meta work:** `/skillset meta` → modify this system itself
+
+## Cross-References
+
+- **CDD pipeline:** [library/cdd/SKILL.md](library/cdd/SKILL.md) - Release workflow details
+- **Task orchestration:** [library/task/SKILL.md](library/task/SKILL.md) - Execution state tracking
+- **Harness mechanics:** [library/harness/SKILL.md](library/harness/SKILL.md) - Quality loop implementation
+- **Project principles:** [library/principles/SKILL.md](library/principles/SKILL.md) - Guiding philosophy
