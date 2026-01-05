@@ -243,90 +243,6 @@ START_TEST(test_list_running_excludes_dead) {
 }
 
 END_TEST
-// Test: get_children returns children ordered by created_at
-START_TEST(test_get_children_ordered) {
-    SKIP_IF_NO_DB();
-
-    // Insert parent
-    ik_agent_ctx_t parent = {0};
-    parent.uuid = talloc_strdup(test_ctx, "parent-children-test");
-    parent.name = talloc_strdup(test_ctx, "Parent");
-    parent.parent_uuid = NULL;
-    parent.created_at = time(NULL);
-    parent.fork_message_id = 0;
-
-    res_t parent_res = ik_db_agent_insert(db, &parent);
-    ck_assert(is_ok(&parent_res));
-
-    // Insert children with different created_at
-    ik_agent_ctx_t child1 = {0};
-    child1.uuid = talloc_strdup(test_ctx, "child-1");
-    child1.name = talloc_strdup(test_ctx, "Child 1");
-    child1.parent_uuid = talloc_strdup(test_ctx, "parent-children-test");
-    child1.created_at = 1000;
-    child1.fork_message_id = 10;
-
-    res_t child1_res = ik_db_agent_insert(db, &child1);
-    ck_assert(is_ok(&child1_res));
-
-    ik_agent_ctx_t child2 = {0};
-    child2.uuid = talloc_strdup(test_ctx, "child-2");
-    child2.name = talloc_strdup(test_ctx, "Child 2");
-    child2.parent_uuid = talloc_strdup(test_ctx, "parent-children-test");
-    child2.created_at = 2000;
-    child2.fork_message_id = 20;
-
-    res_t child2_res = ik_db_agent_insert(db, &child2);
-    ck_assert(is_ok(&child2_res));
-
-    ik_agent_ctx_t child3 = {0};
-    child3.uuid = talloc_strdup(test_ctx, "child-3");
-    child3.name = talloc_strdup(test_ctx, "Child 3");
-    child3.parent_uuid = talloc_strdup(test_ctx, "parent-children-test");
-    child3.created_at = 1500;
-    child3.fork_message_id = 15;
-
-    res_t child3_res = ik_db_agent_insert(db, &child3);
-    ck_assert(is_ok(&child3_res));
-
-    // Get children
-    ik_db_agent_row_t **rows = NULL;
-    size_t count = 0;
-    res_t get_res = ik_db_agent_get_children(db, test_ctx, parent.uuid, &rows, &count);
-    ck_assert(is_ok(&get_res));
-    ck_assert_int_eq((int)count, 3);
-
-    // Verify ordered by created_at
-    ck_assert_str_eq(rows[0]->uuid, "child-1");  // 1000
-    ck_assert_str_eq(rows[1]->uuid, "child-3");  // 1500
-    ck_assert_str_eq(rows[2]->uuid, "child-2");  // 2000
-}
-
-END_TEST
-// Test: get_children returns empty for agent with no children
-START_TEST(test_get_children_empty) {
-    SKIP_IF_NO_DB();
-
-    // Insert agent with no children
-    ik_agent_ctx_t agent = {0};
-    agent.uuid = talloc_strdup(test_ctx, "childless-agent");
-    agent.name = talloc_strdup(test_ctx, "Childless");
-    agent.parent_uuid = NULL;
-    agent.created_at = time(NULL);
-    agent.fork_message_id = 0;
-
-    res_t insert_res = ik_db_agent_insert(db, &agent);
-    ck_assert(is_ok(&insert_res));
-
-    // Get children
-    ik_db_agent_row_t **rows = NULL;
-    size_t count = 0;
-    res_t get_res = ik_db_agent_get_children(db, test_ctx, agent.uuid, &rows, &count);
-    ck_assert(is_ok(&get_res));
-    ck_assert_int_eq((int)count, 0);
-}
-
-END_TEST
 // Test: get_parent returns parent row for child agent
 START_TEST(test_get_parent_returns_parent) {
     SKIP_IF_NO_DB();
@@ -465,8 +381,6 @@ static Suite *agent_registry_queries_suite(void)
     tcase_add_test(tc_core, test_get_nonexistent_uuid);
     tcase_add_test(tc_core, test_list_running_only_running);
     tcase_add_test(tc_core, test_list_running_excludes_dead);
-    tcase_add_test(tc_core, test_get_children_ordered);
-    tcase_add_test(tc_core, test_get_children_empty);
     tcase_add_test(tc_core, test_get_parent_returns_parent);
     tcase_add_test(tc_core, test_get_parent_null_for_root);
     tcase_add_test(tc_core, test_get_parent_chain_walking);

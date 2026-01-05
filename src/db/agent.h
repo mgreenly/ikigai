@@ -78,22 +78,6 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                                ik_db_agent_row_t ***out, size_t *count);
 
 /**
- * Get children of an agent
- *
- * Returns all agents whose parent_uuid matches the given UUID, ordered by created_at.
- *
- * @param db_ctx Database context (must not be NULL)
- * @param ctx Talloc context for result allocation (must not be NULL)
- * @param parent_uuid Parent agent UUID (must not be NULL)
- * @param out Output parameter for array of agent row pointers (must not be NULL)
- * @param count Output parameter for array size (must not be NULL)
- * @return OK with agent rows on success, ERR on failure
- */
-res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                               const char *parent_uuid,
-                               ik_db_agent_row_t ***out, size_t *count);
-
-/**
  * Get parent agent
  *
  * Retrieves the parent agent record for a given agent. For walking ancestry chain.

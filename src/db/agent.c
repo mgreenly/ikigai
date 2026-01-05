@@ -222,69 +222,6 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     return OK(NULL);
 }
 
-res_t ik_db_agent_get_children(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                               const char *parent_uuid,
-                               ik_db_agent_row_t ***out, size_t *count)
-{
-    assert(db_ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
-    assert(parent_uuid != NULL); // LCOV_EXCL_BR_LINE
-    assert(out != NULL);         // LCOV_EXCL_BR_LINE
-    assert(count != NULL);       // LCOV_EXCL_BR_LINE
-
-    // Create temporary context for query
-    TALLOC_CTX *tmp = tmp_ctx_create();
-
-    // Query for children of parent_uuid
-    const char *query =
-        "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
-        "created_at, COALESCE(ended_at, 0) as ended_at, "
-        "provider, model, thinking_level "
-        "FROM agents WHERE parent_uuid = $1 ORDER BY created_at";
-
-    const char *param_values[1];
-    param_values[0] = parent_uuid;
-
-    ik_pg_result_wrapper_t *res_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
-                                                   param_values, NULL, NULL, 0));
-    PGresult *res = res_wrapper->pg_result;
-
-    // Check query execution status
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        const char *pq_err = PQerrorMessage(db_ctx->conn);
-        talloc_free(tmp);
-        return ERR(db_ctx, IO, "Failed to get children: %s", pq_err);
-    }
-
-    // Get number of rows
-    int num_rows = PQntuples(res);
-    *count = (size_t)num_rows;
-
-    if (num_rows == 0) {
-        *out = NULL;
-        talloc_free(tmp);
-        return OK(NULL);
-    }
-
-    // Allocate array of pointers
-    ik_db_agent_row_t **rows = talloc_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
-    if (rows == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    // Process each row
-    for (int i = 0; i < num_rows; i++) {
-        res_t parse_result = ik_db_agent_parse_row(db_ctx, rows, res, i, &rows[i]);
-        if (is_err(&parse_result)) {
-            talloc_free(tmp);
-            return parse_result;
-        }
-    }
-
-    *out = rows;
-    talloc_free(tmp);
-    return OK(NULL);
-}
-
 res_t ik_db_agent_get_parent(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                               const char *uuid, ik_db_agent_row_t **out)
 {
