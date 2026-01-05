@@ -59,9 +59,8 @@ src/tool_response.c
 src/tool_response.h
 ```
 
-## Test Files to Delete (17 test files)
+## Test Files to Delete (12 test files)
 
-**Unit tests (12 files):**
 ```
 tests/unit/tool/tool_schema_test.c
 tests/unit/tool/tool_definition_test.c
@@ -75,15 +74,6 @@ tests/unit/tool/grep_execute_test.c
 tests/unit/tool/grep_edge_cases_test.c
 tests/unit/tool/tool_limit_test.c
 tests/unit/tool/tool_truncate_test.c
-```
-
-**Integration tests (5 files):**
-```
-tests/integration/tool_loop_limit_test.c
-tests/integration/tool_choice_auto_test.c
-tests/integration/tool_choice_specific_test.c
-tests/integration/tool_choice_required_test.c
-tests/integration/tool_choice_none_test.c
 ```
 
 ## Files to Keep (test files)
@@ -187,9 +177,8 @@ Keep:
 - `tests/unit/tool/tool_arg_parser_test.c`
 - `tests/unit/tool/tool_call_test.c`
 
-**Tests being DELETED (17 files):**
+**Tests being DELETED (12 files):**
 - All tests in `tests/unit/tool/` except the two above
-- All tests in `tests/integration/` matching `tool_*`
 
 **Verification Steps:**
 1. `make clean && make` - Must compile without errors
@@ -207,7 +196,7 @@ After completing work, commit all changes:
 jj commit -m "$(cat <<'EOF'
 task(remove-internal-tools.md): [success|partial|failed] - removed internal tool system
 
-Deleted 9 source files and 17 test files. Stubbed tool dispatch.
+Deleted 9 source files and 12 test files. Stubbed tool dispatch.
 ikigai builds and runs but tools return "not yet implemented".
 EOF
 )"
@@ -220,7 +209,7 @@ Report status:
 ## Postconditions
 
 - [ ] All 9 source files deleted
-- [ ] All 17 test files deleted
+- [ ] All 12 test files deleted
 - [ ] 2 test files kept (tool_arg_parser_test.c, tool_call_test.c)
 - [ ] src/tool.h contains only 4 items
 - [ ] `make clean && make` succeeds

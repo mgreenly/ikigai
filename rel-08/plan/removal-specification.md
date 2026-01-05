@@ -10,7 +10,7 @@ This document specifies exactly which files to delete, which to modify, and what
 
 ### Source Files
 
-Delete these 6 implementation files:
+Delete these 7 implementation files:
 
 1. `src/tool.c` - Schema builders, ik_tool_build_all(), ik_tool_truncate_output(), ik_tool_result_add_limit_metadata()
 2. `src/tool_dispatcher.c` - ik_tool_dispatch() function
@@ -36,14 +36,6 @@ Delete these 12 unit test files that test deleted functionality:
 10. `tests/unit/tool/grep_edge_cases_test.c` - Tests grep edge cases
 11. `tests/unit/tool/tool_limit_test.c` - Tests ik_tool_result_add_limit_metadata()
 12. `tests/unit/tool/tool_truncate_test.c` - Tests ik_tool_truncate_output()
-
-Delete these 5 integration test files that test deleted functionality:
-
-1. `tests/integration/tool_loop_limit_test.c` - Tests tool loop with limit metadata
-2. `tests/integration/tool_choice_auto_test.c` - Tests auto tool choice with internal tools
-3. `tests/integration/tool_choice_specific_test.c` - Tests specific tool choice
-4. `tests/integration/tool_choice_required_test.c` - Tests required tool choice
-5. `tests/integration/tool_choice_none_test.c` - Tests none tool choice
 
 ### Test Files to Keep
 
@@ -401,8 +393,7 @@ After completing removals and modifications, verify:
    - `ik_tool_arg_get_string()` declaration
    - `ik_tool_arg_get_int()` declaration
 3. **Test compilation:** Unit tests for `tool_arg_parser_test` and `tool_call_test` should still compile
-4. **Integration tests:** All tool_choice_* integration tests should be deleted (they test deleted functionality)
-5. **Stub behavior:** Running ikigai and attempting tool use returns "Tool system not yet implemented" error
+4. **Stub behavior:** Running ikigai and attempting tool use returns "Tool system not yet implemented" error
 
 ## Migration Context
 
@@ -436,8 +427,9 @@ Note: `src/providers/request_tools.c` includes `agent.h` which includes `tool.h`
 
 ## Summary
 
-**Total files deleted:** 26 (9 source files + 17 test files)
+**Total files deleted:** 21 (9 source files + 12 test files)
   - Source: tool.c, tool_dispatcher.c, tool_bash.c, tool_file_read.c, tool_file_write.c, tool_glob.c, tool_grep.c, tool_response.c, tool_response.h
+  - Tests: 12 unit test files in tests/unit/tool/
 **Total files modified:** 4 (tool.h, request_tools.c, repl_tool.c, Makefile)
 **Files kept unchanged:** 4 (tool_arg_parser.c, openai/request_chat.c, anthropic/request.c, google/request.c)
 **Lines removed from tool.h:** ~235 lines (functions and types)

@@ -55,10 +55,13 @@ In `src/tool_discovery.h`, add:
 ```c
 typedef struct ik_tool_discovery_state_t ik_tool_discovery_state_t;
 
-// Start async scan - spawn all tools, return immediately
+// Start async scan - spawn all tools from ALL THREE directories, return immediately
+// Scans system_dir AND user_dir AND project_dir (all three)
+// Override precedence: Project > User > System
 res_t ik_tool_discovery_start(TALLOC_CTX *ctx,
-                               const char *system_dir,
-                               const char *user_dir,
+                               const char *system_dir,   // PREFIX/libexec/ikigai/
+                               const char *user_dir,     // ~/.ikigai/tools/
+                               const char *project_dir,  // $PWD/.ikigai/tools/
                                ik_tool_registry_t *registry,
                                ik_tool_discovery_state_t **out_state);
 
@@ -96,11 +99,16 @@ Replace blocking `ik_tool_discovery_run()` with:
 
 ```c
 shared->tool_registry = ik_tool_registry_create(shared);
+
+// CRITICAL: ALL THREE directories are scanned (system AND user AND project)
+// Override precedence: Project > User > System
 res_t start_result = ik_tool_discovery_start(shared,
-    PREFIX "/libexec/ikigai",
-    "~/.ikigai/tools",
+    PREFIX "/libexec/ikigai",  // System tools
+    "~/.ikigai/tools",          // User tools (global)
+    ".ikigai/tools",            // Project tools (local to $PWD)
     shared->tool_registry,
     &repl->tool_discovery);
+
 if (is_ok(&start_result)) {
     shared->tool_scan_state = TOOL_SCAN_IN_PROGRESS;
 } else {

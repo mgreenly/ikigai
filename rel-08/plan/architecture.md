@@ -46,21 +46,28 @@ Async internals with blocking wrapper. Implementation uses async primitives (spa
 **Phases 4-5: Blocking API only**
 
 ```c
-// Blocking wrapper: spawns all tools, waits for completion, returns
+// Blocking wrapper: spawns all tools from ALL THREE directories, waits for completion, returns
+// CRITICAL: Scans ALL THREE directories (system_dir AND user_dir AND project_dir)
+// Override precedence: Project > User > System (most specific wins)
+// Missing/empty directories handled gracefully (no error)
 // Internally uses async primitives but blocks until done
 res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
-                             const char *system_dir,
-                             const char *user_dir,
+                             const char *system_dir,   // PREFIX/libexec/ikigai/ (system tools)
+                             const char *user_dir,     // ~/.ikigai/tools/ (user tools)
+                             const char *project_dir,  // $PWD/.ikigai/tools/ (project tools)
                              ik_tool_registry_t *registry);
 ```
 
 **Internal async primitives (implemented in Phase 4, not exposed until Phase 6):**
 
 ```c
-// Start async scan: spawn all tools with --schema, return immediately
+// Start async scan: spawn all tools from ALL THREE directories with --schema, return immediately
+// Scans system_dir AND user_dir AND project_dir (all three directories scanned)
+// Override precedence: Project > User > System
 res_t ik_tool_discovery_start(TALLOC_CTX *ctx,
-                               const char *system_dir,
-                               const char *user_dir,
+                               const char *system_dir,   // PREFIX/libexec/ikigai/
+                               const char *user_dir,     // ~/.ikigai/tools/
+                               const char *project_dir,  // $PWD/.ikigai/tools/
                                ik_tool_registry_t *registry,
                                ik_tool_discovery_state_t **out_state);
 
@@ -161,9 +168,13 @@ ikigai never manages credentials. Tools are self-contained.
 1. ikigai starts
    └─> REPL init creates tool_registry
        └─> Calls ik_tool_discovery_run() (BLOCKING)
-           └─> Scans PREFIX/libexec/ikigai/ and ~/.ikigai/tools/
-           └─> Each tool called with --schema (1s timeout per tool)
-               └─> Successful schemas added to registry
+           └─> Scans ALL THREE directories (always all three, any/all/none may exist):
+               ├─> PREFIX/libexec/ikigai/ (system tools shipped with ikigai)
+               ├─> ~/.ikigai/tools/ (user's personal custom tools)
+               └─> $PWD/.ikigai/tools/ (project-specific tools)
+           └─> Each tool in all three directories called with --schema (1s timeout per tool)
+               └─> Successful schemas added to unified registry
+               └─> Override precedence: Project > User > System (same name)
                └─> Failed schemas → debug message logged
        └─> Discovery completes, terminal appears
 

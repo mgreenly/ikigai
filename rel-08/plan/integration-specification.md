@@ -63,6 +63,45 @@ ik_repl_actions_llm.c:ik_repl_action_submit_to_llm()
 - **Before:** Hard-codes tool definitions in lines 283-298, calls `ik_request_add_tool()` for each
 - **After:** If registry is non-NULL, iterates `registry->entries[0..count-1]` and calls `ik_request_add_tool()` for each entry. If NULL, uses empty tools array.
 
+### Function Signature Change: ik_request_add_tool
+
+**File:** `src/providers/request_tools.c`
+
+The current function uses hard-coded `ik_tool_param_def_t[]` arrays. Replace with yyjson-based signature:
+
+**Current signature (being deleted with internal tools):**
+
+```c
+void ik_request_add_tool(ik_request_t *req, const char *name, const char *description,
+                          const ik_tool_param_def_t *params, size_t param_count);
+```
+
+**New signature:**
+
+```c
+void ik_request_add_tool(ik_request_t *req, const char *name, const char *description,
+                          yyjson_val *parameters_schema);
+```
+
+| Parameter | Type | Notes |
+|-----------|------|-------|
+| req | `ik_request_t *` | Request being built |
+| name | `const char *` | Tool name |
+| description | `const char *` | Tool description |
+| parameters_schema | `yyjson_val *` | The "parameters" object from tool schema (pointer, not copied) |
+
+**Lifetime:** `parameters_schema` points into registry entry's `schema_doc`. Valid as long as registry exists.
+
+### Schema Extraction from Registry
+
+Extract fields from `ik_tool_registry_entry_t` using yyjson:
+
+| Field | Extraction |
+|-------|------------|
+| name | `entry->name` (already a string) |
+| description | `yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"))` |
+| parameters | `yyjson_obj_get(entry->schema_root, "parameters")` |
+
 ### Call Site Changes
 
 **File:** `src/repl_actions_llm.c` (line ~148)

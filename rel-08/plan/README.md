@@ -6,6 +6,8 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 
 | Document | Purpose |
 |----------|---------|
+| [paths-module.md](paths-module.md) | **FIRST:** Install directory detection and path resolution infrastructure |
+| [paths-test-migration.md](paths-test-migration.md) | Test migration strategy for paths module (160+ test updates) |
 | [architecture.md](architecture.md) | Structs, functions, data flow, migration phases |
 | [memory-management.md](memory-management.md) | Ownership rules, talloc patterns, thread memory model |
 | [removal-specification.md](removal-specification.md) | Complete specification for removing internal tool system (Phase 1) |
@@ -18,11 +20,13 @@ Technical specifications for the external tool architecture. Tasks coordinate na
 
 ## Reading Order
 
-1. **architecture.md** - Start here for what we're building
-2. **memory-management.md** - Ownership rules and talloc patterns
-3. **tool-discovery-execution.md** - Deep dive on discovery and execution specifics
-4. **test-specification.md** - TDD guidance for each task
-5. **error-codes.md** - Reference for error handling
+1. **paths-module.md** - **START HERE:** Foundation infrastructure for install detection
+2. **paths-test-migration.md** - Test migration strategy (read with paths-module.md)
+3. **architecture.md** - What we're building (tool system)
+4. **memory-management.md** - Ownership rules and talloc patterns
+5. **tool-discovery-execution.md** - Deep dive on discovery and execution specifics
+6. **test-specification.md** - TDD guidance for each task
+7. **error-codes.md** - Reference for error handling
 
 Note: `architecture-current.md` is reference only - describes the existing system for context when needed.
 
@@ -30,6 +34,11 @@ Note: `architecture-current.md` is reference only - describes the existing syste
 
 **Human verification required between each phase.** See architecture.md for details.
 
+0. **Phase 0:** Path resolution infrastructure (FIRST)
+   - Install type detection (development/user/system)
+   - Directory path computation and caching
+   - Dependency injection throughout codebase
+   - **Note:** Will affect many existing tests
 1. **Phase 1:** First tool (bash) - standalone executable
 2. **Phase 2:** Remaining tools (one at a time) - standalone executables
    - 2a: file_read
@@ -45,6 +54,10 @@ Note: `architecture-current.md` is reference only - describes the existing syste
 ## Key Types
 
 ```c
+// Phase 0: Path resolution
+ik_paths_t                  // Install paths (opaque, created at startup)
+
+// Phases 1-6: Tool system
 ik_tool_registry_t          // Tool registry (dynamic, populated at runtime)
 ik_tool_registry_entry_t    // Single tool: name, path, schema
 ik_tool_discovery_state_t   // Discovery state (internal until Phase 6)
@@ -54,6 +67,15 @@ tool_scan_state_t           // Discovery state enum
 ## Key Functions
 
 ```c
+// Phase 0: Path resolution
+ik_paths_init()                     // Initialize paths (call at startup)
+ik_paths_get_config_dir()           // Get config directory
+ik_paths_get_data_dir()             // Get data directory
+ik_paths_get_tools_system_dir()     // Get system tools directory
+ik_paths_get_tools_user_dir()       // Get user tools directory
+ik_paths_get_tools_project_dir()    // Get project tools directory
+
+// Phases 1-6: Tool system
 // Registry
 ik_tool_registry_create()
 ik_tool_registry_lookup()
@@ -79,7 +101,14 @@ ik_tool_wrap_failure()
 
 ## Integration Points
 
-Two places in existing code need modification:
+**Phase 0 (Paths):**
+
+1. **Main initialization** (`src/client.c`) - Create `ik_paths_t` early, pass to REPL init
+2. **REPL context** (`src/repl.h`) - Add `ik_paths_t *paths` field
+3. **Tool discovery** - Receive directory paths from `ik_paths_t` instance
+4. **Many tests** - Provide mock/test paths instances
+
+**Phases 1-6 (Tool system):**
 
 1. **LLM request building** (`src/providers/openai/request_chat.c`) - Replace `ik_tool_build_all()` with `ik_tool_registry_build_all()`
 

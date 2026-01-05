@@ -106,10 +106,13 @@ typedef enum {
     TOOL_SCAN_FAILED
 } tool_scan_state_t;
 
-// Blocking discovery - spawns all tools, waits for completion
+// Blocking discovery - spawns all tools from ALL THREE directories, waits for completion
+// Scans system_dir AND user_dir AND project_dir (all three)
+// Override precedence: Project > User > System
 res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
-                             const char *system_dir,
-                             const char *user_dir,
+                             const char *system_dir,   // PREFIX/libexec/ikigai/
+                             const char *user_dir,     // ~/.ikigai/tools/
+                             const char *project_dir,  // $PWD/.ikigai/tools/
                              ik_tool_registry_t *registry);
 
 #endif
@@ -159,11 +162,18 @@ char *ik_tool_wrap_failure(TALLOC_CTX *ctx, const char *error, const char *error
 
 ### Discovery
 
-- Scan `PREFIX/libexec/ikigai/` and `~/.ikigai/tools/`
-- For each executable, spawn with `--schema`, 1s timeout
-- Parse schema, add to registry
-- User tools override system tools (same name)
+**CRITICAL: Scan ALL THREE directories (all three scanned every time, any/all/none may exist):**
+- `PREFIX/libexec/ikigai/` - **System tools** shipped with ikigai
+- `~/.ikigai/tools/` - **User tools** (personal, global to user)
+- `$PWD/.ikigai/tools/` - **Project tools** (project-specific, local to working directory)
+
+**For each executable in ALL THREE directories:**
+- Spawn with `--schema`, 1s timeout
+- Parse schema, add to unified registry
+- **Override precedence: Project > User > System** (most specific wins)
+  - Same tool name in multiple dirs: project beats user, user beats system
 - Failures are logged but don't abort discovery
+- Missing/empty directories handled gracefully (no error)
 
 ### External Executor
 
@@ -205,10 +215,15 @@ In `ik_repl_init()`, after shared context init:
 
 ```c
 shared->tool_registry = ik_tool_registry_create(shared);
+
+// CRITICAL: ALL THREE directories are scanned (system AND user AND project)
+// Override precedence: Project > User > System (most specific wins)
 res_t disc_result = ik_tool_discovery_run(shared,
-    PREFIX "/libexec/ikigai",
-    "~/.ikigai/tools",
+    PREFIX "/libexec/ikigai",  // System tools directory (shipped with ikigai)
+    "~/.ikigai/tools",          // User tools directory (global to user)
+    ".ikigai/tools",            // Project tools directory (local to $PWD)
     shared->tool_registry);
+
 if (is_ok(&disc_result)) {
     shared->tool_scan_state = TOOL_SCAN_COMPLETE;
 } else {
@@ -217,9 +232,9 @@ if (is_ok(&disc_result)) {
 }
 ```
 
-### src/repl_tool.c
+### src/repl_tool.c - Thread Worker (Async Path)
 
-Replace stub in `tool_thread_worker()`:
+Replace stub in `tool_thread_worker()` (~line 43):
 
 ```c
 ik_tool_registry_t *registry = args->agent->shared->tool_registry;
@@ -239,6 +254,30 @@ if (entry == NULL) {
     }
 }
 args->agent->tool_thread_result = wrapped_result;
+```
+
+### src/repl_tool.c - Sync Path
+
+Replace stub in `ik_repl_execute_pending_tool()` (~line 88) with the same pattern:
+
+```c
+ik_tool_registry_t *registry = repl->current->shared->tool_registry;
+ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, tc->name);
+
+char *wrapped_result;
+if (entry == NULL) {
+    wrapped_result = ik_tool_wrap_failure(repl,
+        "Tool not found", "TOOL_NOT_FOUND", -1, "", "");
+} else {
+    res_t exec_result = ik_tool_external_exec(repl, entry->path, tc->arguments);
+    if (is_ok(&exec_result)) {
+        wrapped_result = ik_tool_wrap_success(repl, exec_result.ok);
+    } else {
+        wrapped_result = ik_tool_wrap_failure(repl,
+            exec_result.err->msg, "TOOL_CRASHED", -1, "", "");
+    }
+}
+char *result_json = wrapped_result;
 ```
 
 ### Function Signature Change: ik_request_build_from_conversation
@@ -399,26 +438,25 @@ res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *re
 
 ### src/providers/request_tools.c
 
-Update function implementation to accept registry parameter and iterate it:
+Update function to accept registry parameter and iterate it.
 
-```c
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent,
-                                          ik_tool_registry_t *registry,
-                                          ik_request_t **out)
-{
-    // ... existing setup code ...
+**Reference:** `cdd/plan/integration-specification.md` → "Function Signature Change: ik_request_build_from_conversation" and "Function Signature Change: ik_request_add_tool" and "Schema Extraction from Registry"
 
-    // Replace hard-coded tool definitions with registry iteration:
-    if (registry != NULL) {
-        for (size_t i = 0; i < registry->count; i++) {
-            ik_tool_registry_entry_t *entry = &registry->entries[i];
-            // Extract name, description, parameters from entry->schema_root
-            // Call ik_request_add_tool() for each
-        }
-    }
+**Pseudocode for registry iteration:**
+
+```
+ik_request_build_from_conversation(ctx, agent, registry, out):
+    // ... existing setup code (create request, add messages) ...
+
+    if registry != NULL:
+        for i = 0 to registry->count - 1:
+            entry = &registry->entries[i]
+            desc_val = yyjson_obj_get(entry->schema_root, "description")
+            description = yyjson_get_str(desc_val)
+            params_val = yyjson_obj_get(entry->schema_root, "parameters")
+            ik_request_add_tool(req, entry->name, description, params_val)
 
     // ... rest of function ...
-}
 ```
 
 ## Makefile Changes
@@ -526,7 +564,7 @@ Report status:
 - [ ] All 4 call sites updated (repl_actions_llm.c, repl_tool_completion.c, commands_fork.c, wrapper_internal.h/c)
 - [ ] All 4 test mock signatures updated (cmd_fork_error_test.c, cmd_fork_coverage_test_mocks.c, cmd_fork_basic_test.c, repl_tool_completion_test.c)
 - [ ] repl_init.c calls discovery
-- [ ] repl_tool.c uses registry + external exec
+- [ ] repl_tool.c uses registry + external exec (BOTH paths: tool_thread_worker AND ik_repl_execute_pending_tool)
 - [ ] `make clean && make` succeeds
 - [ ] `make check` passes
 - [ ] 6 tools discovered at startup

@@ -9,14 +9,19 @@ Implementation details for external tool architecture.
 **Blocking scan on startup (Phases 2-5):**
 
 1. REPL initialization calls `ik_tool_discovery_run()` (blocking)
-2. Scan two locations for executable files:
-   - `PREFIX/libexec/ikigai/` (system tools shipped with ikigai)
-   - `~/.ikigai/tools/` (user-defined tools)
-3. For each executable, spawn process with `--schema` flag and wait
+2. **Scan ALL THREE directories for executable files (always scans all three, any/all/none may exist):**
+   - `PREFIX/libexec/ikigai/` - **System tools** shipped with ikigai (installed location)
+   - `~/.ikigai/tools/` - **User tools** (user's personal custom tools, global to user)
+   - `$PWD/.ikigai/tools/` - **Project tools** (project-specific tools, local to working directory)
+3. For each executable in all three directories, spawn process with `--schema` flag and wait
 4. 1 second timeout per tool
-5. Build tool registry from successful schema responses
-6. User tools override system tools (same name preference)
+5. Build unified registry from successful schema responses from all three directories
+6. **Override precedence: Project > User > System** (most specific wins)
+   - If same tool name exists in multiple directories, project version wins over user, user wins over system
+   - Example: custom "bash" in project dir overrides user's "bash", which overrides system "bash"
 7. Discovery completes, terminal appears
+
+**Critical: ALL THREE directories are scanned every time.** This is NOT a choice - discovery always checks all three locations. Missing or empty directories are handled gracefully (no error, continue with available tools from other locations).
 
 **State tracking:**
 
@@ -453,70 +458,184 @@ all: $(CLIENT_TARGET) $(TOOLS)
 
 ### Installation
 
-Package manager installs to standard FHS locations:
+Installation structure uses wrapper script approach:
+
+```
+$PREFIX/bin/ikigai              # wrapper script (generated at install time)
+$PREFIX/libexec/ikigai/ikigai   # actual binary
+$PREFIX/libexec/ikigai/bash     # tool executables
+$PREFIX/libexec/ikigai/file-read
+...
+```
 
 ```makefile
+PREFIX ?= /usr/local
+
+# Default install uses /usr/local PREFIX
 install: all
-	# Main binary
-	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 bin/ikigai $(DESTDIR)$(PREFIX)/bin/ikigai
+	$(MAKE) install-prefix PREFIX=/usr/local
 
-	# System tools (helper executables, not in PATH)
+# Generic install for any PREFIX
+install-prefix: all
+	# Install actual binary to libexec
 	install -d $(DESTDIR)$(PREFIX)/libexec/ikigai
-	install -m 755 libexec/ikigai/* $(DESTDIR)$(PREFIX)/libexec/ikigai/
+	install -m 755 libexec/ikigai/ikigai $(DESTDIR)$(PREFIX)/libexec/ikigai/ikigai
 
-	# Config
-	install -d $(DESTDIR)$(sysconfdir)/ikigai
-	install -m 644 etc/ikigai/config.json $(DESTDIR)$(sysconfdir)/ikigai/config.json
+	# Install tool executables
+	install -m 755 libexec/ikigai/bash $(DESTDIR)$(PREFIX)/libexec/ikigai/bash
+	install -m 755 libexec/ikigai/file-read $(DESTDIR)$(PREFIX)/libexec/ikigai/file-read
+	install -m 755 libexec/ikigai/file-write $(DESTDIR)$(PREFIX)/libexec/ikigai/file-write
+	install -m 755 libexec/ikigai/file-edit $(DESTDIR)$(PREFIX)/libexec/ikigai/file-edit
+	install -m 755 libexec/ikigai/glob $(DESTDIR)$(PREFIX)/libexec/ikigai/glob
+	install -m 755 libexec/ikigai/grep $(DESTDIR)$(PREFIX)/libexec/ikigai/grep
+
+	# Generate wrapper script in bin/
+	install -d $(DESTDIR)$(PREFIX)/bin
+	$(MAKE) generate-wrapper \
+		WRAPPER_PATH=$(DESTDIR)$(PREFIX)/bin/ikigai \
+		PREFIX=$(PREFIX)
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/ikigai
+
+	# Install config and data files
+	$(MAKE) install-config-data PREFIX=$(PREFIX)
+
+# Generate wrapper script with correct paths for PREFIX
+generate-wrapper:
+	@echo "#!/bin/sh" > $(WRAPPER_PATH)
+	@if [ "$(PREFIX)" = "/usr" ]; then \
+		echo 'IKIGAI_BIN_DIR=/usr/bin' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_CONFIG_DIR=/etc/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_DATA_DIR=/usr/share/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_LIBEXEC_DIR=/usr/libexec/ikigai' >> $(WRAPPER_PATH); \
+		echo 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR' >> $(WRAPPER_PATH); \
+		echo 'exec /usr/libexec/ikigai/ikigai "$$@"' >> $(WRAPPER_PATH); \
+	elif echo "$(PREFIX)" | grep -q "^/opt/"; then \
+		echo 'IKIGAI_BIN_DIR=$(PREFIX)/bin' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_CONFIG_DIR=$(PREFIX)/etc' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_DATA_DIR=$(PREFIX)/share' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_LIBEXEC_DIR=$(PREFIX)/libexec' >> $(WRAPPER_PATH); \
+		echo 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR' >> $(WRAPPER_PATH); \
+		echo 'exec $(PREFIX)/libexec/ikigai/ikigai "$$@"' >> $(WRAPPER_PATH); \
+	elif echo "$(PREFIX)" | grep -q "\.local$$"; then \
+		echo 'IKIGAI_BIN_DIR=$(PREFIX)/bin' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_CONFIG_DIR=$$HOME/.config/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_DATA_DIR=$(PREFIX)/share/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_LIBEXEC_DIR=$(PREFIX)/libexec/ikigai' >> $(WRAPPER_PATH); \
+		echo 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR' >> $(WRAPPER_PATH); \
+		echo 'exec $(PREFIX)/libexec/ikigai/ikigai "$$@"' >> $(WRAPPER_PATH); \
+	else \
+		echo 'IKIGAI_BIN_DIR=$(PREFIX)/bin' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_CONFIG_DIR=$(PREFIX)/etc/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_DATA_DIR=$(PREFIX)/share/ikigai' >> $(WRAPPER_PATH); \
+		echo 'IKIGAI_LIBEXEC_DIR=$(PREFIX)/libexec/ikigai' >> $(WRAPPER_PATH); \
+		echo 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR' >> $(WRAPPER_PATH); \
+		echo 'exec $(PREFIX)/libexec/ikigai/ikigai "$$@"' >> $(WRAPPER_PATH); \
+	fi
+
+# Install config and data files based on PREFIX
+install-config-data:
+	@if [ "$(PREFIX)" = "/usr" ]; then \
+		install -d $(DESTDIR)/etc/ikigai; \
+		install -m 644 etc/ikigai/config.json $(DESTDIR)/etc/ikigai/config.json; \
+		install -d $(DESTDIR)/usr/share/ikigai; \
+		install -m 644 share/ikigai/* $(DESTDIR)/usr/share/ikigai/; \
+	elif echo "$(PREFIX)" | grep -q "^/opt/"; then \
+		install -d $(DESTDIR)$(PREFIX)/etc; \
+		install -m 644 etc/ikigai/config.json $(DESTDIR)$(PREFIX)/etc/config.json; \
+		install -d $(DESTDIR)$(PREFIX)/share; \
+		install -m 644 share/ikigai/* $(DESTDIR)$(PREFIX)/share/; \
+	elif echo "$(PREFIX)" | grep -q "\.local$$"; then \
+		install -d $(DESTDIR)$$HOME/.config/ikigai; \
+		install -m 644 etc/ikigai/config.json $(DESTDIR)$$HOME/.config/ikigai/config.json; \
+		install -d $(DESTDIR)$(PREFIX)/share/ikigai; \
+		install -m 644 share/ikigai/* $(DESTDIR)$(PREFIX)/share/ikigai/; \
+	else \
+		install -d $(DESTDIR)$(PREFIX)/etc/ikigai; \
+		install -m 644 etc/ikigai/config.json $(DESTDIR)$(PREFIX)/etc/ikigai/config.json; \
+		install -d $(DESTDIR)$(PREFIX)/share/ikigai; \
+		install -m 644 share/ikigai/* $(DESTDIR)$(PREFIX)/share/ikigai/; \
+	fi
+
+# Uninstall - mirrors install with same PREFIX
+uninstall:
+	$(MAKE) uninstall-prefix PREFIX=/usr/local
+
+# Uninstall for specific PREFIX
+uninstall-prefix:
+	# Remove wrapper script
+	rm -f $(DESTDIR)$(PREFIX)/bin/ikigai
+
+	# Remove binaries
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/ikigai
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/bash
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/file-read
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/file-write
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/file-edit
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/glob
+	rm -f $(DESTDIR)$(PREFIX)/libexec/ikigai/grep
+	-rmdir $(DESTDIR)$(PREFIX)/libexec/ikigai
+	-rmdir $(DESTDIR)$(PREFIX)/libexec
+
+	# Remove config and data (PREFIX-specific)
+	$(MAKE) uninstall-config-data PREFIX=$(PREFIX)
+
+# Remove config and data files based on PREFIX
+uninstall-config-data:
+	@if [ "$(PREFIX)" = "/usr" ]; then \
+		rm -f $(DESTDIR)/etc/ikigai/config.json; \
+		-rmdir $(DESTDIR)/etc/ikigai; \
+		rm -rf $(DESTDIR)/usr/share/ikigai; \
+	elif echo "$(PREFIX)" | grep -q "^/opt/"; then \
+		rm -f $(DESTDIR)$(PREFIX)/etc/config.json; \
+		-rmdir $(DESTDIR)$(PREFIX)/etc; \
+		rm -rf $(DESTDIR)$(PREFIX)/share; \
+	elif echo "$(PREFIX)" | grep -q "\.local$$"; then \
+		rm -f $(DESTDIR)$$HOME/.config/ikigai/config.json; \
+		-rmdir $(DESTDIR)$$HOME/.config/ikigai; \
+		rm -rf $(DESTDIR)$(PREFIX)/share/ikigai; \
+	else \
+		rm -f $(DESTDIR)$(PREFIX)/etc/ikigai/config.json; \
+		-rmdir $(DESTDIR)$(PREFIX)/etc/ikigai; \
+		rm -rf $(DESTDIR)$(PREFIX)/share/ikigai; \
+	fi
+```
+
+**Install examples:**
+
+```bash
+# Default install to /usr/local
+make install
+
+# Install to custom PREFIX
+make install-prefix PREFIX=/opt/ikigai
+
+# User install
+make install-prefix PREFIX=$HOME/.local
+```
+
+**Uninstall examples:**
+
+```bash
+# Default uninstall from /usr/local
+make uninstall
+
+# Uninstall from custom PREFIX (must match install PREFIX!)
+make uninstall-prefix PREFIX=/opt/ikigai
+
+# Uninstall user install
+make uninstall-prefix PREFIX=$HOME/.local
 ```
 
 ### Runtime Tool Discovery
 
-ikigai discovers tools from two locations:
+Tool discovery reads paths from environment variables set by wrapper:
 
 ```c
-// Pseudo-code
-void discover_tools(ik_repl_ctx_t *ctx) {
-    // System tools (installed with package)
-    scan_directory(PREFIX "/libexec/ikigai");
-
-    // User tools (user-managed)
-    scan_directory(expand_tilde("~/.ikigai/tools"));
-
-    // User tools override system tools (same name)
-}
+// Reads IKIGAI_LIBEXEC_DIR, IKIGAI_CONFIG_DIR, IKIGAI_DATA_DIR
+// Set by wrapper script at startup
 ```
 
-**PREFIX determination:**
-
-Development mode:
-```bash
-make PREFIX=$PWD    # Builds with local path for dev testing
-./bin/ikigai        # Discovers tools at ./libexec/ikigai/
-```
-
-Installed mode:
-```bash
-make install PREFIX=/usr/local
-/usr/local/bin/ikigai  # Discovers tools at /usr/local/libexec/ikigai/
-```
-
-**Implementation:**
-
-Option 1: Compile-time constant:
-```c
-#ifndef PREFIX
-#define PREFIX "/usr/local"
-#endif
-```
-
-Option 2: Runtime detection:
-```c
-// If ./libexec/ikigai/ exists relative to binary, use it (dev mode)
-// Otherwise use PREFIX/libexec/ikigai/ (installed mode)
-```
-
-Option 1 is simpler and standard. Option 2 enables running from any location without recompilation.
+No compile-time PREFIX needed - all path configuration happens at install time via wrapper script generation.
 
 ### Packaging
 
