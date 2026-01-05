@@ -339,6 +339,64 @@ MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent,
 
 **Note:** Add forward declaration or include for `ik_tool_registry_t` in wrapper_internal.h if needed.
 
+### Test Mock Updates (ALL FOUR REQUIRED)
+
+The wrapper function `ik_request_build_from_conversation_()` is mocked in test files. Each mock MUST be updated to match the new signature, or `make check` will fail with compilation errors.
+
+**1. tests/unit/commands/cmd_fork_error_test.c (~line 43):**
+```c
+// Old:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+
+// New:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    (void)registry;  // Suppress unused warning
+    // ... rest of mock implementation
+}
+```
+
+**2. tests/unit/commands/cmd_fork_coverage_test_mocks.c (~line 72):**
+```c
+// Old:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+
+// New:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    (void)registry;  // Suppress unused warning
+    // ... rest of mock implementation
+}
+```
+
+**3. tests/unit/commands/cmd_fork_basic_test.c (~line 46):**
+```c
+// Old:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+
+// New:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    (void)registry;  // Suppress unused warning
+    // ... rest of mock implementation
+}
+```
+
+**4. tests/unit/repl/repl_tool_completion_test.c (~line 98):**
+```c
+// Old:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+
+// New:
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
+{
+    (void)registry;  // Suppress unused warning
+    // ... rest of mock implementation
+}
+```
+
+**Verification:** After updating all 4 test mocks, `make check` must pass without compilation errors.
+
 ### src/providers/request_tools.c
 
 Update function implementation to accept registry parameter and iterate it:
@@ -466,6 +524,7 @@ Report status:
 - [ ] shared.h has tool_registry field
 - [ ] request.h has updated ik_request_build_from_conversation signature with registry parameter
 - [ ] All 4 call sites updated (repl_actions_llm.c, repl_tool_completion.c, commands_fork.c, wrapper_internal.h/c)
+- [ ] All 4 test mock signatures updated (cmd_fork_error_test.c, cmd_fork_coverage_test_mocks.c, cmd_fork_basic_test.c, repl_tool_completion_test.c)
 - [ ] repl_init.c calls discovery
 - [ ] repl_tool.c uses registry + external exec
 - [ ] `make clean && make` succeeds
