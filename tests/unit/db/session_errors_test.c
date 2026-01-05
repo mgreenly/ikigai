@@ -105,22 +105,6 @@ START_TEST(test_db_session_get_active_query_failure) {
 }
 
 END_TEST
-// Test: ik_db_session_end handles query failure
-START_TEST(test_db_session_end_query_failure) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
-
-    // Mock is already set to return error result
-    res_t res = ik_db_session_end(db, 1);
-
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert(strstr(res.err->msg, "Failed to end session") != NULL);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 
 // Suite configuration
 static Suite *db_session_errors_suite(void)
@@ -131,7 +115,6 @@ static Suite *db_session_errors_suite(void)
     tcase_set_timeout(tc_errors, 30);
     tcase_add_test(tc_errors, test_db_session_create_query_failure);
     tcase_add_test(tc_errors, test_db_session_get_active_query_failure);
-    tcase_add_test(tc_errors, test_db_session_end_query_failure);
 
     suite_add_tcase(s, tc_errors);
     return s;

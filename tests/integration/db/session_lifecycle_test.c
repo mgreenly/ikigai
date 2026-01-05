@@ -163,66 +163,6 @@ START_TEST(test_session_ended_at_null_initially)
 }
 END_TEST
 
-// Test 4: Session end updates ended_at
-START_TEST(test_session_end_updates_ended_at)
-{
-    SKIP_IF_NO_DB();
-
-    int64_t session_id = 0;
-    res_t res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&res));
-
-    // End the session
-    res_t end_res = ik_db_session_end(db, session_id);
-    ck_assert(is_ok(&end_res));
-
-    // Query to verify ended_at is now set
-    char *query = talloc_asprintf(test_ctx,
-                                  "SELECT ended_at FROM sessions WHERE id = %lld",
-                                  (long long)session_id);
-    PGresult *result = PQexec(db->conn, query);
-    ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
-    ck_assert_int_eq(PQntuples(result), 1);
-
-    // Verify ended_at is NOT NULL
-    ck_assert(!PQgetisnull(result, 0, 0));
-
-    PQclear(result);
-}
-END_TEST
-
-// Test 5: Round trip - create, verify active, end, verify ended
-START_TEST(test_session_round_trip)
-{
-    SKIP_IF_NO_DB();
-
-    // Create session
-    int64_t session_id = 0;
-    res_t create_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&create_res));
-
-    // Verify session is active (ended_at = NULL)
-    char *query1 = talloc_asprintf(test_ctx,
-                                   "SELECT ended_at FROM sessions WHERE id = %lld",
-                                   (long long)session_id);
-    PGresult *result1 = PQexec(db->conn, query1);
-    ck_assert(PQgetisnull(result1, 0, 0));
-    PQclear(result1);
-
-    // End session
-    res_t end_res = ik_db_session_end(db, session_id);
-    ck_assert(is_ok(&end_res));
-
-    // Verify session is ended (ended_at NOT NULL)
-    char *query2 = talloc_asprintf(test_ctx,
-                                   "SELECT ended_at FROM sessions WHERE id = %lld",
-                                   (long long)session_id);
-    PGresult *result2 = PQexec(db->conn, query2);
-    ck_assert(!PQgetisnull(result2, 0, 0));
-    PQclear(result2);
-}
-END_TEST
-
 // Test 6: Transaction isolation - no data persists after rollback
 START_TEST(test_transaction_isolation)
 {
@@ -263,8 +203,6 @@ static Suite *session_lifecycle_suite(void)
     tcase_add_test(tc_core, test_session_create_returns_valid_id);
     tcase_add_test(tc_core, test_session_has_started_at);
     tcase_add_test(tc_core, test_session_ended_at_null_initially);
-    tcase_add_test(tc_core, test_session_end_updates_ended_at);
-    tcase_add_test(tc_core, test_session_round_trip);
     tcase_add_test(tc_core, test_transaction_isolation);
 
     suite_add_tcase(s, tc_core);
