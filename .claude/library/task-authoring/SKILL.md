@@ -93,9 +93,14 @@ This prevents sub-agents from misinterpreting paths like `cdd/plan/` as relative
 
 ### Skill Loading
 
-**CRITICAL: Provide EXACTLY what the sub-agent needs - no more, no less.**
+**Task execution automatically loads the `implementor` skillset as baseline:**
+- `jj` - Version control workflow
+- `errors` - Result types and error handling
+- `style` - Code style conventions
+- `tdd` - Test-driven development workflow
 
-- List the specific skills needed for THIS task only
+**List ONLY additional skills needed beyond the baseline:**
+- Specify skills needed for THIS task only
 - Don't load large reference skills (database, source-code) unless task directly requires them
 - Don't assume sub-agent will research or explore - give them what they need upfront
 - **Never load `align`** - sub-agents execute, they don't negotiate
@@ -144,13 +149,14 @@ Sub-agents will reach for familiar libraries (lodash, axios, etc.) unless constr
 Tasks execute without human oversight. The sub-agent cannot ask questions or request clarification. Everything it needs must be in the task file.
 
 Checklist for complete task authoring:
-- [ ] All required skills listed explicitly
+- [ ] Additional skills beyond baseline (jj, errors, style, tdd) listed explicitly
 - [ ] All file paths to read/modify listed
 - [ ] All test patterns and examples referenced
 - [ ] Allowed libraries specified, new dependencies forbidden
 - [ ] Edge cases and error conditions documented
 - [ ] Success criteria clearly defined
 - [ ] Rollback/failure handling specified
+- [ ] TDD workflow (Red/Green/Verify) included in Test Implementation section
 
 If unsure whether to include something: **INCLUDE IT**. Over-specification is safe. Under-specification causes unattended failures.
 
@@ -160,6 +166,16 @@ Task instructions should emphasize:
 - All needed context is provided in this task file
 
 **Why this matters:** Complete task authoring prevents unattended failures and prevents sub-agents from spawning research/explore agents, which would balloon token usage across the orchestration loop.
+
+### Test-Driven Development
+
+**All tasks follow TDD workflow (Red/Green/Verify):**
+
+1. **Red** - Write failing test first (with stub implementation that compiles)
+2. **Green** - Implement minimal code to pass
+3. **Verify** - Run `make check`
+
+The task template enforces this sequence with explicit workflow steps in the "Test Implementation" section.
 
 ## jj Workflow Requirements
 
@@ -262,6 +278,7 @@ All needed context is provided in this file. Do not research, explore, or spawn 
 ## Pre-Read
 
 **Skills:**
+(Baseline skills jj, errors, style, tdd are pre-loaded. Only list additional skills.)
 - `/load skill-name` - Why needed
 
 **Source:**
@@ -306,11 +323,31 @@ Structs to define (members and purpose, not C code):
 - Error handling: return ERR with category Z
 - Memory: talloc ownership rules
 
-## Test Scenarios
+## Test Implementation
 
+**Follow TDD workflow (Red/Green/Verify):**
+
+**Step 1 - Red (Failing Test):**
+- Write test code in tests/unit/[module]/[module]_test.c
+- Add function declarations to header files
+- Add stub implementations that compile but return minimal values (e.g., `return OK(NULL);`)
+- Build and run: `make check`
+- Verify test FAILS with assertion failure (NOT compilation error)
+
+**Step 2 - Green (Minimal Implementation):**
+- Implement ONLY what the current tests require
+- STOP when all tests pass
+- Do NOT write code "because you'll need it later"
+
+**Step 3 - Verify:**
+- Run `make check` - all tests must pass
+- Run `make lint` - complexity under threshold
+
+**Required test scenarios:**
 - Create/destroy lifecycle
 - Error case: invalid input returns ERR_INVALID_ARG
-- Edge case: empty list handled
+- Edge case: empty/null input handled correctly
+- [Add task-specific scenarios here]
 
 ## Completion
 

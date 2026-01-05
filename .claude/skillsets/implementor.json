@@ -2,7 +2,8 @@
   "preload": [
     "jj",
     "errors",
-    "style"
+    "style",
+    "tdd"
   ],
   "advertise": []
 }
