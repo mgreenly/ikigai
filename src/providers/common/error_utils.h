@@ -73,27 +73,4 @@ char *ik_error_user_message(TALLOC_CTX *ctx,
                              int category,
                              const char *detail);
 
-/**
- * Calculate retry delay for async retry via event loop
- *
- * @param attempt             Current retry attempt (1, 2, or 3)
- * @param provider_suggested_ms Provider's suggested delay from error response
- *                             (-1 if not provided)
- * @return                    Delay in milliseconds (always positive)
- *
- * Algorithm:
- * 1. If provider_suggested_ms > 0: Use provider's suggested delay
- * 2. Otherwise: Calculate exponential backoff with jitter:
- *    - Base delay: 1000ms * (2 ^ (attempt - 1))
- *    - Add random jitter: 0-1000ms (prevents thundering herd)
- *    - Attempt 1: 1000ms + jitter(0-1000ms)
- *    - Attempt 2: 2000ms + jitter(0-1000ms)
- *    - Attempt 3: 4000ms + jitter(0-1000ms)
- *
- * This delay is returned via the provider's timeout() method to the
- * REPL's select() call. The REPL does NOT call sleep(); instead,
- * select() naturally wakes after the timeout.
- */
-int64_t ik_error_calc_retry_delay_ms(int32_t attempt, int64_t provider_suggested_ms);
-
 #endif /* IK_PROVIDERS_COMMON_ERROR_UTILS_H */

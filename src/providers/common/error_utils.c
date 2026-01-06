@@ -163,20 +163,3 @@ char *ik_error_user_message(TALLOC_CTX *ctx,
 
     return message;
 }
-
-int64_t ik_error_calc_retry_delay_ms(int32_t attempt, int64_t provider_suggested_ms)
-{
-    /* If provider suggests a delay, use it */
-    if (provider_suggested_ms > 0) {
-        return provider_suggested_ms;
-    }
-
-    /* Otherwise, calculate exponential backoff with jitter */
-    /* Base delay: 1000ms * (2 ^ (attempt - 1)) */
-    int64_t base_delay_ms = 1000LL << (attempt - 1);
-
-    /* Add random jitter: 0-1000ms */
-    int64_t jitter_ms = rand() % 1001;
-
-    return base_delay_ms + jitter_ms;
-}
