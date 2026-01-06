@@ -37,7 +37,7 @@ START_TEST(test_completion_no_matches) {
         ck_assert(is_ok(&paths_res));
     }
 
-    shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -72,7 +72,7 @@ START_TEST(test_completion_history_no_conflict) {
         ck_assert(is_ok(&paths_res));
     }
 
-    shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -117,7 +117,7 @@ START_TEST(test_completion_layer_visibility) {
         ck_assert(is_ok(&paths_res));
     }
 
-    shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -155,7 +155,7 @@ START_TEST(test_completion_dynamic_update) {
         ck_assert(is_ok(&paths_res));
     }
 
-    shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));

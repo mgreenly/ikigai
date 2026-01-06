@@ -221,7 +221,8 @@ START_TEST(test_history_empty_input_not_saved) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
@@ -262,7 +263,7 @@ START_TEST(test_history_file_corrupt_continues) {
         ck_assert(is_ok(&paths_res));
     }
 
-    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -299,7 +300,7 @@ START_TEST(test_history_file_write_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
