@@ -433,3 +433,172 @@ No new gaps found. All tasks align with plan. Sequencing is correct. TDD workflo
 
 Phase 0 is now complete and ready for unattended execution. All tasks align with plan, all gaps resolved, installation infrastructure complete.
 
+
+---
+
+## Phase 0 Re-Verification (2026-01-05, Second Pass)
+
+**Context:** User requested independent verification of Phase 0 tasks only.
+
+**Process:** Applied gap-tasks checklist to all 6 Phase 0 tasks following documented approach.
+
+### Checklist Applied
+
+1. ✅ **Plan coverage** - All plan items covered by tasks
+2. ✅ **Task sequencing** - Dependencies correct, order logical
+3. ✅ **Task scope** - All tasks appropriately sized for unattended execution
+4. ✅ **Acceptance criteria** - Clear success metrics in postconditions
+5. ✅ **Test coverage** - TDD workflow or manual verification specified
+6. ✅ **TDD workflow** - Red/Green/Verify explicit in all code tasks
+7. ✅ **Test-first ordering** - Tests before implementation in all tasks
+8. ✅ **Baseline skills** - Only additional skills listed (jj/errors/style/tdd pre-loaded)
+9. ✅ **Build tasks** - paths-makefile.md implements wrapper generation
+10. ✅ **Migration tasks** - paths-helper-migration.md and paths-config-integration.md handle migrations
+
+### Task-by-Task Analysis
+
+**paths-core.md:**
+- Scope: ✅ 9 functions, 19 tests - reasonable for sonnet/thinking
+- Interface: ✅ Complete signatures with error handling context specified
+- TDD: ✅ Red (failing tests) → Green (implementation) → Verify (make check)
+- Dependencies: ✅ None (foundation task)
+- Concerns: None
+
+**paths-test-infrastructure.md:**
+- Scope: ✅ 2 helper functions, 7 tests - small and focused
+- Pattern: ✅ Static thread-local buffer (appropriate for test utilities)
+- TDD: ✅ Explicit workflow with compilation verification
+- Dependencies: ✅ Depends on paths-core
+- Concerns: None
+
+**paths-helper-migration.md:**
+- Scope: ✅ 2-3 helper functions + 1 production signature - focused
+- Impact: ✅ Highest impact (fixes ~160 downstream tests)
+- BEFORE/AFTER: ✅ Signatures clearly specified
+- Dependencies: ✅ Depends on test infrastructure
+- Model: ✅ sonnet/extended appropriate for scope
+- Concerns: None
+
+**paths-comprehensive-tests.md:**
+- Scope: ⚠️→✅ 4 test files, 30+ tests (previously flagged as GAP-TASK-5)
+  - Mitigation: Reduced from original 7 files per verified.md
+  - Model: sonnet/extended with good TDD should handle
+- Coverage: ✅ Explicit goal: 100% of paths module
+- Pattern: ✅ Clear test structure template provided
+- Dependencies: ✅ Depends on helper migration
+- Concerns: None (risk accepted, mitigated)
+
+**paths-makefile.md:**
+- Scope: ✅ Makefile changes only - well-defined
+- Testing: ✅ 3 manual verification tests (appropriate for build infrastructure)
+- sysconfdir logic: ✅ PREFIX=/usr special case documented
+- configdir logic: ✅ /opt detection specified
+- Dependencies: ✅ Depends on paths-core (needs implementation)
+- Concerns: None
+
+**paths-config-integration.md:**
+- Scope: ✅ 1 signature change + 72 test sites - large but mechanical
+- Model: ✅ sonnet/extended appropriate
+- Pattern: ✅ Clear BEFORE/AFTER examples for test updates
+- Migration order: ✅ Dependency order specified (foundation → advanced)
+- Dependencies: ✅ Depends on comprehensive tests (needs stable paths)
+- Concerns: None
+
+### Stop Points Verification
+
+**order.json stop messages:**
+- Line 4: ✅ verify-paths-core - "make check passes, paths module tests pass"
+- Line 7: ✅ verify-paths-test-infra - "test helpers work"
+- Line 10: ✅ verify-paths-helpers - "~160 tests compile"
+- Line 13: ✅ verify-paths-coverage - "100% coverage for src/paths.c"
+- Line 16: ✅ verify-makefile-install - "wrapper script works, manual tests pass"
+- Line 19: ✅ verify-phase-0-complete - "all ~565 tests pass, 100% coverage"
+
+**Final stop point (line 19) is critical** - verifies:
+1. Complete test suite passing (not just paths tests)
+2. 100% coverage maintained
+3. Full integration verified
+
+### Cross-Task Consistency
+
+**ik_paths_expand_tilde() API:**
+- paths-core.md line 59: ✅ PUBLIC API
+- paths-config-integration.md lines 66-78: ✅ Confirms PUBLIC, used by credentials.c
+- Consistent across all tasks ✅
+
+**Error handling:**
+- paths-core.md line 107: ✅ Uses ERR_INVALID_ARG (correct code)
+- Error context: ✅ Allocated on ctx parameter (survives function return)
+- No undefined error codes ✅
+
+**Memory management:**
+- All tasks: ✅ talloc ownership clear
+- Test helpers: ✅ Static thread-local for test utils (appropriate exception)
+- Lifetime rules: ✅ Documented in each task
+
+### Integration Points
+
+**ik_shared_ctx_init() signature change:**
+- Specified in: paths-helper-migration.md lines 54-75
+- BEFORE: 5 params (with working_dir, ikigai_subdir)
+- AFTER: 4 params (with paths)
+- Impact: ✅ Documented - src/client.c + test helpers
+- Call sites: ✅ All identified
+
+**Config module integration:**
+- Specified in: paths-config-integration.md lines 50-70
+- BEFORE: ik_config_load(ctx, path, &cfg)
+- AFTER: ik_config_load(ctx, paths, &cfg)
+- Impact: ✅ Documented - 72 test sites across 11 files
+- Migration order: ✅ Specified (foundation → advanced)
+
+### Unattended Execution Readiness
+
+All tasks include:
+- ✅ "UNATTENDED EXECUTION" warning at top
+- ✅ Complete context section
+- ✅ All needed skills listed
+- ✅ All source files to read specified
+- ✅ Library constraints documented
+- ✅ Preconditions verifiable
+- ✅ Postconditions testable
+- ✅ jj commit template with exact filename
+
+### New Gaps Found
+
+**NONE.** All previously identified gaps (GAP-TASK-1 through GAP-TASK-10) remain fixed.
+
+### Recommendations
+
+**Phase 0 status:** ✅ **READY FOR EXECUTION**
+
+**Strengths:**
+- Wrapper script approach eliminates runtime complexity
+- Test infrastructure enables PID-based isolation for parallel execution
+- High-impact helper migration (fixes 160 tests) positioned early
+- Clear progression: foundation → infrastructure → migration → coverage → build → integration
+- Comprehensive verification at phase boundary (all 565 tests)
+
+**Minor observations (non-blocking):**
+1. paths-comprehensive-tests.md is the largest task (4 files, 30+ tests) but:
+   - Model upgraded to sonnet/extended
+   - Reduced from original 7 files
+   - TDD workflow will handle incrementally
+   - Risk accepted
+2. paths-config-integration.md updates 72 sites but:
+   - Mechanical changes following clear pattern
+   - Migration order specified
+   - Model upgraded to sonnet/extended
+   - Should complete successfully
+
+**Execution recommendation:** Proceed with Phase 0 execution. No blocking issues.
+
+---
+
+## Verification Log
+
+- 2026-01-05 10:00 (First pass): Plan-to-tasks alignment, identified 9 gaps
+- 2026-01-05 11:00 (Fixes): All 9 gaps resolved, paths-makefile.md added
+- 2026-01-05 11:30 (Verification): Confirmed all fixes present in files
+- 2026-01-05 12:00 (Second pass): Independent re-verification via gap-tasks checklist
+  - Result: **0 gaps found, READY FOR EXECUTION**
