@@ -5,26 +5,30 @@
 #include <unistd.h>
 #include "../../src/config.h"
 #include "../../src/error.h"
+#include "../../src/paths.h"
 #include "../../src/wrapper.h"
 #include "../test_utils.h"
 
 START_TEST(test_config_full_flow) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory in /tmp
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_integration_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists from previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Get config path from paths
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     // First call: config doesn't exist, should create defaults
     ik_config_t *cfg1 = NULL;
-    res_t result1 = ik_config_load(ctx, test_config, &cfg1);
+    res_t result1 = ik_config_load(ctx, paths, &cfg1);
     ck_assert(!result1.is_err);
     ck_assert_ptr_nonnull(cfg1);
     ck_assert_str_eq(cfg1->openai_model, "gpt-5-mini");
@@ -41,7 +45,7 @@ START_TEST(test_config_full_flow) {
 
     // Second call: config exists, should load the same defaults
     ik_config_t *cfg2 = NULL;
-    res_t result2 = ik_config_load(ctx, test_config, &cfg2);
+    res_t result2 = ik_config_load(ctx, paths, &cfg2);
     ck_assert(!result2.is_err);
     ck_assert_ptr_nonnull(cfg2);
     ck_assert_str_eq(cfg2->openai_model, "gpt-5-mini");
@@ -68,7 +72,7 @@ START_TEST(test_config_full_flow) {
 
     // Third call: should load modified values
     ik_config_t *cfg3 = NULL;
-    res_t result3 = ik_config_load(ctx, test_config, &cfg3);
+    res_t result3 = ik_config_load(ctx, paths, &cfg3);
     ck_assert(!result3.is_err);
     ck_assert_ptr_nonnull(cfg3);
     ck_assert_str_eq(cfg3->openai_model, "gpt-3.5-turbo");
@@ -79,8 +83,7 @@ START_TEST(test_config_full_flow) {
     ck_assert_int_eq(cfg3->listen_port, 3000);
 
     // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
@@ -102,18 +105,17 @@ bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
 }
 
 START_TEST(test_config_write_failure) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory in /tmp
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_write_fail_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists from previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
     // Enable mock write failure
     mock_write_failure = true;
@@ -121,7 +123,7 @@ START_TEST(test_config_write_failure) {
     // Try to load config - should fail to create default config
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_IO);
 
@@ -129,8 +131,7 @@ START_TEST(test_config_write_failure) {
     mock_write_failure = false;
 
     // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
@@ -151,22 +152,21 @@ yyjson_doc *yyjson_read_file_(const char *path, yyjson_read_flag flg,
 }
 
 START_TEST(test_config_read_failure) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory in /tmp
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_read_fail_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists from previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
     // First create a valid config file
     ik_config_t *config1 = NULL;
-    res_t result1 = ik_config_load(ctx, test_config, &config1);
+    res_t result1 = ik_config_load(ctx, paths, &config1);
     ck_assert(!result1.is_err);
 
     // Now enable mock read failure
@@ -174,7 +174,7 @@ START_TEST(test_config_read_failure) {
 
     // Try to load config - should fail to read
     ik_config_t *config2 = NULL;
-    res_t result2 = ik_config_load(ctx, test_config, &config2);
+    res_t result2 = ik_config_load(ctx, paths, &config2);
     ck_assert(result2.is_err);
     ck_assert_int_eq(result2.err->code, ERR_PARSE);
 
@@ -182,28 +182,27 @@ START_TEST(test_config_read_failure) {
     mock_read_failure = false;
 
     // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_config_invalid_json_root) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory in /tmp
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_invalid_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists from previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
-    // Create directory
-    mkdir(test_dir, 0755);
+    // Get config path
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     // Create a JSON file where root is an array, not an object
     FILE *f = fopen(test_config, "w");
@@ -217,13 +216,12 @@ START_TEST(test_config_invalid_json_root) {
     // Try to load config - should fail because root is not an object
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -240,22 +238,21 @@ yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
 }
 
 START_TEST(test_config_doc_get_root_null) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory in /tmp
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_root_null_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists from previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
     // First create a valid config file
     ik_config_t *config1 = NULL;
-    res_t result1 = ik_config_load(ctx, test_config, &config1);
+    res_t result1 = ik_config_load(ctx, paths, &config1);
     ck_assert(!result1.is_err);
 
     // Now enable mock to return NULL from doc_get_root
@@ -263,7 +260,7 @@ START_TEST(test_config_doc_get_root_null) {
 
     // Try to load config - should fail because root is NULL
     ik_config_t *config2 = NULL;
-    res_t result2 = ik_config_load(ctx, test_config, &config2);
+    res_t result2 = ik_config_load(ctx, paths, &config2);
     ck_assert(result2.is_err);
     ck_assert_int_eq(result2.err->code, ERR_PARSE);
 
@@ -271,8 +268,7 @@ START_TEST(test_config_doc_get_root_null) {
     mock_doc_get_root_null = false;
 
     // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "../../../src/config.h"
 #include "../../../src/error.h"
+#include "../../../src/paths.h"
 #include "../../test_utils.h"
 
 START_TEST(test_config_types_exist) {
@@ -32,15 +33,23 @@ START_TEST(test_config_load_function_exists) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // This test verifies that ik_config_load function exists and can be called
-    // We expect it to fail since we haven't implemented it yet
     ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, "/tmp/nonexistent_test_config.json", &config);
+    res_t result = ik_config_load(ctx, paths, &config);
 
     // For now, just verify the function exists and returns a result
     // Later tests will verify actual behavior
     (void)result;
 
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -50,36 +59,40 @@ START_TEST(test_config_auto_create_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory that we can safely create/delete
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment (creates test directory structure)
+    test_paths_setup_env();
 
-    // Clean up if it exists from a previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Get config directory from paths
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Delete config dir to force recreation
+    unlink(config_path);
+    rmdir(config_dir);
 
     // Call ik_config_load - should create directory and file
     ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
 
     // Verify directory was created
     struct stat st;
-    ck_assert_int_eq(stat(test_dir, &st), 0);
+    ck_assert_int_eq(stat(config_dir, &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
     ck_assert_int_eq(st.st_mode & 0777, 0755);
 
     // Verify config file was created
-    ck_assert_int_eq(stat(test_config, &st), 0);
+    ck_assert_int_eq(stat(config_path, &st), 0);
     ck_assert(S_ISREG(st.st_mode));
 
-    // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -89,38 +102,38 @@ START_TEST(test_config_auto_create_with_existing_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_existing_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment (creates directory structure)
+    test_paths_setup_env();
 
-    // Clean up if it exists from a previous run
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
-    // Pre-create the directory
-    mkdir(test_dir, 0755);
+    // Get config directory from paths
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Delete config file but leave directory
+    unlink(config_path);
 
     // Verify directory exists
     struct stat st;
-    ck_assert_int_eq(stat(test_dir, &st), 0);
+    ck_assert_int_eq(stat(config_dir, &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
 
     // Call ik_config_load - should create config in existing directory
     ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
 
     // Should succeed
     ck_assert(!result.is_err);
 
     // Verify config file was created
-    ck_assert_int_eq(stat(test_config, &st), 0);
+    ck_assert_int_eq(stat(config_path, &st), 0);
     ck_assert(S_ISREG(st.st_mode));
 
-    // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -130,19 +143,17 @@ START_TEST(test_config_auto_create_defaults) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Use a test directory
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_%d", getpid());
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "%s/config.json", test_dir);
+    // Setup test environment
+    test_paths_setup_env();
 
-    // Clean up if it exists
-    unlink(test_config);
-    rmdir(test_dir);
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
     // Call ik_config_load - should create with defaults
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, test_config, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
 
@@ -154,9 +165,7 @@ START_TEST(test_config_auto_create_defaults) {
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg->listen_port, 1984);
 
-    // Clean up
-    unlink(test_config);
-    rmdir(test_dir);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -166,23 +175,30 @@ START_TEST(test_config_load_invalid_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create a file with invalid JSON
-    char test_file[256];
-    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_invalid_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
 
-    FILE *f = fopen(test_file, "w");
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Get config path and write invalid JSON
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    FILE *f = fopen(config_path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{this is not valid JSON}");
     fclose(f);
 
     // Try to load - should fail with PARSE error
     ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, test_file, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
-    // Clean up
-    unlink(test_file);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
@@ -192,11 +208,19 @@ START_TEST(test_config_memory_cleanup) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create a config file
-    char test_file[256];
-    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_memory_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
 
-    FILE *f = fopen(test_file, "w");
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Get config path and write valid JSON
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    FILE *f = fopen(config_path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
@@ -204,7 +228,7 @@ START_TEST(test_config_memory_cleanup) {
 
     // Load config
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, test_file, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
 
@@ -218,7 +242,7 @@ START_TEST(test_config_memory_cleanup) {
     ck_assert_ptr_eq(talloc_parent(cfg), ctx);
 
     // Clean up - freeing ctx should free all child allocations
-    unlink(test_file);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 
     // Note: We can't access cfg after talloc_free(ctx) as it's been freed

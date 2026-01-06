@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "../../../src/config.h"
+#include "../../../src/paths.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
@@ -55,11 +56,16 @@ int posix_mkdir_(const char *pathname, mode_t mode)
 
 /* Test: mkdir failure (permission denied) */
 START_TEST(test_config_mkdir_failure) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    // Use a test path that requires directory creation
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_test_%d/config.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
 
     // Enable mock failures
     mock_stat_should_fail = true;   // Directory doesn't exist
@@ -69,7 +75,7 @@ START_TEST(test_config_mkdir_failure) {
 
     // Attempt to load config - should fail when creating directory
     ik_config_t *config = NULL;
-    res_t res = ik_config_load(ctx, test_config, &config);
+    res_t res = ik_config_load(ctx, paths, &config);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -78,16 +84,26 @@ START_TEST(test_config_mkdir_failure) {
     mock_stat_should_fail = false;
     mock_mkdir_should_fail = false;
 
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
 /* Test: stat succeeds (directory exists) */
 START_TEST(test_config_stat_directory_exists) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Use /tmp which always exists
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_test_exists_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     // Mock stat to succeed (directory exists)
     mock_stat_should_fail = false;
@@ -102,13 +118,13 @@ START_TEST(test_config_stat_directory_exists) {
 
     // Load config - should succeed
     ik_config_t *config = NULL;
-    res_t res = ik_config_load(ctx, test_config, &config);
+    res_t res = ik_config_load(ctx, paths, &config);
 
     // Verify success
     ck_assert(is_ok(&res));
 
     // Cleanup
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
