@@ -7,7 +7,9 @@ description: Creating pull requests with concise descriptions
 
 ## Creating PRs
 
-Use `gh pr create` with a concise description. No test plan section - CI runs the full quality suite automatically.
+**This is a jj repository.** The `gh pr create` command requires a git repository and will fail. Use `gh api` instead to create PRs via the GitHub API.
+
+No test plan section - CI runs the full quality suite automatically.
 
 ## Template
 
@@ -21,7 +23,12 @@ Use `gh pr create` with a concise description. No test plan section - CI runs th
 ## Command
 
 ```bash
-gh pr create --title "<title>" --body "$(cat <<'EOF'
+gh api repos/mgreenly/ikigai/pulls \
+  --method POST \
+  --field title="<title>" \
+  --field head="<branch-name>" \
+  --field base="main" \
+  --field body="$(cat <<'EOF'
 <description>
 
 ---
@@ -29,6 +36,12 @@ gh pr create --title "<title>" --body "$(cat <<'EOF'
 EOF
 )"
 ```
+
+**Parameters:**
+- `title`: PR title (imperative mood, concise)
+- `head`: Source branch name (e.g., `rel-08-a`)
+- `base`: Target branch (usually `main`)
+- `body`: PR description
 
 ## Guidelines
 
