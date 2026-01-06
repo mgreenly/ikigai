@@ -12,6 +12,7 @@
 #include <signal.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
+#include "../../../src/paths.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/agent.h"
 #include "../../test_utils.h"
@@ -299,7 +300,15 @@ START_TEST(test_repl_init_session_get_active_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_get_active
@@ -328,7 +337,15 @@ START_TEST(test_repl_init_session_create_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_create
@@ -358,7 +375,15 @@ START_TEST(test_repl_init_restore_agents_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on restore_agents
@@ -388,7 +413,15 @@ START_TEST(test_repl_init_existing_session) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Initialize REPL - should use existing session

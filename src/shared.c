@@ -24,25 +24,21 @@ static int shared_destructor(ik_shared_ctx_t *shared)
 
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
-                         const char *working_dir,
-                         const char *ikigai_path,
+                         ik_paths_t *paths,
                          ik_logger_t *logger,
                          ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE
-    assert(working_dir != NULL);   // LCOV_EXCL_BR_LINE
-    assert(ikigai_path != NULL);   // LCOV_EXCL_BR_LINE
+    assert(paths != NULL);   // LCOV_EXCL_BR_LINE
     assert(logger != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
-
-    (void)working_dir;  // Reserved for future use
-    (void)ikigai_path;  // Reserved for future use
 
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
     if (shared == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     shared->cfg = cfg;
+    shared->paths = paths;
 
     // Use injected logger (DI pattern - explicit dependency)
     assert(logger != NULL);  // LCOV_EXCL_BR_LINE

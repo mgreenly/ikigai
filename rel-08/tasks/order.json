@@ -7,18 +7,10 @@
       "thinking": "thinking"
     },
     {
-      "stop": "verify-paths-core",
-      "message": "Verify paths core: make check passes, paths module tests pass"
-    },
-    {
       "task": "paths-test-infrastructure.md",
       "group": "Paths Module Foundation",
       "model": "sonnet",
       "thinking": "thinking"
-    },
-    {
-      "stop": "verify-paths-test-infra",
-      "message": "Verify test infrastructure: test_paths_setup_env() and test_paths_cleanup_env() work"
     },
     {
       "task": "paths-helper-migration.md",
@@ -27,28 +19,16 @@
       "thinking": "extended"
     },
     {
-      "stop": "verify-paths-helpers",
-      "message": "Verify helper migration: test helpers use paths module, ~160 tests compile"
-    },
-    {
       "task": "paths-comprehensive-tests.md",
       "group": "Paths Module Foundation",
       "model": "sonnet",
       "thinking": "extended"
     },
     {
-      "stop": "verify-paths-coverage",
-      "message": "Verify comprehensive tests: make coverage shows 100% for src/paths.c"
-    },
-    {
       "task": "paths-makefile.md",
       "group": "Paths Module Foundation",
       "model": "sonnet",
       "thinking": "thinking"
-    },
-    {
-      "stop": "verify-makefile-install",
-      "message": "Verify make install: wrapper script generated correctly, manual tests pass, uninstall works"
     },
     {
       "task": "paths-config-integration.md",

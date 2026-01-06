@@ -5,7 +5,9 @@
 
 #include "logger.h"
 #include "panic.h"
+#include "paths.h"
 #include "wrapper.h"
+#include "../test_utils.h"
 
 ik_config_t *test_cfg_create(TALLOC_CTX *ctx)
 {
@@ -29,11 +31,20 @@ ik_config_t *test_cfg_create(TALLOC_CTX *ctx)
 
 res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 {
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(ctx, &paths);
+    if (is_err(&result)) return result;
+
+    // Create config and logger
     ik_config_t *cfg = test_cfg_create(ctx);
-    // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Use /tmp for test logger directory
-    return ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, out);
+
+    // New signature: paths replaces working_dir + ikigai_subdir
+    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
 }
 
 res_t test_repl_create(TALLOC_CTX *ctx,
@@ -60,8 +71,17 @@ res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
                                        ik_config_t *cfg,
                                        ik_shared_ctx_t **out)
 {
-    // Create logger before calling init
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(ctx, &paths);
+    if (is_err(&result)) return result;
+
+    // Create logger
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Use /tmp for test logger directory
-    return ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, out);
+
+    // New signature: paths replaces working_dir + ikigai_subdir
+    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
 }
