@@ -1,4 +1,5 @@
 #include "../../../src/config.h"
+#include "../../../src/paths.h"
 
 #include "../../../src/error.h"
 #include "../../test_utils.h"
@@ -9,12 +10,21 @@
 #include <unistd.h>
 
 START_TEST(test_config_history_size_default) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config without history_size field
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_default_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -33,25 +43,34 @@ START_TEST(test_config_history_size_default) {
     // Load config - should succeed with default history_size
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Default history_size should be 10000
     ck_assert_int_eq(cfg->history_size, 10000);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_config_history_size_custom) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with custom history_size
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_custom_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -71,26 +90,35 @@ START_TEST(test_config_history_size_custom) {
     // Load config - should succeed with custom history_size
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Custom history_size should be 5000
     ck_assert_int_eq(cfg->history_size, 5000);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_history_size_zero) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with zero history_size (should fail)
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_zero_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -110,24 +138,33 @@ START_TEST(test_config_history_size_zero) {
     // Load config - should fail with OUT_OF_RANGE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_history_size_negative) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with negative history_size (should fail)
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_neg_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -147,24 +184,33 @@ START_TEST(test_config_history_size_negative) {
     // Load config - should fail with OUT_OF_RANGE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_history_size_large_value) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with large history_size (should succeed)
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_large_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -184,25 +230,34 @@ START_TEST(test_config_history_size_large_value) {
     // Load config - should succeed with large history_size
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 1000000);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_history_size_exceeds_int32) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with history_size exceeding INT32_MAX
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_exceed_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -222,24 +277,33 @@ START_TEST(test_config_history_size_exceeds_int32) {
     // Load config - should fail with OUT_OF_RANGE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_history_size_invalid_type) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a config with invalid history_size type (string instead of int)
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_history_type_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -259,12 +323,12 @@ START_TEST(test_config_history_size_invalid_type) {
     // Load config - should fail with PARSE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
     // Clean up
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 

@@ -2,6 +2,7 @@
 #include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
+#include "paths.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
 
@@ -12,30 +13,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-res_t ik_cfg_expand_tilde(TALLOC_CTX *ctx, const char *path)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(path != NULL); // LCOV_EXCL_BR_LINE
-
-    // check if path needs tilde expansion
-    if (path[0] != '~') {
-        char *result = talloc_strdup_(ctx, path);
-        if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        return OK(result);
-    }
-
-    // if the path starts with tilde but $HOME is not set error
-    const char *home = getenv("HOME");
-    if (!home) {
-        return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
-    }
-
-    // return $HOME expanded path
-    char *result = talloc_asprintf_(ctx, "%s%s", home, path + 1);
-    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    return OK(result);
-}
 
 // Create default config file with default values
 static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
@@ -87,20 +64,24 @@ static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
     return OK(NULL);
 }
 
-res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out)
+res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(path != NULL); // LCOV_EXCL_BR_LINE
+    assert(paths != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL); // LCOV_EXCL_BR_LINE
 
-    // expand tilde in path
-    char *expanded_path = TRY(ik_cfg_expand_tilde(ctx, path));
+    // Get config directory from paths module
+    const char *config_dir = ik_paths_get_config_dir(paths);
+
+    // Build config file path
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    if (!config_path) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // check if file exists
     struct stat st;
-    if (posix_stat_(expanded_path, &st) != 0) {
+    if (posix_stat_(config_path, &st) != 0) {
         // File doesn't exist, create default config
-        res_t create_result = create_default_config(ctx, expanded_path);
+        res_t create_result = create_default_config(ctx, config_path);
         if (create_result.is_err) {
             return create_result;
         }
@@ -109,7 +90,7 @@ res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_config_t **out)
     // load and parse config file using yyjson with talloc allocator
     yyjson_alc allocator = ik_make_talloc_allocator(ctx);
     yyjson_read_err read_err;
-    yyjson_doc *doc = yyjson_read_file_(expanded_path, 0, &allocator, &read_err);
+    yyjson_doc *doc = yyjson_read_file_(config_path, 0, &allocator, &read_err);
     if (!doc) {
         return ERR(ctx, PARSE, "Failed to parse JSON: %s", read_err.msg);
     }

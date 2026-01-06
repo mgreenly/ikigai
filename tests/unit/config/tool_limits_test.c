@@ -1,4 +1,5 @@
 #include "../../../src/config.h"
+#include "../../../src/paths.h"
 
 #include "../../../src/error.h"
 #include "../../test_utils.h"
@@ -9,12 +10,21 @@
 #include <unistd.h>
 
 START_TEST(test_config_with_valid_max_tool_turns) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
     // Create a test config file with valid max_tool_turns
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_max_tool_turns_test_%d.json", getpid());
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -32,23 +42,31 @@ START_TEST(test_config_with_valid_max_tool_turns) {
 
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &cfg);
+    res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->max_tool_turns, 50);
     ck_assert_int_eq(cfg->max_output_size, 1048576);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_config_missing_max_tool_turns) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_missing_max_tool_turns_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -65,22 +83,30 @@ START_TEST(test_config_missing_max_tool_turns) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_max_output_size) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_missing_max_output_size_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -97,22 +123,30 @@ START_TEST(test_config_missing_max_output_size) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_tool_turns_out_of_range_low) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_max_tool_turns_low_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -130,22 +164,30 @@ START_TEST(test_config_max_tool_turns_out_of_range_low) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_tool_turns_out_of_range_high) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_max_tool_turns_high_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -163,22 +205,30 @@ START_TEST(test_config_max_tool_turns_out_of_range_high) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_output_size_out_of_range_low) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_max_output_size_low_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -196,22 +246,30 @@ START_TEST(test_config_max_output_size_out_of_range_low) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_output_size_out_of_range_high) {
+
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    char test_config[512];
-    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_max_output_size_high_%d.json", getpid());
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -229,11 +287,10 @@ START_TEST(test_config_max_output_size_out_of_range_high) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, test_config, &config);
+    res_t result = ik_config_load(ctx, paths, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
-
-    unlink(test_config);
+    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 
