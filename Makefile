@@ -3,7 +3,21 @@ VERSION = $(shell grep '\#define IK_VERSION "' src/version.h | cut -d'"' -f2)
 
 PREFIX ?= /usr/local
 bindir ?= $(PREFIX)/bin
-sysconfdir ?= $(PREFIX)/etc
+libexecdir ?= $(PREFIX)/libexec
+datadir ?= $(PREFIX)/share
+
+# Special handling for sysconfdir and configdir based on PREFIX
+ifeq ($(PREFIX),/usr)
+    sysconfdir ?= /etc
+    configdir = /etc/ikigai
+else ifeq ($(findstring /opt/,$(PREFIX)),/opt/)
+    # PREFIX starts with /opt/ - use PREFIX/etc not PREFIX/etc/ikigai
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(PREFIX)/etc
+else
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(sysconfdir)/ikigai
+endif
 
 CC = gcc
 
@@ -528,15 +542,33 @@ clean:
 	rm -f core.* vgcore.* tags 2>/dev/null || true
 
 install: all
+	# Create directories
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(bindir)/ikigai
-	install -d $(DESTDIR)$(sysconfdir)/ikigai
-	install -m 644 etc/ikigai/config.json $(DESTDIR)$(sysconfdir)/ikigai/config.json
+	install -d $(DESTDIR)$(libexecdir)/ikigai
+	install -d $(DESTDIR)$(configdir)
+	install -d $(DESTDIR)$(datadir)/ikigai
+	# Install actual binary to libexec
+	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	# Generate and install wrapper script to bin
+	printf '#!/bin/sh\n' > $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_CONFIG_DIR=%s\n' "$(configdir)" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_DATA_DIR=%s\n' "$(datadir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_LIBEXEC_DIR=%s\n' "$(libexecdir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
+	printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(DESTDIR)$(bindir)/ikigai
+	chmod 755 $(DESTDIR)$(bindir)/ikigai
+	# Install config file
+	install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
-	rm -f $(DESTDIR)$(sysconfdir)/ikigai/config.json
-	rmdir $(DESTDIR)$(sysconfdir)/ikigai 2>/dev/null || true
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
+	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
+	rm -f $(DESTDIR)$(configdir)/config.json
+	rmdir $(DESTDIR)$(configdir) 2>/dev/null || true
+	rmdir $(DESTDIR)$(datadir)/ikigai 2>/dev/null || true
 
 # Individual test run targets (enables parallel execution)
 # Usage: make -j8 check (runs tests in parallel)
