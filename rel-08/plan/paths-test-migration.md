@@ -252,116 +252,31 @@ static void teardown(void)
 
 **Requirement:** Tests need isolated, controlled path environments without affecting the real filesystem or requiring special setup.
 
-### Recommended Approach: Explicit Test API
+### Recommended Approach: Environment Variables
 
+With the wrapper script approach, testing is simple: set environment variables, call `ik_paths_init()`.
+
+**No special test API needed.** Tests use exactly the same code path as production.
+
+**Test Helper:**
 ```c
-// In src/paths.h (new module)
-
-// Production API
-ik_paths_t *ik_paths_create(TALLOC_CTX *ctx);
-
-// Test API
-ik_paths_t *ik_paths_create_for_test(
-    TALLOC_CTX *ctx,
-    const char *test_prefix  // e.g., "/tmp/ikigai_test_12345"
-);
-
-// Path accessors (work for both production and test)
-const char *ik_paths_get_config_dir(ik_paths_t *paths);
-const char *ik_paths_get_data_dir(ik_paths_t *paths);
-const char *ik_paths_get_system_tools_dir(ik_paths_t *paths);
-const char *ik_paths_get_user_tools_dir(ik_paths_t *paths);
-const char *ik_paths_get_project_tools_dir(ik_paths_t *paths);
+// tests/test_helpers.h
+void test_paths_setup_env(void);
+void test_paths_cleanup_env(void);
 ```
 
-**Usage in Test Helpers:**
-```c
-// tests/helpers/test_contexts.c
-res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
-{
-    // Create isolated test paths
-    char test_prefix[256];
-    snprintf(test_prefix, sizeof(test_prefix), "/tmp/ikigai_test_%d", getpid());
+**Behavior:**
+- `test_paths_setup_env()`: Sets IKIGAI_BIN_DIR, IKIGAI_CONFIG_DIR, IKIGAI_DATA_DIR, IKIGAI_LIBEXEC_DIR to test-appropriate values
+- `test_paths_cleanup_env()`: Unsets all IKIGAI_*_DIR environment variables
 
-    ik_paths_t *paths = ik_paths_create_for_test(ctx, test_prefix);
-    ik_config_t *cfg = test_cfg_create(ctx);
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
-}
-```
+**Usage in Tests:**
+Tests that need custom paths set environment variables directly before calling `ik_paths_init()`. Tests that use standard paths call `test_paths_setup_env()` helper.
 
 **Test Isolation Benefits:**
-- Each test gets unique prefix (PID-based)
-- No cross-test contamination
-- Easy cleanup (delete test_prefix directory)
-- Tests can verify specific install scenarios
-
-**Production Path Detection:**
-```c
-// src/paths.c
-ik_paths_t *ik_paths_create(TALLOC_CTX *ctx)
-{
-    ik_paths_t *paths = talloc_zero(ctx, ik_paths_t);
-
-    // 1. Detect binary location
-    char binary_path[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", binary_path, sizeof(binary_path) - 1);
-    if (len != -1) {
-        binary_path[len] = '\0';
-    }
-
-    // 2. Detect install type
-    if (getenv("IKIGAI_DEV")) {
-        paths->install_type = IKIGAI_INSTALL_DEV;
-    } else if (strcmp(binary_path, "/usr/bin/ikigai") == 0 ||
-               strcmp(binary_path, "/usr/local/bin/ikigai") == 0) {
-        paths->install_type = IKIGAI_INSTALL_SYSTEM;
-    } else {
-        paths->install_type = IKIGAI_INSTALL_USER;
-    }
-
-    // 3. Calculate paths based on install type
-    ik_paths_calculate(paths, binary_path);
-
-    return paths;
-}
-```
-
-**Test Mode Implementation:**
-```c
-// src/paths.c
-ik_paths_t *ik_paths_create_for_test(TALLOC_CTX *ctx, const char *test_prefix)
-{
-    ik_paths_t *paths = talloc_zero(ctx, ik_paths_t);
-
-    // Override all paths to test prefix
-    paths->install_type = IKIGAI_INSTALL_TEST;
-    paths->config_dir = talloc_asprintf(paths, "%s/config", test_prefix);
-    paths->data_dir = talloc_asprintf(paths, "%s/data", test_prefix);
-    paths->system_tools_dir = talloc_asprintf(paths, "%s/tools", test_prefix);
-    paths->user_tools_dir = talloc_asprintf(paths, "%s/.ikigai/tools", test_prefix);
-    paths->project_tools_dir = "./.ikigai/tools";  // Always relative to CWD
-
-    return paths;
-}
-```
-
-### Alternative: Scenario-Based Test API
-
-For testing specific install scenarios:
-
-```c
-// Test specific install types
-ik_paths_t *ik_paths_create_dev_install(TALLOC_CTX *ctx, const char *proj_dir);
-ik_paths_t *ik_paths_create_user_install(TALLOC_CTX *ctx);
-ik_paths_t *ik_paths_create_system_install(TALLOC_CTX *ctx, const char *prefix);
-```
-
-**Benefits:**
-- Tests can verify each install type explicitly
-- Clear test intent (testing dev vs user vs system)
-- No environment variable manipulation needed
+- Tests use production code path (no special test-only APIs)
+- Each test controls environment variables independently
+- No state sharing between tests (each sets/unsets env vars)
+- Easy to verify specific install scenarios (set env vars accordingly)
 
 ---
 
@@ -407,42 +322,12 @@ res_t ik_cfg_load(TALLOC_CTX *ctx, const char *path, ik_cfg_t **out);
 
 **After Paths Module:**
 ```c
-// Config loading now uses paths module for search
+// Config loading now uses paths module (single location)
 res_t ik_cfg_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_cfg_t **out);
 ```
 
-**Config Search Implementation:**
-```c
-// src/config.c
-res_t ik_cfg_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_cfg_t **out)
-{
-    // Try project config first
-    char *project_config = "./.ikigai/config";
-    if (file_exists(project_config)) {
-        return ik_cfg_load_file(ctx, project_config, out);
-    }
-
-    // Try user config
-    const char *user_config_dir = ik_paths_get_config_dir(paths);
-    char *user_config = talloc_asprintf(ctx, "%s/config", user_config_dir);
-    if (file_exists(user_config)) {
-        return ik_cfg_load_file(ctx, user_config, out);
-    }
-
-    // Try system config (dev/system installs only)
-    if (paths->install_type == IKIGAI_INSTALL_DEV ||
-        paths->install_type == IKIGAI_INSTALL_SYSTEM) {
-        char *system_config = talloc_asprintf(ctx, "%s/config",
-                                               ik_paths_get_system_config_dir(paths));
-        if (file_exists(system_config)) {
-            return ik_cfg_load_file(ctx, system_config, out);
-        }
-    }
-
-    // No config found - create default
-    return ik_cfg_create_default(ctx, out);
-}
-```
+**Behavior:**
+Loads config from single install-appropriate location (from IKIGAI_CONFIG_DIR environment variable). Builds path as `config_dir/config`. If file exists, loads it. If not found, creates default config. No cascading search - one config location per install.
 
 ---
 

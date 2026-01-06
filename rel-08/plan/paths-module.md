@@ -142,37 +142,10 @@ struct ik_paths_t {
 
 **Note:** This struct is NOT in a header file. It's defined privately in `src/paths.c`. Production code only sees the opaque typedef from `src/paths.h`.
 
-### Implementation
+### Behavior
 
-```c
-// src/paths.c
-res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out) {
-    ik_paths_t *paths = talloc_zero(ctx, ik_paths_t);
-
-    // Read from environment (set by wrapper script)
-    const char *bin = getenv("IKIGAI_BIN_DIR");
-    const char *config = getenv("IKIGAI_CONFIG_DIR");
-    const char *data = getenv("IKIGAI_DATA_DIR");
-    const char *libexec = getenv("IKIGAI_LIBEXEC_DIR");
-
-    if (!bin || !config || !data || !libexec) {
-        return ERR(ERR_INVALID_STATE, "Missing IKIGAI_*_DIR environment variables");
-    }
-
-    // Copy to paths struct
-    paths->bin_dir = talloc_strdup(paths, bin);
-    paths->config_dir = talloc_strdup(paths, config);
-    paths->data_dir = talloc_strdup(paths, data);
-    paths->tools_system_dir = talloc_strdup(paths, libexec);
-
-    // These are always the same regardless of install
-    paths->tools_user_dir = expand_tilde(paths, "~/.ikigai/tools");
-    paths->tools_project_dir = talloc_strdup(paths, ".ikigai/tools");
-
-    *out = paths;
-    return OK();
-}
-```
+**ik_paths_init():**
+Reads IKIGAI_BIN_DIR, IKIGAI_CONFIG_DIR, IKIGAI_DATA_DIR, IKIGAI_LIBEXEC_DIR from environment (set by wrapper script). Allocates ik_paths_t on ctx. Copies environment variable values to struct fields (bin_dir, config_dir, data_dir, tools_system_dir). Sets tools_user_dir to `~/.ikigai/tools/` (expanded). Sets tools_project_dir to `.ikigai/tools/`. Returns ERR_INVALID_STATE if any environment variable is missing. Returns OK() with paths instance on success.
 
 ### Helper Functions (Internal)
 
@@ -241,21 +214,12 @@ res_t result = ik_tool_discovery_run(
 Config loader uses single path (no cascading):
 
 ```c
-// Config loading - single path only
-res_t ik_cfg_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_cfg_t **out_cfg) {
-    // Use install-appropriate config dir
-    char *config_path = talloc_asprintf(ctx, "%s/config",
-                                        ik_paths_get_config_dir(paths));
-    if (file_exists(config_path)) {
-        return load_config_file(ctx, config_path, out_cfg);
-    }
-
-    // No config found - create default
-    return create_default_config(ctx, out_cfg);
-}
+// Function signature
+res_t ik_cfg_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_cfg_t **out_cfg);
 ```
 
-**Note:** No cascading config search. One config location per install.
+**Behavior:**
+Loads config from single install-appropriate location. Builds path as `config_dir/config` where config_dir comes from `ik_paths_get_config_dir(paths)`. If file exists, loads it and returns config. If not found, creates and returns default config. No cascading search - one config location per install.
 
 ## Memory Management
 
@@ -323,66 +287,61 @@ export IKIGAI_LIBEXEC_DIR=$PWD/libexec/ikigai
 
 ### Test Helper for Most Tests
 
-Most tests just need standard paths and don't care about the details. Provide a simple helper:
+Most tests just need standard paths and don't care about the details. Provide a simple helper that sets environment variables:
 
 ```c
 // tests/test_helpers.h
-ik_paths_t *ik_paths_create_test(TALLOC_CTX *ctx);
-
-// tests/test_helpers.c
-#include "paths_test.h"  // Gets struct definition
-
-ik_paths_t *ik_paths_create_test(TALLOC_CTX *ctx) {
-    ik_paths_t *paths = talloc_zero(ctx, ik_paths_t);
-    paths->bin_dir = talloc_strdup(paths, "tests/bin");
-    paths->config_dir = talloc_strdup(paths, "tests/config");
-    paths->data_dir = talloc_strdup(paths, "tests/data");
-    paths->tools_system_dir = talloc_strdup(paths, "tests/tools/system");
-    paths->tools_user_dir = talloc_strdup(paths, "tests/tools/user");
-    paths->tools_project_dir = talloc_strdup(paths, "tests/tools/project");
-    return paths;
-}
+void test_paths_setup_env(void);
+void test_paths_cleanup_env(void);
 ```
+
+**Behavior:**
+- `test_paths_setup_env()`: Sets IKIGAI_BIN_DIR, IKIGAI_CONFIG_DIR, IKIGAI_DATA_DIR, IKIGAI_LIBEXEC_DIR to test-appropriate paths (e.g., "tests/bin", "tests/config", etc.)
+- `test_paths_cleanup_env()`: Unsets all IKIGAI_*_DIR environment variables
 
 **Usage in most tests:**
 ```c
-// Just use the helper - don't think about paths
-ik_paths_t *paths = ik_paths_create_test(test_ctx);
+// Setup test environment
+test_paths_setup_env();
+
+// Use standard production code path
+ik_paths_t *paths = NULL;
+res_t result = ik_paths_init(test_ctx, &paths);
+assert(is_ok(&result));
+
 ik_repl_init(test_ctx, paths, &repl);
+
+// Cleanup
+test_paths_cleanup_env();
 ```
 
 ### Tests That Need Custom Paths
 
-For tests that need specific path values, construct directly:
+For tests that need specific path values, set environment variables directly:
 
 ```c
-// tests/paths_test.h - duplicates struct definition for test construction
-#include "paths.h"
+// Set custom environment
+setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
+setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
+setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
+setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
 
-struct ik_paths_t {
-    char *bin_dir;
-    char *config_dir;
-    char *data_dir;
-    char *tools_system_dir;
-    char *tools_user_dir;
-    char *tools_project_dir;
-};
-```
+// Use standard production code path
+ik_paths_t *paths = NULL;
+res_t result = ik_paths_init(test_ctx, &paths);
+assert(is_ok(&result));
 
-**Usage in custom tests:**
-```c
-#include "paths_test.h"
-
-// Build exactly what this test needs
-ik_paths_t *paths = talloc_zero(test_ctx, ik_paths_t);
-paths->config_dir = "/tmp/my-custom-config";
-paths->tools_system_dir = "/custom/tools/location";
-// ... set fields as needed
-
+// Use custom paths
 ik_repl_init(test_ctx, paths, &repl);
+
+// Cleanup
+unsetenv("IKIGAI_BIN_DIR");
+unsetenv("IKIGAI_CONFIG_DIR");
+unsetenv("IKIGAI_DATA_DIR");
+unsetenv("IKIGAI_LIBEXEC_DIR");
 ```
 
-**Important:** The struct definition in `tests/paths_test.h` must be kept in sync with `src/paths.c`. Tests will fail quickly if they drift.
+**Benefit:** Tests use exactly the same code path as production (read env vars, call `ik_paths_init()`). No struct construction, no test-only APIs.
 
 ### Unit Tests for paths.c Module
 
