@@ -15,18 +15,6 @@
 #include "providers/common/error_utils.h"
 
 /**
- * Error Category Name Tests
- */
-
-START_TEST(test_error_category_names) {
-    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_AUTH), "authentication");
-    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_RATE_LIMIT), "rate_limit");
-    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_SERVER), "server_error");
-    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_NETWORK), "network_error");
-    ck_assert_str_eq(ik_error_category_name(IK_ERR_CAT_INVALID_ARG), "invalid_argument");
-}
-END_TEST
-/**
  * Retryability Tests
  */
 
@@ -84,7 +72,6 @@ static Suite *error_handling_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
-    tcase_add_test(tc_core, test_error_category_names);
     tcase_add_test(tc_core, test_error_is_retryable);
     tcase_add_test(tc_core, test_error_user_message);
     suite_add_tcase(s, tc_core);

@@ -6,32 +6,6 @@
 #include <string.h>
 #include <talloc.h>
 
-const char *ik_error_category_name(int category)
-{
-    switch (category) {
-        case IK_ERR_CAT_AUTH:
-            return "authentication";
-        case IK_ERR_CAT_RATE_LIMIT:
-            return "rate_limit";
-        case IK_ERR_CAT_INVALID_ARG:
-            return "invalid_argument";
-        case IK_ERR_CAT_NOT_FOUND:
-            return "not_found";
-        case IK_ERR_CAT_SERVER:
-            return "server_error";
-        case IK_ERR_CAT_TIMEOUT:
-            return "timeout";
-        case IK_ERR_CAT_CONTENT_FILTER:
-            return "content_filter";
-        case IK_ERR_CAT_NETWORK:
-            return "network_error";
-        case IK_ERR_CAT_UNKNOWN:
-            return "unknown";
-        default:
-            return "unknown";
-    }
-}
-
 bool ik_error_is_retryable(int category)
 {
     switch (category) {

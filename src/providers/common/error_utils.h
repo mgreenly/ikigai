@@ -24,16 +24,6 @@ typedef void TALLOC_CTX;
 /* Users must include that header before including this one */
 
 /**
- * Convert error category enum to string
- *
- * @param category Error category
- * @return         Static string representation (no allocation)
- *
- * Returns static string literals for logging and debugging.
- */
-const char *ik_error_category_name(int category);
-
-/**
  * Check if error category should be retried
  *
  * @param category Error category
