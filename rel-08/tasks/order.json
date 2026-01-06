@@ -12,6 +12,9 @@
     {"task": "paths-comprehensive-tests.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
     {"stop": "verify-paths-coverage", "message": "Verify comprehensive tests: make coverage shows 100% for src/paths.c"},
 
+    {"task": "paths-makefile.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-makefile-install", "message": "Verify make install: wrapper script generated correctly, manual tests pass, uninstall works"},
+
     {"task": "paths-config-integration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
     {"stop": "verify-phase-0-complete", "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated"},
 
