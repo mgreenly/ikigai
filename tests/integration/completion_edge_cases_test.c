@@ -13,6 +13,7 @@
 #include "../../src/repl.h"
 #include "../../src/repl_actions.h"
 #include "../../src/shared.h"
+#include "../../src/paths.h"
 #include "../test_utils.h"
 #include "completion_test_mocks.h"
 
@@ -33,7 +34,15 @@ START_TEST(test_completion_space_commits) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -63,7 +72,15 @@ START_TEST(test_completion_tab_wraparound) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -88,7 +105,15 @@ START_TEST(test_completion_single_item) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug");
     press_tab(repl);
@@ -118,7 +143,15 @@ START_TEST(test_completion_escape_exact_revert) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mar");
     size_t original_len = 0;
@@ -161,7 +194,15 @@ START_TEST(test_completion_tab_cycle_then_space) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -187,7 +228,15 @@ START_TEST(test_completion_space_on_first_tab) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/d");
     press_tab(repl);
@@ -219,7 +268,15 @@ START_TEST(test_completion_type_cancels) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -252,7 +309,15 @@ START_TEST(test_completion_rewind_args) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/rewind ");
     press_tab(repl);
@@ -281,7 +346,15 @@ START_TEST(test_completion_mark_no_args) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mark ");
     press_tab(repl);
@@ -309,7 +382,15 @@ START_TEST(test_completion_help_no_args) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/help ");
     press_tab(repl);

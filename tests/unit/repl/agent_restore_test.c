@@ -40,6 +40,7 @@ static int64_t session_id;
 static void suite_setup(void)
 {
     ik_test_set_log_dir(__FILE__);
+    test_paths_setup_env();  // Setup paths environment once for all tests
     const char *skip_live = getenv("SKIP_LIVE_DB_TESTS");
     if (skip_live && strcmp(skip_live, "1") == 0) {
         db_available = false;
@@ -159,7 +160,13 @@ static ik_repl_ctx_t *create_test_repl(void)
     shared->db_ctx = db;
     shared->session_id = session_id;
 
-    // Create logger
+    // Initialize paths (environment should be set up in suite_setup or test_setup)
+    ik_paths_t *paths = NULL;
+    res_t paths_res = ik_paths_init(shared, &paths);
+    ck_assert(is_ok(&paths_res));
+    shared->paths = paths;
+
+    // Create logger (after paths setup so directories exist)
     shared->logger = ik_logger_create(shared, "/tmp");
     ck_assert_ptr_nonnull(shared->logger);
 

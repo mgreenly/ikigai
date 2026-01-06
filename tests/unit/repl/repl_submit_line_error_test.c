@@ -10,6 +10,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
+#include "../../../src/paths.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils.h"
 #include "../../../src/logger.h"
@@ -191,7 +192,15 @@ START_TEST(test_submit_line_event_render_fails) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
