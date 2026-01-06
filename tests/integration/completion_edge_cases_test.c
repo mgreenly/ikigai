@@ -42,7 +42,7 @@ START_TEST(test_completion_space_commits) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -80,7 +80,7 @@ START_TEST(test_completion_tab_wraparound) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -113,7 +113,7 @@ START_TEST(test_completion_single_item) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug");
     press_tab(repl);
@@ -151,7 +151,7 @@ START_TEST(test_completion_escape_exact_revert) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mar");
     size_t original_len = 0;
@@ -202,7 +202,7 @@ START_TEST(test_completion_tab_cycle_then_space) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/debug ");
     press_tab(repl);
@@ -236,7 +236,7 @@ START_TEST(test_completion_space_on_first_tab) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/d");
     press_tab(repl);
@@ -276,7 +276,7 @@ START_TEST(test_completion_type_cancels) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/m");
     press_tab(repl);
@@ -317,7 +317,7 @@ START_TEST(test_completion_rewind_args) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/rewind ");
     press_tab(repl);
@@ -354,7 +354,7 @@ START_TEST(test_completion_mark_no_args) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/mark ");
     press_tab(repl);
@@ -390,7 +390,7 @@ START_TEST(test_completion_help_no_args) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     r = ik_repl_init(ctx, shared, &repl); ck_assert(is_ok(&r));
     type_str(repl, "/help ");
     press_tab(repl);

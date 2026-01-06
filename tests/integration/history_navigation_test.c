@@ -226,7 +226,8 @@ START_TEST(test_history_respects_config_capacity) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(repl->shared->history->capacity, 3);
@@ -256,7 +257,7 @@ START_TEST(test_history_multiline_preserved) {
         ck_assert(is_ok(&paths_res));
     }
 
-    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -298,7 +299,7 @@ START_TEST(test_history_submit_stops_browsing) {
         ck_assert(is_ok(&paths_res));
     }
 
-    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);

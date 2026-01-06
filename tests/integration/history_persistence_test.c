@@ -230,7 +230,8 @@ START_TEST(test_history_loads_on_init) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(repl);
@@ -261,7 +262,8 @@ START_TEST(test_history_saves_on_submit) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     const char *test_cmd = "my test command";
@@ -304,7 +306,8 @@ START_TEST(test_history_survives_repl_restart) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared1);
+    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared1);
+    ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared1, &repl1);
     ck_assert(is_ok(&result));
     const char *test_cmd = "persistent command";
@@ -319,13 +322,14 @@ START_TEST(test_history_survives_repl_restart) {
     ik_logger_t *logger2 = ik_logger_create(ctx, "/tmp");
     // Setup test paths
     test_paths_setup_env();
-    ik_paths_t *paths = NULL;
+    ik_paths_t *paths2 = NULL;
     {
-        res_t paths_res = ik_paths_init(ctx, &paths);
+        res_t paths_res = ik_paths_init(ctx, &paths2);
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger2, &shared2);
+    r = ik_shared_ctx_init(ctx, cfg, paths2, logger2, &shared2);
+    ck_assert(is_ok(&r));
     result = ik_repl_init(ctx, shared2, &repl2);
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(shared2->history->count, 1);
