@@ -1,5 +1,20 @@
 {
   "tasks": [
+    {"task": "paths-core.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-paths-core", "message": "Verify paths core: make check passes, paths module tests pass"},
+
+    {"task": "paths-test-infrastructure.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-paths-test-infra", "message": "Verify test infrastructure: test_paths_setup_env() and test_paths_cleanup_env() work"},
+
+    {"task": "paths-helper-migration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-paths-helpers", "message": "Verify helper migration: test helpers use paths module, ~160 tests compile"},
+
+    {"task": "paths-comprehensive-tests.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-paths-coverage", "message": "Verify comprehensive tests: make coverage shows 100% for src/paths.c"},
+
+    {"task": "paths-config-integration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-config-integration", "message": "Verify config integration: all config tests pass with new signature"},
+
     {"task": "tool-bash.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
     {"stop": "verify-bash", "message": "Verify bash tool: make tool-bash && libexec/ikigai/bash --schema && echo '{\"command\":\"echo hello\"}' | libexec/ikigai/bash"},
 
