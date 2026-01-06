@@ -15,25 +15,6 @@
 #include "providers/common/error_utils.h"
 
 /**
- * Retryability Tests
- */
-
-START_TEST(test_error_is_retryable) {
-    /* Retryable categories */
-    ck_assert(ik_error_is_retryable(IK_ERR_CAT_RATE_LIMIT));
-    ck_assert(ik_error_is_retryable(IK_ERR_CAT_SERVER));
-    ck_assert(ik_error_is_retryable(IK_ERR_CAT_NETWORK));
-    ck_assert(ik_error_is_retryable(IK_ERR_CAT_TIMEOUT));
-
-    /* Non-retryable categories */
-    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_AUTH));
-    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_INVALID_ARG));
-    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_NOT_FOUND));
-    ck_assert(!ik_error_is_retryable(IK_ERR_CAT_CONTENT_FILTER));
-}
-
-END_TEST
-/**
  * User Message Tests
  *
  * Verify that user-facing error messages are generated correctly.
@@ -72,7 +53,6 @@ static Suite *error_handling_suite(void)
 
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, 30);
-    tcase_add_test(tc_core, test_error_is_retryable);
     tcase_add_test(tc_core, test_error_user_message);
     suite_add_tcase(s, tc_core);
 

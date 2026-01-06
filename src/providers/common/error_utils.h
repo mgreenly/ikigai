@@ -24,27 +24,6 @@ typedef void TALLOC_CTX;
 /* Users must include that header before including this one */
 
 /**
- * Check if error category should be retried
- *
- * @param category Error category
- * @return         true if retryable, false otherwise
- *
- * Retryable categories:
- * - IK_ERR_CAT_RATE_LIMIT - retry with provider's suggested delay
- * - IK_ERR_CAT_SERVER     - retry with exponential backoff
- * - IK_ERR_CAT_TIMEOUT    - retry immediately
- * - IK_ERR_CAT_NETWORK    - retry with exponential backoff
- *
- * Non-retryable categories (return false):
- * - IK_ERR_CAT_AUTH
- * - IK_ERR_CAT_INVALID_ARG
- * - IK_ERR_CAT_NOT_FOUND
- * - IK_ERR_CAT_CONTENT_FILTER
- * - IK_ERR_CAT_UNKNOWN
- */
-bool ik_error_is_retryable(int category);
-
-/**
  * Generate user-facing error message
  *
  * @param ctx      Talloc context for allocation
