@@ -121,7 +121,7 @@ res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out)
     term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);
     if (term_ctx->csi_u_supported) {
         // Enable CSI u with flag 9 (disambiguate + report all keys)
-        if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 6) < 0) {
+        if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 5) < 0) {
             // Not critical - continue without CSI u
             term_ctx->csi_u_supported = false;
         }
@@ -153,7 +153,7 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
 
     // Disable CSI u if it was enabled
     if (ctx->csi_u_supported) {
-        (void)posix_write_(ctx->tty_fd, ESC_CSI_U_DISABLE, 5);
+        (void)posix_write_(ctx->tty_fd, ESC_CSI_U_DISABLE, 4);
     }
 
     // Exit alternate screen
