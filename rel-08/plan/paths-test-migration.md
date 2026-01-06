@@ -16,7 +16,13 @@ The paths module introduces centralized path resolution logic (development/user/
 - `tests/helpers/test_contexts.c` - Creates shared context with hardcoded `/tmp` and `.ikigai`
 - `tests/test_utils.c` - Core test infrastructure
 
-**Current Pattern:**
+**Helper Functions Requiring Updates:**
+
+1. **`test_shared_ctx_create()`** - Used by ~160 tests
+2. **`test_shared_ctx_create_with_cfg()`** - Used by tests needing custom config
+3. **`test_repl_create()`** - No changes needed (works via delegation to #1)
+
+**BEFORE Pattern (Current):**
 ```c
 // tests/helpers/test_contexts.c
 res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
@@ -28,9 +34,32 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 }
 ```
 
+**AFTER Pattern (With Paths Module):**
+```c
+res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
+{
+    // Setup test environment (helper from test_utils.c)
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(ctx, &paths);
+    if (is_err(&result)) return result;
+
+    // Create config and logger
+    ik_config_t *cfg = test_cfg_create(ctx);
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+
+    // New signature: paths replaces working_dir + ikigai_subdir
+    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
+}
+```
+
+**test_shared_ctx_create_with_cfg()** follows identical pattern but receives `cfg` as parameter.
+
 **Why Critical:** These helpers are used by ~160 other tests. Fix these first, and many tests get the fix "for free".
 
-**Change Type:** Update to use new paths module API for test path resolution.
+**Change Type:** Add paths module initialization and update signature.
 
 **Impact:** Once fixed, ~80% of other tests should work unchanged (if helper API is well-designed).
 
@@ -97,6 +126,13 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 - Isolation between tests
 - Cleanup behavior
 
+**TDD Workflow Note:** All Category 2 test files must follow Red/Green/Verify cycle:
+1. **RED:** Write failing test, add function declaration, add stub returning NULL/error
+2. **GREEN:** Implement minimal code to pass test
+3. **VERIFY:** Run `make check` and `make lint`
+
+See detailed TDD workflows in subagent investigation reports (agent IDs: a03d7bd for examples).
+
 ---
 
 ### Category 3: Config Tests That Change Behavior (11 files)
@@ -120,6 +156,44 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
 - Tilde expansion tests migrate to paths module
 - Config search tests verify integration with paths module
 - Hardcoded `~/.config/ikigai/config.json` references must use paths API
+
+**Affected Test Files (72 call sites across 11 files):**
+1. `tests/unit/config/basic_test.c` (6 sites)
+2. `tests/unit/config/config_test.c` (7 sites)
+3. `tests/unit/config/filesystem_test.c` (2 sites)
+4. `tests/unit/config/tilde_test.c` (1 site - migrate to paths module)
+5. `tests/unit/config/validation_types_test.c` (8 sites)
+6. `tests/unit/config/validation_ranges_test.c` (10 sites)
+7. `tests/unit/config/validation_missing_test.c` (6 sites)
+8. `tests/unit/config/default_provider_test.c` (4 sites)
+9. `tests/unit/config/history_size_test.c` (7 sites)
+10. `tests/unit/config/tool_limits_test.c` (7 sites)
+11. `tests/integration/config_integration_test.c` (9 sites)
+
+**Example BEFORE/AFTER:**
+
+BEFORE (current):
+```c
+// tests/unit/config/basic_test.c
+char test_config[512];
+snprintf(test_config, sizeof(test_config), "/tmp/ikigai_test_%d.json", getpid());
+res_t result = ik_config_load(ctx, test_config, &cfg);
+```
+
+AFTER (with paths module):
+```c
+// Setup test environment
+char test_dir[256];
+snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_test_%d", getpid());
+setenv("IKIGAI_CONFIG_DIR", test_dir, 1);
+
+// Create paths instance
+ik_paths_t *paths = NULL;
+TRY(ik_paths_init(ctx, &paths));
+
+// Config loading uses paths (no explicit path parameter)
+res_t result = ik_config_load(ctx, paths, &cfg);
+```
 
 ---
 
@@ -179,12 +253,19 @@ static void teardown(void)
 }
 ```
 
-**Change Type:** Update to work with paths module's test mode or override mechanism.
+**Change Type:** Continue using existing patterns (no paths module API needed).
 
 **Specific Changes:**
-- Use paths module API to get directory paths
-- Verify paths module resolves to expected test locations
-- Update hardcoded `.ikigai` references to use paths API
+- **NO NEW API NEEDED** - Tests should continue using relative paths like `.ikigai` and `.ikigai/history`
+- Tests that need absolute paths use `snprintf(buf, size, "%s/.ikigai", test_dir)`
+- The `.ikigai/` directory is a module-specific implementation detail, not a cross-cutting path from paths module
+- Paths module provides `.ikigai/tools/` via `ik_paths_get_tools_project_dir()`, but `.ikigai/` base is accessed directly
+
+**Rationale:**
+- Category 5 tests need filesystem manipulation flexibility (create, delete, chmod)
+- `.ikigai/` is an implementation convention of history/logger modules, not an install path
+- Adding paths module API would constrain test independence without benefit
+- Current approach (relative/constructed paths) is correct and should continue
 
 ---
 
@@ -258,25 +339,91 @@ With the wrapper script approach, testing is simple: set environment variables, 
 
 **No special test API needed.** Tests use exactly the same code path as production.
 
-**Test Helper:**
+**Test Helper Specification:**
+
+**Location:** `tests/test_utils.c` and `tests/test_utils.h`
+
+**Function Declarations:**
 ```c
-// tests/test_helpers.h
-void test_paths_setup_env(void);
+// tests/test_utils.h
+const char *test_paths_setup_env(void);
 void test_paths_cleanup_env(void);
 ```
 
+**Implementation (PID-based isolation required):**
+```c
+// tests/test_utils.c
+static __thread char test_path_prefix[256] = {0};
+
+const char *test_paths_setup_env(void)
+{
+    // Generate PID-based unique prefix for parallel test execution
+    snprintf(test_path_prefix, sizeof(test_path_prefix),
+             "/tmp/ikigai_test_%d", getpid());
+
+    // Create base directory
+    mkdir(test_path_prefix, 0755);
+
+    // Build and set environment variables with subdirectories
+    char buf[512];
+
+    snprintf(buf, sizeof(buf), "%s/bin", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_BIN_DIR", buf, 1);
+
+    snprintf(buf, sizeof(buf), "%s/config", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_CONFIG_DIR", buf, 1);
+
+    snprintf(buf, sizeof(buf), "%s/share", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_DATA_DIR", buf, 1);
+
+    snprintf(buf, sizeof(buf), "%s/libexec", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_LIBEXEC_DIR", buf, 1);
+
+    return test_path_prefix;
+}
+
+void test_paths_cleanup_env(void)
+{
+    // Unset environment variables
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+
+    // Remove test directory tree
+    if (test_path_prefix[0] != '\0') {
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "rm -rf '%s' 2>/dev/null || true",
+                 test_path_prefix);
+        system(cmd);
+        test_path_prefix[0] = '\0';
+    }
+}
+```
+
 **Behavior:**
-- `test_paths_setup_env()`: Sets IKIGAI_BIN_DIR, IKIGAI_CONFIG_DIR, IKIGAI_DATA_DIR, IKIGAI_LIBEXEC_DIR to test-appropriate values
-- `test_paths_cleanup_env()`: Unsets all IKIGAI_*_DIR environment variables
+- `test_paths_setup_env()`: Creates PID-isolated directories (`/tmp/ikigai_test_${PID}/{bin,config,share,libexec}`), sets environment variables, returns path prefix
+- `test_paths_cleanup_env()`: Unsets all IKIGAI_*_DIR environment variables, recursively removes test directory tree
+
+**PID-Based Isolation:**
+- **Required** for parallel test execution (tests run with `-j$(MAKE_JOBS)`)
+- Prevents cross-test interference when multiple test processes run simultaneously
+- Established pattern: 127 existing uses of `getpid()` across test codebase
+- Thread-local storage (`__thread`) ensures safety in parallel execution
 
 **Usage in Tests:**
 Tests that need custom paths set environment variables directly before calling `ik_paths_init()`. Tests that use standard paths call `test_paths_setup_env()` helper.
 
 **Test Isolation Benefits:**
 - Tests use production code path (no special test-only APIs)
-- Each test controls environment variables independently
-- No state sharing between tests (each sets/unsets env vars)
+- Each test process gets unique, isolated filesystem paths
+- No state sharing between tests (PID-based separation)
 - Easy to verify specific install scenarios (set env vars accordingly)
+- Automatic cleanup via `rm -rf` (simple, robust, matches existing pattern)
 
 ---
 
@@ -308,9 +455,23 @@ res_t ik_shared_ctx_init(
 ```
 
 **Migration Impact:**
-- All 160 calls to `ik_shared_ctx_init()` must update
-- BUT most go through test helpers (Category 1)
-- Fixing helpers cascades to most tests
+- **90 direct call sites** to `ik_shared_ctx_init()` must update (not ~163 as initially estimated)
+  - 1 in `src/client.c` (production code)
+  - 2 in `tests/helpers/test_contexts.c` (helper definitions - **FIX FIRST**)
+  - 87 in test files (39 unit tests + 48 integration tests)
+- **~160 indirect calls** through test helpers will work once helpers are fixed
+- Fixing 2 helper definitions cascades to ~160 downstream tests
+
+**Call Site Categorization:**
+| Category | Count | Files | Priority |
+|----------|-------|-------|----------|
+| Production code | 1 | `src/client.c` | High |
+| Test helpers | 2 | `tests/helpers/test_contexts.c` | **Critical** |
+| Unit tests (direct) | 39 | 9 files | Medium |
+| Integration tests (direct) | 48 | 13 files | Medium |
+| **Total** | **90** | **23 files** | |
+
+**Note:** Original estimate of ~163 was high. Actual count is 90 direct calls.
 
 ### Config Module Integration
 
@@ -345,11 +506,45 @@ Loads config from single install-appropriate location (from IKIGAI_CONFIG_DIR en
    - Achieve 100% coverage
    - Verify all scenarios
 
-3. **Phase 3 - Ripple Updates**
-   - Update config tests (Category 3)
-   - Verify remaining tests (Category 4)
-   - Fix filesystem tests (Category 5)
-   - Run full test suite
+3. **Phase 3 - Ripple Updates (Detailed Execution Order)**
+
+   **Step 1: Config Tests (Category 3) - 11 files, 72 call sites**
+
+   Update in dependency order:
+   1. `tests/unit/config/basic_test.c` (6 sites) - Foundation tests
+   2. `tests/unit/config/config_test.c` (7 sites) - Core loading
+   3. `tests/unit/config/filesystem_test.c` (2 sites) - Directory ops
+   4. `tests/unit/config/tilde_test.c` (1 site) - Tilde integration
+   5. `tests/unit/config/validation_types_test.c` (8 sites)
+   6. `tests/unit/config/validation_ranges_test.c` (10 sites)
+   7. `tests/unit/config/validation_missing_test.c` (6 sites)
+   8. `tests/unit/config/default_provider_test.c` (4 sites)
+   9. `tests/unit/config/history_size_test.c` (7 sites)
+   10. `tests/unit/config/tool_limits_test.c` (7 sites)
+   11. `tests/integration/config_integration_test.c` (9 sites)
+
+   Run `make check` after each file to catch issues incrementally.
+
+   **Step 2: Verify Category 4 (Helper-Using Tests) - ~160 files**
+
+   After Phase 1 helper fixes, run `make check`.
+   **Expected:** 0 failures if helpers fixed correctly.
+   **Do NOT update these files** - they work through helper delegation.
+
+   **Step 3: Filesystem Tests (Category 5) - 10-15 files**
+
+   Verify (not update) these files:
+   1. `tests/unit/history/directory_test.c`
+   2. `tests/unit/history/file_io_test.c`
+   3. `tests/unit/history/file_io_errors_test.c`
+   4. `tests/integration/history_edge_cases_test.c`
+   5. `tests/integration/history_navigation_test.c`
+   6. `tests/integration/history_persistence_test.c`
+   7. Others found by: `grep -r "\.ikigai" tests/`
+
+   **Step 4: Full Verification**
+   - Run `make check` - all ~565 tests pass
+   - Run `make coverage` - 100% coverage maintained
 
 ---
 
@@ -360,9 +555,9 @@ Loads config from single install-appropriate location (from IKIGAI_CONFIG_DIR en
 - [ ] 8-12 new paths module tests added
 - [ ] 100% coverage maintained across codebase
 - [ ] Test helpers use paths module
-- [ ] No hardcoded path strings in tests (except in paths module tests)
+- [ ] No hardcoded installation paths in application test code (test infrastructure may hardcode test-specific paths like `/tmp/ikigai_test_*`)
 - [ ] All install types tested (dev/user/system)
-- [ ] Test isolation verified (no cross-test contamination)
+- [ ] Test isolation verified (PID-based paths prevent cross-test contamination)
 
 ---
 
@@ -515,6 +710,153 @@ res_t result = ik_shared_ctx_init(root_ctx, cfg, paths, logger, &shared);
 | `ik_cfg_expand_tilde()` | Move to paths module (internal) | `src/config.c` → `src/paths.c` |
 
 **Total removals:** ~10 lines of hardcoded path logic, 2 function parameters from signatures
+
+---
+
+## Test Impact Matrix
+
+Complete mapping of production code changes to affected tests, based on subagent investigation (agent ID: ad1df78).
+
+### Impact Summary
+
+| Change Type | Production Sites | Test Files Affected | Call Sites | Compilation Errors |
+|-------------|------------------|---------------------|------------|-------------------|
+| `working_dir` + `ikigai_subdir` params | 3 | 23 | 90 | 90 |
+| `path` parameter (config) | 2 | 11 | 72 | 72 |
+| `ik_cfg_expand_tilde()` move | 3 | 1 | 3 | 3 (link errors) |
+| **Total** | **~10** | **~34** | **~165** | **~165** |
+
+**Note:** ~106 additional test files use helpers indirectly (will work once helpers are fixed).
+
+### Detailed Impact by Change
+
+#### 1. `ik_shared_ctx_init()` Signature Change
+
+**Change:** Remove `working_dir` and `ikigai_subdir` parameters, add `ik_paths_t *paths` parameter
+
+**Direct Call Sites (90 total):**
+
+**Priority 1 - Test Helpers (2 sites - CRITICAL):**
+- `tests/helpers/test_contexts.c:36` - `test_shared_ctx_create()`
+- `tests/helpers/test_contexts.c:66` - `test_shared_ctx_create_with_cfg()`
+
+**Fix these first** - unblocks ~160 downstream tests.
+
+**Priority 2 - Production (1 site):**
+- `src/client.c:76` - Main initialization
+
+**Priority 3 - Unit Tests (39 sites in 9 files):**
+- `tests/unit/shared/shared_test.c` (7 sites)
+- `tests/unit/repl/repl_init_test.c` (9 sites)
+- `tests/unit/repl/repl_scrollback_scroll_test.c` (6 sites)
+- `tests/unit/repl/repl_session_test.c` (4 sites)
+- `tests/unit/repl/repl_resize_test.c` (4 sites)
+- `tests/unit/repl/repl_init_db_test.c` (4 sites)
+- `tests/unit/repl/repl_scrollback_submit_test.c` (3 sites)
+- `tests/unit/repl/repl_submit_line_error_test.c` (1 site)
+- `tests/unit/repl/repl_autoscroll_test.c` (1 site)
+
+**Priority 4 - Integration Tests (48 sites in 13 files):**
+- `tests/integration/completion_edge_cases_test.c` (10 sites)
+- `tests/integration/repl_test.c` (7 sites)
+- `tests/integration/provider_switching_fork_test.c` (5 sites)
+- `tests/integration/provider_switching_basic_test.c` (4 sites)
+- `tests/integration/history_persistence_test.c` (4 sites)
+- `tests/integration/completion_e2e_test.c` (4 sites)
+- `tests/integration/history_navigation_test.c` (3 sites)
+- `tests/integration/history_edge_cases_test.c` (3 sites)
+- `tests/integration/completion_workflow_test.c` (3 sites)
+- `tests/integration/provider_switching_thinking_test.c` (2 sites)
+- `tests/integration/completion_args_test.c` (2 sites)
+- `tests/integration/test_session_restore_e2e.c` (1 site)
+- (1 additional file with unspecified count)
+
+**Compilation Errors:** 90 (wrong parameter count)
+
+#### 2. `ik_config_load()` Signature Change
+
+**Change:** Remove `const char *path` parameter, add `ik_paths_t *paths` parameter
+
+**Direct Call Sites (72 total in 11 files):**
+1. `tests/unit/config/validation_ranges_test.c` (10 sites)
+2. `tests/unit/config/validation_types_test.c` (8 sites)
+3. `tests/unit/config/default_provider_test.c` (4 sites)
+4. `tests/unit/config/history_size_test.c` (7 sites)
+5. `tests/unit/config/config_test.c` (7 sites)
+6. `tests/unit/config/validation_missing_test.c` (6 sites)
+7. `tests/unit/config/basic_test.c` (6 sites)
+8. `tests/unit/config/tilde_test.c` (1 site)
+9. `tests/unit/config/filesystem_test.c` (2 sites)
+10. `tests/unit/config/tool_limits_test.c` (7 sites)
+11. `tests/integration/config_integration_test.c` (9 sites)
+
+**Compilation Errors:** 72 (wrong parameter type)
+
+#### 3. `ik_cfg_expand_tilde()` Function Move
+
+**Change:** Move from `src/config.c` to `src/paths.c`, make internal (static)
+
+**Affected Tests (3 sites in 1 file):**
+- `tests/unit/config/tilde_test.c:19,29,55`
+
+**Link Errors:** 3 (symbol not found)
+
+**Migration:** Entire test file migrates to `tests/unit/paths/tilde_test.c`
+
+#### 4. `.ikigai` Directory References
+
+**Impact:** Tests that manipulate `.ikigai` directories directly
+
+**Affected Files (~26 files):**
+- `tests/unit/history/directory_test.c` (creates `.ikigai` dirs)
+- `tests/unit/history/file_io_test.c` (works with `.ikigai` paths)
+- `tests/unit/history/file_io_errors_test.c`
+- `tests/unit/commands/mark_db_test.c`
+- Logger tests (10+ files constructing `.ikigai/logs` paths)
+- Others found by: `grep -r "\.ikigai" tests/`
+
+**Compilation Errors:** 0 (indirect impact - tests should continue working)
+
+### Fix Strategy
+
+**Phase 1: Fix Helpers (Critical Path)**
+1. Update `tests/helpers/test_contexts.c` (2 sites)
+2. Verify ~160 helper-using tests compile
+
+**Phase 2: Update Direct Callers**
+3. Update `src/client.c` (1 site - production)
+4. Update `tests/unit/shared/shared_test.c` (7 sites)
+5. Update `tests/unit/repl/*.c` (21 sites across 4 files)
+6. Update `tests/integration/*.c` (48 sites across 13 files)
+
+**Phase 3: Update Config Tests**
+7. Update 11 config test files (72 sites) in dependency order
+
+**Phase 4: Migrate Tilde Tests**
+8. Create `tests/unit/paths/tilde_test.c`
+9. Migrate 3 tests from `tests/unit/config/tilde_test.c`
+
+**Phase 5: Verification**
+10. Run `make check` - verify all tests pass
+11. Run `make coverage` - verify 100% maintained
+
+### Expected Failures by Phase
+
+**Before Any Changes:**
+- All ~565 tests pass
+
+**After Production Changes (no test updates):**
+- **Compilation:** ~165 errors
+- **Link:** 3 errors
+- **Tests passing:** 0 (won't compile)
+
+**After Helper Updates Only:**
+- **Compilation:** ~93 errors remain (direct callers + config tests)
+- **Tests passing:** ~160 (helper users now compile)
+
+**After All Updates:**
+- **Compilation:** 0 errors
+- **Tests passing:** All ~565 tests
 
 ---
 
