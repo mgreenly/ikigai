@@ -59,23 +59,23 @@ res_t ik_config_load(TALLOC_CTX *ctx, const char *path, ik_cfg_t **out);
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_cfg_t **out);
 ```
 
-### ik_cfg_expand_tilde() - MOVE TO PATHS MODULE
+### ik_cfg_expand_tilde() - REMOVE FROM CONFIG MODULE
 
 **Current location:** `src/config.c` (public API in `src/config.h`)
 
-**New location:** `src/paths.c` (internal static function, NOT in `src/paths.h`)
+**Status:** Already implemented as `ik_paths_expand_tilde()` in paths module (PUBLIC API in `src/paths.h`)
 
-**Why:** Tilde expansion is a path operation, not a config operation. Config module was a temporary home. Paths module is the proper location.
+**Why:** Tilde expansion is a path operation, not a config operation. Config module was a temporary home. Paths module is the proper location. It's PUBLIC because it's useful for other modules (e.g., credentials.c).
 
 **Current usage sites:**
-- `src/config.c:97` - Internal use (will move with function)
-- `src/credentials.c` - May need update if it uses public API
+- `src/config.c` - Internal use, will switch to `ik_paths_expand_tilde()`
+- `src/credentials.c` - May use it, will switch to `ik_paths_expand_tilde()`
 
 **Action:**
-1. Move function implementation from `src/config.c` to `src/paths.c`
-2. Make it `static` (internal to paths module)
-3. Remove declaration from `src/config.h`
-4. If `src/credentials.c` uses it, update to use `ik_paths_expand_tilde()` public API instead
+1. Remove `ik_cfg_expand_tilde()` implementation from `src/config.c`
+2. Remove declaration from `src/config.h`
+3. Update all callers to use `ik_paths_expand_tilde()` instead
+4. Include `src/paths.h` where needed
 
 ## Behaviors
 
@@ -323,7 +323,8 @@ Report status to orchestration:
 ## Postconditions
 
 - [ ] `ik_config_load()` signature updated
-- [ ] `ik_cfg_expand_tilde()` moved to paths module (internal)
+- [ ] `ik_cfg_expand_tilde()` removed from config module
+- [ ] All callers updated to use `ik_paths_expand_tilde()` instead
 - [ ] All 72 config test call sites updated
 - [ ] `tests/unit/config/tilde_test.c` deleted
 - [ ] `src/credentials.c` updated if needed

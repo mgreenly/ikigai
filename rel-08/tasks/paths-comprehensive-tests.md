@@ -45,26 +45,28 @@ Achieve 100% test coverage of the paths module by creating comprehensive test fi
 
 ## Test Files to Create
 
-### 1. tests/unit/paths/xdg_test.c
+### 1. tests/unit/paths/env_vars_test.c
 
 **Test scenarios:**
 
-- `test_xdg_config_home_set` - Verify `XDG_CONFIG_HOME` used when set
-- `test_xdg_config_home_default` - Verify `~/.config/ikigai/` when not set
-- `test_xdg_data_home_set` - Verify `XDG_DATA_HOME` used when set
-- `test_xdg_data_home_default` - Verify `~/.local/share/ikigai/` when not set
-- `test_xdg_state_home_set` - Verify `XDG_STATE_HOME` used when set
-- `test_xdg_state_home_default` - Verify `~/.local/state/ikigai/` when not set
-- `test_xdg_with_ikigai_override` - Verify `IKIGAI_CONFIG_DIR` takes precedence over XDG
-- `test_xdg_multiple_vars_set` - Verify all XDG vars can be set simultaneously
+- `test_env_all_vars_set` - Verify success when all 4 IKIGAI_*_DIR vars set
+- `test_env_missing_bin_dir` - Verify ERR_INVALID_ARG when IKIGAI_BIN_DIR missing
+- `test_env_missing_config_dir` - Verify ERR_INVALID_ARG when IKIGAI_CONFIG_DIR missing
+- `test_env_missing_data_dir` - Verify ERR_INVALID_ARG when IKIGAI_DATA_DIR missing
+- `test_env_missing_libexec_dir` - Verify ERR_INVALID_ARG when IKIGAI_LIBEXEC_DIR missing
+- `test_env_empty_string` - Verify empty string treated as missing
+- `test_env_with_spaces` - Verify paths with spaces handled correctly
+- `test_env_with_trailing_slash` - Verify trailing slashes preserved
 
 **Pattern:**
 ```c
-START_TEST(test_xdg_config_home_set)
+START_TEST(test_env_all_vars_set)
 {
     // Setup
-    test_paths_setup_env();
-    setenv("XDG_CONFIG_HOME", "/custom/config", 1);
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -72,11 +74,13 @@ START_TEST(test_xdg_config_home_set)
 
     // Assert
     ck_assert(is_ok(&result));
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    ck_assert_str_eq(config_dir, "/custom/config/ikigai");
+    ck_assert_ptr_nonnull(paths);
 
     // Cleanup
-    test_paths_cleanup_env();
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
 }
 END_TEST
 ```
@@ -103,105 +107,45 @@ END_TEST
 
 **Test scenarios:**
 
-- `test_tools_system_dir_dev_mode` - NULL in development mode
-- `test_tools_system_dir_user_install` - NULL in user install
-- `test_tools_system_dir_system_install` - `<prefix>/libexec/ikigai/tools/` in system install
-- `test_tools_user_dir_always_set` - Always `~/.ikigai/tools/` regardless of install type
-- `test_tools_project_dir_always_set` - Always `./.ikigai/tools/` regardless of install type
+- `test_tools_system_dir` - Verify returns libexec_dir (same directory)
+- `test_tools_user_dir` - Verify returns `~/.ikigai/tools/` (expanded)
+- `test_tools_project_dir` - Verify returns `.ikigai/tools/`
 - `test_tools_all_three_accessible` - All getters work simultaneously
-- `test_tools_system_dir_with_custom_prefix` - Verify prefix extraction works
+- `test_tools_user_dir_expands_tilde` - Verify tilde expanded in user tools dir
+- `test_tools_project_dir_relative` - Verify project dir is relative path
 
 **Pattern:**
 ```c
-START_TEST(test_tools_system_dir_dev_mode)
+START_TEST(test_tools_system_dir)
 {
-    // Setup - development mode
+    // Setup
     test_paths_setup_env();
-    setenv("IKIGAI_DEV", "1", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
     res_t result = ik_paths_init(test_ctx, &paths);
     ck_assert(is_ok(&result));
 
-    // Assert - system tools dir should be NULL in dev mode
+    // Assert - system tools dir should equal libexec dir
     const char *system_dir = ik_paths_get_tools_system_dir(paths);
-    ck_assert_ptr_null(system_dir);
-
-    // But user and project dirs should be set
-    ck_assert_ptr_nonnull(ik_paths_get_tools_user_dir(paths));
-    ck_assert_ptr_nonnull(ik_paths_get_tools_project_dir(paths));
+    const char *libexec_dir = ik_paths_get_libexec_dir(paths);
+    ck_assert_str_eq(system_dir, libexec_dir);
 
     test_paths_cleanup_env();
 }
 END_TEST
 ```
 
-### 4. tests/unit/paths/config_search_test.c
+### 4. tests/unit/paths/getters_test.c
 
 **Test scenarios:**
 
-- `test_config_dir_dev_mode` - Uses `IKIGAI_CONFIG_DIR` or project root
-- `test_config_dir_user_install` - Uses `~/.config/ikigai/`
-- `test_config_dir_system_install` - Uses `~/.config/ikigai/` (user config takes precedence)
-- `test_config_dir_xdg_override` - Uses `XDG_CONFIG_HOME/ikigai/`
-- `test_config_dir_ikigai_override` - `IKIGAI_CONFIG_DIR` overrides XDG
-
-**Note:** This tests the config directory resolution, not the actual config file search (that's tested in config module tests).
-
-### 5. tests/unit/paths/tool_precedence_test.c
-
-**Test scenarios:**
-
-- `test_tool_precedence_order` - Verify project > user > system order documented
-- `test_tool_override_project_shadows_user` - Project tool shadows user tool
-- `test_tool_override_project_shadows_system` - Project tool shadows system tool
-- `test_tool_override_user_shadows_system` - User tool shadows system tool
-
-**Note:** These are documentation/specification tests. The actual tool discovery precedence is implemented in the discovery infrastructure task, but paths module documents the intended order.
-
-### 6. tests/unit/paths/env_override_test.c
-
-**Test scenarios:**
-
-- `test_ikigai_dev_forces_dev_mode` - Any value of `IKIGAI_DEV` forces development mode
-- `test_ikigai_config_dir_override` - Overrides config directory
-- `test_ikigai_data_dir_override` - Overrides data directory
-- `test_ikigai_libexec_dir_override` - Overrides libexec directory
-- `test_all_overrides_together` - All IKIGAI_*_DIR vars can be set simultaneously
-- `test_override_priority` - IKIGAI_* vars take precedence over XDG vars
-
-**Pattern:**
-```c
-START_TEST(test_ikigai_config_dir_override)
-{
-    test_paths_setup_env();
-    setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
-
-    ik_paths_t *paths = NULL;
-    res_t result = ik_paths_init(test_ctx, &paths);
-    ck_assert(is_ok(&result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    ck_assert_str_eq(config_dir, "/custom/config");
-
-    test_paths_cleanup_env();
-}
-END_TEST
-```
-
-### 7. tests/unit/paths/install_type_test.c
-
-**Test scenarios:**
-
-- `test_install_type_dev_mode_detection` - `IKIGAI_DEV` set → INSTALL_TYPE_DEV
-- `test_install_type_user_install_detection` - Binary in `~/.local/bin/` → INSTALL_TYPE_USER
-- `test_install_type_system_install_detection` - Binary in `/usr/bin/` → INSTALL_TYPE_SYSTEM
-- `test_install_type_prefix_extraction_usr_local` - `/usr/local/bin/ikigai` → prefix `/usr/local`
-- `test_install_type_prefix_extraction_usr` - `/usr/bin/ikigai` → prefix `/usr`
-- `test_install_type_prefix_extraction_opt` - `/opt/ikigai/bin/ikigai` → prefix `/opt/ikigai`
-
-**Note:** Install type detection may need mocking of `/proc/self/exe` readlink for testing different binary locations.
+- `test_get_bin_dir` - Verify getter returns env var value
+- `test_get_config_dir` - Verify getter returns env var value
+- `test_get_data_dir` - Verify getter returns env var value
+- `test_get_libexec_dir` - Verify getter returns env var value
+- `test_getters_not_null` - Verify all getters never return NULL when initialized
+- `test_getters_const_strings` - Verify strings remain valid while paths instance alive
 
 ## Behaviors
 
@@ -261,13 +205,10 @@ int main(void)
 ### Makefile Integration
 
 Add new test binaries to Makefile:
-- `tests/unit/paths/xdg_test`
+- `tests/unit/paths/env_vars_test`
 - `tests/unit/paths/tilde_test`
 - `tests/unit/paths/tool_dirs_test`
-- `tests/unit/paths/config_search_test`
-- `tests/unit/paths/tool_precedence_test`
-- `tests/unit/paths/env_override_test`
-- `tests/unit/paths/install_type_test`
+- `tests/unit/paths/getters_test`
 
 Follow existing pattern in Makefile for test compilation and linking.
 
@@ -318,8 +259,8 @@ Report status to orchestration:
 
 ## Postconditions
 
-- [ ] All 7 test files created
-- [ ] 50+ new test cases added
+- [ ] All 4 test files created (env_vars, tilde, tool_dirs, getters)
+- [ ] 30+ new test cases added (beyond paths-core.md's 19 basic tests)
 - [ ] All tests pass
 - [ ] 100% coverage of paths module
 - [ ] `make check` passes

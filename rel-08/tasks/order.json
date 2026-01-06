@@ -13,7 +13,7 @@
     {"stop": "verify-paths-coverage", "message": "Verify comprehensive tests: make coverage shows 100% for src/paths.c"},
 
     {"task": "paths-config-integration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
-    {"stop": "verify-config-integration", "message": "Verify config integration: all config tests pass with new signature"},
+    {"stop": "verify-phase-0-complete", "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated"},
 
     {"task": "tool-bash.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
     {"stop": "verify-bash", "message": "Verify bash tool: make tool-bash && libexec/ikigai/bash --schema && echo '{\"command\":\"echo hello\"}' | libexec/ikigai/bash"},
