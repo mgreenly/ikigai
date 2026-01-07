@@ -1,3 +1,4 @@
+/* LCOV_EXCL_START */
 #include "debug_log.h"
 
 #ifdef DEBUG
@@ -71,3 +72,4 @@ void ik_debug_log_write(const char *file, int line, const char *func,
 }
 
 #endif // DEBUG
+/* LCOV_EXCL_STOP */

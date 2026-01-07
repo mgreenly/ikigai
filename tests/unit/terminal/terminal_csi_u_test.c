@@ -247,6 +247,31 @@ START_TEST(test_csi_u_probe_no_question) {
 
 END_TEST
 
+// Test: CSI u enable read fails after select returns ready
+// This covers the edge case in enable_csi_u where select() indicates data
+// is available but read() fails
+START_TEST(test_csi_u_enable_read_fails) {
+    reset_mocks();
+    mock_select_return = 1; // Indicate CSI u is supported and data ready
+    // Read sequence: 1=CSI u probe response, 2=CSI u enable response
+    mock_read_fail_on_call = 2; // Fail on second read (enable response read)
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, NULL, &term);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(term);
+    // CSI u enable read failed, so it should be marked as unsupported
+    ck_assert(!term->csi_u_supported);
+
+    ik_term_cleanup(term);
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test suite
 static Suite *terminal_csi_u_suite(void)
 {
@@ -259,6 +284,7 @@ static Suite *terminal_csi_u_suite(void)
     tcase_add_test(tc_core, test_csi_u_probe_read_fails);
     tcase_add_test(tc_core, test_csi_u_probe_succeeds);
     tcase_add_test(tc_core, test_csi_u_enable_fails);
+    tcase_add_test(tc_core, test_csi_u_enable_read_fails);
     tcase_add_test(tc_core, test_csi_u_cleanup_disables);
     tcase_add_test(tc_core, test_csi_u_probe_invalid_response);
     tcase_add_test(tc_core, test_csi_u_probe_short_response);
