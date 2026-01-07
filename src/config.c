@@ -181,7 +181,7 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     uint16_t port_value = (uint16_t)port_raw;
 
     // validate db_connection_string (optional)
-    if (db_conn_str && !yyjson_is_str(db_conn_str)) {
+    if (db_conn_str && !yyjson_is_null(db_conn_str) && !yyjson_is_str(db_conn_str)) {
         return ERR(ctx, PARSE, "Invalid type for db_connection_string");
     }
 

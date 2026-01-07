@@ -287,6 +287,7 @@ START_TEST(test_repl_init) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -337,6 +338,7 @@ START_TEST(test_repl_run) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -365,6 +367,7 @@ START_TEST(test_thread_infrastructure_init) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -396,6 +399,7 @@ START_TEST(test_mutex_init_failure) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -422,6 +426,7 @@ START_TEST(test_transition_to_executing_tool) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -455,6 +460,7 @@ START_TEST(test_transition_from_executing_tool) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
@@ -491,6 +497,7 @@ START_TEST(test_repl_init_null_out) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    res_t result;
     // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;

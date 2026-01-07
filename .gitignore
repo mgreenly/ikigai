@@ -30,6 +30,9 @@ coverage_html/
 .ikigai/deno/
 .claude/logs/
 
+# Credentials
+etc/ikigai/credentials.json
+
 # Nginx runtime
 .agents/httpd/pid/
 

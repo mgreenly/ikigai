@@ -74,7 +74,7 @@ int main(void)
 
     // Load configuration
     ik_config_t *cfg = NULL;
-    res_t cfg_result = ik_config_load(root_ctx, "~/.config/ikigai/config.json", &cfg);
+    res_t cfg_result = ik_config_load(root_ctx, paths, &cfg);
     if (is_err(&cfg_result)) {
         doc = ik_log_create();
         root = yyjson_mut_doc_get_root(doc);
