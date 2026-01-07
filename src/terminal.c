@@ -123,9 +123,9 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
                 // Log to JSONL
                 if (logger != NULL) {
                     yyjson_mut_doc *doc = ik_log_create();
-                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);  // LCOV_EXCL_BR_LINE
                     yyjson_mut_obj_add_str(doc, root, "event", "csi_u_enabled");
-                    yyjson_mut_obj_add_int(doc, root, "flags", flags);
+                    yyjson_mut_obj_add_int(doc, root, "flags", flags);  // LCOV_EXCL_BR_LINE
                     ik_logger_debug_json(logger, doc);
                 }
 
@@ -141,12 +141,12 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
     // Log unexpected response to JSONL
     if (logger != NULL) {
         yyjson_mut_doc *doc = ik_log_create();
-        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);  // LCOV_EXCL_BR_LINE
         yyjson_mut_obj_add_str(doc, root, "event", "csi_u_unexpected_response");
-        yyjson_mut_obj_add_int(doc, root, "response_length", (int)n);
+        yyjson_mut_obj_add_int(doc, root, "response_length", (int)n);  // LCOV_EXCL_BR_LINE
         // Add hex dump of response
         char hex[128] = {0};
-        for (ssize_t i = 0; i < n && i < 32; i++) {
+        for (ssize_t i = 0; i < n && i < 32; i++) {  // LCOV_EXCL_BR_LINE (i<32 unreachable: buf is 32 bytes max)
             size_t offset = (size_t)(i * 3);
             snprintf(hex + offset, sizeof(hex) - offset, "%02x ", (unsigned char)buf[i]);
         }
@@ -158,17 +158,26 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
     return true;
 }
 
+/* LCOV_EXCL_START */
 // Initialize terminal (raw mode + alternate screen)
 res_t ik_term_init(TALLOC_CTX *ctx, ik_logger_t *logger, ik_term_ctx_t **ctx_out)
 {
-    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
-    assert(ctx_out != NULL);   // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);
+    assert(ctx_out != NULL);
 
-    // Open /dev/tty
     int tty_fd = posix_open_("/dev/tty", O_RDWR);
     if (tty_fd < 0) {
         return ERR(ctx, IO, "Failed to open /dev/tty");
     }
+    return ik_term_init_with_fd(ctx, logger, tty_fd, ctx_out);
+}
+/* LCOV_EXCL_STOP */
+
+// Initialize terminal with pre-opened file descriptor (for testing with PTY)
+res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_term_ctx_t **ctx_out)
+{
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(ctx_out != NULL);   // LCOV_EXCL_BR_LINE
 
     // Allocate context
     ik_term_ctx_t *term_ctx = talloc_zero_(ctx, sizeof(ik_term_ctx_t));
