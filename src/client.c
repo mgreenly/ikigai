@@ -1,4 +1,5 @@
 #include "config.h"
+#include "debug_log.h"
 #include "error.h"
 #include "logger.h"
 #include "panic.h"
@@ -27,6 +28,10 @@ int main(void)
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
         PANIC("Failed to get current working directory");
     }
+
+    // Initialize debug log (DEBUG builds only, compiled away in release)
+    ik_debug_log_init();
+    DEBUG_LOG("=== Session starting, PID=%d ===", getpid());
 
     // Logger first (its own talloc root for independent lifetime)
     void *logger_ctx = talloc_new(NULL);
@@ -66,6 +71,7 @@ int main(void)
         yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
         ik_logger_info_json(logger, doc);
 
+        DEBUG_LOG("=== Session ending: paths_init_error ===");
         g_panic_logger = NULL;   // Disable panic logging
         talloc_free(root_ctx);
         talloc_free(logger_ctx); // Logger last
@@ -92,6 +98,7 @@ int main(void)
         yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
         ik_logger_info_json(logger, doc);
 
+        DEBUG_LOG("=== Session ending: config_load_error ===");
         g_panic_logger = NULL;   // Disable panic logging
         talloc_free(root_ctx);
         talloc_free(logger_ctx); // Logger last
@@ -118,6 +125,7 @@ int main(void)
         yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
         ik_logger_info_json(logger, doc);
 
+        DEBUG_LOG("=== Session ending: shared_ctx_init_error ===");
         g_panic_logger = NULL;   // Disable panic logging
         talloc_free(root_ctx);
         talloc_free(logger_ctx); // Logger last
@@ -148,6 +156,7 @@ int main(void)
         yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
         ik_logger_info_json(logger, doc);
 
+        DEBUG_LOG("=== Session ending: repl_init_error ===");
         g_panic_logger = NULL;   // Disable panic logging
         talloc_free(root_ctx);
         talloc_free(logger_ctx); // Logger last
@@ -186,6 +195,7 @@ int main(void)
     yyjson_mut_obj_add_int(doc, root, "exit_code", exit_code);
     ik_logger_info_json(logger, doc);
 
+    DEBUG_LOG("=== Session ending normally, exit_code=%d ===", exit_code);
     g_panic_logger = NULL;   // Disable panic logging
     talloc_free(logger_ctx); // Logger last
 

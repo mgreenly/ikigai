@@ -157,7 +157,7 @@ START_TEST(test_terminal_init_enters_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    res_t result = ik_term_init(ctx, &term);
+    res_t result = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
     ck_assert_int_eq(alt_screen_enter_count, 1);
@@ -170,7 +170,7 @@ START_TEST(test_terminal_cleanup_exits_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    res_t result = ik_term_init(ctx, &term);
+    res_t result = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
     alt_screen_exit_count = 0;

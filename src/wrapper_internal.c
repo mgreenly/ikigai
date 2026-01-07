@@ -26,9 +26,9 @@
 // Internal ikigai function wrappers for testing - debug/test builds only
 // ============================================================================
 
-MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
-    return ik_db_init(mem_ctx, conn_str, (ik_db_ctx_t **)out_ctx);
+    return ik_db_init(mem_ctx, conn_str, data_dir, (ik_db_ctx_t **)out_ctx);
 }
 
 MOCKABLE res_t ik_db_message_insert_(void *db,

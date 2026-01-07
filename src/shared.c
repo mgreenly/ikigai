@@ -1,11 +1,13 @@
 #include "shared.h"
 
 #include "db/connection.h"
+#include "debug_log.h"
 #include "debug_pipe.h"
 #include "history.h"
 #include "history_io.h"
 #include "logger.h"
 #include "panic.h"
+#include "paths.h"
 #include "render.h"
 #include "terminal.h"
 #include "wrapper.h"
@@ -46,28 +48,39 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     talloc_steal(shared, logger);  // Transfer ownership
 
     // Initialize terminal (raw mode + alternate screen)
-    res_t result = ik_term_init(shared, &shared->term);
+    DEBUG_LOG("=== About to call ik_term_init ===");
+    res_t result = ik_term_init(shared, shared->logger, &shared->term);
     if (is_err(&result)) {
+        DEBUG_LOG("=== ik_term_init failed: %s ===", error_message(result.err));
         talloc_free(shared);
         return result;
     }
+    DEBUG_LOG("=== ik_term_init succeeded ===");
 
     // Initialize render
+    DEBUG_LOG("=== About to call ik_render_create ===");
     result = ik_render_create(shared,
                               shared->term->screen_rows,
                               shared->term->screen_cols,
                               shared->term->tty_fd,
                               &shared->render);
     if (is_err(&result)) {
+        DEBUG_LOG("=== ik_render_create failed: %s ===", error_message(result.err));
         ik_term_cleanup(shared->term);
         talloc_free(shared);
         return result;
     }
+    DEBUG_LOG("=== ik_render_create succeeded ===");
 
     // Initialize database connection if configured
+    DEBUG_LOG("=== About to check db_connection_string ===");
     if (cfg->db_connection_string != NULL) {
-        result = ik_db_init_(shared, cfg->db_connection_string, (void **)&shared->db_ctx);
+        DEBUG_LOG("=== About to call ik_db_init_ ===");
+        const char *data_dir = ik_paths_get_data_dir(paths);
+        DEBUG_LOG("=== Using data_dir: %s ===", data_dir);
+        result = ik_db_init_(shared, cfg->db_connection_string, data_dir, (void **)&shared->db_ctx);
         if (is_err(&result)) {
+            DEBUG_LOG("=== ik_db_init_ failed: %s ===", error_message(result.err));
             // Cleanup already-initialized resources
             if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
                 ik_term_cleanup(shared->term);
