@@ -142,6 +142,132 @@ START_TEST(test_paths_init_missing_libexec_dir)
 }
 END_TEST
 
+START_TEST(test_paths_init_empty_bin_dir)
+{
+    // Setup environment (empty IKIGAI_BIN_DIR)
+    setenv("IKIGAI_BIN_DIR", "", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_empty_config_dir)
+{
+    // Setup environment (empty IKIGAI_CONFIG_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_empty_data_dir)
+{
+    // Setup environment (empty IKIGAI_DATA_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_empty_libexec_dir)
+{
+    // Setup environment (empty IKIGAI_LIBEXEC_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_no_home)
+{
+    // Setup environment (no HOME for tilde expansion)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    unsetenv("HOME");
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert - should fail during tilde expansion
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_IO);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+}
+END_TEST
+
 START_TEST(test_paths_get_bin_dir)
 {
     // Setup environment
@@ -432,6 +558,22 @@ START_TEST(test_paths_expand_tilde_null_input)
 }
 END_TEST
 
+START_TEST(test_paths_expand_tilde_tilde_non_slash)
+{
+    // Setup
+    setenv("HOME", "/home/testuser", 1);
+
+    // Test - tilde followed by non-slash character
+    char *expanded = NULL;
+    res_t result = ik_paths_expand_tilde(test_ctx, "~user", &expanded);
+
+    // Assert - should not expand, just copy as-is
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(expanded);
+    ck_assert_str_eq(expanded, "~user");
+}
+END_TEST
+
 static Suite *paths_suite(void)
 {
     Suite *s = suite_create("paths");
@@ -443,6 +585,11 @@ static Suite *paths_suite(void)
     tcase_add_test(tc_init, test_paths_init_missing_config_dir);
     tcase_add_test(tc_init, test_paths_init_missing_data_dir);
     tcase_add_test(tc_init, test_paths_init_missing_libexec_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_bin_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_config_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_data_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_libexec_dir);
+    tcase_add_test(tc_init, test_paths_init_no_home);
     suite_add_tcase(s, tc_init);
 
     TCase *tc_getters = tcase_create("getters");
@@ -465,6 +612,7 @@ static Suite *paths_suite(void)
     tcase_add_test(tc_tilde, test_paths_expand_tilde_relative);
     tcase_add_test(tc_tilde, test_paths_expand_tilde_no_home);
     tcase_add_test(tc_tilde, test_paths_expand_tilde_null_input);
+    tcase_add_test(tc_tilde, test_paths_expand_tilde_tilde_non_slash);
     suite_add_tcase(s, tc_tilde);
 
     return s;
