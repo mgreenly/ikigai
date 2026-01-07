@@ -30,6 +30,9 @@ coverage_html/
 .ikigai/deno/
 .claude/logs/
 
+# Debug log (DEBUG builds only)
+IKIGAI_DEBUG.LOG
+
 # Credentials
 etc/ikigai/credentials.json
 

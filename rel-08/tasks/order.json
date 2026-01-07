@@ -37,8 +37,14 @@
       "thinking": "extended"
     },
     {
+      "task": "paths-data-dir-tests.md",
+      "group": "Paths Module Foundation",
+      "model": "sonnet",
+      "thinking": "thinking"
+    },
+    {
       "stop": "verify-phase-0-complete",
-      "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated"
+      "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated, PREFIX=$HOME/.local install works"
     },
     {
       "task": "tool-bash.md",

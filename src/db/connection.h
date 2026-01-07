@@ -21,7 +21,7 @@ typedef struct {
  * Initialize database connection
  *
  * Creates a new database context and establishes connection to PostgreSQL
- * using the provided connection string. Runs migrations from default directory.
+ * using the provided connection string. Runs migrations from data directory.
  *
  * Connection string format:
  *   postgresql://[user[:password]@][host][:port][/dbname]
@@ -38,6 +38,7 @@ typedef struct {
  *
  * @param ctx Talloc context for allocations (must not be NULL)
  * @param conn_str PostgreSQL connection string (must not be NULL or empty)
+ * @param data_dir Data directory path from paths module (must not be NULL)
  * @param out_ctx Output parameter for database context (must not be NULL)
  * @return OK with db_ctx on success, ERR on failure
  *
@@ -46,7 +47,7 @@ typedef struct {
  * - ERR_DB_CONNECT: Connection failed (network, auth, etc.)
  * - ERR_DB_MIGRATE: Migration failed
  */
-res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, ik_db_ctx_t **out_ctx);
+res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, const char *data_dir, ik_db_ctx_t **out_ctx);
 
 /**
  * Initialize database connection with custom migrations directory

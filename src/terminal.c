@@ -3,11 +3,14 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
+#include "debug_log.h"
+#include "logger.h"
 #include "panic.h"
 #include "terminal.h"
 #include "wrapper.h"
@@ -26,6 +29,7 @@ static bool probe_csi_u_support(int tty_fd)
     // Send query
     const char *query = ESC_CSI_U_QUERY;
     if (posix_write_(tty_fd, query, 4) < 0) {
+        DEBUG_LOG("CSI_u probe: write failed");
         return false;
     }
 
@@ -40,6 +44,7 @@ static bool probe_csi_u_support(int tty_fd)
 
     int ready = posix_select_(tty_fd + 1, &read_fds, NULL, NULL, &timeout);
     if (ready <= 0) {
+        DEBUG_LOG("CSI_u probe: select timeout/error, ready=%d", ready);
         return false;  // Timeout or error - no CSI u support
     }
 
@@ -47,6 +52,7 @@ static bool probe_csi_u_support(int tty_fd)
     char buf[32];
     ssize_t n = posix_read_(tty_fd, buf, sizeof(buf) - 1);
     if (n <= 0) {
+        DEBUG_LOG("CSI_u probe: read failed, n=%zd", n);
         return false;
     }
     buf[n] = '\0';
@@ -56,16 +62,104 @@ static bool probe_csi_u_support(int tty_fd)
         // Look for 'u' terminator
         for (ssize_t i = 3; i < n; i++) {
             if (buf[i] == 'u') {
+                DEBUG_LOG("CSI_u probe: SUPPORTED, response received");
                 return true;
             }
         }
     }
 
+    DEBUG_LOG("CSI_u probe: invalid response format");
     return false;
 }
 
+// Enable CSI u and read/verify the response
+// Returns true if successfully enabled, false otherwise
+static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
+{
+    // Send enable command with flag 9 (disambiguate + report all keys)
+    if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 5) < 0) {
+        DEBUG_LOG("CSI_u enable: write failed");
+        return false;
+    }
+
+    // Wait for response with timeout
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(tty_fd, &read_fds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;  // 100ms
+
+    int ready = posix_select_(tty_fd + 1, &read_fds, NULL, NULL, &timeout);
+    if (ready <= 0) {
+        // Some terminals don't send a response to enable command
+        // This is OK - assume it worked if probe succeeded
+        DEBUG_LOG("CSI_u enable: no response (may be normal)");
+        return true;
+    }
+
+    // Read response - terminals may echo back the enabled flags
+    // Format could be: ESC[?<flags>u or other variations
+    char buf[32];
+    ssize_t n = posix_read_(tty_fd, buf, sizeof(buf) - 1);
+    if (n <= 0) {
+        DEBUG_LOG("CSI_u enable: read failed after select, n=%zd", n);
+        return false;
+    }
+    buf[n] = '\0';
+
+    DEBUG_LOG("CSI_u enable: received response, %zd bytes", n);
+
+    // Parse the response to see what flags were actually enabled
+    // Expected format: ESC[?<flags>u
+    if (n >= 4 && buf[0] == '\x1b' && buf[1] == '[' && buf[2] == '?') {
+        // Extract the flags value
+        int flags = 0;
+        for (ssize_t i = 3; i < n; i++) {
+            if (buf[i] == 'u') {
+                DEBUG_LOG("CSI_u enable: terminal confirmed flags=%d", flags);
+
+                // Log to JSONL
+                if (logger != NULL) {
+                    yyjson_mut_doc *doc = ik_log_create();
+                    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+                    yyjson_mut_obj_add_str(doc, root, "event", "csi_u_enabled");
+                    yyjson_mut_obj_add_int(doc, root, "flags", flags);
+                    ik_logger_debug_json(logger, doc);
+                }
+
+                return true;
+            } else if (buf[i] >= '0' && buf[i] <= '9') {
+                flags = flags * 10 + (buf[i] - '0');
+            }
+        }
+    }
+
+    DEBUG_LOG("CSI_u enable: unexpected response format");
+
+    // Log unexpected response to JSONL
+    if (logger != NULL) {
+        yyjson_mut_doc *doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "csi_u_unexpected_response");
+        yyjson_mut_obj_add_int(doc, root, "response_length", (int)n);
+        // Add hex dump of response
+        char hex[128] = {0};
+        for (ssize_t i = 0; i < n && i < 32; i++) {
+            size_t offset = (size_t)(i * 3);
+            snprintf(hex + offset, sizeof(hex) - offset, "%02x ", (unsigned char)buf[i]);
+        }
+        yyjson_mut_obj_add_str(doc, root, "response_hex", hex);
+        ik_logger_debug_json(logger, doc);
+    }
+
+    // Even if response format is unexpected, assume it worked
+    return true;
+}
+
 // Initialize terminal (raw mode + alternate screen)
-res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out)
+res_t ik_term_init(TALLOC_CTX *ctx, ik_logger_t *logger, ik_term_ctx_t **ctx_out)
 {
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(ctx_out != NULL);   // LCOV_EXCL_BR_LINE
@@ -118,13 +212,21 @@ res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out)
     }
 
     // Probe for CSI u support and enable if available
+    DEBUG_LOG("CSI_u: Starting detection");
     term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);
     if (term_ctx->csi_u_supported) {
+        DEBUG_LOG("CSI_u: Probe succeeded, attempting to enable");
         // Enable CSI u with flag 9 (disambiguate + report all keys)
-        if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 5) < 0) {
+        // This also reads and verifies the response
+        if (!enable_csi_u(tty_fd, logger)) {
             // Not critical - continue without CSI u
+            DEBUG_LOG("CSI_u: Enable failed, continuing without CSI_u");
             term_ctx->csi_u_supported = false;
+        } else {
+            DEBUG_LOG("CSI_u: Successfully enabled");
         }
+    } else {
+        DEBUG_LOG("CSI_u: Probe failed, not supported");
     }
 
     // Get terminal size
