@@ -716,6 +716,11 @@ const char *test_paths_setup_env(void)
     mkdir(buf, 0755);
     setenv("IKIGAI_DATA_DIR", buf, 1);
 
+    // Create migrations subdirectory under share
+    char migrations_dir[768];
+    snprintf(migrations_dir, sizeof(migrations_dir), "%s/migrations", buf);
+    mkdir(migrations_dir, 0755);
+
     // libexec directory
     snprintf(buf, sizeof(buf), "%s/libexec", test_path_prefix);
     mkdir(buf, 0755);
