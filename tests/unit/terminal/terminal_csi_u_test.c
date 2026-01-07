@@ -14,7 +14,7 @@ START_TEST(test_term_init_sets_csi_u_supported) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -36,7 +36,7 @@ START_TEST(test_csi_u_probe_write_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -57,7 +57,7 @@ START_TEST(test_csi_u_probe_read_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -77,7 +77,7 @@ START_TEST(test_csi_u_probe_succeeds) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -102,7 +102,7 @@ START_TEST(test_csi_u_enable_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -122,7 +122,7 @@ START_TEST(test_csi_u_cleanup_disables) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&res));
     ck_assert(term->csi_u_supported);
 
@@ -150,7 +150,7 @@ START_TEST(test_csi_u_probe_invalid_response) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -171,7 +171,7 @@ START_TEST(test_csi_u_probe_short_response) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -192,7 +192,7 @@ START_TEST(test_csi_u_probe_no_esc_prefix) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -213,7 +213,7 @@ START_TEST(test_csi_u_probe_no_bracket) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -234,7 +234,7 @@ START_TEST(test_csi_u_probe_no_question) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);

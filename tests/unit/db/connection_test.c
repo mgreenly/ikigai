@@ -94,7 +94,7 @@ static char *get_test_conn_str(TALLOC_CTX *ctx)
 START_TEST(test_db_init_empty_conn_str) {
     ik_db_ctx_t *db_ctx = NULL;
 
-    res_t res = ik_db_init(test_ctx, "", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "", "share/ikigai", &db_ctx);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
@@ -107,7 +107,7 @@ START_TEST(test_db_init_malformed_conn_str) {
     // Malformed connection string should either:
     // 1. Fail during validation (ERR_INVALID_ARG), or
     // 2. Fail during connection (ERR_DB_CONNECT)
-    res_t res = ik_db_init(test_ctx, MALFORMED_CONN_STR, &db_ctx);
+    res_t res = ik_db_init(test_ctx, MALFORMED_CONN_STR, "share/ikigai", &db_ctx);
 
     ck_assert(is_err(&res));
     // Accept either validation error or connection error
@@ -122,7 +122,7 @@ START_TEST(test_db_init_connection_refused) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Use invalid host that should result in connection refused/timeout
-    res_t res = ik_db_init(test_ctx, INVALID_HOST_CONN_STR, &db_ctx);
+    res_t res = ik_db_init(test_ctx, INVALID_HOST_CONN_STR, "share/ikigai", &db_ctx);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
@@ -137,7 +137,7 @@ START_TEST(test_db_init_postgres_scheme) {
     // Test postgres:// scheme (alternative to postgresql://)
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", "share/ikigai", &db_ctx);
 
     // Should fail with DB_CONNECT, not INVALID_ARG (validation should pass)
     ck_assert(is_err(&res));
@@ -152,7 +152,7 @@ START_TEST(test_db_init_key_value_format) {
     // Test libpq key=value format
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", "share/ikigai", &db_ctx);
 
     // Should fail with DB_CONNECT (libpq handles the parsing)
     ck_assert(is_err(&res));
@@ -168,7 +168,7 @@ START_TEST(test_db_init_success) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -183,7 +183,7 @@ START_TEST(test_db_init_talloc_hierarchy) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -203,7 +203,7 @@ START_TEST(test_db_init_destructor_cleanup) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(local_ctx);
 
-    res_t res = ik_db_init(local_ctx, conn_str, &db_ctx);
+    res_t res = ik_db_init(local_ctx, conn_str, "share/ikigai", &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -227,7 +227,7 @@ START_TEST(test_db_init_connection_string_variants) {
     char *base_str = get_test_conn_str(test_ctx);
 
     ik_db_ctx_t *db_ctx = NULL;
-    res_t res = ik_db_init(test_ctx, base_str, &db_ctx);
+    res_t res = ik_db_init(test_ctx, base_str, "share/ikigai", &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -241,7 +241,7 @@ START_TEST(test_db_init_cleanup_on_error) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Initialize with invalid connection string
-    res_t res = ik_db_init(local_ctx, INVALID_HOST_CONN_STR, &db_ctx);
+    res_t res = ik_db_init(local_ctx, INVALID_HOST_CONN_STR, "share/ikigai", &db_ctx);
 
     ck_assert(is_err(&res));
 
@@ -300,7 +300,7 @@ START_TEST(test_db_transaction_success) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
     ck_assert(is_ok(&res));
 
     // Test BEGIN

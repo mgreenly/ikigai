@@ -34,7 +34,7 @@ int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
                            const char *agent_uuid,
@@ -71,9 +71,10 @@ static void suite_teardown(void)
 }
 
 // Mock ik_db_init_ - always succeeds in session tests
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
     (void)conn_str;
+    (void)data_dir;
     ik_db_ctx_t *dummy_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
     if (dummy_ctx == NULL) {
         return ERR(mem_ctx, IO, "Out of memory");
