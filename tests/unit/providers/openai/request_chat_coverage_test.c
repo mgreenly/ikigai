@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_chat_coverage_test.c
  * @brief Coverage tests for request_chat.c

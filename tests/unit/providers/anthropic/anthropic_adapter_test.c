@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_anthropic_adapter.c
  * @brief Unit tests for Anthropic provider adapter vtable implementation

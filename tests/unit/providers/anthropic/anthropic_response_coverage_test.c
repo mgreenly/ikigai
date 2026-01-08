@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_response_coverage_test.c
  * @brief Additional coverage tests for Anthropic response parsing edge cases

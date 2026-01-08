@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_thinking_helpers.c
  * @brief Unit tests for message.c thinking block handling

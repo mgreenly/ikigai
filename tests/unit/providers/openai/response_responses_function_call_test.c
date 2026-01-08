@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_function_call_test.c
  * @brief Tests for OpenAI Responses API function call coverage

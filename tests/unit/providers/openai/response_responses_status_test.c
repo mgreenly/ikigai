@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_status_test.c
  * @brief Tests for OpenAI Responses API status mapping

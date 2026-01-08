@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_basic_test.c
  * @brief Basic OpenAI streaming tests - initial deltas and content accumulation

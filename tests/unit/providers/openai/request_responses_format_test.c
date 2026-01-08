@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_format_test.c
  * @brief Input format, instructions, and output tests for OpenAI Responses API

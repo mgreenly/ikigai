@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_error_test.c
  * @brief Error handling and URL tests for OpenAI Responses API

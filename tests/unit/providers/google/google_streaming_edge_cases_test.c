@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_edge_cases_test.c
  * @brief Edge case tests for Google streaming parser

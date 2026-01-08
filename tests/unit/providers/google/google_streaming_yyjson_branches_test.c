@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_yyjson_branches_test.c
  * @brief Tests to improve branch coverage by hitting yyjson internal branches

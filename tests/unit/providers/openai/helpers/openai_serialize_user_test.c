@@ -1,3 +1,4 @@
+#include "../../../../test_constants.h"
 /**
  * @file openai_serialize_user_test.c
  * @brief Unit tests for OpenAI user message serialization

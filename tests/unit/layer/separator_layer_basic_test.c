@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Tests for separator layer basic functionality
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/error.h"

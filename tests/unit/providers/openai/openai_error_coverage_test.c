@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_error_coverage_test.c
  * @brief Additional coverage tests for OpenAI error handling edge cases

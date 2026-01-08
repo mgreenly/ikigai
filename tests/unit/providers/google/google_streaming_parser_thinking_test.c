@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_parser_thinking_test.c
  * @brief Unit tests for Google provider thinking detection and event normalization

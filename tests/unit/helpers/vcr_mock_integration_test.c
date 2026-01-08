@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file vcr_mock_integration_test.c
  * @brief Unit tests for VCR mock integration with curl wrappers

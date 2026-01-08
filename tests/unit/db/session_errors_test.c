@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/session.c using mocks
 #include "../../../src/db/session.h"
 #include "../../../src/db/connection.h"

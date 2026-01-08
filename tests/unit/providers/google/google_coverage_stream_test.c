@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_coverage_stream_test.c
  * @brief Coverage tests for Google provider streaming functionality

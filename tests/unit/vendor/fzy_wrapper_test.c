@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file fzy_wrapper_test.c
  * @brief Unit tests for fzy_wrapper.c assertion violations

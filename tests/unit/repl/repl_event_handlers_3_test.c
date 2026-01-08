@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_3.c
  * @brief Unit tests for REPL event handler functions (Part 3) - Reduced size version

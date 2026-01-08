@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file basic_test.c
  * @brief Unit tests for event_render module

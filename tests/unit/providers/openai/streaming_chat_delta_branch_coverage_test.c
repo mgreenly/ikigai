@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_delta_branch_coverage_test.c
  * @brief Branch coverage tests for streaming_chat_delta.c to reach 100%

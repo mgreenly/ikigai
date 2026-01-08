@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_events_coverage_test_3.c
  * @brief Coverage tests for Anthropic streaming events - Part 3

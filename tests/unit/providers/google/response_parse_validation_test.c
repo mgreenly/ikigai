@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_parse_validation_test.c
  * @brief Unit tests for Google response parsing - validation and errors

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file extract_thinking_test.c
  * @brief Unit tests for thinking block extraction from responses

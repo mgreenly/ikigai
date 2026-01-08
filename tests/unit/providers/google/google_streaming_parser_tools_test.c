@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_parser_tools_test.c
  * @brief Unit tests for Google provider tool call streaming

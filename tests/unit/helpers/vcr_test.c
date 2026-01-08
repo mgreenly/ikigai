@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file vcr_test.c
  * @brief Unit tests for VCR HTTP recording/replay basic operations

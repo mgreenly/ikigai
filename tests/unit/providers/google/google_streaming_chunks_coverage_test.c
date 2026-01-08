@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_chunks_coverage_test.c
  * @brief Branch coverage tests for Google streaming - Chunk structure

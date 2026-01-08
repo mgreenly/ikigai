@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_request_test_2.c
  * @brief Unit tests for Anthropic request serialization - Part 2: Branch coverage

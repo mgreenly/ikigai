@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_branch_test.c
  * @brief Tests for uncovered branches in OpenAI Responses API parsing

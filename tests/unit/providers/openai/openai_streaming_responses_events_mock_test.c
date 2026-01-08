@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_mock_test.c
  * @brief Tests for OpenAI Responses API event processing with yyjson_doc_get_root mock

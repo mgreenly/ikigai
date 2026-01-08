@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_callbacks_vtable_test.c
  * @brief Coverage tests for anthropic.c vtable methods and lifecycle

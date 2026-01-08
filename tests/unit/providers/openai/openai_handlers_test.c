@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_handlers_test.c
  * @brief Unit tests for OpenAI HTTP completion handlers

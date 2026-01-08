@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file vcr_advanced_test.c
  * @brief Unit tests for VCR advanced features (redaction, assertions, verification)

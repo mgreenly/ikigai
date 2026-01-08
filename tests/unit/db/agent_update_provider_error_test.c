@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path test for ik_db_agent_update_provider (line 408)
 #include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"

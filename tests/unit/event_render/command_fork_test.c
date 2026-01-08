@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file command_fork_test.c
  * @brief Unit tests for command and fork event rendering

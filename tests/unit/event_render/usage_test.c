@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file usage_test.c
  * @brief Unit tests for usage event rendering

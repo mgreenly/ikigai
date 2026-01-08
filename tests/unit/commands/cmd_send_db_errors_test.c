@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file cmd_send_db_errors_test.c
  * @brief Coverage tests for /send command database error paths

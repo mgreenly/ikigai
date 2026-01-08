@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_tool_accum_test.c
  * @brief Unit tests for Anthropic streaming tool argument accumulation

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_norm_test.c
  * @brief Event normalization and error handling tests for OpenAI streaming

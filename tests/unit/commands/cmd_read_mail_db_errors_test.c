@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file cmd_read_mail_db_errors_test.c
  * @brief Coverage tests for /read-mail command database error paths

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/replay.h"
 #include "../../../src/msg.h"

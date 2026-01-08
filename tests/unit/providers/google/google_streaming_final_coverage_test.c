@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_final_coverage_test.c
  * @brief Final branch coverage tests for Google streaming

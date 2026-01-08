@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_1_timeout_test.c
  * @brief Unit tests for REPL event handler timeout functions

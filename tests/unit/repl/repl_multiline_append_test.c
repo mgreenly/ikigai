@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_multiline_append_test.c
  * @brief Unit tests for append_multiline_to_scrollback edge cases

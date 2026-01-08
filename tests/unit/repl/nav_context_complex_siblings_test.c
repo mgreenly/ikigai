@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // tests/unit/repl/nav_context_complex_siblings_test.c - Tests for complex sibling navigation edge cases
 #include <check.h>
 #include <talloc.h>

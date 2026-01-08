@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_missing_branches_test.c
  * @brief Additional branch coverage tests for Google streaming

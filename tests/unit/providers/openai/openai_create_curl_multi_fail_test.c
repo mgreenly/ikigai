@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_create_curl_multi_fail_test.c
  * @brief Unit test for OpenAI provider creation with curl_multi_init failure

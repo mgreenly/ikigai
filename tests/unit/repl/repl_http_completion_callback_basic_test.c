@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_http_completion_callback_basic_test.c
  * @brief Unit tests for REPL provider completion callback (basic)

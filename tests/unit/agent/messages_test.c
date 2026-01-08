@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file agent_messages_test.c
  * @brief Unit tests for agent message management functions

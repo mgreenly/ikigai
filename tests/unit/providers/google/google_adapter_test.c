@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_google_adapter.c
  * @brief Unit tests for Google provider adapter vtable implementation

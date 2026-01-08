@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_edge_coverage_test.c
  * @brief Edge case tests for streaming_chat.c branch coverage

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_branch_coverage_test.c
  * @brief Additional branch coverage tests for Google provider google.c

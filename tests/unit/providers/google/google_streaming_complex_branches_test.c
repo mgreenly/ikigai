@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_complex_branches_test.c
  * @brief Tests for complex branch conditions (&&, ||) in Google streaming

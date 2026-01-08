@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_run_provider_timeout_error_test.c
  * @brief Unit test for REPL run when provider timeout returns error

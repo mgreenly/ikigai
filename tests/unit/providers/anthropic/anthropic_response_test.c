@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_response_test.c
  * @brief Unit tests for Anthropic response parsing

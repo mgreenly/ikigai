@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_coverage2_test.c
  * @brief Coverage tests for OpenAI Responses API request serialization (Part 2)

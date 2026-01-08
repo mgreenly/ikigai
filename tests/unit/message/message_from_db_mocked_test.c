@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_from_db_mocked_test.c
  * @brief Unit tests for message.c with mocked yyjson functions

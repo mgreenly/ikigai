@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_advanced_test.c
  * @brief Unit tests for Google streaming thinking and tool call events

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // tests/unit/repl/nav_context_test.c - Navigation context wiring tests
 #include <check.h>
 #include <talloc.h>

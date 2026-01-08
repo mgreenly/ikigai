@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/mail/msg.h"
 
 #include <check.h>

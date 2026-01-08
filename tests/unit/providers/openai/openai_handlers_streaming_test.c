@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_handlers_streaming_test.c
  * @brief Unit tests for OpenAI streaming handlers

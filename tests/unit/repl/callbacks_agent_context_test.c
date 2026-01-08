@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file callbacks_agent_context_test.c
  * @brief Unit tests for agent context in REPL HTTP callbacks

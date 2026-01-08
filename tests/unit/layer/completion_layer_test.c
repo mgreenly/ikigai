@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/completion.h"
 #include "../../../src/commands.h"

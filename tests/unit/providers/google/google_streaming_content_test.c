@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_google_streaming_content.c
  * @brief Unit tests for Google streaming content events

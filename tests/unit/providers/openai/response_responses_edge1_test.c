@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_edge1_test.c
  * @brief Tests for OpenAI Responses API edge cases - missing fields

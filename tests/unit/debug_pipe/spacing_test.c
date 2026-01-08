@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file spacing_test.c
  * @brief Unit tests for debug pipe blank line spacing

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/providers/request.h"
 #include "../../../src/providers/provider.h"
 #include "../../../src/error.h"
