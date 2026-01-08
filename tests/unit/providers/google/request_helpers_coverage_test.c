@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_helpers_coverage_test.c
  * @brief Coverage tests for Google request helpers

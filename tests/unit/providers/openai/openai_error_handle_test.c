@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_error_handle_test.c
  * @brief Unit tests for ik_openai_handle_error function

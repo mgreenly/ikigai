@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file agent_restore_replay_mocked_test.c
  * @brief Unit tests for agent_restore_replay.c with mocked yyjson functions

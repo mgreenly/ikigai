@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "agent.h"
 /**
  * @file repl_run_render_misc_test.c

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // tests/unit/repl/nav_context_dead_agent_test.c
 // Test ik_repl_update_nav_context with stale/dead agent references
 #include <check.h>

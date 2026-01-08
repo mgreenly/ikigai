@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_reasoning_tools_test.c
  * @brief Reasoning and tool tests for OpenAI Responses API

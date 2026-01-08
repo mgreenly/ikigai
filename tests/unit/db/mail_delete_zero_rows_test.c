@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Test for db/mail.c delete zero rows case
 #include "../../../src/db/mail.h"
 #include "../../../src/db/connection.h"

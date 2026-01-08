@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_chat_strict_test.c
  * @brief Tests for OpenAI strict mode tool serialization

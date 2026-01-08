@@ -1,3 +1,4 @@
+#include "../test_constants.h"
 #include "../../src/credentials.h"
 #include "../../src/panic.h"
 #include "../../src/vendor/yyjson/yyjson.h"

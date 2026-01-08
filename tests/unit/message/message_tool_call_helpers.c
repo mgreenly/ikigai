@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_tool_call_helpers.c
  * @brief Unit tests for message.c tool_call message handling

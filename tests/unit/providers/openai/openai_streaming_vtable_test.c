@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_openai_streaming_vtable.c
  * @brief Unit tests for OpenAI provider vtable async streaming integration

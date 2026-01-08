@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_edge_test.c
  * @brief Edge case tests for OpenAI Responses API request serialization

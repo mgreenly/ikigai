@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 #include "providers/common/sse_parser.h"
 #include <check.h>
 #include <talloc.h>

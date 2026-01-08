@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_vtable_test.c
  * @brief Unit tests for OpenAI provider vtable methods

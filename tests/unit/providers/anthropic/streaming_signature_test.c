@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_signature_test.c
  * @brief Tests for Anthropic streaming signature and redacted thinking capture

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_responses_build_response_test.c
  * @brief Tests for ik_openai_responses_stream_build_response function

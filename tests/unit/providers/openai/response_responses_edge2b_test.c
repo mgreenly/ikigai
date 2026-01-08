@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_edge2b_test.c
  * @brief Tests for OpenAI Responses API edge cases - invalid types (part 2)

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_anthropic_errors.c
  * @brief Unit tests for Anthropic error handling and HTTP status mapping

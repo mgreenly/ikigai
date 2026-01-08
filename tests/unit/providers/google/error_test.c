@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file error_test.c
  * @brief Unit tests for Google error handling

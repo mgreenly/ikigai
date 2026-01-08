@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file agent_tool_execution_test.c
  * @brief Unit tests for agent-based tool execution

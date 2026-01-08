@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_error_coverage_test.c
  * @brief Coverage tests for Google streaming error handling paths

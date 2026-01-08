@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file serialize_message_coverage_test.c
  * @brief Coverage tests for serialize.c message serialization

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_tool_completion_test.c
  * @brief Unit tests for repl_tool_completion functions

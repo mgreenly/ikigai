@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_integration_test.c
  * @brief Integration tests for OpenAI Responses API streaming

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_tool_errors_test.c
  * @brief Coverage tests for OpenAI Chat tool call error paths

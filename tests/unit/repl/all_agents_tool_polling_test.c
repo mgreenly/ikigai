@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file all_agents_tool_polling_test.c
  * @brief Unit tests for polling tool completion across all agents

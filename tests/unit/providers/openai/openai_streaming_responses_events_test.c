@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_test.c
  * @brief Tests for OpenAI Responses API event processing edge cases (part 1)

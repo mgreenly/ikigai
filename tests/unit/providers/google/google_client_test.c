@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_google_client.c
  * @brief Unit tests for Google request serialization

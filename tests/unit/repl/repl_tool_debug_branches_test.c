@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "agent.h"
 #include <check.h>
 #include "../../../src/agent.h"

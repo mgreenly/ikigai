@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "agent.h"
 /**
  * @file repl_tool_loop_continuation_test.c

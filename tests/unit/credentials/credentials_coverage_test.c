@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file credentials_coverage_test.c
  * @brief Additional coverage tests for credentials.c

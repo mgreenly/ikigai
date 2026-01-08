@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_delta_edge_test.c
  * @brief Additional coverage tests for OpenAI Chat streaming delta processing

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_coverage_branches_test.c
  * @brief Additional branch coverage tests for OpenAI Chat response parsing

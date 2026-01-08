@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/agent.c using mocks
 #include "../../../src/db/agent.h"
 #include "../../../src/db/agent_zero.h"

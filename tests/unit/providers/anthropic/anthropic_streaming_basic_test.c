@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_streaming_basic_test.c
  * @brief Unit tests for Anthropic basic streaming and content accumulation

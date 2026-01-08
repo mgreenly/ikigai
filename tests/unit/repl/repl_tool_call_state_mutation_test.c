@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_tool_call_state_mutation_test.c
  * @brief Unit tests for REPL tool call conversation state mutation

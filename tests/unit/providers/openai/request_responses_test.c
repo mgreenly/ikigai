@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_test.c
  * @brief Tests for OpenAI Responses API request serialization

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_wrappers_test.c
  * @brief Coverage test for openai.c wrapper functions

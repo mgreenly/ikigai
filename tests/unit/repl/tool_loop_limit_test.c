@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "agent.h"
 /**
  * @file tool_loop_limit_test.c

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_test.c
  * @brief Tests for OpenAI Chat Completions response parsing

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Tests for input layer wrapper
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/error.h"

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file message_serialize_helpers.c
  * @brief Message serialization tests for Anthropic provider

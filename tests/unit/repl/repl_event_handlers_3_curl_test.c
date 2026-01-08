@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_3_curl.c
  * @brief Unit tests for REPL curl event handling functions

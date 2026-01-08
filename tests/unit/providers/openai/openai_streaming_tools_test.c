@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_tools_test.c
  * @brief Tool call streaming tests for OpenAI Chat Completions

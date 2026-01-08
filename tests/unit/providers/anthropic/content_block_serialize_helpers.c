@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file content_block_serialize_helpers.c
  * @brief Content block serialization tests for Anthropic provider

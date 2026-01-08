@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_thinking_test.c
  * @brief Unit tests for Anthropic thinking budget/level calculation

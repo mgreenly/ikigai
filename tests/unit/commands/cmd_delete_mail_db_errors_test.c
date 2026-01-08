@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file cmd_delete_mail_db_errors_test.c
  * @brief Coverage tests for /delete-mail command database error paths

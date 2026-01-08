@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_tool_result_helpers.c
  * @brief Unit tests for message.c tool_result message handling

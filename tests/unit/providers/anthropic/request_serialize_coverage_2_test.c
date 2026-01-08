@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_serialize_coverage_test_2.c
  * @brief Coverage tests for Anthropic request serialization - Part 2: Messages & Roles

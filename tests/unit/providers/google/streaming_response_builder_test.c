@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_response_builder_test.c
  * @brief Unit tests for Google streaming response builder

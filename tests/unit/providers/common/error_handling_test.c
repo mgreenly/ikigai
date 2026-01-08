@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_error_handling.c
  * @brief Unit tests for provider error handling

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/mail.c using mocks
 #include "../../../src/db/mail.h"
 #include "../../../src/db/connection.h"

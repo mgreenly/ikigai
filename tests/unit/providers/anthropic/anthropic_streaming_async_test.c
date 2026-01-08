@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_anthropic_streaming_async.c
  * @brief Unit tests for Anthropic streaming async event loop

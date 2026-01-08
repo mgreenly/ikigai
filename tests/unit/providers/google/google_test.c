@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_test.c
  * @brief Unit tests for Google provider factory and vtable methods

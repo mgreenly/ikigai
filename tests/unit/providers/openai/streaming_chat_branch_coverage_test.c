@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_branch_coverage_test.c
  * @brief Additional branch coverage tests for streaming_chat.c

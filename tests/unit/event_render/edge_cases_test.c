@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file edge_cases_test.c
  * @brief Edge case tests for event_render module with mocking

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 

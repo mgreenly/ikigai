@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_serialize_coverage_test_1.c
  * @brief Coverage tests for Anthropic request serialization - Part 1: Content Blocks

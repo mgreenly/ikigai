@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file spacing_test.c
  * @brief Tests for event render spacing (blank line after each event)

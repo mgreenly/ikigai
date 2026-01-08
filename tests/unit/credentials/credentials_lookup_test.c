@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file test_credentials.c
  * @brief Unit tests for credentials lookup from environment

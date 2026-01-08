@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_client_basic_test.c
  * @brief Basic unit tests for OpenAI request serialization

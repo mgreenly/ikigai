@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_coverage_info_read_test.c
  * @brief Coverage tests for Google provider info_read and cancel functionality

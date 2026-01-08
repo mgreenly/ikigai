@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_coverage_test.c
  * @brief Coverage tests for openai.c error paths

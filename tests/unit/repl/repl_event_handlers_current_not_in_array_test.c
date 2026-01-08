@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_current_not_in_array_test.c
  * @brief Tests for curl event handling when current agent is not in agents array

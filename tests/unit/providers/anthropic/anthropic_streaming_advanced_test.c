@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_streaming_advanced_test.c
  * @brief Unit tests for Anthropic advanced streaming features

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_state_transition_test.c
  * @brief Unit tests for state transition coverage in REPL event handlers

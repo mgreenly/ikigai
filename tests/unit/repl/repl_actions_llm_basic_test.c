@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include "../../../src/repl_actions.h"
 #include "../../../src/repl_actions_internal.h"

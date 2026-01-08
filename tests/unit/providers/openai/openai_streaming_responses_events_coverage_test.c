@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_coverage_test.c
  * @brief Additional coverage tests for OpenAI Responses API event processing

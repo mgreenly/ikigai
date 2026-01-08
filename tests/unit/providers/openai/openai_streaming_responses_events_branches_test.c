@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_branches_test.c
  * @brief Additional branch coverage tests for OpenAI Responses API event processing

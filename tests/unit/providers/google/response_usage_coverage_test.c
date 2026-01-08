@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_usage_coverage_test.c
  * @brief Coverage tests for Google response.c usage metadata edge cases

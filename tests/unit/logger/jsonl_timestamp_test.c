@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Unit tests for JSONL logger timestamp formatting
 
 #include <check.h>

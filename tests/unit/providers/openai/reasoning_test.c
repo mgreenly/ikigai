@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file reasoning_test.c
  * @brief Unit tests for OpenAI reasoning effort mapping

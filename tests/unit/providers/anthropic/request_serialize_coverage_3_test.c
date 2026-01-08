@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_serialize_coverage_test_3.c
  * @brief Coverage tests for Anthropic request serialization - Part 3: Specific Branch Coverage

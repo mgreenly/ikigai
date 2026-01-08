@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_error_retry_after_test.c
  * @brief Unit tests for ik_openai_get_retry_after function

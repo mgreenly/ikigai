@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file test_provider_factory.c
  * @brief Unit tests for provider factory and async vtable operations

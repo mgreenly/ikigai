@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_stream_callback_test.c
  * @brief Unit tests for REPL provider stream callback

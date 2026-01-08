@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_null_test.c
  * @brief Tests for NULL field handling in OpenAI Responses API parsing

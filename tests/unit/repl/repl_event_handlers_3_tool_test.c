@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_3_tool.c
  * @brief Unit tests for REPL event handler tool execution paths

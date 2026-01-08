@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file cmd_fork_args_override_test.c
  * @brief Unit tests for fork model override and config inheritance functions

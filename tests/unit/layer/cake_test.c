@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/layer.h"
 #include "../../../src/error.h"
 #include <check.h>

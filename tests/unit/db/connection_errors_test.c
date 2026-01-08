@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/connection.c transaction functions using mocks
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"

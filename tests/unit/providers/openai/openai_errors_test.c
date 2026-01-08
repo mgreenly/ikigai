@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_openai_errors.c
  * @brief Unit tests for OpenAI error handling and HTTP status mapping

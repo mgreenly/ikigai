@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_parts_coverage_test.c
  * @brief Branch coverage tests for Google streaming - Parts processing

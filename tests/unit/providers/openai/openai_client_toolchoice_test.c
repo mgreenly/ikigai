@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_client_toolchoice_test.c
  * @brief Tool choice and validation tests for OpenAI request serialization

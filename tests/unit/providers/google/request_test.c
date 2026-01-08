@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_test.c
  * @brief Unit tests for Google URL and header building

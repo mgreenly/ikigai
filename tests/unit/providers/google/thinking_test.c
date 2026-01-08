@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file thinking_test.c
  * @brief Unit tests for Google thinking budget/level calculation

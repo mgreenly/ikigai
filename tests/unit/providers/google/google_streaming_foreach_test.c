@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_foreach_test.c
  * @brief Tests for array iteration branches in Google streaming

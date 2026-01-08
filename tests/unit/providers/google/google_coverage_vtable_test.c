@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_coverage_vtable_test.c
  * @brief Coverage tests for Google provider vtable methods

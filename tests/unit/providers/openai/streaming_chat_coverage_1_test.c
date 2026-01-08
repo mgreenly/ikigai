@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_coverage_test_1.c
  * @brief Coverage tests for OpenAI Chat streaming - Part 1 (getters, malformed JSON, errors)

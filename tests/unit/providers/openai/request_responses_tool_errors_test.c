@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_tool_errors_test.c
  * @brief Coverage tests for OpenAI Responses API tool serialization errors
