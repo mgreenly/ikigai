@@ -5,6 +5,7 @@
 
 #include <check.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <talloc.h>
 #include <unistd.h>
@@ -39,7 +40,7 @@ START_TEST(test_pty_csi_u_enable_no_response)
     ik_term_ctx_t *term = NULL;
     res_t res = ik_term_init_with_fd(ctx, NULL, pty.slave_fd, &term);
 
-    cfg.done = 1;
+    atomic_store(&cfg.done, 1);
     pthread_join(sim_thread, NULL);
 
     ck_assert_msg(is_ok(&res), "Expected success");
@@ -83,7 +84,7 @@ START_TEST(test_pty_csi_u_enable_unexpected_response)
     ik_term_ctx_t *term = NULL;
     res_t res = ik_term_init_with_fd(ctx, logger, pty.slave_fd, &term);
 
-    cfg.done = 1;
+    atomic_store(&cfg.done, 1);
     pthread_join(sim_thread, NULL);
 
     ck_assert_msg(is_ok(&res), "Expected success");
@@ -127,7 +128,7 @@ START_TEST(test_pty_csi_u_enable_valid_flags)
     ik_term_ctx_t *term = NULL;
     res_t res = ik_term_init_with_fd(ctx, logger, pty.slave_fd, &term);
 
-    cfg.done = 1;
+    atomic_store(&cfg.done, 1);
     pthread_join(sim_thread, NULL);
 
     ck_assert_msg(is_ok(&res), "Expected success");
@@ -166,7 +167,7 @@ START_TEST(test_pty_csi_u_enable_unexpected_no_logger)
     ik_term_ctx_t *term = NULL;
     res_t res = ik_term_init_with_fd(ctx, NULL, pty.slave_fd, &term);  // NULL logger
 
-    cfg.done = 1;
+    atomic_store(&cfg.done, 1);
     pthread_join(sim_thread, NULL);
 
     ck_assert_msg(is_ok(&res), "Expected success");
