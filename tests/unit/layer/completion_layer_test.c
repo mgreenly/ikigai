@@ -308,19 +308,19 @@ static Suite *completion_layer_suite(void)
     Suite *s = suite_create("Completion Layer");
 
     TCase *tc_visibility = tcase_create("Visibility");
-    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
     tcase_add_test(tc_visibility, test_completion_layer_visibility_null);
     tcase_add_test(tc_visibility, test_completion_layer_visibility_not_null);
     suite_add_tcase(s, tc_visibility);
 
     TCase *tc_height = tcase_create("Height");
-    tcase_set_timeout(tc_height, 30);
+    tcase_set_timeout(tc_height, IK_TEST_TIMEOUT);
     tcase_add_test(tc_height, test_completion_layer_height_null);
     tcase_add_test(tc_height, test_completion_layer_height_matches_count);
     suite_add_tcase(s, tc_height);
 
     TCase *tc_render = tcase_create("Render");
-    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
     tcase_add_test(tc_render, test_completion_layer_render_null);
     tcase_add_test(tc_render, test_completion_layer_render_single);
     tcase_add_test(tc_render, test_completion_layer_render_multiple);
@@ -328,7 +328,7 @@ static Suite *completion_layer_suite(void)
     suite_add_tcase(s, tc_render);
 
     TCase *tc_highlight = tcase_create("Selection Highlight");
-    tcase_set_timeout(tc_highlight, 30);
+    tcase_set_timeout(tc_highlight, IK_TEST_TIMEOUT);
     tcase_add_test(tc_highlight, test_completion_layer_selection_highlight);
     tcase_add_test(tc_highlight, test_completion_layer_selection_highlight_moves);
     tcase_add_test(tc_highlight, test_highlight_follows_current);

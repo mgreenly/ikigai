@@ -224,7 +224,7 @@ static Suite *streaming_chat_delta_branch_suite(void)
     Suite *s = suite_create("OpenAI Streaming Chat Delta Branch Coverage");
 
     TCase *tc_branches = tcase_create("BranchCoverage");
-    tcase_set_timeout(tc_branches, 30);
+    tcase_set_timeout(tc_branches, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_branches, setup, teardown);
     tcase_add_test(tc_branches, test_content_yyjson_get_str_returns_null);
     tcase_add_test(tc_branches, test_tool_call_yyjson_arr_get_returns_null);

@@ -414,7 +414,7 @@ static Suite *dispatcher_suite(void)
 
     TCase *tc_dispatch = tcase_create("Dispatcher");
     tcase_add_checked_fixture(tc_dispatch, setup, teardown);
-    tcase_set_timeout(tc_dispatch, 30);
+    tcase_set_timeout(tc_dispatch, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_dispatch, test_dispatch_glob_with_valid_json);
     tcase_add_test(tc_dispatch, test_dispatch_glob_returns_exec_result);

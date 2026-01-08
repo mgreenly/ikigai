@@ -329,7 +329,7 @@ static Suite *connection_suite(void)
     Suite *s = suite_create("db_connection");
 
     TCase *tc_validation = tcase_create("connection_string_validation");
-    tcase_set_timeout(tc_validation, 30);
+    tcase_set_timeout(tc_validation, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_validation, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_validation, test_setup, test_teardown);
     tcase_add_test(tc_validation, test_db_init_empty_conn_str);
@@ -337,7 +337,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_connection = tcase_create("connection_errors");
-    tcase_set_timeout(tc_connection, 30);
+    tcase_set_timeout(tc_connection, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_connection, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_connection, test_setup, test_teardown);
     tcase_add_test(tc_connection, test_db_init_connection_refused);
@@ -346,7 +346,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_connection);
 
     TCase *tc_success = tcase_create("successful_connection");
-    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_success, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_success, test_setup, test_teardown);
     tcase_add_test(tc_success, test_db_init_success);
@@ -356,21 +356,21 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_success);
 
     TCase *tc_cleanup = tcase_create("memory_cleanup");
-    tcase_set_timeout(tc_cleanup, 30);
+    tcase_set_timeout(tc_cleanup, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_cleanup, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_cleanup, test_setup, test_teardown);
     tcase_add_test(tc_cleanup, test_db_init_cleanup_on_error);
     suite_add_tcase(s, tc_cleanup);
 
     TCase *tc_migration = tcase_create("migration_errors");
-    tcase_set_timeout(tc_migration, 30);
+    tcase_set_timeout(tc_migration, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_migration, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_migration, test_setup, test_teardown);
     tcase_add_test(tc_migration, test_db_init_migration_failure);
     suite_add_tcase(s, tc_migration);
 
     TCase *tc_transactions = tcase_create("transactions");
-    tcase_set_timeout(tc_transactions, 30);
+    tcase_set_timeout(tc_transactions, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
     tcase_add_test(tc_transactions, test_db_transaction_success);

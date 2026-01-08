@@ -359,7 +359,7 @@ static Suite *request_helpers_suite(void)
     Suite *s = suite_create("Google Request Helpers");
 
     TCase *tc_role = tcase_create("Role Mapping");
-    tcase_set_timeout(tc_role, 30);
+    tcase_set_timeout(tc_role, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_role, setup, teardown);
     tcase_add_test(tc_role, test_role_to_string_user);
     tcase_add_test(tc_role, test_role_to_string_assistant);
@@ -368,7 +368,7 @@ static Suite *request_helpers_suite(void)
     suite_add_tcase(s, tc_role);
 
     TCase *tc_content = tcase_create("Content Block Serialization");
-    tcase_set_timeout(tc_content, 30);
+    tcase_set_timeout(tc_content, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_serialize_content_text);
     tcase_add_test(tc_content, test_serialize_content_thinking);
@@ -378,7 +378,7 @@ static Suite *request_helpers_suite(void)
     suite_add_tcase(s, tc_content);
 
     TCase *tc_parts = tcase_create("Message Parts Serialization");
-    tcase_set_timeout(tc_parts, 30);
+    tcase_set_timeout(tc_parts, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_serialize_message_parts_basic);
     tcase_add_test(tc_parts, test_serialize_message_parts_with_thought_signature);

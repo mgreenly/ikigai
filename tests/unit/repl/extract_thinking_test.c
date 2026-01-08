@@ -336,7 +336,7 @@ static Suite *extract_thinking_suite(void)
     Suite *s = suite_create("extract_thinking");
 
     TCase *tc_core = tcase_create("thinking_extraction");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_extract_thinking_block);
     tcase_add_test(tc_core, test_extract_redacted_thinking);

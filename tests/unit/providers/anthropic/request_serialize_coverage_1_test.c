@@ -269,7 +269,7 @@ static Suite *request_serialize_coverage_suite_1(void)
     Suite *s = suite_create("Anthropic Request Serialize Coverage - Part 1");
 
     TCase *tc_content = tcase_create("Content Block OOM");
-    tcase_set_timeout(tc_content, 30);
+    tcase_set_timeout(tc_content, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_serialize_content_block_obj_alloc_fail);
     tcase_add_test(tc_content, test_serialize_content_block_text_type_fail);

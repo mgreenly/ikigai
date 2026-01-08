@@ -340,7 +340,7 @@ static Suite *file_write_execute_suite(void)
     Suite *s = suite_create("File Write Execution");
 
     TCase *tc_file_write_exec = tcase_create("File Write Execution");
-    tcase_set_timeout(tc_file_write_exec, 30);
+    tcase_set_timeout(tc_file_write_exec, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_file_write_exec, setup, teardown);
     tcase_add_test(tc_file_write_exec, test_file_write_exec_valid);
     tcase_add_test(tc_file_write_exec, test_file_write_exec_empty_content);

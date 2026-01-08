@@ -208,7 +208,7 @@ static Suite *agent_restore_suite(void)
     Suite *s = suite_create("Agent Restore");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_test(tc_core, test_agent_restore_creates_from_db_row);
     tcase_add_test(tc_core, test_agent_restore_uses_row_uuid_not_generated);
     tcase_add_test(tc_core, test_agent_restore_sets_fork_message_id);

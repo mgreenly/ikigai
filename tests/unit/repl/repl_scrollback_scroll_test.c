@@ -312,7 +312,7 @@ static Suite *repl_scrollback_scroll_suite(void)
     Suite *s = suite_create("REPL Scrollback Scrolling");
 
     TCase *tc_page_down = tcase_create("Page Down");
-    tcase_set_timeout(tc_page_down, 30);
+    tcase_set_timeout(tc_page_down, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_page_down, suite_setup, NULL);
     tcase_add_test(tc_page_down, test_page_down_scrolling);
     tcase_add_test(tc_page_down, test_page_down_at_bottom);
@@ -320,7 +320,7 @@ static Suite *repl_scrollback_scroll_suite(void)
     suite_add_tcase(s, tc_page_down);
 
     TCase *tc_page_up = tcase_create("Page Up");
-    tcase_set_timeout(tc_page_up, 30);
+    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_page_up, suite_setup, NULL);
     tcase_add_test(tc_page_up, test_page_up_scrolling);
     tcase_add_test(tc_page_up, test_page_up_empty_scrollback);

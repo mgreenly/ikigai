@@ -378,7 +378,7 @@ static Suite *google_thinking_suite(void)
     Suite *s = suite_create("Google Thinking");
 
     TCase *tc_series = tcase_create("Model Series Detection");
-    tcase_set_timeout(tc_series, 30);
+    tcase_set_timeout(tc_series, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_series, setup, teardown);
     tcase_add_test(tc_series, test_model_series_gemini_2_5_pro);
     tcase_add_test(tc_series, test_model_series_gemini_2_5_flash);
@@ -389,7 +389,7 @@ static Suite *google_thinking_suite(void)
     suite_add_tcase(s, tc_series);
 
     TCase *tc_budget = tcase_create("Thinking Budget Calculation");
-    tcase_set_timeout(tc_budget, 30);
+    tcase_set_timeout(tc_budget, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_budget, setup, teardown);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_pro_none);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_pro_low);
@@ -404,7 +404,7 @@ static Suite *google_thinking_suite(void)
     suite_add_tcase(s, tc_budget);
 
     TCase *tc_level = tcase_create("Thinking Level Strings");
-    tcase_set_timeout(tc_level, 30);
+    tcase_set_timeout(tc_level, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_level, setup, teardown);
     tcase_add_test(tc_level, test_thinking_level_str_none);
     tcase_add_test(tc_level, test_thinking_level_str_low);
@@ -413,7 +413,7 @@ static Suite *google_thinking_suite(void)
     suite_add_tcase(s, tc_level);
 
     TCase *tc_support = tcase_create("Thinking Support");
-    tcase_set_timeout(tc_support, 30);
+    tcase_set_timeout(tc_support, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_support, setup, teardown);
     tcase_add_test(tc_support, test_supports_thinking_2_5_pro);
     tcase_add_test(tc_support, test_supports_thinking_3_pro);
@@ -422,7 +422,7 @@ static Suite *google_thinking_suite(void)
     suite_add_tcase(s, tc_support);
 
     TCase *tc_disable = tcase_create("Can Disable Thinking");
-    tcase_set_timeout(tc_disable, 30);
+    tcase_set_timeout(tc_disable, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_disable, setup, teardown);
     tcase_add_test(tc_disable, test_can_disable_thinking_2_5_pro);
     tcase_add_test(tc_disable, test_can_disable_thinking_2_5_flash);
@@ -434,7 +434,7 @@ static Suite *google_thinking_suite(void)
     suite_add_tcase(s, tc_disable);
 
     TCase *tc_validate = tcase_create("Thinking Validation");
-    tcase_set_timeout(tc_validate, 30);
+    tcase_set_timeout(tc_validate, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_validate, setup, teardown);
     tcase_add_test(tc_validate, test_validate_thinking_2_5_flash_none);
     tcase_add_test(tc_validate, test_validate_thinking_2_5_flash_low);

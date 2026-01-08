@@ -320,7 +320,7 @@ static Suite *reasoning_suite(void)
     Suite *s = suite_create("OpenAI Reasoning");
 
     TCase *tc_is_reasoning = tcase_create("is_reasoning_model");
-    tcase_set_timeout(tc_is_reasoning, 30);
+    tcase_set_timeout(tc_is_reasoning, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_is_reasoning, setup, teardown);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_null);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_empty);
@@ -339,7 +339,7 @@ static Suite *reasoning_suite(void)
     suite_add_tcase(s, tc_is_reasoning);
 
     TCase *tc_effort = tcase_create("reasoning_effort");
-    tcase_set_timeout(tc_effort, 30);
+    tcase_set_timeout(tc_effort, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_effort, setup, teardown);
     tcase_add_test(tc_effort, test_reasoning_effort_none);
     tcase_add_test(tc_effort, test_reasoning_effort_low);
@@ -349,7 +349,7 @@ static Suite *reasoning_suite(void)
     suite_add_tcase(s, tc_effort);
 
     TCase *tc_temperature = tcase_create("supports_temperature");
-    tcase_set_timeout(tc_temperature, 30);
+    tcase_set_timeout(tc_temperature, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_temperature, setup, teardown);
     tcase_add_test(tc_temperature, test_supports_temperature_gpt4);
     tcase_add_test(tc_temperature, test_supports_temperature_gpt4o);
@@ -359,7 +359,7 @@ static Suite *reasoning_suite(void)
     suite_add_tcase(s, tc_temperature);
 
     TCase *tc_responses = tcase_create("prefer_responses_api");
-    tcase_set_timeout(tc_responses, 30);
+    tcase_set_timeout(tc_responses, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_responses, setup, teardown);
     tcase_add_test(tc_responses, test_prefer_responses_api_gpt4);
     tcase_add_test(tc_responses, test_prefer_responses_api_o1);
@@ -367,7 +367,7 @@ static Suite *reasoning_suite(void)
     suite_add_tcase(s, tc_responses);
 
     TCase *tc_validate = tcase_create("validate_thinking");
-    tcase_set_timeout(tc_validate, 30);
+    tcase_set_timeout(tc_validate, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_validate, setup, teardown);
     tcase_add_test(tc_validate, test_validate_thinking_null_model);
     tcase_add_test(tc_validate, test_validate_thinking_none_always_valid);

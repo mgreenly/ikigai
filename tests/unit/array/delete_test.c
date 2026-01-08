@@ -246,11 +246,11 @@ static Suite *array_delete_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_array_delete_invalid_index_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif

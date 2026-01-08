@@ -295,11 +295,11 @@ static Suite *repl_switch_suite(void)
     Suite *s = suite_create("Agent Switch");
 
     TCase *tc_basic = tcase_create("Basic Switch");
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_switch_to_different_agent);
     tcase_add_test(tc_basic, test_switch_to_null_returns_error);
@@ -307,11 +307,11 @@ static Suite *repl_switch_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_state = tcase_create("State Preservation");
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_state, setup, teardown);
     tcase_add_test(tc_state, test_input_buffer_preserved_on_outgoing);
     tcase_add_test(tc_state, test_input_buffer_restored_on_incoming);
@@ -320,21 +320,21 @@ static Suite *repl_switch_suite(void)
     suite_add_tcase(s, tc_state);
 
     TCase *tc_current = tcase_create("Current Update");
-    tcase_set_timeout(tc_current, 30);
-    tcase_set_timeout(tc_current, 30);
-    tcase_set_timeout(tc_current, 30);
-    tcase_set_timeout(tc_current, 30);
-    tcase_set_timeout(tc_current, 30);
+    tcase_set_timeout(tc_current, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_current, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_current, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_current, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_current, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_current, setup, teardown);
     tcase_add_test(tc_current, test_repl_current_updated);
     suite_add_tcase(s, tc_current);
 
     TCase *tc_complex = tcase_create("Complex Scenarios");
-    tcase_set_timeout(tc_complex, 30);
-    tcase_set_timeout(tc_complex, 30);
-    tcase_set_timeout(tc_complex, 30);
-    tcase_set_timeout(tc_complex, 30);
-    tcase_set_timeout(tc_complex, 30);
+    tcase_set_timeout(tc_complex, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_complex, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_complex, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_complex, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_complex, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_complex, setup, teardown);
     tcase_add_test(tc_complex, test_typing_preserved_across_switches);
     suite_add_tcase(s, tc_complex);

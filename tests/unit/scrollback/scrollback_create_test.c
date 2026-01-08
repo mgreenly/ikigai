@@ -48,10 +48,10 @@ static Suite *scrollback_create_suite(void)
 {
     Suite *s = suite_create("Scrollback Create");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     /* Normal tests */
     tcase_add_test(tc_core, test_scrollback_create);
@@ -61,11 +61,11 @@ static Suite *scrollback_create_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_scrollback_create_invalid_width_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif

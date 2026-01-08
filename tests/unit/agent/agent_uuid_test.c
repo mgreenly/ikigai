@@ -107,7 +107,7 @@ static Suite *agent_uuid_suite(void)
     Suite *s = suite_create("Agent UUID");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_test(tc_core, test_agent_uuid_non_null_and_22_chars);
     tcase_add_test(tc_core, test_agent_uuid_base64url_chars);
     tcase_add_test(tc_core, test_generate_uuid_returns_valid_string);

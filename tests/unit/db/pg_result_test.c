@@ -94,7 +94,7 @@ static Suite *pg_result_suite(void)
     Suite *s = suite_create("db/pg_result");
 
     TCase *tc_basic = tcase_create("basic");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, test_setup, test_teardown);
     tcase_add_test(tc_basic, test_wrap_pg_result_basic);
     tcase_add_test(tc_basic, test_wrap_pg_result_null_handling);

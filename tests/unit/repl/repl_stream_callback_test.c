@@ -366,11 +366,11 @@ static Suite *repl_stream_callback_suite(void)
     Suite *s = suite_create("repl_stream_callback");
 
     TCase *tc_stream = tcase_create("stream_events");
-    tcase_set_timeout(tc_stream, 30);
-    tcase_set_timeout(tc_stream, 30);
-    tcase_set_timeout(tc_stream, 30);
-    tcase_set_timeout(tc_stream, 30);
-    tcase_set_timeout(tc_stream, 30);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_stream, setup, teardown);
     tcase_add_test(tc_stream, test_stream_start_initializes);
     tcase_add_test(tc_stream, test_stream_start_clears_existing_response);

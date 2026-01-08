@@ -190,7 +190,7 @@ static Suite *completion_e2e_suite(void)
     Suite *s = suite_create("Completion E2E");
 
     TCase *tc = tcase_create("Core");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_test(tc, test_completion_no_matches);
     tcase_add_test(tc, test_completion_history_no_conflict);

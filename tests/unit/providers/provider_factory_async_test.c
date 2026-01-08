@@ -300,7 +300,7 @@ static Suite *provider_factory_suite(void)
 
     /* Provider creation with vtable verification */
     TCase *tc_create = tcase_create("Provider Creation");
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_openai_provider);
     tcase_add_test(tc_create, test_create_anthropic_provider);
@@ -311,7 +311,7 @@ static Suite *provider_factory_suite(void)
 
     /* Async event loop integration */
     TCase *tc_async = tcase_create("Async Event Loop Integration");
-    tcase_set_timeout(tc_async, 30);
+    tcase_set_timeout(tc_async, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_async, setup, teardown);
     tcase_add_test(tc_async, test_provider_fdset_returns_ok);
     tcase_add_test(tc_async, test_provider_perform_returns_ok);

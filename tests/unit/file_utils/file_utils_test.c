@@ -125,18 +125,18 @@ static Suite *file_utils_suite(void)
     Suite *s = suite_create("File Utils");
 
     TCase *tc_success = tcase_create("Success Cases");
-    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
     tcase_add_test(tc_success, test_file_read_all_success);
     tcase_add_test(tc_success, test_file_read_all_empty_file);
     suite_add_tcase(s, tc_success);
 
     TCase *tc_error = tcase_create("Error Cases");
-    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
     tcase_add_test(tc_error, test_file_read_all_file_not_found);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_assert = tcase_create("Assertion Cases");
-    tcase_set_timeout(tc_assert, 30);
+    tcase_set_timeout(tc_assert, IK_TEST_TIMEOUT);
 #ifndef SKIP_SIGNAL_TESTS
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_assert, test_file_read_all_null_path, SIGABRT);

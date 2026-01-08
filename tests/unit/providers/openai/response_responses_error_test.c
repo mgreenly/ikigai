@@ -265,7 +265,7 @@ static Suite *response_responses_error_suite(void)
     Suite *s = suite_create("OpenAI Responses API Error Cases");
 
     TCase *tc_errors = tcase_create("Error Cases");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_parse_response_invalid_json);
     tcase_add_test(tc_errors, test_parse_response_not_object);

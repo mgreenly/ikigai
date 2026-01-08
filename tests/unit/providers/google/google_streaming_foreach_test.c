@@ -222,7 +222,7 @@ static Suite *google_streaming_foreach_suite(void)
     Suite *s = suite_create("Google Streaming - Array Iteration");
 
     TCase *tc_main = tcase_create("Parts Array Iteration");
-    tcase_set_timeout(tc_main, 30);
+    tcase_set_timeout(tc_main, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_parts_array_with_multiple_items);
     tcase_add_test(tc_main, test_parts_array_mixed_content);

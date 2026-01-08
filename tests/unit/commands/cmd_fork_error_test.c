@@ -274,9 +274,9 @@ static Suite *cmd_fork_error_suite(void)
 {
     Suite *s = suite_create("Fork Command Errors");
     TCase *tc_errors = tcase_create("Error Paths");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     TCase *tc_helpers = tcase_create("Helper Functions");
-    tcase_set_timeout(tc_helpers, 30);
+    tcase_set_timeout(tc_helpers, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_checked_fixture(tc_helpers, setup, teardown);

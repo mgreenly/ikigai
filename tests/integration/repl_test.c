@@ -520,7 +520,7 @@ static Suite *repl_suite(void)
     Suite *s = suite_create("REPL");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_repl_init);
     tcase_add_test(tc_core, test_repl_cleanup_null);
@@ -534,7 +534,7 @@ static Suite *repl_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);

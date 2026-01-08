@@ -42,11 +42,11 @@ static Suite *input_scroll_suite(void)
 {
     Suite *s = suite_create("Input Scroll");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_scroll_up_enum_exists);
     tcase_add_test(tc_core, test_scroll_down_enum_exists);

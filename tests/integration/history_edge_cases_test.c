@@ -338,7 +338,7 @@ static Suite *history_edge_cases_suite(void)
     Suite *s = suite_create("History Edge Cases");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_history_empty_input_not_saved);
     tcase_add_test(tc_core, test_history_file_corrupt_continues);

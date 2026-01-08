@@ -374,10 +374,10 @@ static Suite *repl_navigation_suite(void)
 {
     Suite *s = suite_create("REPL_Navigation");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_repl_process_action_arrow_left);
     tcase_add_test(tc_core, test_repl_process_action_arrow_right);
@@ -392,11 +392,11 @@ static Suite *repl_navigation_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_repl_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_process_action_null_action_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

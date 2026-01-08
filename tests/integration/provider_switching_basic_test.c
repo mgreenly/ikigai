@@ -376,7 +376,7 @@ static Suite *provider_switching_basic_suite(void)
 {
     Suite *s = suite_create("Provider Switching Basic");
     TCase *tc_switching = tcase_create("Provider Switching");
-    tcase_set_timeout(tc_switching, 30);
+    tcase_set_timeout(tc_switching, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_switching, suite_setup, suite_teardown);
     tcase_add_test(tc_switching, test_provider_inference_from_model);
     tcase_add_test(tc_switching, test_agent_provider_fields_on_switch);

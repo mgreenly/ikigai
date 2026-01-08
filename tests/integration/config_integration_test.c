@@ -277,7 +277,7 @@ static Suite *config_integration_suite(void)
 {
     Suite *s = suite_create("ConfigIntegration");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_config_full_flow);
     tcase_add_test(tc_core, test_config_write_failure);

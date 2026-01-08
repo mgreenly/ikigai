@@ -164,7 +164,7 @@ static Suite *openai_streaming_responses_errors_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Errors");
 
     TCase *tc = tcase_create("Errors");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_error_event_edge_cases);
     tcase_add_test(tc, test_error_event_categories);

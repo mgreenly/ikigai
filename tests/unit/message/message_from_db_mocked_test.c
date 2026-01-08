@@ -71,7 +71,7 @@ static Suite *message_from_db_mocked_suite(void)
 {
     Suite *s = suite_create("Message from DB (Mocked)");
     TCase *tc_mocked = tcase_create("Mocked");
-    tcase_set_timeout(tc_mocked, 30);
+    tcase_set_timeout(tc_mocked, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc_mocked, setup, teardown);
     tcase_add_test(tc_mocked, test_tool_call_null_root);

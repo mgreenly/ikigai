@@ -143,7 +143,7 @@ static Suite *commands_model_db_suite(void)
     Suite *s = suite_create("commands_model_db");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
     tcase_add_test(tc_core, test_model_db_persist_thinking_none);

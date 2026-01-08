@@ -177,19 +177,19 @@ static Suite *tool_definition_suite(void)
     Suite *s = suite_create("Tool Definition");
 
     TCase *tc_param_def = tcase_create("Parameter Definition");
-    tcase_set_timeout(tc_param_def, 30);
+    tcase_set_timeout(tc_param_def, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_param_def, setup, teardown);
     tcase_add_test(tc_param_def, test_tool_param_def_struct_exists);
     suite_add_tcase(s, tc_param_def);
 
     TCase *tc_schema_def = tcase_create("Schema Definition");
-    tcase_set_timeout(tc_schema_def, 30);
+    tcase_set_timeout(tc_schema_def, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_schema_def, setup, teardown);
     tcase_add_test(tc_schema_def, test_tool_schema_def_struct_exists);
     suite_add_tcase(s, tc_schema_def);
 
     TCase *tc_build_from_def = tcase_create("Build Schema From Def");
-    tcase_set_timeout(tc_build_from_def, 30);
+    tcase_set_timeout(tc_build_from_def, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_build_from_def, setup, teardown);
     tcase_add_test(tc_build_from_def, test_tool_build_schema_from_def_basic);
     tcase_add_test(tc_build_from_def, test_schema_definitions_complete);

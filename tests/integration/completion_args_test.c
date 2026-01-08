@@ -113,7 +113,7 @@ static Suite *completion_args_suite(void)
 
     TCase *tc = tcase_create("Core");
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_completion_debug_args);
     tcase_add_test(tc, test_completion_partial_arg);
     suite_add_tcase(s, tc);

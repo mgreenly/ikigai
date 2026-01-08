@@ -187,7 +187,7 @@ static Suite *terminal_pty_enable_basic_suite(void)
     Suite *s = suite_create("Terminal PTY CSI u Enable Basic");
 
     TCase *tc_enable_basic = tcase_create("CSI u Enable Basic");
-    tcase_set_timeout(tc_enable_basic, 30);
+    tcase_set_timeout(tc_enable_basic, IK_TEST_TIMEOUT);
     tcase_add_test(tc_enable_basic, test_pty_csi_u_enable_no_response);
     tcase_add_test(tc_enable_basic, test_pty_csi_u_enable_unexpected_response);
     tcase_add_test(tc_enable_basic, test_pty_csi_u_enable_valid_flags);

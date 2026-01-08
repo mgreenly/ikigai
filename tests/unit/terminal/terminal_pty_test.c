@@ -193,7 +193,7 @@ static Suite *terminal_pty_suite(void)
     Suite *s = suite_create("Terminal PTY");
 
     TCase *tc_basic = tcase_create("Basic");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_test(tc_basic, test_pty_init_success);
     tcase_add_test(tc_basic, test_pty_get_size);
     tcase_add_test(tc_basic, test_pty_cleanup_null_safe);
@@ -201,7 +201,7 @@ static Suite *terminal_pty_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_cleanup = tcase_create("Cleanup");
-    tcase_set_timeout(tc_cleanup, 30);
+    tcase_set_timeout(tc_cleanup, IK_TEST_TIMEOUT);
     tcase_add_test(tc_cleanup, test_pty_cleanup_csi_u_disable);
     suite_add_tcase(s, tc_cleanup);
 

@@ -471,7 +471,7 @@ static Suite *request_serialization_suite(void)
     Suite *s = suite_create("Google Request Serialization");
 
     TCase *tc_request = tcase_create("Request Serialization");
-    tcase_set_timeout(tc_request, 30);
+    tcase_set_timeout(tc_request, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_serialize_request_missing_model);
     tcase_add_test(tc_request, test_serialize_request_minimal);

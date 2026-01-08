@@ -320,7 +320,7 @@ static Suite *google_streaming_chunks_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Chunks Coverage");
 
     TCase *tc_chunk = tcase_create("Chunk Structure Edge Cases");
-    tcase_set_timeout(tc_chunk, 30);
+    tcase_set_timeout(tc_chunk, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_chunk, setup, teardown);
     tcase_add_test(tc_chunk, test_chunk_without_modelversion);
     tcase_add_test(tc_chunk, test_chunk_with_non_string_modelversion);

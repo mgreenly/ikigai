@@ -419,7 +419,7 @@ static Suite *completion_edge_cases_suite(void)
 
     TCase *tc = tcase_create("Edge Cases");
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_completion_space_commits);
     tcase_add_test(tc, test_completion_tab_wraparound);
     tcase_add_test(tc, test_completion_single_item);

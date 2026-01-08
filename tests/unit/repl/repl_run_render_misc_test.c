@@ -387,11 +387,11 @@ static Suite *repl_run_render_misc_suite(void)
 {
     Suite *s = suite_create("REPL_Run_Render_Misc");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_repl_run_initial_render_error);
     tcase_add_test(tc_core, test_repl_run_render_error_in_loop);

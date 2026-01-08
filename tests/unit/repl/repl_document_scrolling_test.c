@@ -292,11 +292,11 @@ static Suite *repl_document_scrolling_suite(void)
     Suite *s = suite_create("REPL Document Scrolling (Unified Model)");
 
     TCase *tc_scrolling = tcase_create("Document Scrolling");
-    tcase_set_timeout(tc_scrolling, 30);
-    tcase_set_timeout(tc_scrolling, 30);
-    tcase_set_timeout(tc_scrolling, 30);
-    tcase_set_timeout(tc_scrolling, 30);
-    tcase_set_timeout(tc_scrolling, 30);
+    tcase_set_timeout(tc_scrolling, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_scrolling, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_scrolling, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_scrolling, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_scrolling, IK_TEST_TIMEOUT);
     tcase_add_test(tc_scrolling, test_separator_scrolls_offscreen);
     tcase_add_test(tc_scrolling, test_input_buffer_scrolls_offscreen);
     tcase_add_test(tc_scrolling, test_scrollback_adjacent_to_separator);

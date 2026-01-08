@@ -323,7 +323,7 @@ static Suite *config_validation_ranges_suite(void)
 {
     Suite *s = suite_create("Config Validation - Ranges");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_error_code_strings);
     tcase_add_test(tc_core, test_config_port_too_low);

@@ -157,14 +157,14 @@ static Suite *google_provider_suite(void)
     Suite *s = suite_create("Google Provider");
 
     TCase *tc_create = tcase_create("Provider Creation");
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_google_create_success);
     tcase_add_test(tc_create, test_google_create_has_vtable);
     suite_add_tcase(s, tc_create);
 
     TCase *tc_vtable = tcase_create("Vtable Methods");
-    tcase_set_timeout(tc_vtable, 30);
+    tcase_set_timeout(tc_vtable, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_vtable, setup, teardown);
     tcase_add_test(tc_vtable, test_google_cleanup);
     tcase_add_test(tc_vtable, test_google_cancel);

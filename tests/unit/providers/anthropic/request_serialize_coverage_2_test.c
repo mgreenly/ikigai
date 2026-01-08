@@ -323,7 +323,7 @@ static Suite *request_serialize_coverage_suite_2(void)
     Suite *s = suite_create("Anthropic Request Serialize Coverage - Part 2");
 
     TCase *tc_message = tcase_create("Message Content OOM");
-    tcase_set_timeout(tc_message, 30);
+    tcase_set_timeout(tc_message, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_message, setup, teardown);
     tcase_add_test(tc_message, test_serialize_message_content_single_text_fail);
     tcase_add_test(tc_message, test_serialize_message_content_arr_alloc_fail);
@@ -331,13 +331,13 @@ static Suite *request_serialize_coverage_suite_2(void)
     suite_add_tcase(s, tc_message);
 
     TCase *tc_role = tcase_create("Role Mapping");
-    tcase_set_timeout(tc_role, 30);
+    tcase_set_timeout(tc_role, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_role, setup, teardown);
     tcase_add_test(tc_role, test_role_to_string_default);
     suite_add_tcase(s, tc_role);
 
     TCase *tc_serialize = tcase_create("Message Serialization OOM");
-    tcase_set_timeout(tc_serialize, 30);
+    tcase_set_timeout(tc_serialize, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_serialize, setup, teardown);
     tcase_add_test(tc_serialize, test_serialize_messages_arr_alloc_fail);
     tcase_add_test(tc_serialize, test_serialize_messages_msg_obj_alloc_fail);

@@ -466,7 +466,7 @@ static Suite *error_handling_e2e_suite(void)
     Suite *s = suite_create("Error Handling E2E");
 
     TCase *tc_errors = tcase_create("Error Categories Async");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_errors, suite_setup, suite_teardown);
     tcase_add_test(tc_errors, test_rate_limit_anthropic_async);
     tcase_add_test(tc_errors, test_rate_limit_openai_async);

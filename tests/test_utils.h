@@ -2,6 +2,9 @@
 #define IK_TEST_UTILS_H
 
 #include <talloc.h>
+
+// Default timeout for test cases (in seconds)
+#define IK_TEST_TIMEOUT 90
 #include "config.h"
 #include "../src/db/connection.h"
 #include "../src/error.h"

@@ -287,14 +287,14 @@ static Suite *google_streaming_edge_cases_suite(void)
     Suite *s = suite_create("Google Streaming - Edge Cases");
 
     TCase *tc_json = tcase_create("JSON Parsing");
-    tcase_set_timeout(tc_json, 30);
+    tcase_set_timeout(tc_json, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_json, setup, teardown);
     tcase_add_test(tc_json, test_json_array_root);
     tcase_add_test(tc_json, test_json_string_root);
     suite_add_tcase(s, tc_json);
 
     TCase *tc_parts = tcase_create("Parts Processing");
-    tcase_set_timeout(tc_parts, 30);
+    tcase_set_timeout(tc_parts, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_part_without_text_or_function_call);
     tcase_add_test(tc_parts, test_part_with_empty_text);
@@ -303,19 +303,19 @@ static Suite *google_streaming_edge_cases_suite(void)
     suite_add_tcase(s, tc_parts);
 
     TCase *tc_model = tcase_create("Model Version");
-    tcase_set_timeout(tc_model, 30);
+    tcase_set_timeout(tc_model, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_model, setup, teardown);
     tcase_add_test(tc_model, test_missing_model_version);
     suite_add_tcase(s, tc_model);
 
     TCase *tc_usage = tcase_create("Usage Metadata");
-    tcase_set_timeout(tc_usage, 30);
+    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_usage_empty_metadata);
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_candidates = tcase_create("Candidates");
-    tcase_set_timeout(tc_candidates, 30);
+    tcase_set_timeout(tc_candidates, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_candidates, setup, teardown);
     tcase_add_test(tc_candidates, test_empty_candidates_array);
     tcase_add_test(tc_candidates, test_candidate_without_content);

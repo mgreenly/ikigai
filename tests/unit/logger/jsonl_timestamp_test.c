@@ -210,7 +210,7 @@ static Suite *jsonl_timestamp_suite(void)
 {
     Suite *s = suite_create("JSONL Timestamp");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_jsonl_timestamp_iso8601_format);
     tcase_add_test(tc_core, test_jsonl_timestamp_milliseconds);

@@ -101,7 +101,7 @@ static Suite *response_responses_status_suite(void)
     Suite *s = suite_create("OpenAI Responses API Status Mapping");
 
     TCase *tc_status = tcase_create("Status Mapping");
-    tcase_set_timeout(tc_status, 30);
+    tcase_set_timeout(tc_status, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_status, setup, teardown);
     tcase_add_test(tc_status, test_map_responses_status_null);
     tcase_add_test(tc_status, test_map_responses_status_completed);

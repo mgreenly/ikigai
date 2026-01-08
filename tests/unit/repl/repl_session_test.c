@@ -450,11 +450,11 @@ static Suite *repl_session_suite(void)
     Suite *s = suite_create("REPL Session Management");
 
     TCase *tc_session = tcase_create("Session Operations");
-    tcase_set_timeout(tc_session, 30);
-    tcase_set_timeout(tc_session, 30);
-    tcase_set_timeout(tc_session, 30);
-    tcase_set_timeout(tc_session, 30);
-    tcase_set_timeout(tc_session, 30);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_session, suite_setup, suite_teardown);
     tcase_add_test(tc_session, test_repl_init_session_get_active_failure);
     tcase_add_test(tc_session, test_repl_init_session_create_failure);

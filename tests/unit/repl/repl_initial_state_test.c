@@ -340,11 +340,11 @@ static Suite *initial_state_suite(void)
     Suite *s = suite_create("REPL Initial State");
 
     TCase *tc_cursor = tcase_create("CursorVisibility");
-    tcase_set_timeout(tc_cursor, 30);
-    tcase_set_timeout(tc_cursor, 30);
-    tcase_set_timeout(tc_cursor, 30);
-    tcase_set_timeout(tc_cursor, 30);
-    tcase_set_timeout(tc_cursor, 30);
+    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
     tcase_add_test(tc_cursor, test_initial_state_cursor_visible);
     tcase_add_test(tc_cursor, test_initial_state_with_scrollback_cursor_visible);
     tcase_add_test(tc_cursor, test_scrolled_up_cursor_hidden);

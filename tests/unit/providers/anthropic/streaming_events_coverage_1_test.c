@@ -252,7 +252,7 @@ static Suite *streaming_events_coverage_suite_1(void)
     Suite *s = suite_create("Anthropic Streaming Events Coverage 1");
 
     TCase *tc_message_start = tcase_create("message_start Edge Cases");
-    tcase_set_timeout(tc_message_start, 30);
+    tcase_set_timeout(tc_message_start, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_message_start, setup, teardown);
     tcase_add_test(tc_message_start, test_message_start_no_message_field);
     tcase_add_test(tc_message_start, test_message_start_message_not_object);

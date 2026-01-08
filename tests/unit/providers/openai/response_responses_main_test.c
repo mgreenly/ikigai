@@ -371,7 +371,7 @@ static Suite *response_responses_main_suite(void)
     Suite *s = suite_create("OpenAI Responses API Main Parsing Tests");
 
     TCase *tc_main = tcase_create("Main Parsing Coverage");
-    tcase_set_timeout(tc_main, 30);
+    tcase_set_timeout(tc_main, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_parse_response_root_not_object);
     tcase_add_test(tc_main, test_parse_response_error_with_message);
@@ -393,7 +393,7 @@ static Suite *response_responses_main_suite(void)
     suite_add_tcase(s, tc_main);
 
     TCase *tc_status = tcase_create("Status Mapping Coverage");
-    tcase_set_timeout(tc_status, 30);
+    tcase_set_timeout(tc_status, IK_TEST_TIMEOUT);
     tcase_add_test(tc_status, test_map_status_null);
     tcase_add_test(tc_status, test_map_status_failed);
     tcase_add_test(tc_status, test_map_status_cancelled);

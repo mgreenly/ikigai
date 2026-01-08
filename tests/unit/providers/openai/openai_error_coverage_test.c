@@ -413,7 +413,7 @@ static Suite *openai_error_coverage_suite(void)
     Suite *s = suite_create("OpenAI Error Coverage");
 
     TCase *tc_handle = tcase_create("Handle Error Coverage");
-    tcase_set_timeout(tc_handle, 30);
+    tcase_set_timeout(tc_handle, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_handle, setup, teardown);
     tcase_add_test(tc_handle, test_handle_error_missing_code_field);
     tcase_add_test(tc_handle, test_handle_error_missing_type_field);
@@ -428,7 +428,7 @@ static Suite *openai_error_coverage_suite(void)
     suite_add_tcase(s, tc_handle);
 
     TCase *tc_retry = tcase_create("Retry After Coverage");
-    tcase_set_timeout(tc_retry, 30);
+    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_retry, setup, teardown);
     tcase_add_test(tc_retry, test_retry_after_empty_array);
     tcase_add_test(tc_retry, test_retry_after_no_whitespace);

@@ -216,7 +216,7 @@ static Suite *streaming_responses_build_response_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Build Response");
 
     TCase *tc_build = tcase_create("BuildResponse");
-    tcase_set_timeout(tc_build, 30);
+    tcase_set_timeout(tc_build, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_build, setup, teardown);
     tcase_add_test(tc_build, test_build_response_no_tool_call_no_model);
     tcase_add_test(tc_build, test_build_response_no_tool_call_with_model);

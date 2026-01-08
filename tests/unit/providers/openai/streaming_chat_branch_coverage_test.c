@@ -383,7 +383,7 @@ static Suite *streaming_chat_branch_coverage_suite(void)
     Suite *s = suite_create("OpenAI Streaming Chat Branch Coverage");
 
     TCase *tc_branches = tcase_create("BranchCoverage");
-    tcase_set_timeout(tc_branches, 30);
+    tcase_set_timeout(tc_branches, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_branches, setup, teardown);
     tcase_add_test(tc_branches, test_error_not_object);
     tcase_add_test(tc_branches, test_error_is_array);
