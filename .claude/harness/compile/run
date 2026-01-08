@@ -108,7 +108,9 @@ def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tu
 def run_make() -> tuple[bool, str]:
     """Run make clean, then make all build-tests and return (success, output)."""
     log("Running make clean...")
-    run_cmd(["make", "clean"])
+    code, _, stderr = run_cmd(["make", "clean"])
+    if code != 0:
+        log(f"WARNING: make clean failed (exit {code}): {stderr[:200]}")
     log("Running make all build-tests...")
     spinner = Spinner("Running make all build-tests")
     spinner.start()
