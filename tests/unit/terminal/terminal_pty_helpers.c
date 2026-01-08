@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <pty.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -61,7 +62,7 @@ void *term_simulator_thread(void *arg)
     char buf[256];
     int stage = 0;  // 0 = waiting for probe, 1 = waiting for enable
 
-    while (!cfg->done) {
+    while (!atomic_load(&cfg->done)) {
         struct pollfd pfd = { .fd = cfg->master_fd, .events = POLLIN };
         int ret = poll(&pfd, 1, 10);  // 10ms poll
 

@@ -2,6 +2,7 @@
 #define TERMINAL_PTY_HELPERS_H
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 // PTY helper structure
 typedef struct {
@@ -17,7 +18,7 @@ typedef struct {
     const char *enable_response;     // Response to CSI u enable command (NULL = no response)
     int probe_delay_ms;              // Delay before sending probe response
     int enable_delay_ms;             // Delay before sending enable response
-    volatile int done;               // Signal to exit
+    _Atomic int done;                // Signal to exit
 } term_sim_config_t;
 
 // Function prototypes
