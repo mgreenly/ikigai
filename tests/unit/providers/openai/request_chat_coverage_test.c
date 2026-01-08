@@ -13,6 +13,7 @@
 #include "error.h"
 #include "wrapper.h"
 #include "vendor/yyjson/yyjson.h"
+#include "request_chat_coverage_helpers.h"
 
 #include <check.h>
 #include <talloc.h>
@@ -30,45 +31,11 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-/* Helper: Create a minimal request */
-static ik_request_t *create_minimal_request(void)
-{
-    ik_request_t *req = talloc_zero(ctx, ik_request_t);
-    req->model = talloc_strdup(ctx, "gpt-4");
-    req->system_prompt = NULL;
-    req->messages = NULL;
-    req->message_count = 0;
-    req->max_output_tokens = 0;
-    req->tool_count = 0;
-    return req;
-}
-
-/* Helper: Add a tool to a request */
-static void add_tool(ik_request_t *req, const char *name, const char *desc, const char *params)
-{
-    size_t idx = req->tool_count++;
-    req->tools = talloc_realloc(ctx, req->tools, ik_tool_def_t, (unsigned int)req->tool_count);
-    req->tools[idx].name = talloc_strdup(ctx, name);
-    req->tools[idx].description = talloc_strdup(ctx, desc);
-    req->tools[idx].parameters = talloc_strdup(ctx, params);
-}
-
-/* Helper: Add a text message to a request */
-static void add_message(ik_request_t *req, ik_role_t role, const char *text)
-{
-    size_t idx = req->message_count++;
-    req->messages = talloc_realloc(ctx, req->messages, ik_message_t, (unsigned int)req->message_count);
-    req->messages[idx].role = role;
-    req->messages[idx].content_count = 1;
-    req->messages[idx].content_blocks = talloc_array(ctx, ik_content_block_t, 1);
-    req->messages[idx].content_blocks[0].type = IK_CONTENT_TEXT;
-    req->messages[idx].content_blocks[0].data.text.text = talloc_strdup(ctx, text);
-}
 
 /* Test: Serialize request with tools */
 START_TEST(test_serialize_with_tools) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "test_tool", "A test tool",
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 0; // IK_TOOL_AUTO
 
@@ -94,8 +61,8 @@ END_TEST
 
 /* Test: tool_choice_mode = 1 (IK_TOOL_NONE) */
 START_TEST(test_tool_choice_none) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "test_tool", "A test tool",
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 1; // IK_TOOL_NONE
 
@@ -113,8 +80,8 @@ END_TEST
 
 /* Test: tool_choice_mode = 2 (IK_TOOL_REQUIRED) */
 START_TEST(test_tool_choice_required) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "test_tool", "A test tool",
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
 
@@ -132,8 +99,8 @@ END_TEST
 
 /* Test: Invalid tool_choice_mode (default case) */
 START_TEST(test_tool_choice_invalid) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "test_tool", "A test tool",
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "test_tool", "A test tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 999; /* Invalid value to trigger default case */
 
@@ -151,7 +118,7 @@ END_TEST
 
 /* Test: Serialize with system_prompt */
 START_TEST(test_serialize_with_system_prompt) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
 
     char *json = NULL;
@@ -171,7 +138,7 @@ END_TEST
 
 /* Test: Serialize with streaming=true */
 START_TEST(test_serialize_with_streaming) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, true, &json);
@@ -188,8 +155,8 @@ END_TEST
 
 /* Test: Invalid tool parameters JSON */
 START_TEST(test_tool_invalid_json_parameters) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "test_tool", "A test tool", "{invalid json}"); /* Invalid JSON */
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "test_tool", "A test tool", "{invalid json}"); /* Invalid JSON */
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
@@ -204,7 +171,7 @@ END_TEST
  * Test: Serialize with messages to cover lines 185-191
  */
 START_TEST(test_serialize_with_messages) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     add_message(req, IK_ROLE_USER, "Hello");
 
     char *json = NULL;
@@ -223,7 +190,7 @@ END_TEST
  * Test: Serialize with max_output_tokens > 0 to cover lines 200-205
  */
 START_TEST(test_serialize_with_max_output_tokens) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->max_output_tokens = 2048;
 
     char *json = NULL;
@@ -283,7 +250,7 @@ END_TEST
  * Test: Serialize with empty system_prompt string (should not add system message)
  */
 START_TEST(test_serialize_with_empty_system_prompt) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->system_prompt = talloc_strdup(ctx, ""); /* Empty string */
 
     char *json = NULL;
@@ -302,7 +269,7 @@ END_TEST
  * Test: Serialize with NULL model to cover error path (line 133)
  */
 START_TEST(test_serialize_null_model) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->model = NULL; /* NULL model */
 
     char *json = NULL;
@@ -317,14 +284,14 @@ END_TEST
  * Test: Serialize with multiple tools to cover loop iteration branches
  */
 START_TEST(test_serialize_with_multiple_tools) {
-    ik_request_t *req = create_minimal_request();
-    add_tool(req, "tool_one", "First tool",
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
+    ik_test_add_tool(ctx, req, "tool_one", "First tool",
              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
-    add_tool(req,
+    ik_test_add_tool(ctx, req,
              "tool_two",
              "Second tool",
              "{\"type\":\"object\",\"properties\":{\"arg1\":{\"type\":\"string\"}},\"required\":[\"arg1\"],\"additionalProperties\":false}");
-    add_tool(req, "tool_three", "Third tool",
+    ik_test_add_tool(ctx, req, "tool_three", "Third tool",
              "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}},\"additionalProperties\":false}");
     req->tool_choice_mode = 0;
 
@@ -344,7 +311,7 @@ END_TEST
  * Test: Serialize with multiple messages to cover loop iteration branches
  */
 START_TEST(test_serialize_with_multiple_messages) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     add_message(req, IK_ROLE_USER, "Hello");
     add_message(req, IK_ROLE_ASSISTANT, "Hi there!");
     add_message(req, IK_ROLE_USER, "How are you?");
@@ -366,16 +333,16 @@ END_TEST
  * This exercises all code paths together to improve branch coverage
  */
 START_TEST(test_serialize_full_featured_request) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
     req->max_output_tokens = 4096;
     add_message(req, IK_ROLE_USER, "Hello");
     add_message(req, IK_ROLE_ASSISTANT, "Hi!");
-    add_tool(req,
+    ik_test_add_tool(ctx, req,
              "get_weather",
              "Get weather info",
              "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"],\"additionalProperties\":false}");
-    add_tool(req, "search", "Search the web",
+    ik_test_add_tool(ctx, req, "search", "Search the web",
              "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"additionalProperties\":false}");
     req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
 
@@ -404,9 +371,9 @@ END_TEST
  * Test: Tool with properties as array (malformed) to cover !yyjson_mut_is_obj() branch
  */
 START_TEST(test_tool_properties_as_array) {
-    ik_request_t *req = create_minimal_request();
+    ik_request_t *req = ik_test_create_minimal_request(ctx);
     /* Properties is an array instead of object - malformed but shouldn't crash */
-    add_tool(req, "bad_tool", "Tool with array properties",
+    ik_test_add_tool(ctx, req, "bad_tool", "Tool with array properties",
              "{\"type\":\"object\",\"properties\":[],\"additionalProperties\":false}");
 
     char *json = NULL;
