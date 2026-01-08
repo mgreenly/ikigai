@@ -182,6 +182,7 @@ REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_comm
 EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
 EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
+REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -392,6 +393,11 @@ $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o: tests/
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
+# Request chat coverage test helper compilation
+$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o: tests/unit/providers/openai/request_chat_coverage_helpers.c tests/unit/providers/openai/request_chat_coverage_helpers.h
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
 # Special rules for request_responses tests that need the test helpers
 $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
 	@mkdir -p $(dir $@)
@@ -410,6 +416,10 @@ $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage1_test: $(BUIL
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage2_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage2_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_test: $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_CHAT_COVERAGE_HELPERS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
