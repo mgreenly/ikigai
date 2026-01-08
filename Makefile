@@ -214,8 +214,22 @@ $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(T
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-# Special case: terminal_pty_test requires -lutil for openpty()
-$(BUILDDIR)/tests/unit/terminal/terminal_pty_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+# Terminal PTY test helper compilation
+TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o: tests/unit/terminal/terminal_pty_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_basic_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_basic_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_edge_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_edge_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_probe_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_probe_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
