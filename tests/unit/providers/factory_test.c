@@ -390,7 +390,7 @@ static Suite *factory_suite(void)
     Suite *s = suite_create("Provider Factory");
 
     TCase *tc_env_var = tcase_create("Environment Variable Mapping");
-    tcase_set_timeout(tc_env_var, 30);
+    tcase_set_timeout(tc_env_var, IK_TEST_TIMEOUT);
     tcase_add_test(tc_env_var, test_env_var_openai);
     tcase_add_test(tc_env_var, test_env_var_anthropic);
     tcase_add_test(tc_env_var, test_env_var_google);
@@ -399,7 +399,7 @@ static Suite *factory_suite(void)
     suite_add_tcase(s, tc_env_var);
 
     TCase *tc_validation = tcase_create("Provider Validation");
-    tcase_set_timeout(tc_validation, 30);
+    tcase_set_timeout(tc_validation, IK_TEST_TIMEOUT);
     tcase_add_test(tc_validation, test_is_valid_openai);
     tcase_add_test(tc_validation, test_is_valid_anthropic);
     tcase_add_test(tc_validation, test_is_valid_google);
@@ -409,12 +409,12 @@ static Suite *factory_suite(void)
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_list = tcase_create("Provider List");
-    tcase_set_timeout(tc_list, 30);
+    tcase_set_timeout(tc_list, IK_TEST_TIMEOUT);
     tcase_add_test(tc_list, test_provider_list);
     suite_add_tcase(s, tc_list);
 
     TCase *tc_create = tcase_create("Provider Creation");
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_test(tc_create, test_create_unknown_provider);
     tcase_add_test(tc_create, test_create_credentials_load_error);
     tcase_add_test(tc_create, test_create_missing_credentials);

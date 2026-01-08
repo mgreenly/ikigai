@@ -180,7 +180,7 @@ static Suite *streaming_signature_suite(void)
 {
     Suite *s = suite_create("Anthropic Streaming Signature");
     TCase *tc = tcase_create("Signature and Redacted Thinking");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_signature_delta_captured);
     tcase_add_test(tc, test_thinking_text_accumulated);

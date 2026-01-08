@@ -372,14 +372,14 @@ static Suite *openai_handlers_suite(void)
     Suite *s = suite_create("OpenAI Handlers");
 
     TCase *tc_http_success = tcase_create("HTTP Completion Success");
-    tcase_set_timeout(tc_http_success, 30);
+    tcase_set_timeout(tc_http_success, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_http_success, setup, teardown);
     tcase_add_test(tc_http_success, test_http_completion_success_chat_api);
     tcase_add_test(tc_http_success, test_http_completion_success_responses_api);
     suite_add_tcase(s, tc_http_success);
 
     TCase *tc_http_error = tcase_create("HTTP Completion Errors");
-    tcase_set_timeout(tc_http_error, 30);
+    tcase_set_timeout(tc_http_error, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_http_error, setup, teardown);
     tcase_add_test(tc_http_error, test_http_completion_error_with_json_body);
     tcase_add_test(tc_http_error, test_http_completion_error_parse_error_fails);

@@ -330,7 +330,7 @@ static Suite *streaming_events_coverage_suite_5(void)
     Suite *s = suite_create("Anthropic Streaming Events Coverage 5");
 
     TCase *tc_delta = tcase_create("content_block_delta Edge Cases");
-    tcase_set_timeout(tc_delta, 30);
+    tcase_set_timeout(tc_delta, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_delta, setup, teardown);
     tcase_add_test(tc_delta, test_delta_index_not_int);
     tcase_add_test(tc_delta, test_delta_delta_not_object);
@@ -341,14 +341,14 @@ static Suite *streaming_events_coverage_suite_5(void)
     suite_add_tcase(s, tc_delta);
 
     TCase *tc_stop = tcase_create("content_block_stop Edge Cases");
-    tcase_set_timeout(tc_stop, 30);
+    tcase_set_timeout(tc_stop, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_stop, setup, teardown);
     tcase_add_test(tc_stop, test_stop_no_index);
     tcase_add_test(tc_stop, test_stop_index_not_int);
     suite_add_tcase(s, tc_stop);
 
     TCase *tc_msg_delta = tcase_create("message_delta Edge Cases");
-    tcase_set_timeout(tc_msg_delta, 30);
+    tcase_set_timeout(tc_msg_delta, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_msg_delta, setup, teardown);
     tcase_add_test(tc_msg_delta, test_message_delta_no_delta);
     tcase_add_test(tc_msg_delta, test_message_delta_delta_not_object);
@@ -362,7 +362,7 @@ static Suite *streaming_events_coverage_suite_5(void)
     suite_add_tcase(s, tc_msg_delta);
 
     TCase *tc_error = tcase_create("error Edge Cases");
-    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_error_no_type);
     tcase_add_test(tc_error, test_error_type_not_string);

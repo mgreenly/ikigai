@@ -525,12 +525,12 @@ static Suite *repl_init_suite(void)
     Suite *s = suite_create("REPL Initialization");
 
     TCase *tc_term = tcase_create("Terminal Init Failures");
-    tcase_set_timeout(tc_term, 30);
-    tcase_set_timeout(tc_term, 30);
-    tcase_set_timeout(tc_term, 30);
-    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_term, suite_setup, NULL);
-    tcase_set_timeout(tc_term, 30);
+    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
     tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
     tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
     tcase_add_test(tc_term, test_repl_init_signal_handler_failure);
@@ -538,12 +538,12 @@ static Suite *repl_init_suite(void)
     suite_add_tcase(s, tc_term);
 
     TCase *tc_success = tcase_create("Successful Init");
-    tcase_set_timeout(tc_success, 30);
-    tcase_set_timeout(tc_success, 30);
-    tcase_set_timeout(tc_success, 30);
-    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_success, suite_setup, NULL);
-    tcase_set_timeout(tc_success, 30);
+    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
     tcase_add_test(tc_success, test_repl_init_success_debug_manager);
     tcase_add_test(tc_success, test_repl_init_creates_agent);
     tcase_add_test(tc_success, test_repl_init_agent_in_array);

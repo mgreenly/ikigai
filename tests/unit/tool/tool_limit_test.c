@@ -172,7 +172,7 @@ static Suite *tool_limit_suite(void)
     Suite *s = suite_create("Tool Limit Metadata");
 
     TCase *tc_basic = tcase_create("Basic Tests");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_add_limit_metadata_basic);
     tcase_add_test(tc_basic, test_add_limit_metadata_null_input);

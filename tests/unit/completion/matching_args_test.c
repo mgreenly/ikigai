@@ -190,7 +190,7 @@ static Suite *completion_matching_args_suite(void)
 {
     Suite *s = suite_create("Completion Argument Matching");
     TCase *tc = tcase_create("Core");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

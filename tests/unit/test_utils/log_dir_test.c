@@ -73,11 +73,11 @@ static Suite *log_dir_suite(void)
     Suite *s = suite_create("Test Utils Log Dir");
 
     TCase *tc = tcase_create("set_log_dir");
-    tcase_set_timeout(tc, 30);
-    tcase_set_timeout(tc, 30);
-    tcase_set_timeout(tc, 30);
-    tcase_set_timeout(tc, 30);
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_set_log_dir_from_file_path);
     tcase_add_test(tc, test_set_log_dir_from_nested_path);
     tcase_add_test(tc, test_set_log_dir_simple_file);

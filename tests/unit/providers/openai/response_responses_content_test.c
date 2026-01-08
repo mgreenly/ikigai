@@ -408,7 +408,7 @@ static Suite *response_responses_content_suite(void)
     Suite *s = suite_create("OpenAI Responses API Content Parsing Tests");
 
     TCase *tc_count = tcase_create("Count Blocks Coverage");
-    tcase_set_timeout(tc_count, 30);
+    tcase_set_timeout(tc_count, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_count, setup, teardown);
     tcase_add_test(tc_count, test_count_content_blocks_type_null);
     tcase_add_test(tc_count, test_count_content_blocks_type_not_string);
@@ -418,7 +418,7 @@ static Suite *response_responses_content_suite(void)
     suite_add_tcase(s, tc_count);
 
     TCase *tc_content = tcase_create("Content Parsing Coverage");
-    tcase_set_timeout(tc_content, 30);
+    tcase_set_timeout(tc_content, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_parse_content_message_content_null);
     tcase_add_test(tc_content, test_parse_content_message_content_not_array);

@@ -264,7 +264,7 @@ static Suite *google_streaming_parser_meta_suite(void)
     Suite *s = suite_create("Google Streaming Parser - Metadata");
 
     TCase *tc_error = tcase_create("Error Handling");
-    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_handle_malformed_json_chunk);
     tcase_add_test(tc_error, test_handle_empty_data_chunk);
@@ -272,14 +272,14 @@ static Suite *google_streaming_parser_meta_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_usage = tcase_create("Usage Statistics");
-    tcase_set_timeout(tc_usage, 30);
+    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_usage_excludes_thinking_from_output_tokens);
     tcase_add_test(tc_usage, test_usage_handles_missing_thoughts_token_count);
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
-    tcase_set_timeout(tc_finish, 30);
+    tcase_set_timeout(tc_finish, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_finish, setup, teardown);
     tcase_add_test(tc_finish, test_map_stop_finish_reason);
     tcase_add_test(tc_finish, test_map_max_tokens_finish_reason);
@@ -289,7 +289,7 @@ static Suite *google_streaming_parser_meta_suite(void)
     suite_add_tcase(s, tc_finish);
 
     TCase *tc_ctx = tcase_create("Stream Context");
-    tcase_set_timeout(tc_ctx, 30);
+    tcase_set_timeout(tc_ctx, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_ctx, setup, teardown);
     tcase_add_test(tc_ctx, test_stream_ctx_create_initializes_state);
     suite_add_tcase(s, tc_ctx);

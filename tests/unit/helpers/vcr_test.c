@@ -378,19 +378,19 @@ static Suite *vcr_suite(void)
     Suite *s = suite_create("VCR");
 
     TCase *tc_mode = tcase_create("Mode Detection");
-    tcase_set_timeout(tc_mode, 30);
+    tcase_set_timeout(tc_mode, IK_TEST_TIMEOUT);
     tcase_add_test(tc_mode, test_vcr_mode_detection_recording);
     tcase_add_test(tc_mode, test_vcr_mode_detection_playback);
     suite_add_tcase(s, tc_mode);
 
     TCase *tc_lifecycle = tcase_create("Lifecycle");
-    tcase_set_timeout(tc_lifecycle, 30);
+    tcase_set_timeout(tc_lifecycle, IK_TEST_TIMEOUT);
     tcase_add_test(tc_lifecycle, test_vcr_lifecycle_single);
     tcase_add_test(tc_lifecycle, test_vcr_lifecycle_multiple_cycles);
     suite_add_tcase(s, tc_lifecycle);
 
     TCase *tc_playback = tcase_create("Playback");
-    tcase_set_timeout(tc_playback, 30);
+    tcase_set_timeout(tc_playback, IK_TEST_TIMEOUT);
     tcase_add_test(tc_playback, test_vcr_playback_single_chunk);
     tcase_add_test(tc_playback, test_vcr_playback_multiple_chunks);
     tcase_add_test(tc_playback, test_vcr_playback_body);
@@ -398,7 +398,7 @@ static Suite *vcr_suite(void)
     suite_add_tcase(s, tc_playback);
 
     TCase *tc_record = tcase_create("Recording");
-    tcase_set_timeout(tc_record, 30);
+    tcase_set_timeout(tc_record, IK_TEST_TIMEOUT);
     tcase_add_test(tc_record, test_vcr_record_request);
     tcase_add_test(tc_record, test_vcr_record_response);
     tcase_add_test(tc_record, test_vcr_record_chunk);

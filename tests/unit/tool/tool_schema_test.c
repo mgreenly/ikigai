@@ -263,37 +263,37 @@ static Suite *tool_schema_suite(void)
     Suite *s = suite_create("Tool Schema");
 
     TCase *tc_glob = tcase_create("Glob Schema");
-    tcase_set_timeout(tc_glob, 30);
+    tcase_set_timeout(tc_glob, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_glob, setup, teardown);
     tcase_add_test(tc_glob, test_tool_build_glob_schema_structure);
     suite_add_tcase(s, tc_glob);
 
     TCase *tc_file_read = tcase_create("File Read Schema");
-    tcase_set_timeout(tc_file_read, 30);
+    tcase_set_timeout(tc_file_read, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_file_read, setup, teardown);
     tcase_add_test(tc_file_read, test_tool_build_file_read_schema_structure);
     suite_add_tcase(s, tc_file_read);
 
     TCase *tc_grep = tcase_create("Grep Schema");
-    tcase_set_timeout(tc_grep, 30);
+    tcase_set_timeout(tc_grep, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_grep, setup, teardown);
     tcase_add_test(tc_grep, test_tool_build_grep_schema_structure);
     suite_add_tcase(s, tc_grep);
 
     TCase *tc_file_write = tcase_create("File Write Schema");
-    tcase_set_timeout(tc_file_write, 30);
+    tcase_set_timeout(tc_file_write, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_file_write, setup, teardown);
     tcase_add_test(tc_file_write, test_tool_build_file_write_schema_structure);
     suite_add_tcase(s, tc_file_write);
 
     TCase *tc_bash = tcase_create("Bash Schema");
-    tcase_set_timeout(tc_bash, 30);
+    tcase_set_timeout(tc_bash, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_bash, setup, teardown);
     tcase_add_test(tc_bash, test_tool_build_bash_schema_structure);
     suite_add_tcase(s, tc_bash);
 
     TCase *tc_all = tcase_create("Build All");
-    tcase_set_timeout(tc_all, 30);
+    tcase_set_timeout(tc_all, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_all, setup, teardown);
     tcase_add_test(tc_all, test_tool_build_all);
     suite_add_tcase(s, tc_all);

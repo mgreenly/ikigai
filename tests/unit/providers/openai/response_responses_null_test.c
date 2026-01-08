@@ -217,7 +217,7 @@ static Suite *response_responses_null_suite(void)
     Suite *s = suite_create("OpenAI Responses API NULL Handling Tests");
 
     TCase *tc = tcase_create("NULL and Missing Fields");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_usage_missing_tokens_fields);
     tcase_add_test(tc, test_usage_missing_reasoning_details);

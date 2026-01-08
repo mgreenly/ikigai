@@ -213,7 +213,7 @@ static Suite *mark_system_role_suite(void)
 {
     Suite *s = suite_create("Mark System Role");
     TCase *tc = tcase_create("messages");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

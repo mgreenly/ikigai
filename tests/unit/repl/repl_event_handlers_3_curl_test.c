@@ -454,7 +454,7 @@ static Suite *repl_event_handlers_curl_suite(void)
     Suite *s = suite_create("repl_event_handlers_curl");
 
     TCase *tc_curl_error = tcase_create("curl_error");
-    tcase_set_timeout(tc_curl_error, 30);
+    tcase_set_timeout(tc_curl_error, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_curl_error, setup, teardown);
     tcase_add_test(tc_curl_error, test_curl_events_with_http_error);
     tcase_add_test(tc_curl_error, test_curl_events_with_http_error_and_assistant_response);

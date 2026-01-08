@@ -246,11 +246,11 @@ static Suite *nav_parent_child_suite(void)
     Suite *s = suite_create("Parent/Child Navigation");
 
     TCase *tc_nav = tcase_create("Navigation");
-    tcase_set_timeout(tc_nav, 30);
-    tcase_set_timeout(tc_nav, 30);
-    tcase_set_timeout(tc_nav, 30);
-    tcase_set_timeout(tc_nav, 30);
-    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_nav, setup, teardown);
     tcase_add_test(tc_nav, test_nav_parent_switches_to_parent);
     tcase_add_test(tc_nav, test_nav_parent_at_root_no_action);

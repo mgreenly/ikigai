@@ -285,12 +285,12 @@ static Suite *event_render_usage_suite(void)
     Suite *s = suite_create("Event Render Usage");
 
     TCase *tc_visible = tcase_create("Visibility");
-    tcase_set_timeout(tc_visible, 30);
+    tcase_set_timeout(tc_visible, IK_TEST_TIMEOUT);
     tcase_add_test(tc_visible, test_renders_visible_usage);
     suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
-    tcase_set_timeout(tc_render, 30);
+    tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
     tcase_add_test(tc_render, test_render_usage_event_all_tokens);
     tcase_add_test(tc_render, test_render_usage_event_no_thinking);
     tcase_add_test(tc_render, test_render_usage_event_null_json);

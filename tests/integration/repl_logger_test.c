@@ -545,12 +545,12 @@ static Suite *repl_logger_suite(void)
     Suite *s = suite_create("REPL Logger Integration");
 
     TCase *tc_init = tcase_create("Logger Init");
-    tcase_set_timeout(tc_init, 10);
+    tcase_set_timeout(tc_init, IK_TEST_TIMEOUT);
     tcase_add_test(tc_init, test_logger_init_on_repl_startup);
     suite_add_tcase(s, tc_init);
 
     TCase *tc_reinit = tcase_create("Logger Reinit");
-    tcase_set_timeout(tc_reinit, 10);
+    tcase_set_timeout(tc_reinit, IK_TEST_TIMEOUT);
     tcase_add_test(tc_reinit, test_logger_reinit_rotates_log);
     tcase_add_test(tc_reinit, test_logger_multiple_reinit_cycles);
     suite_add_tcase(s, tc_reinit);

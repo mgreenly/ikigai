@@ -223,21 +223,21 @@ static Suite *repl_agent_lookup_suite(void)
     Suite *s = suite_create("Agent Lookup");
 
     TCase *tc_exact = tcase_create("Exact Match");
-    tcase_set_timeout(tc_exact, 30);
-    tcase_set_timeout(tc_exact, 30);
-    tcase_set_timeout(tc_exact, 30);
-    tcase_set_timeout(tc_exact, 30);
-    tcase_set_timeout(tc_exact, 30);
+    tcase_set_timeout(tc_exact, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_exact, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_exact, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_exact, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_exact, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_exact, setup, teardown);
     tcase_add_test(tc_exact, test_exact_match);
     suite_add_tcase(s, tc_exact);
 
     TCase *tc_prefix = tcase_create("Prefix Match");
-    tcase_set_timeout(tc_prefix, 30);
-    tcase_set_timeout(tc_prefix, 30);
-    tcase_set_timeout(tc_prefix, 30);
-    tcase_set_timeout(tc_prefix, 30);
-    tcase_set_timeout(tc_prefix, 30);
+    tcase_set_timeout(tc_prefix, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_prefix, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_prefix, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_prefix, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_prefix, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_prefix, setup, teardown);
     tcase_add_test(tc_prefix, test_prefix_match);
     tcase_add_test(tc_prefix, test_ambiguous_prefix);
@@ -245,21 +245,21 @@ static Suite *repl_agent_lookup_suite(void)
     suite_add_tcase(s, tc_prefix);
 
     TCase *tc_ambiguous = tcase_create("Ambiguous Detection");
-    tcase_set_timeout(tc_ambiguous, 30);
-    tcase_set_timeout(tc_ambiguous, 30);
-    tcase_set_timeout(tc_ambiguous, 30);
-    tcase_set_timeout(tc_ambiguous, 30);
-    tcase_set_timeout(tc_ambiguous, 30);
+    tcase_set_timeout(tc_ambiguous, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_ambiguous, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_ambiguous, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_ambiguous, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_ambiguous, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_ambiguous, setup, teardown);
     tcase_add_test(tc_ambiguous, test_uuid_ambiguous);
     suite_add_tcase(s, tc_ambiguous);
 
     TCase *tc_edge = tcase_create("Edge Cases");
-    tcase_set_timeout(tc_edge, 30);
-    tcase_set_timeout(tc_edge, 30);
-    tcase_set_timeout(tc_edge, 30);
-    tcase_set_timeout(tc_edge, 30);
-    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_no_match);
     tcase_add_test(tc_edge, test_empty_array);

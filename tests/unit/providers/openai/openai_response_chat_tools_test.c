@@ -335,7 +335,7 @@ static Suite *openai_response_chat_tools_suite(void)
     Suite *s = suite_create("OpenAI Response Chat Tools");
 
     TCase *tc_tool_calls = tcase_create("Tool Call Parsing");
-    tcase_set_timeout(tc_tool_calls, 30);
+    tcase_set_timeout(tc_tool_calls, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_tool_calls, setup, teardown);
     tcase_add_test(tc_tool_calls, test_parse_chat_tool_calls);
     tcase_add_test(tc_tool_calls, test_parse_chat_text_and_tool_calls);

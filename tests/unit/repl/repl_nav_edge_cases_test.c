@@ -198,11 +198,11 @@ static Suite *repl_nav_edge_cases_suite(void)
     Suite *s = suite_create("REPL Navigation Edge Cases");
 
     TCase *tc_nav_edge = tcase_create("Navigation Edge Cases");
-    tcase_set_timeout(tc_nav_edge, 30);
-    tcase_set_timeout(tc_nav_edge, 30);
-    tcase_set_timeout(tc_nav_edge, 30);
-    tcase_set_timeout(tc_nav_edge, 30);
-    tcase_set_timeout(tc_nav_edge, 30);
+    tcase_set_timeout(tc_nav_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav_edge, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_nav_edge, setup, teardown);
     tcase_add_test(tc_nav_edge, test_nav_prev_sibling_no_siblings);
     tcase_add_test(tc_nav_edge, test_nav_parent_not_found);

@@ -290,7 +290,7 @@ Suite *content_block_serialize_suite(void)
     Suite *s = suite_create("Content Block Serialization");
 
     TCase *tc_content = tcase_create("Content Block Success");
-    tcase_set_timeout(tc_content, 30);
+    tcase_set_timeout(tc_content, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_serialize_content_block_text_success);
     tcase_add_test(tc_content, test_serialize_content_block_thinking_success);

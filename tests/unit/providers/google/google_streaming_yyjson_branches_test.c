@@ -346,7 +346,7 @@ static Suite *google_streaming_yyjson_branches_suite(void)
     Suite *s = suite_create("Google Streaming - YYJSON Branch Coverage");
 
     TCase *tc_main = tcase_create("YYJSON Branches");
-    tcase_set_timeout(tc_main, 30);
+    tcase_set_timeout(tc_main, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_usage_with_large_object_many_keys);
     tcase_add_test(tc_main, test_parts_with_empty_array);

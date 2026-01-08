@@ -312,7 +312,7 @@ static Suite *provider_switching_thinking_suite(void)
 {
     Suite *s = suite_create("Provider Switching Thinking");
     TCase *tc_thinking = tcase_create("Thinking Level Translation");
-    tcase_set_timeout(tc_thinking, 30);
+    tcase_set_timeout(tc_thinking, IK_TEST_TIMEOUT);
     tcase_add_test(tc_thinking, test_thinking_level_enum_values);
     tcase_add_test(tc_thinking, test_model_supports_thinking);
     tcase_add_test(tc_thinking, test_thinking_level_preserved_on_switch);

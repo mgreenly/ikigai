@@ -256,7 +256,7 @@ static Suite *google_streaming_parser_basic_suite(void)
     Suite *s = suite_create("Google Streaming Parser - Basic");
 
     TCase *tc_basic = tcase_create("Basic Streaming");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_parse_single_text_part_chunk);
     tcase_add_test(tc_basic, test_parse_multiple_text_parts_in_one_chunk);

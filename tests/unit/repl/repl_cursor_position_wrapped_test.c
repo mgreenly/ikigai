@@ -393,11 +393,11 @@ static Suite *cursor_position_suite(void)
     Suite *s = suite_create("REPL Cursor Position - Wrapped");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_test(tc_core, test_cursor_position_10row_wrapped_scrolled);
     tcase_add_test(tc_core, test_cursor_position_10row_terminal_scrolled);
     suite_add_tcase(s, tc_core);

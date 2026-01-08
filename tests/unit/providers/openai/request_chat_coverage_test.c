@@ -425,7 +425,7 @@ static Suite *request_chat_coverage_suite(void)
     Suite *s = suite_create("request_chat_coverage");
 
     TCase *tc_tools = tcase_create("tool_serialization");
-    tcase_set_timeout(tc_tools, 30);
+    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_serialize_with_tools);
     tcase_add_test(tc_tools, test_tool_choice_none);
@@ -436,7 +436,7 @@ static Suite *request_chat_coverage_suite(void)
     suite_add_tcase(s, tc_tools);
 
     TCase *tc_basic = tcase_create("basic_serialization");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_serialize_with_system_prompt);
     tcase_add_test(tc_basic, test_serialize_with_streaming);
@@ -450,7 +450,7 @@ static Suite *request_chat_coverage_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_api = tcase_create("api_functions");
-    tcase_set_timeout(tc_api, 30);
+    tcase_set_timeout(tc_api, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_api, setup, teardown);
     tcase_add_test(tc_api, test_build_chat_url);
     tcase_add_test(tc_api, test_build_headers);

@@ -187,13 +187,13 @@ static Suite *mouse_scroll_suite(void)
     Suite *s = suite_create("Mouse Scroll Integration");
 
     TCase *tc_terminal = tcase_create("Terminal");
-    tcase_set_timeout(tc_terminal, 30);
+    tcase_set_timeout(tc_terminal, IK_TEST_TIMEOUT);
     tcase_add_test(tc_terminal, test_terminal_init_enters_alt_screen);
     tcase_add_test(tc_terminal, test_terminal_cleanup_exits_alt_screen);
     suite_add_tcase(s, tc_terminal);
 
     TCase *tc_integration = tcase_create("Integration");
-    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
     suite_add_tcase(s, tc_integration);
 
     return s;

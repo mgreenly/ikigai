@@ -229,26 +229,26 @@ static Suite *pp_helpers_suite(void)
     Suite *s = suite_create("pp_helpers");
 
     TCase *tc_header = tcase_create("header");
-    tcase_set_timeout(tc_header, 30);
+    tcase_set_timeout(tc_header, IK_TEST_TIMEOUT);
     tcase_add_test(tc_header, test_pp_header_valid);
     tcase_add_test(tc_header, test_pp_header_indented);
     suite_add_tcase(s, tc_header);
 
     TCase *tc_pointer = tcase_create("pointer");
-    tcase_set_timeout(tc_pointer, 30);
+    tcase_set_timeout(tc_pointer, IK_TEST_TIMEOUT);
     tcase_add_test(tc_pointer, test_pp_pointer_valid);
     tcase_add_test(tc_pointer, test_pp_pointer_null);
     suite_add_tcase(s, tc_pointer);
 
     TCase *tc_numeric = tcase_create("numeric");
-    tcase_set_timeout(tc_numeric, 30);
+    tcase_set_timeout(tc_numeric, IK_TEST_TIMEOUT);
     tcase_add_test(tc_numeric, test_pp_size_t_values);
     tcase_add_test(tc_numeric, test_pp_int32_values);
     tcase_add_test(tc_numeric, test_pp_uint32_values);
     suite_add_tcase(s, tc_numeric);
 
     TCase *tc_string = tcase_create("string");
-    tcase_set_timeout(tc_string, 30);
+    tcase_set_timeout(tc_string, IK_TEST_TIMEOUT);
     tcase_add_test(tc_string, test_pp_string_simple);
     tcase_add_test(tc_string, test_pp_string_special_chars);
     tcase_add_test(tc_string, test_pp_string_null);
@@ -257,12 +257,12 @@ static Suite *pp_helpers_suite(void)
     suite_add_tcase(s, tc_string);
 
     TCase *tc_bool = tcase_create("bool");
-    tcase_set_timeout(tc_bool, 30);
+    tcase_set_timeout(tc_bool, IK_TEST_TIMEOUT);
     tcase_add_test(tc_bool, test_pp_bool_values);
     suite_add_tcase(s, tc_bool);
 
     TCase *tc_integration = tcase_create("integration");
-    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
     tcase_add_test(tc_integration, test_indentation_consistent);
     suite_add_tcase(s, tc_integration);
 

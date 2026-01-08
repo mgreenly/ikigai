@@ -240,7 +240,7 @@ static Suite *response_responses_branch_suite(void)
     Suite *s = suite_create("OpenAI Responses API Branch Coverage Tests");
 
     TCase *tc_branches = tcase_create("Branch Coverage");
-    tcase_set_timeout(tc_branches, 30);
+    tcase_set_timeout(tc_branches, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_branches, setup, teardown);
     tcase_add_test(tc_branches, test_model_not_string);
     tcase_add_test(tc_branches, test_call_id_not_string);

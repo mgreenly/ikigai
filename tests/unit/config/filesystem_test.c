@@ -135,7 +135,7 @@ static Suite *config_filesystem_suite(void)
     Suite *s = suite_create("Config Filesystem");
 
     TCase *tc_fs = tcase_create("Filesystem Operations");
-    tcase_set_timeout(tc_fs, 30);
+    tcase_set_timeout(tc_fs, IK_TEST_TIMEOUT);
     tcase_add_test(tc_fs, test_config_mkdir_failure);
     tcase_add_test(tc_fs, test_config_stat_directory_exists);
     suite_add_tcase(s, tc_fs);

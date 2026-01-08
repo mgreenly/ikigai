@@ -327,7 +327,7 @@ static Suite *terminal_pty_probe_suite(void)
     Suite *s = suite_create("Terminal PTY CSI u Probe");
 
     TCase *tc_probe = tcase_create("CSI u Probe");
-    tcase_set_timeout(tc_probe, 30);
+    tcase_set_timeout(tc_probe, IK_TEST_TIMEOUT);
     tcase_add_test(tc_probe, test_pty_csi_u_probe_valid_response);
     tcase_add_test(tc_probe, test_pty_csi_u_probe_invalid_no_terminator);
     tcase_add_test(tc_probe, test_pty_csi_u_probe_short_response);

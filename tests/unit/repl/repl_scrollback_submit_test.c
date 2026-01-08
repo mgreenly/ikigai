@@ -170,7 +170,7 @@ static Suite *repl_scrollback_submit_suite(void)
     Suite *s = suite_create("REPL Scrollback Submit Line");
 
     TCase *tc_submit = tcase_create("Submit Line");
-    tcase_set_timeout(tc_submit, 30);
+    tcase_set_timeout(tc_submit, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_submit, suite_setup, NULL);
     tcase_add_test(tc_submit, test_submit_line_to_scrollback);
     tcase_add_test(tc_submit, test_submit_line_auto_scroll);

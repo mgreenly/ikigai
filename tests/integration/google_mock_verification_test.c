@@ -473,7 +473,7 @@ static Suite *google_mock_verification_suite(void)
     TCase *tc_core = tcase_create("Core");
 
     // Set longer timeout for real API calls
-    tcase_set_timeout(tc_core, 60);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     // Verification tests (only run with VERIFY_MOCKS=1)
     tcase_add_test(tc_core, verify_google_streaming_text);

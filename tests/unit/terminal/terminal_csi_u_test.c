@@ -277,7 +277,7 @@ static Suite *terminal_csi_u_suite(void)
 {
     Suite *s = suite_create("Terminal CSI u");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_term_init_sets_csi_u_supported);
     tcase_add_test(tc_core, test_csi_u_probe_write_fails);

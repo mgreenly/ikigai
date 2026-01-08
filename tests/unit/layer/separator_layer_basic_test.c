@@ -111,7 +111,7 @@ static Suite *separator_layer_basic_suite(void)
     Suite *s = suite_create("Separator Layer Basic");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_test(tc_core, test_separator_layer_create_and_visibility);
     tcase_add_test(tc_core, test_separator_layer_height);
     tcase_add_test(tc_core, test_separator_layer_render);

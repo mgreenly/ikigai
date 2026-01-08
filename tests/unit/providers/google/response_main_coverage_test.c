@@ -404,7 +404,7 @@ static Suite *google_response_main_coverage_suite(void)
     Suite *s = suite_create("Google Response Main Coverage");
 
     TCase *tc_parse = tcase_create("ik_google_parse_response edge cases");
-    tcase_set_timeout(tc_parse, 30);
+    tcase_set_timeout(tc_parse, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_invalid_json);
     tcase_add_test(tc_parse, test_parse_root_not_object);
@@ -430,7 +430,7 @@ static Suite *google_response_main_coverage_suite(void)
     suite_add_tcase(s, tc_parse);
 
     TCase *tc_stubs = tcase_create("Stub functions");
-    tcase_set_timeout(tc_stubs, 30);
+    tcase_set_timeout(tc_stubs, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_stubs, setup, teardown);
     tcase_add_test(tc_stubs, test_start_request_stub);
     tcase_add_test(tc_stubs, test_start_stream_stub);

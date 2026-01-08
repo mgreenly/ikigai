@@ -293,7 +293,7 @@ static Suite *openai_client_basic_suite(void)
     Suite *s = suite_create("OpenAI Client Basic");
 
     TCase *tc_basic = tcase_create("Basic Serialization");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_build_request_with_system_and_user_messages);
     tcase_add_test(tc_basic, test_build_request_for_o1_model_with_reasoning_effort);

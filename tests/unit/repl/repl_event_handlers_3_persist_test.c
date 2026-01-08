@@ -233,7 +233,7 @@ static Suite *repl_event_handlers_persist_suite(void)
     Suite *s = suite_create("repl_event_handlers_persist");
 
     TCase *tc_persist = tcase_create("persist");
-    tcase_set_timeout(tc_persist, 30);
+    tcase_set_timeout(tc_persist, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_persist, setup, teardown);
     tcase_add_test(tc_persist, test_persist_with_thinking_level_low);
     tcase_add_test(tc_persist, test_persist_with_thinking_level_med);

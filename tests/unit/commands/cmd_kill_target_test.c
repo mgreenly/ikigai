@@ -416,7 +416,7 @@ static Suite *cmd_kill_target_suite(void)
     TCase *tc = tcase_create("Targeted Kill");
 
     // ThreadSanitizer adds significant overhead, increase timeout
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

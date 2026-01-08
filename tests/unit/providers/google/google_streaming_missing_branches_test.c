@@ -320,7 +320,7 @@ static Suite *google_streaming_missing_branches_suite(void)
     Suite *s = suite_create("Google Streaming - Missing Branches");
 
     TCase *tc_main = tcase_create("Missing Branch Coverage");
-    tcase_set_timeout(tc_main, 30);
+    tcase_set_timeout(tc_main, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_error_with_null_status_in_map);
     tcase_add_test(tc_main, test_text_without_thinking_transition);

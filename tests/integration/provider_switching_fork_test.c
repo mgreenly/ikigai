@@ -417,7 +417,7 @@ static Suite *provider_switching_fork_suite(void)
 {
     Suite *s = suite_create("Provider Switching Fork");
     TCase *tc_fork = tcase_create("Fork Inheritance");
-    tcase_set_timeout(tc_fork, 30);
+    tcase_set_timeout(tc_fork, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_fork, suite_setup, suite_teardown);
     tcase_add_test(tc_fork, test_fork_inherits_parent_provider);
     tcase_add_test(tc_fork, test_fork_model_override_changes_provider);

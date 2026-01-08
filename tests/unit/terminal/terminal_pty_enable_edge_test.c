@@ -398,7 +398,7 @@ static Suite *terminal_pty_enable_edge_suite(void)
     Suite *s = suite_create("Terminal PTY CSI u Enable Edge Cases");
 
     TCase *tc_enable_edge = tcase_create("CSI u Enable Edge Cases");
-    tcase_set_timeout(tc_enable_edge, 30);
+    tcase_set_timeout(tc_enable_edge, IK_TEST_TIMEOUT);
     tcase_add_test(tc_enable_edge, test_pty_csi_u_enable_missing_esc);
     tcase_add_test(tc_enable_edge, test_pty_csi_u_enable_missing_bracket);
     tcase_add_test(tc_enable_edge, test_pty_csi_u_enable_missing_question);

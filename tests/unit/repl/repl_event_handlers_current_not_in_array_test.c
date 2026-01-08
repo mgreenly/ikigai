@@ -386,7 +386,7 @@ static Suite *repl_event_handlers_current_not_in_array_suite(void)
     Suite *s = suite_create("repl_event_handlers_current_not_in_array");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_curl_events_current_not_in_array);
     tcase_add_test(tc_core, test_curl_events_current_not_in_array_perform_error);

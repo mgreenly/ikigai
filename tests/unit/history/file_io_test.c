@@ -423,7 +423,7 @@ static Suite *history_file_io_suite(void)
 {
     Suite *s = suite_create("History File I/O");
     TCase *tc = tcase_create("file_io");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_history_load_empty_file);

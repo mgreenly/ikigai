@@ -252,9 +252,9 @@ static Suite *cmd_fork_args_override_suite(void)
 {
     Suite *s = suite_create("Fork Model Override and Config Inheritance");
     TCase *tc_override = tcase_create("Apply Override");
-    tcase_set_timeout(tc_override, 30);
+    tcase_set_timeout(tc_override, IK_TEST_TIMEOUT);
     TCase *tc_inherit = tcase_create("Inherit Config");
-    tcase_set_timeout(tc_inherit, 30);
+    tcase_set_timeout(tc_inherit, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc_override, setup, teardown);
     tcase_add_checked_fixture(tc_inherit, setup, teardown);
