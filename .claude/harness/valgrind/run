@@ -153,7 +153,7 @@ def run_make_valgrind() -> tuple[bool, str]:
     log("Running make check-valgrind...")
     spinner = Spinner("Running make check-valgrind")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-valgrind"], timeout=3600)
+    code, stdout, stderr = run_cmd(["make", "check-valgrind", "MAKE_JOBS=1"], timeout=3600)
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
