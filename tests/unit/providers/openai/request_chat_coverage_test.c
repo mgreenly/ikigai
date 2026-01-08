@@ -172,7 +172,7 @@ END_TEST
  */
 START_TEST(test_serialize_with_messages) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
-    add_message(req, IK_ROLE_USER, "Hello");
+    ik_test_add_message(ctx, req, IK_ROLE_USER, "Hello");
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
@@ -312,9 +312,9 @@ END_TEST
  */
 START_TEST(test_serialize_with_multiple_messages) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
-    add_message(req, IK_ROLE_USER, "Hello");
-    add_message(req, IK_ROLE_ASSISTANT, "Hi there!");
-    add_message(req, IK_ROLE_USER, "How are you?");
+    ik_test_add_message(ctx, req, IK_ROLE_USER, "Hello");
+    ik_test_add_message(ctx, req, IK_ROLE_ASSISTANT, "Hi there!");
+    ik_test_add_message(ctx, req, IK_ROLE_USER, "How are you?");
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);
@@ -336,8 +336,8 @@ START_TEST(test_serialize_full_featured_request) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     req->system_prompt = talloc_strdup(ctx, "You are a helpful assistant.");
     req->max_output_tokens = 4096;
-    add_message(req, IK_ROLE_USER, "Hello");
-    add_message(req, IK_ROLE_ASSISTANT, "Hi!");
+    ik_test_add_message(ctx, req, IK_ROLE_USER, "Hello");
+    ik_test_add_message(ctx, req, IK_ROLE_ASSISTANT, "Hi!");
     ik_test_add_tool(ctx, req,
              "get_weather",
              "Get weather info",
