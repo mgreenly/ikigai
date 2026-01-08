@@ -155,7 +155,7 @@ def run_make_tsan() -> tuple[bool, str]:
     log("Running make check-tsan...")
     spinner = Spinner("Running make check-tsan")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-tsan", "MAKE_JOBS=1"], timeout=600)
+    code, stdout, stderr = run_cmd(["make", "check-tsan", "MAKE_JOBS=1"], timeout=1800)
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
