@@ -44,7 +44,7 @@ class Ralph
     @reasoning = reasoning
     @thinking_budget = calculate_thinking_budget
     @start_time = Time.now
-    @script_dir = File.dirname(__FILE__)
+    @script_dir = File.dirname(File.realpath(__FILE__))
     @spinner_enabled = !no_spinner
     @spinner_thread = nil
     @spinner_running = false
