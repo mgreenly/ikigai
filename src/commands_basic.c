@@ -201,8 +201,9 @@ res_t ik_cmd_exit(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
     (void)ctx;
-    (void)repl;
     (void)args;
+
+    repl->quit = true;
 
     return OK(NULL);
 }

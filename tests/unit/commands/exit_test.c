@@ -76,6 +76,15 @@ START_TEST(test_exit_command_recognized) {
 }
 END_TEST
 
+// Test: Exit command sets quit flag
+START_TEST(test_exit_sets_quit_flag) {
+    repl->quit = false;
+    res_t res = ik_cmd_dispatch(ctx, repl, "/exit");
+    ck_assert(is_ok(&res));
+    ck_assert(repl->quit == true);
+}
+END_TEST
+
 static Suite *commands_exit_suite(void)
 {
     Suite *s = suite_create("Commands/Exit");
@@ -85,6 +94,7 @@ static Suite *commands_exit_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_exit_command_recognized);
+    tcase_add_test(tc, test_exit_sets_quit_flag);
 
     suite_add_tcase(s, tc);
     return s;
