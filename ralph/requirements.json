@@ -48,7 +48,7 @@
       "acceptance_criteria": [
         "Process exit code is 0"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
