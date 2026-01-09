@@ -14,6 +14,14 @@ Before starting, load these skills for context:
 - /load source-code
 - /load style
 
+{{#if history}}
+## Previous Attempts
+
+Other agents have already tried to fix this error. Learn from their attempts:
+
+{{history}}
+{{/if}}
+
 ## The Problem
 
 **File:** {{file}}
@@ -61,4 +69,9 @@ Before reporting done, run:
 
 ## When Done
 
-Report what files you created and how you organized the split. Be brief.
+1. Append a brief summary to `.claude/harness/filesize/history.md` describing:
+   - What you tried
+   - Why you thought it would work
+   - What happened (success or failure reason)
+
+2. Report what files you created and how you organized the split. Be brief.

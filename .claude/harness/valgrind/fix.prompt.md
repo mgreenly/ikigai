@@ -11,6 +11,14 @@ Before starting, load these skills for context:
 - /load memory
 - /load source-code
 
+{{#if history}}
+## Previous Attempts
+
+Other agents have already tried to fix this error. Learn from their attempts:
+
+{{history}}
+{{/if}}
+
 ## The Error
 
 **File:** {{file}}
@@ -59,4 +67,9 @@ Before reporting done, run:
 
 ## When Done
 
-Report what you fixed and the root cause. Be brief.
+1. Append a brief summary to `.claude/harness/valgrind/history.md` describing:
+   - What you tried
+   - Why you thought it would work
+   - What happened (success or failure reason)
+
+2. Report what you fixed and the root cause. Be brief.

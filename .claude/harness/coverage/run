@@ -32,6 +32,7 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+HISTORY_FILE = SCRIPT_DIR / "history.md"
 COVERAGE_DIR = PROJECT_ROOT / "reports" / "coverage"
 DEFAULT_TIMEOUT = 900
 
@@ -264,12 +265,42 @@ def parse_coverage_info_for_file(coverage_info_path: Path, source_file: str) -> 
     return result
 
 
+def truncate_history() -> None:
+    """Truncate history file at start of new file's fix attempts."""
+    HISTORY_FILE.write_text("")
+
+
+def load_history() -> str:
+    """Load history content, returning empty string if file doesn't exist."""
+    if HISTORY_FILE.exists():
+        return HISTORY_FILE.read_text()
+    return ""
+
+
 def load_prompt_template() -> str:
     """Load the fix prompt template."""
     if not FIX_PROMPT_TEMPLATE.exists():
         log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
         sys.exit(1)
     return FIX_PROMPT_TEMPLATE.read_text()
+
+
+def process_conditionals(template: str, variables: dict) -> str:
+    """
+    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
+    Includes block content if variable is truthy, removes it otherwise.
+    """
+    # Pattern: {{#if var_name}}...content...{{/if}}
+    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
+
+    def replacer(match: re.Match) -> str:
+        var_name = match.group(1)
+        content = match.group(2)
+        if variables.get(var_name):
+            return content
+        return ""
+
+    return pattern.sub(replacer, template)
 
 
 def build_prompt(gap: dict, details: dict) -> str:
@@ -307,15 +338,24 @@ existing production code.
 
     gap_text = "\n".join(gap_description) if gap_description else "Coverage below threshold"
 
-    # Simple placeholder replacement (chain all replacements)
+    # Build variables dict for conditional processing
     source_file = gap["file"].replace(str(PROJECT_ROOT) + "/", "")
-    prompt = template
-    prompt = prompt.replace("{{file}}", gap["file"])
-    prompt = prompt.replace("{{source_file}}", source_file)
-    prompt = prompt.replace("{{lines_pct}}", str(gap["lines_pct"]))
-    prompt = prompt.replace("{{funcs_pct}}", str(gap["funcs_pct"]))
-    prompt = prompt.replace("{{branches_pct}}", str(gap["branches_pct"]))
-    prompt = prompt.replace("{{gap_details}}", gap_text)
+    variables = {
+        "file": gap["file"],
+        "source_file": source_file,
+        "lines_pct": str(gap["lines_pct"]),
+        "funcs_pct": str(gap["funcs_pct"]),
+        "branches_pct": str(gap["branches_pct"]),
+        "gap_details": gap_text,
+        "history": load_history(),
+    }
+
+    # Process conditionals first
+    prompt = process_conditionals(template, variables)
+
+    # Then substitute variables
+    for key, value in variables.items():
+        prompt = prompt.replace("{{" + key + "}}", value)
 
     return prompt
 
@@ -448,6 +488,7 @@ def try_fix_file(gap: dict, timeout: int) -> bool:
     initial_funcs = gap["funcs_pct"]
     initial_branches = gap["branches_pct"]
 
+    truncate_history()
     files_before = jj_get_modified_files()
 
     for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
