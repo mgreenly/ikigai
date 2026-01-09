@@ -256,20 +256,23 @@ class Ralph
 
     if exit_code != 0
       log "Work agent FAILED: #{result[0..200]}"
-      outcome = { success: false, message: 'Agent invocation failed' }
-      log_history(requirement_id, outcome)
       restore_changes
+      outcome = { success: false, message: "Agent invocation failed: #{result[0..200]}" }
+      log_history(requirement_id, outcome)
+      log_history(requirement_id, { success: false, message: 'REVERTED: Changes restored to clean state' })
       return
     end
 
     outcome = parse_work_outcome(result)
-    log_history(requirement_id, outcome)
 
     if outcome[:success]
       commit_work(requirement_id, outcome[:message])
+      log_history(requirement_id, outcome)
       run_quality_checks(requirement_id)
     else
       restore_changes
+      log_history(requirement_id, outcome)
+      log_history(requirement_id, { success: false, message: 'REVERTED: Changes restored to clean state' })
       log "BLOCKED: #{outcome[:message]}"
     end
   end
