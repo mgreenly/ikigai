@@ -12,6 +12,7 @@
 #include <signal.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
+#include "../../../src/paths.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/agent.h"
 #include "../../test_utils.h"
@@ -32,7 +33,7 @@ int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
                            const char *agent_uuid,
@@ -63,9 +64,10 @@ static void suite_setup(void)
 }
 
 // Mock ik_db_init_ to test database connection failure
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
     (void)conn_str;
+    (void)data_dir;
 
     if (mock_db_init_should_fail) {
         return ERR(mem_ctx, DB_CONNECT, "Mock database connection failure");
@@ -298,7 +300,15 @@ START_TEST(test_repl_init_db_init_failure) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
 
     // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
@@ -325,7 +335,15 @@ START_TEST(test_repl_init_ensure_agent_zero_failure) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -354,7 +372,15 @@ START_TEST(test_repl_init_db_success) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -385,7 +411,15 @@ START_TEST(test_repl_init_signal_handler_failure_with_db) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -408,11 +442,11 @@ static Suite *repl_init_db_suite(void)
     Suite *s = suite_create("REPL Database Initialization");
 
     TCase *tc_db = tcase_create("Database Failures");
-    tcase_set_timeout(tc_db, 30);
-    tcase_set_timeout(tc_db, 30);
-    tcase_set_timeout(tc_db, 30);
-    tcase_set_timeout(tc_db, 30);
-    tcase_set_timeout(tc_db, 30);
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_db, suite_setup, NULL);
     tcase_add_test(tc_db, test_repl_init_db_init_failure);
     tcase_add_test(tc_db, test_repl_init_ensure_agent_zero_failure);
@@ -420,11 +454,11 @@ static Suite *repl_init_db_suite(void)
     suite_add_tcase(s, tc_db);
 
     TCase *tc_db_success = tcase_create("Database Success");
-    tcase_set_timeout(tc_db_success, 30);
-    tcase_set_timeout(tc_db_success, 30);
-    tcase_set_timeout(tc_db_success, 30);
-    tcase_set_timeout(tc_db_success, 30);
-    tcase_set_timeout(tc_db_success, 30);
+    tcase_set_timeout(tc_db_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db_success, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_db_success, suite_setup, NULL);
     tcase_add_test(tc_db_success, test_repl_init_db_success);
     suite_add_tcase(s, tc_db_success);

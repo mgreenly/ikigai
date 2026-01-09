@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_test.c
  * @brief Tests for OpenAI Chat Completions response parsing
@@ -253,7 +254,7 @@ static Suite *response_chat_suite(void)
     Suite *s = suite_create("OpenAI Chat Response Parsing - Basic");
 
     TCase *tc_finish_reason = tcase_create("Finish Reason Mapping");
-    tcase_set_timeout(tc_finish_reason, 30);
+    tcase_set_timeout(tc_finish_reason, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_finish_reason, setup, teardown);
     tcase_add_test(tc_finish_reason, test_map_finish_reason_stop);
     tcase_add_test(tc_finish_reason, test_map_finish_reason_length);
@@ -265,7 +266,7 @@ static Suite *response_chat_suite(void)
     suite_add_tcase(s, tc_finish_reason);
 
     TCase *tc_simple = tcase_create("Simple Responses");
-    tcase_set_timeout(tc_simple, 30);
+    tcase_set_timeout(tc_simple, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_simple, setup, teardown);
     tcase_add_test(tc_simple, test_parse_simple_text_response);
     tcase_add_test(tc_simple, test_parse_response_with_reasoning_tokens);

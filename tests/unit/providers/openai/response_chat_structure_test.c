@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_structure_test.c
  * @brief Coverage tests for OpenAI Chat response structure and error parsing
@@ -348,7 +349,7 @@ static Suite *response_chat_structure_suite(void)
     Suite *s = suite_create("OpenAI Chat Response Parsing - Structure");
 
     TCase *tc_structure = tcase_create("Response Structure");
-    tcase_set_timeout(tc_structure, 30);
+    tcase_set_timeout(tc_structure, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_structure, setup, teardown);
     tcase_add_test(tc_structure, test_parse_choices_not_array);
     tcase_add_test(tc_structure, test_parse_choice_null);
@@ -360,7 +361,7 @@ static Suite *response_chat_structure_suite(void)
     suite_add_tcase(s, tc_structure);
 
     TCase *tc_error_coverage = tcase_create("Error Parsing Coverage");
-    tcase_set_timeout(tc_error_coverage, 30);
+    tcase_set_timeout(tc_error_coverage, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_error_coverage, setup, teardown);
     tcase_add_test(tc_error_coverage, test_parse_error_403_forbidden);
     tcase_add_test(tc_error_coverage, test_parse_error_502_bad_gateway);

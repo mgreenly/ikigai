@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_error_handle_test.c
  * @brief Unit tests for ik_openai_handle_error function
@@ -331,7 +332,7 @@ static Suite *openai_error_handle_suite(void)
     Suite *s = suite_create("OpenAI Error Handle");
 
     TCase *tc_handle = tcase_create("Handle Error");
-    tcase_set_timeout(tc_handle, 30);
+    tcase_set_timeout(tc_handle, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_handle, setup, teardown);
     tcase_add_test(tc_handle, test_handle_error_401_auth);
     tcase_add_test(tc_handle, test_handle_error_403_auth);

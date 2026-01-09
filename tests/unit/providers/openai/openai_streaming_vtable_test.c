@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_openai_streaming_vtable.c
  * @brief Unit tests for OpenAI provider vtable async streaming integration
@@ -113,7 +114,7 @@ static Suite *openai_streaming_vtable_suite(void)
 
     /* Async Vtable Integration */
     TCase *tc_async = tcase_create("AsyncVtable");
-    tcase_set_timeout(tc_async, 30);
+    tcase_set_timeout(tc_async, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_async, setup, teardown);
     /* TODO: Fix test_start_stream_returns_immediately - currently segfaults */
     /* tcase_add_test(tc_async, test_start_stream_returns_immediately); */

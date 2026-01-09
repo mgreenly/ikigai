@@ -8,6 +8,7 @@ You have ONE job: fix the compile or link error. Do not refactor unrelated code.
 
 Before starting, load these skills for context:
 - /load errors
+- /load makefile
 - /load memory
 - /load style
 
@@ -35,7 +36,7 @@ Before starting, load these skills for context:
 
 - **undeclared identifier**: Add missing #include or forward declaration
 - **implicit declaration of function**: Add missing #include for the header declaring it
-- **undefined reference**: Symbol defined elsewhere - check if file needs to be added to build, or if declaration is missing
+- **undefined reference**: Symbol not linked. Grep for the function definition. If in a `*_helpers.c` file, add Makefile rules (see `_HELPERS_OBJ` pattern)
 - **incompatible types**: Check function signature matches declaration
 - **expected ';'**: Syntax error, often a missing semicolon or brace
 
@@ -48,7 +49,7 @@ Before starting, load these skills for context:
 
 ## Validation
 
-Run `make` to verify the error is fixed. If new errors appear in the same file, fix those too.
+Run `make all build-tests` to verify the error is fixed. If new errors appear, fix those too.
 
 ## When Done
 

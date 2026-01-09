@@ -379,7 +379,7 @@ static Suite *file_read_execute_suite(void)
     Suite *s = suite_create("File Read Execution");
 
     TCase *tc_file_read_exec = tcase_create("File Read Execution");
-    tcase_set_timeout(tc_file_read_exec, 30);
+    tcase_set_timeout(tc_file_read_exec, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_file_read_exec, setup, teardown);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_valid_file);
     tcase_add_test(tc_file_read_exec, test_file_read_exec_file_not_found);

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file vcr_mock_integration_test.c
  * @brief Unit tests for VCR mock integration with curl wrappers
@@ -217,7 +218,7 @@ static Suite *vcr_mock_integration_suite(void)
     Suite *s = suite_create("VCR Mock Integration");
 
     TCase *tc_playback = tcase_create("Playback");
-    tcase_set_timeout(tc_playback, 30);
+    tcase_set_timeout(tc_playback, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_playback, setup, teardown);
     tcase_add_test(tc_playback, test_playback_delivers_chunks);
     tcase_add_test(tc_playback, test_playback_sets_running_handles);
@@ -225,13 +226,13 @@ static Suite *vcr_mock_integration_suite(void)
     suite_add_tcase(s, tc_playback);
 
     TCase *tc_record = tcase_create("Record");
-    tcase_set_timeout(tc_record, 30);
+    tcase_set_timeout(tc_record, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_record, setup, teardown);
     tcase_add_test(tc_record, test_record_preserves_callback);
     suite_add_tcase(s, tc_record);
 
     TCase *tc_mode = tcase_create("Mode");
-    tcase_set_timeout(tc_mode, 30);
+    tcase_set_timeout(tc_mode, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_mode, setup, teardown);
     tcase_add_test(tc_mode, test_vcr_inactive_uses_real_curl);
     tcase_add_test(tc_mode, test_vcr_get_response_status);

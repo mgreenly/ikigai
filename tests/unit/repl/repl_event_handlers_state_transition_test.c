@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_state_transition_test.c
  * @brief Unit tests for state transition coverage in REPL event handlers
@@ -420,7 +421,7 @@ static Suite *repl_event_handlers_state_transition_suite(void)
     Suite *s = suite_create("repl_event_handlers_state_transition");
 
     TCase *tc_state = tcase_create("state_transitions");
-    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_state, setup, teardown);
     tcase_add_test(tc_state, test_state_changes_to_executing_tool);
     tcase_add_test(tc_state, test_state_changes_but_not_current_agent);

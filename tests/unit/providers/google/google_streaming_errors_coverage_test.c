@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_errors_coverage_test.c
  * @brief Branch coverage tests for Google streaming - Error handling
@@ -330,7 +331,7 @@ static Suite *google_streaming_errors_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Error Coverage");
 
     TCase *tc_errors = tcase_create("Process Error Edge Cases");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_error_without_message);
     tcase_add_test(tc_errors, test_error_with_null_message);
@@ -341,7 +342,7 @@ static Suite *google_streaming_errors_coverage_suite(void)
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_data = tcase_create("Process Data Edge Cases");
-    tcase_set_timeout(tc_data, 30);
+    tcase_set_timeout(tc_data, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_data, setup, teardown);
     tcase_add_test(tc_data, test_process_null_data);
     tcase_add_test(tc_data, test_process_empty_data);
@@ -351,7 +352,7 @@ static Suite *google_streaming_errors_coverage_suite(void)
     suite_add_tcase(s, tc_data);
 
     TCase *tc_usage = tcase_create("Usage Metadata Edge Cases");
-    tcase_set_timeout(tc_usage, 30);
+    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_usage_with_missing_fields);
     tcase_add_test(tc_usage, test_usage_with_thoughts);

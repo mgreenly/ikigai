@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/cursor.h"
@@ -123,11 +124,11 @@ static Suite *pp_cursor_suite(void)
     Suite *s = suite_create("input_buffer_cursor_pp");
 
     TCase *tc_basic = tcase_create("basic");
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_test(tc_basic, test_pp_cursor_at_start);
     tcase_add_test(tc_basic, test_pp_cursor_in_middle);
     tcase_add_test(tc_basic, test_pp_cursor_with_indent);

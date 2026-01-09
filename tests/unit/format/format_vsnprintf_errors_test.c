@@ -147,7 +147,7 @@ static Suite *format_vsnprintf_errors_suite(void)
 {
     Suite *s = suite_create("Format vsnprintf Errors");
     TCase *tc = tcase_create("vsnprintf failures");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
 

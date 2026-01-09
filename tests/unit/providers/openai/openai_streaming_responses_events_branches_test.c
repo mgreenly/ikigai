@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_branches_test.c
  * @brief Additional branch coverage tests for OpenAI Responses API event processing
@@ -129,7 +130,7 @@ static Suite *openai_streaming_responses_events_branches_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events Branches");
 
     TCase *tc = tcase_create("Branches");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_output_item_done_mismatched_index);
     tcase_add_test(tc, test_incomplete_details_missing_reason);

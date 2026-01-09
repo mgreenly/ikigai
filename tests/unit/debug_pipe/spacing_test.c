@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file spacing_test.c
  * @brief Unit tests for debug pipe blank line spacing
@@ -161,7 +162,7 @@ static Suite *debug_pipe_spacing_suite(void)
 {
     Suite *s = suite_create("Debug Pipe Spacing");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_adds_blank_lines);
     tcase_add_test(tc_core, test_debug_mgr_handle_ready_disabled_no_blank_lines);

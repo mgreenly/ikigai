@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_coverage_test_1.c
  * @brief Coverage tests for OpenAI Chat streaming - Part 1 (getters, malformed JSON, errors)
@@ -352,14 +353,14 @@ static Suite *streaming_chat_coverage_suite_1(void)
     Suite *s = suite_create("OpenAI Streaming Chat Coverage 1");
 
     TCase *tc_getters = tcase_create("Getters");
-    tcase_set_timeout(tc_getters, 30);
+    tcase_set_timeout(tc_getters, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_getters, setup, teardown);
     tcase_add_test(tc_getters, test_get_usage);
     tcase_add_test(tc_getters, test_get_finish_reason);
     suite_add_tcase(s, tc_getters);
 
     TCase *tc_malformed = tcase_create("MalformedJSON");
-    tcase_set_timeout(tc_malformed, 30);
+    tcase_set_timeout(tc_malformed, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_malformed, setup, teardown);
     tcase_add_test(tc_malformed, test_malformed_json_silently_ignored);
     tcase_add_test(tc_malformed, test_null_root_silently_ignored);
@@ -368,7 +369,7 @@ static Suite *streaming_chat_coverage_suite_1(void)
     suite_add_tcase(s, tc_malformed);
 
     TCase *tc_errors = tcase_create("ErrorHandling");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_error_authentication);
     tcase_add_test(tc_errors, test_error_permission);

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file all_agents_tool_polling_test.c
  * @brief Unit tests for polling tool completion across all agents
@@ -234,11 +235,11 @@ static Suite *all_agents_tool_polling_suite(void)
     Suite *s = suite_create("all_agents_tool_polling");
 
     TCase *tc_core = tcase_create("polling");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_uses_agent_param);
     tcase_add_test(tc_core, test_event_loop_polls_all_agents);

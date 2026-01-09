@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_anthropic_errors.c
  * @brief Unit tests for Anthropic error handling and HTTP status mapping
@@ -429,7 +430,7 @@ static Suite *anthropic_errors_suite(void)
     Suite *s = suite_create("Anthropic Errors");
 
     TCase *tc_errors = tcase_create("Error Handling");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_handle_error_401_auth);
     tcase_add_test(tc_errors, test_handle_error_403_auth);

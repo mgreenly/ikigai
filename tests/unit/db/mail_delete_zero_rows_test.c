@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Test for db/mail.c delete zero rows case
 #include "../../../src/db/mail.h"
 #include "../../../src/db/connection.h"
@@ -92,7 +93,7 @@ static Suite *db_mail_delete_zero_rows_suite(void)
     Suite *s = suite_create("db_mail_delete_zero_rows");
 
     TCase *tc = tcase_create("ZeroRows");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_db_mail_delete_zero_rows_affected);
 
     suite_add_tcase(s, tc);

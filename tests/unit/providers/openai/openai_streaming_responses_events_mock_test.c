@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_mock_test.c
  * @brief Tests for OpenAI Responses API event processing with yyjson_doc_get_root mock
@@ -79,7 +80,7 @@ static Suite *openai_streaming_responses_events_mock_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events Mock");
 
     TCase *tc = tcase_create("Mock");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_yyjson_doc_get_root_returns_null);
     suite_add_tcase(s, tc);

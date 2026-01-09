@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_openai_errors.c
  * @brief Unit tests for OpenAI error handling and HTTP status mapping
@@ -346,7 +347,7 @@ static Suite *openai_errors_suite(void)
     Suite *s = suite_create("OpenAI Errors");
 
     TCase *tc_errors = tcase_create("Error Handling");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_parse_authentication_error_401);
     tcase_add_test(tc_errors, test_parse_rate_limit_error_429);
@@ -362,7 +363,7 @@ static Suite *openai_errors_suite(void)
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_retry = tcase_create("Retry-After");
-    tcase_set_timeout(tc_retry, 30);
+    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_retry, setup, teardown);
     tcase_add_test(tc_retry, test_extract_retry_after_from_reset_headers);
     tcase_add_test(tc_retry, test_retry_after_missing);

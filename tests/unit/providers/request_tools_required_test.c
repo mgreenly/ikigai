@@ -179,7 +179,7 @@ static Suite *request_tools_required_suite(void)
     Suite *s = suite_create("Request Tools Required Params");
 
     TCase *tc = tcase_create("Required vs Optional");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_glob_required_parameters);
     tcase_add_test(tc, test_grep_required_parameters);

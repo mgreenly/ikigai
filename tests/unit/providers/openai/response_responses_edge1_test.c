@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_edge1_test.c
  * @brief Tests for OpenAI Responses API edge cases - missing fields
@@ -370,7 +371,7 @@ static Suite *response_responses_edge1_suite(void)
     Suite *s = suite_create("OpenAI Responses API Edge Cases (Missing Fields)");
 
     TCase *tc_edge = tcase_create("Missing Fields");
-    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_parse_response_no_model);
     tcase_add_test(tc_edge, test_parse_response_no_usage);

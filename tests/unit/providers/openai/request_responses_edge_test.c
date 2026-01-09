@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_edge_test.c
  * @brief Edge case tests for OpenAI Responses API request serialization
@@ -153,14 +154,14 @@ static Suite *request_responses_edge_suite(void)
     Suite *s = suite_create("OpenAI Responses API Edge Cases");
 
     TCase *tc_errors = tcase_create("Error Handling");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_serialize_null_model);
     tcase_add_test(tc_errors, test_serialize_invalid_tool_params);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_edge = tcase_create("Edge Cases");
-    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_serialize_empty_system_prompt);
     tcase_add_test(tc_edge, test_serialize_max_output_tokens_zero);

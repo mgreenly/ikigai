@@ -312,7 +312,7 @@ static Suite *cursor_position_suite(void)
 {
     Suite *s = suite_create("RenderDirect_CursorPosition");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_cursor_position_simple_ascii);
     tcase_add_test(tc_core, test_cursor_position_at_start);

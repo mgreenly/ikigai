@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_helpers_coverage_test.c
  * @brief Coverage tests for Google request helpers
@@ -413,7 +414,7 @@ static Suite *request_helpers_coverage_suite(void)
     Suite *s = suite_create("Google Request Helpers Coverage");
 
     TCase *tc_error = tcase_create("Error Paths");
-    tcase_set_timeout(tc_error, 30);
+    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_serialize_content_text_add_str_fail);
     tcase_add_test(tc_error, test_serialize_content_thinking_add_str_fail);
@@ -433,7 +434,7 @@ static Suite *request_helpers_coverage_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_thought = tcase_create("Thought Signature Coverage");
-    tcase_set_timeout(tc_thought, 30);
+    tcase_set_timeout(tc_thought, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_thought, setup, teardown);
     tcase_add_test(tc_thought, test_extract_thought_signature_null_root);
     tcase_add_test(tc_thought, test_find_latest_thought_no_signature_found);

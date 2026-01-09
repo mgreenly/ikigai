@@ -189,38 +189,38 @@ static Suite *cursor_suite(void)
     Suite *s = suite_create("Cursor");
 
     TCase *tc_create = tcase_create("Create");
-    tcase_set_timeout(tc_create, 30);
-    tcase_set_timeout(tc_create, 30);
-    tcase_set_timeout(tc_create, 30);
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_test(tc_create, test_cursor_create);
     suite_add_tcase(s, tc_create);
 
     TCase *tc_set_position = tcase_create("SetPosition");
-    tcase_set_timeout(tc_set_position, 30);
-    tcase_set_timeout(tc_set_position, 30);
-    tcase_set_timeout(tc_set_position, 30);
-    tcase_set_timeout(tc_set_position, 30);
+    tcase_set_timeout(tc_set_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_set_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_set_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_set_position, IK_TEST_TIMEOUT);
     tcase_add_test(tc_set_position, test_cursor_set_position_ascii);
     tcase_add_test(tc_set_position, test_cursor_set_position_utf8);
     tcase_add_test(tc_set_position, test_cursor_set_position_emoji);
     suite_add_tcase(s, tc_set_position);
 
     TCase *tc_get_position = tcase_create("GetPosition");
-    tcase_set_timeout(tc_get_position, 30);
-    tcase_set_timeout(tc_get_position, 30);
-    tcase_set_timeout(tc_get_position, 30);
-    tcase_set_timeout(tc_get_position, 30);
+    tcase_set_timeout(tc_get_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_get_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_get_position, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_get_position, IK_TEST_TIMEOUT);
     tcase_add_test(tc_get_position, test_cursor_get_position);
     suite_add_tcase(s, tc_get_position);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_create_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_set_position_null_cursor, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_set_position_null_text, SIGABRT);

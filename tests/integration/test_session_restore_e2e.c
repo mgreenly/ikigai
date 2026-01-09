@@ -575,7 +575,7 @@ static Suite *session_restore_e2e_suite(void)
     Suite *s = suite_create("Session Restore E2E");
 
     TCase *tc_restore = tcase_create("Session Restoration");
-    tcase_set_timeout(tc_restore, 30);
+    tcase_set_timeout(tc_restore, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_restore, suite_setup, suite_teardown);
     tcase_add_test(tc_restore, test_restore_provider_setting);
     tcase_add_test(tc_restore, test_restore_model_setting);

@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_test.c
  * @brief Tests for OpenAI Responses API request serialization
@@ -294,14 +295,14 @@ static Suite *request_responses_suite(void)
     Suite *s = suite_create("OpenAI Responses API Request Serialization");
 
     TCase *tc_url = tcase_create("URL Building");
-    tcase_set_timeout(tc_url, 30);
+    tcase_set_timeout(tc_url, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_url, setup, teardown);
     tcase_add_test(tc_url, test_build_responses_url_success);
     tcase_add_test(tc_url, test_build_responses_url_custom_base);
     suite_add_tcase(s, tc_url);
 
     TCase *tc_basic = tcase_create("Basic Serialization");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_serialize_minimal_request);
     tcase_add_test(tc_basic, test_serialize_request_with_system_prompt);
@@ -310,7 +311,7 @@ static Suite *request_responses_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_messages = tcase_create("Message Handling");
-    tcase_set_timeout(tc_messages, 30);
+    tcase_set_timeout(tc_messages, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_messages, setup, teardown);
     tcase_add_test(tc_messages, test_serialize_multi_turn_conversation);
     tcase_add_test(tc_messages, test_serialize_single_user_message_with_multiple_text_blocks);

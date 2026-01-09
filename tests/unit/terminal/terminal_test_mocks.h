@@ -17,6 +17,8 @@ static int mock_write_fail_on_call = 0;  // Fail on specific write call number
 static int mock_ioctl_fail = 0;
 static int mock_select_return = 0;        // 0 = timeout, >0 = ready
 static int mock_read_fail = 0;
+static int mock_read_fail_on_call = 0;    // Fail on specific read call number
+static int mock_read_count = 0;
 static int mock_close_count = 0;
 static int mock_write_count = 0;
 static int mock_tcsetattr_count = 0;
@@ -137,7 +139,11 @@ ssize_t posix_read_(int fd, void *buf, size_t count)
 {
     (void)fd;
     (void)count;
+    mock_read_count++;
     if (mock_read_fail) {
+        return -1;
+    }
+    if (mock_read_fail_on_call > 0 && mock_read_count == mock_read_fail_on_call) {
         return -1;
     }
     // Return a dummy CSI u response if select indicated ready
@@ -163,6 +169,8 @@ __attribute__((unused)) static void reset_mocks(void)
     mock_ioctl_fail = 0;
     mock_select_return = 0;
     mock_read_fail = 0;
+    mock_read_fail_on_call = 0;
+    mock_read_count = 0;
     mock_close_count = 0;
     mock_write_count = 0;
     mock_tcsetattr_count = 0;

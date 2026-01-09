@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_args_accumulation_test.c
  * @brief Unit tests for Google provider tool argument accumulation
@@ -287,7 +288,7 @@ static Suite *google_streaming_args_accumulation_suite(void)
     Suite *s = suite_create("Google Streaming - Argument Accumulation");
 
     TCase *tc_accum = tcase_create("Argument Accumulation");
-    tcase_set_timeout(tc_accum, 30);
+    tcase_set_timeout(tc_accum, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_accum, setup, teardown);
     tcase_add_test(tc_accum, test_single_chunk_accumulates_args);
     tcase_add_test(tc_accum, test_multiple_chunks_accumulate_args);

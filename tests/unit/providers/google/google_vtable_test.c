@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_vtable_test.c
  * @brief Unit tests for Google provider vtable methods (start_request)
@@ -157,7 +158,7 @@ static Suite *google_vtable_suite(void)
     Suite *s = suite_create("Google Vtable");
 
     TCase *tc_request = tcase_create("start_request");
-    tcase_set_timeout(tc_request, 30);
+    tcase_set_timeout(tc_request, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_start_request_returns_immediately);
     /* test_start_request_event_loop is disabled - see comment above */

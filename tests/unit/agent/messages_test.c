@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file agent_messages_test.c
  * @brief Unit tests for agent message management functions
@@ -298,21 +299,21 @@ static Suite *agent_messages_suite(void)
     Suite *s = suite_create("Agent Messages");
 
     TCase *tc_add = tcase_create("Add Messages");
-    tcase_set_timeout(tc_add, 30);
+    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_add, setup, teardown);
     tcase_add_test(tc_add, test_add_message_basic);
     tcase_add_test(tc_add, test_add_multiple_messages);
     suite_add_tcase(s, tc_add);
 
     TCase *tc_clear = tcase_create("Clear Messages");
-    tcase_set_timeout(tc_clear, 30);
+    tcase_set_timeout(tc_clear, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_clear, setup, teardown);
     tcase_add_test(tc_clear, test_clear_messages_empty);
     tcase_add_test(tc_clear, test_clear_messages_with_data);
     suite_add_tcase(s, tc_clear);
 
     TCase *tc_clone = tcase_create("Clone Messages");
-    tcase_set_timeout(tc_clone, 30);
+    tcase_set_timeout(tc_clone, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_clone, setup, teardown);
     tcase_add_test(tc_clone, test_clone_messages_empty);
     tcase_add_test(tc_clone, test_clone_messages_text);

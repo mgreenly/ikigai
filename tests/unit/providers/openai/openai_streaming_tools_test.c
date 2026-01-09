@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_tools_test.c
  * @brief Tool call streaming tests for OpenAI Chat Completions
@@ -286,7 +287,7 @@ static Suite *openai_streaming_tools_suite(void)
 
     /* Tool Call Streaming */
     TCase *tc_tools = tcase_create("ToolCalls");
-    tcase_set_timeout(tc_tools, 30);
+    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_parse_tool_call_start);
     tcase_add_test(tc_tools, test_parse_tool_call_arguments_delta);

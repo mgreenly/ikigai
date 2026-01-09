@@ -155,10 +155,54 @@ def run_make_tsan() -> tuple[bool, str]:
     log("Running make check-tsan...")
     spinner = Spinner("Running make check-tsan")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-tsan"], timeout=600)
+    code, stdout, stderr = run_cmd(["make", "check-tsan", "MAKE_JOBS=1"], timeout=1800)
     spinner.stop()
     output = stdout + stderr
     return code == 0, output
+
+
+def parse_failing_tests(output: str) -> list[str]:
+    """
+    Parse make output for 🔴 lines to extract failing test binary paths.
+    Returns list of binary paths like 'build-tsan/tests/unit/terminal/foo_test'.
+    """
+    failing_tests = []
+    for line in output.split('\n'):
+        line = line.strip()
+        if line.startswith('🔴 '):
+            # Extract binary path after the emoji
+            binary_path = line[2:].strip()
+            if binary_path:
+                failing_tests.append(binary_path)
+    return failing_tests
+
+
+def run_single_test(test_binary: str) -> tuple[bool, str]:
+    """
+    Run a single test binary directly (not through make) to capture TSan output.
+    Returns (success, output).
+    """
+    test_name = Path(test_binary).name
+    spinner = Spinner(f"Running {test_name}")
+    spinner.start()
+
+    # Run with TSAN_OPTIONS but without redirecting to /dev/null
+    env = os.environ.copy()
+    env["TSAN_OPTIONS"] = "suppressions=.suppressions/tsan.supp"
+    env["CK_FORK"] = "no"
+
+    result = subprocess.run(
+        [test_binary],
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
+        timeout=300,
+        env=env,
+    )
+    spinner.stop()
+
+    output = (result.stdout or "") + (result.stderr or "")
+    return result.returncode == 0, output
 
 
 def parse_failures(output: str) -> list[dict]:
@@ -397,77 +441,78 @@ def main() -> int:
     # Clean up test databases before running
     drop_test_databases()
 
-    # Run tsan check
-    success, output = run_make_tsan()
-
-    if success:
-        log(f"All ThreadSanitizer checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
-
-    failures = parse_failures(output)
-
-    if not failures:
-        log("make check-tsan failed but couldn't parse failures")
-        log("Output tail:")
-        for line in output.split('\n')[-30:]:
-            log(f"  {line}")
-        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 1
-
-    log(f"Found {len(failures)} data races")
-
-    # Dry-run: just list failures and exit
-    if args.dry_run:
-        log("Errors needing fixes:")
-        for failure in failures:
-            log(f"  - {failure['file']}:{failure['line']} - {failure['error_type']}")
-        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
-
     pass_num = 0
 
     while True:
         pass_num += 1
         log(f"=== Pass {pass_num} ===")
 
-        if pass_num > 1:
-            # Re-run check for subsequent passes
-            success, output = run_make_tsan()
+        # Step 1: Run make check-tsan to get list of failing test binaries
+        success, make_output = run_make_tsan()
 
-            if success:
-                log(f"All ThreadSanitizer checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 0
+        if success:
+            log(f"All ThreadSanitizer checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 0
 
-            failures = parse_failures(output)
+        # Step 2: Parse failing test binaries from 🔴 lines
+        failing_tests = parse_failing_tests(make_output)
 
-            if not failures:
-                log("make check-tsan failed but couldn't parse failures")
-                log("Output tail:")
-                for line in output.split('\n')[-30:]:
-                    log(f"  {line}")
-                log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 1
+        if not failing_tests:
+            log("make check-tsan failed but couldn't find failing tests")
+            log("Output tail:")
+            for line in make_output.split('\n')[-30:]:
+                log(f"  {line}")
+            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 1
 
-            log(f"Found {len(failures)} data races")
+        log(f"Found {len(failing_tests)} failing test binaries")
 
+        # Step 3: For each failing test, run it directly to get TSan output
+        all_failures = []
+        for test_binary in failing_tests:
+            test_name = Path(test_binary).name
+            log(f"Analyzing {test_name}...")
+            _, test_output = run_single_test(test_binary)
+            failures = parse_failures(test_output)
+            for f in failures:
+                f["test_binary"] = test_binary
+                f["test_output"] = test_output
+            all_failures.extend(failures)
+
+        if not all_failures:
+            log("Tests failed but couldn't parse TSan errors from output")
+            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 1
+
+        log(f"Found {len(all_failures)} data races across {len(failing_tests)} test(s)")
+
+        # Dry-run: just list failures and exit
+        if args.dry_run:
+            log("Errors needing fixes:")
+            for failure in all_failures:
+                log(f"  - {failure['file']}:{failure['line']} - {failure['error_type']}")
+            log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 0
+
+        # Step 4: Fix each failure
         fixed_count = 0
         skipped = []
         file_times: list[float] = []
 
-        for i, failure in enumerate(failures, 1):
+        for i, failure in enumerate(all_failures, 1):
             file = failure["file"]
             error = failure["error_type"]
-            log(f"[file {i}/{len(failures)}] {file}:{failure['line']} - {error}")
+            log(f"[{i}/{len(all_failures)}] {file}:{failure['line']} - {error}")
 
             file_start = time.time()
-            if try_fix_file(failure, output, args.time_out):
+            if try_fix_file(failure, failure["test_output"], args.time_out):
                 fixed_count += 1
             else:
                 skipped.append(f"{file}:{failure['line']}")
             file_elapsed = time.time() - file_start
             file_times.append(file_elapsed)
             avg_time = sum(file_times) / len(file_times)
-            remaining = len(failures) - i
+            remaining = len(all_failures) - i
             eta = avg_time * remaining
             log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
 

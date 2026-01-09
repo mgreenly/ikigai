@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_test.c
  * @brief Unit tests for Google URL and header building
@@ -91,14 +92,14 @@ static Suite *request_suite(void)
     Suite *s = suite_create("Google Request");
 
     TCase *tc_url = tcase_create("URL Building");
-    tcase_set_timeout(tc_url, 30);
+    tcase_set_timeout(tc_url, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_url, setup, teardown);
     tcase_add_test(tc_url, test_build_url_non_streaming);
     tcase_add_test(tc_url, test_build_url_streaming);
     suite_add_tcase(s, tc_url);
 
     TCase *tc_headers = tcase_create("Header Building");
-    tcase_set_timeout(tc_headers, 30);
+    tcase_set_timeout(tc_headers, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_headers, setup, teardown);
     tcase_add_test(tc_headers, test_build_headers_non_streaming);
     tcase_add_test(tc_headers, test_build_headers_streaming);

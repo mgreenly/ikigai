@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 #include "providers/common/sse_parser.h"
 #include <check.h>
 #include <talloc.h>
@@ -470,7 +471,7 @@ static Suite *sse_parser_suite(void)
     Suite *s = suite_create("SSE Parser");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_test(tc_core, test_parser_create);
     tcase_add_test(tc_core, test_empty_buffer);
     tcase_add_test(tc_core, test_single_event);

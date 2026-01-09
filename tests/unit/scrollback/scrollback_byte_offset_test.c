@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -162,11 +163,11 @@ static Suite *scrollback_byte_offset_suite(void)
 {
     Suite *s = suite_create("Scrollback Byte Offset");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_byte_offset_at_col_zero);
     tcase_add_test(tc_core, test_byte_offset_ascii);

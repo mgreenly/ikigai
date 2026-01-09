@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_defensive_test.c
  * @brief Defensive code coverage tests for OpenAI Responses API event processing
@@ -161,7 +162,7 @@ static Suite *openai_streaming_responses_events_defensive_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events Defensive");
 
     TCase *tc = tcase_create("Defensive");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_text_delta_yyjson_get_str_returns_null);
     tcase_add_test(tc, test_thinking_delta_yyjson_get_str_returns_null);

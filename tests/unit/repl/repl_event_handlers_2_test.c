@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_2.c
  * @brief Unit tests for REPL event handler functions (Part 2)
@@ -339,11 +340,11 @@ static Suite *repl_event_handlers_suite(void)
     Suite *s = suite_create("repl_event_handlers_2");
 
     TCase *tc_agent_success = tcase_create("agent_success");
-    tcase_set_timeout(tc_agent_success, 30);
-    tcase_set_timeout(tc_agent_success, 30);
-    tcase_set_timeout(tc_agent_success, 30);
-    tcase_set_timeout(tc_agent_success, 30);
-    tcase_set_timeout(tc_agent_success, 30);
+    tcase_set_timeout(tc_agent_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_agent_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_agent_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_agent_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_agent_success, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_agent_success, setup, teardown);
     tcase_add_test(tc_agent_success, test_agent_request_success_with_response);
     tcase_add_test(tc_agent_success, test_agent_request_success_empty_response);
@@ -351,11 +352,11 @@ static Suite *repl_event_handlers_suite(void)
     suite_add_tcase(s, tc_agent_success);
 
     TCase *tc_curl_events = tcase_create("curl_events");
-    tcase_set_timeout(tc_curl_events, 30);
-    tcase_set_timeout(tc_curl_events, 30);
-    tcase_set_timeout(tc_curl_events, 30);
-    tcase_set_timeout(tc_curl_events, 30);
-    tcase_set_timeout(tc_curl_events, 30);
+    tcase_set_timeout(tc_curl_events, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_curl_events, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_curl_events, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_curl_events, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_curl_events, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_curl_events, setup, teardown);
     tcase_add_test(tc_curl_events, test_curl_events_no_agents);
     tcase_add_test(tc_curl_events, test_curl_events_current_not_in_array);

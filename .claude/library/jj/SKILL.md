@@ -15,20 +15,7 @@ Standard jj operations for day-to-day development work.
 
 ## Commit Policy
 
-### Commit Workflow
-
-jj has no staging area. All file changes are automatically part of the working copy commit.
-
-```bash
-# Describe current working copy
-jj describe -m "Your message"
-
-# Commit and start new empty working copy
-jj commit -m "Your message"
-
-# Squash working copy into parent
-jj squash
-```
+**When user says "commit": use `jj commit -m "msg"` (NOT `jj describe`)**
 
 Run `make check` periodically to catch issues early.
 
@@ -58,8 +45,7 @@ This skill does NOT permit:
 | Check status | `jj status` |
 | View changes | `jj diff` |
 | View log | `jj log` |
-| Describe commit | `jj describe -m "msg"` |
-| Commit (new working copy) | `jj commit -m "msg"` |
+| **Commit all files** | **`jj commit -m "msg"`** |
 | Squash into parent | `jj squash` |
 | Create bookmark | `jj bookmark create <name>` |
 | Update bookmark to @ | `jj bookmark set <name>` |

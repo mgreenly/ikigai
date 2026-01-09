@@ -137,11 +137,11 @@ static Suite *separator_debug_suite(void)
     Suite *s = suite_create("Separator visibility: Debug");
 
     TCase *tc_debug = tcase_create("Debug");
-    tcase_set_timeout(tc_debug, 30);
-    tcase_set_timeout(tc_debug, 30);
-    tcase_set_timeout(tc_debug, 30);
-    tcase_set_timeout(tc_debug, 30);
-    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
     tcase_add_test(tc_debug, test_separator_debug_simple_case);
     suite_add_tcase(s, tc_debug);
 

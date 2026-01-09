@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file credentials_coverage_test.c
  * @brief Additional coverage tests for credentials.c
@@ -430,7 +431,7 @@ static Suite *credentials_coverage_suite(void)
     Suite *s = suite_create("Credentials Coverage");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
     tcase_add_test(tc_core, test_non_tilde_path);

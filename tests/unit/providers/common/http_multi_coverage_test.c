@@ -200,7 +200,7 @@ static Suite *http_multi_coverage_suite(void)
 
     /* Write callback tests */
     TCase *tc_write = tcase_create("Write Callback");
-    tcase_set_timeout(tc_write, 30);
+    tcase_set_timeout(tc_write, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_write, setup, teardown);
     tcase_add_test(tc_write, test_write_callback_with_user_callback);
     tcase_add_test(tc_write, test_write_callback_user_error);

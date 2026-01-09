@@ -309,11 +309,11 @@ static Suite *pp_input_buffer_suite(void)
     Suite *s = suite_create("Input Buffer Pretty-Print");
 
     TCase *tc_basic = tcase_create("Basic");
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_test(tc_basic, test_pp_input_buffer_empty);
     tcase_add_test(tc_basic, test_pp_input_buffer_single_line);
     tcase_add_test(tc_basic, test_pp_input_buffer_multiline);

@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include "../../src/repl.h"
 #include "../../src/shared.h"
+#include "../../src/paths.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"
@@ -28,7 +29,15 @@ START_TEST(test_completion_no_matches) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -55,7 +64,15 @@ START_TEST(test_completion_history_no_conflict) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -92,7 +109,15 @@ START_TEST(test_completion_layer_visibility) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -122,7 +147,15 @@ START_TEST(test_completion_dynamic_update) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -157,7 +190,7 @@ static Suite *completion_e2e_suite(void)
     Suite *s = suite_create("Completion E2E");
 
     TCase *tc = tcase_create("Core");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_test(tc, test_completion_no_matches);
     tcase_add_test(tc, test_completion_history_no_conflict);

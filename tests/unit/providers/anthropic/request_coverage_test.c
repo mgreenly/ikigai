@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_coverage_test.c
  * @brief Coverage tests for gaps in src/providers/anthropic/request.c
@@ -148,7 +149,7 @@ static Suite *request_coverage_suite(void)
     Suite *s = suite_create("Anthropic Request Coverage Gaps");
 
     TCase *tc_coverage = tcase_create("Missing Coverage");
-    tcase_set_timeout(tc_coverage, 30);
+    tcase_set_timeout(tc_coverage, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_coverage, setup, teardown);
     tcase_add_test(tc_coverage, test_serialize_messages_failure);
     tcase_add_test(tc_coverage, test_serialize_request_streaming_with_verification);
