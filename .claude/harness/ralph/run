@@ -57,9 +57,13 @@ class Ralph
   end
 
   def claude_flags
-    flags = "--model #{@model}"
-    flags += " --thinking-budget #{@thinking_budget}" if @thinking_budget.positive?
-    flags
+    "--model #{@model}"
+  end
+
+  def claude_env
+    env = ""
+    env += "MAX_THINKING_TOKENS=#{@thinking_budget} " if @thinking_budget.positive?
+    env
   end
 
   def run
@@ -179,7 +183,7 @@ class Ralph
     start_spinner 'Waiting for selection agent'
 
     prompt_file = "#{@script_dir}/select.md"
-    context = "REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
+    context = "#{claude_env}REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
 
     result = `#{context} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 5 2>&1`
     exit_code = $?.exitstatus
@@ -210,7 +214,7 @@ class Ralph
     start_spinner 'Waiting for work agent'
 
     prompt_file = "#{@script_dir}/work.md"
-    context = "REQUIREMENT_ID=#{requirement_id} REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
+    context = "#{claude_env}REQUIREMENT_ID=#{requirement_id} REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
 
     result = `#{context} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 20 2>&1`
     exit_code = $?.exitstatus
