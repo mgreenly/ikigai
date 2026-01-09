@@ -22,7 +22,7 @@
       "acceptance_criteria": [
         "Typing /ex and triggering completion suggests /exit"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "exit-004",
