@@ -1,2 +1,0 @@
-{"timestamp":"2026-01-09T00:10:42-06:00","requirement_id":"exit-001","success":false,"message":"```json\n{\n  \"success\": true,\n  \"message\": \"Successfully implemented /exit command recognition. Added ik_cmd_exit handler to commands_basic.c and commands_basic.h, registered it in commands.c, created tests/unit/commands/exit_test.c, and updated tests/unit/commands/dispatch_test.c. All tests pass.\"\n}\n```"}
-{"timestamp":"2026-01-09T00:10:42-06:00","requirement_id":"exit-001","success":false,"message":"REVERTED: Changes restored to clean state"}
