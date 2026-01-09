@@ -221,12 +221,15 @@ class Ralph
 
     begin
       parsed = JSON.parse(result)
-      requirement_id = parsed.dig('result')&.strip || result.strip
+      raw_output = parsed.dig('result')&.strip || result.strip
     rescue JSON::ParserError
-      requirement_id = result.strip
+      raw_output = result.strip
     end
 
-    return nil if requirement_id.empty? || requirement_id == 'none'
+    # Extract just the requirement ID (last non-empty line)
+    requirement_id = raw_output.lines.map(&:strip).reject(&:empty?).last
+
+    return nil if requirement_id.nil? || requirement_id.empty? || requirement_id == 'none'
 
     log "Selected: #{requirement_id}"
     requirement_id
