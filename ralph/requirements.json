@@ -14,7 +14,7 @@
       "acceptance_criteria": [
         "/help output includes /exit with description"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "exit-003",
