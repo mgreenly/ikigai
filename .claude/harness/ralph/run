@@ -280,6 +280,15 @@ class Ralph
     end
   end
 
+  def extract_json(text)
+    # Try to find JSON object in text (handles markdown fences, preamble, etc.)
+    if text =~ /\{[^{}]*"success"\s*:\s*(true|false)[^{}]*\}/m
+      $&
+    else
+      text
+    end
+  end
+
   def parse_work_outcome(result)
     # Try to parse as JSON
     parsed = JSON.parse(result, symbolize_names: true)
@@ -287,10 +296,11 @@ class Ralph
     # Handle nested result structure from --output-format json
     if parsed[:result]
       begin
-        inner = JSON.parse(parsed[:result], symbolize_names: true)
+        json_text = extract_json(parsed[:result])
+        inner = JSON.parse(json_text, symbolize_names: true)
         # Ensure we have required fields
         return {
-          success: inner[:success] || false,
+          success: inner[:success] == true,
           message: inner[:message] || parsed[:result]
         }
       rescue JSON::ParserError
