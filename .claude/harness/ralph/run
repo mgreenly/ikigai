@@ -66,6 +66,22 @@ class Ralph
     env
   end
 
+  def render_prompt(template_file, vars = {})
+    require 'erb'
+    template = File.read(template_file)
+    ERB.new(template).result_with_hash(vars)
+  end
+
+  def with_temp_prompt(content)
+    require 'tempfile'
+    temp = Tempfile.new(['ralph-prompt', '.md'])
+    temp.write(content)
+    temp.close
+    yield temp.path
+  ensure
+    temp&.unlink
+  end
+
   def run
     log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget})"
     ensure_files_exist
@@ -182,11 +198,19 @@ class Ralph
 
     start_spinner 'Waiting for selection agent'
 
-    prompt_file = "#{@script_dir}/select.md"
-    context = "#{claude_env}REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
+    template_file = "#{@script_dir}/select.md.erb"
+    prompt_content = render_prompt(template_file, {
+      requirements_file: @requirements_file,
+      history_file: @history_file
+    })
 
-    result = `#{context} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 5 2>&1`
-    exit_code = $?.exitstatus
+    result = nil
+    exit_code = nil
+
+    with_temp_prompt(prompt_content) do |prompt_file|
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 5 2>&1`
+      exit_code = $?.exitstatus
+    end
 
     stop_spinner
 
@@ -213,11 +237,20 @@ class Ralph
 
     start_spinner 'Waiting for work agent'
 
-    prompt_file = "#{@script_dir}/work.md"
-    context = "#{claude_env}REQUIREMENT_ID=#{requirement_id} REQUIREMENTS_FILE=#{@requirements_file} HISTORY_FILE=#{@history_file}"
+    template_file = "#{@script_dir}/work.md.erb"
+    prompt_content = render_prompt(template_file, {
+      requirement_id: requirement_id,
+      requirements_file: @requirements_file,
+      history_file: @history_file
+    })
 
-    result = `#{context} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 20 2>&1`
-    exit_code = $?.exitstatus
+    result = nil
+    exit_code = nil
+
+    with_temp_prompt(prompt_content) do |prompt_file|
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 20 2>&1`
+      exit_code = $?.exitstatus
+    end
 
     stop_spinner
 
