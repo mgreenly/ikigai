@@ -11,6 +11,8 @@ Automated fix loops. Each harness runs a make target, spawns sub-agents to fix f
 
 **Escalation:** sonnet:think → opus:think → opus:ultrathink
 
+**History:** Each harness maintains `history.md` for cross-attempt learning. Truncated per-file, accumulates across escalation. Agents append summaries after each attempt so higher-level models can avoid repeating failed approaches.
+
 **CLI:** `.claude/scripts/check-<name>` symlinks to harness run scripts
 
 **Commands:** `/check-<name>` runs the corresponding harness with `--no-spinner`
