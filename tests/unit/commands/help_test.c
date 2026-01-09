@@ -219,9 +219,6 @@ START_TEST(test_help_lists_exit) {
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
-    // Debug: print what we actually got
-    printf("DEBUG: Line 16 content: '%s'\n", line);
-
     // Should start with "  /exit - "
     ck_assert(strncmp(line, "  /exit - ", 10) == 0);
 }
