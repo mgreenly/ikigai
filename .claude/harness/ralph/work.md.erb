@@ -46,6 +46,27 @@ Read these files using the Read tool:
 - If you encounter a blocker (missing dependency, unclear requirement), STOP
 - Do not make partial changes if you hit a blocker - explain the issue instead
 
+## Record Your Work
+
+After completing your work (success or failure), append a summary to `<%= history_file %>`:
+
+- 2-3 sentences explaining what you attempted
+- Bullet points of major actions (files modified, approaches tried)
+- Clear result: **SUCCESS** or **FAILED** (with reason)
+
+Example format:
+```markdown
+## <%= requirement_id %>
+
+Implemented the exit command handler and registered it in the command table.
+
+- Added `ik_cmd_exit()` to `src/commands_basic.c`
+- Registered command in `src/commands.c`
+- Added unit test in `tests/unit/dispatch_test.c`
+
+**Result:** SUCCESS
+```
+
 ## CRITICAL: Required Output
 
 You MUST end your response with a JSON object. This is not optional. The harness cannot proceed without it.
