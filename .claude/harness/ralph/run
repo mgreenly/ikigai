@@ -20,6 +20,8 @@ class Ralph
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
+  WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
+
   # Max thinking budget per model (tokens) - from src/providers/anthropic/thinking.c
   MAX_THINKING_BUDGET = {
     'haiku' => 32_000,
@@ -251,7 +253,7 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json 2>&1`
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{WORK_OUTPUT_SCHEMA}' 2>&1`
       exit_code = $?.exitstatus
     end
 
@@ -280,43 +282,26 @@ class Ralph
     end
   end
 
-  def extract_json(text)
-    # Try to find JSON object in text (handles markdown fences, preamble, etc.)
-    if text =~ /\{[^{}]*"success"\s*:\s*(true|false)[^{}]*\}/m
-      $&
-    else
-      text
-    end
-  end
-
   def parse_work_outcome(result)
-    # Try to parse as JSON
+    # Parse outer JSON from --output-format json
     parsed = JSON.parse(result, symbolize_names: true)
 
-    # Handle nested result structure from --output-format json
+    # With --json-schema, the result field contains valid JSON
     if parsed[:result]
-      begin
-        json_text = extract_json(parsed[:result])
-        inner = JSON.parse(json_text, symbolize_names: true)
-        # Ensure we have required fields
-        return {
-          success: inner[:success] == true,
-          message: inner[:message] || parsed[:result]
-        }
-      rescue JSON::ParserError
-        # Inner result is plain text, not JSON
-        return { success: false, message: parsed[:result] }
-      end
+      inner = JSON.parse(parsed[:result], symbolize_names: true)
+      return {
+        success: inner[:success] == true,
+        message: inner[:message] || 'No message provided'
+      }
     end
 
-    # Direct JSON response
+    # Fallback for direct response
     {
-      success: parsed[:success] || false,
+      success: parsed[:success] == true,
       message: parsed[:message] || result[0..500]
     }
-  rescue JSON::ParserError
-    # Not JSON at all - capture raw output
-    { success: false, message: "Raw response: #{result[0..500]}" }
+  rescue JSON::ParserError => e
+    { success: false, message: "JSON parse error: #{e.message}. Raw: #{result[0..300]}" }
   end
 
   def log_history(requirement_id, outcome)
