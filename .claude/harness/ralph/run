@@ -266,8 +266,8 @@ class Ralph
     outcome = parse_work_outcome(result)
 
     if outcome[:success]
-      commit_work(requirement_id, outcome[:message])
       log_history(requirement_id, outcome)
+      commit_work(requirement_id, outcome[:message])
       run_quality_checks(requirement_id)
     else
       restore_changes
@@ -340,6 +340,10 @@ class Ralph
 
       unless success
         log "  #{check} FAILED - restarting loop"
+        log_history(requirement_id, {
+          success: false,
+          message: "Quality check #{check} failed after implementation. Code was committed but requirement not marked done."
+        })
         return
       end
 
