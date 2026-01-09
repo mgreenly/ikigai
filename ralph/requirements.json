@@ -40,7 +40,7 @@
       "acceptance_criteria": [
         "Exit does not block on pending LLM responses"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "exit-006",
