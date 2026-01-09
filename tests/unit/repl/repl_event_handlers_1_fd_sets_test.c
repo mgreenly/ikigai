@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_1_fd_sets_test.c
  * @brief Unit tests for REPL event handler fd_set functions
@@ -283,7 +284,7 @@ static Suite *repl_event_handlers_fd_sets_suite(void)
     Suite *s = suite_create("repl_event_handlers_1_fd_sets");
 
     TCase *tc_fd_sets = tcase_create("fd_sets");
-    tcase_set_timeout(tc_fd_sets, 30);
+    tcase_set_timeout(tc_fd_sets, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_fd_sets, setup, teardown);
     tcase_add_test(tc_fd_sets, test_setup_fd_sets_no_agents);
     tcase_add_test(tc_fd_sets, test_setup_fd_sets_with_provider_instance);

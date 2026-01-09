@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_thinking_helpers.c
  * @brief Unit tests for message.c thinking block handling
@@ -262,7 +263,7 @@ END_TEST
 TCase *create_thinking_tcase(void)
 {
     TCase *tc = tcase_create("Thinking Blocks");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_from_db_tool_call_with_thinking);

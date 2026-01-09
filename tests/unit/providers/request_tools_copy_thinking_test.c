@@ -171,7 +171,7 @@ static Suite *request_tools_copy_thinking_suite(void)
     Suite *s = suite_create("Request Tools Copy Thinking");
 
     TCase *tc = tcase_create("Thinking Message Deep Copy");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_copy_thinking_message);
     tcase_add_test(tc, test_copy_thinking_with_signature);

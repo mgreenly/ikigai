@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file message_tool_call_helpers.c
  * @brief Unit tests for message.c tool_call message handling
@@ -183,7 +184,7 @@ END_TEST
 TCase *create_tool_call_tcase(void)
 {
     TCase *tc = tcase_create("Tool Call");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_tool_call_json_array);

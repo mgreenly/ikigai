@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_usage_test.c
  * @brief Coverage tests for OpenAI Chat usage parsing
@@ -301,7 +302,7 @@ static Suite *response_chat_usage_suite(void)
     Suite *s = suite_create("OpenAI Chat Response Parsing - Usage");
 
     TCase *tc_usage = tcase_create("Usage Parsing");
-    tcase_set_timeout(tc_usage, 30);
+    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_parse_usage_null_prompt_tokens);
     tcase_add_test(tc_usage, test_parse_usage_non_int_prompt_tokens);

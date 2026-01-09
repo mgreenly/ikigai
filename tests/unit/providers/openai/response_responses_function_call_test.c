@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_responses_function_call_test.c
  * @brief Tests for OpenAI Responses API function call coverage
@@ -191,7 +192,7 @@ static Suite *response_responses_function_call_suite(void)
     Suite *s = suite_create("OpenAI Responses API Function Call Tests");
 
     TCase *tc_function = tcase_create("Function Call Coverage");
-    tcase_set_timeout(tc_function, 30);
+    tcase_set_timeout(tc_function, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_function, setup, teardown);
     tcase_add_test(tc_function, test_parse_function_call_id_null);
     tcase_add_test(tc_function, test_parse_function_call_name_null);

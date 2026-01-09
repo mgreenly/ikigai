@@ -189,10 +189,10 @@ static Suite *input_buffer_delete_word_backward_advanced_suite(void)
 {
     Suite *s = suite_create("Input Buffer Delete Word Backward - Advanced");
     TCase *tc_advanced = tcase_create("Advanced");
-    tcase_set_timeout(tc_advanced, 30);
-    tcase_set_timeout(tc_advanced, 30);
-    tcase_set_timeout(tc_advanced, 30);
-    tcase_set_timeout(tc_advanced, 30);
+    tcase_set_timeout(tc_advanced, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_advanced, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_advanced, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_advanced, IK_TEST_TIMEOUT);
 
     /* Advanced edge case tests */
     tcase_add_test(tc_advanced, test_delete_word_backward_mixed_case_digits);
@@ -205,11 +205,11 @@ static Suite *input_buffer_delete_word_backward_advanced_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     /* Assertion tests */
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30);
-    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_delete_word_backward_null_input_buffer_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif

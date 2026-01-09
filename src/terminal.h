@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <termios.h>
 #include "error.h"
+#include "logger.h"
 
 // Terminal context for raw mode and alternate screen
 typedef struct {
@@ -16,7 +17,10 @@ typedef struct {
 } ik_term_ctx_t;
 
 // Initialize terminal (raw mode + alternate screen)
-res_t ik_term_init(TALLOC_CTX *ctx, ik_term_ctx_t **ctx_out);
+res_t ik_term_init(TALLOC_CTX *ctx, ik_logger_t *logger, ik_term_ctx_t **ctx_out);
+
+// Initialize terminal with pre-opened file descriptor (for testing with PTY)
+res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int fd, ik_term_ctx_t **ctx_out);
 
 // Cleanup terminal (restore state)
 void ik_term_cleanup(ik_term_ctx_t *ctx);

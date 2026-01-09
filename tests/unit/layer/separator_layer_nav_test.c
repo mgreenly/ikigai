@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Tests for separator layer navigation context display
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/error.h"
@@ -235,7 +236,7 @@ static Suite *separator_layer_nav_suite(void)
     Suite *s = suite_create("Separator Layer Navigation");
 
     TCase *tc_nav = tcase_create("Navigation Context");
-    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
     tcase_add_test(tc_nav, test_separator_layer_nav_context_with_parent);
     tcase_add_test(tc_nav, test_separator_layer_nav_context_root_agent);
     tcase_add_test(tc_nav, test_separator_layer_nav_context_siblings);

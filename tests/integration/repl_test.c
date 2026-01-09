@@ -2,6 +2,7 @@
 #include "../../src/agent.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
+#include "../../src/paths.h"
 #include "../test_utils.h"
 
 #include <check.h>
@@ -286,7 +287,16 @@ START_TEST(test_repl_init) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -328,7 +338,16 @@ START_TEST(test_repl_run) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -348,7 +367,16 @@ START_TEST(test_thread_infrastructure_init) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -371,7 +399,16 @@ START_TEST(test_mutex_init_failure) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_err(&result));
@@ -389,7 +426,16 @@ START_TEST(test_transition_to_executing_tool) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -414,7 +460,16 @@ START_TEST(test_transition_from_executing_tool) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -442,7 +497,16 @@ START_TEST(test_repl_init_null_out) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    res_t result;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
     (void)ik_repl_init(ctx, shared, NULL);
     talloc_free(ctx);
@@ -456,7 +520,7 @@ static Suite *repl_suite(void)
     Suite *s = suite_create("REPL");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_repl_init);
     tcase_add_test(tc_core, test_repl_cleanup_null);
@@ -470,7 +534,7 @@ static Suite *repl_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_parent, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_repl_init_null_out, SIGABRT);
     suite_add_tcase(s, tc_assertions);

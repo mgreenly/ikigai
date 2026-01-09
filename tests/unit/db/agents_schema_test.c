@@ -187,7 +187,7 @@ static Suite *agents_schema_suite(void)
     Suite *s = suite_create("Agents Schema");
 
     TCase *tc = tcase_create("Schema");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_agents_table_exists);
     tcase_add_test(tc, test_agent_status_enum);
     tcase_add_test(tc, test_required_columns_exist);

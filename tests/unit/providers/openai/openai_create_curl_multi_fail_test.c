@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_create_curl_multi_fail_test.c
  * @brief Unit test for OpenAI provider creation with curl_multi_init failure
@@ -42,7 +43,7 @@ static Suite *openai_create_curl_multi_fail_suite(void)
     Suite *s = suite_create("OpenAI Create Curl Multi Fail");
 
     TCase *tc_create = tcase_create("Create With Curl Multi Init Failure");
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_fails_when_curl_multi_init_fails);
     suite_add_tcase(s, tc_create);

@@ -261,11 +261,11 @@ static Suite *input_buffer_delete_word_backward_basic_suite(void)
 {
     Suite *s = suite_create("Input Buffer Delete Word Backward - Basic");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     /* Basic functionality tests */
     tcase_add_test(tc_core, test_delete_word_backward_basic);

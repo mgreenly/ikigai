@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_parts_coverage_test.c
  * @brief Coverage tests for Google response.c parse_content_parts edge cases
@@ -311,7 +312,7 @@ static Suite *google_response_parts_coverage_suite(void)
     Suite *s = suite_create("Google Response Parts Coverage");
 
     TCase *tc_parts = tcase_create("parse_content_parts edge cases");
-    tcase_set_timeout(tc_parts, 30);
+    tcase_set_timeout(tc_parts, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_parse_empty_parts_array);
     tcase_add_test(tc_parts, test_parse_function_call_missing_name);

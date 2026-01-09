@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_3.c
  * @brief Unit tests for REPL event handler functions (Part 3) - Reduced size version
@@ -153,7 +154,7 @@ static Suite *repl_event_handlers_suite(void)
     Suite *s = suite_create("repl_event_handlers_3");
 
     TCase *tc_basic = tcase_create("basic");
-    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_basic_setup);
     suite_add_tcase(s, tc_basic);

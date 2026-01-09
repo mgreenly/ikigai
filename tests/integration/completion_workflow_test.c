@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include "../../src/repl.h"
 #include "../../src/shared.h"
+#include "../../src/paths.h"
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/completion.h"
@@ -28,7 +29,15 @@ START_TEST(test_completion_full_workflow) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -63,7 +72,15 @@ START_TEST(test_completion_argument_workflow) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -97,7 +114,15 @@ START_TEST(test_completion_escape_dismisses) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    res_t shared_res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t shared_res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&shared_res));
     res_t res = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&res));
@@ -135,7 +160,7 @@ static Suite *completion_workflow_suite(void)
 
     TCase *tc = tcase_create("Core");
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_completion_full_workflow);
     tcase_add_test(tc, test_completion_argument_workflow);
     tcase_add_test(tc, test_completion_escape_dismisses);

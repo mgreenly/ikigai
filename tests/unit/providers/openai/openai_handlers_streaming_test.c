@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_handlers_streaming_test.c
  * @brief Unit tests for OpenAI streaming handlers
@@ -289,14 +290,14 @@ static Suite *openai_handlers_streaming_suite(void)
     Suite *s = suite_create("OpenAI Handlers Streaming");
 
     TCase *tc_write = tcase_create("Streaming Write Callback");
-    tcase_set_timeout(tc_write, 30);
+    tcase_set_timeout(tc_write, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_write, setup, teardown);
     tcase_add_test(tc_write, test_stream_write_callback_non_data_line);
     tcase_add_test(tc_write, test_stream_write_callback_incomplete_line);
     suite_add_tcase(s, tc_write);
 
     TCase *tc_completion = tcase_create("Streaming Completion Handler");
-    tcase_set_timeout(tc_completion, 30);
+    tcase_set_timeout(tc_completion, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_completion, setup, teardown);
     tcase_add_test(tc_completion, test_stream_completion_success);
     tcase_add_test(tc_completion, test_stream_completion_error_with_json_body);

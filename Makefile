@@ -3,7 +3,36 @@ VERSION = $(shell grep '\#define IK_VERSION "' src/version.h | cut -d'"' -f2)
 
 PREFIX ?= /usr/local
 bindir ?= $(PREFIX)/bin
-sysconfdir ?= $(PREFIX)/etc
+libexecdir ?= $(PREFIX)/libexec
+datadir ?= $(PREFIX)/share
+
+# Special handling for sysconfdir and configdir based on PREFIX
+HOME_DIR := $(shell echo $$HOME)
+
+# Detect install type
+IS_OPT_INSTALL := $(if $(filter /opt%,$(PREFIX)),yes,no)
+IS_USER_INSTALL := $(if $(findstring /home/,$(PREFIX)),yes,no)
+
+ifeq ($(PREFIX),/usr)
+    # /usr uses /etc not /usr/etc
+    sysconfdir ?= /etc
+    configdir = /etc/ikigai
+else ifeq ($(IS_OPT_INSTALL),yes)
+    # PREFIX is /opt/* - use PREFIX/etc not PREFIX/etc/ikigai
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(PREFIX)/etc
+else ifeq ($(IS_USER_INSTALL),yes)
+    # PREFIX is under /home/* - use XDG variables or defaults
+    XDG_CONFIG_HOME ?= $(shell echo $${XDG_CONFIG_HOME:-$(HOME_DIR)/.config})
+    XDG_DATA_HOME ?= $(shell echo $${XDG_DATA_HOME:-$(HOME_DIR)/.local/share})
+    sysconfdir ?= $(XDG_CONFIG_HOME)
+    configdir = $(XDG_CONFIG_HOME)/ikigai
+    user_datadir = $(XDG_DATA_HOME)/ikigai
+else
+    # Default: /usr/local and others use PREFIX/etc/ikigai
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(sysconfdir)/ikigai
+endif
 
 CC = gcc
 
@@ -108,9 +137,9 @@ COVERAGE_DIR = reports/coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 3405
+LCOV_EXCL_COVERAGE = 3412
 
-CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/config.c src/credentials.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
+CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/debug_log.c src/config.c src/credentials.c src/paths.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
@@ -133,11 +162,11 @@ ifdef TEST
   endif
 endif
 
-MODULE_SOURCES = src/error.c src/logger.c src/config.c src/credentials.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
+MODULE_SOURCES = src/error.c src/logger.c src/config.c src/credentials.c src/paths.c src/debug_log.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
 MODULE_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES))
 
 # Module objects without DB (for some tests) - keeps connection for repl_init.c
-MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/credentials.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
+MODULE_SOURCES_NO_DB = src/error.c src/logger.c src/config.c src/credentials.c src/paths.c src/debug_log.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/render.c src/render_cursor.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool.c src/tool_arg_parser.c src/tool_response.c src/tool_glob.c src/tool_file_read.c src/tool_grep.c src/tool_file_write.c src/tool_bash.c src/tool_dispatcher.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
 MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 
 # Module objects excluding db/agent.c (for repl_init_db_test mocking)
@@ -153,6 +182,7 @@ REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_comm
 EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
 EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
+REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
 
 .PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
@@ -184,6 +214,29 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+# Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
+TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o: tests/unit/terminal/terminal_pty_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_basic_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_basic_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_edge_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_enable_edge_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_probe_test: $(BUILDDIR)/tests/unit/terminal/terminal_pty_probe_test.o $(TERMINAL_PTY_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit -lutil $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special case: http_multi_coverage_test includes http_multi.c directly
 # so it must exclude http_multi.o from MODULE_OBJ to avoid duplicate symbols
@@ -239,6 +292,17 @@ $(BUILDDIR)/tests/unit/message/message_thinking_helpers.o: tests/unit/message/me
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/message/message_from_db_test: $(BUILDDIR)/tests/unit/message/message_from_db_test.o $(MESSAGE_TEST_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+# Agent restore test helper compilation
+AGENT_RESTORE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/repl/agent_restore_test_helpers.o
+
+$(BUILDDIR)/tests/unit/repl/agent_restore_test_helpers.o: tests/unit/repl/agent_restore_test_helpers.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/repl/agent_restore_test: $(BUILDDIR)/tests/unit/repl/agent_restore_test.o $(AGENT_RESTORE_TEST_HELPERS_OBJ) $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
@@ -329,6 +393,11 @@ $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o: tests/
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
+# Request chat coverage test helper compilation
+$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o: tests/unit/providers/openai/request_chat_coverage_helpers.c tests/unit/providers/openai/request_chat_coverage_helpers.h
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
 # Special rules for request_responses tests that need the test helpers
 $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
 	@mkdir -p $(dir $@)
@@ -347,6 +416,10 @@ $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage1_test: $(BUIL
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage2_test: $(BUILDDIR)/tests/unit/providers/openai/request_responses_coverage2_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_RESPONSES_TEST_HELPERS_OBJ)
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_test: $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) $(REQUEST_CHAT_COVERAGE_HELPERS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
@@ -526,17 +599,66 @@ clean:
 	find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	find src tests -name "*.d" -delete 2>/dev/null || true
 	rm -f core.* vgcore.* tags 2>/dev/null || true
+	rm -f *.LOG 2>/dev/null || true
 
 install: all
+	# Create directories
 	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(bindir)/ikigai
-	install -d $(DESTDIR)$(sysconfdir)/ikigai
-	install -m 644 etc/ikigai/config.json $(DESTDIR)$(sysconfdir)/ikigai/config.json
+	install -d $(DESTDIR)$(libexecdir)/ikigai
+	install -d $(DESTDIR)$(configdir)
+ifeq ($(IS_USER_INSTALL),yes)
+	install -d $(DESTDIR)$(user_datadir)
+else
+	install -d $(DESTDIR)$(datadir)/ikigai
+endif
+	# Install actual binary to libexec
+	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	# Generate and install wrapper script to bin
+	printf '#!/bin/sh\n' > $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'IKIGAI_CONFIG_DIR=%s\n' "$(configdir)" >> $(DESTDIR)$(bindir)/ikigai
+ifeq ($(IS_USER_INSTALL),yes)
+	printf 'IKIGAI_DATA_DIR=%s\n' "$(user_datadir)" >> $(DESTDIR)$(bindir)/ikigai
+else
+	printf 'IKIGAI_DATA_DIR=%s\n' "$(datadir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+endif
+	printf 'IKIGAI_LIBEXEC_DIR=%s\n' "$(libexecdir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+	printf 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
+	printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(DESTDIR)$(bindir)/ikigai
+	chmod 755 $(DESTDIR)$(bindir)/ikigai
+	# Install config files
+ifeq ($(FORCE),1)
+	install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
+	install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+else
+	test -f $(DESTDIR)$(configdir)/config.json || install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
+	test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+endif
+	# Install database migrations
+ifeq ($(IS_USER_INSTALL),yes)
+	install -d $(DESTDIR)$(user_datadir)/migrations
+	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(user_datadir)/migrations/
+else
+	install -d $(DESTDIR)$(datadir)/ikigai/migrations
+	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(datadir)/ikigai/migrations/
+endif
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
-	rm -f $(DESTDIR)$(sysconfdir)/ikigai/config.json
-	rmdir $(DESTDIR)$(sysconfdir)/ikigai 2>/dev/null || true
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
+	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
+ifeq ($(PURGE),1)
+	rm -f $(DESTDIR)$(configdir)/config.json
+	rm -f $(DESTDIR)$(configdir)/credentials.json
+	rm -f $(DESTDIR)$(configdir)/credentials.example.json
+endif
+	rmdir $(DESTDIR)$(configdir) 2>/dev/null || true
+ifeq ($(IS_USER_INSTALL),yes)
+	rmdir $(DESTDIR)$(user_datadir) 2>/dev/null || true
+else
+	rmdir $(DESTDIR)$(datadir)/ikigai 2>/dev/null || true
+endif
 
 # Individual test run targets (enables parallel execution)
 # Usage: make -j8 check (runs tests in parallel)

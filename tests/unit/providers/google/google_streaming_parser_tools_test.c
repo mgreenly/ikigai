@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_parser_tools_test.c
  * @brief Unit tests for Google provider tool call streaming
@@ -259,7 +260,7 @@ static Suite *google_streaming_parser_tools_suite(void)
     Suite *s = suite_create("Google Streaming Parser - Tools");
 
     TCase *tc_function = tcase_create("Function Call Streaming");
-    tcase_set_timeout(tc_function, 30);
+    tcase_set_timeout(tc_function, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_function, setup, teardown);
     tcase_add_test(tc_function, test_parse_function_call_part);
     tcase_add_test(tc_function, test_generate_22_char_base64url_uuid);
@@ -267,7 +268,7 @@ static Suite *google_streaming_parser_tools_suite(void)
     suite_add_tcase(s, tc_function);
 
     TCase *tc_state = tcase_create("State Transitions");
-    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_state, setup, teardown);
     tcase_add_test(tc_state, test_tool_call_followed_by_text_ends_tool_call);
     tcase_add_test(tc_state, test_usage_metadata_ends_tool_call);

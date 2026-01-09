@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_branch_coverage_test.c
  * @brief Additional branch coverage tests for Google provider google.c
@@ -153,7 +154,7 @@ static Suite *google_branch_coverage_suite(void)
     Suite *s = suite_create("Google Branch Coverage");
 
     TCase *tc_branch = tcase_create("Branch Coverage Tests");
-    tcase_set_timeout(tc_branch, 30);
+    tcase_set_timeout(tc_branch, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_branch, setup, teardown);
 
     // Line 125: NULL data in event

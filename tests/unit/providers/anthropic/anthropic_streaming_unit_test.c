@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file anthropic_streaming_unit_test.c
  * @brief Unit tests for Anthropic streaming utility functions
@@ -178,7 +179,7 @@ static Suite *anthropic_streaming_unit_suite(void)
     Suite *s = suite_create("Anthropic Streaming Unit");
 
     TCase *tc_edge_cases = tcase_create("Event Processing Edge Cases");
-    tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_edge_cases, setup, teardown);
     tcase_add_test(tc_edge_cases, test_process_ping_event);
     tcase_add_test(tc_edge_cases, test_process_invalid_json);

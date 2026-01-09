@@ -14,7 +14,7 @@ START_TEST(test_term_init_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -44,7 +44,7 @@ START_TEST(test_term_alt_screen_sequences) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&res));
 
     // Verify alternate screen enter sequence is present in init output
@@ -71,7 +71,7 @@ START_TEST(test_term_init_open_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -92,7 +92,7 @@ START_TEST(test_term_init_tcgetattr_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -113,7 +113,7 @@ START_TEST(test_term_init_tcsetattr_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -134,7 +134,7 @@ START_TEST(test_term_init_write_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -157,7 +157,7 @@ START_TEST(test_term_init_ioctl_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -192,7 +192,7 @@ START_TEST(test_term_get_size_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&res));
 
     int rows, cols;
@@ -215,7 +215,7 @@ START_TEST(test_term_get_size_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
     ck_assert(is_ok(&res));
 
     // Make ioctl fail on second call
@@ -237,14 +237,14 @@ END_TEST
 // Test: ik_term_init with NULL parent asserts
 START_TEST(test_term_init_null_parent_asserts) {
     ik_term_ctx_t *term = NULL;
-    ik_term_init(NULL, &term);
+    ik_term_init(NULL, NULL, &term);
 }
 
 END_TEST
 // Test: ik_term_init with NULL ctx_out asserts
 START_TEST(test_term_init_null_ctx_out_asserts) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_term_init(ctx, NULL);
+    ik_term_init(ctx, NULL, NULL);
     talloc_free(ctx);
 }
 
@@ -261,7 +261,7 @@ START_TEST(test_term_get_size_null_rows_asserts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    ik_term_init(ctx, &term);
+    ik_term_init(ctx, NULL, &term);
 
     int cols;
     ik_term_get_size(term, NULL, &cols);
@@ -276,7 +276,7 @@ START_TEST(test_term_get_size_null_cols_asserts) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    ik_term_init(ctx, &term);
+    ik_term_init(ctx, NULL, &term);
 
     int rows;
     ik_term_get_size(term, &rows, NULL);
@@ -296,7 +296,7 @@ START_TEST(test_term_init_tcflush_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, &term);
+    res_t res = ik_term_init(ctx, NULL, &term);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -316,7 +316,7 @@ static Suite *terminal_suite(void)
 {
     Suite *s = suite_create("Terminal");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_term_init_success);
     tcase_add_test(tc_core, test_term_alt_screen_sequences);

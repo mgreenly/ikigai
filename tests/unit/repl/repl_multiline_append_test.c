@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_multiline_append_test.c
  * @brief Unit tests for append_multiline_to_scrollback edge cases
@@ -104,11 +105,11 @@ static Suite *repl_multiline_append_suite(void)
     Suite *s = suite_create("REPL Multiline Append");
 
     TCase *tc_edge_cases = tcase_create("Edge Cases");
-    tcase_set_timeout(tc_edge_cases, 30);
-    tcase_set_timeout(tc_edge_cases, 30);
-    tcase_set_timeout(tc_edge_cases, 30);
-    tcase_set_timeout(tc_edge_cases, 30);
-    tcase_set_timeout(tc_edge_cases, 30);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge_cases, IK_TEST_TIMEOUT);
     tcase_add_test(tc_edge_cases, test_append_empty_output);
     tcase_add_test(tc_edge_cases, test_append_output_ending_with_newline);
     tcase_add_test(tc_edge_cases, test_append_multiple_lines_ending_with_newline);

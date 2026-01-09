@@ -201,7 +201,7 @@ static Suite *bash_execute_suite(void)
     Suite *s = suite_create("Bash Execution");
 
     TCase *tc_bash_exec = tcase_create("Bash Execution");
-    tcase_set_timeout(tc_bash_exec, 30);
+    tcase_set_timeout(tc_bash_exec, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_bash_exec, setup, teardown);
     tcase_add_test(tc_bash_exec, test_bash_exec_echo_command);
     tcase_add_test(tc_bash_exec, test_bash_exec_nonzero_exit);

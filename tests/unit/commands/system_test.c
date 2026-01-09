@@ -192,7 +192,7 @@ static Suite *commands_system_suite(void)
     Suite *s = suite_create("Commands - System");
 
     TCase *tc_system = tcase_create("System");
-    tcase_set_timeout(tc_system, 30);
+    tcase_set_timeout(tc_system, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_system, setup, teardown);
     tcase_add_test(tc_system, test_system_set_message);
     tcase_add_test(tc_system, test_system_clear_message);

@@ -139,7 +139,7 @@ static Suite *message_errors_suite(void)
     Suite *s = suite_create("Message Errors");
 
     TCase *tc_errors = tcase_create("Errors");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_errors, suite_setup, suite_teardown);

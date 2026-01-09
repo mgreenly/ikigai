@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_streaming_branch_coverage_test.c
  * @brief Branch coverage tests for Google streaming - Core logic
@@ -360,7 +361,7 @@ static Suite *google_streaming_branch_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Core Branch Coverage");
 
     TCase *tc_function_call = tcase_create("Function Call Branches");
-    tcase_set_timeout(tc_function_call, 30);
+    tcase_set_timeout(tc_function_call, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_function_call, setup, teardown);
     tcase_add_test(tc_function_call, test_function_call_without_name);
     tcase_add_test(tc_function_call, test_function_call_with_null_name);
@@ -371,13 +372,13 @@ static Suite *google_streaming_branch_coverage_suite(void)
     suite_add_tcase(s, tc_function_call);
 
     TCase *tc_thinking = tcase_create("Thinking Transition");
-    tcase_set_timeout(tc_thinking, 30);
+    tcase_set_timeout(tc_thinking, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_thinking, setup, teardown);
     tcase_add_test(tc_thinking, test_text_after_thinking_increments_index);
     suite_add_tcase(s, tc_thinking);
 
     TCase *tc_candidates = tcase_create("Candidates Processing Branches");
-    tcase_set_timeout(tc_candidates, 30);
+    tcase_set_timeout(tc_candidates, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_candidates, setup, teardown);
     tcase_add_test(tc_candidates, test_candidates_empty_array);
     tcase_add_test(tc_candidates, test_candidates_not_array);

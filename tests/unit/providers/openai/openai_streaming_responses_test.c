@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_test.c
  * @brief Tests for OpenAI Responses API streaming implementation
@@ -332,7 +333,7 @@ static Suite *openai_streaming_responses_suite(void)
 
     /* Context Creation and Getters */
     TCase *tc_ctx = tcase_create("Context");
-    tcase_set_timeout(tc_ctx, 30);
+    tcase_set_timeout(tc_ctx, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_ctx, setup, teardown);
     tcase_add_test(tc_ctx, test_ctx_create_initializes_correctly);
     tcase_add_test(tc_ctx, test_get_usage_returns_zero_initially);
@@ -341,7 +342,7 @@ static Suite *openai_streaming_responses_suite(void)
 
     /* Write Callback */
     TCase *tc_write = tcase_create("WriteCallback");
-    tcase_set_timeout(tc_write, 30);
+    tcase_set_timeout(tc_write, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_write, setup, teardown);
     tcase_add_test(tc_write, test_write_callback_returns_total_bytes);
     tcase_add_test(tc_write, test_write_callback_processes_complete_event);

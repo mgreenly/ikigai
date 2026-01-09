@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file streaming_chat_delta_edge_test.c
  * @brief Additional coverage tests for OpenAI Chat streaming delta processing
@@ -327,7 +328,7 @@ static Suite *streaming_chat_delta_edge_suite(void)
     Suite *s = suite_create("OpenAI Streaming Chat Delta Edge Cases");
 
     TCase *tc_arguments = tcase_create("ArgumentsEdgeCases");
-    tcase_set_timeout(tc_arguments, 30);
+    tcase_set_timeout(tc_arguments, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_arguments, setup, teardown);
     tcase_add_test(tc_arguments, test_delta_arguments_edge_cases);
     tcase_add_test(tc_arguments, test_delta_string_type_mismatches);

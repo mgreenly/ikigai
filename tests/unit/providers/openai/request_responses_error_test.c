@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_error_test.c
  * @brief Error handling and URL tests for OpenAI Responses API
@@ -73,13 +74,13 @@ static Suite *request_responses_error_suite(void)
     Suite *s = suite_create("OpenAI Responses API Error Handling");
 
     TCase *tc_errors = tcase_create("Error Handling");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_serialize_null_model);
     suite_add_tcase(s, tc_errors);
 
     TCase *tc_url = tcase_create("URL Building");
-    tcase_set_timeout(tc_url, 30);
+    tcase_set_timeout(tc_url, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_url, setup, teardown);
     tcase_add_test(tc_url, test_build_responses_url);
     suite_add_tcase(s, tc_url);

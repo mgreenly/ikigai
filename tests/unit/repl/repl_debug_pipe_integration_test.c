@@ -137,11 +137,11 @@ static Suite *debug_pipe_integration_suite(void)
     Suite *s = suite_create("Debug Pipe Integration");
 
     TCase *tc_integration = tcase_create("Event Loop Integration");
-    tcase_set_timeout(tc_integration, 30);
-    tcase_set_timeout(tc_integration, 30);
-    tcase_set_timeout(tc_integration, 30);
-    tcase_set_timeout(tc_integration, 30);
-    tcase_set_timeout(tc_integration, 30);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
     tcase_add_test(tc_integration, test_debug_pipe_enabled);
     tcase_add_test(tc_integration, test_debug_pipe_disabled);
     suite_add_tcase(s, tc_integration);

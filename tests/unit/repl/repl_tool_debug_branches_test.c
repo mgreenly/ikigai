@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "agent.h"
 #include <check.h>
 #include "../../../src/agent.h"
@@ -184,11 +185,11 @@ static Suite *repl_tool_debug_branches_suite(void)
 {
     Suite *s = suite_create("REPL Tool Debug Branch Coverage");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
 

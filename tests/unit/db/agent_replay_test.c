@@ -242,7 +242,7 @@ static Suite *agent_replay_suite(void)
     Suite *s = suite_create("Agent Replay");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     // Use unchecked fixture for suite-level setup/teardown
     tcase_add_unchecked_fixture(tc_core, suite_setup, suite_teardown);

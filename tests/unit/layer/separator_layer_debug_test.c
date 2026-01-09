@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Tests for separator layer debug info display
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/error.h"
@@ -192,7 +193,7 @@ static Suite *separator_layer_debug_suite(void)
     Suite *s = suite_create("Separator Layer Debug");
 
     TCase *tc_debug = tcase_create("Debug Info");
-    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
     tcase_add_test(tc_debug, test_separator_layer_debug_info_microseconds);
     tcase_add_test(tc_debug, test_separator_layer_debug_info_milliseconds);
     tcase_add_test(tc_debug, test_separator_layer_debug_info_small_document);

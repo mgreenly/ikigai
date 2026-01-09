@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file google_coverage_stream_test.c
  * @brief Coverage tests for Google provider streaming functionality
@@ -99,7 +100,7 @@ static Suite *google_coverage_stream_suite(void)
     Suite *s = suite_create("Google Coverage - Stream");
 
     TCase *tc_stream = tcase_create("Stream Tests");
-    tcase_set_timeout(tc_stream, 30);
+    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_stream, setup, teardown);
 
     // Line 113: NULL checks in stream_write_cb

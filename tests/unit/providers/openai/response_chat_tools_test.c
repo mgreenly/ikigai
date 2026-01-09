@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file response_chat_test.c
  * @brief Tests for OpenAI Chat Completions response parsing
@@ -273,7 +274,7 @@ static Suite *response_chat_suite(void)
     Suite *s = suite_create("OpenAI Chat Response Parsing - Tools");
 
     TCase *tc_tools = tcase_create("Tool Call Responses");
-    tcase_set_timeout(tc_tools, 30);
+    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_parse_tool_call_response);
     tcase_add_test(tc_tools, test_parse_multiple_tool_calls);
@@ -281,7 +282,7 @@ static Suite *response_chat_suite(void)
     suite_add_tcase(s, tc_tools);
 
     TCase *tc_edge = tcase_create("Edge Cases");
-    tcase_set_timeout(tc_edge, 30);
+    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_parse_empty_choices);
     tcase_add_test(tc_edge, test_parse_no_choices);

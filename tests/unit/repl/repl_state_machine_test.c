@@ -277,11 +277,11 @@ static Suite *repl_state_machine_suite(void)
     Suite *s = suite_create("REPL State Machine");
 
     TCase *tc_state = tcase_create("State Machine");
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
-    tcase_set_timeout(tc_state, 30);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_state, IK_TEST_TIMEOUT);
     tcase_add_test(tc_state, test_repl_initial_state_is_idle);
     tcase_add_test(tc_state, test_repl_state_idle_visibility);
     tcase_add_test(tc_state, test_repl_state_waiting_for_llm_visibility);

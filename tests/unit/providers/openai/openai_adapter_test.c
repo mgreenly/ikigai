@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_openai_adapter.c
  * @brief Unit tests for OpenAI provider adapter vtable implementation
@@ -116,7 +117,7 @@ static Suite *openai_adapter_suite(void)
     Suite *s = suite_create("OpenAI Adapter");
 
     TCase *tc_create = tcase_create("Provider Creation");
-    tcase_set_timeout(tc_create, 30);
+    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_adapter_with_valid_credentials);
     tcase_add_test(tc_create, test_create_adapter_with_empty_api_key_returns_error);

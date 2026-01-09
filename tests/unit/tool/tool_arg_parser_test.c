@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include <stdbool.h>
 #include <string.h>
@@ -250,7 +251,7 @@ static Suite *tool_arg_parser_suite(void)
     Suite *s = suite_create("Tool Argument Parser");
 
     TCase *tc_arg_get_string = tcase_create("Get String");
-    tcase_set_timeout(tc_arg_get_string, 30);
+    tcase_set_timeout(tc_arg_get_string, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_arg_get_string, setup, teardown);
     tcase_add_test(tc_arg_get_string, test_tool_arg_get_string_valid);
     tcase_add_test(tc_arg_get_string, test_tool_arg_get_string_second_param);
@@ -266,7 +267,7 @@ static Suite *tool_arg_parser_suite(void)
     suite_add_tcase(s, tc_arg_get_string);
 
     TCase *tc_arg_get_int = tcase_create("Get Integer");
-    tcase_set_timeout(tc_arg_get_int, 30);
+    tcase_set_timeout(tc_arg_get_int, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_arg_get_int, setup, teardown);
     tcase_add_test(tc_arg_get_int, test_tool_arg_get_int_valid);
     tcase_add_test(tc_arg_get_int, test_tool_arg_get_int_second_param);

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file edge_cases_test.c
  * @brief Edge case tests for event_render module with mocking
@@ -119,7 +120,7 @@ static Suite *event_render_edge_cases_suite(void)
     Suite *s = suite_create("Event Render Edge Cases");
 
     TCase *tc_mocked = tcase_create("Mocked Behavior");
-    tcase_set_timeout(tc_mocked, 30);
+    tcase_set_timeout(tc_mocked, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_mocked, NULL, reset_mocks);
     tcase_add_test(tc_mocked, test_render_mark_yyjson_get_str_returns_null);
     tcase_add_test(tc_mocked, test_render_mark_scrollback_append_fails);

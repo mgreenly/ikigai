@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_serialize_coverage_test_3.c
  * @brief Coverage tests for Anthropic request serialization - Part 3: Specific Branch Coverage
@@ -427,7 +428,7 @@ static Suite *request_serialize_coverage_suite_3(void)
     Suite *s = suite_create("Anthropic Request Serialize Coverage - Part 3");
 
     TCase *tc_specific = tcase_create("Specific Field Failures");
-    tcase_set_timeout(tc_specific, 30);
+    tcase_set_timeout(tc_specific, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_specific, setup, teardown);
     tcase_add_test(tc_specific, test_serialize_content_block_text_text_field_fail);
     tcase_add_test(tc_specific, test_serialize_content_block_thinking_thinking_field_fail);
@@ -444,7 +445,7 @@ static Suite *request_serialize_coverage_suite_3(void)
     suite_add_tcase(s, tc_specific);
 
     TCase *tc_loop = tcase_create("Loop Failure Coverage");
-    tcase_set_timeout(tc_loop, 30);
+    tcase_set_timeout(tc_loop, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_loop, setup, teardown);
     tcase_add_test(tc_loop, test_serialize_message_content_block_fail_in_loop);
     tcase_add_test(tc_loop, test_serialize_messages_content_fail_in_loop);

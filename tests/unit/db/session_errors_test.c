@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/session.c using mocks
 #include "../../../src/db/session.h"
 #include "../../../src/db/connection.h"
@@ -113,7 +114,7 @@ static Suite *db_session_errors_suite(void)
     Suite *s = suite_create("db_session_errors");
 
     TCase *tc_errors = tcase_create("Errors");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_test(tc_errors, test_db_session_create_query_failure);
     tcase_add_test(tc_errors, test_db_session_get_active_query_failure);
 

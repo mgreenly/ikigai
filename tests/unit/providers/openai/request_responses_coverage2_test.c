@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file request_responses_coverage2_test.c
  * @brief Coverage tests for OpenAI Responses API request serialization (Part 2)
@@ -182,7 +183,7 @@ static Suite *request_responses_coverage2_suite(void)
     Suite *s = suite_create("OpenAI Responses API Coverage Tests (Part 2)");
 
     TCase *tc_fields = tcase_create("Optional Fields");
-    tcase_set_timeout(tc_fields, 30);
+    tcase_set_timeout(tc_fields, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_fields, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_fields, test_system_prompt);
     tcase_add_test(tc_fields, test_empty_system_prompt);
@@ -191,14 +192,14 @@ static Suite *request_responses_coverage2_suite(void)
     suite_add_tcase(s, tc_fields);
 
     TCase *tc_validation = tcase_create("Validation");
-    tcase_set_timeout(tc_validation, 30);
+    tcase_set_timeout(tc_validation, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_validation, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_validation, test_null_model);
     tcase_add_test(tc_validation, test_empty_input);
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_url = tcase_create("URL Building");
-    tcase_set_timeout(tc_url, 30);
+    tcase_set_timeout(tc_url, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_url, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_url, test_build_responses_url);
     suite_add_tcase(s, tc_url);

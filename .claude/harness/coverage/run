@@ -152,7 +152,7 @@ def run_make_coverage() -> tuple[bool, str]:
     log("Running make check-coverage...")
     spinner = Spinner("Running make check-coverage")
     spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-coverage"], timeout=600)
+    code, stdout, stderr = run_cmd(["make", "check-coverage", "MAKE_JOBS=1"], timeout=1800)
     spinner.stop()
     output = stdout + stderr
     return code == 0, output

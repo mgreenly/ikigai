@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 
@@ -57,7 +58,7 @@ static Suite *tool_suite(void)
     Suite *s = suite_create("Tool");
 
     TCase *tc_helper = tcase_create("Helper Functions");
-    tcase_set_timeout(tc_helper, 30);
+    tcase_set_timeout(tc_helper, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_helper, setup, teardown);
     tcase_add_test(tc_helper, test_tool_add_string_param);
     suite_add_tcase(s, tc_helper);

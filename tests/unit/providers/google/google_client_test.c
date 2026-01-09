@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file test_google_client.c
  * @brief Unit tests for Google request serialization
@@ -241,7 +242,7 @@ static Suite *google_client_suite(void)
     Suite *s = suite_create("Google Client");
 
     TCase *tc_serialize = tcase_create("Request Serialization");
-    tcase_set_timeout(tc_serialize, 30);
+    tcase_set_timeout(tc_serialize, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_serialize, setup, teardown);
     tcase_add_test(tc_serialize, test_build_request_with_system_and_user_messages);
     tcase_add_test(tc_serialize, test_build_request_gemini_2_5_with_thinking_budget);

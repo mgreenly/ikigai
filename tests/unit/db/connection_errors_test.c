@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 // Error path tests for db/connection.c transaction functions using mocks
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
@@ -104,7 +105,7 @@ static Suite *db_connection_errors_suite(void)
     Suite *s = suite_create("db_connection_errors");
 
     TCase *tc_errors = tcase_create("TransactionErrors");
-    tcase_set_timeout(tc_errors, 30);
+    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_test(tc_errors, test_db_begin_query_failure);
     tcase_add_test(tc_errors, test_db_commit_query_failure);
     tcase_add_test(tc_errors, test_db_rollback_query_failure);

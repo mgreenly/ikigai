@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 #include "../../../src/db/message.h"
 #include <check.h>
 
@@ -120,7 +121,7 @@ static Suite *message_kind_validation_suite(void)
     Suite *s = suite_create("Message Kind Validation");
 
     TCase *tc_invalid = tcase_create("Invalid Kinds");
-    tcase_set_timeout(tc_invalid, 30);
+    tcase_set_timeout(tc_invalid, IK_TEST_TIMEOUT);
     tcase_add_test(tc_invalid, test_null_kind_is_invalid);
     tcase_add_test(tc_invalid, test_invalid_kind_string);
     tcase_add_test(tc_invalid, test_another_invalid_kind);
@@ -129,7 +130,7 @@ static Suite *message_kind_validation_suite(void)
     suite_add_tcase(s, tc_invalid);
 
     TCase *tc_valid = tcase_create("Valid Kinds");
-    tcase_set_timeout(tc_valid, 30);
+    tcase_set_timeout(tc_valid, IK_TEST_TIMEOUT);
     tcase_add_test(tc_valid, test_valid_clear);
     tcase_add_test(tc_valid, test_valid_system);
     tcase_add_test(tc_valid, test_valid_user);

@@ -1,3 +1,4 @@
+#include "../../test_constants.h"
 /**
  * @file repl_http_completion_callback_basic_test.c
  * @brief Unit tests for REPL provider completion callback (basic)
@@ -313,11 +314,11 @@ static Suite *repl_http_completion_callback_basic_suite(void)
     Suite *s = suite_create("repl_http_completion_callback_basic");
 
     TCase *tc_core = tcase_create("callback_behavior");
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
-    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_completion_flushes_streaming_buffer);
     tcase_add_test(tc_core, test_completion_clears_previous_error);

@@ -2,6 +2,7 @@
 #define IK_TEST_UTILS_H
 
 #include <talloc.h>
+#include "test_constants.h"
 #include "config.h"
 #include "../src/db/connection.h"
 #include "../src/error.h"
@@ -250,5 +251,26 @@ const char *ik_test_tool_get_output(yyjson_val *data);
  * @return exit code integer
  */
 int64_t ik_test_tool_get_exit_code(yyjson_val *data);
+
+// ========== Paths Test Helpers ==========
+
+/**
+ * Set up isolated PID-based path environment for testing
+ *
+ * Creates unique test directories under /tmp/ikigai_test_${PID}/ and sets
+ * IKIGAI_*_DIR environment variables. Each test process gets unique
+ * directories to prevent cross-test interference during parallel execution.
+ *
+ * @return Path prefix (/tmp/ikigai_test_${PID}) or NULL on error
+ */
+const char *test_paths_setup_env(void);
+
+/**
+ * Clean up test path environment
+ *
+ * Unsets IKIGAI_*_DIR environment variables and removes test directory tree.
+ * Safe to call multiple times (idempotent).
+ */
+void test_paths_cleanup_env(void);
 
 #endif // IK_TEST_UTILS_H

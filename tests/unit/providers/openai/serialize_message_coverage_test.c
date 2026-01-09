@@ -1,3 +1,4 @@
+#include "../../../test_constants.h"
 /**
  * @file serialize_message_coverage_test.c
  * @brief Coverage tests for serialize.c message serialization
@@ -150,7 +151,7 @@ static Suite *serialize_message_suite(void)
 {
     Suite *s = suite_create("serialize_message_coverage");
     TCase *tc = tcase_create("core");
-    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_tool_result_message);
