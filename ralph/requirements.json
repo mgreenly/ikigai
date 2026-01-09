@@ -32,7 +32,7 @@
         "All memory freed",
         "All connections closed"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "exit-005",
