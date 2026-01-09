@@ -29,6 +29,19 @@ class Ralph
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
+  RALPH_QUOTES = [
+    "Me fail English? That's unpossible!",
+    "I choo-choo-choose you!",
+    "Hi, Super Nintendo Chalmers!",
+    "I'm in danger!",
+    "My cat's breath smells like cat food.",
+    "I bent my Wookie.",
+    "I ate the blue ones... they taste like burning.",
+    "He told me to burn things.",
+    "When I grow up I wanna be a principal or a caterpillar.",
+    "Go banana!"
+  ].freeze
+
   WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
 
   # Max thinking budget per model (tokens) - powers of 2
@@ -101,6 +114,7 @@ class Ralph
       break if time_expired?
       break if all_requirements_done?
 
+      maybe_ralph_says
       requirement_id = select_requirement
       break unless requirement_id
 
@@ -118,6 +132,11 @@ class Ralph
     timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
     puts "#{timestamp} | #{'ralph'.ljust(10)} | #{message}"
     $stdout.flush
+  end
+
+  def maybe_ralph_says
+    return unless rand < 0.1  # 10% chance
+    log RALPH_QUOTES.sample
   end
 
   def format_elapsed(seconds)
