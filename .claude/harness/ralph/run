@@ -31,18 +31,18 @@ class Ralph
 
   WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
 
-  # Max thinking budget per model (tokens) - from src/providers/anthropic/thinking.c
+  # Max thinking budget per model (tokens) - powers of 2
   MAX_THINKING_BUDGET = {
-    'haiku' => 32_000,
-    'sonnet' => 64_000,
-    'opus' => 32_000
+    'haiku' => 16_384,   # 2^14
+    'sonnet' => 32_768,  # 2^15
+    'opus' => 16_384     # 2^14
   }.freeze
 
-  # Reasoning level multipliers
+  # Reasoning level multipliers (powers of 2)
   REASONING_MULTIPLIERS = {
     'none' => 0.0,
-    'low' => 1.0 / 3.0,
-    'med' => 2.0 / 3.0,
+    'low' => 0.25,   # 1/4 = 2^(-2)
+    'med' => 0.5,      # 1/2 = 2^(-1)
     'high' => 1.0
   }.freeze
 

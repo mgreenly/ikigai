@@ -46,17 +46,18 @@ Read these files using the Read tool:
 - If you encounter a blocker (missing dependency, unclear requirement), STOP
 - Do not make partial changes if you hit a blocker - explain the issue instead
 
-## Output Format
+## CRITICAL: Required Output
 
-Output ONLY a JSON object, nothing else:
+You MUST end your response with a JSON object. This is not optional. The harness cannot proceed without it.
 
-```json
-{
-  "success": true or false,
-  "message": "2-3 sentences: what you did, which files you changed, and the outcome"
-}
-```
+**Required fields:**
+- `success` (boolean): `true` if you completed the implementation, `false` if blocked
+- `message` (string): 2-3 sentences describing what you did, which files you modified, and the outcome
 
-Future agents read these messages to learn from past attempts. Include: files modified, functions added/changed, any blockers encountered.
+**Example success:**
+{"success": true, "message": "Added ik_cmd_exit to commands_basic.c and registered it in commands.c. Modified dispatch_test.c to verify command recognition."}
 
-Do not include markdown code fences, explanations, or additional text. Output only the raw JSON object.
+**Example failure:**
+{"success": false, "message": "Blocked: could not find the command registry. Looked in src/commands.c but the registration pattern is unclear."}
+
+Output ONLY the raw JSON object. No markdown fences. No additional text after the JSON.
