@@ -49,20 +49,13 @@ Read these files using the Read tool:
 
 Output ONLY a JSON object, nothing else:
 
-**On success:**
 ```json
 {
-  "success": true,
-  "message": "Brief description of what was implemented"
+  "success": true or false,
+  "message": "2-3 sentences: what you did, which files you changed, and the outcome"
 }
 ```
 
-**On failure/blocked:**
-```json
-{
-  "success": false,
-  "message": "Detailed explanation of why this is blocked and what's needed to unblock it"
-}
-```
+Future agents read these messages to learn from past attempts. Include: files modified, functions added/changed, any blockers encountered.
 
 Do not include markdown code fences, explanations, or additional text. Output only the raw JSON object.

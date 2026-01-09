@@ -278,16 +278,29 @@ class Ralph
     # Try to parse as JSON
     parsed = JSON.parse(result, symbolize_names: true)
 
-    # Handle nested result structure
+    # Handle nested result structure from --output-format json
     if parsed[:result]
-      inner = JSON.parse(parsed[:result], symbolize_names: true)
-      return inner
+      begin
+        inner = JSON.parse(parsed[:result], symbolize_names: true)
+        # Ensure we have required fields
+        return {
+          success: inner[:success] || false,
+          message: inner[:message] || parsed[:result]
+        }
+      rescue JSON::ParserError
+        # Inner result is plain text, not JSON
+        return { success: false, message: parsed[:result] }
+      end
     end
 
-    parsed
+    # Direct JSON response
+    {
+      success: parsed[:success] || false,
+      message: parsed[:message] || result[0..500]
+    }
   rescue JSON::ParserError
-    # Fallback: treat as failure
-    { success: false, message: 'Invalid agent response' }
+    # Not JSON at all - capture raw output
+    { success: false, message: "Raw response: #{result[0..500]}" }
   end
 
   def log_history(requirement_id, outcome)
@@ -305,7 +318,7 @@ class Ralph
 
   def commit_work(requirement_id, message)
     msg = "#{requirement_id}: #{message}\n\nharness/ralph | work agent"
-    system("jj commit -m '#{msg.gsub("'", "'\\''")}' 2>&1 >/dev/null")
+    system("jj commit -m '#{msg.gsub("'", "'\\''")}' >/dev/null 2>&1")
 
     if $?.exitstatus == 0
       log 'Committed changes'
@@ -335,7 +348,7 @@ class Ralph
 
   def commit_check(check_name)
     msg = "fix: #{check_name}\n\nharness/ralph | quality check"
-    system("jj commit -m '#{msg}' 2>&1 >/dev/null")
+    system("jj commit -m '#{msg}' >/dev/null 2>&1")
     # Ignore failures - might be no changes
   end
 
@@ -351,7 +364,7 @@ class Ralph
   end
 
   def restore_changes
-    system('jj restore 2>&1 >/dev/null')
+    system('jj restore >/dev/null 2>&1')
   end
 
   def cleanup
