@@ -374,8 +374,10 @@ class Ralph
 
       checks.each do |check|
         log "  Running #{check}..."
+        start_spinner "Running #{check}"
 
         success = system("claude /#{check} >/dev/null 2>&1")
+        stop_spinner
 
         unless success
           log "  #{check} FAILED - retrying"

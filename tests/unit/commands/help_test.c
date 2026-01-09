@@ -13,6 +13,7 @@
 #include "../../test_utils.h"
 
 #include <check.h>
+#include <stdio.h>
 #include <talloc.h>
 
 // Forward declaration for suite function
@@ -211,12 +212,15 @@ START_TEST(test_help_lists_exit) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 15 should be /exit (after clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug)
+    // Line 16 should be /exit (after clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 15, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 16, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
+
+    // Debug: print what we actually got
+    printf("DEBUG: Line 16 content: '%s'\n", line);
 
     // Should start with "  /exit - "
     ck_assert(strncmp(line, "  /exit - ", 10) == 0);
