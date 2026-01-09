@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_responses_edge2b_test.c
  * @brief Tests for OpenAI Responses API edge cases - invalid types (part 2)
@@ -251,7 +250,7 @@ static Suite *response_responses_edge2b_suite(void)
     Suite *s = suite_create("OpenAI Responses API Edge Cases (Invalid Types Part 2)");
 
     TCase *tc_edge = tcase_create("Invalid Types Part 2");
-    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, 30);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_parse_response_refusal_no_field);
     tcase_add_test(tc_edge, test_parse_response_refusal_not_string);

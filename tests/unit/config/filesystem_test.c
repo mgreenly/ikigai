@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include "../../../src/config.h"
-#include "../../../src/paths.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
@@ -56,16 +55,11 @@ int posix_mkdir_(const char *pathname, mode_t mode)
 
 /* Test: mkdir failure (permission denied) */
 START_TEST(test_config_mkdir_failure) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
+    // Use a test path that requires directory creation
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_test_%d/config.json", getpid());
 
     // Enable mock failures
     mock_stat_should_fail = true;   // Directory doesn't exist
@@ -75,7 +69,7 @@ START_TEST(test_config_mkdir_failure) {
 
     // Attempt to load config - should fail when creating directory
     ik_config_t *config = NULL;
-    res_t res = ik_config_load(ctx, paths, &config);
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify failure
     ck_assert(is_err(&res));
@@ -84,26 +78,16 @@ START_TEST(test_config_mkdir_failure) {
     mock_stat_should_fail = false;
     mock_mkdir_should_fail = false;
 
-    test_paths_cleanup_env();
     talloc_free(ctx);
 }
 END_TEST
 /* Test: stat succeeds (directory exists) */
 START_TEST(test_config_stat_directory_exists) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Use /tmp which always exists
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_test_exists_%d.json", getpid());
 
     // Mock stat to succeed (directory exists)
     mock_stat_should_fail = false;
@@ -118,13 +102,13 @@ START_TEST(test_config_stat_directory_exists) {
 
     // Load config - should succeed
     ik_config_t *config = NULL;
-    res_t res = ik_config_load(ctx, paths, &config);
+    res_t res = ik_config_load(ctx, test_config, &config);
 
     // Verify success
     ck_assert(is_ok(&res));
 
     // Cleanup
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
@@ -135,7 +119,7 @@ static Suite *config_filesystem_suite(void)
     Suite *s = suite_create("Config Filesystem");
 
     TCase *tc_fs = tcase_create("Filesystem Operations");
-    tcase_set_timeout(tc_fs, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_fs, 30);
     tcase_add_test(tc_fs, test_config_mkdir_failure);
     tcase_add_test(tc_fs, test_config_stat_directory_exists);
     suite_add_tcase(s, tc_fs);

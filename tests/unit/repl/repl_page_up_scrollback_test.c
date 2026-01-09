@@ -196,11 +196,11 @@ static Suite *page_up_scrollback_suite(void)
     Suite *s = suite_create("Page Up Scrollback");
 
     TCase *tc_pageup = tcase_create("PageUp");
-    tcase_set_timeout(tc_pageup, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_pageup, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_pageup, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_pageup, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_pageup, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
+    tcase_set_timeout(tc_pageup, 30);
     tcase_add_test(tc_pageup, test_page_up_shows_earlier_scrollback);
     suite_add_tcase(s, tc_pageup);
 

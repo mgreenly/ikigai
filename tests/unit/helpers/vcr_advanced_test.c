@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file vcr_advanced_test.c
  * @brief Unit tests for VCR advanced features (redaction, assertions, verification)
@@ -244,7 +243,7 @@ static Suite *vcr_advanced_suite(void)
     Suite *s = suite_create("VCR Advanced");
 
     TCase *tc_redact = tcase_create("Credential Redaction");
-    tcase_set_timeout(tc_redact, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_redact, 30);
     tcase_add_test(tc_redact, test_vcr_credential_redaction_authorization_bearer);
     tcase_add_test(tc_redact, test_vcr_credential_redaction_x_api_key);
     tcase_add_test(tc_redact, test_vcr_credential_redaction_case_insensitive);
@@ -252,13 +251,13 @@ static Suite *vcr_advanced_suite(void)
     suite_add_tcase(s, tc_redact);
 
     TCase *tc_assert = tcase_create("Assertion Macros");
-    tcase_set_timeout(tc_assert, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assert, 30);
     tcase_add_test(tc_assert, test_vcr_assertion_macros_playback);
     tcase_add_test(tc_assert, test_vcr_assertion_macros_recording);
     suite_add_tcase(s, tc_assert);
 
     TCase *tc_verify = tcase_create("Request Verification");
-    tcase_set_timeout(tc_verify, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_verify, 30);
     tcase_add_test(tc_verify, test_vcr_request_verification_match);
     tcase_add_test(tc_verify, test_vcr_skip_verification);
     suite_add_tcase(s, tc_verify);

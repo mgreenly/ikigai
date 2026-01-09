@@ -319,7 +319,7 @@ static Suite *utf8_security_suite(void)
 {
     Suite *s = suite_create("UTF8Security");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     // UTF-8 overlong encoding tests (security vulnerabilities)
     tcase_add_test(tc_core, test_utf8_overlong_2byte);

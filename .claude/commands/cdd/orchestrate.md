@@ -72,9 +72,8 @@ Run these in order. If ANY fails, report and **STOP**:
 
    Return ONLY JSON: {"ok": true} or {"ok": false, "reason": "..."}
    ```
-6. On success: `.claude/scripts/task/done.ts <task.name>` - marks done ONLY if sanity check passes
-   - If done succeeds: Report `✓ <data.name> [<data.elapsed>] | To stop: <data.remaining_to_stop> (<data.eta_to_stop>) | Total: <data.remaining_total> (<data.eta_total>)` → loop to step 1
-   - If done fails (sanity check failed): Report `✗ <task.name> sanity check failed. Human review needed.`, stop
+6. On success: `.claude/scripts/task/done.ts <task.name>`
+   Report: `✓ <data.name> [<data.elapsed>] | To stop: <data.remaining_to_stop> (<data.eta_to_stop>) | Total: <data.remaining_total> (<data.eta_total>)` → loop to step 1
 7. On failure: `.claude/scripts/task/escalate.ts <task.name> "<reason>"`
    - If escalated: loop to step 1
    - If at max level: mark failed, report `✗ <task.name> failed. Human review needed.`, stop

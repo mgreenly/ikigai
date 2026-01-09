@@ -310,7 +310,7 @@ static Suite *migration_suite(void)
     Suite *s = suite_create("db_migration_basic");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, migration_test_setup, NULL);
     tcase_add_test(tc_core, test_migration_fresh_database);
     tcase_add_test(tc_core, test_migration_sql_execution_failure);

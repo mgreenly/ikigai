@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_chat_coverage_branches_test.c
  * @brief Additional branch coverage tests for OpenAI Chat response parsing
@@ -167,7 +166,7 @@ static Suite *response_chat_coverage_branches_suite(void)
     Suite *s = suite_create("OpenAI Chat Response - Branch Coverage");
 
     TCase *tc_branches = tcase_create("Missing Branch Coverage");
-    tcase_set_timeout(tc_branches, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_branches, 30);
     tcase_add_checked_fixture(tc_branches, setup, teardown);
     tcase_add_test(tc_branches, test_parse_error_empty_json_len);
     tcase_add_test(tc_branches, test_parse_error_null_type_val);

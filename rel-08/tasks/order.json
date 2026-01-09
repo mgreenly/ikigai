@@ -1,180 +1,60 @@
 {
   "tasks": [
-    {
-      "task": "paths-core.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "paths-test-infrastructure.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "paths-helper-migration.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "paths-comprehensive-tests.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "paths-makefile.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "task": "paths-config-integration.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "task": "paths-data-dir-tests.md",
-      "group": "Paths Module Foundation",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-phase-0-complete",
-      "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated, PREFIX=$HOME/.local install works"
-    },
-    {
-      "task": "tool-bash.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-bash",
-      "message": "Verify bash tool: make tool-bash && libexec/ikigai/bash --schema && echo '{\"command\":\"echo hello\"}' | libexec/ikigai/bash"
-    },
-    {
-      "task": "tool-file-read.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-file-read",
-      "message": "Verify file_read tool: make tool-file-read && libexec/ikigai/file-read --schema && echo '{\"file_path\":\"/etc/hostname\"}' | libexec/ikigai/file-read"
-    },
-    {
-      "task": "tool-file-write.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-file-write",
-      "message": "Verify file_write tool: make tool-file-write && libexec/ikigai/file-write --schema && echo '{\"file_path\":\"/tmp/test.txt\",\"content\":\"hello\"}' | libexec/ikigai/file-write"
-    },
-    {
-      "task": "tool-file-edit.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-file-edit",
-      "message": "Verify file_edit tool: make tool-file-edit && libexec/ikigai/file-edit --schema"
-    },
-    {
-      "task": "tool-glob.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-glob",
-      "message": "Verify glob tool: make tool-glob && libexec/ikigai/glob --schema && echo '{\"pattern\":\"*.c\",\"path\":\"src\"}' | libexec/ikigai/glob"
-    },
-    {
-      "task": "tool-grep.md",
-      "group": "External Tools",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-grep",
-      "message": "Verify grep tool: make tool-grep && libexec/ikigai/grep --schema && echo '{\"pattern\":\"main\",\"glob\":\"*.c\",\"path\":\"src\"}' | libexec/ikigai/grep"
-    },
-    {
-      "task": "remove-internal-tools.md",
-      "group": "Removal",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "stop": "verify-removal",
-      "message": "Verify removal: make clean && make check && bin/ikigai runs (tools stubbed but binary works)"
-    },
-    {
-      "task": "discovery-infrastructure.md",
-      "group": "Infrastructure",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "stop": "verify-discovery",
-      "message": "Verify discovery: make check passes, registry populates with 6 tools at startup"
-    },
-    {
-      "task": "provider-anthropic.md",
-      "group": "Provider Integration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-anthropic",
-      "message": "Verify Anthropic: LLM request with Claude model includes tools array from registry"
-    },
-    {
-      "task": "provider-google.md",
-      "group": "Provider Integration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-google",
-      "message": "Verify Google: LLM request with Gemini model includes functionDeclarations from registry"
-    },
-    {
-      "task": "provider-openai.md",
-      "group": "Provider Integration",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-openai",
-      "message": "Verify OpenAI: LLM request with GPT model includes tools array with strict:true from registry"
-    },
-    {
-      "task": "commands.md",
-      "group": "Commands",
-      "model": "sonnet",
-      "thinking": "thinking"
-    },
-    {
-      "stop": "verify-commands",
-      "message": "Verify commands: /tool lists 6 tools, /tool bash shows schema, /refresh reloads registry"
-    },
-    {
-      "task": "async-optimization.md",
-      "group": "Optimization",
-      "model": "sonnet",
-      "thinking": "extended"
-    },
-    {
-      "stop": "verify-async",
-      "message": "Verify async: Terminal appears immediately, discovery runs in background, make check passes"
-    }
+    {"task": "paths-core.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-paths-core", "message": "Verify paths core: make check passes, paths module tests pass"},
+
+    {"task": "paths-test-infrastructure.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-paths-test-infra", "message": "Verify test infrastructure: test_paths_setup_env() and test_paths_cleanup_env() work"},
+
+    {"task": "paths-helper-migration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-paths-helpers", "message": "Verify helper migration: test helpers use paths module, ~160 tests compile"},
+
+    {"task": "paths-comprehensive-tests.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-paths-coverage", "message": "Verify comprehensive tests: make coverage shows 100% for src/paths.c"},
+
+    {"task": "paths-makefile.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-makefile-install", "message": "Verify make install: wrapper script generated correctly, manual tests pass, uninstall works"},
+
+    {"task": "paths-config-integration.md", "group": "Paths Module Foundation", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-phase-0-complete", "message": "Verify phase 0 complete: make check passes (all ~565 tests), make coverage shows 100%, paths module fully integrated"},
+
+    {"task": "tool-bash.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-bash", "message": "Verify bash tool: make tool-bash && libexec/ikigai/bash --schema && echo '{\"command\":\"echo hello\"}' | libexec/ikigai/bash"},
+
+    {"task": "tool-file-read.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-file-read", "message": "Verify file_read tool: make tool-file-read && libexec/ikigai/file-read --schema && echo '{\"file_path\":\"/etc/hostname\"}' | libexec/ikigai/file-read"},
+
+    {"task": "tool-file-write.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-file-write", "message": "Verify file_write tool: make tool-file-write && libexec/ikigai/file-write --schema && echo '{\"file_path\":\"/tmp/test.txt\",\"content\":\"hello\"}' | libexec/ikigai/file-write"},
+
+    {"task": "tool-file-edit.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-file-edit", "message": "Verify file_edit tool: make tool-file-edit && libexec/ikigai/file-edit --schema"},
+
+    {"task": "tool-glob.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-glob", "message": "Verify glob tool: make tool-glob && libexec/ikigai/glob --schema && echo '{\"pattern\":\"*.c\",\"path\":\"src\"}' | libexec/ikigai/glob"},
+
+    {"task": "tool-grep.md", "group": "External Tools", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-grep", "message": "Verify grep tool: make tool-grep && libexec/ikigai/grep --schema && echo '{\"pattern\":\"main\",\"glob\":\"*.c\",\"path\":\"src\"}' | libexec/ikigai/grep"},
+
+    {"task": "remove-internal-tools.md", "group": "Removal", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-removal", "message": "Verify removal: make clean && make check && bin/ikigai runs (tools stubbed but binary works)"},
+
+    {"task": "discovery-infrastructure.md", "group": "Infrastructure", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-discovery", "message": "Verify discovery: make check passes, registry populates with 6 tools at startup"},
+
+    {"task": "provider-anthropic.md", "group": "Provider Integration", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-anthropic", "message": "Verify Anthropic: LLM request with Claude model includes tools array from registry"},
+
+    {"task": "provider-google.md", "group": "Provider Integration", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-google", "message": "Verify Google: LLM request with Gemini model includes functionDeclarations from registry"},
+
+    {"task": "provider-openai.md", "group": "Provider Integration", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-openai", "message": "Verify OpenAI: LLM request with GPT model includes tools array with strict:true from registry"},
+
+    {"task": "commands.md", "group": "Commands", "model": "sonnet", "thinking": "thinking"},
+    {"stop": "verify-commands", "message": "Verify commands: /tool lists 6 tools, /tool bash shows schema, /refresh reloads registry"},
+
+    {"task": "async-optimization.md", "group": "Optimization", "model": "sonnet", "thinking": "extended"},
+    {"stop": "verify-async", "message": "Verify async: Terminal appears immediately, discovery runs in background, make check passes"}
   ]
 }

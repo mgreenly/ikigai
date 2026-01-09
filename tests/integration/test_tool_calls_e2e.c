@@ -491,7 +491,7 @@ static Suite *tool_calls_e2e_suite(void)
     Suite *s = suite_create("Tool Calls E2E");
 
     TCase *tc_tool_calls = tcase_create("Tool Calls Async");
-    tcase_set_timeout(tc_tool_calls, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool_calls, 30);
     tcase_add_unchecked_fixture(tc_tool_calls, suite_setup, suite_teardown);
     tcase_add_test(tc_tool_calls, test_anthropic_tool_call_format_async);
     tcase_add_test(tc_tool_calls, test_openai_tool_call_format_async);

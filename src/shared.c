@@ -1,13 +1,11 @@
 #include "shared.h"
 
 #include "db/connection.h"
-#include "debug_log.h"
 #include "debug_pipe.h"
 #include "history.h"
 #include "history_io.h"
 #include "logger.h"
 #include "panic.h"
-#include "paths.h"
 #include "render.h"
 #include "terminal.h"
 #include "wrapper.h"
@@ -26,21 +24,25 @@ static int shared_destructor(ik_shared_ctx_t *shared)
 
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
-                         ik_paths_t *paths,
+                         const char *working_dir,
+                         const char *ikigai_path,
                          ik_logger_t *logger,
                          ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE
-    assert(paths != NULL);   // LCOV_EXCL_BR_LINE
+    assert(working_dir != NULL);   // LCOV_EXCL_BR_LINE
+    assert(ikigai_path != NULL);   // LCOV_EXCL_BR_LINE
     assert(logger != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
+
+    (void)working_dir;  // Reserved for future use
+    (void)ikigai_path;  // Reserved for future use
 
     ik_shared_ctx_t *shared = talloc_zero_(ctx, sizeof(ik_shared_ctx_t));
     if (shared == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     shared->cfg = cfg;
-    shared->paths = paths;
 
     // Use injected logger (DI pattern - explicit dependency)
     assert(logger != NULL);  // LCOV_EXCL_BR_LINE
@@ -48,39 +50,28 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     talloc_steal(shared, logger);  // Transfer ownership
 
     // Initialize terminal (raw mode + alternate screen)
-    DEBUG_LOG("=== About to call ik_term_init ===");
-    res_t result = ik_term_init(shared, shared->logger, &shared->term);
+    res_t result = ik_term_init(shared, &shared->term);
     if (is_err(&result)) {
-        DEBUG_LOG("=== ik_term_init failed: %s ===", error_message(result.err));
         talloc_free(shared);
         return result;
     }
-    DEBUG_LOG("=== ik_term_init succeeded ===");
 
     // Initialize render
-    DEBUG_LOG("=== About to call ik_render_create ===");
     result = ik_render_create(shared,
                               shared->term->screen_rows,
                               shared->term->screen_cols,
                               shared->term->tty_fd,
                               &shared->render);
     if (is_err(&result)) {
-        DEBUG_LOG("=== ik_render_create failed: %s ===", error_message(result.err));
         ik_term_cleanup(shared->term);
         talloc_free(shared);
         return result;
     }
-    DEBUG_LOG("=== ik_render_create succeeded ===");
 
     // Initialize database connection if configured
-    DEBUG_LOG("=== About to check db_connection_string ===");
     if (cfg->db_connection_string != NULL) {
-        DEBUG_LOG("=== About to call ik_db_init_ ===");
-        const char *data_dir = ik_paths_get_data_dir(paths);
-        DEBUG_LOG("=== Using data_dir: %s ===", data_dir);
-        result = ik_db_init_(shared, cfg->db_connection_string, data_dir, (void **)&shared->db_ctx);
+        result = ik_db_init_(shared, cfg->db_connection_string, (void **)&shared->db_ctx);
         if (is_err(&result)) {
-            DEBUG_LOG("=== ik_db_init_ failed: %s ===", error_message(result.err));
             // Cleanup already-initialized resources
             if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
                 ik_term_cleanup(shared->term);

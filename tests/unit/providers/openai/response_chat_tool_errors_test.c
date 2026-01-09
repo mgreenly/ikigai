@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_chat_tool_errors_test.c
  * @brief Coverage tests for OpenAI Chat tool call error paths
@@ -265,7 +264,7 @@ static Suite *response_chat_tool_errors_suite(void)
     Suite *s = suite_create("OpenAI Chat Response Parsing - Tool Call Errors");
 
     TCase *tc_tool_errors = tcase_create("Tool Call Error Paths");
-    tcase_set_timeout(tc_tool_errors, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool_errors, 30);
     tcase_add_checked_fixture(tc_tool_errors, setup, teardown);
     tcase_add_test(tc_tool_errors, test_parse_tool_call_missing_id);
     tcase_add_test(tc_tool_errors, test_parse_tool_call_id_not_string);

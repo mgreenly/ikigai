@@ -60,20 +60,9 @@ static bool validate_conn_str(const char *conn_str)
     return true;
 }
 
-res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, const char *data_dir, ik_db_ctx_t **out_ctx)
+res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, ik_db_ctx_t **out_ctx)
 {
-    assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
-    assert(conn_str != NULL);  // LCOV_EXCL_BR_LINE
-    assert(data_dir != NULL);  // LCOV_EXCL_BR_LINE
-    assert(out_ctx != NULL);   // LCOV_EXCL_BR_LINE
-
-    // Construct migrations path from data directory
-    char *migrations_dir = talloc_asprintf(ctx, "%s/migrations", data_dir);
-    if (migrations_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    res_t result = ik_db_init_with_migrations(ctx, conn_str, migrations_dir, out_ctx);
-    talloc_free(migrations_dir);
-    return result;
+    return ik_db_init_with_migrations(ctx, conn_str, "share/ikigai/migrations", out_ctx);
 }
 
 res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx)

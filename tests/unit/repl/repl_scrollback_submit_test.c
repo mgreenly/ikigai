@@ -6,7 +6,6 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
-#include "../../../src/paths.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
@@ -29,15 +28,7 @@ START_TEST(test_submit_line_to_scrollback) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -83,15 +74,7 @@ START_TEST(test_submit_line_auto_scroll) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -133,15 +116,7 @@ START_TEST(test_submit_empty_line) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -170,7 +145,7 @@ static Suite *repl_scrollback_submit_suite(void)
     Suite *s = suite_create("REPL Scrollback Submit Line");
 
     TCase *tc_submit = tcase_create("Submit Line");
-    tcase_set_timeout(tc_submit, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_submit, 30);
     tcase_add_unchecked_fixture(tc_submit, suite_setup, NULL);
     tcase_add_test(tc_submit, test_submit_line_to_scrollback);
     tcase_add_test(tc_submit, test_submit_line_auto_scroll);

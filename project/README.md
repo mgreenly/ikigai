@@ -197,16 +197,16 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Slash commands become thin wrappers over internal tools
 - User-defined prompt commands use `!` prefix (distinct from `/` tools)
 
-### rel-11: Shared Files (future)
+### rel-11: StoredAssets (future)
 
-**Objective**: Shared filesystem for agent-accessible knowledge and templates
+**Objective**: Database-backed document storage accessible to users and agents
 
 **Features**:
-- Shared file space at `$IKIGAI_DATA_DIR/files/` with automatic versioning
-- inotify background thread protects against agent corruption
-- Environment variable expansion in all file tools (Read, Write, Edit, Glob)
-- System files in `files/system/` (system prompt, default content)
-- See [shared-files.md](shared-files.md) for design details
+- `ikigai:///` URI scheme for database-stored documents
+- Schema validation via `foo.schema.json` alongside `foo.json`
+- Slash commands for user access (`/assets edit|list|delete`)
+- External editor integration ($EDITOR workflow)
+- Prompt expansion with `@` (files) and `@@` (assets) markers
 
 
 ### rel-12: Tool Sets (future)

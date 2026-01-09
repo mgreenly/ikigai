@@ -133,7 +133,7 @@ static Suite *render_combined_edge_suite(void)
     Suite *s = suite_create("Render Combined Edge Cases");
 
     TCase *tc_edge = tcase_create("Edge");
-    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, 30);
     tcase_add_test(tc_edge, test_render_combined_invalid_scrollback_start);
     tcase_add_test(tc_edge, test_render_combined_scrollback_count_clamping);
     tcase_add_test(tc_edge, test_render_combined_scrollback_with_newlines);

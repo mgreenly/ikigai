@@ -154,7 +154,7 @@ static Suite *history_core_dedup_suite(void)
     Suite *s = suite_create("History Core Deduplication");
 
     TCase *tc_dedup = tcase_create("Deduplication");
-    tcase_set_timeout(tc_dedup, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_dedup, 30);
     tcase_add_checked_fixture(tc_dedup, setup, teardown);
     tcase_add_test(tc_dedup, test_history_dedup_consecutive_identical);
     tcase_add_test(tc_dedup, test_history_dedup_reuse_moves_to_end);

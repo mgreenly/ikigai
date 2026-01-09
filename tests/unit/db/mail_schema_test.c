@@ -221,7 +221,7 @@ static Suite *mail_schema_suite(void)
     Suite *s = suite_create("Mail Schema");
 
     TCase *tc = tcase_create("Schema");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_mail_table_exists);
     tcase_add_test(tc, test_mail_columns_exist);
     tcase_add_test(tc, test_mail_foreign_key_sessions);

@@ -252,11 +252,11 @@ static Suite *cursor_after_multiline_submit_suite(void)
 {
     Suite *s = suite_create("REPL_CursorAfterMultilineSubmit");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_scrollback_lines_after_single_line_submit);
     tcase_add_test(tc_core, test_scrollback_lines_after_multiline_submit);

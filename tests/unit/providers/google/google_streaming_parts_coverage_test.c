@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_streaming_parts_coverage_test.c
  * @brief Branch coverage tests for Google streaming - Parts processing
@@ -260,7 +259,7 @@ static Suite *google_streaming_parts_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Parts Coverage");
 
     TCase *tc_parts = tcase_create("Parts Processing Edge Cases");
-    tcase_set_timeout(tc_parts, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_parts, 30);
     tcase_add_checked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_part_without_text_field);
     tcase_add_test(tc_parts, test_part_with_null_text);

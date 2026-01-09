@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -256,13 +255,13 @@ static Suite *tool_response_suite(void)
     Suite *s = suite_create("Tool Response");
 
     TCase *tc_error = tcase_create("Error Response");
-    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_error, 30);
     tcase_add_test(tc_error, test_tool_response_error_basic);
     tcase_add_test(tc_error, test_tool_response_error_special_chars);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_success = tcase_create("Success Response");
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_success, 30);
     tcase_add_test(tc_success, test_tool_response_success_basic);
     tcase_add_test(tc_success, test_tool_response_success_empty_output);
     tcase_add_test(tc_success, test_tool_response_success_ex_with_fields);
@@ -271,7 +270,7 @@ static Suite *tool_response_suite(void)
     suite_add_tcase(s, tc_success);
 
     TCase *tc_null = tcase_create("NULL Arguments");
-    tcase_set_timeout(tc_null, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_null, 30);
 #ifndef SKIP_SIGNAL_TESTS
     tcase_add_test_raise_signal(tc_null, test_tool_response_null_ctx, SIGABRT);
     tcase_add_test_raise_signal(tc_null, test_tool_response_null_message, SIGABRT);

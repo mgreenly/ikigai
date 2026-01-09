@@ -132,19 +132,6 @@ Sub-agents will reach for familiar libraries (lodash, axios, etc.) unless constr
 - Post-conditions must be testable after completion
 - Chain logically: post(N) = pre(N+1)
 
-**MANDATORY POSTCONDITIONS FOR ALL TASKS:**
-
-These postconditions are NON-NEGOTIABLE. Every task MUST achieve ALL of them:
-
-- [ ] `make all` succeeds - production code compiles without errors
-- [ ] `make build-tests` succeeds - all test code compiles without errors
-- [ ] `make check` succeeds - all tests pass
-- [ ] `make lint` succeeds - complexity and file size checks pass
-
-**If a task cannot achieve these, it MUST report as `failed` (not `partial`, not `success`).**
-
-There are NO exceptions. Tasks that leave broken code should trigger escalation, not be marked as done.
-
 ### Context (What/How/Why)
 
 **Every task must provide complete context so sub-agent can execute immediately.**

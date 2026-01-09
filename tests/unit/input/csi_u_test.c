@@ -358,11 +358,11 @@ static Suite *input_csi_u_suite(void)
 {
     Suite *s = suite_create("Input CSI u");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_csi_u_plain_enter);
     tcase_add_test(tc_core, test_csi_u_shift_enter);

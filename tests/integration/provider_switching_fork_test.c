@@ -21,7 +21,6 @@
 #include "../../src/db/agent.h"
 #include "../../src/db/message.h"
 #include "../../src/error.h"
-#include "../../src/paths.h"
 #include "../../src/providers/factory.h"
 #include "../../src/providers/provider.h"
 #include "../../src/providers/request.h"
@@ -231,14 +230,11 @@ static void reset_mock_state(void)
 /* Fork Inheritance Tests */
 START_TEST(test_fork_inherits_parent_provider) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *parent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &parent); ck_assert(is_ok(&r));
@@ -261,14 +257,11 @@ END_TEST
 
 START_TEST(test_fork_model_override_changes_provider) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *parent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &parent); ck_assert(is_ok(&r));
@@ -293,14 +286,11 @@ END_TEST
 
 START_TEST(test_fork_thinking_override) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *parent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &parent); ck_assert(is_ok(&r));
@@ -322,14 +312,11 @@ END_TEST
 
 START_TEST(test_fork_full_cross_provider_override) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *parent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &parent); ck_assert(is_ok(&r));
@@ -355,15 +342,12 @@ END_TEST
 
 START_TEST(test_database_records_fork_hierarchy) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     res_t r = ik_test_db_begin(g_db); ck_assert(is_ok(&r));
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
     ik_agent_ctx_t *parent = NULL;
@@ -417,7 +401,7 @@ static Suite *provider_switching_fork_suite(void)
 {
     Suite *s = suite_create("Provider Switching Fork");
     TCase *tc_fork = tcase_create("Fork Inheritance");
-    tcase_set_timeout(tc_fork, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_fork, 30);
     tcase_add_unchecked_fixture(tc_fork, suite_setup, suite_teardown);
     tcase_add_test(tc_fork, test_fork_inherits_parent_provider);
     tcase_add_test(tc_fork, test_fork_model_override_changes_provider);

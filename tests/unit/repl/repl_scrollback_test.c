@@ -93,7 +93,7 @@ static Suite *repl_scrollback_suite(void)
     Suite *s = suite_create("REPL Scrollback Integration");
 
     TCase *tc_init = tcase_create("Initialization");
-    tcase_set_timeout(tc_init, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_init, 30);
     tcase_add_unchecked_fixture(tc_init, suite_setup, NULL);
     tcase_add_test(tc_init, test_repl_context_with_scrollback);
     tcase_add_test(tc_init, test_repl_scrollback_terminal_width);

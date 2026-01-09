@@ -331,7 +331,7 @@ static Suite *cursor_visibility_suite(void)
     Suite *s = suite_create("Render Cursor Visibility");
 
     TCase *tc_cursor = tcase_create("Cursor");
-    tcase_set_timeout(tc_cursor, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cursor, 30);
     tcase_add_test(tc_cursor, test_cursor_hidden_when_input_buffer_off_screen);
     tcase_add_test(tc_cursor, test_cursor_visible_when_input_buffer_on_screen);
     tcase_add_test(tc_cursor, test_last_scrollback_line_visible_when_scrolled_up);

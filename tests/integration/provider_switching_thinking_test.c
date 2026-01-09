@@ -21,7 +21,6 @@
 #include "../../src/db/agent.h"
 #include "../../src/db/message.h"
 #include "../../src/error.h"
-#include "../../src/paths.h"
 #include "../../src/providers/factory.h"
 #include "../../src/providers/provider.h"
 #include "../../src/providers/request.h"
@@ -254,14 +253,11 @@ END_TEST
 
 START_TEST(test_thinking_level_preserved_on_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -283,14 +279,11 @@ END_TEST
 
 START_TEST(test_thinking_level_change_after_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -312,7 +305,7 @@ static Suite *provider_switching_thinking_suite(void)
 {
     Suite *s = suite_create("Provider Switching Thinking");
     TCase *tc_thinking = tcase_create("Thinking Level Translation");
-    tcase_set_timeout(tc_thinking, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_test(tc_thinking, test_thinking_level_enum_values);
     tcase_add_test(tc_thinking, test_model_supports_thinking);
     tcase_add_test(tc_thinking, test_thinking_level_preserved_on_switch);

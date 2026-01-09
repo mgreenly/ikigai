@@ -264,7 +264,7 @@ static Suite *grep_execute_suite(void)
     Suite *s = suite_create("Grep Execution");
 
     TCase *tc_grep_exec = tcase_create("Grep Execution");
-    tcase_set_timeout(tc_grep_exec, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_grep_exec, 30);
     tcase_add_checked_fixture(tc_grep_exec, setup, teardown);
     tcase_add_test(tc_grep_exec, test_grep_exec_with_matches);
     tcase_add_test(tc_grep_exec, test_grep_exec_no_matches);

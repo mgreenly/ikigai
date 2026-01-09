@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file command_fork_test.c
  * @brief Unit tests for command and fork event rendering
@@ -147,13 +146,13 @@ static Suite *event_render_command_fork_suite(void)
     Suite *s = suite_create("Event Render Command/Fork");
 
     TCase *tc_visible = tcase_create("Visibility");
-    tcase_set_timeout(tc_visible, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_visible, 30);
     tcase_add_test(tc_visible, test_renders_visible_command);
     tcase_add_test(tc_visible, test_renders_visible_fork);
     suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
-    tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_render_command_event);
     tcase_add_test(tc_render, test_render_fork_event_parent);
     tcase_add_test(tc_render, test_render_fork_event_child);

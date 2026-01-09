@@ -380,11 +380,11 @@ static Suite *repl_slash_command_suite(void)
     Suite *s = suite_create("REPL Slash Commands");
 
     TCase *tc_basic = tcase_create("Basic");
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_test(tc_basic, test_pp_command_clears_input_buffer);
     tcase_add_test(tc_basic, test_pp_command_with_args);
     tcase_add_test(tc_basic, test_unknown_slash_command);

@@ -1,4 +1,3 @@
-#include "../../../../test_constants.h"
 /**
  * @file openai_serialize_user_test.c
  * @brief Unit tests for OpenAI user message serialization
@@ -141,7 +140,7 @@ Suite *openai_serialize_user_suite(void)
     Suite *s = suite_create("OpenAI Serialize User Messages");
 
     TCase *tc_user = tcase_create("User Messages");
-    tcase_set_timeout(tc_user, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_user, 30);
     tcase_add_unchecked_fixture(tc_user, setup, teardown);
     tcase_add_test(tc_user, test_serialize_user_message_single_text);
     tcase_add_test(tc_user, test_serialize_user_message_multiple_text_blocks);

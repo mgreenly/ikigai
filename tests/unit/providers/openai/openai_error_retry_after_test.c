@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file openai_error_retry_after_test.c
  * @brief Unit tests for ik_openai_get_retry_after function
@@ -204,7 +203,7 @@ static Suite *openai_error_retry_after_suite(void)
     Suite *s = suite_create("OpenAI Error Retry After");
 
     TCase *tc_retry = tcase_create("Retry After");
-    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_retry, 30);
     tcase_add_unchecked_fixture(tc_retry, setup, teardown);
     tcase_add_test(tc_retry, test_retry_after_null_headers);
     tcase_add_test(tc_retry, test_retry_after_both_headers_prefer_minimum);

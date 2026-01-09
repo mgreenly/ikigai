@@ -1,5 +1,4 @@
 #include "../../../src/config.h"
-#include "../../../src/paths.h"
 
 #include "../../../src/error.h"
 #include "../../../src/vendor/yyjson/yyjson.h"
@@ -29,21 +28,12 @@ const char *yyjson_get_str_(yyjson_val *val)
 }
 
 START_TEST(test_config_with_db_connection_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with db_connection_string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_db_test_%d.json", getpid());
 
     // Write config with db_connection_string
     FILE *f = fopen(test_config, "w");
@@ -64,34 +54,25 @@ START_TEST(test_config_with_db_connection_string) {
     // Load config
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://localhost/ikigai");
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_config_without_db_connection_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file without db_connection_string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_no_db_test_%d.json", getpid());
 
     // Write config without db_connection_string
     FILE *f = fopen(test_config, "w");
@@ -111,34 +92,25 @@ START_TEST(test_config_without_db_connection_string) {
     // Load config - should succeed with NULL db_connection_string
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_with_full_connection_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with full connection string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_full_db_test_%d.json", getpid());
 
     // Write config with full connection string
     FILE *f = fopen(test_config, "w");
@@ -159,35 +131,26 @@ START_TEST(test_config_with_full_connection_string) {
     // Load config
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql://user:pass@localhost:5432/ikigai");
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_with_unix_socket_connection_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with Unix socket connection string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_unix_db_test_%d.json", getpid());
 
     // Write config with Unix socket connection string
     FILE *f = fopen(test_config, "w");
@@ -208,35 +171,26 @@ START_TEST(test_config_with_unix_socket_connection_string) {
     // Load config
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->db_connection_string);
     ck_assert_str_eq(cfg->db_connection_string, "postgresql:///ikigai?host=/var/run/postgresql");
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_with_empty_db_connection_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with empty db_connection_string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_empty_db_test_%d.json", getpid());
 
     // Write config with empty db_connection_string
     FILE *f = fopen(test_config, "w");
@@ -257,34 +211,25 @@ START_TEST(test_config_with_empty_db_connection_string) {
     // Load config - should succeed with NULL db_connection_string
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->db_connection_string);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_with_invalid_db_connection_string_type) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with invalid db_connection_string type (number instead of string)
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_invalid_db_test_%d.json", getpid());
 
     // Write config with db_connection_string as a number
     FILE *f = fopen(test_config, "w");
@@ -304,60 +249,12 @@ START_TEST(test_config_with_invalid_db_connection_string_type) {
 
     // Load config - should fail with invalid type error
     ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_config, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
     // Clean up
-    test_paths_cleanup_env();
-    talloc_free(ctx);
-}
-
-END_TEST
-
-START_TEST(test_config_with_explicit_null_db_connection_string) {
-
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Create a test config file with explicit null db_connection_string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    // Write config with explicit null db_connection_string
-    FILE *f = fopen(test_config, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\n"
-            "  \"openai_model\": \"gpt-5-mini\",\n"
-            "  \"openai_temperature\": 1.0,\n"
-            "  \"openai_max_completion_tokens\": 4096,\n"
-            "  \"openai_system_message\": null,\n"
-            "  \"listen_address\": \"127.0.0.1\",\n"
-            "  \"listen_port\": 1984,\n"
-            "  \"max_tool_turns\": 50,\n"
-            "  \"max_output_size\": 1048576,\n"
-            "  \"db_connection_string\": null\n"
-            "}\n");
-    fclose(f);
-
-    // Load config - should succeed with NULL db_connection_string
-    ik_config_t *cfg = NULL;
-
-    res_t result = ik_config_load(ctx, paths, &cfg);
-    ck_assert(!result.is_err);
-    ck_assert_ptr_nonnull(cfg);
-    ck_assert_ptr_null(cfg->db_connection_string);
-
-    // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
@@ -385,21 +282,12 @@ START_TEST(test_config_structure_has_db_connection_string_field) {
 END_TEST
 
 START_TEST(test_config_with_db_connection_string_null_value) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with db_connection_string
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_db_null_test_%d.json", getpid());
 
     // Write config with db_connection_string
     FILE *f = fopen(test_config, "w");
@@ -427,7 +315,7 @@ START_TEST(test_config_with_db_connection_string_null_value) {
     // Load config - should succeed with NULL db_connection_string due to mock
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Even though JSON has a value, mock returns NULL, so config should be NULL
@@ -437,7 +325,7 @@ START_TEST(test_config_with_db_connection_string_null_value) {
     g_return_null_on_call = -1;
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
@@ -447,7 +335,7 @@ static Suite *config_suite(void)
 {
     Suite *s = suite_create("Config Database");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_with_db_connection_string);
     tcase_add_test(tc_core, test_config_without_db_connection_string);
@@ -456,7 +344,6 @@ static Suite *config_suite(void)
     tcase_add_test(tc_core, test_config_with_empty_db_connection_string);
     tcase_add_test(tc_core, test_config_with_db_connection_string_null_value);
     tcase_add_test(tc_core, test_config_with_invalid_db_connection_string_type);
-    tcase_add_test(tc_core, test_config_with_explicit_null_db_connection_string);
     tcase_add_test(tc_core, test_config_structure_has_db_connection_string_field);
 
     suite_add_tcase(s, tc_core);

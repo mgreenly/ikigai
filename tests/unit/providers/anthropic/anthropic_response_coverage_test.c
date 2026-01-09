@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file anthropic_response_coverage_test.c
  * @brief Additional coverage tests for Anthropic response parsing edge cases
@@ -77,12 +76,12 @@ static Suite *anthropic_response_coverage_suite(void)
     Suite *s = suite_create("Anthropic Response Coverage");
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
-    tcase_set_timeout(tc_finish, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_finish, 30);
     tcase_add_test(tc_finish, test_map_finish_reason_all);
     suite_add_tcase(s, tc_finish);
 
     TCase *tc_stubs = tcase_create("Stub Functions");
-    tcase_set_timeout(tc_stubs, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_stubs, 30);
     tcase_add_unchecked_fixture(tc_stubs, setup, teardown);
     tcase_add_test(tc_stubs, test_start_request_stub);
     suite_add_tcase(s, tc_stubs);

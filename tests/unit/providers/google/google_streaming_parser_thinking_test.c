@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_streaming_parser_thinking_test.c
  * @brief Unit tests for Google provider thinking detection and event normalization
@@ -308,7 +307,7 @@ static Suite *google_streaming_parser_thinking_suite(void)
     Suite *s = suite_create("Google Streaming Parser - Thinking");
 
     TCase *tc_thinking = tcase_create("Thought Part Detection");
-    tcase_set_timeout(tc_thinking, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_checked_fixture(tc_thinking, setup, teardown);
     tcase_add_test(tc_thinking, test_parse_part_with_thought_true_flag);
     tcase_add_test(tc_thinking, test_parse_part_without_thought_flag);
@@ -317,7 +316,7 @@ static Suite *google_streaming_parser_thinking_suite(void)
     suite_add_tcase(s, tc_thinking);
 
     TCase *tc_normalize = tcase_create("Event Normalization");
-    tcase_set_timeout(tc_normalize, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_normalize, 30);
     tcase_add_checked_fixture(tc_normalize, setup, teardown);
     tcase_add_test(tc_normalize, test_normalize_text_part_to_text_delta);
     tcase_add_test(tc_normalize, test_normalize_thought_part_to_thinking_delta);

@@ -1,4 +1,3 @@
-#include "../../../../test_constants.h"
 /**
  * @file openai_serialize_tool_test.c
  * @brief Unit tests for OpenAI tool message serialization
@@ -118,7 +117,7 @@ Suite *openai_serialize_tool_suite(void)
     Suite *s = suite_create("OpenAI Serialize Tool Messages");
 
     TCase *tc_tool = tcase_create("Tool Messages");
-    tcase_set_timeout(tc_tool, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool, 30);
     tcase_add_unchecked_fixture(tc_tool, setup, teardown);
     tcase_add_test(tc_tool, test_serialize_tool_message);
     tcase_add_test(tc_tool, test_serialize_tool_message_empty_content);

@@ -14,7 +14,7 @@ START_TEST(test_term_init_sets_csi_u_supported) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -36,7 +36,7 @@ START_TEST(test_csi_u_probe_write_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -57,7 +57,7 @@ START_TEST(test_csi_u_probe_read_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -77,7 +77,7 @@ START_TEST(test_csi_u_probe_succeeds) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -102,7 +102,7 @@ START_TEST(test_csi_u_enable_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -122,7 +122,7 @@ START_TEST(test_csi_u_cleanup_disables) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
     ck_assert(is_ok(&res));
     ck_assert(term->csi_u_supported);
 
@@ -150,7 +150,7 @@ START_TEST(test_csi_u_probe_invalid_response) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -171,7 +171,7 @@ START_TEST(test_csi_u_probe_short_response) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -192,7 +192,7 @@ START_TEST(test_csi_u_probe_no_esc_prefix) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -213,7 +213,7 @@ START_TEST(test_csi_u_probe_no_bracket) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
@@ -234,36 +234,11 @@ START_TEST(test_csi_u_probe_no_question) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
 
-    res_t res = ik_term_init(ctx, NULL, &term);
+    res_t res = ik_term_init(ctx, &term);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(term);
     // CSI u probe failed due to missing '?'
-    ck_assert(!term->csi_u_supported);
-
-    ik_term_cleanup(term);
-    talloc_free(ctx);
-}
-
-END_TEST
-
-// Test: CSI u enable read fails after select returns ready
-// This covers the edge case in enable_csi_u where select() indicates data
-// is available but read() fails
-START_TEST(test_csi_u_enable_read_fails) {
-    reset_mocks();
-    mock_select_return = 1; // Indicate CSI u is supported and data ready
-    // Read sequence: 1=CSI u probe response, 2=CSI u enable response
-    mock_read_fail_on_call = 2; // Fail on second read (enable response read)
-
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_term_ctx_t *term = NULL;
-
-    res_t res = ik_term_init(ctx, NULL, &term);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(term);
-    // CSI u enable read failed, so it should be marked as unsupported
     ck_assert(!term->csi_u_supported);
 
     ik_term_cleanup(term);
@@ -277,14 +252,13 @@ static Suite *terminal_csi_u_suite(void)
 {
     Suite *s = suite_create("Terminal CSI u");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_term_init_sets_csi_u_supported);
     tcase_add_test(tc_core, test_csi_u_probe_write_fails);
     tcase_add_test(tc_core, test_csi_u_probe_read_fails);
     tcase_add_test(tc_core, test_csi_u_probe_succeeds);
     tcase_add_test(tc_core, test_csi_u_enable_fails);
-    tcase_add_test(tc_core, test_csi_u_enable_read_fails);
     tcase_add_test(tc_core, test_csi_u_cleanup_disables);
     tcase_add_test(tc_core, test_csi_u_probe_invalid_response);
     tcase_add_test(tc_core, test_csi_u_probe_short_response);

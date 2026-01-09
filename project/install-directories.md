@@ -137,7 +137,7 @@ export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR
 exec $HOME/.local/libexec/ikigai/ikigai "$@"
 ```
 
-**Note:** Config uses XDG location `~/.config/ikigai/` (respects `$XDG_CONFIG_HOME` at install time).
+**Note:** Config uses XDG location `~/.config/ikigai/`.
 
 ## Development Mode
 
@@ -262,80 +262,23 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out) {
 make install
 
 # Install to custom PREFIX
-PREFIX=/opt/ikigai make install
+make install-prefix PREFIX=/opt/ikigai
 
 # User install
-PREFIX=$HOME/.local make install
-
-# Force overwrite existing config files
-FORCE=1 PREFIX=$HOME/.local make install
+make install-prefix PREFIX=$HOME/.local
 ```
-
-**What gets installed:**
-- Binary: `$(PREFIX)/libexec/ikigai/ikigai`
-- Wrapper script: `$(PREFIX)/bin/ikigai`
-- Config files: `config.json`, `credentials.example.json` (in configdir)
-- Migrations: `*.sql` files (in datadir/migrations)
-
-**Config file behavior:**
-- **Default:** Only installs if file doesn't exist (safe upgrades)
-- **FORCE=1:** Overwrites existing config files
 
 ### Uninstall
 
 ```bash
-# Default uninstall from /usr/local (preserves config files)
+# Default uninstall from /usr/local
 make uninstall
 
-# Uninstall from custom PREFIX (preserves config files)
-PREFIX=/opt/ikigai make uninstall
-
-# Uninstall and remove config files
-PURGE=1 PREFIX=$HOME/.local make uninstall
+# Uninstall from custom PREFIX (must match install PREFIX!)
+make uninstall-prefix PREFIX=/opt/ikigai
 ```
-
-**What gets removed:**
-- Binary: `$(PREFIX)/libexec/ikigai/ikigai`
-- Wrapper script: `$(PREFIX)/bin/ikigai`
-- Empty directories: libexec/ikigai, libexec, configdir, datadir/ikigai
-
-**With PURGE=1:**
-- Also removes: `config.json`, `credentials.json`, `credentials.example.json`
 
 **Important:** Uninstall must use the same PREFIX as install.
-
-### XDG Support for User Installs
-
-When `PREFIX` is under `/home/*` (user install), the Makefile uses XDG Base Directory spec:
-
-**At install time:**
-- Reads `$XDG_CONFIG_HOME` (default: `$HOME/.config`)
-- Reads `$XDG_DATA_HOME` (default: `$HOME/.local/share`)
-- Writes resolved paths to wrapper script
-
-**Example with XDG vars set:**
-```bash
-export XDG_CONFIG_HOME=/custom/config
-export XDG_DATA_HOME=/custom/data
-PREFIX=$HOME/.local make install
-```
-
-Wrapper script will use:
-```bash
-IKIGAI_CONFIG_DIR=/custom/config/ikigai
-IKIGAI_DATA_DIR=/custom/data/ikigai
-```
-
-**Example without XDG vars (default):**
-```bash
-PREFIX=$HOME/.local make install
-```
-
-Wrapper script will use:
-```bash
-IKIGAI_CONFIG_DIR=$HOME/.config/ikigai
-IKIGAI_DATA_DIR=$HOME/.local/share/ikigai
-```
 
 ## Summary Table
 
@@ -348,50 +291,6 @@ IKIGAI_DATA_DIR=$HOME/.local/share/ikigai
 
 **User tools:** Always `~/.ikigai/tools/` (all PREFIX values)
 **Project tools:** Always `.ikigai/tools/` (all PREFIX values)
-
-## Installed Files
-
-### All Installs
-
-**Binaries:**
-- Wrapper script: `$(bindir)/ikigai` (generated at install time)
-- Actual binary: `$(libexecdir)/ikigai/ikigai`
-
-**Config files:** (in `$(configdir)`)
-- `config.json` - Main configuration
-- `credentials.example.json` - Template for credentials
-
-**Data files:** (in `$(datadir)/ikigai`)
-- Database migrations: `migrations/*.sql`
-
-**Note:** `credentials.json` is NOT installed (user creates from example)
-
-### Install Type Detection
-
-Makefile detects install type from PREFIX:
-
-```make
-IS_OPT_INSTALL := $(if $(filter /opt%,$(PREFIX)),yes,no)
-IS_USER_INSTALL := $(if $(findstring /home/,$(PREFIX)),yes,no)
-```
-
-**Detection rules:**
-1. `PREFIX=/usr` → System install, special `/etc` handling
-2. `PREFIX=/opt/*` → Opt install, no double directory names
-3. `PREFIX=/home/*` → User install, use XDG paths
-4. Others → Standard PREFIX-based paths
-
-### Migration Files
-
-**Source:** `share/ikigai/migrations/*.sql`
-
-**Installed to:** `$(datadir)/ikigai/migrations/`
-
-**Examples:**
-- PREFIX=/usr/local → `/usr/local/share/ikigai/migrations/`
-- PREFIX=$HOME/.local → `$HOME/.local/share/ikigai/migrations/`
-
-**Usage:** Database initialization reads from `$(datadir)/ikigai/migrations/`
 
 ## Design Rationale
 

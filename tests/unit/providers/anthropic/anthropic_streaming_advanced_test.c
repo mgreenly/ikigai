@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file anthropic_streaming_advanced_test.c
  * @brief Unit tests for Anthropic advanced streaming features
@@ -439,7 +438,7 @@ static Suite *anthropic_streaming_advanced_suite(void)
     Suite *s = suite_create("Anthropic Streaming Advanced");
 
     TCase *tc_thinking = tcase_create("Thinking Content");
-    tcase_set_timeout(tc_thinking, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_thinking, 30);
     tcase_add_unchecked_fixture(tc_thinking, setup, teardown);
     tcase_add_test(tc_thinking, test_thinking_delta_event_type);
     tcase_add_test(tc_thinking, test_thinking_delta_content);
@@ -447,7 +446,7 @@ static Suite *anthropic_streaming_advanced_suite(void)
     suite_add_tcase(s, tc_thinking);
 
     TCase *tc_tools = tcase_create("Tool Call Streaming");
-    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_unchecked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_tool_call_start_event);
     tcase_add_test(tc_tools, test_tool_call_delta_events);

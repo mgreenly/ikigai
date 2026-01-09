@@ -19,9 +19,9 @@
 #include "repl.h"
 #include "logger.h"
 
-MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
-    return ik_db_init(mem_ctx, conn_str, data_dir, (ik_db_ctx_t **)out_ctx);
+    return ik_db_init(mem_ctx, conn_str, (ik_db_ctx_t **)out_ctx);
 }
 
 MOCKABLE res_t ik_db_message_insert_(ik_db_ctx_t *db,
@@ -98,7 +98,7 @@ MOCKABLE void ik_agent_transition_to_idle_(void *agent)
 // not be included when wrapper.h is processed
 #include "error.h"
 
-MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
+MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
 MOCKABLE res_t ik_db_message_insert_(void *db,
                                      int64_t session_id,
                                      const char *agent_uuid,

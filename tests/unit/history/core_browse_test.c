@@ -312,7 +312,7 @@ static Suite *history_core_browse_suite(void)
     Suite *s = suite_create("History Core Browsing");
 
     TCase *tc_browse = tcase_create("Browsing");
-    tcase_set_timeout(tc_browse, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_browse, 30);
     tcase_add_checked_fixture(tc_browse, setup, teardown);
     tcase_add_test(tc_browse, test_browsing_workflow);
     tcase_add_test(tc_browse, test_pending_input_preservation);

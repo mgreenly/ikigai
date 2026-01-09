@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file anthropic_request_test_2.c
  * @brief Unit tests for Anthropic request serialization - Part 2: Branch coverage
@@ -115,7 +114,7 @@ static Suite *anthropic_request_suite_2(void)
     Suite *s = suite_create("Anthropic Request - Part 2");
 
     TCase *tc_branch = tcase_create("Branch Coverage");
-    tcase_set_timeout(tc_branch, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_branch, 30);
     tcase_add_unchecked_fixture(tc_branch, setup, teardown);
     tcase_add_test(tc_branch, test_serialize_request_thinking_budget_negative);
     tcase_add_test(tc_branch, test_serialize_request_max_tokens_exceeds_budget);

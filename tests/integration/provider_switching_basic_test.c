@@ -21,7 +21,6 @@
 #include "../../src/db/agent.h"
 #include "../../src/db/message.h"
 #include "../../src/error.h"
-#include "../../src/paths.h"
 #include "../../src/providers/factory.h"
 #include "../../src/providers/provider.h"
 #include "../../src/providers/request.h"
@@ -244,14 +243,11 @@ END_TEST
 
 START_TEST(test_agent_provider_fields_on_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -274,14 +270,11 @@ END_TEST
 
 START_TEST(test_provider_invalidation_on_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -297,15 +290,12 @@ END_TEST
 
 START_TEST(test_system_prompt_preserved_on_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
-    ik_paths_t *paths = NULL;
-    res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -323,15 +313,12 @@ END_TEST
 
 START_TEST(test_database_update_on_switch) {
     setup_test_env(); reset_mock_state();
-    test_paths_setup_env();
     res_t r = ik_test_db_begin(g_db); ck_assert(is_ok(&r));
     TALLOC_CTX *ctx = talloc_new(NULL); ck_assert_ptr_nonnull(ctx);
     ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_paths_t *paths = NULL;
-    r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
     ik_agent_ctx_t *agent = NULL;
@@ -376,7 +363,7 @@ static Suite *provider_switching_basic_suite(void)
 {
     Suite *s = suite_create("Provider Switching Basic");
     TCase *tc_switching = tcase_create("Provider Switching");
-    tcase_set_timeout(tc_switching, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_switching, 30);
     tcase_add_unchecked_fixture(tc_switching, suite_setup, suite_teardown);
     tcase_add_test(tc_switching, test_provider_inference_from_model);
     tcase_add_test(tc_switching, test_agent_provider_fields_on_switch);

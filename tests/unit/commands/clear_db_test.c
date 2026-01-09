@@ -438,7 +438,7 @@ static Suite *commands_clear_db_suite(void)
 {
     Suite *s = suite_create("Commands/Clear DB");
     TCase *tc = tcase_create("Database Errors");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
 
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
     tcase_add_checked_fixture(tc, setup, teardown);

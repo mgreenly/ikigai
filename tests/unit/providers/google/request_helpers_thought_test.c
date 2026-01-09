@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file request_helpers_thought_test.c
  * @brief Unit tests for Google thought signature helpers
@@ -177,7 +176,7 @@ static Suite *request_helpers_thought_suite(void)
     Suite *s = suite_create("Google Request Helpers - Thought Signatures");
 
     TCase *tc_extract = tcase_create("Thought Signature Extraction");
-    tcase_set_timeout(tc_extract, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_extract, 30);
     tcase_add_checked_fixture(tc_extract, setup, teardown);
     tcase_add_test(tc_extract, test_extract_thought_signature_null);
     tcase_add_test(tc_extract, test_extract_thought_signature_empty);
@@ -190,7 +189,7 @@ static Suite *request_helpers_thought_suite(void)
     suite_add_tcase(s, tc_extract);
 
     TCase *tc_find = tcase_create("Find Latest Thought Signature");
-    tcase_set_timeout(tc_find, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_find, 30);
     tcase_add_checked_fixture(tc_find, setup, teardown);
     tcase_add_test(tc_find, test_find_latest_thought_signature_not_gemini_3);
     tcase_add_test(tc_find, test_find_latest_thought_signature_no_assistant);

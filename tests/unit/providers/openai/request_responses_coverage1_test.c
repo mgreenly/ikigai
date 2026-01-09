@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file request_responses_coverage1_test.c
  * @brief Coverage tests for OpenAI Responses API request serialization (Part 1)
@@ -228,14 +227,14 @@ static Suite *request_responses_coverage1_suite(void)
     Suite *s = suite_create("OpenAI Responses API Coverage Tests (Part 1)");
 
     TCase *tc_reasoning = tcase_create("Reasoning Edge Cases");
-    tcase_set_timeout(tc_reasoning, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_reasoning, 30);
     tcase_add_checked_fixture(tc_reasoning, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_reasoning, test_reasoning_invalid_level);
     tcase_add_test(tc_reasoning, test_valid_reasoning_effort);
     suite_add_tcase(s, tc_reasoning);
 
     TCase *tc_tool_choice = tcase_create("Tool Choice Edge Cases");
-    tcase_set_timeout(tc_tool_choice, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool_choice, 30);
     tcase_add_checked_fixture(tc_tool_choice, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_tool_choice, test_tool_choice_auto);
     tcase_add_test(tc_tool_choice, test_tool_choice_none);
@@ -244,7 +243,7 @@ static Suite *request_responses_coverage1_suite(void)
     suite_add_tcase(s, tc_tool_choice);
 
     TCase *tc_input = tcase_create("Input Formats");
-    tcase_set_timeout(tc_input, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_input, 30);
     tcase_add_checked_fixture(tc_input, request_responses_setup, request_responses_teardown);
     tcase_add_test(tc_input, test_multi_turn_input_array);
     tcase_add_test(tc_input, test_single_assistant_message_array);

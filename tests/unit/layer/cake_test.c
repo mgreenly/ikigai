@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include "../../../src/layer.h"
 #include "../../../src/error.h"
 #include <check.h>
@@ -369,26 +368,26 @@ static Suite *layer_cake_suite(void)
     Suite *s = suite_create("Layer Cake");
 
     TCase *tc_create = tcase_create("Create");
-    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, 30);
     tcase_add_test(tc_create, test_layer_cake_create);
     suite_add_tcase(s, tc_create);
 
     TCase *tc_add = tcase_create("Add Layer");
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_add, 30);
     tcase_add_test(tc_add, test_layer_cake_add_layer_single);
     tcase_add_test(tc_add, test_layer_cake_add_layer_multiple);
     tcase_add_test(tc_add, test_layer_cake_add_layer_grows_array);
     suite_add_tcase(s, tc_add);
 
     TCase *tc_height = tcase_create("Total Height");
-    tcase_set_timeout(tc_height, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_height, 30);
     tcase_add_test(tc_height, test_layer_cake_get_total_height_all_visible);
     tcase_add_test(tc_height, test_layer_cake_get_total_height_some_invisible);
     tcase_add_test(tc_height, test_layer_cake_get_total_height_empty);
     suite_add_tcase(s, tc_height);
 
     TCase *tc_render = tcase_create("Render");
-    tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_layer_cake_render_simple);
     tcase_add_test(tc_render, test_layer_cake_render_multiple_layers);
     tcase_add_test(tc_render, test_layer_cake_render_skips_invisible);

@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include <check.h>
 #include <talloc.h>
 
@@ -88,7 +87,7 @@ static Suite *tool_call_suite(void)
     Suite *s = suite_create("Tool Call");
 
     TCase *tc_call = tcase_create("Tool Call Creation");
-    tcase_set_timeout(tc_call, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_call, 30);
     tcase_add_checked_fixture(tc_call, setup, teardown);
     tcase_add_test(tc_call, test_tool_call_create_returns_nonnull);
     tcase_add_test(tc_call, test_tool_call_create_sets_id);

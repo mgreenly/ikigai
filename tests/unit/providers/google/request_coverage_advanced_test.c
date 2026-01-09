@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 
@@ -149,7 +148,7 @@ static Suite *request_coverage_advanced_suite(void)
 {
     Suite *s = suite_create("Google Request Coverage - Advanced");
     TCase *tc_misc = tcase_create("Advanced Coverage");
-    tcase_set_timeout(tc_misc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_misc, 30);
     tcase_add_checked_fixture(tc_misc, setup, teardown);
     tcase_add_test(tc_misc, test_generation_config_combinations);
     tcase_add_test(tc_misc, test_system_instruction_cases);

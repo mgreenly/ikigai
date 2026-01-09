@@ -218,11 +218,11 @@ static Suite *autocomplete_viewport_scroll_suite(void)
     Suite *s = suite_create("Autocomplete Viewport Scroll");
 
     TCase *tc_viewport = tcase_create("Viewport");
-    tcase_set_timeout(tc_viewport, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_viewport, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_viewport, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_viewport, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_viewport, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
+    tcase_set_timeout(tc_viewport, 30);
     tcase_add_test(tc_viewport, test_autocomplete_viewport_includes_completion_height);
     tcase_add_test(tc_viewport, test_autocomplete_viewport_without_completion);
     suite_add_tcase(s, tc_viewport);

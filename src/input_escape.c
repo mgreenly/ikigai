@@ -228,13 +228,6 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
         }
     }
 
-    // Mask off NumLock bit (bit 7, value 128) for non-numpad keys
-    // NumLock state is irrelevant for letter keys but matters for numpad
-    // CSI u modifier encoding: 1 + Shift(0) + Alt(1) + Ctrl(2) + Super(3) + Hyper(4) + Meta(5) + CapsLock(6) + NumLock(7)
-    // For now, unconditionally mask NumLock to fix letter key input
-    // TODO: Preserve NumLock for numpad keys (need to distinguish numpad keycodes)
-    modifiers &= ~128;  // Clear bit 7 (NumLock)
-
     // Filter Alacritty modifier-only events (keycode > 50000)
     if (keycode > 50000) {
         action_out->type = IK_INPUT_UNKNOWN;

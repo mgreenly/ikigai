@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_coverage_info_read_test.c
  * @brief Coverage tests for Google provider info_read and cancel functionality
@@ -377,7 +376,7 @@ static Suite *google_coverage_info_read_suite(void)
     Suite *s = suite_create("Google Coverage - Info Read");
 
     TCase *tc_info_read = tcase_create("Info Read Tests");
-    tcase_set_timeout(tc_info_read, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_info_read, 30);
     tcase_add_unchecked_fixture(tc_info_read, setup, teardown);
 
     // Line 219: NULL active_stream in info_read

@@ -248,11 +248,11 @@ static Suite *scrollback_visibility_suite(void)
     Suite *s = suite_create("Scrollback Visibility");
 
     TCase *tc_visibility = tcase_create("Visibility");
-    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_visibility, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
+    tcase_set_timeout(tc_visibility, 30);
     tcase_add_test(tc_visibility, test_scrollback_fills_viewport_when_scrolled_up);
     tcase_add_test(tc_visibility, test_scrollback_visible_when_scrolled_to_top);
     suite_add_tcase(s, tc_visibility);

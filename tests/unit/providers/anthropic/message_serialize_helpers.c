@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file message_serialize_helpers.c
  * @brief Message serialization tests for Anthropic provider
@@ -214,7 +213,7 @@ Suite *message_serialize_suite(void)
     Suite *s = suite_create("Message Serialization");
 
     TCase *tc_message_content = tcase_create("Message Content");
-    tcase_set_timeout(tc_message_content, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_message_content, 30);
     tcase_add_unchecked_fixture(tc_message_content, setup, teardown);
     tcase_add_test(tc_message_content, test_serialize_message_content_single_text_success);
     tcase_add_test(tc_message_content, test_serialize_message_content_multiple_blocks_success);
@@ -222,7 +221,7 @@ Suite *message_serialize_suite(void)
     suite_add_tcase(s, tc_message_content);
 
     TCase *tc_role = tcase_create("Role Mapping");
-    tcase_set_timeout(tc_role, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_role, 30);
     tcase_add_unchecked_fixture(tc_role, setup, teardown);
     tcase_add_test(tc_role, test_role_to_string_user);
     tcase_add_test(tc_role, test_role_to_string_assistant);
@@ -230,7 +229,7 @@ Suite *message_serialize_suite(void)
     suite_add_tcase(s, tc_role);
 
     TCase *tc_messages = tcase_create("Message Serialization");
-    tcase_set_timeout(tc_messages, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_messages, 30);
     tcase_add_unchecked_fixture(tc_messages, setup, teardown);
     tcase_add_test(tc_messages, test_serialize_messages_success);
     tcase_add_test(tc_messages, test_serialize_messages_empty_array);

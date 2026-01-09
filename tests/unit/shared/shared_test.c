@@ -1,5 +1,4 @@
 #include "../../../src/shared.h"
-#include "../../../src/paths.h"
 
 #include "../../../src/error.h"
 #include "../../../src/config.h"
@@ -159,15 +158,7 @@ START_TEST(test_shared_ctx_init_and_memory) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     // Test init success
     ck_assert(is_ok(&res));
@@ -197,15 +188,7 @@ START_TEST(test_shared_ctx_config) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -231,15 +214,7 @@ START_TEST(test_shared_ctx_terminal_and_render) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -267,15 +242,7 @@ START_TEST(test_shared_ctx_database_unconfigured) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -300,15 +267,7 @@ START_TEST(test_shared_ctx_history) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -333,15 +292,7 @@ START_TEST(test_shared_ctx_debug) {
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -384,16 +335,8 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
     mock_stat_fail_path = ".ikigai";
     mock_mkdir_fail_path = ".ikigai";
 
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, unique_dir, ".ikigai", logger, &shared);
 
     // Should still succeed despite history load failure (graceful degradation)
     ck_assert(is_ok(&res));
@@ -414,7 +357,7 @@ static Suite *shared_suite(void)
     Suite *s = suite_create("Shared Context");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_shared_ctx_init_and_memory);
     tcase_add_test(tc_core, test_shared_ctx_config);

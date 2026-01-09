@@ -1,4 +1,3 @@
-#include "../../../../test_constants.h"
 /**
  * @file openai_serialize_assistant_test.c
  * @brief Unit tests for OpenAI assistant message serialization
@@ -257,7 +256,7 @@ Suite *openai_serialize_assistant_suite(void)
     Suite *s = suite_create("OpenAI Serialize Assistant Messages");
 
     TCase *tc_assistant = tcase_create("Assistant Messages");
-    tcase_set_timeout(tc_assistant, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_assistant, 30);
     tcase_add_unchecked_fixture(tc_assistant, setup, teardown);
     tcase_add_test(tc_assistant, test_serialize_assistant_message_text);
     tcase_add_test(tc_assistant, test_serialize_assistant_message_with_tool_calls);

@@ -215,7 +215,7 @@ static Suite *test_contexts_suite(void)
     Suite *s = suite_create("Test Contexts Helpers");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_cfg_create_returns_valid_config);
     tcase_add_test(tc_core, test_shared_ctx_create_succeeds);
     tcase_add_test(tc_core, test_repl_create_creates_both_contexts);

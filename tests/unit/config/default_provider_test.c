@@ -1,5 +1,4 @@
 #include "../../../src/config.h"
-#include "../../../src/paths.h"
 
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
@@ -26,21 +25,12 @@ const char *yyjson_get_str_(yyjson_val *val)
 }
 
 START_TEST(test_default_provider_with_value) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with default_provider
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_provider_test_%d.json", getpid());
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -59,34 +49,25 @@ START_TEST(test_default_provider_with_value) {
 
     // Load config
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_nonnull(cfg->default_provider);
     ck_assert_str_eq(cfg->default_provider, "anthropic");
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_default_provider_invalid_type) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with invalid default_provider type
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_provider_invalid_%d.json", getpid());
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -105,33 +86,24 @@ START_TEST(test_default_provider_invalid_type) {
 
     // Load config - should fail
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(result.is_err);
     ck_assert_int_eq(error_code(result.err), ERR_PARSE);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_default_provider_empty_string) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with empty default_provider
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_provider_empty_%d.json", getpid());
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -150,13 +122,13 @@ START_TEST(test_default_provider_empty_string) {
 
     // Load config - should succeed with NULL default_provider
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     ck_assert_ptr_null(cfg->default_provider);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
@@ -275,21 +247,12 @@ START_TEST(test_get_default_provider_fallback) {
 END_TEST
 
 START_TEST(test_default_provider_null_from_yyjson) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a test config file with default_provider
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_config[512];
+    snprintf(test_config, sizeof(test_config), "/tmp/ikigai_provider_null_%d.json", getpid());
 
     FILE *f = fopen(test_config, "w");
     ck_assert_ptr_nonnull(f);
@@ -315,7 +278,7 @@ START_TEST(test_default_provider_null_from_yyjson) {
 
     // Load config - should succeed with NULL default_provider due to mock
     ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_config, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_nonnull(cfg);
     // Even though JSON has a value, mock returns NULL, so config should be NULL
@@ -325,7 +288,7 @@ START_TEST(test_default_provider_null_from_yyjson) {
     g_return_null_on_call = -1;
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_config);
     talloc_free(ctx);
 }
 
@@ -335,7 +298,7 @@ static Suite *default_provider_suite(void)
 {
     Suite *s = suite_create("Config Default Provider");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_default_provider_with_value);
     tcase_add_test(tc_core, test_default_provider_invalid_type);

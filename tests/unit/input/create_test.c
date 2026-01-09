@@ -50,16 +50,16 @@ static Suite *input_create_suite(void)
 {
     Suite *s = suite_create("Input Create");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
 
     tcase_add_test(tc_core, test_input_parser_create);
 

@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_parse_basic_test.c
  * @brief Unit tests for Google response parsing - basic cases
@@ -288,7 +287,7 @@ static Suite *google_response_parse_basic_suite(void)
     Suite *s = suite_create("Google Response Parsing - Basic");
 
     TCase *tc_parse = tcase_create("Basic Parsing");
-    tcase_set_timeout(tc_parse, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_parse, 30);
     tcase_add_unchecked_fixture(tc_parse, setup, teardown);
     tcase_add_test(tc_parse, test_parse_simple_text_response);
     tcase_add_test(tc_parse, test_parse_thinking_response);

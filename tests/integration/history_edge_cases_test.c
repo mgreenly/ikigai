@@ -2,7 +2,6 @@
 #include "../../src/history.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
-#include "../../src/paths.h"
 #include "../test_utils.h"
 
 #include <check.h>
@@ -213,16 +212,7 @@ START_TEST(test_history_empty_input_not_saved) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     result = ik_repl_submit_line(repl);
@@ -255,15 +245,7 @@ START_TEST(test_history_file_corrupt_continues) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -292,15 +274,7 @@ START_TEST(test_history_file_write_failure) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -338,7 +312,7 @@ static Suite *history_edge_cases_suite(void)
     Suite *s = suite_create("History Edge Cases");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_history_empty_input_not_saved);
     tcase_add_test(tc_core, test_history_file_corrupt_continues);

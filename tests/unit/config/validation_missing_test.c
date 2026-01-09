@@ -5,28 +5,18 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "../../../src/config.h"
-#include "../../../src/paths.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
 START_TEST(test_config_missing_field_listen_address) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a config missing listen_address
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing2_%d.json", getpid());
 
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_port\": 1984}");
@@ -35,35 +25,26 @@ START_TEST(test_config_missing_field_listen_address) {
     // Try to load - should fail with PARSE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_field_listen_port) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a config missing listen_port
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing3_%d.json", getpid());
 
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\"}");
@@ -72,66 +53,49 @@ START_TEST(test_config_missing_field_listen_port) {
     // Try to load - should fail with PARSE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_field_openai_model) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing_model_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
     fclose(f);
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_field_openai_temperature) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing_temp_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -139,32 +103,24 @@ START_TEST(test_config_missing_field_openai_temperature) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_field_openai_max_completion_tokens) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_missing_tokens_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -172,32 +128,24 @@ START_TEST(test_config_missing_field_openai_max_completion_tokens) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_PARSE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_missing_openai_system_message) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_no_sysmsg_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     // Completely omit openai_system_message field
     fprintf(f,
@@ -206,10 +154,11 @@ START_TEST(test_config_missing_openai_system_message) {
 
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);
     ck_assert_ptr_null(cfg->openai_system_message);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
@@ -219,7 +168,7 @@ static Suite *config_validation_missing_suite(void)
 {
     Suite *s = suite_create("Config Validation - Missing Fields");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_config_missing_field_listen_address);
     tcase_add_test(tc_core, test_config_missing_field_listen_port);

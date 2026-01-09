@@ -306,7 +306,7 @@ static Suite *render_scrollback_suite(void)
     Suite *s = suite_create("Render Scrollback");
 
     TCase *tc_render = tcase_create("Rendering");
-    tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_render, 30);
     tcase_add_test(tc_render, test_render_empty_scrollback);
     tcase_add_test(tc_render, test_render_single_line);
     tcase_add_test(tc_render, test_render_multiple_lines);

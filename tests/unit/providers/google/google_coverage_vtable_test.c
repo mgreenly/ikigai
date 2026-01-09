@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_coverage_vtable_test.c
  * @brief Coverage tests for Google provider vtable methods
@@ -151,7 +150,7 @@ static Suite *google_coverage_vtable_suite(void)
     Suite *s = suite_create("Google Coverage - Vtable");
 
     TCase *tc_vtable = tcase_create("Vtable Tests");
-    tcase_set_timeout(tc_vtable, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_vtable, 30);
     tcase_add_unchecked_fixture(tc_vtable, setup, teardown);
 
     // Vtable methods

@@ -12,7 +12,6 @@
 #include <signal.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
-#include "../../../src/paths.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/agent.h"
 #include "../../test_utils.h"
@@ -34,7 +33,7 @@ int posix_tcflush_(int fd, int queue_selector);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
 ssize_t posix_read_(int fd, void *buf, size_t count);
 int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx);
 res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            int64_t session_id,
                            const char *agent_uuid,
@@ -71,10 +70,9 @@ static void suite_teardown(void)
 }
 
 // Mock ik_db_init_ - always succeeds in session tests
-res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, void **out_ctx)
 {
     (void)conn_str;
-    (void)data_dir;
     ik_db_ctx_t *dummy_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
     if (dummy_ctx == NULL) {
         return ERR(mem_ctx, IO, "Out of memory");
@@ -301,15 +299,7 @@ START_TEST(test_repl_init_session_get_active_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_get_active
@@ -338,15 +328,7 @@ START_TEST(test_repl_init_session_create_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_create
@@ -376,15 +358,7 @@ START_TEST(test_repl_init_restore_agents_failure) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on restore_agents
@@ -414,15 +388,7 @@ START_TEST(test_repl_init_existing_session) {
     cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Initialize REPL - should use existing session
@@ -450,11 +416,11 @@ static Suite *repl_session_suite(void)
     Suite *s = suite_create("REPL Session Management");
 
     TCase *tc_session = tcase_create("Session Operations");
-    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, 30);
+    tcase_set_timeout(tc_session, 30);
+    tcase_set_timeout(tc_session, 30);
+    tcase_set_timeout(tc_session, 30);
+    tcase_set_timeout(tc_session, 30);
     tcase_add_unchecked_fixture(tc_session, suite_setup, suite_teardown);
     tcase_add_test(tc_session, test_repl_init_session_get_active_failure);
     tcase_add_test(tc_session, test_repl_init_session_create_failure);

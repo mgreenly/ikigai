@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events2_test.c
  * @brief Tests for OpenAI Responses API event processing edge cases (part 2)
@@ -126,7 +125,7 @@ static Suite *openai_streaming_responses_events2_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events Part 2");
 
     TCase *tc = tcase_create("Events");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_function_call_arguments_done_is_noop);
     tcase_add_test(tc, test_output_item_done_edge_cases);

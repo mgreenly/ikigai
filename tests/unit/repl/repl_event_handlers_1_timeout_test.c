@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_1_timeout_test.c
  * @brief Unit tests for REPL event handler timeout functions
@@ -368,7 +367,7 @@ static Suite *repl_event_handlers_timeout_suite(void)
     Suite *s = suite_create("repl_event_handlers_1_timeout");
 
     TCase *tc_timeout = tcase_create("timeout");
-    tcase_set_timeout(tc_timeout, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_timeout, 30);
     tcase_add_checked_fixture(tc_timeout, setup, teardown);
     tcase_add_test(tc_timeout, test_curl_min_timeout_no_agents);
     tcase_add_test(tc_timeout, test_curl_min_timeout_with_provider);

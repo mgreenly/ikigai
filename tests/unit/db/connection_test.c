@@ -94,7 +94,7 @@ static char *get_test_conn_str(TALLOC_CTX *ctx)
 START_TEST(test_db_init_empty_conn_str) {
     ik_db_ctx_t *db_ctx = NULL;
 
-    res_t res = ik_db_init(test_ctx, "", "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "", &db_ctx);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_INVALID_ARG);
@@ -107,7 +107,7 @@ START_TEST(test_db_init_malformed_conn_str) {
     // Malformed connection string should either:
     // 1. Fail during validation (ERR_INVALID_ARG), or
     // 2. Fail during connection (ERR_DB_CONNECT)
-    res_t res = ik_db_init(test_ctx, MALFORMED_CONN_STR, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, MALFORMED_CONN_STR, &db_ctx);
 
     ck_assert(is_err(&res));
     // Accept either validation error or connection error
@@ -122,7 +122,7 @@ START_TEST(test_db_init_connection_refused) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Use invalid host that should result in connection refused/timeout
-    res_t res = ik_db_init(test_ctx, INVALID_HOST_CONN_STR, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, INVALID_HOST_CONN_STR, &db_ctx);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
@@ -137,7 +137,7 @@ START_TEST(test_db_init_postgres_scheme) {
     // Test postgres:// scheme (alternative to postgresql://)
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT, not INVALID_ARG (validation should pass)
     ck_assert(is_err(&res));
@@ -152,7 +152,7 @@ START_TEST(test_db_init_key_value_format) {
     // Test libpq key=value format
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", &db_ctx);
 
     // Should fail with DB_CONNECT (libpq handles the parsing)
     ck_assert(is_err(&res));
@@ -168,7 +168,7 @@ START_TEST(test_db_init_success) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -183,7 +183,7 @@ START_TEST(test_db_init_talloc_hierarchy) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -203,7 +203,7 @@ START_TEST(test_db_init_destructor_cleanup) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(local_ctx);
 
-    res_t res = ik_db_init(local_ctx, conn_str, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(local_ctx, conn_str, &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -227,7 +227,7 @@ START_TEST(test_db_init_connection_string_variants) {
     char *base_str = get_test_conn_str(test_ctx);
 
     ik_db_ctx_t *db_ctx = NULL;
-    res_t res = ik_db_init(test_ctx, base_str, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, base_str, &db_ctx);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(db_ctx);
@@ -241,7 +241,7 @@ START_TEST(test_db_init_cleanup_on_error) {
     ik_db_ctx_t *db_ctx = NULL;
 
     // Initialize with invalid connection string
-    res_t res = ik_db_init(local_ctx, INVALID_HOST_CONN_STR, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(local_ctx, INVALID_HOST_CONN_STR, &db_ctx);
 
     ck_assert(is_err(&res));
 
@@ -300,7 +300,7 @@ START_TEST(test_db_transaction_success) {
     ik_db_ctx_t *db_ctx = NULL;
     char *conn_str = get_test_conn_str(test_ctx);
 
-    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx, conn_str, &db_ctx);
     ck_assert(is_ok(&res));
 
     // Test BEGIN
@@ -329,7 +329,7 @@ static Suite *connection_suite(void)
     Suite *s = suite_create("db_connection");
 
     TCase *tc_validation = tcase_create("connection_string_validation");
-    tcase_set_timeout(tc_validation, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_validation, 30);
     tcase_add_unchecked_fixture(tc_validation, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_validation, test_setup, test_teardown);
     tcase_add_test(tc_validation, test_db_init_empty_conn_str);
@@ -337,7 +337,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_validation);
 
     TCase *tc_connection = tcase_create("connection_errors");
-    tcase_set_timeout(tc_connection, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_connection, 30);
     tcase_add_unchecked_fixture(tc_connection, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_connection, test_setup, test_teardown);
     tcase_add_test(tc_connection, test_db_init_connection_refused);
@@ -346,7 +346,7 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_connection);
 
     TCase *tc_success = tcase_create("successful_connection");
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_success, 30);
     tcase_add_unchecked_fixture(tc_success, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_success, test_setup, test_teardown);
     tcase_add_test(tc_success, test_db_init_success);
@@ -356,21 +356,21 @@ static Suite *connection_suite(void)
     suite_add_tcase(s, tc_success);
 
     TCase *tc_cleanup = tcase_create("memory_cleanup");
-    tcase_set_timeout(tc_cleanup, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cleanup, 30);
     tcase_add_unchecked_fixture(tc_cleanup, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_cleanup, test_setup, test_teardown);
     tcase_add_test(tc_cleanup, test_db_init_cleanup_on_error);
     suite_add_tcase(s, tc_cleanup);
 
     TCase *tc_migration = tcase_create("migration_errors");
-    tcase_set_timeout(tc_migration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_migration, 30);
     tcase_add_unchecked_fixture(tc_migration, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_migration, test_setup, test_teardown);
     tcase_add_test(tc_migration, test_db_init_migration_failure);
     suite_add_tcase(s, tc_migration);
 
     TCase *tc_transactions = tcase_create("transactions");
-    tcase_set_timeout(tc_transactions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_transactions, 30);
     tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
     tcase_add_test(tc_transactions, test_db_transaction_success);

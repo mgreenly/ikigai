@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_responses_usage_test.c
  * @brief Tests for OpenAI Responses API usage parsing coverage
@@ -191,7 +190,7 @@ static Suite *response_responses_usage_suite(void)
     Suite *s = suite_create("OpenAI Responses API Usage Parsing Tests");
 
     TCase *tc_usage = tcase_create("Usage Parsing Coverage");
-    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_parse_usage_prompt_tokens_not_int);
     tcase_add_test(tc_usage, test_parse_usage_completion_tokens_not_int);

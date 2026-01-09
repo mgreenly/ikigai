@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include "../../../src/layer.h"
 #include "../../../src/error.h"
 #include <check.h>
@@ -177,7 +176,7 @@ static Suite *layer_suite(void)
     Suite *s = suite_create("Layer Basic");
 
     TCase *tc_output = tcase_create("Output Buffer");
-    tcase_set_timeout(tc_output, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_output, 30);
     tcase_add_test(tc_output, test_output_buffer_create);
     tcase_add_test(tc_output, test_output_buffer_append_simple);
     tcase_add_test(tc_output, test_output_buffer_append_multiple);
@@ -187,7 +186,7 @@ static Suite *layer_suite(void)
     suite_add_tcase(s, tc_output);
 
     TCase *tc_layer = tcase_create("Layer");
-    tcase_set_timeout(tc_layer, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_layer, 30);
     tcase_add_test(tc_layer, test_layer_create);
     tcase_add_test(tc_layer, test_layer_callbacks);
     suite_add_tcase(s, tc_layer);

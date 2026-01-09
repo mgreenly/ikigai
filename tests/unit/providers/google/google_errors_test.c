@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file test_google_errors.c
  * @brief Unit tests for Google error response parsing and mapping
@@ -188,7 +187,7 @@ static Suite *google_errors_suite(void)
     Suite *s = suite_create("Google Errors");
 
     TCase *tc_errors = tcase_create("Error Parsing and Mapping");
-    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_unchecked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_parse_authentication_error_401);
     tcase_add_test(tc_errors, test_parse_rate_limit_error_429);

@@ -377,7 +377,7 @@ static Suite *commands_mark_suite(void)
     Suite *s = suite_create("Commands: Mark/Rewind");
 
     TCase *tc_create = tcase_create("Mark Creation");
-    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, 30);
     tcase_add_checked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_unlabeled_mark);
     tcase_add_test(tc_create, test_create_labeled_mark);
@@ -385,7 +385,7 @@ static Suite *commands_mark_suite(void)
     suite_add_tcase(s, tc_create);
 
     TCase *tc_find = tcase_create("Mark Finding");
-    tcase_set_timeout(tc_find, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_find, 30);
     tcase_add_checked_fixture(tc_find, setup, teardown);
     tcase_add_test(tc_find, test_find_mark_most_recent);
     tcase_add_test(tc_find, test_find_mark_by_label);
@@ -395,7 +395,7 @@ static Suite *commands_mark_suite(void)
     suite_add_tcase(s, tc_find);
 
     TCase *tc_rewind = tcase_create("Mark Rewind");
-    tcase_set_timeout(tc_rewind, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_rewind, 30);
     tcase_add_checked_fixture(tc_rewind, setup, teardown);
     tcase_add_test(tc_rewind, test_rewind_to_mark);
     tcase_add_test(tc_rewind, test_rewind_to_most_recent);
@@ -404,7 +404,7 @@ static Suite *commands_mark_suite(void)
     suite_add_tcase(s, tc_rewind);
 
     TCase *tc_commands = tcase_create("Command Dispatcher");
-    tcase_set_timeout(tc_commands, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_commands, 30);
     tcase_add_checked_fixture(tc_commands, setup, teardown);
     tcase_add_test(tc_commands, test_mark_command_via_dispatcher);
     tcase_add_test(tc_commands, test_mark_command_without_label);

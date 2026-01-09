@@ -235,7 +235,7 @@ static Suite *error_messages_suite(void)
 
     /* User message tests */
     TCase *tc_message = tcase_create("User Messages");
-    tcase_set_timeout(tc_message, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_message, 30);
     tcase_add_checked_fixture(tc_message, setup, teardown);
     tcase_add_test(tc_message, test_user_message_auth_anthropic);
     tcase_add_test(tc_message, test_user_message_auth_openai);

@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_events_coverage_test.c
  * @brief Additional coverage tests for OpenAI Responses API event processing
@@ -311,7 +310,7 @@ static Suite *openai_streaming_responses_events_coverage_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Events Coverage");
 
     TCase *tc = tcase_create("Coverage");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_usage_edge_cases);
     tcase_add_test(tc, test_error_event_types);

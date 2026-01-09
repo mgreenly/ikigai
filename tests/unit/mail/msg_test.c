@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include "../../../src/mail/msg.h"
 
 #include <check.h>
@@ -105,7 +104,7 @@ static Suite *msg_suite(void)
 {
     Suite *s = suite_create("Mail Message");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_msg_create_allocates_message);
     tcase_add_test(tc_core, test_msg_create_copies_fields);

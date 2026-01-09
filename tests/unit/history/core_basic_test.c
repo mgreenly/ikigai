@@ -98,13 +98,13 @@ static Suite *history_core_basic_suite(void)
     Suite *s = suite_create("History Core Basic");
 
     TCase *tc_create = tcase_create("Create");
-    tcase_set_timeout(tc_create, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_create, 30);
     tcase_add_checked_fixture(tc_create, setup, teardown);
     tcase_add_test(tc_create, test_create_history);
     suite_add_tcase(s, tc_create);
 
     TCase *tc_add = tcase_create("Add Entries");
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_add, 30);
     tcase_add_checked_fixture(tc_add, setup, teardown);
     tcase_add_test(tc_add, test_add_entries_within_capacity);
     tcase_add_test(tc_add, test_add_entries_exceeds_capacity);

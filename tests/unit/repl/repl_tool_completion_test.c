@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file repl_tool_completion_test.c
  * @brief Unit tests for repl_tool_completion functions
@@ -405,7 +404,7 @@ static Suite *repl_tool_completion_suite(void)
     Suite *s = suite_create("repl_tool_completion");
 
     TCase *tc_core = tcase_create("core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_stop);
     tcase_add_test(tc_core, test_handle_agent_tool_completion_continues_loop);

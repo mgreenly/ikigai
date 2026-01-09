@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file request_responses_reasoning_tools_test.c
  * @brief Reasoning and tool tests for OpenAI Responses API
@@ -369,7 +368,7 @@ static Suite *request_responses_reasoning_tools_suite(void)
     Suite *s = suite_create("OpenAI Responses API Reasoning and Tools");
 
     TCase *tc_reasoning = tcase_create("Reasoning Configuration");
-    tcase_set_timeout(tc_reasoning, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_reasoning, 30);
     tcase_add_checked_fixture(tc_reasoning, setup, teardown);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_low);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_medium);
@@ -379,7 +378,7 @@ static Suite *request_responses_reasoning_tools_suite(void)
     suite_add_tcase(s, tc_reasoning);
 
     TCase *tc_tools = tcase_create("Tool Definitions");
-    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_serialize_single_tool);
     tcase_add_test(tc_tools, test_serialize_multiple_tools);

@@ -333,11 +333,11 @@ static Suite *completion_navigation_suite(void)
 {
     Suite *s = suite_create("Completion Basic");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_tab_triggers_completion);
     tcase_add_test(tc_core, test_tab_accepts_selection);

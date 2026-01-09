@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file request_chat_strict_test.c
  * @brief Tests for OpenAI strict mode tool serialization
@@ -223,7 +222,7 @@ static Suite *request_chat_strict_suite(void)
     Suite *s = suite_create("request_chat_strict");
 
     TCase *tc = tcase_create("strict_mode");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_strict_mode_all_properties_required);
     tcase_add_test(tc, test_strict_mode_flag_set);

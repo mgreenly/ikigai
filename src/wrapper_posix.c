@@ -5,7 +5,6 @@
 // In debug/test builds, these are compiled as weak symbols.
 
 #include "wrapper_posix.h"
-#include "debug_log.h"
 
 #ifndef NDEBUG
 // LCOV_EXCL_START
@@ -14,58 +13,6 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
-
-// ============================================================================
-// Debug helpers
-// ============================================================================
-
-#ifdef DEBUG
-// Format buffer as hex string with escape sequences visible
-// Returns static buffer - not thread safe, only for DEBUG_LOG
-// Currently unused but kept for debugging terminal I/O issues
-__attribute__((unused))
-static const char *format_bytes(const void *buf, size_t count)
-{
-    static char result[512];
-    const unsigned char *bytes = buf;
-    size_t out_pos = 0;
-
-    // Limit output to avoid buffer overflow
-    size_t max_bytes = (sizeof(result) - 10) / 4;  // Reserve space for "..."
-    if (count > max_bytes) count = max_bytes;
-
-    for (size_t i = 0; i < count && out_pos < sizeof(result) - 10; i++) {
-        unsigned char c = bytes[i];
-        int written;
-
-        if (c == '\x1b') {
-            // ESC as \e for readability
-            written = snprintf(result + out_pos, sizeof(result) - out_pos, "\\e");
-            out_pos += (size_t)written;
-        } else if (c == '\r') {
-            written = snprintf(result + out_pos, sizeof(result) - out_pos, "\\r");
-            out_pos += (size_t)written;
-        } else if (c == '\n') {
-            written = snprintf(result + out_pos, sizeof(result) - out_pos, "\\n");
-            out_pos += (size_t)written;
-        } else if (c == '\t') {
-            written = snprintf(result + out_pos, sizeof(result) - out_pos, "\\t");
-            out_pos += (size_t)written;
-        } else if (isprint((int)c)) {
-            result[out_pos++] = (char)c;
-        } else {
-            written = snprintf(result + out_pos, sizeof(result) - out_pos, "\\x%02x", c);
-            out_pos += (size_t)written;
-        }
-    }
-
-    result[out_pos] = '\0';
-    return result;
-}
-#endif
 
 // ============================================================================
 // POSIX system call wrappers - debug/test builds only
@@ -113,22 +60,12 @@ MOCKABLE int posix_ioctl_(int fd, unsigned long request, void *argp)
 
 MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count)
 {
-    // DEBUG_LOG("WRITE fd=%d count=%zu: %s", fd, count, format_bytes(buf, count));
-    ssize_t result = write(fd, buf, count);
-    // DEBUG_LOG("WRITE fd=%d result=%zd", fd, result);
-    return result;
+    return write(fd, buf, count);
 }
 
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
 {
-    // DEBUG_LOG("READ  fd=%d count=%zu", fd, count);
-    ssize_t result = read(fd, buf, count);
-    // if (result > 0) {
-    //     DEBUG_LOG("READ  fd=%d result=%zd: %s", fd, result, format_bytes(buf, (size_t)result));
-    // } else {
-    //     DEBUG_LOG("READ  fd=%d result=%zd", fd, result);
-    // }
-    return result;
+    return read(fd, buf, count);
 }
 
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)

@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 // Error path test for ik_db_agent_update_provider (line 408)
 #include "../../../src/db/agent.h"
 #include "../../../src/db/connection.h"
@@ -101,7 +100,7 @@ static Suite *db_agent_update_provider_errors_suite(void)
     Suite *s = suite_create("db_agent_update_provider_errors");
 
     TCase *tc_errors = tcase_create("Errors");
-    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, NULL);
     tcase_add_test(tc_errors, test_agent_update_provider_query_failure);
 

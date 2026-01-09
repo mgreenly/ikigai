@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file test_error_handling.c
  * @brief Unit tests for provider error handling
@@ -72,7 +71,7 @@ static Suite *error_handling_suite(void)
     Suite *s = suite_create("Provider Error Handling");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_error_is_retryable);
     tcase_add_test(tc_core, test_error_user_message);
     suite_add_tcase(s, tc_core);

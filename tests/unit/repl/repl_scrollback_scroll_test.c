@@ -6,7 +6,6 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
-#include "../../../src/paths.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../test_utils.h"
@@ -29,15 +28,7 @@ START_TEST(test_page_down_scrolling) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -72,15 +63,7 @@ START_TEST(test_page_down_at_bottom) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -115,15 +98,7 @@ START_TEST(test_page_down_small_offset) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -158,15 +133,7 @@ START_TEST(test_page_up_scrolling) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -209,15 +176,7 @@ START_TEST(test_page_up_empty_scrollback) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -255,15 +214,7 @@ START_TEST(test_page_up_clamping) {
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -312,7 +263,7 @@ static Suite *repl_scrollback_scroll_suite(void)
     Suite *s = suite_create("REPL Scrollback Scrolling");
 
     TCase *tc_page_down = tcase_create("Page Down");
-    tcase_set_timeout(tc_page_down, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_page_down, 30);
     tcase_add_unchecked_fixture(tc_page_down, suite_setup, NULL);
     tcase_add_test(tc_page_down, test_page_down_scrolling);
     tcase_add_test(tc_page_down, test_page_down_at_bottom);
@@ -320,7 +271,7 @@ static Suite *repl_scrollback_scroll_suite(void)
     suite_add_tcase(s, tc_page_down);
 
     TCase *tc_page_up = tcase_create("Page Up");
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_page_up, 30);
     tcase_add_unchecked_fixture(tc_page_up, suite_setup, NULL);
     tcase_add_test(tc_page_up, test_page_up_scrolling);
     tcase_add_test(tc_page_up, test_page_up_empty_scrollback);

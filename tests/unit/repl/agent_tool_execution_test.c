@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file agent_tool_execution_test.c
  * @brief Unit tests for agent-based tool execution
@@ -441,14 +440,14 @@ static Suite *agent_tool_execution_suite(void)
     Suite *s = suite_create("agent_tool_execution");
 
     TCase *tc_core = tcase_create("agent_context");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_tool_execution_uses_agent_context);
     tcase_add_test(tc_core, test_start_tool_execution_on_agent);
     suite_add_tcase(s, tc_core);
 
     TCase *tc_db_json = tcase_create("db_json");
-    tcase_set_timeout(tc_db_json, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_db_json, 30);
     tcase_add_checked_fixture(tc_db_json, setup_with_db, teardown);
     tcase_add_test(tc_db_json, test_build_tool_call_data_json_with_thinking);
     tcase_add_test(tc_db_json, test_build_tool_call_data_json_with_signature);

@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file streaming_chat_edge_coverage_test.c
  * @brief Edge case tests for streaming_chat.c branch coverage
@@ -104,7 +103,7 @@ static Suite *streaming_chat_edge_coverage_suite(void)
     Suite *s = suite_create("OpenAI Streaming Chat Edge Coverage");
 
     TCase *tc_edge = tcase_create("EdgeCases");
-    tcase_set_timeout(tc_edge, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_edge, 30);
     tcase_add_checked_fixture(tc_edge, setup, teardown);
     tcase_add_test(tc_edge, test_build_response_tool_id_without_name);
     tcase_add_test(tc_edge, test_build_response_tool_call_null_args);

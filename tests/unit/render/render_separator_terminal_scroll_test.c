@@ -287,7 +287,7 @@ static Suite *separator_scroll_suite(void)
     Suite *s = suite_create("Render: Separator Terminal Scroll Bug");
 
     TCase *tc_sep = tcase_create("Separator");
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_sep, 30);
     tcase_add_test(tc_sep, test_separator_no_trailing_newline_when_last_line);
     tcase_add_test(tc_sep, test_separator_has_trailing_newline_when_input_buffer_visible);
     tcase_add_test(tc_sep, test_input_buffer_without_separator);

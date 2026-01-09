@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file anthropic_callbacks_vtable_test.c
  * @brief Coverage tests for anthropic.c vtable methods and lifecycle
@@ -361,7 +360,7 @@ static Suite *anthropic_callbacks_vtable_suite(void)
     Suite *s = suite_create("Anthropic Callbacks - Vtable");
 
     TCase *tc_info_read = tcase_create("Info Read");
-    tcase_set_timeout(tc_info_read, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_info_read, 30);
     tcase_add_unchecked_fixture(tc_info_read, setup, teardown);
     tcase_add_test(tc_info_read, test_info_read_no_active_stream);
     tcase_add_test(tc_info_read, test_info_read_success_http_status);
@@ -376,14 +375,14 @@ static Suite *anthropic_callbacks_vtable_suite(void)
     suite_add_tcase(s, tc_info_read);
 
     TCase *tc_cancel = tcase_create("Cancel");
-    tcase_set_timeout(tc_cancel, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_cancel, 30);
     tcase_add_unchecked_fixture(tc_cancel, setup, teardown);
     tcase_add_test(tc_cancel, test_cancel_with_active_stream);
     tcase_add_test(tc_cancel, test_cancel_without_active_stream);
     suite_add_tcase(s, tc_cancel);
 
     TCase *tc_vtable = tcase_create("Vtable Methods");
-    tcase_set_timeout(tc_vtable, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_vtable, 30);
     tcase_add_unchecked_fixture(tc_vtable, setup, teardown);
     tcase_add_test(tc_vtable, test_anthropic_fdset);
     tcase_add_test(tc_vtable, test_anthropic_perform);
@@ -392,7 +391,7 @@ static Suite *anthropic_callbacks_vtable_suite(void)
     suite_add_tcase(s, tc_vtable);
 
     TCase *tc_start_stream_errors = tcase_create("start_stream Error Paths");
-    tcase_set_timeout(tc_start_stream_errors, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_start_stream_errors, 30);
     tcase_add_unchecked_fixture(tc_start_stream_errors, setup, teardown);
     tcase_add_test(tc_start_stream_errors, test_start_stream_null_model_error);
     suite_add_tcase(s, tc_start_stream_errors);

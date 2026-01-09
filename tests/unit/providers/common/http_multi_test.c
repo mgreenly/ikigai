@@ -518,7 +518,7 @@ static Suite *http_multi_suite(void)
 
     /* Lifecycle tests */
     TCase *tc_lifecycle = tcase_create("Lifecycle");
-    tcase_set_timeout(tc_lifecycle, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_lifecycle, 30);
     tcase_add_checked_fixture(tc_lifecycle, setup, teardown);
     tcase_add_test(tc_lifecycle, test_multi_create_success);
     tcase_add_test(tc_lifecycle, test_multi_cleanup_no_crash);
@@ -530,7 +530,7 @@ static Suite *http_multi_suite(void)
 
     /* Request configuration tests */
     TCase *tc_request = tcase_create("Request Configuration");
-    tcase_set_timeout(tc_request, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_request, 30);
     tcase_add_checked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_add_request_minimal);
     tcase_add_test(tc_request, test_add_request_with_headers);
@@ -540,14 +540,14 @@ static Suite *http_multi_suite(void)
 
     /* Memory lifecycle tests */
     TCase *tc_memory = tcase_create("Memory Lifecycle");
-    tcase_set_timeout(tc_memory, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_memory, 30);
     tcase_add_test(tc_memory, test_parent_context_frees_all);
     tcase_add_test(tc_memory, test_destructor_handles_active_requests);
     suite_add_tcase(s, tc_memory);
 
     /* Error path tests */
     TCase *tc_errors = tcase_create("Error Paths");
-    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_errors, 30);
     tcase_add_checked_fixture(tc_errors, setup, teardown);
     tcase_add_test(tc_errors, test_multi_create_init_failure);
     tcase_add_test(tc_errors, test_multi_perform_failure);

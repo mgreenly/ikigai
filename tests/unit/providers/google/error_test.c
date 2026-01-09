@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file error_test.c
  * @brief Unit tests for Google error handling
@@ -299,7 +298,7 @@ static Suite *google_error_suite(void)
     Suite *s = suite_create("Google Error Handling");
 
     TCase *tc_error = tcase_create("Error Handling");
-    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_error, 30);
     tcase_add_checked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_handle_error_403_auth);
     tcase_add_test(tc_error, test_handle_error_429_rate_limit);
@@ -316,7 +315,7 @@ static Suite *google_error_suite(void)
     suite_add_tcase(s, tc_error);
 
     TCase *tc_retry = tcase_create("Retry After");
-    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_retry, 30);
     tcase_add_checked_fixture(tc_retry, setup, teardown);
     tcase_add_test(tc_retry, test_get_retry_after_60s);
     tcase_add_test(tc_retry, test_get_retry_after_30s);

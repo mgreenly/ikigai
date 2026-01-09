@@ -320,11 +320,11 @@ static Suite *completion_state_suite(void)
 {
     Suite *s = suite_create("Completion_State");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_tab_cycles_to_next);
     tcase_add_test(tc_core, test_tab_updates_input_buffer);

@@ -153,10 +153,10 @@ static Suite *cursor_move_right_suite(void)
     Suite *s = suite_create("CursorMoveRight");
 
     TCase *tc_move_right = tcase_create("MoveRight");
-    tcase_set_timeout(tc_move_right, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_move_right, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_move_right, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_move_right, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
+    tcase_set_timeout(tc_move_right, 30);
     tcase_add_test(tc_move_right, test_cursor_move_right_ascii);
     tcase_add_test(tc_move_right, test_cursor_move_right_utf8);
     tcase_add_test(tc_move_right, test_cursor_move_right_emoji);
@@ -166,11 +166,11 @@ static Suite *cursor_move_right_suite(void)
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_cursor, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_cursor_move_right_null_text, SIGABRT);
     suite_add_tcase(s, tc_assertions);

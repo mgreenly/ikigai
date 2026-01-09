@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file request_responses_format_test.c
  * @brief Input format, instructions, and output tests for OpenAI Responses API
@@ -406,7 +405,7 @@ static Suite *request_responses_format_suite(void)
     Suite *s = suite_create("OpenAI Responses API Format and Output");
 
     TCase *tc_input = tcase_create("Input Format");
-    tcase_set_timeout(tc_input, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_input, 30);
     tcase_add_checked_fixture(tc_input, setup, teardown);
     tcase_add_test(tc_input, test_serialize_multi_turn_conversation);
     tcase_add_test(tc_input, test_serialize_non_user_message);
@@ -417,7 +416,7 @@ static Suite *request_responses_format_suite(void)
     suite_add_tcase(s, tc_input);
 
     TCase *tc_instructions = tcase_create("Instructions");
-    tcase_set_timeout(tc_instructions, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_instructions, 30);
     tcase_add_checked_fixture(tc_instructions, setup, teardown);
     tcase_add_test(tc_instructions, test_serialize_with_system_prompt);
     tcase_add_test(tc_instructions, test_serialize_without_system_prompt);
@@ -425,7 +424,7 @@ static Suite *request_responses_format_suite(void)
     suite_add_tcase(s, tc_instructions);
 
     TCase *tc_streaming = tcase_create("Streaming and Output");
-    tcase_set_timeout(tc_streaming, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_streaming, 30);
     tcase_add_checked_fixture(tc_streaming, setup, teardown);
     tcase_add_test(tc_streaming, test_serialize_streaming_enabled);
     tcase_add_test(tc_streaming, test_serialize_streaming_disabled);

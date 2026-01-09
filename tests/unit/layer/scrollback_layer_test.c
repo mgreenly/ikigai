@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 // Tests for scrollback layer wrapper
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/scrollback.h"
@@ -377,7 +376,7 @@ static Suite *scrollback_layer_suite(void)
     Suite *s = suite_create("Scrollback Layer");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_scrollback_layer_create_and_visibility);
     tcase_add_test(tc_core, test_scrollback_layer_height_empty);
     tcase_add_test(tc_core, test_scrollback_layer_height_with_content);

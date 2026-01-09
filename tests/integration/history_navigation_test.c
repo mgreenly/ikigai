@@ -2,7 +2,6 @@
 #include "../../src/history.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
-#include "../../src/paths.h"
 #include "../test_utils.h"
 
 #include <check.h>
@@ -218,16 +217,7 @@ START_TEST(test_history_respects_config_capacity) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&r));
+    res_t r = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared); ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
     ck_assert_uint_eq(repl->shared->history->capacity, 3);
@@ -249,15 +239,7 @@ START_TEST(test_history_multiline_preserved) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -291,15 +273,7 @@ START_TEST(test_history_submit_stops_browsing) {
     ik_repl_ctx_t *repl = NULL;
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&result));
 
     result = ik_repl_init(ctx, shared, &repl);
@@ -333,7 +307,7 @@ static Suite *history_navigation_suite(void)
     Suite *s = suite_create("History Navigation");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
     tcase_add_test(tc_core, test_history_respects_config_capacity);
     tcase_add_test(tc_core, test_history_multiline_preserved);

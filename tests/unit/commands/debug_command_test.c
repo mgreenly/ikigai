@@ -210,7 +210,7 @@ static Suite *debug_command_suite(void)
     Suite *s = suite_create("Debug Command");
 
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
     tcase_add_test(tc_core, test_debug_on);
     tcase_add_test(tc_core, test_debug_off);
     tcase_add_test(tc_core, test_debug_status);

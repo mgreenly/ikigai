@@ -388,11 +388,11 @@ static Suite *repl_debug_response_suite(void)
     Suite *s = suite_create("repl_debug_response");
 
     TCase *tc_debug = tcase_create("debug_output");
-    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_debug, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, 30);
+    tcase_set_timeout(tc_debug, 30);
     tcase_add_unchecked_fixture(tc_debug, suite_setup, NULL);
     tcase_add_checked_fixture(tc_debug, setup, teardown);
     tcase_add_test(tc_debug, test_debug_output_response_success);

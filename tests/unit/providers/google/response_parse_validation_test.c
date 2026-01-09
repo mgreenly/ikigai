@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_parse_validation_test.c
  * @brief Unit tests for Google response parsing - validation and errors
@@ -179,7 +178,7 @@ static Suite *google_response_parse_validation_suite(void)
     Suite *s = suite_create("Google Response Parsing - Validation");
 
     TCase *tc_validation = tcase_create("Validation and Errors");
-    tcase_set_timeout(tc_validation, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_validation, 30);
     tcase_add_unchecked_fixture(tc_validation, setup, teardown);
     tcase_add_test(tc_validation, test_parse_error_response);
     tcase_add_test(tc_validation, test_parse_blocked_prompt);

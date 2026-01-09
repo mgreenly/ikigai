@@ -168,11 +168,11 @@ static Suite *page_up_bug10_suite(void)
     Suite *s = suite_create("REPL: Page Up Bug #10");
 
     TCase *tc_page_up = tcase_create("PageUp");
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_page_up, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_page_up, 30);
+    tcase_set_timeout(tc_page_up, 30);
+    tcase_set_timeout(tc_page_up, 30);
+    tcase_set_timeout(tc_page_up, 30);
+    tcase_set_timeout(tc_page_up, 30);
     tcase_add_test(tc_page_up, test_page_up_shows_earliest_line);
     suite_add_tcase(s, tc_page_up);
 

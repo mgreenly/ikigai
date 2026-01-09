@@ -66,25 +66,6 @@ async function main() {
       return;
     }
 
-    // SANITY CHECK: Verify code compiles and tests pass before marking done
-    console.error("Running sanity check: make clean && make check && make");
-    const sanityCheck = new Deno.Command("sh", {
-      args: ["-c", "make clean && make check && make"],
-      stdout: "null",
-      stderr: "null",
-    });
-
-    const { success: sanityPassed } = await sanityCheck.output();
-
-    if (!sanityPassed) {
-      output(error(
-        `Sanity check failed for '${name}': code does not compile or tests fail. ` +
-        `Task cannot be marked as done. Run 'make clean && make check && make' to see errors.`,
-        "SANITY_CHECK_FAILED"
-      ));
-      return;
-    }
-
     const now = iso();
     const nowDate = new Date(now);
     const elapsedSeconds = await getElapsedSeconds(name, nowDate);

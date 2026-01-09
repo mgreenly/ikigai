@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_streaming_complex_branches_test.c
  * @brief Tests for complex branch conditions (&&, ||) in Google streaming
@@ -159,7 +158,7 @@ static Suite *google_streaming_complex_branches_suite(void)
     Suite *s = suite_create("Google Streaming - Complex Branches");
 
     TCase *tc_main = tcase_create("Complex Branch Conditions");
-    tcase_set_timeout(tc_main, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_main, 30);
     tcase_add_checked_fixture(tc_main, setup, teardown);
     tcase_add_test(tc_main, test_thought_field_false_bool);
     tcase_add_test(tc_main, test_candidates_field_missing);

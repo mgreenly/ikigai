@@ -44,19 +44,10 @@ Before starting, load these skills for context:
 - Do NOT refactor code beyond what's needed for the split
 - Keep changes focused on reducing file size
 
-## Makefile Updates
-
-If splitting test files and creating `*_helpers.c`:
-1. Add `*_HELPERS_OBJ` variable
-2. Add compile rule for the helper `.o`
-3. Add helper to link rules for tests that use it
-
-Follow existing patterns in Makefile (search for `_HELPERS_OBJ`).
-
 ## Validation
 
 Before reporting done, run:
-1. `make clean && make all build-tests` - ensure compilation succeeds
+1. `make check` - ensure tests still pass
 2. `make filesize` - ensure the file is now under the limit
 
 ## When Done

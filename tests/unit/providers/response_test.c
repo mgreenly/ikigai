@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include "../../../src/providers/response.h"
 #include "../../../src/providers/request.h"
 #include "../../../src/providers/provider.h"
@@ -126,7 +125,7 @@ static Suite *response_suite(void)
     Suite *s = suite_create("Response Builders");
 
     TCase *tc_response = tcase_create("Response Builders");
-    tcase_set_timeout(tc_response, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_response, 30);
     tcase_add_checked_fixture(tc_response, setup, teardown);
     tcase_add_test(tc_response, test_response_create);
     tcase_add_test(tc_response, test_response_add_content);

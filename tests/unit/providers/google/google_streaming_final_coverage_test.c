@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_streaming_final_coverage_test.c
  * @brief Final branch coverage tests for Google streaming
@@ -323,7 +322,7 @@ static Suite *google_streaming_final_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Final Coverage");
 
     TCase *tc_usage = tcase_create("Usage Null Token Fields");
-    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_checked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_usage_with_null_prompt_tokens);
     tcase_add_test(tc_usage, test_usage_with_null_candidates_tokens);
@@ -332,7 +331,7 @@ static Suite *google_streaming_final_coverage_suite(void)
     suite_add_tcase(s, tc_usage);
 
     TCase *tc_json = tcase_create("JSON Structure");
-    tcase_set_timeout(tc_json, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_json, 30);
     tcase_add_checked_fixture(tc_json, setup, teardown);
     tcase_add_test(tc_json, test_root_not_object);
     tcase_add_test(tc_json, test_root_is_string);
@@ -340,7 +339,7 @@ static Suite *google_streaming_final_coverage_suite(void)
     suite_add_tcase(s, tc_json);
 
     TCase *tc_thought = tcase_create("Thought Field Additional Coverage");
-    tcase_set_timeout(tc_thought, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_thought, 30);
     tcase_add_checked_fixture(tc_thought, setup, teardown);
     tcase_add_test(tc_thought, test_thought_field_number_zero);
     tcase_add_test(tc_thought, test_thought_field_number_nonzero);

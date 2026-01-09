@@ -123,11 +123,11 @@ static Suite *line_array_basic_suite(void)
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests (debug mode only)
     TCase *tc_assertions = tcase_create("Assertions");
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30);
+    tcase_set_timeout(tc_assertions, 30); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_line_array_size_null_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_line_array_capacity_null_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);

@@ -6,7 +6,6 @@
 #include "error.h"
 #include "history.h"
 #include "logger.h"
-#include "paths.h"
 #include "render.h"
 #include "terminal.h"
 
@@ -33,7 +32,6 @@
  */
 typedef struct ik_shared_ctx {
     ik_config_t *cfg;  // Configuration (borrowed, not owned)
-    ik_paths_t *paths; // Path resolution (borrowed, not owned)
     ik_logger_t *logger;     // Logger instance (DI pattern)
     ik_term_ctx_t *term;    // Terminal context
     ik_render_ctx_t *render; // Render context
@@ -50,11 +48,13 @@ typedef struct ik_shared_ctx {
 // Create shared context (facade that will create infrastructure)
 // ctx: talloc parent (root_ctx)
 // cfg: configuration pointer (borrowed)
-// paths: paths instance (borrowed)
+// working_dir: directory for logger initialization (typically cwd)
+// ikigai_path: path to ikigai directory (e.g., ".ikigai")
 // logger: pre-created logger instance (ownership transferred)
 // out: receives allocated shared context
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
-                         ik_paths_t *paths,
+                         const char *working_dir,
+                         const char *ikigai_path,
                          ik_logger_t *logger,
                          ik_shared_ctx_t **out);

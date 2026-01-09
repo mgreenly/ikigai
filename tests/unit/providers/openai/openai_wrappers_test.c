@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file openai_wrappers_test.c
  * @brief Coverage test for openai.c wrapper functions
@@ -232,7 +231,7 @@ static Suite *openai_wrappers_suite(void)
     Suite *s = suite_create("OpenAI Wrappers Coverage");
 
     TCase *tc_wrappers = tcase_create("Wrapper Functions");
-    tcase_set_timeout(tc_wrappers, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_wrappers, 30);
     tcase_add_checked_fixture(tc_wrappers, setup, teardown);
     tcase_add_test(tc_wrappers, test_wrappers_via_start_request_chat);
     tcase_add_test(tc_wrappers, test_wrappers_via_start_request_responses);

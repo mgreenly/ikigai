@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file streaming_chat_build_response_test.c
  * @brief Tests for ik_openai_chat_stream_build_response function
@@ -263,7 +262,7 @@ static Suite *streaming_chat_build_response_suite(void)
 
     // Basic Fields
     TCase *tc_basic = tcase_create("BasicFields");
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_build_response_empty_stream);
     tcase_add_test(tc_basic, test_build_response_with_model);
@@ -274,7 +273,7 @@ static Suite *streaming_chat_build_response_suite(void)
 
     // Tool Calls
     TCase *tc_tools = tcase_create("ToolCalls");
-    tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tools, 30);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
     tcase_add_test(tc_tools, test_build_response_with_tool_call);
     tcase_add_test(tc_tools, test_build_response_tool_call_empty_args);
@@ -283,7 +282,7 @@ static Suite *streaming_chat_build_response_suite(void)
 
     // Memory Management
     TCase *tc_memory = tcase_create("Memory");
-    tcase_set_timeout(tc_memory, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_memory, 30);
     tcase_add_checked_fixture(tc_memory, setup, teardown);
     tcase_add_test(tc_memory, test_build_response_on_different_ctx);
     suite_add_tcase(s, tc_memory);

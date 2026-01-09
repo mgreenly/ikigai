@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file google_streaming_error_coverage_test.c
  * @brief Coverage tests for Google streaming error handling paths
@@ -276,7 +275,7 @@ static Suite *google_streaming_error_coverage_suite(void)
     Suite *s = suite_create("Google Streaming - Error Coverage");
 
     TCase *tc_error = tcase_create("Error Categorization");
-    tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_error, 30);
     tcase_add_checked_fixture(tc_error, setup, teardown);
     tcase_add_test(tc_error, test_error_unauthenticated_status);
     tcase_add_test(tc_error, test_error_resource_exhausted_status);

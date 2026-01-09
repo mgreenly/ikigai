@@ -145,11 +145,11 @@ static Suite *exact_scenario_suite(void)
     Suite *s = suite_create("Exact User Scenario");
 
     TCase *tc_scenario = tcase_create("Scenario");
-    tcase_set_timeout(tc_scenario, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_scenario, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_scenario, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_scenario, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_scenario, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
+    tcase_set_timeout(tc_scenario, 30);
     tcase_add_test(tc_scenario, test_exact_user_scenario);
     suite_add_tcase(s, tc_scenario);
 

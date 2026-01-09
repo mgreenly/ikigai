@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 #include "../../../src/providers/request.h"
 #include "../../../src/providers/provider.h"
 #include "../../../src/error.h"
@@ -263,7 +262,7 @@ static Suite *request_suite(void)
     Suite *s = suite_create("Request Builders");
 
     TCase *tc_content_blocks = tcase_create("Content Blocks");
-    tcase_set_timeout(tc_content_blocks, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_content_blocks, 30);
     tcase_add_checked_fixture(tc_content_blocks, setup, teardown);
     tcase_add_test(tc_content_blocks, test_content_block_text);
     tcase_add_test(tc_content_blocks, test_content_block_tool_call);
@@ -272,7 +271,7 @@ static Suite *request_suite(void)
     suite_add_tcase(s, tc_content_blocks);
 
     TCase *tc_request = tcase_create("Request Builders");
-    tcase_set_timeout(tc_request, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_request, 30);
     tcase_add_checked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_request_create);
     tcase_add_test(tc_request, test_request_set_system);

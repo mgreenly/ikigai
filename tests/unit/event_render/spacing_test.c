@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file spacing_test.c
  * @brief Tests for event render spacing (blank line after each event)
@@ -161,7 +160,7 @@ static Suite *event_render_spacing_suite(void)
     Suite *s = suite_create("Event Render Spacing");
 
     TCase *tc_spacing = tcase_create("Spacing");
-    tcase_set_timeout(tc_spacing, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_spacing, 30);
     tcase_add_test(tc_spacing, test_event_render_user_adds_blank_line);
     tcase_add_test(tc_spacing, test_event_render_trims_trailing_newlines);
     tcase_add_test(tc_spacing, test_event_render_mark_adds_blank_line);

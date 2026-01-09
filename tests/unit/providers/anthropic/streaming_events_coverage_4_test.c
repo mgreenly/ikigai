@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file streaming_events_coverage_test_4.c
  * @brief Coverage tests for Anthropic streaming events - Part 4
@@ -159,7 +158,7 @@ static Suite *streaming_events_coverage_suite_4(void)
 {
     Suite *s = suite_create("Anthropic Streaming Events Coverage 4");
     TCase *tc = tcase_create("Edge Cases");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_message_delta_no_usage);
     tcase_add_test(tc, test_message_delta_with_thinking_tokens);

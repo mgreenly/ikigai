@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "../../../src/config.h"
-#include "../../../src/paths.h"
 #include "../../../src/error.h"
 #include "../../test_utils.h"
 
@@ -21,23 +20,14 @@ START_TEST(test_error_code_strings) {
 END_TEST
 
 START_TEST(test_config_port_too_low) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a config with port below 1024
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_port_low_%d.json", getpid());
 
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 80}");
@@ -46,35 +36,26 @@ START_TEST(test_config_port_too_low) {
     // Try to load - should fail with OUT_OF_RANGE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_port_too_high) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
     // Create a config with port above 65535
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_port_high_%d.json", getpid());
 
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 70000}");
@@ -83,94 +64,83 @@ START_TEST(test_config_port_too_high) {
     // Try to load - should fail with OUT_OF_RANGE error
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_port_valid_range) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Get config path
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
     // Test minimum valid port (1024)
-    FILE *f1 = fopen(test_config, "w");
+    char test_file1[256];
+    snprintf(test_file1, sizeof(test_file1), "/tmp/ikigai_port_min_%d.json", getpid());
+
+    FILE *f1 = fopen(test_file1, "w");
     ck_assert_ptr_nonnull(f1);
     fprintf(f1,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1024, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f1);
 
     ik_config_t *config1 = NULL;
-    res_t result1 = ik_config_load(ctx, paths, &config1);
+    res_t result1 = ik_config_load(ctx, test_file1, &config1);
     ck_assert(!result1.is_err);
     ck_assert_int_eq(config1->listen_port, 1024);
 
     // Test maximum valid port (65535)
-    FILE *f2 = fopen(test_config, "w");
+    char test_file2[256];
+    snprintf(test_file2, sizeof(test_file2), "/tmp/ikigai_port_max_%d.json", getpid());
+
+    FILE *f2 = fopen(test_file2, "w");
     ck_assert_ptr_nonnull(f2);
     fprintf(f2,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 65535, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f2);
 
     ik_config_t *config2 = NULL;
-    res_t result2 = ik_config_load(ctx, paths, &config2);
+    res_t result2 = ik_config_load(ctx, test_file2, &config2);
     ck_assert(!result2.is_err);
     ck_assert_int_eq(config2->listen_port, 65535);
 
     // Test default port (1984)
-    FILE *f3 = fopen(test_config, "w");
+    char test_file3[256];
+    snprintf(test_file3, sizeof(test_file3), "/tmp/ikigai_port_def_%d.json", getpid());
+
+    FILE *f3 = fopen(test_file3, "w");
     ck_assert_ptr_nonnull(f3);
     fprintf(f3,
             "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
     fclose(f3);
 
     ik_config_t *config3 = NULL;
-    res_t result3 = ik_config_load(ctx, paths, &config3);
+    res_t result3 = ik_config_load(ctx, test_file3, &config3);
     ck_assert(!result3.is_err);
     ck_assert_int_eq(config3->listen_port, 1984);
 
     // Clean up
-    test_paths_cleanup_env();
+    unlink(test_file1);
+    unlink(test_file2);
+    unlink(test_file3);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_temperature_too_low) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_temp_low_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": -0.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -178,32 +148,24 @@ START_TEST(test_config_temperature_too_low) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_temperature_too_high) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_temp_high_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 2.1, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -211,32 +173,24 @@ START_TEST(test_config_temperature_too_high) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_tokens_too_low) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_tokens_low_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 0, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -244,32 +198,24 @@ START_TEST(test_config_max_tokens_too_low) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_max_tokens_too_high) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_tokens_high_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 130000, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984}");
@@ -277,32 +223,24 @@ START_TEST(test_config_max_tokens_too_high) {
 
     ik_config_t *config = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &config);
+    res_t result = ik_config_load(ctx, test_file, &config);
     ck_assert(result.is_err);
     ck_assert_int_eq(result.err->code, ERR_OUT_OF_RANGE);
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
 END_TEST
 
 START_TEST(test_config_valid_openai_system_message) {
-
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Setup test environment
-    test_paths_setup_env();
+    char test_file[256];
+    snprintf(test_file, sizeof(test_file), "/tmp/ikigai_valid_sysmsg_%d.json", getpid());
 
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(test_config, "w");
+    FILE *f = fopen(test_file, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f,
             "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"You are a helpful assistant\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
@@ -310,10 +248,11 @@ START_TEST(test_config_valid_openai_system_message) {
 
     ik_config_t *cfg = NULL;
 
-    res_t result = ik_config_load(ctx, paths, &cfg);
+    res_t result = ik_config_load(ctx, test_file, &cfg);
     ck_assert(!result.is_err);
     ck_assert_str_eq(cfg->openai_system_message, "You are a helpful assistant");
-    test_paths_cleanup_env();
+
+    unlink(test_file);
     talloc_free(ctx);
 }
 
@@ -323,7 +262,7 @@ static Suite *config_validation_ranges_suite(void)
 {
     Suite *s = suite_create("Config Validation - Ranges");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     tcase_add_test(tc_core, test_error_code_strings);
     tcase_add_test(tc_core, test_config_port_too_low);

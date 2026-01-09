@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file anthropic_response_test.c
  * @brief Unit tests for Anthropic response parsing
@@ -87,7 +86,7 @@ static Suite *anthropic_response_suite(void)
     Suite *s = suite_create("Anthropic Response");
 
     TCase *tc_finish = tcase_create("Finish Reason Mapping");
-    tcase_set_timeout(tc_finish, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_finish, 30);
     tcase_add_unchecked_fixture(tc_finish, setup, teardown);
     tcase_add_test(tc_finish, test_map_finish_reason_null);
     tcase_add_test(tc_finish, test_map_finish_reason_end_turn);

@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file test_google_streaming_content.c
  * @brief Unit tests for Google streaming content events
@@ -389,7 +388,7 @@ static Suite *google_streaming_content_suite(void)
     Suite *s = suite_create("Google Streaming Content");
 
     TCase *tc_basic = tcase_create("Basic Streaming");
-    tcase_set_timeout(tc_basic, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_basic, 30);
     tcase_add_unchecked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_stream_start_event);
     tcase_add_test(tc_basic, test_text_delta_events);
@@ -398,7 +397,7 @@ static Suite *google_streaming_content_suite(void)
     suite_add_tcase(s, tc_basic);
 
     TCase *tc_content = tcase_create("Content Accumulation");
-    tcase_set_timeout(tc_content, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_content, 30);
     tcase_add_unchecked_fixture(tc_content, setup, teardown);
     tcase_add_test(tc_content, test_multiple_text_deltas);
     tcase_add_test(tc_content, test_delta_content_preserved);

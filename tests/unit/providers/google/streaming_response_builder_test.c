@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file streaming_response_builder_test.c
  * @brief Unit tests for Google streaming response builder
@@ -258,13 +257,13 @@ static Suite *streaming_response_builder_suite(void)
     Suite *s = suite_create("Google Streaming Response Builder");
 
     TCase *tc_empty = tcase_create("Empty Context");
-    tcase_set_timeout(tc_empty, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_empty, 30);
     tcase_add_checked_fixture(tc_empty, setup, teardown);
     tcase_add_test(tc_empty, test_build_response_empty_context);
     suite_add_tcase(s, tc_empty);
 
     TCase *tc_model = tcase_create("Model and Usage");
-    tcase_set_timeout(tc_model, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_model, 30);
     tcase_add_checked_fixture(tc_model, setup, teardown);
     tcase_add_test(tc_model, test_build_response_with_model);
     tcase_add_test(tc_model, test_build_response_with_usage);
@@ -272,7 +271,7 @@ static Suite *streaming_response_builder_suite(void)
     suite_add_tcase(s, tc_model);
 
     TCase *tc_tool = tcase_create("Tool Call");
-    tcase_set_timeout(tc_tool, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool, 30);
     tcase_add_checked_fixture(tc_tool, setup, teardown);
     tcase_add_test(tc_tool, test_build_response_with_tool_call);
     tcase_add_test(tc_tool, test_build_response_tool_call_no_args);
@@ -282,7 +281,7 @@ static Suite *streaming_response_builder_suite(void)
     suite_add_tcase(s, tc_tool);
 
     TCase *tc_full = tcase_create("Complete Response");
-    tcase_set_timeout(tc_full, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_full, 30);
     tcase_add_checked_fixture(tc_full, setup, teardown);
     tcase_add_test(tc_full, test_build_response_full_context);
     suite_add_tcase(s, tc_full);

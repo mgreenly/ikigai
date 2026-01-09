@@ -322,22 +322,22 @@ static Suite *repl_error_paths_suite(void)
     Suite *s = suite_create("REPL Error Paths");
 
     TCase *tc_remove = tcase_create("Remove Agent");
-    tcase_set_timeout(tc_remove, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_remove, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_remove, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_remove, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_remove, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_remove, 30);
+    tcase_set_timeout(tc_remove, 30);
+    tcase_set_timeout(tc_remove, 30);
+    tcase_set_timeout(tc_remove, 30);
+    tcase_set_timeout(tc_remove, 30);
     tcase_add_checked_fixture(tc_remove, setup, teardown);
     tcase_add_test(tc_remove, test_repl_remove_agent_not_found);
     tcase_add_test(tc_remove, test_repl_remove_agent_current);
     suite_add_tcase(s, tc_remove);
 
     TCase *tc_nav = tcase_create("Navigation Actions");
-    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_nav, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
+    tcase_set_timeout(tc_nav, 30);
     tcase_add_checked_fixture(tc_nav, setup, teardown);
     tcase_add_test(tc_nav, test_repl_process_action_nav_prev_sibling);
     tcase_add_test(tc_nav, test_repl_process_action_nav_next_sibling);
@@ -346,11 +346,11 @@ static Suite *repl_error_paths_suite(void)
     suite_add_tcase(s, tc_nav);
 
     TCase *tc_add = tcase_create("Add Agent");
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_add, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_add, 30);
+    tcase_set_timeout(tc_add, 30);
+    tcase_set_timeout(tc_add, 30);
+    tcase_set_timeout(tc_add, 30);
+    tcase_set_timeout(tc_add, 30);
     tcase_add_checked_fixture(tc_add, setup, teardown);
     tcase_add_test(tc_add, test_repl_add_agent_grows_capacity);
     suite_add_tcase(s, tc_add);

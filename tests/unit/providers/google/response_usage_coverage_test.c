@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file response_usage_coverage_test.c
  * @brief Coverage tests for Google response.c usage metadata edge cases
@@ -113,7 +112,7 @@ static Suite *google_response_usage_coverage_suite(void)
     Suite *s = suite_create("Google Response Usage Coverage");
 
     TCase *tc_usage = tcase_create("Usage metadata field combinations");
-    tcase_set_timeout(tc_usage, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_usage, 30);
     tcase_add_unchecked_fixture(tc_usage, setup, teardown);
     tcase_add_test(tc_usage, test_parse_usage_missing_prompt_tokens);
     tcase_add_test(tc_usage, test_parse_usage_missing_candidates_tokens);

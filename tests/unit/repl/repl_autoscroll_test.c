@@ -19,7 +19,6 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
-#include "../../../src/paths.h"
 #include "../../../src/input.h"
 #include "../../test_utils.h"
 #include "../../../src/logger.h"
@@ -95,15 +94,7 @@ static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offs
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, "/tmp", ".ikigai", logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -258,12 +249,12 @@ static Suite *repl_autoscroll_suite(void)
 {
     Suite *s = suite_create("repl_autoscroll");
     TCase *tc = tcase_create("autoscroll");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
+    tcase_set_timeout(tc, 30);
     tcase_add_unchecked_fixture(tc, suite_setup, NULL);
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_test(tc, test_autoscroll_on_char_insert);
     tcase_add_test(tc, test_autoscroll_on_insert_newline);
     tcase_add_test(tc, test_autoscroll_on_backspace);

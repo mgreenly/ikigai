@@ -96,7 +96,7 @@ static Suite *escape_edge_suite(void)
 {
     Suite *s = suite_create("EscapeEdge");
     TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, 30);
 
     // Escape sequence edge cases
     tcase_add_test(tc_core, test_escape_sequence_null_byte);

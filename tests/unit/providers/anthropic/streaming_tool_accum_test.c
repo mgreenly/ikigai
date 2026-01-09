@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file streaming_tool_accum_test.c
  * @brief Unit tests for Anthropic streaming tool argument accumulation
@@ -197,7 +196,7 @@ static Suite *streaming_tool_accum_suite(void)
     Suite *s = suite_create("Anthropic Streaming Tool Accumulation");
 
     TCase *tc = tcase_create("Tool Argument Accumulation");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_single_delta_accumulates);
     tcase_add_test(tc, test_multiple_deltas_accumulate);

@@ -1,4 +1,3 @@
-#include "../../../test_constants.h"
 /**
  * @file openai_streaming_responses_usage_test.c
  * @brief Tests for OpenAI Responses API usage parsing
@@ -225,7 +224,7 @@ static Suite *openai_streaming_responses_usage_suite(void)
     Suite *s = suite_create("OpenAI Streaming Responses Usage");
 
     TCase *tc = tcase_create("Usage");
-    tcase_set_timeout(tc, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc, 30);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_response_completed_edge_cases);
     tcase_add_test(tc, test_parse_usage_edge_cases);

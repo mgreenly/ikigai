@@ -300,7 +300,7 @@ static Suite *message_insert_basic_suite(void)
     Suite *s = suite_create("Message Insert Basic");
 
     TCase *tc_insert = tcase_create("Insert");
-    tcase_set_timeout(tc_insert, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_insert, 30);
 
     tcase_add_unchecked_fixture(tc_insert, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_insert, test_setup, test_teardown);

@@ -268,11 +268,11 @@ static Suite *separator_separator_suite(void)
     Suite *s = suite_create("Separator visibility: Separator Last Line");
 
     TCase *tc_sep = tcase_create("Separator");
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_sep, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
+    tcase_set_timeout(tc_sep, 30);
     tcase_add_test(tc_sep, test_separator_as_last_visible_line);
     tcase_add_test(tc_sep, test_separator_last_row_input_buffer_offscreen);
     suite_add_tcase(s, tc_sep);

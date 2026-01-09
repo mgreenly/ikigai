@@ -157,7 +157,7 @@ START_TEST(test_terminal_init_enters_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    res_t result = ik_term_init(ctx, NULL, &term);
+    res_t result = ik_term_init(ctx, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
     ck_assert_int_eq(alt_screen_enter_count, 1);
@@ -170,7 +170,7 @@ START_TEST(test_terminal_cleanup_exits_alt_screen) {
     reset_mocks();
     void *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
-    res_t result = ik_term_init(ctx, NULL, &term);
+    res_t result = ik_term_init(ctx, &term);
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(term);
     alt_screen_exit_count = 0;
@@ -187,13 +187,13 @@ static Suite *mouse_scroll_suite(void)
     Suite *s = suite_create("Mouse Scroll Integration");
 
     TCase *tc_terminal = tcase_create("Terminal");
-    tcase_set_timeout(tc_terminal, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_terminal, 30);
     tcase_add_test(tc_terminal, test_terminal_init_enters_alt_screen);
     tcase_add_test(tc_terminal, test_terminal_cleanup_exits_alt_screen);
     suite_add_tcase(s, tc_terminal);
 
     TCase *tc_integration = tcase_create("Integration");
-    tcase_set_timeout(tc_integration, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_integration, 30);
     suite_add_tcase(s, tc_integration);
 
     return s;

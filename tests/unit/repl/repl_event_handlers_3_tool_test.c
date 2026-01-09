@@ -1,4 +1,3 @@
-#include "../../test_constants.h"
 /**
  * @file repl_event_handlers_test_3_tool.c
  * @brief Unit tests for REPL event handler tool execution paths
@@ -248,7 +247,7 @@ static Suite *repl_event_handlers_tool_suite(void)
     Suite *s = suite_create("repl_event_handlers_tool");
 
     TCase *tc_tool = tcase_create("tool_execution");
-    tcase_set_timeout(tc_tool, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_tool, 30);
     tcase_add_checked_fixture(tc_tool, setup, teardown);
     tcase_add_test(tc_tool, test_success_with_pending_tool_call);
     tcase_add_test(tc_tool, test_success_with_tool_loop_continuation);
