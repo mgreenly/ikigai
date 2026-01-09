@@ -41,4 +41,14 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args);
  */
 res_t ik_cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
+/**
+ * Exit command handler - exits the application
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (unused)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_cmd_exit(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
 #endif // IK_COMMANDS_BASIC_H

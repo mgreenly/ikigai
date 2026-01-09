@@ -32,6 +32,7 @@ ESCALATION_LADDER = {
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
+HISTORY_FILE = SCRIPT_DIR / "history.md"
 DEFAULT_TIMEOUT = 900
 
 # Global flag to disable spinner (set by --no-spinner)
@@ -265,16 +266,45 @@ def load_prompt_template() -> str:
     return FIX_PROMPT_TEMPLATE.read_text()
 
 
+def process_conditionals(template: str, variables: dict) -> str:
+    """
+    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
+    Includes block content if variable is truthy, removes it otherwise.
+    """
+    # Pattern: {{#if var_name}}...content...{{/if}}
+    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
+
+    def replacer(match: re.Match) -> str:
+        var_name = match.group(1)
+        content = match.group(2)
+        if variables.get(var_name):
+            return content
+        return ""
+
+    return pattern.sub(replacer, template)
+
+
 def build_prompt(failure: dict, make_output: str) -> str:
     """Build the fix prompt from template."""
     template = load_prompt_template()
 
-    prompt = template.replace("{{file}}", failure["file"])
-    prompt = prompt.replace("{{line}}", failure["line"])
-    prompt = prompt.replace("{{error_type}}", failure["error_type"])
-    prompt = prompt.replace("{{message}}", failure["message"])
-    prompt = prompt.replace("{{stack}}", failure["stack"])
-    prompt = prompt.replace("{{make_output}}", make_output[-6000:])
+    # Build variables dict for conditional processing
+    variables = {
+        "file": failure["file"],
+        "line": failure["line"],
+        "error_type": failure["error_type"],
+        "message": failure["message"],
+        "stack": failure["stack"],
+        "make_output": make_output[-6000:],
+        "history": load_history(),
+    }
+
+    # Process conditionals first
+    prompt = process_conditionals(template, variables)
+
+    # Then substitute variables
+    for key, value in variables.items():
+        prompt = prompt.replace("{{" + key + "}}", value)
 
     return prompt
 
@@ -368,6 +398,18 @@ def jj_revert(files_before: set[str] | None = None) -> None:
             run_cmd(["jj", "restore"])
 
 
+def truncate_history() -> None:
+    """Truncate history file at start of new file's fix attempts."""
+    HISTORY_FILE.write_text("")
+
+
+def load_history() -> str:
+    """Load history content, returning empty string if file doesn't exist."""
+    if HISTORY_FILE.exists():
+        return HISTORY_FILE.read_text()
+    return ""
+
+
 def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     """
     Attempt to fix a thread error.
@@ -375,6 +417,7 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     """
     file = failure["file"]
 
+    truncate_history()
     files_before = jj_get_modified_files()
 
     for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):

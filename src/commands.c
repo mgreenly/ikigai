@@ -62,6 +62,7 @@ static const ik_command_t commands[] = {
     {"model", "Switch LLM model (usage: /model <name>)", ik_cmd_model},
     {"system", "Set system message (usage: /system <text>)", ik_cmd_system},
     {"debug", "Toggle debug output (usage: /debug [on|off])", ik_cmd_debug},
+    {"exit", "Exit the application", ik_cmd_exit},
 };
 
 static const size_t command_count =

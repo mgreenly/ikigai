@@ -15,6 +15,14 @@ Before starting, load these skills for context:
 - /load naming
 - /load testability
 
+{{#if history}}
+## Previous Attempts
+
+Other agents have already tried to fix this error. Learn from their attempts:
+
+{{history}}
+{{/if}}
+
 ## The Failure
 
 **File:** {{file}}
@@ -42,4 +50,9 @@ Before starting, load these skills for context:
 
 ## When Done
 
-Report what you changed and why. Be brief.
+1. Append a brief summary to `.claude/harness/check/history.md` describing:
+   - What you tried
+   - Why you thought it would work
+   - What happened (success or failure reason)
+
+2. Report what you changed and why. Be brief.

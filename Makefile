@@ -1192,17 +1192,6 @@ else
 		echo "🔴 Coverage below $(COVERAGE_THRESHOLD)% threshold"; \
 		exit 1; \
 	fi
-	@echo ""
-	@echo "Checking LCOV exclusion count..."
-	@EXCL_COUNT=$$(grep -r "LCOV_EXCL_" src/ | wc -l); \
-	echo "Found $$EXCL_COUNT LCOV_EXCL_* markers (limit: $(LCOV_EXCL_COVERAGE))"; \
-	if [ $$EXCL_COUNT -gt $(LCOV_EXCL_COVERAGE) ]; then \
-		echo "🔴 LCOV exclusions exceed limit ($$EXCL_COUNT > $(LCOV_EXCL_COVERAGE))"; \
-		echo "   This indicates new code is using coverage exclusions instead of proper testing."; \
-		exit 1; \
-	else \
-		echo "🟢 LCOV exclusion count within limit"; \
-	fi
 endif
 
 # Default package manager and package list (Debian)

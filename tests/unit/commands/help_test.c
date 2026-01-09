@@ -13,6 +13,7 @@
 #include "../../test_utils.h"
 
 #include <check.h>
+#include <stdio.h>
 #include <talloc.h>
 
 // Forward declaration for suite function
@@ -205,6 +206,24 @@ START_TEST(test_help_lists_system) {
 }
 
 END_TEST
+
+// Test: Help command lists exit
+START_TEST(test_help_lists_exit) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/help");
+    ck_assert(is_ok(&res));
+
+    // Line 16 should be /exit (after clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug)
+    const char *line = NULL;
+    size_t length = 0;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 16, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(line);
+
+    // Should start with "  /exit - "
+    ck_assert(strncmp(line, "  /exit - ", 10) == 0);
+}
+
+END_TEST
 // Test: Help command with arguments (args should be ignored)
 START_TEST(test_help_with_arguments) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help foo bar");
@@ -237,6 +256,7 @@ static Suite *commands_help_suite(void)
     tcase_add_test(tc, test_help_lists_help);
     tcase_add_test(tc, test_help_lists_model);
     tcase_add_test(tc, test_help_lists_system);
+    tcase_add_test(tc, test_help_lists_exit);
     tcase_add_test(tc, test_help_with_arguments);
 
     suite_add_tcase(s, tc);

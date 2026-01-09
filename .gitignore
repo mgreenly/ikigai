@@ -29,6 +29,7 @@ coverage_html/
 .agents/deno/
 .ikigai/deno/
 .claude/logs/
+.claude/harness/*/history.md
 
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG

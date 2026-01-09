@@ -1,0 +1,487 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'optparse'
+require 'time'
+
+# Ralph: Iterative requirement completion harness
+class Ralph
+  # Quick checks after each requirement
+  QUICK_CHECKS = %w[
+    check:compile
+    check:filesize
+    check:all
+  ].freeze
+
+  # Full checks at end of run
+  FULL_CHECKS = %w[
+    check:compile
+    check:filesize
+    check:all
+    check:complexity
+    check:sanitize
+    check:tsan
+    check:valgrind
+    check:helgrind
+    check:coverage
+  ].freeze
+
+  SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
+
+  RALPH_QUOTES = [
+    "Me fail English? That's unpossible!",
+    "I choo-choo-choose you!",
+    "Hi, Super Nintendo Chalmers!",
+    "I'm in danger!",
+    "My cat's breath smells like cat food.",
+    "I bent my Wookie.",
+    "I ate the blue ones... they taste like burning.",
+    "He told me to burn things.",
+    "When I grow up I wanna be a principal or a caterpillar.",
+    "Go banana!"
+  ].freeze
+
+  WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
+
+  # Max thinking budget per model (tokens) - powers of 2
+  MAX_THINKING_BUDGET = {
+    'haiku' => 16_384,   # 2^14
+    'sonnet' => 32_768,  # 2^15
+    'opus' => 16_384     # 2^14
+  }.freeze
+
+  # Reasoning level multipliers (powers of 2)
+  REASONING_MULTIPLIERS = {
+    'none' => 0.0,
+    'low' => 0.25,   # 1/4 = 2^(-2)
+    'med' => 0.5,      # 1/2 = 2^(-1)
+    'high' => 1.0
+  }.freeze
+
+  def initialize(duration:, requirements_file:, history_file:, model: 'sonnet',
+                 reasoning: 'low', no_spinner: false)
+    @duration_seconds = parse_duration(duration)
+    @requirements_file = requirements_file
+    @history_file = history_file
+    @model = model
+    @reasoning = reasoning
+    @thinking_budget = calculate_thinking_budget
+    @start_time = Time.now
+    @script_dir = File.dirname(File.realpath(__FILE__))
+    @spinner_enabled = !no_spinner
+    @spinner_thread = nil
+    @spinner_running = false
+  end
+
+  def calculate_thinking_budget
+    max_budget = MAX_THINKING_BUDGET[@model] || 32_000
+    multiplier = REASONING_MULTIPLIERS[@reasoning] || (1.0 / 3.0)
+    (max_budget * multiplier).to_i
+  end
+
+  def claude_flags
+    "--model #{@model}"
+  end
+
+  def claude_env
+    env = ""
+    env += "MAX_THINKING_TOKENS=#{@thinking_budget} " if @thinking_budget.positive?
+    env
+  end
+
+  def render_prompt(template_file, vars = {})
+    require 'erb'
+    template = File.read(template_file)
+    ERB.new(template).result_with_hash(vars)
+  end
+
+  def with_temp_prompt(content)
+    require 'tempfile'
+    temp = Tempfile.new(['ralph-prompt', '.md'])
+    temp.write(content)
+    temp.close
+    yield temp.path
+  ensure
+    temp&.unlink
+  end
+
+  def run
+    log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget})"
+    ensure_files_exist
+
+    loop do
+      break if time_expired?
+      break if all_requirements_done?
+
+      maybe_ralph_says
+      requirement_id = select_requirement
+      break unless requirement_id
+
+      work_on_requirement(requirement_id)
+    end
+
+    run_final_quality_checks if all_requirements_done?
+    cleanup
+    summary
+  end
+
+  private
+
+  def log(message)
+    timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+    puts "#{timestamp} | #{'ralph'.ljust(10)} | #{message}"
+    $stdout.flush
+  end
+
+  def maybe_ralph_says
+    return unless rand < 0.1  # 10% chance
+    log RALPH_QUOTES.sample
+  end
+
+  def format_elapsed(seconds)
+    hours, remainder = seconds.divmod(3600)
+    mins, secs = remainder.divmod(60)
+
+    if hours > 0
+      "#{hours}h #{mins}m #{secs}s"
+    elsif mins > 0
+      "#{mins}m #{secs}s"
+    else
+      "#{secs}s"
+    end
+  end
+
+  def start_spinner(message)
+    return unless @spinner_enabled
+
+    @spinner_running = true
+    start = Time.now
+
+    @spinner_thread = Thread.new do
+      idx = 0
+      while @spinner_running
+        elapsed = (Time.now - start).to_i
+        mins, secs = elapsed.divmod(60)
+        frame = SPINNER_FRAMES[idx % SPINNER_FRAMES.length]
+        print "\r#{frame} #{message} [#{format('%02d:%02d', mins, secs)}]"
+        $stdout.flush
+        idx += 1
+        sleep 0.1
+      end
+      print "\r#{' ' * 80}\r"
+      $stdout.flush
+    end
+  end
+
+  def stop_spinner
+    return unless @spinner_enabled
+
+    @spinner_running = false
+    @spinner_thread&.join(1)
+  end
+
+  def parse_duration(duration_str)
+    value = duration_str.to_i
+    unit = duration_str[-1]
+
+    case unit
+    when 'h' then value * 3600
+    when 'm' then value * 60
+    else value
+    end
+  end
+
+  def ensure_files_exist
+    File.write(@history_file, '') unless File.exist?(@history_file)
+
+    unless File.exist?(@requirements_file)
+      File.write(@requirements_file, JSON.pretty_generate({ requirements: [] }))
+    end
+  end
+
+  def time_expired?
+    elapsed = Time.now - @start_time
+    if elapsed >= @duration_seconds
+      log "Time budget expired (#{format_elapsed(@duration_seconds)})"
+      true
+    else
+      false
+    end
+  end
+
+  def all_requirements_done?
+    requirements = load_requirements
+    requirements.all? { |req| req['status'] == 'done' }
+  end
+
+  def load_requirements
+    JSON.parse(File.read(@requirements_file))['requirements']
+  end
+
+  def save_requirements(requirements)
+    data = { requirements: requirements }
+    File.write(@requirements_file, JSON.pretty_generate(data))
+  end
+
+  def select_requirement
+    log 'Selecting next requirement...'
+
+    start_spinner 'Waiting for selection agent'
+
+    template_file = "#{@script_dir}/select.md.erb"
+    prompt_content = render_prompt(template_file, {
+      requirements_file: @requirements_file,
+      history_file: @history_file
+    })
+
+    result = nil
+    exit_code = nil
+
+    with_temp_prompt(prompt_content) do |prompt_file|
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 5 2>&1`
+      exit_code = $?.exitstatus
+    end
+
+    stop_spinner
+
+    if exit_code != 0
+      log "Selection agent FAILED: #{result[0..200]}"
+      return nil
+    end
+
+    begin
+      parsed = JSON.parse(result)
+      raw_output = parsed.dig('result')&.strip || result.strip
+    rescue JSON::ParserError
+      raw_output = result.strip
+    end
+
+    # Extract just the requirement ID (last non-empty line)
+    requirement_id = raw_output.lines.map(&:strip).reject(&:empty?).last
+
+    return nil if requirement_id.nil? || requirement_id.empty? || requirement_id == 'none'
+
+    log "Selected: #{requirement_id}"
+    requirement_id
+  end
+
+  def work_on_requirement(requirement_id)
+    log "Working on #{requirement_id}..."
+
+    start_spinner 'Waiting for work agent'
+
+    template_file = "#{@script_dir}/work.md.erb"
+    prompt_content = render_prompt(template_file, {
+      requirement_id: requirement_id,
+      requirements_file: @requirements_file,
+      history_file: @history_file
+    })
+
+    result = nil
+    exit_code = nil
+
+    with_temp_prompt(prompt_content) do |prompt_file|
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{WORK_OUTPUT_SCHEMA}' 2>&1`
+      exit_code = $?.exitstatus
+    end
+
+    stop_spinner
+
+    if exit_code != 0
+      log "Work agent FAILED: #{result[0..200]}"
+      restore_changes
+      outcome = { success: false, message: "Agent invocation failed: #{result[0..200]}" }
+      log_history(requirement_id, outcome)
+      log_history(requirement_id, { success: false, message: 'REVERTED: Changes restored to clean state' })
+      return
+    end
+
+    outcome = parse_work_outcome(result)
+
+    if outcome[:success]
+      log_history(requirement_id, outcome)
+      commit_work(requirement_id, outcome[:message])
+      run_quality_checks(requirement_id)
+    else
+      restore_changes
+      log_history(requirement_id, outcome)
+      log_history(requirement_id, { success: false, message: 'REVERTED: Changes restored to clean state' })
+      log "BLOCKED: #{outcome[:message]}"
+    end
+  end
+
+  def parse_work_outcome(result)
+    # Parse outer JSON from --output-format json
+    parsed = JSON.parse(result, symbolize_names: true)
+
+    # With --json-schema, the result field contains valid JSON
+    if parsed[:result]
+      inner = JSON.parse(parsed[:result], symbolize_names: true)
+      return {
+        success: inner[:success] == true,
+        message: inner[:message] || 'No message provided'
+      }
+    end
+
+    # Fallback for direct response
+    {
+      success: parsed[:success] == true,
+      message: parsed[:message] || result[0..500]
+    }
+  rescue JSON::ParserError => e
+    { success: false, message: "JSON parse error: #{e.message}. Raw: #{result[0..300]}" }
+  end
+
+  def log_history(requirement_id, outcome)
+    entry = {
+      timestamp: Time.now.iso8601,
+      requirement_id: requirement_id,
+      success: outcome[:success],
+      message: outcome[:message]
+    }
+
+    File.open(@history_file, 'a') do |f|
+      f.puts JSON.generate(entry)
+    end
+  end
+
+  def commit_work(requirement_id, message)
+    msg = "#{requirement_id}: #{message}\n\nharness/ralph | work agent"
+    system("jj commit -m '#{msg.gsub("'", "'\\''")}' >/dev/null 2>&1")
+
+    if $?.exitstatus == 0
+      log 'Committed changes'
+    else
+      log 'WARNING: Commit failed (may be no changes)'
+    end
+  end
+
+  def run_quality_checks(requirement_id)
+    log 'Running quick quality checks...'
+    run_checks(QUICK_CHECKS)
+    mark_requirement_done(requirement_id)
+  end
+
+  def run_final_quality_checks
+    log 'Running final quality checks...'
+    run_checks(FULL_CHECKS)
+  end
+
+  def run_checks(checks)
+    loop do
+      all_passed = true
+
+      checks.each do |check|
+        log "  Running #{check}..."
+        start_spinner "Running #{check}"
+
+        success = system("claude /#{check} >/dev/null 2>&1")
+        stop_spinner
+
+        unless success
+          log "  #{check} FAILED - retrying"
+          all_passed = false
+          break
+        end
+
+        commit_check(check)
+      end
+
+      break if all_passed
+    end
+  end
+
+  def commit_check(check_name)
+    msg = "fix: #{check_name}\n\nharness/ralph | quality check"
+    system("jj commit -m '#{msg}' >/dev/null 2>&1")
+    # Ignore failures - might be no changes
+  end
+
+  def mark_requirement_done(requirement_id)
+    requirements = load_requirements
+    requirement = requirements.find { |r| r['id'] == requirement_id }
+
+    if requirement
+      requirement['status'] = 'done'
+      save_requirements(requirements)
+      system("jj commit -m 'ralph: mark #{requirement_id} done' >/dev/null 2>&1")
+      log "✓ #{requirement_id} COMPLETE"
+    end
+  end
+
+  def restore_changes
+    system('jj restore >/dev/null 2>&1')
+  end
+
+  def cleanup
+    log 'Cleaning uncommitted changes...'
+    restore_changes
+  end
+
+  def summary
+    elapsed = Time.now - @start_time
+
+    requirements = load_requirements
+    done = requirements.count { |r| r['status'] == 'done' }
+    total = requirements.count
+
+    log "Completed #{done}/#{total} requirements (elapsed: #{format_elapsed(elapsed.to_i)})"
+  end
+end
+
+# Parse command line arguments
+options = { model: 'sonnet', reasoning: 'low', no_spinner: false }
+
+OptionParser.new do |opts|
+  opts.banner = 'Usage: run --duration=4h --requirements=reqs.json --history=history.jsonl [options]'
+
+  opts.on('--duration=DURATION', 'Time budget (e.g., 4h, 200m)') do |d|
+    options[:duration] = d
+  end
+
+  opts.on('--requirements=FILE', 'Requirements JSON file') do |f|
+    options[:requirements] = f
+  end
+
+  opts.on('--history=FILE', 'History JSONL file') do |f|
+    options[:history] = f
+  end
+
+  opts.on('--model=MODEL', %w[haiku sonnet opus], 'Model: haiku, sonnet, opus (default: sonnet)') do |m|
+    options[:model] = m
+  end
+
+  opts.on('--reasoning=LEVEL', %w[none low med high],
+          'Reasoning: none, low, med, high (default: low)') do |r|
+    options[:reasoning] = r
+  end
+
+  opts.on('--no-spinner', 'Disable progress spinner') do
+    options[:no_spinner] = true
+  end
+end.parse!
+
+# Validate required arguments
+if options.values_at(:duration, :requirements, :history).any?(&:nil?)
+  puts 'Error: Missing required arguments'
+  puts 'Usage: run --duration=4h --requirements=reqs.json --history=history.jsonl [options]'
+  exit 1
+end
+
+# Run Ralph
+ralph = Ralph.new(
+  duration: options[:duration],
+  requirements_file: options[:requirements],
+  history_file: options[:history],
+  model: options[:model],
+  reasoning: options[:reasoning],
+  no_spinner: options[:no_spinner]
+)
+
+begin
+  ralph.run
+rescue Interrupt
+  puts "\nInterrupted"
+  exit 130
+end

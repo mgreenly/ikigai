@@ -14,6 +14,14 @@ Before starting, load these skills for context:
 - /load mocking
 - /load testability
 
+{{#if history}}
+## Previous Attempts
+
+Other agents have already tried to fix this error. Learn from their attempts:
+
+{{history}}
+{{/if}}
+
 ## The Coverage Gap
 
 **Source File:** {{source_file}}
@@ -46,4 +54,9 @@ Before reporting done, run:
 
 ## When Done
 
-Report what tests you added and the new coverage for this file. Be brief.
+1. Append a brief summary to `.claude/harness/coverage/history.md` describing:
+   - What you tried
+   - Why you thought it would work
+   - What happened (success or failure reason)
+
+2. Report what tests you added and the new coverage for this file. Be brief.
