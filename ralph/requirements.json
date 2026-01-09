@@ -6,7 +6,7 @@
       "acceptance_criteria": [
         "Typing /exit in the edit prompt is recognized as a command"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "exit-002",
