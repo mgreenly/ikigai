@@ -7,9 +7,18 @@ require 'time'
 
 # Ralph: Iterative requirement completion harness
 class Ralph
-  QUALITY_CHECKS = %w[
-    check:all
+  # Quick checks after each requirement
+  QUICK_CHECKS = %w[
+    check:compile
     check:filesize
+    check:all
+  ].freeze
+
+  # Full checks at end of run
+  FULL_CHECKS = %w[
+    check:compile
+    check:filesize
+    check:all
     check:complexity
     check:sanitize
     check:tsan
@@ -98,6 +107,7 @@ class Ralph
       work_on_requirement(requirement_id)
     end
 
+    run_final_quality_checks if all_requirements_done?
     cleanup
     summary
   end
@@ -329,26 +339,36 @@ class Ralph
   end
 
   def run_quality_checks(requirement_id)
-    log 'Running quality checks...'
+    log 'Running quick quality checks...'
+    run_checks(QUICK_CHECKS)
+    mark_requirement_done(requirement_id)
+  end
 
-    QUALITY_CHECKS.each do |check|
-      log "  Running #{check}..."
+  def run_final_quality_checks
+    log 'Running final quality checks...'
+    run_checks(FULL_CHECKS)
+  end
 
-      success = system("claude /#{check} >/dev/null 2>&1")
+  def run_checks(checks)
+    loop do
+      all_passed = true
 
-      unless success
-        log "  #{check} FAILED - restarting loop"
-        log_history(requirement_id, {
-          success: false,
-          message: "Quality check #{check} failed after implementation. Code was committed but requirement not marked done."
-        })
-        return
+      checks.each do |check|
+        log "  Running #{check}..."
+
+        success = system("claude /#{check} >/dev/null 2>&1")
+
+        unless success
+          log "  #{check} FAILED - retrying"
+          all_passed = false
+          break
+        end
+
+        commit_check(check)
       end
 
-      commit_check(check)
+      break if all_passed
     end
-
-    mark_requirement_done(requirement_id)
   end
 
   def commit_check(check_name)
