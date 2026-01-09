@@ -366,6 +366,7 @@ class Ralph
     if requirement
       requirement['status'] = 'done'
       save_requirements(requirements)
+      system("jj commit -m 'ralph: mark #{requirement_id} done' >/dev/null 2>&1")
       log "✓ #{requirement_id} COMPLETE"
     end
   end
