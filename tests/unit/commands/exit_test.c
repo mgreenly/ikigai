@@ -85,6 +85,42 @@ START_TEST(test_exit_sets_quit_flag) {
 }
 END_TEST
 
+// Test: Exit command aborts in-flight LLM calls by invalidating providers
+START_TEST(test_exit_aborts_llm_calls) {
+    // Set up agents array with multiple agents
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 2);
+    ck_assert_ptr_nonnull(repl->agents);
+    repl->agent_count = 2;
+    repl->agent_capacity = 2;
+
+    // Create first agent with a simulated provider instance
+    // We use a dummy talloc object to simulate a provider being present
+    ik_agent_ctx_t *agent1 = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent1);
+    void *dummy_provider1 = talloc_zero(agent1, char);
+    agent1->provider_instance = (struct ik_provider *)dummy_provider1;
+    repl->agents[0] = agent1;
+
+    // Create second agent with a simulated provider instance
+    ik_agent_ctx_t *agent2 = talloc_zero(repl, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(agent2);
+    void *dummy_provider2 = talloc_zero(agent2, char);
+    agent2->provider_instance = (struct ik_provider *)dummy_provider2;
+    repl->agents[1] = agent2;
+
+    // Execute /exit command
+    res_t res = ik_cmd_dispatch(ctx, repl, "/exit");
+    ck_assert(is_ok(&res));
+
+    // Verify quit flag is set
+    ck_assert(repl->quit == true);
+
+    // Verify all provider instances were invalidated (freed and set to NULL)
+    ck_assert_ptr_null(agent1->provider_instance);
+    ck_assert_ptr_null(agent2->provider_instance);
+}
+END_TEST
+
 static Suite *commands_exit_suite(void)
 {
     Suite *s = suite_create("Commands/Exit");
@@ -95,6 +131,7 @@ static Suite *commands_exit_suite(void)
 
     tcase_add_test(tc, test_exit_command_recognized);
     tcase_add_test(tc, test_exit_sets_quit_flag);
+    tcase_add_test(tc, test_exit_aborts_llm_calls);
 
     suite_add_tcase(s, tc);
     return s;

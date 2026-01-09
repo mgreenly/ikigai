@@ -5,6 +5,7 @@
 
 #include "commands_basic.h"
 
+#include "agent.h"
 #include "commands.h"
 #include "db/message.h"
 #include "event_render.h"
@@ -202,6 +203,12 @@ res_t ik_cmd_exit(void *ctx, ik_repl_ctx_t *repl, const char *args)
     assert(repl != NULL);     // LCOV_EXCL_BR_LINE
     (void)ctx;
     (void)args;
+
+    // Abort any in-flight LLM calls by invalidating all provider instances
+    // This triggers cleanup of HTTP connections and cancels pending requests
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_invalidate_provider(repl->agents[i]);
+    }
 
     repl->quit = true;
 
