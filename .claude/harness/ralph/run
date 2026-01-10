@@ -42,7 +42,7 @@ class Ralph
     "Go banana!"
   ].freeze
 
-  SELECT_OUTPUT_SCHEMA = '{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}'
+  SELECT_OUTPUT_SCHEMA = '{"type":"object","properties":{"id":{"anyOf":[{"type":"integer"},{"type":"string"}]}},"required":["id"]}'
   WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
 
   # Max thinking budget per model (tokens) - powers of 2
@@ -291,8 +291,8 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      # Use haiku with thinking for selection - needs to reason about dependencies
-      result = `MAX_THINKING_TOKENS=#{MAX_THINKING_BUDGET['haiku']} claude -p #{prompt_file} --model haiku --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' --tools "" 2>&1`
+      # Use same config as worker with json-schema for structured output
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>&1`
       exit_code = $?.exitstatus
     end
 
@@ -397,16 +397,14 @@ class Ralph
 
   def parse_select_outcome(result)
     parsed = JSON.parse(result, symbolize_names: true)
-    raw_output = parsed[:result]&.strip
-    return nil if raw_output.nil? || raw_output.empty?
+    structured = parsed[:structured_output]
+    return nil if structured.nil?
 
-    # Look for {"id": "..."} pattern anywhere in output
-    if raw_output =~ /\{"id":\s*"([^"]+)"\}/
-      return $1
-    end
+    # structured_output is already the parsed object: {id: ...}
+    id_value = structured[:id]
+    return nil if id_value.nil?
 
-    # Fall back to extracting last non-empty line (plain ID)
-    raw_output.lines.map(&:strip).reject(&:empty?).last
+    id_value.to_s
   rescue JSON::ParserError
     nil
   end
@@ -415,16 +413,15 @@ class Ralph
     # Parse outer JSON from --output-format json
     parsed = JSON.parse(result, symbolize_names: true)
 
-    # Check for empty result (agent didn't produce output)
-    if parsed[:result].nil? || parsed[:result].empty?
-      return { success: false, message: "Agent produced empty result (exit_code=#{exit_code})" }
+    # With --json-schema, structured_output contains the parsed object
+    structured = parsed[:structured_output]
+    if structured.nil?
+      return { success: false, message: "Agent produced no structured output (exit_code=#{exit_code})" }
     end
 
-    # With --json-schema, the result field contains valid JSON
-    inner = JSON.parse(parsed[:result], symbolize_names: true)
     {
-      success: inner[:success] == true,
-      message: inner[:message] || 'No message provided'
+      success: structured[:success] == true,
+      message: structured[:message] || 'No message provided'
     }
   rescue JSON::ParserError => e
     { success: false, message: "Could not parse agent output: #{e.message}" }

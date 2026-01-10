@@ -1,34 +1,28 @@
-# Ralph: Select Next Requirement
+# Task: Select Next Requirement
 
-You are a requirement selector. Your ONLY job is to pick which requirement to work on next.
+**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Provide no output other than the requested response. You are part of a pipeline that is converting source code requirements into finished code. Your job is to select the next requirement from the list of "Pending Requirements" that this pipeline will process. You have two resources to help make this decision: the description of each requirement in the "Pending Requirements" section below and the description of the events in the "Recent History" section below. Use all the information you have available to you to determine which requirement should be worked on next.
 
 ## Pending Requirements
 
 <% pending.each do |req| %>
-- ID `<%= req[:id] %>`: <%= req[:requirement] %>
+- `<%= req[:id] %>`: <%= req[:requirement] %>
 <% end %>
 <% if pending.empty? %>
-(none - all done)
+(none)
 <% end %>
 
 ## Recent History
 
-<%= history.empty? ? "(no history yet)" : history %>
+```
+<%= history.empty? ? "(none)" : history %>
+```
 
-## Instructions
+## Output
 
-1. Read the Pending Requirements list above
-2. Consider dependencies - if a requirement mentions it depends on others, those must be done first
-3. Pick ONE requirement ID
+Use the StructuredOutput tool to return a single JSON object with the selected ID as an integer:
 
-## Required Output
+{"id": 1}
 
-You MUST respond with ONLY a JSON object (no markdown fences, no other text):
-
-{"id": "1"}
-
-If no pending requirements remain, respond with:
+Or if there are no remaining pending requirements, return the string "none":
 
 {"id": "none"}
-
-This is how the harness knows your selection. If you don't output valid JSON, the selection fails.

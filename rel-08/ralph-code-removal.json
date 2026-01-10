@@ -2,8 +2,7 @@
   "requirements": [
     {
       "id": 1,
-      "requirement": "`src/repl_tool.c` `ik_tool_dispatch()` calls replaced with stub returning `{\"success\": false, \"error\": \"Tool system not yet implemented...\"}`",
-      "dependencies": "Must stub callers before removing ik_tool_dispatch() implementation",
+      "requirement": "`src/repl_tool.c` `ik_tool_dispatch()` calls are replaced with a stub returning `{\"success\": false, \"error\": \"Tool system not yet implemented. Tool 'X' unavailable.\"}` (must stub callers before removing ik_tool_dispatch() implementation)",
       "docs": [
         {"path": "rel-08/plan/removal-specification.md", "start": 266, "end": 318}
       ],
@@ -11,8 +10,7 @@
     },
     {
       "id": 2,
-      "requirement": "`src/providers/request_tools.c` tool definitions and `build_tool_parameters_json()` removed, tool population loop replaced with stub comment",
-      "dependencies": "Must remove tool population before removing schema types from tool.h",
+      "requirement": "`src/providers/request_tools.c` does not contain tool definitions or `build_tool_parameters_json()`, tool population loop is replaced with stub comment (must complete before removing schema types from tool.h)",
       "docs": [
         {"path": "rel-08/plan/removal-specification.md", "start": 205, "end": 263}
       ],
@@ -20,8 +18,7 @@
     },
     {
       "id": 3,
-      "requirement": "Makefile `CLIENT_SOURCES`, `MODULE_SOURCES`, `MODULE_SOURCES_NO_DB` no longer contain `src/tool.c`, `src/tool_dispatcher.c`, `src/tool_bash.c`, `src/tool_file_read.c`, `src/tool_file_write.c`, `src/tool_glob.c`, `src/tool_grep.c`, `src/tool_response.c`",
-      "dependencies": "Must stub callers first (requirements 1-2) or link fails on missing symbols",
+      "requirement": "Makefile `CLIENT_SOURCES`, `MODULE_SOURCES`, `MODULE_SOURCES_NO_DB` do not contain `src/tool.c`, `src/tool_dispatcher.c`, `src/tool_bash.c`, `src/tool_file_read.c`, `src/tool_file_write.c`, `src/tool_glob.c`, `src/tool_grep.c`, `src/tool_response.c` (requires requirements 1-2 complete or link fails on missing symbols)",
       "docs": [
         {"path": "rel-08/plan/removal-specification.md", "start": 320, "end": 383}
       ],
@@ -29,62 +26,52 @@
     },
     {
       "id": 4,
-      "requirement": "`src/tool.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 5,
-      "requirement": "`src/tool_dispatcher.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_dispatcher.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 6,
-      "requirement": "`src/tool_bash.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_bash.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 7,
-      "requirement": "`src/tool_file_read.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_file_read.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 8,
-      "requirement": "`src/tool_file_write.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_file_write.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 9,
-      "requirement": "`src/tool_glob.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_glob.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 10,
-      "requirement": "`src/tool_grep.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_grep.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 11,
-      "requirement": "`src/tool_response.c` deleted",
-      "dependencies": "Must remove from Makefile first (requirement 3) or build fails",
+      "requirement": "`src/tool_response.c` does not exist (requires requirement 3 complete or build fails)",
       "status": "pending"
     },
     {
       "id": 12,
-      "requirement": "`src/tool_response.h` deleted",
-      "dependencies": "Must delete all includers first (requirements 6-11)",
+      "requirement": "`src/tool_response.h` does not exist (requires requirements 6-11 complete)",
       "status": "pending"
     },
     {
       "id": 13,
-      "requirement": "`src/tool.h` contains only `ik_tool_call_t` typedef, `ik_tool_call_create()`, `ik_tool_arg_get_string()`, `ik_tool_arg_get_int()` declarations",
-      "dependencies": "Must delete all source files that use removed declarations first (requirements 4-10)",
+      "requirement": "`src/tool.h` contains only `ik_tool_call_t` typedef, `ik_tool_call_create()`, `ik_tool_arg_get_string()`, `ik_tool_arg_get_int()` declarations (requires requirements 4-10 complete)",
       "docs": [
         {"path": "rel-08/plan/removal-specification.md", "start": 49, "end": 191}
       ],
