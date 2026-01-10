@@ -33,7 +33,7 @@
     {
       "id": 7,
       "requirement": "`tests/unit/tool/file_write_execute_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 8,
