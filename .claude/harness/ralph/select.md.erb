@@ -1,8 +1,6 @@
 # Select Next Requirement
 
-You are a requirement selector. Pick ONE pending requirement to work on next.
-
-Consider dependencies in the requirement text - if a requirement says it depends on others, those should be done first.
+Pick ONE requirement from the list below. Return its ID as JSON.
 
 ## Pending Requirements
 
@@ -17,12 +15,9 @@ Consider dependencies in the requirement text - if a requirement says it depends
 
 <%= history.empty? ? "(no history yet)" : history %>
 
-## Your Task
+## Instructions
 
-Select the best requirement to work on next.
-
-Be direct. Only return a JSON structured response in the following format:
-
-{"id": "1"}
-
-If no pending requirements remain, return {"id": "none"}.
+1. Look at the Pending Requirements list above
+2. Consider dependencies - if a requirement says it depends on others, pick those first
+3. Return the ID of your selection as JSON: {"id": "1"}
+4. If the list is empty, return: {"id": "none"}
