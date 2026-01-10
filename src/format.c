@@ -1,5 +1,13 @@
 #include "format.h"
 
+#include "array.h"
+#include "byte_array.h"
+#include "error.h"
+#include "json_allocator.h"
+#include "panic.h"
+#include "vendor/yyjson/yyjson.h"
+#include "wrapper.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -7,13 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
-
-#include "array.h"
-#include "byte_array.h"
-#include "error.h"
-#include "panic.h"
-#include "vendor/yyjson/yyjson.h"
-#include "wrapper.h"
 
 ik_format_buffer_t *ik_format_buffer_create(void *parent)
 {
@@ -162,7 +163,8 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     }
 
     // Try to parse JSON arguments
-    yyjson_doc *doc = yyjson_read(call->arguments, strlen(call->arguments), 0);
+    yyjson_alc allocator = ik_make_talloc_allocator(parent);
+    yyjson_doc *doc = yyjson_read_opts(call->arguments, strlen(call->arguments), 0, &allocator, NULL);
     if (doc == NULL) {
         // Invalid JSON - show raw arguments as fallback
         res = ik_format_appendf(buf, ": %s", call->arguments);
@@ -173,7 +175,6 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     yyjson_val *root = yyjson_doc_get_root_(doc);
     if (!yyjson_is_obj(root)) {
         // Not an object - show raw
-        yyjson_doc_free(doc);
         res = ik_format_appendf(buf, ": %s", call->arguments);
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
         return ik_format_get_string(buf);
@@ -182,7 +183,6 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     // Check if object is empty
     size_t obj_size = yyjson_obj_size(root);
     if (obj_size == 0) {
-        yyjson_doc_free(doc);
         return ik_format_get_string(buf);
     }
 
@@ -227,7 +227,6 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
     }
 
-    yyjson_doc_free(doc);
     return ik_format_get_string(buf);
 }
 
@@ -334,7 +333,9 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
     }
 
     // Try to parse JSON
-    yyjson_doc *doc = yyjson_read(result_json, strlen(result_json), 0);
+    yyjson_alc allocator = ik_make_talloc_allocator(parent);
+    // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
+    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)result_json, strlen(result_json), 0, &allocator, NULL);
     if (doc == NULL) {
         // Invalid JSON - show raw, truncated
         ik_format_truncate_and_append(buf, result_json, strlen(result_json));
@@ -352,7 +353,6 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
 
         // Check for empty string
         if (content_len == 0) {
-            yyjson_doc_free(doc);
             res = ik_format_append(buf, "(no output)");
             if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
             return ik_format_get_string(buf);
@@ -376,8 +376,6 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
             free(json_str);
         }
     }
-
-    yyjson_doc_free(doc);
 
     // Truncate and append content
     if (content != NULL) {

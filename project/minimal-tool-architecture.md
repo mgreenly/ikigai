@@ -188,6 +188,10 @@ System prompt teaches idiomatic usage, composition patterns, and error handling.
 
 **Sandboxing:** Project root working dir, current user (not root), full file system access, no network restrictions. Safety from user awareness, model training, output limits - not restrictions. Commands run directly with stderr/stdout capture.
 
+## Performance
+
+**External tool overhead:** Single-digit milliseconds. Tested bash_tool execution (fork/exec + command + output capture) completes in ~3ms. This validates the external tool architecture - the overhead of spawning external processes is negligible compared to API latency and model inference time.
+
 ## Concrete Examples
 
 ### Before/After Examples

@@ -43,3 +43,4 @@ etc/ikigai/credentials.json
 # Runit runtime (supervise dirs are created by runsv)
 .agents/sv/*/supervise/
 .agents/sv/*/log/supervise/
+libexec/

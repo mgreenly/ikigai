@@ -1,5 +1,6 @@
 #include "tool.h"
 
+#include "json_allocator.h"
 #include "panic.h"
 #include "wrapper.h"
 
@@ -299,18 +300,19 @@ char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, i
         return NULL;
     }
 
-    yyjson_doc *doc = yyjson_read(result_json, strlen(result_json), 0);
+    yyjson_alc allocator = ik_make_talloc_allocator(parent);
+    // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
+    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)result_json, strlen(result_json), 0, &allocator, NULL);
     if (doc == NULL) {
         return NULL;
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
     if (root == NULL || !yyjson_is_obj(root)) { // LCOV_EXCL_BR_LINE
-        yyjson_doc_free(doc);
         return NULL;
     }
 
-    yyjson_mut_doc *mut_doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_doc *mut_doc = yyjson_mut_doc_new(&allocator);
     if (mut_doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *mut_root = yyjson_val_mut_copy(mut_doc, root);
@@ -332,8 +334,7 @@ char *ik_tool_result_add_limit_metadata(void *parent, const char *result_json, i
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     free(json_str);  // LCOV_EXCL_BR_LINE
 
-    yyjson_doc_free(doc);
-    yyjson_mut_doc_free(mut_doc);
+    // no cleanup required - talloc frees everything when parent is freed
 
     return result;
 }

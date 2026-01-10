@@ -7,24 +7,24 @@ require 'time'
 
 # Ralph: Iterative requirement completion harness
 class Ralph
-  # Quick checks after each requirement
+  # Quick checks after each requirement (harness names)
   QUICK_CHECKS = %w[
-    check:compile
-    check:filesize
-    check:all
+    compile
+    filesize
+    check
   ].freeze
 
-  # Full checks at end of run
+  # Full checks at end of run (harness names)
   FULL_CHECKS = %w[
-    check:compile
-    check:filesize
-    check:all
-    check:complexity
-    check:sanitize
-    check:tsan
-    check:valgrind
-    check:helgrind
-    check:coverage
+    compile
+    filesize
+    check
+    complexity
+    sanitize
+    tsan
+    valgrind
+    helgrind
+    coverage
   ].freeze
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
@@ -42,6 +42,7 @@ class Ralph
     "Go banana!"
   ].freeze
 
+  SELECT_OUTPUT_SCHEMA = '{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}'
   WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
 
   # Max thinking budget per model (tokens) - powers of 2
@@ -60,7 +61,7 @@ class Ralph
   }.freeze
 
   def initialize(duration:, requirements_file:, history_file:, model: 'sonnet',
-                 reasoning: 'low', no_spinner: false)
+                 reasoning: 'low', no_spinner: false, continue: false)
     @duration_seconds = parse_duration(duration)
     @requirements_file = requirements_file
     @history_file = history_file
@@ -70,6 +71,7 @@ class Ralph
     @start_time = Time.now
     @script_dir = File.dirname(File.realpath(__FILE__))
     @spinner_enabled = !no_spinner
+    @continue = continue
     @spinner_thread = nil
     @spinner_running = false
   end
@@ -96,6 +98,38 @@ class Ralph
     ERB.new(template).result_with_hash(vars)
   end
 
+  def load_implementor_skills
+    skillset_file = '.claude/skillsets/implementor.json'
+    skillset = JSON.parse(File.read(skillset_file))
+
+    skillset['preload'].map do |skill_name|
+      skill_file = ".claude/library/#{skill_name}/SKILL.md"
+      content = File.read(skill_file)
+      { name: skill_name, content: content }
+    end
+  end
+
+  def load_docs(doc_refs)
+    doc_refs.map do |doc|
+      path = doc['path']
+      start_line = doc['start']
+      end_line = doc['end'] || (doc['count'] ? start_line + doc['count'] - 1 : nil)
+
+      lines = File.readlines(path)
+      if start_line && end_line
+        content = lines[(start_line - 1)..(end_line - 1)].join
+        { path: "#{path}:#{start_line}-#{end_line}", content: content }
+      elsif start_line
+        content = lines[(start_line - 1)..-1].join
+        { path: "#{path}:#{start_line}-end", content: content }
+      else
+        { path: path, content: lines.join }
+      end
+    rescue Errno::ENOENT
+      { path: path || doc.to_s, content: "[File not found]" }
+    end
+  end
+
   def with_temp_prompt(content)
     require 'tempfile'
     temp = Tempfile.new(['ralph-prompt', '.md'])
@@ -109,7 +143,7 @@ class Ralph
   def run
     log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget})"
     ensure_files_exist
-    truncate_history
+    truncate_history unless @continue
 
     loop do
       break if time_expired?
@@ -232,19 +266,27 @@ class Ralph
   def select_requirement
     log 'Selecting next requirement...'
 
+    # Gather pending requirements
+    requirements = load_requirements
+    pending = requirements.select { |r| r['status'] == 'pending' }
+                          .map { |r| { id: r['id'], requirement: r['requirement'] } }
+
+    # Get recent history
+    history_lines = File.exist?(@history_file) ? File.readlines(@history_file).last(10) : []
+
     start_spinner 'Waiting for selection agent'
 
     template_file = "#{@script_dir}/select.md.erb"
     prompt_content = render_prompt(template_file, {
-      requirements_file: @requirements_file,
-      history_file: @history_file
+      pending: pending,
+      history: history_lines.join
     })
 
     result = nil
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --max-turns 5 2>&1`
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json 2>&1`
       exit_code = $?.exitstatus
     end
 
@@ -252,35 +294,55 @@ class Ralph
 
     if exit_code != 0
       log "Selection agent FAILED: #{result[0..200]}"
-      return nil
+      record_attempt('selector', nil, { success: false, message: "Selection agent failed (exit_code=#{exit_code})" })
+      return select_requirement  # retry
     end
 
-    begin
-      parsed = JSON.parse(result)
-      raw_output = parsed.dig('result')&.strip || result.strip
-    rescue JSON::ParserError
-      raw_output = result.strip
+    requirement_id = parse_select_outcome(result)
+
+    if requirement_id.nil?
+      log "Selection agent returned unparseable output: #{result[0..200]}"
+      record_attempt('selector', nil, { success: false, message: "Could not parse selector output" })
+      return select_requirement  # retry
     end
 
-    # Extract just the requirement ID (last non-empty line)
-    requirement_id = raw_output.lines.map(&:strip).reject(&:empty?).last
+    return nil if requirement_id == 'none'
 
-    return nil if requirement_id.nil? || requirement_id.empty? || requirement_id == 'none'
+    # Validate it's a real requirement
+    unless valid_requirement_id?(requirement_id)
+      log "Invalid selection: '#{requirement_id[0..40]}'"
+      record_attempt(requirement_id, nil, { success: false, message: "Invalid requirement ID selected" })
+      return select_requirement  # retry
+    end
 
     log "Selected: #{requirement_id}"
     requirement_id
   end
 
+  def valid_requirement_id?(requirement_id)
+    requirements = load_requirements
+    valid_ids = requirements.map { |r| r['id'].to_s }
+    valid_ids.include?(requirement_id)
+  end
+
   def work_on_requirement(requirement_id)
     log "Working on #{requirement_id}..."
+
+    # Look up the requirement
+    requirements = load_requirements
+    requirement = requirements.find { |r| r['id'].to_s == requirement_id.to_s }
+    requirement_text = requirement['requirement']
+    docs = load_docs(requirement['docs'] || [])
 
     start_spinner 'Waiting for work agent'
 
     template_file = "#{@script_dir}/work.md.erb"
     prompt_content = render_prompt(template_file, {
       requirement_id: requirement_id,
-      requirements_file: @requirements_file,
-      history_file: @history_file
+      requirement_text: requirement_text,
+      docs: docs,
+      history_file: @history_file,
+      skills: load_implementor_skills
     })
 
     result = nil
@@ -293,53 +355,97 @@ class Ralph
 
     stop_spinner
 
-    if exit_code != 0
-      log "Work agent FAILED: #{result[0..200]}"
-      restore_changes
-      return
-    end
-
-    outcome = parse_work_outcome(result)
+    outcome = parse_work_outcome(result, exit_code)
+    record_attempt(requirement_id, requirement_text, outcome)
 
     if outcome[:success]
-      commit_work(requirement_id, outcome[:message])
-      run_quality_checks(requirement_id)
+      if commit_work(requirement_id, outcome[:message])
+        run_quality_checks(requirement_id)
+      else
+        log "Skipping quality checks (no changes)"
+      end
     else
       restore_changes
-      log "BLOCKED: #{outcome[:message]}"
+      log "FAILED: #{outcome[:message]}"
     end
   end
 
-  def parse_work_outcome(result)
+  def record_attempt(requirement_id, requirement_text, outcome)
+    entry = {
+      timestamp: Time.now.iso8601,
+      requirement_id: requirement_id,
+      requirement: requirement_text,
+      success: outcome[:success],
+      message: outcome[:message]
+    }
+    File.open(@history_file, 'a') { |f| f.puts(entry.to_json) }
+    trim_history(20)
+  end
+
+  def trim_history(max_entries)
+    lines = File.readlines(@history_file)
+    return if lines.size <= max_entries
+
+    File.write(@history_file, lines.last(max_entries).join)
+  end
+
+  def parse_select_outcome(result)
+    parsed = JSON.parse(result, symbolize_names: true)
+    raw_output = parsed[:result]&.strip
+    return nil if raw_output.nil? || raw_output.empty?
+
+    # Look for {"id": "..."} pattern anywhere in output
+    if raw_output =~ /\{"id":\s*"([^"]+)"\}/
+      return $1
+    end
+
+    # Fall back to extracting last non-empty line (plain ID)
+    raw_output.lines.map(&:strip).reject(&:empty?).last
+  rescue JSON::ParserError
+    nil
+  end
+
+  def parse_work_outcome(result, exit_code)
     # Parse outer JSON from --output-format json
     parsed = JSON.parse(result, symbolize_names: true)
 
-    # With --json-schema, the result field contains valid JSON
-    if parsed[:result]
-      inner = JSON.parse(parsed[:result], symbolize_names: true)
-      return {
-        success: inner[:success] == true,
-        message: inner[:message] || 'No message provided'
-      }
+    # Check for empty result (agent didn't produce output)
+    if parsed[:result].nil? || parsed[:result].empty?
+      return { success: false, message: "Agent produced empty result (exit_code=#{exit_code})" }
     end
 
-    # Fallback for direct response
+    # With --json-schema, the result field contains valid JSON
+    inner = JSON.parse(parsed[:result], symbolize_names: true)
     {
-      success: parsed[:success] == true,
-      message: parsed[:message] || result[0..500]
+      success: inner[:success] == true,
+      message: inner[:message] || 'No message provided'
     }
   rescue JSON::ParserError => e
-    { success: false, message: "JSON parse error: #{e.message}. Raw: #{result[0..300]}" }
+    { success: false, message: "Could not parse agent output: #{e.message}" }
   end
 
   def commit_work(requirement_id, message)
-    msg = "#{requirement_id}: #{message}\n\nharness/ralph | work agent"
-    system("jj commit -m '#{msg.gsub("'", "'\\''")}' >/dev/null 2>&1")
+    # Sanitize message for shell safety
+    safe_message = message.to_s.gsub(/[^a-zA-Z0-9\s\-_.,:]/, '')
+    msg = "#{requirement_id}: #{safe_message}"
+
+    commit_cmd = <<~SH
+      jj commit -m "$(cat <<'COMMITMSG'
+      #{msg}
+
+      harness/ralph | work agent
+      COMMITMSG
+      )"
+    SH
+
+    system(commit_cmd, out: File::NULL, err: File::NULL)
 
     if $?.exitstatus == 0
       log 'Committed changes'
+      true
     else
-      log 'WARNING: Commit failed (may be no changes)'
+      log 'No changes to commit'
+      false
     end
   end
 
@@ -358,20 +464,20 @@ class Ralph
     loop do
       all_passed = true
 
-      checks.each do |check|
-        log "  Running #{check}..."
-        start_spinner "Running #{check}"
+      checks.each do |harness|
+        log "  Running #{harness}..."
+        start_spinner "Running #{harness}"
 
-        success = system("claude /#{check} >/dev/null 2>&1")
+        success = system(".claude/harness/#{harness}/run --no-spinner >/dev/null 2>&1")
         stop_spinner
 
         unless success
-          log "  #{check} FAILED - retrying"
+          log "  #{harness} FAILED - retrying"
           all_passed = false
           break
         end
 
-        commit_check(check)
+        commit_check(harness)
       end
 
       break if all_passed
@@ -386,7 +492,7 @@ class Ralph
 
   def mark_requirement_done(requirement_id)
     requirements = load_requirements
-    requirement = requirements.find { |r| r['id'] == requirement_id }
+    requirement = requirements.find { |r| r['id'].to_s == requirement_id.to_s }
 
     if requirement
       requirement['status'] = 'done'
@@ -420,7 +526,7 @@ end
 options = { model: 'sonnet', reasoning: 'low', no_spinner: false }
 
 OptionParser.new do |opts|
-  opts.banner = 'Usage: run --duration=4h --requirements=reqs.json [--history=history.md] [options]'
+  opts.banner = 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
 
   opts.on('--duration=DURATION', 'Time budget (e.g., 4h, 200m)') do |d|
     options[:duration] = d
@@ -430,7 +536,7 @@ OptionParser.new do |opts|
     options[:requirements] = f
   end
 
-  opts.on('--history=FILE', 'History markdown file (default: .claude/harness/ralph/history.md)') do |f|
+  opts.on('--history=FILE', 'History markdown file (default: .claude/harness/ralph/history.jsonl)') do |f|
     options[:history] = f
   end
 
@@ -446,17 +552,21 @@ OptionParser.new do |opts|
   opts.on('--no-spinner', 'Disable progress spinner') do
     options[:no_spinner] = true
   end
+
+  opts.on('--continue', 'Continue from existing history (don\'t truncate)') do
+    options[:continue] = true
+  end
 end.parse!
 
 # Validate required arguments
 if options.values_at(:duration, :requirements).any?(&:nil?)
   puts 'Error: Missing required arguments'
-  puts 'Usage: run --duration=4h --requirements=reqs.json [--history=history.md] [options]'
+  puts 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
   exit 1
 end
 
 # Default history file
-options[:history] ||= File.join(File.dirname(File.realpath(__FILE__)), 'history.md')
+options[:history] ||= File.join(File.dirname(File.realpath(__FILE__)), 'history.jsonl')
 
 # Run Ralph
 ralph = Ralph.new(
@@ -465,7 +575,8 @@ ralph = Ralph.new(
   history_file: options[:history],
   model: options[:model],
   reasoning: options[:reasoning],
-  no_spinner: options[:no_spinner]
+  no_spinner: options[:no_spinner],
+  continue: options[:continue]
 )
 
 begin

@@ -172,6 +172,9 @@ MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 # Module objects excluding db/agent.c (for repl_init_db_test mocking)
 MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o $(BUILDDIR)/db/agent_row.o $(BUILDDIR)/db/agent_zero.o,$(MODULE_OBJ_NO_DB))
 
+# Common sources for tool binaries (in libexec/ikigai/)
+TOOL_COMMON_SRCS = src/error.c src/panic.c src/wrapper_talloc.c src/logger.c src/json_allocator.c src/vendor/yyjson/yyjson.c
+
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
 TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
@@ -184,7 +187,7 @@ EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_co
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
 REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -570,6 +573,14 @@ $(BUILDDIR)/tests/unit/repl/repl_full_viewport_test: $(BUILDDIR)/tests/unit/repl
 bin:
 	@mkdir -p bin && echo "📁 bin"
 
+libexec/ikigai:
+	@mkdir -p libexec/ikigai && echo "📁 libexec/ikigai"
+
+bash_tool: libexec/ikigai/bash_tool
+
+libexec/ikigai/bash_tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
 
@@ -594,7 +605,7 @@ $(BUILDDIR)/tests/integration/db: | $(BUILDDIR)/tests/integration
 -include $(wildcard $(BUILDDIR)/tests/integration/db/*.d)
 
 clean:
-	rm -rf build build-* bin $(COVERAGE_DIR) coverage_html reports
+	rm -rf build build-* bin libexec $(COVERAGE_DIR) coverage_html reports
 	rm -rf distros/dist distros/*/build 2>/dev/null || true
 	find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	find src tests -name "*.d" -delete 2>/dev/null || true
@@ -707,6 +718,9 @@ check-unit: $(UNIT_TEST_RUNS)
 
 check-integration: $(INTEGRATION_TEST_RUNS) $(DB_INTEGRATION_TEST_RUNS)
 	@echo "Integration tests passed!"
+
+check-bash-tool: bash_tool
+	@tests/integration/bash_tool_test.sh
 
 # Verify mock fixtures against real OpenAI API
 # Reads OPENAI_API_KEY from ~/.config/ikigai/credentials.json if not set in environment
@@ -1233,6 +1247,7 @@ help:
 	@echo "  check           - Build and run all tests (use TEST=name for single test)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
+	@echo "  check-bash-tool - Build and test bash_tool integration"
 	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses credentials.json or OPENAI_API_KEY)"
 	@echo "  verify-mocks-anthropic - Verify Anthropic mock fixtures (uses credentials.json or ANTHROPIC_API_KEY)"
 	@echo "  verify-mocks-google - Verify Google mock fixtures (uses credentials.json or GOOGLE_API_KEY)"

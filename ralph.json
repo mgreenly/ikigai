@@ -1,0 +1,301 @@
+{
+  "requirements": [
+    {
+      "id": 1,
+      "requirement": "`src/tools/bash/` directory exists",
+      "status": "done"
+    },
+    {
+      "id": 2,
+      "requirement": "`src/tools/bash/main.c` exists with minimal `main()` returning 0",
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "requirement": "Makefile has `libexec/ikigai` directory target",
+      "status": "done"
+    },
+    {
+      "id": 4,
+      "requirement": "Makefile has `TOOL_COMMON_SRCS` variable",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 75,
+          "count": 5
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 5,
+      "requirement": "Makefile has `bash_tool` phony target and build rule",
+      "status": "done"
+    },
+    {
+      "id": 6,
+      "requirement": "`make bash_tool` produces `libexec/ikigai/bash_tool` without warnings",
+      "status": "done"
+    },
+    {
+      "id": 7,
+      "requirement": "`libexec/ikigai/bash_tool --schema` exits 0",
+      "status": "done"
+    },
+    {
+      "id": 8,
+      "requirement": "`libexec/ikigai/bash_tool --schema` outputs JSON (use `bash_tool` not `bash` for tool name)",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 11,
+          "end": 25
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 11,
+      "requirement": "`main()` uses talloc root context for all allocations",
+      "status": "done"
+    },
+    {
+      "id": 12,
+      "requirement": "talloc context freed before exit",
+      "status": "done"
+    },
+    {
+      "id": 13,
+      "requirement": "yyjson uses talloc-based allocator via `ik_make_talloc_allocator()`",
+      "status": "done"
+    },
+    {
+      "id": 14,
+      "requirement": "Tool reads all of stdin into buffer",
+      "status": "done"
+    },
+    {
+      "id": 15,
+      "requirement": "Empty stdin: tool writes 'bash_tool: empty input' to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 16,
+      "requirement": "stdin parsed as JSON using yyjson",
+      "status": "done"
+    },
+    {
+      "id": 17,
+      "requirement": "Invalid JSON stdin: tool writes 'bash_tool: invalid JSON' to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 18,
+      "requirement": "Missing `command` field: tool writes 'bash_tool: missing command field' to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 19,
+      "requirement": "Non-string `command` field: tool writes 'bash_tool: command must be a string' to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 20,
+      "requirement": "Command executed via `popen(command, \"r\")`",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 46,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 21,
+      "requirement": "`popen()` failure returns `{\"output\":\"\",\"exit_code\":127}`",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 51,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 22,
+      "requirement": "Output buffer starts at 4KB",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 49,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 23,
+      "requirement": "Output buffer grows dynamically for large output",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 49,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 24,
+      "requirement": "Single trailing newline stripped from output",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 48,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 25,
+      "requirement": "Exit code extracted via `WEXITSTATUS(pclose())`",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 50,
+          "count": 1
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 26,
+      "requirement": "Success result contains `output` string field",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 36,
+          "end": 43
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 27,
+      "requirement": "Success result contains `exit_code` integer field",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 36,
+          "end": 43
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 28,
+      "requirement": "Tool only outputs `{\"output\":\"...\",\"exit_code\":N}` format, never error envelopes",
+      "status": "done"
+    },
+    {
+      "id": 29,
+      "requirement": "`echo '{\"command\":\"echo hello\"}' | libexec/ikigai/bash_tool` returns JSON",
+      "docs": [
+        {
+          "path": "rel-08/plan/tool-specifications.md",
+          "start": 36,
+          "end": 43
+        }
+      ],
+      "status": "done"
+    },
+    {
+      "id": 30,
+      "requirement": "`echo '{\"command\":\"false\"}' | libexec/ikigai/bash_tool` returns non-zero exit_code",
+      "status": "done"
+    },
+    {
+      "id": 31,
+      "requirement": "`echo '{}' | libexec/ikigai/bash_tool` writes to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 32,
+      "requirement": "`make clean` removes the `libexec/` directory",
+      "status": "done"
+    },
+    {
+      "id": 33,
+      "requirement": "`make bash_tool` creates `libexec/ikigai/` directory before compiling",
+      "status": "done"
+    },
+    {
+      "id": 34,
+      "requirement": "`tests/integration/bash_tool_test.sh` exists and is executable",
+      "status": "done"
+    },
+    {
+      "id": 35,
+      "requirement": "Makefile has `check-bash-tool` phony target that runs `tests/integration/bash_tool_test.sh`",
+      "status": "done"
+    },
+    {
+      "id": 36,
+      "requirement": "`check-bash-tool` depends on `bash_tool` target (builds before testing)",
+      "status": "done"
+    },
+    {
+      "id": 37,
+      "requirement": "Test: `--schema` exits 0",
+      "status": "done"
+    },
+    {
+      "id": 38,
+      "requirement": "Test: `--schema` outputs valid JSON with `name`, `description`, `parameters` fields",
+      "status": "done"
+    },
+    {
+      "id": 39,
+      "requirement": "Test: valid input `{\"command\":\"echo hello\"}` returns JSON with `output` and `exit_code` fields",
+      "status": "done"
+    },
+    {
+      "id": 40,
+      "requirement": "Test: `{\"command\":\"false\"}` returns `exit_code` != 0",
+      "status": "done"
+    },
+    {
+      "id": 41,
+      "requirement": "Test: empty stdin writes to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 42,
+      "requirement": "Test: invalid JSON stdin writes to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 43,
+      "requirement": "Test: `{}` (missing command) writes to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 44,
+      "requirement": "Test: `{\"command\":123}` (non-string command) writes to stderr and exits non-zero",
+      "status": "done"
+    },
+    {
+      "id": 45,
+      "requirement": "Test: output with trailing newline has it stripped",
+      "status": "done"
+    },
+    {
+      "id": 46,
+      "requirement": "`make help` includes `check-bash-tool` target",
+      "status": "done"
+    }
+  ]
+}
