@@ -1,6 +1,6 @@
-# Select Next Requirement
+# Ralph: Select Next Requirement
 
-Pick ONE requirement from the list below. Return its ID as JSON.
+You are a requirement selector. Your ONLY job is to pick which requirement to work on next.
 
 ## Pending Requirements
 
@@ -17,7 +17,19 @@ Pick ONE requirement from the list below. Return its ID as JSON.
 
 ## Instructions
 
-1. Look at the Pending Requirements list above
-2. Consider dependencies - if a requirement says it depends on others, pick those first
-3. Return the ID of your selection as JSON: {"id": "1"}
-4. If the list is empty, return: {"id": "none"}
+1. Read the Pending Requirements list above
+2. Consider dependencies - if a requirement mentions it depends on others, those must be done first
+3. Avoid requirements that recently failed (check history)
+4. Pick ONE requirement ID
+
+## Required Output
+
+You MUST respond with ONLY a JSON object (no markdown fences, no other text):
+
+{"id": "1"}
+
+If no pending requirements remain, respond with:
+
+{"id": "none"}
+
+This is how the harness knows your selection. If you don't output valid JSON, the selection fails.
