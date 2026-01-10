@@ -1,0 +1,64 @@
+{
+  "requirements": [
+    {
+      "id": 1,
+      "requirement": "`tests/unit/tool/tool_schema_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "requirement": "`tests/unit/tool/tool_definition_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "requirement": "`tests/unit/tool/tool_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "requirement": "`tests/unit/tool/dispatcher_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "requirement": "`tests/unit/tool/bash_execute_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "requirement": "`tests/unit/tool/file_read_execute_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "requirement": "`tests/unit/tool/file_write_execute_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "requirement": "`tests/unit/tool/glob_execute_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 9,
+      "requirement": "`tests/unit/tool/grep_execute_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 10,
+      "requirement": "`tests/unit/tool/grep_edge_cases_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 11,
+      "requirement": "`tests/unit/tool/tool_limit_test.c` deleted",
+      "status": "pending"
+    },
+    {
+      "id": 12,
+      "requirement": "`tests/unit/tool/tool_truncate_test.c` deleted",
+      "status": "pending"
+    }
+  ]
+}
