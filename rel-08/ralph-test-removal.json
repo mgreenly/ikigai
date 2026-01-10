@@ -23,7 +23,7 @@
     {
       "id": 5,
       "requirement": "`tests/unit/tool/bash_execute_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 6,
