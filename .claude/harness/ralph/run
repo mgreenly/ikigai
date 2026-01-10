@@ -291,7 +291,7 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json 2>&1`
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>&1`
       exit_code = $?.exitstatus
     end
 
