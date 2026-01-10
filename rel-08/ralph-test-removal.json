@@ -13,7 +13,7 @@
     {
       "id": 3,
       "requirement": "`tests/unit/tool/tool_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 4,
