@@ -1,26 +1,28 @@
-# Ralph: Select Next Requirement
+# Select Next Requirement
 
-Pick one pending requirement to work on.
+You are a requirement selector. Pick ONE pending requirement to work on next.
+
+Consider dependencies in the requirement text - if a requirement says it depends on others, those should be done first.
 
 ## Pending Requirements
 
 <% pending.each do |req| %>
-- `<%= req[:id] %>`: <%= req[:requirement] %>
+- ID `<%= req[:id] %>`: <%= req[:requirement] %>
 <% end %>
 <% if pending.empty? %>
-(none)
+(none - all done)
 <% end %>
 
 ## Recent History
 
-```
-<%= history %>
-```
+<%= history.empty? ? "(no history yet)" : history %>
 
-## Required Output
+## Your Task
 
-Output ONLY a JSON object (no markdown fences, no other text):
+Select the best requirement to work on next.
 
-{"id": "11"}
+Be direct. Only return a JSON structured response in the following format:
 
-Use `{"id": "none"}` if no pending requirements.
+{"id": "1"}
+
+If no pending requirements remain, return {"id": "none"}.
