@@ -141,7 +141,8 @@ class Ralph
   end
 
   def run
-    log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget})"
+    duration_str = @duration_seconds == Float::INFINITY ? 'infinite' : format_elapsed(@duration_seconds.to_i)
+    log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget}, duration: #{duration_str})"
     ensure_files_exist
     truncate_history unless @continue
 
@@ -221,6 +222,8 @@ class Ralph
   end
 
   def parse_duration(duration_str)
+    return Float::INFINITY if duration_str.nil?
+
     value = duration_str.to_i
     unit = duration_str[-1]
 
@@ -240,9 +243,11 @@ class Ralph
   end
 
   def time_expired?
+    return false if @duration_seconds == Float::INFINITY
+
     elapsed = Time.now - @start_time
     if elapsed >= @duration_seconds
-      log "Time budget expired (#{format_elapsed(@duration_seconds)})"
+      log "Time budget expired (#{format_elapsed(@duration_seconds.to_i)})"
       true
     else
       false
@@ -526,7 +531,7 @@ end
 options = { model: 'sonnet', reasoning: 'low', no_spinner: false }
 
 OptionParser.new do |opts|
-  opts.banner = 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
+  opts.banner = 'Usage: run --requirements=reqs.json [--duration=4h] [--history=history.jsonl] [options]'
 
   opts.on('--duration=DURATION', 'Time budget (e.g., 4h, 200m)') do |d|
     options[:duration] = d
@@ -559,9 +564,9 @@ OptionParser.new do |opts|
 end.parse!
 
 # Validate required arguments
-if options.values_at(:duration, :requirements).any?(&:nil?)
+if options[:requirements].nil?
   puts 'Error: Missing required arguments'
-  puts 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
+  puts 'Usage: run --requirements=reqs.json [--duration=4h] [--history=history.jsonl] [options]'
   exit 1
 end
 
