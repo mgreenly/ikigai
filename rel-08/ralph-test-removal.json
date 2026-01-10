@@ -38,7 +38,7 @@
     {
       "id": 8,
       "requirement": "`tests/unit/tool/glob_execute_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 9,
