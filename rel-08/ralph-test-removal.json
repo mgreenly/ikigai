@@ -8,7 +8,7 @@
     {
       "id": 2,
       "requirement": "`tests/unit/tool/tool_definition_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 3,
