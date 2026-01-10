@@ -43,7 +43,7 @@
     {
       "id": 9,
       "requirement": "`tests/unit/tool/grep_execute_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 10,
