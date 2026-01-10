@@ -58,7 +58,7 @@
     {
       "id": 12,
       "requirement": "`tests/unit/tool/tool_truncate_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
