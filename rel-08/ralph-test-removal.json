@@ -28,7 +28,7 @@
     {
       "id": 6,
       "requirement": "`tests/unit/tool/file_read_execute_test.c` deleted",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 7,
