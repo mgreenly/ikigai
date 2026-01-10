@@ -43,18 +43,48 @@ History provides learning without complex state management. Time budget prevents
 - `med` = 2/3 of max
 - `high` = full max
 
+## Requirements Philosophy
+
+Requirements are **intentionally minimal**. They specify WHAT, not HOW.
+
+**The agent's job is to figure out a working solution** using:
+1. The requirement itself
+2. Recent history (past attempts, what worked, what failed)
+3. Project-level guidance (style, patterns, conventions)
+
+**Priority: Working solution > perfect adherence to conventions.**
+
+This is a deliberate contrast to fully-specified task files. Ralph trusts the agent to discover and adapt rather than pre-specifying everything. The requirements file is a target list, not an instruction manual.
+
+## Writing Requirements
+
+**State outcomes, not actions:**
+- Good: "`src/tools/bash/` directory exists"
+- Bad: "Create `src/tools/bash/` directory"
+
+**Be minimal:**
+- Good: "`make bash_tool` produces `libexec/ikigai/bash_tool` without warnings"
+- Bad: "Add a Makefile target called bash_tool that compiles src/tools/bash/main.c with TOOL_COMMON_SRCS and links against talloc, outputting to libexec/ikigai/bash_tool"
+
+**One concept per requirement:**
+- Good: "Schema JSON contains `name`, `description`, `parameters` fields"
+- Good: "Schema `parameters` specifies `command` as required string property"
+- Bad: "Schema has name, description, and parameters where parameters defines command as a required string"
+
+**Trust the agent** to discover:
+- File locations and patterns
+- Existing conventions
+- Implementation details
+- How to verify their work
+
 ## Requirements File Format
 
 ```json
 {
   "requirements": [
     {
-      "id": "req-001",
-      "description": "Brief description of what needs to be implemented",
-      "acceptance_criteria": [
-        "Specific testable criterion 1",
-        "Specific testable criterion 2"
-      ],
+      "id": 1,
+      "requirement": "Brief declarative statement of desired outcome",
       "status": "pending"
     }
   ]
@@ -62,16 +92,11 @@ History provides learning without complex state management. Time budget prevents
 ```
 
 **Fields:**
-- `id` - Unique identifier (e.g., `req-001`, `feature-auth`, `fix-memory-leak`)
-- `description` - What needs to be implemented (1-2 sentences)
-- `acceptance_criteria` - Array of specific, testable criteria
+- `id` - Unique identifier (integer or string)
+- `requirement` - Declarative outcome statement (1 sentence)
 - `status` - `pending` or `done` (ralph updates this)
 
-**Writing Good Requirements:**
-- Each requirement should be independently implementable
-- Acceptance criteria should be verifiable by tests or inspection
-- If requirement A depends on B, put B first in the array
-- Keep requirements small - prefer many small over few large
+**Ordering:** Ralph selects requirements in whatever order makes sense based on history. The array order is randomized to avoid implying a fixed sequence - the agent determines dependencies.
 
 ## History File Format
 

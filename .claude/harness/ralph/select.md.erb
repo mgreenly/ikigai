@@ -1,31 +1,26 @@
 # Ralph: Select Next Requirement
 
-You are the requirement selector for the Ralph harness.
+Pick one pending requirement to work on.
 
-## Your Task
+## Pending Requirements
 
-Analyze the requirements and history to select the next requirement to work on.
+<% pending.each do |req| %>
+- `<%= req[:id] %>`: <%= req[:requirement] %>
+<% end %>
+<% if pending.empty? %>
+(none)
+<% end %>
 
-## Input Files
+## Recent History
 
-Read these files using the Read tool:
-- `<%= requirements_file %>` - All requirements with their current status
-- `<%= history_file %>` - Record of all previous attempts, successes, and failures
+```
+<%= history %>
+```
 
-## Selection Strategy
+## Required Output
 
-1. **Skip completed** - Ignore requirements with `status: "done"`
-2. **Learn from history** - Review past failures to avoid blocked requirements
-3. **Identify dependencies** - Pick requirements whose dependencies are complete
-4. **Prioritize unblocking** - Prefer requirements that unblock others
+Output ONLY a JSON object (no markdown fences, no other text):
 
-## Output Format
+{"id": "11"}
 
-Output ONLY the requirement ID to work on next, nothing else.
-
-Examples:
-- `req-001`
-- `req-042`
-- `none` (if all requirements are done or blocked)
-
-Do not include any explanation, markdown, or additional text.
+Use `{"id": "none"}` if no pending requirements.
