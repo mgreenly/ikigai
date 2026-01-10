@@ -30,6 +30,7 @@ coverage_html/
 .ikigai/deno/
 .claude/logs/
 .claude/harness/*/history.md
+.claude/harness/*/history.jsonl
 
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
