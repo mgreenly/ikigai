@@ -39,17 +39,17 @@ Use these instead of raw make commands. They return terse JSON summaries - no ou
 {"ok": false, "items": ["src/foo.c:10: error msg", "src/bar.c:22: another"]}
 ```
 
-| Script                         | Purpose                       |
-|--------------------------------|-------------------------------|
-| `.claude/harness/compile/run`  | Compile and link              |
-| `.claude/harness/check/run`    | Run unit tests                |
-| `.claude/harness/coverage/run` | Check test coverage           |
-| `.claude/harness/complexity/run` | Check cyclomatic complexity |
-| `.claude/harness/filesize/run` | Check file size limits        |
-| `.claude/harness/sanitize/run` | Run sanitizers (ASan, UBSan)  |
-| `.claude/harness/valgrind/run` | Run memory checks             |
-| `.claude/harness/helgrind/run` | Run thread error detection    |
-| `.claude/harness/tsan/run`     | Run ThreadSanitizer           |
+| Script                         | Purpose                       | Timeout |
+|--------------------------------|-------------------------------|---------|
+| `.claude/harness/compile/run`  | Compile and link              | 30m     |
+| `.claude/harness/check/run`    | Run unit tests                | 30m     |
+| `.claude/harness/coverage/run` | Check test coverage           | 30m     |
+| `.claude/harness/complexity/run` | Check cyclomatic complexity | 30m     |
+| `.claude/harness/filesize/run` | Check file size limits        | 30m     |
+| `.claude/harness/sanitize/run` | Run sanitizers (ASan, UBSan)  | 30m     |
+| `.claude/harness/valgrind/run` | Run memory checks             | 60m     |
+| `.claude/harness/helgrind/run` | Run thread error detection    | 60m     |
+| `.claude/harness/tsan/run`     | Run ThreadSanitizer           | 30m     |
 
 # Guidance
 
@@ -74,7 +74,7 @@ Bad: "Updated some files"
 Review Progress first. Don't repeat work already attempted.
 
 ## Scripts
-Run checks after implementation actions, not after every file read.
+Run checks after implementation actions, not after every file read. Never use background tasks - always run scripts in foreground and wait for completion.
 
 ## When Stuck
 Try multiple approaches before returning. Document what you tried and why it failed.
