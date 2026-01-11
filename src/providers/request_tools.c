@@ -8,6 +8,7 @@
 #include "agent.h"
 #include "error.h"
 #include "shared.h"
+#include "tool.h"
 #include "vendor/yyjson/yyjson.h"
 
 #include <assert.h>
@@ -142,9 +143,63 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
     }
 
     // TODO(rel-08): Replace with external tool registry lookup
-    // Internal tools removed - no tools available until external tool system is implemented
-    // Provider serializers will send empty tools array since req->tool_count == 0
-    (void)0; // No-op placeholder
+    // Add all standard tools
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Define all tools with their schemas
+    struct {
+        const char *name;
+        const char *description;
+        yyjson_mut_val *(*build_schema)(yyjson_mut_doc *);
+    } tools[] = {
+        {"glob", "Find files matching a glob pattern", ik_tool_build_glob_schema},
+        {"file_read", "Read contents of a file", ik_tool_build_file_read_schema},
+        {"grep", "Search file contents for a pattern", ik_tool_build_grep_schema},
+        {"file_write", "Write content to a file", ik_tool_build_file_write_schema},
+        {"bash", "Execute a shell command", ik_tool_build_bash_schema}
+    };
+
+    for (size_t i = 0; i < 5; i++) {
+        yyjson_mut_val *schema = tools[i].build_schema(doc);
+        if (!schema) {  // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+            PANIC("Failed to build schema");  // LCOV_EXCL_LINE
+        }
+
+        // Extract the parameters object from the schema
+        yyjson_mut_val *function = yyjson_mut_obj_get(schema, "function");
+        if (!function) {  // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+            PANIC("Invalid schema structure");  // LCOV_EXCL_LINE
+        }
+
+        yyjson_mut_val *parameters = yyjson_mut_obj_get(function, "parameters");
+        if (!parameters) {  // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+            PANIC("No parameters in schema");  // LCOV_EXCL_LINE
+        }
+
+        // Convert parameters to JSON string
+        char *params_json = yyjson_mut_val_write(parameters, 0, NULL);
+        if (!params_json) {  // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+            PANIC("Failed to serialize parameters");  // LCOV_EXCL_LINE
+        }
+
+        // Add tool to request
+        res = ik_request_add_tool(req, tools[i].name, tools[i].description, params_json, false);
+        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+            free(params_json);  // LCOV_EXCL_LINE
+            yyjson_mut_doc_free(doc);  // LCOV_EXCL_LINE
+            talloc_free(req);  // LCOV_EXCL_LINE
+            return res;  // LCOV_EXCL_LINE
+        }
+
+        free(params_json);
+    }
+
+    yyjson_mut_doc_free(doc);
 
     *out = req;
     return OK(req);
