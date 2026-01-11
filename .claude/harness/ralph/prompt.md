@@ -81,6 +81,13 @@ Run checks after implementation actions, not after every file read. These script
 ## When Stuck
 Try multiple approaches before returning. Document what you tried and why it failed.
 
+## Context Management
+You have limited context. Running out crashes the iteration and loses all progress.
+
+**Keep iterations focused.** Do one coherent unit of work per iteration - don't try to accomplish everything at once. Read only what you need, act, verify, return.
+
+**Partial progress is valuable.** A well-documented partial step that returns cleanly is far better than an ambitious step that crashes. The next iteration continues where you left off - but only if you returned successfully.
+
 # Output
 
 End each iteration with StructuredOutput:
