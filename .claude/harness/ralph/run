@@ -473,6 +473,8 @@ class Ralph
     run_checks(FULL_CHECKS)
   end
 
+  PROCESS_LOG = '.claude/harness/ralph/process.log'
+
   def run_checks(checks)
     loop do
       all_passed = true
@@ -481,11 +483,11 @@ class Ralph
         log "  Running #{harness}..."
         start_spinner "Running #{harness}"
 
-        success = system(".claude/harness/#{harness}/run --no-spinner >/dev/null 2>&1")
+        success = system(".claude/harness/#{harness}/run --no-spinner 2>&1 | tee -a #{PROCESS_LOG} >/dev/null")
         stop_spinner
 
         unless success
-          log "  #{harness} FAILED - retrying"
+          log "  #{harness} FAILED - retrying (see #{PROCESS_LOG})"
           all_passed = false
           break
         end
