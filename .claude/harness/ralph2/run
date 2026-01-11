@@ -7,6 +7,9 @@ require 'time'
 require 'erb'
 require 'tempfile'
 
+# Resolve script directory at load time (before any chdir)
+SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
+
 # Ralph2: Iterative goal completion harness
 class Ralph2
   SUMMARY_INTERVAL = 10
@@ -63,9 +66,8 @@ class Ralph2
     @summary_file = "#{base}-summary.md"
 
     # Prompt templates
-    @script_dir = File.dirname(File.realpath(__FILE__))
-    @prompt_template = File.join(@script_dir, 'prompt.md')
-    @summarizer_template = File.join(@script_dir, 'summarizer.md')
+    @prompt_template = File.join(SCRIPT_DIR, 'prompt.md')
+    @summarizer_template = File.join(SCRIPT_DIR, 'summarizer.md')
   end
 
   def run
