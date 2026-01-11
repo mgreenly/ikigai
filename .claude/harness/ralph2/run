@@ -60,6 +60,10 @@ class Ralph2
     @iteration = 0
     @spinner_thread = nil
     @spinner_running = false
+    @waiting_timer_thread = nil
+    @waiting_timer_running = false
+    @waiting_timer_displayed = false
+    @last_output_time = Time.now
 
     # Derive state file paths from goal file
     base = @goal_file.sub(/-goal\.md$/, '').sub(/\.md$/, '')
@@ -387,6 +391,7 @@ class Ralph2
       result = nil
       tool_names = {}  # track tool_use_id -> tool_name for result lookup
 
+      start_waiting_timer(iteration_start) if iteration_start
       IO.popen(cmd, 'r') do |io|
         io.each_line do |line|
           event = JSON.parse(line) rescue next
@@ -410,11 +415,13 @@ class Ralph2
           end
         end
       end
+      stop_waiting_timer if iteration_start
       result&.to_json
     end
   end
 
   def output_message(text, iteration_start, context_pct = nil)
+    reset_waiting_timer
     maybe_ralph_says
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
@@ -432,6 +439,7 @@ class Ralph2
   end
 
   def output_tool_use(tool_use, iteration_start)
+    reset_waiting_timer
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     name = tool_use['name']
     params = format_params(tool_use['input'] || {})
@@ -440,6 +448,7 @@ class Ralph2
   end
 
   def output_tool_result(name, tool_result, tool_use_result, iteration_start)
+    reset_waiting_timer
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     # Prefer structured tool_use_result, fall back to content
     data = tool_use_result || { 'content' => tool_result['content'] }
@@ -748,6 +757,50 @@ class Ralph2
 
     @spinner_running = false
     @spinner_thread&.join(1)
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Waiting Timer
+  # ─────────────────────────────────────────────────────────────
+
+  def start_waiting_timer(iteration_start)
+    @waiting_timer_running = true
+    @waiting_timer_displayed = false
+    @last_output_time = Time.now
+
+    @waiting_timer_thread = Thread.new do
+      while @waiting_timer_running
+        since_output = Time.now - @last_output_time
+        if since_output >= 3.0
+          @waiting_timer_displayed = true
+          elapsed = format_elapsed((Time.now - iteration_start).to_i)
+          print "\r(#{elapsed})"
+          $stdout.flush
+        end
+        sleep 0.1
+      end
+    end
+  end
+
+  def stop_waiting_timer
+    @waiting_timer_running = false
+    @waiting_timer_thread&.join(1)
+    clear_waiting_timer
+  end
+
+  def reset_waiting_timer
+    return unless @waiting_timer_running
+
+    @last_output_time = Time.now
+    clear_waiting_timer
+  end
+
+  def clear_waiting_timer
+    return unless @waiting_timer_displayed
+
+    print "\r#{' ' * 20}\r"
+    $stdout.flush
+    @waiting_timer_displayed = false
   end
 end
 
