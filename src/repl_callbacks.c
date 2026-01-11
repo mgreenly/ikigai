@@ -245,12 +245,10 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
                 if (agent->pending_redacted_data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             }
         } else if (block->type == IK_CONTENT_TOOL_CALL) {
-            agent->pending_tool_call = ik_tool_call_create(
-                agent,
-                block->data.tool_call.id,
-                block->data.tool_call.name,
-                block->data.tool_call.arguments
-            );
+            agent->pending_tool_call = ik_tool_call_create(agent,
+                                                           block->data.tool_call.id,
+                                                           block->data.tool_call.name,
+                                                           block->data.tool_call.arguments);
             if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             break;  // Only handle first tool call
         }

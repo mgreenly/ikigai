@@ -40,17 +40,14 @@ static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
-    // Execute tool - TODO(rel-08): Replace with registry lookup + ik_tool_external_exec()
-    // Stub: return "not yet implemented" error
-    char *result_json = talloc_asprintf(args->ctx,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
-        args->tool_name);
-    if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    // Execute tool - this is the potentially slow operation.
+    // All allocations go into args->ctx which main thread will free.
+    res_t result = ik_tool_dispatch(args->ctx, args->tool_name, args->arguments);
 
     // Store result directly in agent context.
     // Safe without mutex: main thread won't read until complete=true,
     // and setting complete=true (below) provides the memory barrier.
-    args->agent->tool_thread_result = result_json;
+    args->agent->tool_thread_result = result.ok;
 
     // Signal completion under mutex.
     // The mutex ensures main thread sees result before or after this,
@@ -88,11 +85,10 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
-    // 2. Execute tool - TODO(rel-08): Replace with registry lookup + ik_tool_external_exec()
-    char *result_json = talloc_asprintf(repl,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
-        tc->name);
-    if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    // 2. Execute tool
+    res_t tool_res = ik_tool_dispatch(repl, tc->name, tc->arguments);
+    if (is_err(&tool_res)) PANIC("tool dispatch failed"); // LCOV_EXCL_BR_LINE
+    char *result_json = tool_res.ok;
 
     // 3. Add tool result message to conversation
     ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);

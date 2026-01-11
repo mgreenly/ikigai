@@ -95,9 +95,10 @@ START_TEST(test_execute_tool_and_add_result_message) {
         );
     ik_agent_add_message(repl->current, tool_call_msg);
 
-    /* Tool system removed - use stub response */
-    char *tool_output = talloc_asprintf(ctx,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool 'glob' unavailable.\"}");
+    /* Execute the tool dispatcher */
+    res_t tool_res = ik_tool_dispatch(ctx, "glob", "{\"pattern\":\"*.c\"}");
+    ck_assert(is_ok(&tool_res));
+    char *tool_output = tool_res.ok;
     ck_assert_ptr_nonnull(tool_output);
 
     /* Create a canonical tool_result message using new API */
@@ -105,7 +106,7 @@ START_TEST(test_execute_tool_and_add_result_message) {
         ctx,
         "call_abc123",          /* tool_call_id */
         tool_output,            /* content */
-        true                    /* is_error - tool system not available */
+        false                   /* is_error */
         );
 
     /* Add tool_result message to conversation */
