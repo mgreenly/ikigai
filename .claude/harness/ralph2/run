@@ -78,6 +78,7 @@ class Ralph2
 
     display_header
     display_goal
+    sleep 2
     display_continue_status
     handle_dirty_state
 
