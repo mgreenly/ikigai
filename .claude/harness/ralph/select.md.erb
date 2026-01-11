@@ -1,6 +1,6 @@
 # Task: Select Next Requirement
 
-**UNATTENDED EXECUTION:** This task runs automatically without human oversight. Provide no output other than the requested response. You are part of a pipeline that is converting source code requirements into finished code. Your job is to select the next requirement from the list of "Pending Requirements" that this pipeline will process. You have two resources to help make this decision: the description of each requirement in the "Pending Requirements" section below and the description of the events in the "Recent History" section below. Use all the information you have available to you to determine which requirement should be worked on next.
+**UNATTENDED EXECUTION:** This task runs automatically without human oversight. You are part of a pipeline that is converting source code requirements into finished code. Your job is to select the next requirement for a worker agent to implement. After you select a requirement, the worker agent will implement it, the harness will commit changes and run quality checks, and fix agents will attempt repairs if checks fail. When all checks pass, the requirement is marked done and the pipeline returns to you to select the next requirement. Use the "Pending Requirements" and "Recent History" sections below to determine which requirement should be worked on next.
 
 ## Pending Requirements
 
