@@ -30,8 +30,8 @@ static void teardown(void)
 }
 
 /**
- * Test build_from_conversation which internally calls build_tool_parameters_json
- * This covers lines 92-107 (the function that builds JSON tool schemas)
+ * Test build_from_conversation with internal tools removed (rel-08)
+ * After tool system removal, requests should have no tools (empty array)
  */
 START_TEST(test_build_tool_parameters_json_via_conversation) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -47,16 +47,8 @@ START_TEST(test_build_tool_parameters_json_via_conversation) {
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(req);
 
-    // Should have built 5 standard tools (glob, file_read, grep, file_write, bash)
-    ck_assert_int_eq((int)req->tool_count, 5);
-
-    // Verify the tools have parameter schemas (JSON strings)
-    for (size_t i = 0; i < 5; i++) {
-        ck_assert_ptr_nonnull(req->tools[i].parameters);
-        // Verify it's valid JSON by checking for basic structure
-        ck_assert_ptr_nonnull(strstr(req->tools[i].parameters, "\"type\""));
-        ck_assert_ptr_nonnull(strstr(req->tools[i].parameters, "\"properties\""));
-    }
+    // After internal tool removal, no tools should be present
+    ck_assert_int_eq((int)req->tool_count, 0);
 }
 END_TEST
 
