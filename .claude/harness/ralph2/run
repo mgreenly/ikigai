@@ -360,8 +360,9 @@ class Ralph2
           event = JSON.parse(line) rescue next
           case event['type']
           when 'assistant'
+            context_pct = extract_context_percentage(event)
             text = extract_text_content(event)
-            output_message(text, iteration_start) unless text.empty?
+            output_message(text, iteration_start, context_pct) unless text.empty?
             extract_tool_uses(event).each do |tool_use|
               tool_names[tool_use['id']] = tool_use['name']
               output_tool_use(tool_use, iteration_start)
@@ -381,17 +382,18 @@ class Ralph2
     end
   end
 
-  def output_message(text, iteration_start)
+  def output_message(text, iteration_start, context_pct = nil)
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
     lines = text.lines
     if lines.empty?
-      puts "(#{elapsed})"
+      puts suffix
     elsif lines.length == 1
-      puts "#{lines.first.chomp} (#{elapsed})"
+      puts "#{lines.first.chomp} #{suffix}"
     else
       puts lines.first
       lines[1...-1].each { |l| puts l }
-      puts "#{lines.last.chomp} (#{elapsed})"
+      puts "#{lines.last.chomp} #{suffix}"
     end
     puts
   end
@@ -440,6 +442,20 @@ class Ralph2
   def extract_tool_results(event)
     content = event.dig('message', 'content') || []
     content.select { |b| b['type'] == 'tool_result' }
+  end
+
+  def extract_context_percentage(event)
+    usage = event.dig('message', 'usage')
+    return nil unless usage
+
+    input = usage['input_tokens'] || 0
+    cache_create = usage['cache_creation_input_tokens'] || 0
+    cache_read = usage['cache_read_input_tokens'] || 0
+    total_context = input + cache_create + cache_read
+
+    return nil if total_context.zero?
+
+    ((total_context.to_f / 200_000) * 100).round(1)
   end
 
   def with_temp_file(content)

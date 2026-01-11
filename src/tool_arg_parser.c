@@ -6,6 +6,28 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <talloc.h>
+
+ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments)
+{
+    assert(id != NULL);         // LCOV_EXCL_BR_LINE
+    assert(name != NULL);       // LCOV_EXCL_BR_LINE
+    assert(arguments != NULL);  // LCOV_EXCL_BR_LINE
+
+    ik_tool_call_t *tc = talloc(ctx, ik_tool_call_t);
+    if (tc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    tc->id = talloc_strdup(tc, id);
+    tc->name = talloc_strdup(tc, name);
+    tc->arguments = talloc_strdup(tc, arguments);
+
+    if (tc->id == NULL || tc->name == NULL || tc->arguments == NULL) {  // LCOV_EXCL_BR_LINE
+        talloc_free(tc);  // LCOV_EXCL_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
+    }
+
+    return tc;
+}
 
 char *ik_tool_arg_get_string(void *parent, const char *arguments_json, const char *key)
 {
