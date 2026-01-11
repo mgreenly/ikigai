@@ -192,15 +192,18 @@ class Ralph2
 
     stop_spinner
 
-    progress = parse_progress(result)
+    parsed = parse_progress(result)
 
-    if progress.nil?
-      display_error('Failed to parse agent output')
-      record_progress('ERROR: Agent produced no valid output')
-      commit_iteration('error - no valid output')
+    if parsed[:error]
+      display_error("Failed to parse agent output: #{parsed[:error]}")
+      error_msg = "ERROR: #{parsed[:error]}"
+      error_msg += "\nRAW: #{parsed[:raw]}" if parsed[:raw]
+      record_progress(error_msg)
+      commit_iteration('error - parse failure')
       return nil
     end
 
+    progress = parsed[:progress]
     display_progress(progress)
     record_progress(progress)
     commit_iteration(progress)
@@ -499,13 +502,23 @@ class Ralph2
   end
 
   def parse_progress(result)
+    return { error: 'nil result', raw: nil } if result.nil?
+
     parsed = JSON.parse(result, symbolize_names: true)
     structured = parsed[:structured_output]
-    return nil if structured.nil?
 
-    structured[:progress]
-  rescue JSON::ParserError
-    nil
+    if structured.nil?
+      return { error: 'no structured_output', raw: result[0, 500] }
+    end
+
+    progress = structured[:progress]
+    if progress.nil?
+      return { error: 'no progress field', raw: result[0, 500] }
+    end
+
+    { progress: progress }
+  rescue JSON::ParserError => e
+    { error: "JSON parse error: #{e.message}", raw: result&.[](0, 500) }
   end
 
   def parse_summary(result)
