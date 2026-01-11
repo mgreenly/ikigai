@@ -574,9 +574,13 @@ class Ralph2
       puts '─' * 70
       puts
     end
-    puts "\e[1mRALPH2\e[0m - Braindead agentic loop. Just keep trying until it works."
+    puts "\e[1mRALPH2\e[0m"
     puts
-    puts "\e[1mParams\e[0m - Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
+    puts "Braindead agentic loop. Just keep trying until it works."
+    puts
+    puts "\e[1mParams\e[0m"
+    puts
+    puts "Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
     puts
   end
 
