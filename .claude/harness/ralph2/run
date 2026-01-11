@@ -420,6 +420,7 @@ class Ralph2
     hash.map do |k, v|
       val = v.to_s.gsub(/\s+/, ' ').strip
       val = val[0, 45] + '...' if val.length > 48
+      val = "\"#{val}\"" if val.include?(' ')
       "#{k}=#{val}"
     end.join(', ')
   end
