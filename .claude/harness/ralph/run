@@ -291,8 +291,8 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      # Use same config as worker with json-schema for structured output
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>&1`
+      # Selector only needs StructuredOutput tool
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --tools StructuredOutput --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>&1`
       exit_code = $?.exitstatus
     end
 
@@ -355,7 +355,8 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{WORK_OUTPUT_SCHEMA}' 2>&1`
+      # Worker needs file/code tools plus StructuredOutput for final response
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --tools "Read,Write,Edit,Glob,Grep,Bash,TodoWrite,Task,StructuredOutput" --output-format json --json-schema '#{WORK_OUTPUT_SCHEMA}' 2>&1`
       exit_code = $?.exitstatus
     end
 
