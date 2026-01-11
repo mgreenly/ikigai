@@ -44,7 +44,7 @@
     {
       "id": 4,
       "requirement": "`src/tool.c` does not exist (requires requirement 3 complete or build fails)",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 5,
