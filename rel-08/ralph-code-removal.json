@@ -25,8 +25,13 @@
       "status": "done"
     },
     {
+      "id": 14,
+      "requirement": "`src/repl_callbacks.c` `ik_tool_call_create()` call is replaced with a stub returning NULL (must stub before removing src/tool.c)",
+      "status": "pending"
+    },
+    {
       "id": 3,
-      "requirement": "Makefile `CLIENT_SOURCES`, `MODULE_SOURCES`, `MODULE_SOURCES_NO_DB` do not contain `src/tool.c`, `src/tool_dispatcher.c`, `src/tool_bash.c`, `src/tool_file_read.c`, `src/tool_file_write.c`, `src/tool_glob.c`, `src/tool_grep.c`, `src/tool_response.c` (requires requirements 1-2 complete or link fails on missing symbols)",
+      "requirement": "Makefile `CLIENT_SOURCES`, `MODULE_SOURCES`, `MODULE_SOURCES_NO_DB` do not contain `src/tool.c`, `src/tool_dispatcher.c`, `src/tool_bash.c`, `src/tool_file_read.c`, `src/tool_file_write.c`, `src/tool_glob.c`, `src/tool_grep.c`, `src/tool_response.c` (requires requirements 1, 2, 14 complete or link fails on missing symbols)",
       "docs": [
         {
           "path": "rel-08/plan/removal-specification.md",
