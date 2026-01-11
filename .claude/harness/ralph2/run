@@ -353,6 +353,8 @@ class Ralph2
       cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --verbose --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
 
       result = nil
+      tool_names = {}  # track tool_use_id -> tool_name for result lookup
+
       IO.popen(cmd, 'r') do |io|
         io.each_line do |line|
           event = JSON.parse(line) rescue next
@@ -360,9 +362,17 @@ class Ralph2
           when 'assistant'
             text = extract_text_content(event)
             output_message('assistant', text, iteration_start) unless text.empty?
+            extract_tool_uses(event).each do |tool_use|
+              tool_names[tool_use['id']] = tool_use['name']
+              output_message('→', tool_use['name'], iteration_start)
+            end
           when 'user'
             text = extract_text_content(event)
             output_message('ralph', text, iteration_start) unless text.empty?
+            extract_tool_results(event).each do |tool_result|
+              name = tool_names[tool_result['tool_use_id']] || 'unknown'
+              output_message('←', name, iteration_start)
+            end
           when 'result'
             result = event
           end
@@ -393,6 +403,16 @@ class Ralph2
       .select { |b| b['type'] == 'text' }
       .map { |b| b['text'] }
       .join
+  end
+
+  def extract_tool_uses(event)
+    content = event.dig('message', 'content') || []
+    content.select { |b| b['type'] == 'tool_use' }
+  end
+
+  def extract_tool_results(event)
+    content = event.dig('message', 'content') || []
+    content.select { |b| b['type'] == 'tool_result' }
   end
 
   def with_temp_file(content)
