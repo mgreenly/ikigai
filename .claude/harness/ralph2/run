@@ -64,9 +64,8 @@ class Ralph2
 
     # Prompt templates
     @script_dir = File.dirname(File.realpath(__FILE__))
-    @harness_dir = File.join(@script_dir, '..', 'harness', 'ralph2')
-    @prompt_template = File.join(@harness_dir, 'prompt.md')
-    @summarizer_template = File.join(@harness_dir, 'summarizer.md')
+    @prompt_template = File.join(@script_dir, 'prompt.md')
+    @summarizer_template = File.join(@script_dir, 'summarizer.md')
   end
 
   def run
