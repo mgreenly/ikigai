@@ -773,7 +773,7 @@ class Ralph2
         since_output = Time.now - @last_output_time
         if since_output >= 3.0
           @waiting_timer_displayed = true
-          elapsed = format_elapsed((Time.now - iteration_start).to_i)
+          elapsed = format_elapsed(since_output.to_i)
           print "\r(#{elapsed})"
           $stdout.flush
         end
