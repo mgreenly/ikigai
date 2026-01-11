@@ -4,15 +4,23 @@
       "id": 1,
       "requirement": "`src/repl_tool.c` `ik_tool_dispatch()` calls are replaced with a stub returning `{\"success\": false, \"error\": \"Tool system not yet implemented. Tool 'X' unavailable.\"}` (must stub callers before removing ik_tool_dispatch() implementation)",
       "docs": [
-        {"path": "rel-08/plan/removal-specification.md", "start": 266, "end": 318}
+        {
+          "path": "rel-08/plan/removal-specification.md",
+          "start": 266,
+          "end": 318
+        }
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 2,
       "requirement": "`src/providers/request_tools.c` does not contain tool definitions or `build_tool_parameters_json()`, tool population loop is replaced with stub comment (must complete before removing schema types from tool.h)",
       "docs": [
-        {"path": "rel-08/plan/removal-specification.md", "start": 205, "end": 263}
+        {
+          "path": "rel-08/plan/removal-specification.md",
+          "start": 205,
+          "end": 263
+        }
       ],
       "status": "pending"
     },
@@ -20,7 +28,11 @@
       "id": 3,
       "requirement": "Makefile `CLIENT_SOURCES`, `MODULE_SOURCES`, `MODULE_SOURCES_NO_DB` do not contain `src/tool.c`, `src/tool_dispatcher.c`, `src/tool_bash.c`, `src/tool_file_read.c`, `src/tool_file_write.c`, `src/tool_glob.c`, `src/tool_grep.c`, `src/tool_response.c` (requires requirements 1-2 complete or link fails on missing symbols)",
       "docs": [
-        {"path": "rel-08/plan/removal-specification.md", "start": 320, "end": 383}
+        {
+          "path": "rel-08/plan/removal-specification.md",
+          "start": 320,
+          "end": 383
+        }
       ],
       "status": "pending"
     },
@@ -73,7 +85,11 @@
       "id": 13,
       "requirement": "`src/tool.h` contains only `ik_tool_call_t` typedef, `ik_tool_call_create()`, `ik_tool_arg_get_string()`, `ik_tool_arg_get_int()` declarations (requires requirements 4-10 complete)",
       "docs": [
-        {"path": "rel-08/plan/removal-specification.md", "start": 49, "end": 191}
+        {
+          "path": "rel-08/plan/removal-specification.md",
+          "start": 49,
+          "end": 191
+        }
       ],
       "status": "pending"
     }
