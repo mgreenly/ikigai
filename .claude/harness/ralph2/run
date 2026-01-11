@@ -576,7 +576,7 @@ class Ralph2
     end
     puts "\e[1mRALPH2\e[0m - Braindead agentic loop. Just keep trying until it works."
     puts
-    puts "\e[1mParams:\e[0m Model: #{@model} | Reasoning: #{@reasoning} | Duration: #{duration_str}"
+    puts "\e[1mParams\e[0m - Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
     puts
   end
 
@@ -586,8 +586,7 @@ class Ralph2
     # Extract just the objective section
     objective = extract_objective(goal_content)
 
-    puts "\e[1mGOAL:\e[0m"
-    puts objective
+    puts "\e[1mGoal\e[0m - #{objective}"
     puts
   end
 
