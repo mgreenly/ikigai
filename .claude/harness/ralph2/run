@@ -148,6 +148,7 @@ class Ralph2
     display_iteration_header
 
     prompt = build_worker_prompt
+    iteration_start = Time.now
     start_spinner("Iteration #{@iteration}")
 
     result = invoke_claude(
@@ -155,7 +156,8 @@ class Ralph2
       model: @model,
       thinking_budget: @thinking_budget,
       tools: 'Read,Write,Edit,Glob,Grep,Bash,Skill,StructuredOutput',
-      schema: PROGRESS_SCHEMA
+      schema: PROGRESS_SCHEMA,
+      iteration_start: iteration_start
     )
 
     stop_spinner
@@ -345,7 +347,7 @@ class Ralph2
   # Claude Invocation
   # ─────────────────────────────────────────────────────────────
 
-  def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:)
+  def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:, iteration_start: nil)
     with_temp_file(prompt) do |prompt_file|
       env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
       cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --verbose --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
@@ -357,10 +359,10 @@ class Ralph2
           case event['type']
           when 'assistant'
             text = extract_text_content(event)
-            puts "A: #{text}" unless text.empty?
+            output_message('assistant', text, iteration_start) unless text.empty?
           when 'user'
             text = extract_text_content(event)
-            puts "ralph: #{text}" unless text.empty?
+            output_message('ralph', text, iteration_start) unless text.empty?
           when 'result'
             result = event
           end
@@ -368,6 +370,21 @@ class Ralph2
       end
       result&.to_json
     end
+  end
+
+  def output_message(role, text, iteration_start)
+    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    lines = text.lines
+    if lines.empty?
+      puts "#{role}: (#{elapsed})"
+    elsif lines.length == 1
+      puts "#{role}: #{lines.first.chomp} (#{elapsed})"
+    else
+      puts "#{role}: #{lines.first}"
+      lines[1...-1].each { |l| puts l }
+      puts "#{lines.last.chomp} (#{elapsed})"
+    end
+    puts
   end
 
   def extract_text_content(event)
@@ -479,10 +496,9 @@ class Ralph2
   end
 
   def display_iteration_header
-    elapsed = format_elapsed((Time.now - @start_time).to_i)
     puts
-    puts "\e[1mIteration #{@iteration}\e[0m" + ' ' * 40 + "[#{elapsed}]"
-    puts '─' * 70
+    puts "Iteration #{@iteration}"
+    puts
   end
 
   def maybe_ralph_says
@@ -632,7 +648,7 @@ end
 options = {
   model: 'sonnet',
   reasoning: 'low',
-  no_spinner: false,
+  no_spinner: true,
   continue: false
 }
 
@@ -659,8 +675,8 @@ OptionParser.new do |opts|
     options[:reasoning] = r
   end
 
-  opts.on('--no-spinner', 'Disable progress spinner') do
-    options[:no_spinner] = true
+  opts.on('--spinner', 'Enable progress spinner (off by default)') do
+    options[:no_spinner] = false
   end
 
   opts.on('--continue', 'Continue from existing progress') do
