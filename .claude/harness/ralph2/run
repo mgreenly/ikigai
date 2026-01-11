@@ -75,6 +75,7 @@ class Ralph2
     validate_files
     initialize_state unless @continue_run
     load_state if @continue_run
+    handle_dirty_state
 
     display_header
     display_goal
@@ -138,6 +139,24 @@ class Ralph2
     return 0 unless File.exist?(@progress_file)
 
     File.readlines(@progress_file).count { |line| !line.strip.empty? }
+  end
+
+  def handle_dirty_state
+    # Check if working copy has changes
+    status = `jj status 2>/dev/null`.strip
+    return if status.empty? || status.include?('The working copy is clean')
+
+    # Working copy is dirty - commit and record as iteration
+    @iteration += 1
+    revision = `jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null`.strip
+
+    progress = "Dirty working copy detected on startup. Changes committed. To see diff: jj diff -r #{revision}"
+    record_progress(progress)
+    commit_iteration("dirty state recovery")
+
+    puts "\e[33mDirty working copy detected - committed as iteration #{@iteration}\e[0m"
+    puts "To see changes: jj diff -r #{revision}"
+    puts
   end
 
   # ─────────────────────────────────────────────────────────────
