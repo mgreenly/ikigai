@@ -175,7 +175,6 @@ class Ralph2
 
   def run_iteration
     display_iteration_header
-    maybe_ralph_says
 
     prompt = build_worker_prompt
     iteration_start = Time.now
@@ -416,6 +415,7 @@ class Ralph2
   end
 
   def output_message(text, iteration_start, context_pct = nil)
+    maybe_ralph_says
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
     lines = text.lines
@@ -612,7 +612,7 @@ class Ralph2
   end
 
   def maybe_ralph_says
-    return unless rand < 0.1  # 10% chance
+    return unless rand < 0.03  # 3% chance
 
     puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
     puts
