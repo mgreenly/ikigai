@@ -584,7 +584,7 @@ class Ralph2
     return unless rand < 0.1  # 10% chance
 
     puts
-    puts "  \e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
+    puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
   end
 
   def display_progress(progress)
