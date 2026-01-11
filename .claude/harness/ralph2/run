@@ -347,10 +347,34 @@ class Ralph2
   def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:)
     with_temp_file(prompt) do |prompt_file|
       env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
-      cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --output-format json --json-schema '#{schema}' 2>/dev/null"
+      cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --verbose --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
 
-      `#{cmd}`
+      result = nil
+      IO.popen(cmd, 'r') do |io|
+        io.each_line do |line|
+          event = JSON.parse(line) rescue next
+          case event['type']
+          when 'assistant'
+            text = extract_text_content(event)
+            puts "A: #{text}" unless text.empty?
+          when 'user'
+            text = extract_text_content(event)
+            puts "ralph: #{text}" unless text.empty?
+          when 'result'
+            result = event
+          end
+        end
+      end
+      result&.to_json
     end
+  end
+
+  def extract_text_content(event)
+    content = event.dig('message', 'content') || []
+    content
+      .select { |b| b['type'] == 'text' }
+      .map { |b| b['text'] }
+      .join
   end
 
   def with_temp_file(content)
