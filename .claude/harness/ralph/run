@@ -291,9 +291,8 @@ class Ralph
     exit_code = nil
 
     with_temp_prompt(prompt_content) do |prompt_file|
-      # Selector only needs StructuredOutput tool
-      # Don't merge stderr - it may contain streaming progress
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --tools StructuredOutput --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>/dev/null`
+      # Selector gets read-only tools plus StructuredOutput
+      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --tools "Read,Glob,Grep,StructuredOutput" --output-format json --json-schema '#{SELECT_OUTPUT_SCHEMA}' 2>/dev/null`
       exit_code = $?.exitstatus
     end
 
@@ -303,6 +302,14 @@ class Ralph
       log "Selection agent FAILED: #{result[0..200]}"
       record_attempt('selector', nil, { success: false, message: "Selection agent failed (exit_code=#{exit_code})" })
       return select_requirement  # retry
+    end
+
+    # DEBUG: log raw structured_output
+    begin
+      parsed = JSON.parse(result, symbolize_names: true)
+      log "DEBUG structured_output: #{parsed[:structured_output].inspect}"
+    rescue => e
+      log "DEBUG parse error: #{e.message}"
     end
 
     requirement_id = parse_select_outcome(result)
