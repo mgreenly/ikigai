@@ -771,7 +771,7 @@ class Ralph2
     @waiting_timer_thread = Thread.new do
       while @waiting_timer_running
         since_output = Time.now - @last_output_time
-        if since_output >= 3.0
+        if since_output >= 5.0
           @waiting_timer_displayed = true
           elapsed = format_elapsed(since_output.to_i)
           print "\r(#{elapsed})"
