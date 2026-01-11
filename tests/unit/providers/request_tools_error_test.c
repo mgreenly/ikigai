@@ -108,9 +108,9 @@ START_TEST(test_add_tool_error_cleanup) {
     ik_request_t *req = NULL;
     res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
 
-    // Should succeed and have all 5 tools
+    // Should succeed and have no tools (tools removed pending external tool system)
     ck_assert(!is_err(&result));
-    ck_assert_int_eq((int)req->tool_count, 5);
+    ck_assert_int_eq((int)req->tool_count, 0);
 }
 END_TEST
 
