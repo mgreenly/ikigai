@@ -361,14 +361,13 @@ class Ralph2
           case event['type']
           when 'assistant'
             text = extract_text_content(event)
-            output_message('assistant', text, iteration_start) unless text.empty?
+            output_message(text, iteration_start) unless text.empty?
             extract_tool_uses(event).each do |tool_use|
               tool_names[tool_use['id']] = tool_use['name']
               output_tool_use(tool_use, iteration_start)
             end
           when 'user'
-            text = extract_text_content(event)
-            output_message('ralph', text, iteration_start) unless text.empty?
+            # Tool results only - user text messages don't appear in this context
             extract_tool_results(event).each do |tool_result|
               name = tool_names[tool_result['tool_use_id']] || 'unknown'
               output_tool_result(name, tool_result, event['tool_use_result'], iteration_start)
@@ -382,15 +381,15 @@ class Ralph2
     end
   end
 
-  def output_message(role, text, iteration_start)
+  def output_message(text, iteration_start)
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     lines = text.lines
     if lines.empty?
-      puts "#{role}: (#{elapsed})"
+      puts "(#{elapsed})"
     elsif lines.length == 1
-      puts "#{role}: #{lines.first.chomp} (#{elapsed})"
+      puts "#{lines.first.chomp} (#{elapsed})"
     else
-      puts "#{role}: #{lines.first}"
+      puts lines.first
       lines[1...-1].each { |l| puts l }
       puts "#{lines.last.chomp} (#{elapsed})"
     end
@@ -401,7 +400,7 @@ class Ralph2
     elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
     name = tool_use['name']
     params = format_params(tool_use['input'] || {})
-    puts "→ #{name} #{params} (#{elapsed})"
+    puts "\e[90m→ #{name} #{params} (#{elapsed})\e[0m"
     puts
   end
 
@@ -410,7 +409,7 @@ class Ralph2
     # Prefer structured tool_use_result, fall back to content
     data = tool_use_result || { 'content' => tool_result['content'] }
     params = format_params(data)
-    puts "← #{name} #{params} (#{elapsed})"
+    puts "\e[90m← #{name} #{params} (#{elapsed})\e[0m"
     puts
   end
 
@@ -545,7 +544,7 @@ class Ralph2
 
   def display_iteration_header
     puts
-    puts "Iteration #{@iteration}"
+    puts "\e[1mIteration #{@iteration}\e[0m"
     puts
   end
 
