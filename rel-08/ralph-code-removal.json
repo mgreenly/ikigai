@@ -27,7 +27,7 @@
     {
       "id": 14,
       "requirement": "`src/repl_callbacks.c` `ik_tool_call_create()` call is replaced with a stub returning NULL (must stub before removing src/tool.c)",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 3,
