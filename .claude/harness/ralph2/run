@@ -75,10 +75,11 @@ class Ralph2
     validate_files
     initialize_state unless @continue_run
     load_state if @continue_run
-    handle_dirty_state
 
     display_header
     display_goal
+    display_continue_status
+    handle_dirty_state
 
     loop do
       break if time_expired?
@@ -132,7 +133,13 @@ class Ralph2
 
   def load_state
     @iteration = count_progress_entries
-    log "Continuing from iteration #{@iteration}"
+  end
+
+  def display_continue_status
+    return unless @continue_run && @iteration.positive?
+
+    puts "Continuing from iteration #{@iteration}"
+    puts
   end
 
   def count_progress_entries
@@ -150,12 +157,14 @@ class Ralph2
     @iteration += 1
     revision = `jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null`.strip
 
-    progress = "Dirty working copy detected on startup. Changes committed. To see diff: jj diff -r #{revision}"
+    progress = "Dirty working copy detected and committed, use `jj diff -r #{revision}` to see the changes."
     record_progress(progress)
     commit_iteration("dirty state recovery")
 
-    puts "\e[33mDirty working copy detected - committed as iteration #{@iteration}\e[0m"
-    puts "To see changes: jj diff -r #{revision}"
+    # Display as proper iteration
+    puts "\e[1mIteration #{@iteration}\e[0m"
+    puts
+    puts "#{progress}"
     puts
   end
 
