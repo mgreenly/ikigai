@@ -2,9 +2,13 @@
 import sys
 sys.dont_write_bytecode = True
 """
-harness/coverage - Automated coverage gap fix loop
+harness/coverage - Coverage check and automated fix loop
 
-Runs make check-coverage, fixes gaps one file at a time with escalation,
+Default mode: Runs make check-coverage, parses gaps, prints JSON to stdout:
+  - Success: {"ok": true}
+  - Failure: {"ok": false, "items": ["src/foo.c lines:95% funcs:90% branches:85%", ...]}
+
+With --fix: Runs full fix loop - fixes gaps one file at a time with escalation,
 commits on success, reverts on exhaustion, continues until
 all coverage thresholds met or no progress is made.
 """
@@ -543,10 +547,12 @@ def count_total_gaps(gaps: list[dict]) -> int:
 
 def main() -> int:
     """Main entry point."""
+    import json as json_mod
+
     start_time = time.time()
     parser = argparse.ArgumentParser(description="Automated coverage gap fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify gaps without fixing them")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the full fix loop (default: just check and output JSON)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
@@ -558,8 +564,8 @@ def main() -> int:
         SPINNER_ENABLED = False
 
     opts = []
-    if args.dry_run:
-        opts.append("dry-run")
+    if args.fix:
+        opts.append("fix")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
@@ -579,6 +585,11 @@ def main() -> int:
     success, output = run_make_coverage()
 
     if success:
+        # Coverage passed
+        if not args.fix:
+            # Default mode: print JSON and exit
+            print(json_mod.dumps({"ok": True}))
+            return 0
         log(f"All coverage thresholds met! (elapsed: {format_elapsed(time.time() - start_time)})")
         return 0
 
@@ -597,14 +608,15 @@ def main() -> int:
     initial_gap_count = count_total_gaps(gaps)
     log(f"Found {len(gaps)} files with coverage gaps (total gap: {initial_gap_count}%)")
 
-    # Dry-run: just list gaps and exit
-    if args.dry_run:
-        log("Files needing coverage:")
+    # Default mode (no --fix): print JSON and exit
+    if not args.fix:
+        items = []
         for gap in gaps:
-            source_file = Path(gap["file"]).name
-            log(f"  - {source_file} - lines:{gap['lines_pct']}% funcs:{gap['funcs_pct']}% branches:{gap['branches_pct']}%")
-        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
+            # Format: "file lines:X% funcs:Y% branches:Z%"
+            item = f"{gap['file']} lines:{gap['lines_pct']}% funcs:{gap['funcs_pct']}% branches:{gap['branches_pct']}%"
+            items.append(item)
+        print(json_mod.dumps({"ok": False, "items": items}))
+        return 1
 
     pass_num = 0
 

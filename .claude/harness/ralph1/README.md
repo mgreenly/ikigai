@@ -1,11 +1,11 @@
-# Ralph - Iterative Requirement Completion Harness
+# Ralph1 - Iterative Requirement Completion Harness
 
-Ralph is an agentic loop that iteratively works through a list of requirements, learning from failures and running quality checks.
+Ralph1 is an agentic loop that iteratively works through a list of requirements, learning from failures and running quality checks.
 
 ## Usage
 
 ```bash
-.claude/harness/ralph/run \
+.claude/harness/ralph1/run \
   --duration=4h \
   --requirements=my-requirements.json \
   --history=my-history.jsonl \
@@ -112,8 +112,8 @@ See `example-requirements.json` for a sample requirements file.
 
 Run the example:
 ```bash
-.claude/harness/ralph/run \
+.claude/harness/ralph1/run \
   --duration=30m \
-  --requirements=.claude/harness/ralph/example-requirements.json \
-  --history=.claude/harness/ralph/example-history.jsonl
+  --requirements=.claude/harness/ralph1/example-requirements.json \
+  --history=.claude/harness/ralph1/example-history.jsonl
 ```

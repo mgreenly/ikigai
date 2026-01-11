@@ -2,14 +2,14 @@
 import sys
 sys.dont_write_bytecode = True
 """
-harness/valgrind - Automated Valgrind Memcheck error fix loop
+harness/valgrind - Valgrind Memcheck checker and automated fix loop
 
-Runs make check-valgrind, fixes memory errors one at a time with escalation,
-commits on success, reverts on exhaustion, continues until all pass or
-no progress is made.
+Default behavior: Run check-valgrind, parse results, output JSON and exit.
+With --fix: Run automated fix loop with escalation ladder.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 import os
@@ -149,9 +149,10 @@ def drop_test_databases() -> None:
             log(f"Warning: Failed to drop {db_name}: {stderr.strip()}")
 
 
-def run_make_valgrind() -> tuple[bool, str]:
+def run_make_valgrind(quiet: bool = False) -> tuple[bool, str]:
     """Run make check-valgrind and return (success, output)."""
-    log("Running make check-valgrind...")
+    if not quiet:
+        log("Running make check-valgrind...")
     spinner = Spinner("Running make check-valgrind")
     spinner.start()
     code, stdout, stderr = run_cmd(["make", "check-valgrind", "MAKE_JOBS=1"], timeout=3600)
@@ -453,12 +454,31 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     return False
 
 
+def format_error_item(failure: dict) -> str:
+    """Format a failure as a human-readable error item for JSON output."""
+    error_type = failure.get("message", "Unknown error")
+    file = failure.get("file", "unknown")
+    line = failure.get("line", "?")
+    return f"{error_type} at {file}:{line}"
+
+
+def output_json_result(ok: bool, failures: list[dict] | None = None) -> int:
+    """Output JSON result to stdout and return appropriate exit code."""
+    if ok:
+        result = {"ok": True}
+    else:
+        items = [format_error_item(f) for f in (failures or [])]
+        result = {"ok": False, "items": items}
+    print(json.dumps(result))
+    return 0 if ok else 1
+
+
 def main() -> int:
     """Main entry point."""
     start_time = time.time()
-    parser = argparse.ArgumentParser(description="Automated Valgrind Memcheck error fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify memory errors without fixing them")
+    parser = argparse.ArgumentParser(description="Valgrind Memcheck checker and automated fix loop")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run automated fix loop (default: check only, output JSON)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
@@ -469,69 +489,85 @@ def main() -> int:
     if args.no_spinner:
         SPINNER_ENABLED = False
 
+    # In check-only mode (no --fix), disable spinner for clean JSON output
+    if not args.fix:
+        SPINNER_ENABLED = False
+
     opts = []
-    if args.dry_run:
-        opts.append("dry-run")
+    if args.fix:
+        opts.append("fix")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
-    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
+
+    # Only log in fix mode
+    if args.fix:
+        log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
-    # Clean up test databases before running checks
-    drop_test_databases()
+    # Clean up test databases before running checks (only in fix mode to avoid noise)
+    if args.fix:
+        drop_test_databases()
 
+    # Step 1: Run make check-valgrind to get list of failing test binaries
+    success, make_output = run_make_valgrind(quiet=not args.fix)
+
+    if success:
+        # Check-only mode: output JSON result
+        if not args.fix:
+            return output_json_result(ok=True)
+        log(f"All Valgrind checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 0
+
+    # Step 2: Parse failing test binaries from 🔴 lines
+    failing_tests = parse_failing_tests(make_output)
+
+    if not failing_tests:
+        if not args.fix:
+            # Can't parse failures, output generic error
+            return output_json_result(ok=False, failures=[{"message": "make check-valgrind failed", "file": "unknown", "line": "?"}])
+        log("make check-valgrind failed but couldn't find failing tests")
+        log("Output tail:")
+        for line in make_output.split('\n')[-30:]:
+            log(f"  {line}")
+        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 1
+
+    if args.fix:
+        log(f"Found {len(failing_tests)} failing test binaries")
+
+    # Step 3: For each failing test, run it under valgrind to get output
+    all_failures = []
+    for test_binary in failing_tests:
+        test_name = Path(test_binary).name
+        if args.fix:
+            log(f"Analyzing {test_name}...")
+        _, test_output = run_single_test(test_binary)
+        failures = parse_failures(test_output)
+        for f in failures:
+            f["test_binary"] = test_binary
+            f["test_output"] = test_output
+        all_failures.extend(failures)
+
+    if not all_failures:
+        if not args.fix:
+            # Tests failed but couldn't parse specific errors
+            return output_json_result(ok=False, failures=[{"message": "Valgrind errors detected", "file": "unknown", "line": "?"}])
+        log("Tests failed but couldn't parse Valgrind errors from output")
+        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        return 1
+
+    # Check-only mode (no --fix): output JSON and exit
+    if not args.fix:
+        return output_json_result(ok=False, failures=all_failures)
+
+    log(f"Found {len(all_failures)} memory errors across {len(failing_tests)} test(s)")
+
+    # --fix mode: Run the fix loop
     pass_num = 0
 
     while True:
         pass_num += 1
         log(f"=== Pass {pass_num} ===")
-
-        # Step 1: Run make check-valgrind to get list of failing test binaries
-        success, make_output = run_make_valgrind()
-
-        if success:
-            log(f"All Valgrind checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
-
-        # Step 2: Parse failing test binaries from 🔴 lines
-        failing_tests = parse_failing_tests(make_output)
-
-        if not failing_tests:
-            log("make check-valgrind failed but couldn't find failing tests")
-            log("Output tail:")
-            for line in make_output.split('\n')[-30:]:
-                log(f"  {line}")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-        log(f"Found {len(failing_tests)} failing test binaries")
-
-        # Step 3: For each failing test, run it under valgrind to get output
-        all_failures = []
-        for test_binary in failing_tests:
-            test_name = Path(test_binary).name
-            log(f"Analyzing {test_name}...")
-            _, test_output = run_single_test(test_binary)
-            failures = parse_failures(test_output)
-            for f in failures:
-                f["test_binary"] = test_binary
-                f["test_output"] = test_output
-            all_failures.extend(failures)
-
-        if not all_failures:
-            log("Tests failed but couldn't parse Valgrind errors from output")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-        log(f"Found {len(all_failures)} memory errors across {len(failing_tests)} test(s)")
-
-        # Dry-run: just list failures and exit
-        if args.dry_run:
-            log("Errors needing fixes:")
-            for failure in all_failures:
-                log(f"  - {failure['file']}:{failure['line']} - {failure['error_type']}")
-            log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
 
         # Step 4: Fix each failure
         fixed_count = 0
@@ -569,6 +605,38 @@ def main() -> int:
                     log(f"  - {f}")
             log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
             return 1
+
+        # Re-run check to find remaining failures for next pass
+        drop_test_databases()
+        success, make_output = run_make_valgrind()
+
+        if success:
+            log(f"All Valgrind checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+            return 0
+
+        failing_tests = parse_failing_tests(make_output)
+        if not failing_tests:
+            log("make check-valgrind failed but couldn't find failing tests")
+            return 1
+
+        log(f"Found {len(failing_tests)} failing test binaries")
+
+        all_failures = []
+        for test_binary in failing_tests:
+            test_name = Path(test_binary).name
+            log(f"Analyzing {test_name}...")
+            _, test_output = run_single_test(test_binary)
+            failures = parse_failures(test_output)
+            for f in failures:
+                f["test_binary"] = test_binary
+                f["test_output"] = test_output
+            all_failures.extend(failures)
+
+        if not all_failures:
+            log("Tests failed but couldn't parse Valgrind errors from output")
+            return 1
+
+        log(f"Found {len(all_failures)} memory errors across {len(failing_tests)} test(s)")
 
 
 if __name__ == "__main__":

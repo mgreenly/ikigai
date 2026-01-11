@@ -446,7 +446,7 @@ class Ralph
       jj commit -m "$(cat <<'COMMITMSG'
       #{msg}
 
-      harness/ralph | work agent
+      harness/ralph1 | work agent
       COMMITMSG
       )"
     SH
@@ -473,7 +473,7 @@ class Ralph
     run_checks(FULL_CHECKS)
   end
 
-  PROCESS_LOG = '.claude/harness/ralph/process.log'
+  PROCESS_LOG = '.claude/harness/ralph1/process.log'
 
   def run_checks(checks)
     loop do
@@ -500,7 +500,7 @@ class Ralph
   end
 
   def commit_check(check_name)
-    msg = "fix: #{check_name}\n\nharness/ralph | quality check"
+    msg = "fix: #{check_name}\n\nharness/ralph1 | quality check"
     system("jj commit -m '#{msg}' >/dev/null 2>&1")
     # Ignore failures - might be no changes
   end
@@ -551,7 +551,7 @@ OptionParser.new do |opts|
     options[:requirements] = f
   end
 
-  opts.on('--history=FILE', 'History markdown file (default: .claude/harness/ralph/history.jsonl)') do |f|
+  opts.on('--history=FILE', 'History markdown file (default: .claude/harness/ralph1/history.jsonl)') do |f|
     options[:history] = f
   end
 

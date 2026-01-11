@@ -457,25 +457,84 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     return False
 
 
+def format_item(failure: dict) -> str:
+    """Format a failure as a tsan error item string."""
+    error_type = failure.get("message", "data race")
+    file = failure["file"]
+    line = failure["line"]
+    return f"ThreadSanitizer: {error_type} at {file}:{line}"
+
+
+def run_check_only() -> int:
+    """
+    Run check-tsan, parse results, print JSON to stdout and exit.
+    Returns 0 for success, 1 for failures.
+    """
+    import json as json_module
+
+    global SPINNER_ENABLED
+    SPINNER_ENABLED = False
+
+    os.chdir(PROJECT_ROOT)
+
+    # Clean up test databases before running
+    drop_test_databases()
+
+    # Run make check-tsan
+    success, make_output = run_make_tsan()
+
+    if success:
+        print(json_module.dumps({"ok": True}))
+        return 0
+
+    # Parse failing test binaries from output
+    failing_tests = parse_failing_tests(make_output)
+
+    if not failing_tests:
+        # Failed but couldn't parse - report generic failure
+        print(json_module.dumps({"ok": False, "items": ["ThreadSanitizer: check failed (could not parse errors)"]}))
+        return 1
+
+    # For each failing test, run it directly to get TSan output
+    all_failures = []
+    for test_binary in failing_tests:
+        _, test_output = run_single_test(test_binary)
+        failures = parse_failures(test_output)
+        all_failures.extend(failures)
+
+    if not all_failures:
+        # Tests failed but couldn't parse TSan errors
+        print(json_module.dumps({"ok": False, "items": ["ThreadSanitizer: check failed (could not parse errors)"]}))
+        return 1
+
+    # Format each failure as an item
+    items = [format_item(f) for f in all_failures]
+    print(json_module.dumps({"ok": False, "items": items}))
+    return 1
+
+
 def main() -> int:
     """Main entry point."""
     start_time = time.time()
     parser = argparse.ArgumentParser(description="Automated ThreadSanitizer error fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify data races without fixing them")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the full fix loop (default: just check and report)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
+    # Default behavior (no --fix): run check, print JSON, exit
+    if not args.fix:
+        return run_check_only()
+
+    # --fix mode: full fix loop
     global SPINNER_ENABLED
     if args.no_spinner:
         SPINNER_ENABLED = False
 
     opts = []
-    if args.dry_run:
-        opts.append("dry-run")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
@@ -497,7 +556,7 @@ def main() -> int:
             log(f"All ThreadSanitizer checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
             return 0
 
-        # Step 2: Parse failing test binaries from 🔴 lines
+        # Step 2: Parse failing test binaries from output
         failing_tests = parse_failing_tests(make_output)
 
         if not failing_tests:
@@ -528,14 +587,6 @@ def main() -> int:
             return 1
 
         log(f"Found {len(all_failures)} data races across {len(failing_tests)} test(s)")
-
-        # Dry-run: just list failures and exit
-        if args.dry_run:
-            log("Errors needing fixes:")
-            for failure in all_failures:
-                log(f"  - {failure['file']}:{failure['line']} - {failure['error_type']}")
-            log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
 
         # Step 4: Fix each failure
         fixed_count = 0

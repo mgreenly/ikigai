@@ -333,10 +333,11 @@ def try_fix_file(failure: dict, timeout: int) -> bool:
 
 def main() -> int:
     """Main entry point."""
+    import json as json_module
     start_time = time.time()
     parser = argparse.ArgumentParser(description="Automated file size fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify oversized files without fixing them")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the full fix loop (default: just check and report)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
@@ -347,40 +348,54 @@ def main() -> int:
     if args.no_spinner:
         SPINNER_ENABLED = False
 
-    opts = []
-    if args.dry_run:
-        opts.append("dry-run")
-    if args.time_out != DEFAULT_TIMEOUT:
-        opts.append(f"timeout={args.time_out}s")
-    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
-    # Run file size check
-    success, output = run_make_filesize()
+    # Run file size check (suppress logging if not in fix mode)
+    if args.fix:
+        opts = []
+        if args.time_out != DEFAULT_TIMEOUT:
+            opts.append(f"timeout={args.time_out}s")
+        log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
+        success, output = run_make_filesize()
+    else:
+        # Quiet mode for JSON output
+        spinner = Spinner("Running make check-filesize")
+        spinner.start()
+        code, stdout, stderr = run_cmd(["make", "check-filesize"])
+        spinner.stop()
+        output = stdout + stderr
+        success = code == 0
 
     if success:
-        log(f"All file size checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+        if args.fix:
+            log(f"All file size checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+        else:
+            print(json_module.dumps({"ok": True}))
         return 0
 
     failures = parse_failures(output)
 
     if not failures:
-        log("make check-filesize failed but couldn't parse failures")
-        log("Output tail:")
-        for line in output.split('\n')[-20:]:
-            log(f"  {line}")
-        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        if args.fix:
+            log("make check-filesize failed but couldn't parse failures")
+            log("Output tail:")
+            for line in output.split('\n')[-20:]:
+                log(f"  {line}")
+            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        else:
+            # Still report as failure with empty items
+            print(json_module.dumps({"ok": False, "items": []}))
+        return 1
+
+    # Default mode: print JSON and exit
+    if not args.fix:
+        items = []
+        for failure in failures:
+            items.append(f"{failure['file']} {failure['bytes']} bytes (limit {failure['limit']})")
+        print(json_module.dumps({"ok": False, "items": items}))
         return 1
 
     log(f"Found {len(failures)} oversized files")
-
-    # Dry-run: just list failures and exit
-    if args.dry_run:
-        log("Files needing fixes:")
-        for failure in failures:
-            log(f"  - {failure['file']}: {failure['bytes']} bytes (limit: {failure['limit']})")
-        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
 
     pass_num = 0
 

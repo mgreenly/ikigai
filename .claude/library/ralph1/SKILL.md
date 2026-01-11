@@ -1,9 +1,9 @@
 ---
-name: ralph
+name: ralph1
 description: Ralph loop - iterative requirement completion harness
 ---
 
-# Ralph
+# Ralph1
 
 Braindead agentic loop that iteratively completes requirements until done or time expires. Named after Ralph Wiggum - just keep trying until it works.
 
@@ -20,7 +20,7 @@ History provides learning without complex state management. Time budget prevents
 ## Usage
 
 ```bash
-.claude/harness/ralph/run \
+.claude/harness/ralph1/run \
   --duration=4h \
   --requirements=path/to/requirements.json \
   --history=path/to/history.jsonl \

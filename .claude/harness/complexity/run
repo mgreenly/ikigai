@@ -35,8 +35,9 @@ FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 HISTORY_FILE = SCRIPT_DIR / "history.md"
 DEFAULT_TIMEOUT = 900
 
-# Global flag to disable spinner (set by --no-spinner)
+# Global flags for output control
 SPINNER_ENABLED = True
+LOGGING_ENABLED = True
 
 
 class Spinner:
@@ -79,6 +80,8 @@ class Spinner:
 
 def log(msg: str) -> None:
     """Print timestamped log message."""
+    if not LOGGING_ENABLED:
+        return
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} | {'complexity':10} | {msg}", flush=True)
 
@@ -365,57 +368,77 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     return False
 
 
+def format_json_result(ok: bool, failures: list[dict] | None = None) -> str:
+    """Format the check result as JSON."""
+    import json
+    if ok:
+        return json.dumps({"ok": True})
+    else:
+        items = []
+        for f in failures or []:
+            if f["issue_type"] == "nesting":
+                items.append(f"{f['file']}:{f['function']} nesting={f['score']}")
+            else:
+                items.append(f"{f['file']}:{f['function']} complexity={f['score']}")
+        return json.dumps({"ok": False, "items": items})
+
+
 def main() -> int:
     """Main entry point."""
     start_time = time.time()
 
     parser = argparse.ArgumentParser(description="Automated complexity fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify complex functions without fixing them")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the full fix loop (default: just check and report JSON)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
-    global SPINNER_ENABLED
+    global SPINNER_ENABLED, LOGGING_ENABLED
     if args.no_spinner:
         SPINNER_ENABLED = False
 
-    opts = []
-    if args.dry_run:
-        opts.append("dry-run")
-    if args.time_out != DEFAULT_TIMEOUT:
-        opts.append(f"timeout={args.time_out}s")
-    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
+    # In default mode (no --fix), disable logging and spinner for clean JSON output
+    if not args.fix:
+        SPINNER_ENABLED = False
+        LOGGING_ENABLED = False
+
     os.chdir(PROJECT_ROOT)
 
     # Run complexity check
     success, output = run_make_complexity()
 
     if success:
-        log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+        if args.fix:
+            log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
+        else:
+            print(format_json_result(ok=True))
         return 0
 
     failures = parse_failures(output)
 
     if not failures:
-        log("make check-complexity failed but couldn't parse failures")
-        log("Output tail:")
-        for line in output.split('\n')[-20:]:
-            log(f"  {line}")
-        log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        if args.fix:
+            log("make check-complexity failed but couldn't parse failures")
+            log("Output tail:")
+            for line in output.split('\n')[-20:]:
+                log(f"  {line}")
+            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
+        else:
+            # Treat unparseable failure as failure with no items
+            print(format_json_result(ok=False, failures=[]))
         return 1
 
-    log(f"Found {len(failures)} complex functions")
+    # Default mode: print JSON result and exit
+    if not args.fix:
+        print(format_json_result(ok=False, failures=failures))
+        return 1
 
-    # Dry-run: just list failures and exit
-    if args.dry_run:
-        log("Functions needing fixes:")
-        for failure in failures:
-            log(f"  - {failure['file']}:{failure['function']} - {failure['issue_type']} score {failure['score']}")
-        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
+    # Fix mode: run the full fix loop
+    log("Starting fix loop")
+    log(f"Found {len(failures)} complex functions")
 
     pass_num = 0
 
