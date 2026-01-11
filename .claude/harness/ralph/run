@@ -305,14 +305,6 @@ class Ralph
       return select_requirement  # retry
     end
 
-    # DEBUG: log raw structured_output
-    begin
-      parsed = JSON.parse(result, symbolize_names: true)
-      log "DEBUG structured_output: #{parsed[:structured_output].inspect}"
-    rescue => e
-      log "DEBUG parse error: #{e.message}"
-    end
-
     requirement_id = parse_select_outcome(result)
 
     if requirement_id.nil?
