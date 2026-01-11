@@ -164,8 +164,8 @@ class Ralph2
   # ─────────────────────────────────────────────────────────────
 
   def run_iteration
-    maybe_ralph_says
     display_iteration_header
+    maybe_ralph_says
 
     prompt = build_worker_prompt
     iteration_start = Time.now
@@ -583,8 +583,8 @@ class Ralph2
   def maybe_ralph_says
     return unless rand < 0.1  # 10% chance
 
-    puts
     puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
+    puts
   end
 
   def display_progress(progress)
