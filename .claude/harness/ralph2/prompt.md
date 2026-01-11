@@ -34,6 +34,8 @@ Read `.claude/library/<name>/SKILL.md` when needed:
 
 Use these instead of raw make commands. They return terse JSON summaries - no output parsing required, minimal context consumed.
 
+**IMPORTANT:** These scripts produce NO output until they complete. They are long-running (up to 30-60 minutes). Run them in foreground with the timeout specified below - do NOT use background tasks, do NOT try to tail logs, just wait for completion.
+
 ```json
 {"ok": true}
 {"ok": false, "items": ["src/foo.c:10: error msg", "src/bar.c:22: another"]}
@@ -74,7 +76,7 @@ Bad: "Updated some files"
 Review Progress first. Don't repeat work already attempted.
 
 ## Scripts
-Run checks after implementation actions, not after every file read. Never use background tasks - always run scripts in foreground and wait for completion.
+Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - just invoke them with the correct timeout and wait.
 
 ## When Stuck
 Try multiple approaches before returning. Document what you tried and why it failed.

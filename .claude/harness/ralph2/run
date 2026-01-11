@@ -586,7 +586,9 @@ class Ralph2
     # Extract just the objective section
     objective = extract_objective(goal_content)
 
-    puts "\e[1mGoal\e[0m - #{objective}"
+    puts "\e[1mGoal\e[0m"
+    puts
+    puts objective
     puts
   end
 
