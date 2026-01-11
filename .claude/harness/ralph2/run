@@ -547,6 +547,7 @@ class Ralph2
     ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
     if File.exist?(ascii_file)
       puts File.read(ascii_file)
+      puts
     end
     puts "\e[1mRALPH2\e[0m - Iterative Goal Completion"
     puts "Model: #{@model} | Reasoning: #{@reasoning} | Duration: #{duration_str}"
