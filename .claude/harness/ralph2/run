@@ -574,8 +574,9 @@ class Ralph2
       puts '─' * 70
       puts
     end
-    puts "\e[1mRALPH2\e[0m - Iterative Goal Completion"
-    puts "Model: #{@model} | Reasoning: #{@reasoning} | Duration: #{duration_str}"
+    puts "\e[1mRALPH2\e[0m - Braindead agentic loop. Just keep trying until it works."
+    puts
+    puts "\e[1mParams:\e[0m Model: #{@model} | Reasoning: #{@reasoning} | Duration: #{duration_str}"
     puts
   end
 
