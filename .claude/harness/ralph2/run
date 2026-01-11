@@ -570,7 +570,8 @@ class Ralph2
     duration_str = @duration_seconds == Float::INFINITY ? 'unlimited' : format_elapsed(@duration_seconds.to_i)
     ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
     if File.exist?(ascii_file)
-      puts File.read(ascii_file)
+      print File.read(ascii_file).chomp
+      puts '─' * 70
       puts
     end
     puts "\e[1mRALPH2\e[0m - Iterative Goal Completion"
@@ -587,7 +588,6 @@ class Ralph2
     puts "\e[1mGOAL:\e[0m"
     puts objective
     puts
-    puts '─' * 70
   end
 
   def extract_objective(content)
