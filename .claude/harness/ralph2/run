@@ -449,7 +449,8 @@ class Ralph2
     return '' unless hash.is_a?(Hash)
 
     hash.map do |k, v|
-      val = v.to_s.gsub(/\s+/, ' ').strip
+      val = v.is_a?(Hash) || v.is_a?(Array) ? v.to_json : v.to_s
+      val = val.gsub(/\s+/, ' ').strip
       val = val[0, 45] + '...' if val.length > 48
       val = "\"#{val}\"" if val.include?(' ')
       "#{k}=#{val}"
