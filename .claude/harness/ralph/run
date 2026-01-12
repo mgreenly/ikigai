@@ -11,8 +11,8 @@ require 'tempfile'
 # Resolve script directory at load time (before any chdir)
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 
-# Ralph2: Iterative goal completion harness
-class Ralph2
+# Ralph: Iterative goal completion harness
+class Ralph
   SUMMARY_INTERVAL = 10
   MAX_RECENT = 20
 
@@ -346,7 +346,7 @@ class Ralph2
   end
 
   def load_skills
-    # Load implementor skillset (excluding jj - ralph2 handles commits itself)
+    # Load implementor skillset (excluding jj - ralph handles commits itself)
     skillset_file = '.claude/skillsets/implementor.json'
     skillset = JSON.parse(File.read(skillset_file))
 
@@ -502,7 +502,7 @@ class Ralph2
   end
 
   def with_temp_file(content)
-    temp = Tempfile.new(['ralph2-prompt', '.md'])
+    temp = Tempfile.new(['ralph-prompt', '.md'])
     temp.write(content)
     temp.close
     yield temp.path
@@ -563,7 +563,7 @@ class Ralph2
     short_progress += '...' if progress.to_s.length > 200
 
     msg = <<~MSG
-      ralph2: iteration #{@iteration}
+      ralph: iteration #{@iteration}
 
       #{short_progress}
     MSG
@@ -583,7 +583,7 @@ class Ralph2
       puts '─' * 70
       puts
     end
-    puts "\e[1mRALPH2\e[0m"
+    puts "\e[1mRALPH\e[0m"
     puts
     puts "Braindead agentic loop. Just keep trying until it works."
     puts
@@ -817,9 +817,9 @@ options = {
 
 OptionParser.new do |opts|
   opts.banner = <<~BANNER
-    Ralph2 - Braindead agentic loop. Just keep trying until it works.
+    Ralph - Braindead agentic loop. Just keep trying until it works.
 
-    Usage: ralph2 --goal=FILE [--duration=4h] [options]
+    Usage: ralph --goal=FILE [--duration=4h] [options]
   BANNER
 
   opts.on('--goal=FILE', 'Goal markdown file (required)') do |f|
@@ -854,11 +854,11 @@ end.parse!
 
 if options[:goal].nil?
   $stderr.puts 'Error: --goal=FILE is required'
-  $stderr.puts 'Usage: ralph2 --goal=FILE [--duration=4h] [options]'
+  $stderr.puts 'Usage: ralph --goal=FILE [--duration=4h] [options]'
   exit 1
 end
 
-ralph = Ralph2.new(
+ralph = Ralph.new(
   goal_file: options[:goal],
   duration: options[:duration],
   model: options[:model],
