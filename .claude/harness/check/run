@@ -467,13 +467,18 @@ def drop_test_databases() -> None:
             log(f"Warning: Failed to drop {db_name}: {stderr}")
 
 
+def format_failure_item(failure: dict) -> str:
+    """Format a failure as: file:line function_name: message"""
+    return f"{failure['file']}:{failure['line']} {failure['function']}: {failure['message']}"
+
+
 def main() -> int:
     """Main entry point."""
     start_time = time.time()
 
     parser = argparse.ArgumentParser(description="Automated test fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify failures without fixing them")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the fix loop to automatically fix failures")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
@@ -485,8 +490,8 @@ def main() -> int:
         SPINNER_ENABLED = False
 
     opts = []
-    if args.dry_run:
-        opts.append("dry-run")
+    if args.fix:
+        opts.append("fix")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
     log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
@@ -506,7 +511,10 @@ def main() -> int:
     success, output = run_make_check()
 
     if success:
-        log(f"All tests pass! (elapsed: {format_elapsed(time.time() - start_time)})")
+        if args.fix:
+            log(f"All tests pass! (elapsed: {format_elapsed(time.time() - start_time)})")
+        else:
+            print(json.dumps({"ok": True}))
         return 0
 
     # Parse failures from XML reports
@@ -520,15 +528,13 @@ def main() -> int:
         log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
         return 1
 
-    log(f"Found {len(failures)} failing test functions")
+    # Default behavior (no --fix): print JSON and exit
+    if not args.fix:
+        items = [format_failure_item(f) for f in failures]
+        print(json.dumps({"ok": False, "items": items}))
+        return 1
 
-    # Dry-run: just list failures and exit
-    if args.dry_run:
-        log("Test functions needing fixes:")
-        for failure in failures:
-            log(f"  - {failure['file']}:{failure['line']} {failure['function']} - {failure['message'][:40]}")
-        log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-        return 0
+    log(f"Found {len(failures)} failing test functions")
 
     pass_num = 0
 

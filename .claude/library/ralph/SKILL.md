@@ -1,19 +1,19 @@
 ---
 name: ralph
-description: Ralph loop - iterative requirement completion harness
+description: Ralph loop - iterative goal completion harness
 ---
 
 # Ralph
 
-Braindead agentic loop that iteratively completes requirements until done or time expires. Named after Ralph Wiggum - just keep trying until it works.
+Braindead agentic loop that iteratively works toward a goal until done or time expires. Named after Ralph Wiggum - just keep trying until it works.
 
 ## Philosophy
 
 No sophisticated planning. No complex orchestration. Just:
-1. Pick a requirement
-2. Try to implement it
-3. If it works, commit and run quality checks
-4. Repeat
+1. Read the goal
+2. Try to make progress
+3. Commit progress
+4. Repeat until DONE
 
 History provides learning without complex state management. Time budget prevents runaway costs.
 
@@ -21,133 +21,115 @@ History provides learning without complex state management. Time budget prevents
 
 ```bash
 .claude/harness/ralph/run \
-  --duration=4h \
-  --requirements=path/to/requirements.json \
-  --history=path/to/history.jsonl \
+  --goal=path/to/goal.md \
+  [--duration=4h] \
   [--model=sonnet] \
   [--reasoning=low] \
-  [--no-spinner]
+  [--spinner] \
+  [--continue]
 ```
 
 **Flags:**
-- `--duration` - Time budget (e.g., `4h`, `200m`)
-- `--requirements` - Path to requirements JSON file
-- `--history` - Path to history JSONL file
+- `--goal` - Path to goal markdown file (required)
+- `--duration` - Time budget (e.g., `4h`, `200m`); unlimited if omitted
 - `--model` - `haiku`, `sonnet`, `opus` (default: `sonnet`)
 - `--reasoning` - `none`, `low`, `med`, `high` (default: `low`)
-- `--no-spinner` - Disable spinner for non-interactive use
+- `--spinner` - Enable progress spinner (off by default)
+- `--continue` - Continue from existing progress
 
 **Reasoning levels** (fraction of model's max thinking budget):
 - `none` = 0 (no thinking)
-- `low` = 1/3 of max
-- `med` = 2/3 of max
-- `high` = full max
+- `low` = 25% of max
+- `med` = 50% of max
+- `high` = 100% of max
 
-## Requirements Philosophy
+## Goal File Format
 
-Requirements are **intentionally minimal**. They specify WHAT, not HOW.
+Markdown file with required `## Objective` section:
 
-**The agent's job is to figure out a working solution** using:
-1. The requirement itself
-2. Recent history (past attempts, what worked, what failed)
-3. Project-level guidance (style, patterns, conventions)
+```markdown
+## Objective
 
-**Priority: Working solution > perfect adherence to conventions.**
+Brief description of what needs to be accomplished.
 
-This is a deliberate contrast to fully-specified task files. Ralph trusts the agent to discover and adapt rather than pre-specifying everything. The requirements file is a target list, not an instruction manual.
+## Reference
 
-## Writing Requirements
+Optional pointers to specs, plans, or other context.
 
-**State outcomes, not actions:**
-- Good: "`src/tools/bash/` directory exists"
-- Bad: "Create `src/tools/bash/` directory"
+## Outcomes
 
-**Be minimal:**
-- Good: "`make bash_tool` produces `libexec/ikigai/bash_tool` without warnings"
-- Bad: "Add a Makefile target called bash_tool that compiles src/tools/bash/main.c with TOOL_COMMON_SRCS and links against talloc, outputting to libexec/ikigai/bash_tool"
+Optional list of specific outcomes that indicate completion.
 
-**One concept per requirement:**
-- Good: "Schema JSON contains `name`, `description`, `parameters` fields"
-- Good: "Schema `parameters` specifies `command` as required string property"
-- Bad: "Schema has name, description, and parameters where parameters defines command as a required string"
+## Acceptance
 
-**Trust the agent** to discover:
-- File locations and patterns
-- Existing conventions
-- Implementation details
-- How to verify their work
-
-## Requirements File Format
-
-```json
-{
-  "requirements": [
-    {
-      "id": 1,
-      "requirement": "Brief declarative statement of desired outcome",
-      "status": "pending"
-    }
-  ]
-}
+Optional acceptance criteria (e.g., `check-build` passes).
 ```
 
-**Fields:**
-- `id` - Unique identifier (integer or string)
-- `requirement` - Declarative outcome statement (1 sentence)
-- `status` - `pending` or `done` (ralph updates this)
+**Required:** `## Objective` section must exist.
 
-**Ordering:** Ralph selects requirements in whatever order makes sense based on history. The array order is randomized to avoid implying a fixed sequence - the agent determines dependencies.
+**State files** are derived from the goal file name:
+- `<base>-goal.md` → `<base>-progress.jsonl`, `<base>-summary.md`
+- Example: `rel-08/ralph-code-removal-goal.md` produces:
+  - `rel-08/ralph-code-removal-progress.jsonl`
+  - `rel-08/ralph-code-removal-summary.md`
 
-## History File Format
+## Progress File Format
 
 JSONL (one JSON object per line):
 
 ```jsonl
-{"timestamp": "2026-01-08T10:30:00Z", "requirement_id": "req-001", "success": true, "message": "Implemented feature X"}
-{"timestamp": "2026-01-08T10:35:00Z", "requirement_id": "req-002", "success": false, "message": "Blocked: needs req-001 first"}
+{"iteration":1,"timestamp":"2026-01-11T08:37:27-06:00","progress":"Removed tool_dispatcher.c from Makefile"}
+{"iteration":2,"timestamp":"2026-01-11T08:42:49-06:00","progress":"Deleted src/tool_bash.c and updated headers"}
+{"iteration":3,"timestamp":"2026-01-11T08:51:20-06:00","progress":"DONE"}
 ```
 
 **Fields:**
+- `iteration` - Iteration number
 - `timestamp` - ISO 8601 timestamp
-- `requirement_id` - Which requirement was attempted
-- `success` - Whether implementation succeeded
-- `message` - What was done or why it failed
+- `progress` - What was accomplished or `DONE` when complete
 
-**History Purpose:**
-- Selection agent reads history to avoid blocked requirements
-- Work agent reads history to learn from past attempts
-- Provides audit trail of all attempts
+## Summary File
+
+Auto-generated markdown summarizing progress. Updated every 10 iterations by a summarizer agent. Provides condensed context for the worker agent without loading full history.
 
 ## Loop Behavior
 
-1. **Select** - Agent picks next pending requirement based on history
-2. **Work** - Agent implements requirement (max 20 turns)
-3. **On success:**
-   - Commit changes via `jj commit`
-   - Run quality checks (all, filesize, complexity, sanitize, tsan, valgrind, helgrind, coverage)
-   - If all pass, mark requirement `done`
-   - If any fail, loop restarts from selection
-4. **On failure/blocked:**
-   - Restore changes via `jj restore`
-   - Log failure to history
-   - Loop restarts from selection
-5. **Termination:**
-   - Time budget expired
-   - All requirements done
-   - Selection returns `none`
+1. **Validate** - Ensure goal file has `## Objective` section
+2. **Initialize** - Create empty progress/summary files (or load if `--continue`)
+3. **Handle dirty state** - If working copy has changes, commit them
+4. **Work iteration** - Agent reads goal + history, makes progress, returns progress string
+5. **Commit** - Changes committed via `jj commit`
+6. **Record** - Progress appended to progress file
+7. **Summarize** - Every 10 iterations, summarizer condenses history
+8. **Repeat** - Until `DONE` returned or time expires
 
-## Preparing Work for Ralph
+**Termination:**
+- Agent returns `DONE`
+- Time budget expires
+- Manual interrupt (Ctrl+C)
 
-1. Create requirements file with all work items
-2. Create empty history file (or reuse existing for continuity)
-3. Run ralph with appropriate time budget
-4. Monitor progress via log output
-5. Review commits after completion
+## Writing Goals
+
+**State the objective clearly:**
+- Good: "Remove all internal tool implementation code. After completion, tool calls return stub responses."
+- Bad: "Clean up the tool system"
+
+**Include acceptance criteria:**
+- Good: "`check-build` → `{\"ok\": true}`"
+- Bad: "Tests should pass"
+
+**Reference detailed specs:**
+- Good: "`rel-08/plan/removal-specification.md` - detailed spec with exact changes"
+- Bad: Inline the entire spec in the goal file
+
+**List concrete outcomes:**
+- Good: "`src/repl_tool.c` - tool dispatch returns stub error JSON"
+- Bad: "Tool dispatch should be stubbed out"
 
 ## Tips
 
-- Start with generous time budget - ralph may need multiple attempts
-- Put foundational requirements first (selection agent considers order)
-- Keep requirements atomic - one concept per requirement
-- Acceptance criteria should map to testable outcomes
-- History file can be shared across runs for learning continuity
+- Start with generous time budget - ralph may need multiple iterations
+- Use `--continue` to resume after interruption
+- Check progress file to see what's been accomplished
+- Goal files should be outcome-focused, not action-focused
+- Trust the agent to discover implementation details

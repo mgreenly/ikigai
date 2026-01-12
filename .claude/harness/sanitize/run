@@ -10,6 +10,7 @@ all pass or no progress is made.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 import os
@@ -463,7 +464,6 @@ def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str
     Invoke Claude CLI with the prompt via stdin.
     Returns (success, response).
     """
-    import json
     import tempfile
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
@@ -598,12 +598,69 @@ def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
     return False
 
 
+def format_error_item(failure: dict) -> str:
+    """Format a failure as a human-readable item string."""
+    error_type = failure["error_type"]
+    file = failure["file"]
+    line = failure["line"]
+
+    # Map error types to sanitizer prefixes
+    if error_type == "undefined-behavior":
+        prefix = "UBSan"
+    elif error_type in ("direct-leak", "indirect-leak"):
+        prefix = "LSan"
+    else:
+        prefix = "ASan"
+
+    return f"{prefix}: {error_type} in {file}:{line}"
+
+
+def run_check_only() -> int:
+    """
+    Run sanitizer check and print JSON result to stdout.
+    Returns 0 for success, 1 for failures.
+    """
+    os.chdir(PROJECT_ROOT)
+
+    # Run make check-sanitize
+    success, make_output = run_make_sanitize()
+
+    if success:
+        print(json.dumps({"ok": True}))
+        return 0
+
+    # Parse failing test binaries
+    failing_tests = parse_failing_tests(make_output)
+
+    if not failing_tests:
+        # Build failed but couldn't parse test failures
+        print(json.dumps({"ok": False, "items": ["Build or test infrastructure failure"]}))
+        return 1
+
+    # Run each failing test to get sanitizer output
+    all_failures = []
+    for test_binary in failing_tests:
+        _, test_output = run_single_test(test_binary)
+        failures = parse_failures(test_output)
+        all_failures.extend(failures)
+
+    if not all_failures:
+        # Tests failed but couldn't parse sanitizer errors
+        print(json.dumps({"ok": False, "items": ["Tests failed but could not parse sanitizer errors"]}))
+        return 1
+
+    # Format each failure as a readable item
+    items = [format_error_item(f) for f in all_failures]
+    print(json.dumps({"ok": False, "items": items}))
+    return 1
+
+
 def main() -> int:
     """Main entry point."""
     start_time = time.time()
-    parser = argparse.ArgumentParser(description="Automated sanitizer error fix loop")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Identify sanitizer errors without fixing them")
+    parser = argparse.ArgumentParser(description="Automated sanitizer error detection and fix loop")
+    parser.add_argument("--fix", action="store_true",
+                        help="Run the full fix loop (default: just check and report)")
     parser.add_argument("--no-spinner", action="store_true",
                         help="Disable progress spinner (for non-interactive use)")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
@@ -614,12 +671,14 @@ def main() -> int:
     if args.no_spinner:
         SPINNER_ENABLED = False
 
+    # Default behavior: just run check and output JSON
+    if not args.fix:
+        return run_check_only()
+
     opts = []
-    if args.dry_run:
-        opts.append("dry-run")
     if args.time_out != DEFAULT_TIMEOUT:
         opts.append(f"timeout={args.time_out}s")
-    log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
+    log("Starting fix loop" + (f" ({', '.join(opts)})" if opts else ""))
     os.chdir(PROJECT_ROOT)
 
     # Clean build to start fresh
@@ -676,14 +735,6 @@ def main() -> int:
             return 1
 
         log(f"Found {len(all_failures)} sanitizer errors across {len(failing_tests)} test(s)")
-
-        # Dry-run: just list failures and exit
-        if args.dry_run:
-            log("Errors needing fixes:")
-            for failure in all_failures:
-                log(f"  - {failure['file']}:{failure['line']} - {failure['error_type']}")
-            log(f"Completed (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
 
         # Step 4: Fix each failure
         fixed_count = 0

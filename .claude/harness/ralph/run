@@ -3,31 +3,35 @@
 
 require 'json'
 require 'optparse'
+require 'shellwords'
 require 'time'
+require 'erb'
+require 'tempfile'
 
-# Ralph: Iterative requirement completion harness
-class Ralph
-  # Quick checks after each requirement (harness names)
-  QUICK_CHECKS = %w[
-    compile
-    filesize
-    check
-  ].freeze
+# Resolve script directory at load time (before any chdir)
+SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 
-  # Full checks at end of run (harness names)
-  FULL_CHECKS = %w[
-    compile
-    filesize
-    check
-    complexity
-    sanitize
-    tsan
-    valgrind
-    helgrind
-    coverage
-  ].freeze
+# Ralph2: Iterative goal completion harness
+class Ralph2
+  SUMMARY_INTERVAL = 10
+  MAX_RECENT = 20
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
+
+  PROGRESS_SCHEMA = '{"type":"object","properties":{"progress":{"type":"string"}},"required":["progress"]}'
+
+  MAX_THINKING_BUDGET = {
+    'haiku' => 16_384,
+    'sonnet' => 32_768,
+    'opus' => 16_384
+  }.freeze
+
+  REASONING_MULTIPLIERS = {
+    'none' => 0.0,
+    'low' => 0.25,
+    'med' => 0.5,
+    'high' => 1.0
+  }.freeze
 
   RALPH_QUOTES = [
     "Me fail English? That's unpossible!",
@@ -42,97 +46,463 @@ class Ralph
     "Go banana!"
   ].freeze
 
-  SELECT_OUTPUT_SCHEMA = '{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}'
-  WORK_OUTPUT_SCHEMA = '{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"]}'
-
-  # Max thinking budget per model (tokens) - powers of 2
-  MAX_THINKING_BUDGET = {
-    'haiku' => 16_384,   # 2^14
-    'sonnet' => 32_768,  # 2^15
-    'opus' => 16_384     # 2^14
-  }.freeze
-
-  # Reasoning level multipliers (powers of 2)
-  REASONING_MULTIPLIERS = {
-    'none' => 0.0,
-    'low' => 0.25,   # 1/4 = 2^(-2)
-    'med' => 0.5,      # 1/2 = 2^(-1)
-    'high' => 1.0
-  }.freeze
-
-  def initialize(duration:, requirements_file:, history_file:, model: 'sonnet',
-                 reasoning: 'low', no_spinner: false, continue: false)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, continue_run:)
+    @goal_file = goal_file
     @duration_seconds = parse_duration(duration)
-    @requirements_file = requirements_file
-    @history_file = history_file
     @model = model
     @reasoning = reasoning
-    @thinking_budget = calculate_thinking_budget
+    @thinking_budget = calculate_thinking_budget(model, reasoning)
+    @summarizer_budget = calculate_thinking_budget('haiku', 'high')
+    @no_spinner = no_spinner
+    @continue_run = continue_run
+
     @start_time = Time.now
-    @script_dir = File.dirname(File.realpath(__FILE__))
-    @spinner_enabled = !no_spinner
-    @continue = continue
+    @iteration = 0
     @spinner_thread = nil
     @spinner_running = false
+    @waiting_timer_thread = nil
+    @waiting_timer_running = false
+    @waiting_timer_displayed = false
+    @last_output_time = Time.now
+
+    # Derive state file paths from goal file
+    base = @goal_file.sub(/-goal\.md$/, '').sub(/\.md$/, '')
+    @progress_file = "#{base}-progress.jsonl"
+    @summary_file = "#{base}-summary.md"
+
+    # Prompt templates
+    @prompt_template = File.join(SCRIPT_DIR, 'prompt.md')
+    @summarizer_template = File.join(SCRIPT_DIR, 'summarizer.md')
   end
 
-  def calculate_thinking_budget
-    max_budget = MAX_THINKING_BUDGET[@model] || 32_000
-    multiplier = REASONING_MULTIPLIERS[@reasoning] || (1.0 / 3.0)
-    (max_budget * multiplier).to_i
+  def run
+    validate_files
+    initialize_state unless @continue_run
+    load_state if @continue_run
+
+    display_header
+    display_goal
+    sleep 2
+    display_continue_status
+    handle_dirty_state
+
+    loop do
+      break if time_expired?
+
+      @iteration += 1
+      result = run_iteration
+
+      break if result == 'DONE'
+
+      summarize_if_needed
+    end
+
+    display_summary
   end
 
-  def claude_flags
-    "--model #{@model}"
+  private
+
+  # ─────────────────────────────────────────────────────────────
+  # Setup & State
+  # ─────────────────────────────────────────────────────────────
+
+  def validate_files
+    unless File.exist?(@goal_file)
+      fatal "Goal file not found: #{@goal_file}"
+    end
+
+    unless File.exist?(@prompt_template)
+      fatal "Prompt template not found: #{@prompt_template}"
+    end
+
+    unless File.exist?(@summarizer_template)
+      fatal "Summarizer template not found: #{@summarizer_template}"
+    end
+
+    validate_goal_structure
   end
 
-  def claude_env
-    env = ""
-    env += "MAX_THINKING_TOKENS=#{@thinking_budget} " if @thinking_budget.positive?
-    env
+  def validate_goal_structure
+    content = File.read(@goal_file)
+
+    unless content =~ /^## Objective\s*$/m
+      fatal "Goal file missing required section: ## Objective"
+    end
   end
 
-  def render_prompt(template_file, vars = {})
-    require 'erb'
+  def initialize_state
+    File.write(@progress_file, '')
+    File.write(@summary_file, '')
+    @iteration = 0
+  end
+
+  def load_state
+    @iteration = count_progress_entries
+  end
+
+  def display_continue_status
+    return unless @continue_run && @iteration.positive?
+
+    puts "Continuing from iteration #{@iteration}"
+    puts
+  end
+
+  def count_progress_entries
+    return 0 unless File.exist?(@progress_file)
+
+    File.readlines(@progress_file).count { |line| !line.strip.empty? }
+  end
+
+  def handle_dirty_state
+    # Check if working copy has changes
+    status = `jj status 2>/dev/null`.strip
+    return if status.empty? || status.include?('The working copy is clean')
+
+    # Working copy is dirty - commit and record as iteration
+    @iteration += 1
+    revision = `jj log -r @ --no-graph -T 'change_id.short()' 2>/dev/null`.strip
+
+    progress = "Dirty working copy detected and committed, use `jj diff -r #{revision}` to see the changes."
+    record_progress(progress)
+    commit_iteration("dirty state recovery")
+
+    # Display as proper iteration
+    puts "\e[1mIteration #{@iteration}\e[0m"
+    puts
+    puts "#{progress}"
+    puts
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Main Loop
+  # ─────────────────────────────────────────────────────────────
+
+  def run_iteration
+    display_iteration_header
+
+    prompt = build_worker_prompt
+    iteration_start = Time.now
+    start_spinner("Iteration #{@iteration}")
+
+    result = invoke_claude(
+      prompt: prompt,
+      model: @model,
+      thinking_budget: @thinking_budget,
+      tools: 'Read,Write,Edit,Glob,Grep,Bash,Skill,StructuredOutput',
+      schema: PROGRESS_SCHEMA,
+      iteration_start: iteration_start
+    )
+
+    stop_spinner
+
+    parsed = parse_progress(result)
+
+    if parsed[:error]
+      display_error("Failed to parse agent output: #{parsed[:error]}")
+      error_msg = "ERROR: #{parsed[:error]}"
+      error_msg += "\nRAW: #{parsed[:raw]}" if parsed[:raw]
+      record_progress(error_msg)
+      commit_iteration('error - parse failure')
+      return nil
+    end
+
+    progress = parsed[:progress]
+    display_progress(progress)
+    record_progress(progress)
+    commit_iteration(progress)
+
+    progress == 'DONE' ? 'DONE' : nil
+  end
+
+  def summarize_if_needed
+    entries_since_summary = count_entries_since_summary
+    return unless entries_since_summary >= SUMMARY_INTERVAL
+
+    display_summarizing
+    start_spinner('Summarizing')
+
+    prompt = build_summarizer_prompt
+    result = invoke_claude(
+      prompt: prompt,
+      model: 'haiku',
+      thinking_budget: @summarizer_budget,
+      tools: 'StructuredOutput',
+      schema: '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"]}'
+    )
+
+    stop_spinner
+
+    new_summary = parse_summary(result)
+    if new_summary
+      save_summary(new_summary)
+      log 'Summary updated'
+    else
+      log 'Summary generation failed'
+    end
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Prompt Building
+  # ─────────────────────────────────────────────────────────────
+
+  def build_worker_prompt
+    goal = File.read(@goal_file)
+    summary_content = load_summary
+    summary_end = calculate_summary_end
+    recent = build_recent_iterations
+
+    render_template(@prompt_template, {
+      goal: goal,
+      summary_end: summary_end,
+      summary: summary_content,
+      recent: recent,
+      skills: load_skills,
+      advertised_skills: build_advertised_skills
+    })
+  end
+
+  def build_summarizer_prompt
+    summary_content = load_summary
+    summary_end = calculate_summary_end
+    current = @iteration
+    recent = build_recent_iterations_for_summary
+
+    render_template(@summarizer_template, {
+      summary_end: summary_end,
+      summary: summary_content,
+      current: current,
+      recent: recent
+    })
+  end
+
+  def render_template(template_file, vars)
     template = File.read(template_file)
-    ERB.new(template).result_with_hash(vars)
+    erb = ERB.new(template)
+    erb.result_with_hash(vars)
   end
 
-  def load_implementor_skills
+  def load_summary
+    return 'No prior iterations.' unless File.exist?(@summary_file)
+
+    content = File.read(@summary_file).strip
+    content.empty? ? 'No prior iterations.' : content
+  end
+
+  def calculate_summary_end
+    return 0 unless File.exist?(@summary_file)
+
+    content = File.read(@summary_file).strip
+    return 0 if content.empty?
+
+    # Summary covers iterations in multiples of SUMMARY_INTERVAL
+    total = count_progress_entries
+    (total / SUMMARY_INTERVAL) * SUMMARY_INTERVAL
+  end
+
+  def count_entries_since_summary
+    total = count_progress_entries
+    summary_end = calculate_summary_end
+    total - summary_end
+  end
+
+  def build_recent_iterations
+    return '' unless File.exist?(@progress_file)
+
+    entries = load_progress_entries
+    summary_end = calculate_summary_end
+
+    # Get entries after summary
+    recent_entries = entries.drop(summary_end).take(MAX_RECENT)
+
+    recent_entries.each_with_index.map do |entry, idx|
+      iteration_num = summary_end + idx + 1
+      "### Iteration #{iteration_num}\n\n#{entry['progress']}"
+    end.join("\n\n")
+  end
+
+  def build_recent_iterations_for_summary
+    return '' unless File.exist?(@progress_file)
+
+    entries = load_progress_entries
+    summary_end = calculate_summary_end
+
+    # Get all entries after summary
+    recent_entries = entries.drop(summary_end)
+
+    recent_entries.each_with_index.map do |entry, idx|
+      iteration_num = summary_end + idx + 1
+      "### Iteration #{iteration_num}\n\n#{entry['progress']}"
+    end.join("\n\n")
+  end
+
+  def load_progress_entries
+    return [] unless File.exist?(@progress_file)
+
+    File.readlines(@progress_file).map do |line|
+      JSON.parse(line.strip)
+    rescue JSON::ParserError
+      nil
+    end.compact
+  end
+
+  def load_skills
+    # Load implementor skillset (excluding jj - ralph2 handles commits itself)
     skillset_file = '.claude/skillsets/implementor.json'
     skillset = JSON.parse(File.read(skillset_file))
 
-    skillset['preload'].map do |skill_name|
+    skills_to_load = skillset['preload'] - ['jj']
+
+    skills_to_load.map do |skill_name|
       skill_file = ".claude/library/#{skill_name}/SKILL.md"
       content = File.read(skill_file)
-      { name: skill_name, content: content }
-    end
+      "## #{skill_name}\n\n#{content}"
+    end.join("\n\n")
   end
 
-  def load_docs(doc_refs)
-    doc_refs.map do |doc|
-      path = doc['path']
-      start_line = doc['start']
-      end_line = doc['end'] || (doc['count'] ? start_line + doc['count'] - 1 : nil)
+  def build_advertised_skills
+    # Advertise skills from developer that aren't in implementor (excluding jj)
+    implementor = JSON.parse(File.read('.claude/skillsets/implementor.json'))['preload']
+    developer = JSON.parse(File.read('.claude/skillsets/developer.json'))['preload']
 
-      lines = File.readlines(path)
-      if start_line && end_line
-        content = lines[(start_line - 1)..(end_line - 1)].join
-        { path: "#{path}:#{start_line}-#{end_line}", content: content }
-      elsif start_line
-        content = lines[(start_line - 1)..-1].join
-        { path: "#{path}:#{start_line}-end", content: content }
-      else
-        { path: path, content: lines.join }
+    extra_skills = (developer - implementor) - ['jj']
+
+    extra_skills.map do |skill_name|
+      skill_file = ".claude/library/#{skill_name}/SKILL.md"
+      next unless File.exist?(skill_file)
+
+      # Extract description from YAML frontmatter
+      content = File.read(skill_file)
+      if content =~ /^description:\s*(.+)$/
+        desc = $1.strip
+        "| `#{skill_name}` | #{desc} |"
       end
-    rescue Errno::ENOENT
-      { path: path || doc.to_s, content: "[File not found]" }
+    end.compact.join("\n")
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Claude Invocation
+  # ─────────────────────────────────────────────────────────────
+
+  def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:, iteration_start: nil)
+    with_temp_file(prompt) do |prompt_file|
+      env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
+      cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --verbose --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
+
+      result = nil
+      tool_names = {}  # track tool_use_id -> tool_name for result lookup
+
+      start_waiting_timer(iteration_start) if iteration_start
+      IO.popen(cmd, 'r') do |io|
+        io.each_line do |line|
+          event = JSON.parse(line) rescue next
+          case event['type']
+          when 'assistant'
+            context_pct = extract_context_percentage(event)
+            text = extract_text_content(event)
+            output_message(text, iteration_start, context_pct) unless text.empty?
+            extract_tool_uses(event).each do |tool_use|
+              tool_names[tool_use['id']] = tool_use['name']
+              output_tool_use(tool_use, iteration_start)
+            end
+          when 'user'
+            # Tool results only - user text messages don't appear in this context
+            extract_tool_results(event).each do |tool_result|
+              name = tool_names[tool_result['tool_use_id']] || 'unknown'
+              output_tool_result(name, tool_result, event['tool_use_result'], iteration_start)
+            end
+          when 'result'
+            result = event
+          end
+        end
+      end
+      stop_waiting_timer if iteration_start
+      result&.to_json
     end
   end
 
-  def with_temp_prompt(content)
-    require 'tempfile'
-    temp = Tempfile.new(['ralph-prompt', '.md'])
+  def output_message(text, iteration_start, context_pct = nil)
+    reset_waiting_timer
+    maybe_ralph_says
+    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
+    lines = text.lines
+    if lines.empty?
+      puts suffix
+    elsif lines.length == 1
+      puts "#{lines.first.chomp} #{suffix}"
+    else
+      puts lines.first
+      lines[1...-1].each { |l| puts l }
+      puts "#{lines.last.chomp} #{suffix}"
+    end
+    puts
+  end
+
+  def output_tool_use(tool_use, iteration_start)
+    reset_waiting_timer
+    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    name = tool_use['name']
+    params = format_params(tool_use['input'] || {})
+    puts "\e[90m→ #{name} #{params} (#{elapsed})\e[0m"
+    puts
+  end
+
+  def output_tool_result(name, tool_result, tool_use_result, iteration_start)
+    reset_waiting_timer
+    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    # Prefer structured tool_use_result, fall back to content
+    data = tool_use_result || { 'content' => tool_result['content'] }
+    params = format_params(data)
+    puts "\e[90m← #{name} #{params} (#{elapsed})\e[0m"
+    puts
+  end
+
+  def format_params(hash)
+    return '' unless hash.is_a?(Hash)
+
+    hash.map do |k, v|
+      val = v.is_a?(Hash) || v.is_a?(Array) ? v.to_json : v.to_s
+      val = val.gsub(/\s+/, ' ').strip
+      val = val[0, 45] + '...' if val.length > 48
+      val = "\"#{val}\"" if val.include?(' ')
+      "#{k}=#{val}"
+    end.join(', ')
+  end
+
+  def extract_text_content(event)
+    content = event.dig('message', 'content') || []
+    content
+      .select { |b| b['type'] == 'text' }
+      .map { |b| b['text'] }
+      .join
+  end
+
+  def extract_tool_uses(event)
+    content = event.dig('message', 'content') || []
+    content.select { |b| b['type'] == 'tool_use' }
+  end
+
+  def extract_tool_results(event)
+    content = event.dig('message', 'content') || []
+    content.select { |b| b['type'] == 'tool_result' }
+  end
+
+  def extract_context_percentage(event)
+    usage = event.dig('message', 'usage')
+    return nil unless usage
+
+    input = usage['input_tokens'] || 0
+    cache_create = usage['cache_creation_input_tokens'] || 0
+    cache_read = usage['cache_read_input_tokens'] || 0
+    total_context = input + cache_create + cache_read
+
+    return nil if total_context.zero?
+
+    ((total_context.to_f / 200_000) * 100).round(1)
+  end
+
+  def with_temp_file(content)
+    temp = Tempfile.new(['ralph2-prompt', '.md'])
     temp.write(content)
     temp.close
     yield temp.path
@@ -140,42 +510,189 @@ class Ralph
     temp&.unlink
   end
 
-  def run
-    log "Starting (model: #{@model}, reasoning: #{@reasoning}, budget: #{@thinking_budget})"
-    ensure_files_exist
-    truncate_history unless @continue
+  def parse_progress(result)
+    return { error: 'nil result', raw: nil } if result.nil?
 
-    loop do
-      break if time_expired?
-      break if all_requirements_done?
+    parsed = JSON.parse(result, symbolize_names: true)
+    structured = parsed[:structured_output]
 
-      maybe_ralph_says
-      requirement_id = select_requirement
-      break unless requirement_id
-
-      work_on_requirement(requirement_id)
+    if structured.nil?
+      return { error: 'no structured_output', raw: result[0, 500] }
     end
 
-    run_final_quality_checks if all_requirements_done?
-    cleanup
-    summary
+    progress = structured[:progress]
+    if progress.nil?
+      return { error: 'no progress field', raw: result[0, 500] }
+    end
+
+    { progress: progress }
+  rescue JSON::ParserError => e
+    { error: "JSON parse error: #{e.message}", raw: result&.[](0, 500) }
   end
 
-  private
+  def parse_summary(result)
+    parsed = JSON.parse(result, symbolize_names: true)
+    structured = parsed[:structured_output]
+    return nil if structured.nil?
 
-  def log(message)
-    timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-    puts "#{timestamp} | #{'ralph'.ljust(10)} | #{message}"
-    $stdout.flush
+    structured[:summary]
+  rescue JSON::ParserError
+    nil
   end
 
-  def truncate_history
-    File.write(@history_file, '')
+  # ─────────────────────────────────────────────────────────────
+  # State Management
+  # ─────────────────────────────────────────────────────────────
+
+  def record_progress(progress)
+    entry = {
+      iteration: @iteration,
+      timestamp: Time.now.iso8601,
+      progress: progress
+    }
+    File.open(@progress_file, 'a') { |f| f.puts(entry.to_json) }
+  end
+
+  def save_summary(summary)
+    File.write(@summary_file, summary)
+  end
+
+  def commit_iteration(progress)
+    # Truncate progress for commit message
+    short_progress = progress.to_s[0, 200]
+    short_progress += '...' if progress.to_s.length > 200
+
+    msg = <<~MSG
+      ralph2: iteration #{@iteration}
+
+      #{short_progress}
+    MSG
+
+    system("jj commit -m #{msg.shellescape} >/dev/null 2>&1")
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Display
+  # ─────────────────────────────────────────────────────────────
+
+  def display_header
+    duration_str = @duration_seconds == Float::INFINITY ? 'unlimited' : format_elapsed(@duration_seconds.to_i)
+    ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
+    if File.exist?(ascii_file)
+      print File.read(ascii_file).chomp
+      puts '─' * 70
+      puts
+    end
+    puts "\e[1mRALPH2\e[0m"
+    puts
+    puts "Braindead agentic loop. Just keep trying until it works."
+    puts
+    puts "\e[1mParams\e[0m"
+    puts
+    puts "Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
+    puts
+  end
+
+  def display_goal
+    goal_content = File.read(@goal_file)
+
+    # Extract just the objective section
+    objective = extract_objective(goal_content)
+
+    puts "\e[1mGoal\e[0m"
+    puts
+    puts objective
+    puts
+  end
+
+  def extract_objective(content)
+    # Try to extract ## Objective section
+    if content =~ /^## Objective\s*\n(.*?)(?=\n##|\z)/m
+      return $1.strip
+    end
+
+    # Fallback: first 500 chars
+    content[0, 500]
+  end
+
+  def display_iteration_header
+    puts "\e[1mIteration #{@iteration}\e[0m"
+    puts
   end
 
   def maybe_ralph_says
-    return unless rand < 0.1  # 10% chance
-    log RALPH_QUOTES.sample
+    return unless rand < 0.03  # 3% chance
+
+    puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
+    puts
+  end
+
+  def display_progress(progress)
+    puts
+    if progress == 'DONE'
+      puts "\e[32m  ✓ DONE\e[0m"
+    else
+      # Word wrap and indent
+      wrapped = word_wrap(progress, 66)
+      wrapped.each_line do |line|
+        puts "  #{line}"
+      end
+    end
+    puts
+    puts '─' * 70
+  end
+
+  def display_error(message)
+    puts
+    puts "\e[31m  ✗ #{message}\e[0m"
+    puts
+    puts '─' * 70
+  end
+
+  def display_summarizing
+    puts
+    puts "\e[33m  Summarizing progress (every #{SUMMARY_INTERVAL} iterations)...\e[0m"
+  end
+
+  def display_summary
+    elapsed = format_elapsed((Time.now - @start_time).to_i)
+    puts
+    puts "\e[1m" + '═' * 70 + "\e[0m"
+    puts "\e[1m  COMPLETE\e[0m"
+    puts "  Iterations: #{@iteration} | Elapsed: #{elapsed}"
+    puts "\e[1m" + '═' * 70 + "\e[0m"
+    puts
+  end
+
+  def word_wrap(text, width)
+    text.gsub(/(.{1,#{width}})(\s+|$)/, "\\1\n").strip
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Utilities
+  # ─────────────────────────────────────────────────────────────
+
+  def log(message)
+    timestamp = Time.now.strftime('%H:%M:%S')
+    puts "  \e[90m[#{timestamp}]\e[0m #{message}"
+  end
+
+  def fatal(message)
+    $stderr.puts "\e[31mError: #{message}\e[0m"
+    exit 1
+  end
+
+  def parse_duration(duration_str)
+    return Float::INFINITY if duration_str.nil?
+
+    value = duration_str.to_i
+    unit = duration_str[-1]
+
+    case unit
+    when 'h' then value * 3600
+    when 'm' then value * 60
+    else value
+    end
   end
 
   def format_elapsed(seconds)
@@ -191,8 +708,30 @@ class Ralph
     end
   end
 
+  def time_expired?
+    return false if @duration_seconds == Float::INFINITY
+
+    elapsed = Time.now - @start_time
+    if elapsed >= @duration_seconds
+      log "Time budget expired"
+      true
+    else
+      false
+    end
+  end
+
+  def calculate_thinking_budget(model, reasoning)
+    max_budget = MAX_THINKING_BUDGET[model] || 32_000
+    multiplier = REASONING_MULTIPLIERS[reasoning] || 0.25
+    (max_budget * multiplier).to_i
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Spinner
+  # ─────────────────────────────────────────────────────────────
+
   def start_spinner(message)
-    return unless @spinner_enabled
+    return if @no_spinner
 
     @spinner_running = true
     start = Time.now
@@ -203,385 +742,134 @@ class Ralph
         elapsed = (Time.now - start).to_i
         mins, secs = elapsed.divmod(60)
         frame = SPINNER_FRAMES[idx % SPINNER_FRAMES.length]
-        print "\r#{frame} #{message} [#{format('%02d:%02d', mins, secs)}]"
+        print "\r  #{frame} #{message} [#{format('%02d:%02d', mins, secs)}]"
         $stdout.flush
         idx += 1
         sleep 0.1
       end
-      print "\r#{' ' * 80}\r"
+      print "\r#{' ' * 60}\r"
       $stdout.flush
     end
   end
 
   def stop_spinner
-    return unless @spinner_enabled
+    return if @no_spinner
 
     @spinner_running = false
     @spinner_thread&.join(1)
   end
 
-  def parse_duration(duration_str)
-    value = duration_str.to_i
-    unit = duration_str[-1]
+  # ─────────────────────────────────────────────────────────────
+  # Waiting Timer
+  # ─────────────────────────────────────────────────────────────
 
-    case unit
-    when 'h' then value * 3600
-    when 'm' then value * 60
-    else value
-    end
-  end
+  def start_waiting_timer(iteration_start)
+    @waiting_timer_running = true
+    @waiting_timer_displayed = false
+    @last_output_time = Time.now
 
-  def ensure_files_exist
-    File.write(@history_file, '') unless File.exist?(@history_file)
-
-    unless File.exist?(@requirements_file)
-      File.write(@requirements_file, JSON.pretty_generate({ requirements: [] }))
-    end
-  end
-
-  def time_expired?
-    elapsed = Time.now - @start_time
-    if elapsed >= @duration_seconds
-      log "Time budget expired (#{format_elapsed(@duration_seconds)})"
-      true
-    else
-      false
-    end
-  end
-
-  def all_requirements_done?
-    requirements = load_requirements
-    requirements.all? { |req| req['status'] == 'done' }
-  end
-
-  def load_requirements
-    JSON.parse(File.read(@requirements_file))['requirements']
-  end
-
-  def save_requirements(requirements)
-    data = { requirements: requirements }
-    File.write(@requirements_file, JSON.pretty_generate(data))
-  end
-
-  def select_requirement
-    log 'Selecting next requirement...'
-
-    # Gather pending requirements
-    requirements = load_requirements
-    pending = requirements.select { |r| r['status'] == 'pending' }
-                          .map { |r| { id: r['id'], requirement: r['requirement'] } }
-
-    # Get recent history
-    history_lines = File.exist?(@history_file) ? File.readlines(@history_file).last(10) : []
-
-    start_spinner 'Waiting for selection agent'
-
-    template_file = "#{@script_dir}/select.md.erb"
-    prompt_content = render_prompt(template_file, {
-      pending: pending,
-      history: history_lines.join
-    })
-
-    result = nil
-    exit_code = nil
-
-    with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json 2>&1`
-      exit_code = $?.exitstatus
-    end
-
-    stop_spinner
-
-    if exit_code != 0
-      log "Selection agent FAILED: #{result[0..200]}"
-      record_attempt('selector', nil, { success: false, message: "Selection agent failed (exit_code=#{exit_code})" })
-      return select_requirement  # retry
-    end
-
-    requirement_id = parse_select_outcome(result)
-
-    if requirement_id.nil?
-      log "Selection agent returned unparseable output: #{result[0..200]}"
-      record_attempt('selector', nil, { success: false, message: "Could not parse selector output" })
-      return select_requirement  # retry
-    end
-
-    return nil if requirement_id == 'none'
-
-    # Validate it's a real requirement
-    unless valid_requirement_id?(requirement_id)
-      log "Invalid selection: '#{requirement_id[0..40]}'"
-      record_attempt(requirement_id, nil, { success: false, message: "Invalid requirement ID selected" })
-      return select_requirement  # retry
-    end
-
-    log "Selected: #{requirement_id}"
-    requirement_id
-  end
-
-  def valid_requirement_id?(requirement_id)
-    requirements = load_requirements
-    valid_ids = requirements.map { |r| r['id'].to_s }
-    valid_ids.include?(requirement_id)
-  end
-
-  def work_on_requirement(requirement_id)
-    log "Working on #{requirement_id}..."
-
-    # Look up the requirement
-    requirements = load_requirements
-    requirement = requirements.find { |r| r['id'].to_s == requirement_id.to_s }
-    requirement_text = requirement['requirement']
-    docs = load_docs(requirement['docs'] || [])
-
-    start_spinner 'Waiting for work agent'
-
-    template_file = "#{@script_dir}/work.md.erb"
-    prompt_content = render_prompt(template_file, {
-      requirement_id: requirement_id,
-      requirement_text: requirement_text,
-      docs: docs,
-      history_file: @history_file,
-      skills: load_implementor_skills
-    })
-
-    result = nil
-    exit_code = nil
-
-    with_temp_prompt(prompt_content) do |prompt_file|
-      result = `#{claude_env} claude -p #{prompt_file} #{claude_flags} --output-format json --json-schema '#{WORK_OUTPUT_SCHEMA}' 2>&1`
-      exit_code = $?.exitstatus
-    end
-
-    stop_spinner
-
-    outcome = parse_work_outcome(result, exit_code)
-    record_attempt(requirement_id, requirement_text, outcome)
-
-    if outcome[:success]
-      if commit_work(requirement_id, outcome[:message])
-        run_quality_checks(requirement_id)
-      else
-        log "Skipping quality checks (no changes)"
-      end
-    else
-      restore_changes
-      log "FAILED: #{outcome[:message]}"
-    end
-  end
-
-  def record_attempt(requirement_id, requirement_text, outcome)
-    entry = {
-      timestamp: Time.now.iso8601,
-      requirement_id: requirement_id,
-      requirement: requirement_text,
-      success: outcome[:success],
-      message: outcome[:message]
-    }
-    File.open(@history_file, 'a') { |f| f.puts(entry.to_json) }
-    trim_history(20)
-  end
-
-  def trim_history(max_entries)
-    lines = File.readlines(@history_file)
-    return if lines.size <= max_entries
-
-    File.write(@history_file, lines.last(max_entries).join)
-  end
-
-  def parse_select_outcome(result)
-    parsed = JSON.parse(result, symbolize_names: true)
-    raw_output = parsed[:result]&.strip
-    return nil if raw_output.nil? || raw_output.empty?
-
-    # Look for {"id": "..."} pattern anywhere in output
-    if raw_output =~ /\{"id":\s*"([^"]+)"\}/
-      return $1
-    end
-
-    # Fall back to extracting last non-empty line (plain ID)
-    raw_output.lines.map(&:strip).reject(&:empty?).last
-  rescue JSON::ParserError
-    nil
-  end
-
-  def parse_work_outcome(result, exit_code)
-    # Parse outer JSON from --output-format json
-    parsed = JSON.parse(result, symbolize_names: true)
-
-    # Check for empty result (agent didn't produce output)
-    if parsed[:result].nil? || parsed[:result].empty?
-      return { success: false, message: "Agent produced empty result (exit_code=#{exit_code})" }
-    end
-
-    # With --json-schema, the result field contains valid JSON
-    inner = JSON.parse(parsed[:result], symbolize_names: true)
-    {
-      success: inner[:success] == true,
-      message: inner[:message] || 'No message provided'
-    }
-  rescue JSON::ParserError => e
-    { success: false, message: "Could not parse agent output: #{e.message}" }
-  end
-
-  def commit_work(requirement_id, message)
-    # Sanitize message for shell safety
-    safe_message = message.to_s.gsub(/[^a-zA-Z0-9\s\-_.,:]/, '')
-    msg = "#{requirement_id}: #{safe_message}"
-
-    commit_cmd = <<~SH
-      jj commit -m "$(cat <<'COMMITMSG'
-      #{msg}
-
-      harness/ralph | work agent
-      COMMITMSG
-      )"
-    SH
-
-    system(commit_cmd, out: File::NULL, err: File::NULL)
-
-    if $?.exitstatus == 0
-      log 'Committed changes'
-      true
-    else
-      log 'No changes to commit'
-      false
-    end
-  end
-
-  def run_quality_checks(requirement_id)
-    log 'Running quick quality checks...'
-    run_checks(QUICK_CHECKS)
-    mark_requirement_done(requirement_id)
-  end
-
-  def run_final_quality_checks
-    log 'Running final quality checks...'
-    run_checks(FULL_CHECKS)
-  end
-
-  def run_checks(checks)
-    loop do
-      all_passed = true
-
-      checks.each do |harness|
-        log "  Running #{harness}..."
-        start_spinner "Running #{harness}"
-
-        success = system(".claude/harness/#{harness}/run --no-spinner >/dev/null 2>&1")
-        stop_spinner
-
-        unless success
-          log "  #{harness} FAILED - retrying"
-          all_passed = false
-          break
+    @waiting_timer_thread = Thread.new do
+      while @waiting_timer_running
+        since_output = Time.now - @last_output_time
+        if since_output >= 5.0
+          @waiting_timer_displayed = true
+          elapsed = format_elapsed(since_output.to_i)
+          print "\r(#{elapsed})"
+          $stdout.flush
         end
-
-        commit_check(harness)
+        sleep 0.1
       end
-
-      break if all_passed
     end
   end
 
-  def commit_check(check_name)
-    msg = "fix: #{check_name}\n\nharness/ralph | quality check"
-    system("jj commit -m '#{msg}' >/dev/null 2>&1")
-    # Ignore failures - might be no changes
+  def stop_waiting_timer
+    @waiting_timer_running = false
+    @waiting_timer_thread&.join(1)
+    clear_waiting_timer
   end
 
-  def mark_requirement_done(requirement_id)
-    requirements = load_requirements
-    requirement = requirements.find { |r| r['id'].to_s == requirement_id.to_s }
+  def reset_waiting_timer
+    return unless @waiting_timer_running
 
-    if requirement
-      requirement['status'] = 'done'
-      save_requirements(requirements)
-      system("jj commit -m 'ralph: mark #{requirement_id} done' >/dev/null 2>&1")
-      log "✓ #{requirement_id} COMPLETE"
-    end
+    @last_output_time = Time.now
+    clear_waiting_timer
   end
 
-  def restore_changes
-    system('jj restore >/dev/null 2>&1')
-  end
+  def clear_waiting_timer
+    return unless @waiting_timer_displayed
 
-  def cleanup
-    log 'Cleaning uncommitted changes...'
-    restore_changes
-  end
-
-  def summary
-    elapsed = Time.now - @start_time
-
-    requirements = load_requirements
-    done = requirements.count { |r| r['status'] == 'done' }
-    total = requirements.count
-
-    log "Completed #{done}/#{total} requirements (elapsed: #{format_elapsed(elapsed.to_i)})"
+    print "\r#{' ' * 20}\r"
+    $stdout.flush
+    @waiting_timer_displayed = false
   end
 end
 
-# Parse command line arguments
-options = { model: 'sonnet', reasoning: 'low', no_spinner: false }
+# ─────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────
+
+options = {
+  model: 'sonnet',
+  reasoning: 'low',
+  no_spinner: true,
+  continue: false
+}
 
 OptionParser.new do |opts|
-  opts.banner = 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
+  opts.banner = <<~BANNER
+    Ralph2 - Braindead agentic loop. Just keep trying until it works.
+
+    Usage: ralph2 --goal=FILE [--duration=4h] [options]
+  BANNER
+
+  opts.on('--goal=FILE', 'Goal markdown file (required)') do |f|
+    options[:goal] = f
+  end
 
   opts.on('--duration=DURATION', 'Time budget (e.g., 4h, 200m)') do |d|
     options[:duration] = d
-  end
-
-  opts.on('--requirements=FILE', 'Requirements JSON file') do |f|
-    options[:requirements] = f
-  end
-
-  opts.on('--history=FILE', 'History markdown file (default: .claude/harness/ralph/history.jsonl)') do |f|
-    options[:history] = f
   end
 
   opts.on('--model=MODEL', %w[haiku sonnet opus], 'Model: haiku, sonnet, opus (default: sonnet)') do |m|
     options[:model] = m
   end
 
-  opts.on('--reasoning=LEVEL', %w[none low med high],
-          'Reasoning: none, low, med, high (default: low)') do |r|
+  opts.on('--reasoning=LEVEL', %w[none low med high], 'Reasoning: none, low, med, high (default: low)') do |r|
     options[:reasoning] = r
   end
 
-  opts.on('--no-spinner', 'Disable progress spinner') do
-    options[:no_spinner] = true
+  opts.on('--spinner', 'Enable progress spinner (off by default)') do
+    options[:no_spinner] = false
   end
 
-  opts.on('--continue', 'Continue from existing history (don\'t truncate)') do
+  opts.on('--continue', 'Continue from existing progress') do
     options[:continue] = true
+  end
+
+  opts.on('-h', '--help', 'Show this help') do
+    puts opts
+    exit
   end
 end.parse!
 
-# Validate required arguments
-if options.values_at(:duration, :requirements).any?(&:nil?)
-  puts 'Error: Missing required arguments'
-  puts 'Usage: run --duration=4h --requirements=reqs.json [--history=history.jsonl] [options]'
+if options[:goal].nil?
+  $stderr.puts 'Error: --goal=FILE is required'
+  $stderr.puts 'Usage: ralph2 --goal=FILE [--duration=4h] [options]'
   exit 1
 end
 
-# Default history file
-options[:history] ||= File.join(File.dirname(File.realpath(__FILE__)), 'history.jsonl')
-
-# Run Ralph
-ralph = Ralph.new(
+ralph = Ralph2.new(
+  goal_file: options[:goal],
   duration: options[:duration],
-  requirements_file: options[:requirements],
-  history_file: options[:history],
   model: options[:model],
   reasoning: options[:reasoning],
   no_spinner: options[:no_spinner],
-  continue: options[:continue]
+  continue_run: options[:continue]
 )
 
 begin
   ralph.run
 rescue Interrupt
-  puts "\nInterrupted"
+  puts "\n\nInterrupted"
   exit 130
 end
