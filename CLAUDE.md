@@ -29,4 +29,5 @@ Load these skills when you need deeper context:
 * `/load source-code` - Map of all src/*.c files by functional area
 * `/load makefile` - Build targets, test commands, coverage requirements
 * `/load jj` - jj workflow, commit policy, and permitted operations
+* `/load notify` - Send push notifications to alert the user
 * `/load task` - SQLite-backed task orchestration with escalation ladder

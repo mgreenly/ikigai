@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'net/http'
+require 'uri'
+
+# Send notification via ntfy.sh
+#
+# Reads JSON from stdin: {"title": "...", "message": "..."}
+# Requires: NTFY_TOPIC, NTFY_API_KEY environment variables
+#
+# Returns JSON: {"success": bool, "status": int, "error": "..."}
+
+def error_result(message)
+  puts JSON.generate({ success: false, error: message })
+  exit 1
+end
+
+def main
+  topic = ENV['NTFY_TOPIC']
+  api_key = ENV['NTFY_API_KEY']
+
+  error_result('NTFY_TOPIC not set') unless topic
+  error_result('NTFY_API_KEY not set') unless api_key
+
+  input = $stdin.read
+  error_result('No input provided') if input.empty?
+
+  data = JSON.parse(input)
+  title = data['title']
+  message = data['message']
+
+  error_result('message is required') unless message
+
+  uri = URI("https://ntfy.sh/#{topic}")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+
+  request = Net::HTTP::Post.new(uri.path)
+  request['Authorization'] = "Bearer #{api_key}"
+  request['X-Priority'] = 'urgent'
+  request['X-Title'] = title if title
+  request.body = message
+
+  response = http.request(request)
+  status = response.code.to_i
+
+  if response.is_a?(Net::HTTPSuccess)
+    puts JSON.generate({ success: true, status: status })
+  else
+    puts JSON.generate({ success: false, status: status, error: response.body })
+    exit 1
+  end
+rescue JSON::ParserError => e
+  error_result("Invalid JSON: #{e.message}")
+rescue StandardError => e
+  error_result(e.message)
+end
+
+main
