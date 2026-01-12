@@ -32,6 +32,8 @@ coverage_html/
 .claude/harness/*/history.md
 .claude/harness/*/history.jsonl
 .claude/harness/ralph/process.log
+.claude/harness/*/*-progress.jsonl
+.claude/harness/*/*-summary.md
 
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
