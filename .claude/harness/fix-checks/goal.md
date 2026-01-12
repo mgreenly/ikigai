@@ -1,6 +1,6 @@
 ## Objective
 
-All checks pass: compile, filesize, check, complexity, sanitize, tsan, valgrind, helgrind, coverage.
+All checks must pass: compile, filesize, check, complexity, sanitize, tsan, valgrind, helgrind, coverage.
 
 ## Suggested Progression
 
@@ -34,37 +34,13 @@ Changes can break earlier checks. A tsan fix might add code that breaks filesize
 
 After making changes, re-verify earlier checks still pass. If something regresses, address it before continuing.
 
-## Tools
+## Hints
 
-Each check has a harness that returns JSON:
-
-| Check | Harness |
-|-------|---------|
-| compile | `.claude/harness/compile/run` |
-| filesize | `.claude/harness/filesize/run` |
-| check | `.claude/harness/check/run` |
-| complexity | `.claude/harness/complexity/run` |
-| sanitize | `.claude/harness/sanitize/run` |
-| tsan | `.claude/harness/tsan/run` |
-| valgrind | `.claude/harness/valgrind/run` |
-| helgrind | `.claude/harness/helgrind/run` |
-| coverage | `.claude/harness/coverage/run` |
-
-Returns:
-- `{"ok": true}` - check passes
-- `{"ok": false, "items": [...]}` - failures with details
-
-## Skills
-
-**Load as needed:**
-
-| Skill | When |
-|-------|------|
-| `/load errors` | Result types, OK()/ERR() patterns |
-| `/load memory` | talloc ownership, contexts |
-| `/load database` | PostgreSQL, test fixtures |
-| `/load style` | Naming, code patterns |
-| `/load tdd` | Test structure, Check framework |
+- For talloc/ownership issues: `/load memory`
+- For Result type patterns: `/load errors`
+- For test structure: `/load tdd`
+- For PostgreSQL/fixtures: `/load database`
+- For naming conventions: `/load style`
 
 ## Acceptance
 
