@@ -436,7 +436,7 @@ class Ralph
   def output_message(text, iteration_start, context_pct = nil)
     reset_waiting_timer
     maybe_ralph_says
-    suffix = format_timing_suffix(context_pct)
+    suffix = "\e[90m#{format_timing_suffix(context_pct)}\e[0m"
     lines = text.lines
     if lines.empty?
       puts suffix
