@@ -660,16 +660,17 @@ class Ralph
   def display_progress(progress)
     puts
     if progress == 'DONE'
-      puts "\e[32m  ✓ DONE\e[0m"
+      puts "\e[32m✓ DONE\e[0m"
+      puts
     else
       # Word wrap and indent
       wrapped = word_wrap(progress, 66)
       wrapped.each_line do |line|
         puts "  #{line}"
       end
+      puts
+      puts '─' * 70
     end
-    puts
-    puts '─' * 70
   end
 
   def display_error(message)
