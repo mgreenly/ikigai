@@ -36,8 +36,8 @@ HISTORY_FILE = SCRIPT_DIR / "history.md"
 DEFAULT_TIMEOUT = 900
 
 # Global flags for output control
-SPINNER_ENABLED = True
-SILENT_MODE = False
+SPINNER_ENABLED = False
+SILENT_MODE = True
 LOGGING_ENABLED = True
 
 
@@ -391,27 +391,17 @@ def main() -> int:
     start_time = time.time()
 
     parser = argparse.ArgumentParser(description="Automated complexity fix loop")
-    parser.add_argument("--fix", action="store_true",
-                        help="Run the full fix loop (default: just check and report JSON)")
-    parser.add_argument("--no-spinner", action="store_true",
-                        help="Disable progress spinner (for non-interactive use)")
-    parser.add_argument("--silent", action="store_true",
-                        help="Suppress all output except final JSON")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
     global SPINNER_ENABLED, LOGGING_ENABLED, SILENT_MODE
-    if args.no_spinner:
-        SPINNER_ENABLED = False
-    if args.silent:
-        SPINNER_ENABLED = False
-        SILENT_MODE = True
-
-    # In default mode (no --fix), disable logging and spinner for clean JSON output
-    if not args.fix:
-        SPINNER_ENABLED = False
-        LOGGING_ENABLED = False
+    if args.verbose:
+        SPINNER_ENABLED = True
+        SILENT_MODE = False
+    args.fix = False
 
     os.chdir(PROJECT_ROOT)
 

@@ -35,9 +35,9 @@ FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
 HISTORY_FILE = SCRIPT_DIR / "history.md"
 DEFAULT_TIMEOUT = 900
 
-# Global flag to disable spinner (set by --no-spinner)
-SPINNER_ENABLED = True
-SILENT_MODE = False
+# Global flag to disable spinner (set by --verbose)
+SPINNER_ENABLED = False
+SILENT_MODE = True
 
 
 class Spinner:
@@ -520,27 +520,26 @@ def main() -> int:
     """Main entry point."""
     start_time = time.time()
     parser = argparse.ArgumentParser(description="Automated ThreadSanitizer error fix loop")
-    parser.add_argument("--fix", action="store_true",
-                        help="Run the full fix loop (default: just check and report)")
-    parser.add_argument("--no-spinner", action="store_true",
-                        help="Disable progress spinner (for non-interactive use)")
-    parser.add_argument("--silent", action="store_true",
-                        help="Suppress all output except final JSON")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
+
+    # Hardcode fix to False (fix mode removed)
+    args.fix = False
+
+    # Handle --verbose flag
+    global SPINNER_ENABLED, SILENT_MODE
+    if args.verbose:
+        SPINNER_ENABLED = True
+        SILENT_MODE = False
 
     # Default behavior (no --fix): run check, print JSON, exit
     if not args.fix:
         return run_check_only()
 
     # --fix mode: full fix loop
-    global SPINNER_ENABLED, SILENT_MODE
-    if args.no_spinner:
-        SPINNER_ENABLED = False
-    if args.silent:
-        SPINNER_ENABLED = False
-        SILENT_MODE = True
 
     opts = []
     if args.time_out != DEFAULT_TIMEOUT:
