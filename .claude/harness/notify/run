@@ -39,6 +39,7 @@ def main
 
   request = Net::HTTP::Post.new(uri.path)
   request['Authorization'] = "Bearer #{api_key}"
+  request['X-Priority'] = 'urgent'
   request['X-Title'] = title if title
   request.body = message
 
