@@ -26,7 +26,8 @@ History provides learning without complex state management. Time budget prevents
   [--model=sonnet] \
   [--reasoning=low] \
   [--spinner] \
-  [--continue]
+  [--continue] \
+  [--no-art]
 ```
 
 **Flags:**
@@ -36,6 +37,7 @@ History provides learning without complex state management. Time budget prevents
 - `--reasoning` - `none`, `low`, `med`, `high` (default: `low`)
 - `--spinner` - Enable progress spinner (off by default)
 - `--continue` - Continue from existing progress
+- `--no-art` - Suppress ASCII art in header
 
 **Reasoning levels** (fraction of model's max thinking budget):
 - `none` = 0 (no thinking)
