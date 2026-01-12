@@ -156,7 +156,7 @@ class Ralph
   def handle_dirty_state
     # Check if working copy has changes
     status = `jj status 2>/dev/null`.strip
-    return if status.empty? || status.include?('The working copy is clean')
+    return if status.empty? || status.include?('working copy') && status.include?('no changes')
 
     # Working copy is dirty - commit and record as iteration
     @iteration += 1
