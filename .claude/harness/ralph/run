@@ -420,11 +420,23 @@ class Ralph
     end
   end
 
+  def format_timing_suffix(context_pct = nil)
+    now = Time.now
+    delta = format_elapsed((now - @last_output_time).to_i)
+    total = format_elapsed((now - @start_time).to_i)
+    @last_output_time = now
+
+    if context_pct
+      "(+#{delta} / #{total}) [#{context_pct}%]"
+    else
+      "(+#{delta} / #{total})"
+    end
+  end
+
   def output_message(text, iteration_start, context_pct = nil)
     reset_waiting_timer
     maybe_ralph_says
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
-    suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
+    suffix = format_timing_suffix(context_pct)
     lines = text.lines
     if lines.empty?
       puts suffix
@@ -440,20 +452,20 @@ class Ralph
 
   def output_tool_use(tool_use, iteration_start)
     reset_waiting_timer
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = format_timing_suffix
     name = tool_use['name']
     params = format_params(tool_use['input'] || {})
-    puts "\e[90m→ #{name} #{params} (#{elapsed})\e[0m"
+    puts "\e[90m→ #{name} #{params} #{suffix}\e[0m"
     puts
   end
 
   def output_tool_result(name, tool_result, tool_use_result, iteration_start)
     reset_waiting_timer
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = format_timing_suffix
     # Prefer structured tool_use_result, fall back to content
     data = tool_use_result || { 'content' => tool_result['content'] }
     params = format_params(data)
-    puts "\e[90m← #{name} #{params} (#{elapsed})\e[0m"
+    puts "\e[90m← #{name} #{params} #{suffix}\e[0m"
     puts
   end
 
