@@ -11,8 +11,10 @@ require 'tempfile'
 # Resolve script directory at load time (before any chdir)
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 
-# Ralph2: Iterative goal completion harness
-class Ralph2
+# Ralph: Iterative goal completion harness
+class Ralph
+  VERSION = '0.2.0'
+
   SUMMARY_INTERVAL = 10
   MAX_RECENT = 20
 
@@ -46,7 +48,7 @@ class Ralph2
     "Go banana!"
   ].freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, continue_run:)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:)
     @goal_file = goal_file
     @duration_seconds = parse_duration(duration)
     @model = model
@@ -54,6 +56,7 @@ class Ralph2
     @thinking_budget = calculate_thinking_budget(model, reasoning)
     @summarizer_budget = calculate_thinking_budget('haiku', 'high')
     @no_spinner = no_spinner
+    @no_art = no_art
     @continue_run = continue_run
 
     @start_time = Time.now
@@ -86,18 +89,31 @@ class Ralph2
     display_continue_status
     handle_dirty_state
 
+    @exit_reason = nil
     loop do
-      break if time_expired?
+      if time_expired?
+        @exit_reason = :timeout
+        break
+      end
 
       @iteration += 1
       result = run_iteration
 
-      break if result == 'DONE'
+      if result == 'DONE'
+        @exit_reason = :done
+        break
+      end
 
       summarize_if_needed
     end
 
     display_summary
+    send_notification
+  end
+
+  def interrupt!
+    @exit_reason = :interrupted
+    send_notification
   end
 
   private
@@ -156,7 +172,7 @@ class Ralph2
   def handle_dirty_state
     # Check if working copy has changes
     status = `jj status 2>/dev/null`.strip
-    return if status.empty? || status.include?('The working copy is clean')
+    return if status.empty? || status.include?('working copy') && status.include?('no changes')
 
     # Working copy is dirty - commit and record as iteration
     @iteration += 1
@@ -346,7 +362,7 @@ class Ralph2
   end
 
   def load_skills
-    # Load implementor skillset (excluding jj - ralph2 handles commits itself)
+    # Load implementor skillset (excluding jj - ralph handles commits itself)
     skillset_file = '.claude/skillsets/implementor.json'
     skillset = JSON.parse(File.read(skillset_file))
 
@@ -420,11 +436,23 @@ class Ralph2
     end
   end
 
+  def format_timing_suffix(context_pct = nil)
+    now = Time.now
+    delta = format_elapsed((now - @last_output_time).to_i)
+    total = format_elapsed((now - @start_time).to_i)
+    @last_output_time = now
+
+    if context_pct
+      "(+#{delta} / #{total}) [#{context_pct}%]"
+    else
+      "(+#{delta} / #{total})"
+    end
+  end
+
   def output_message(text, iteration_start, context_pct = nil)
     reset_waiting_timer
     maybe_ralph_says
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
-    suffix = context_pct ? "(#{elapsed}) [#{context_pct}%]" : "(#{elapsed})"
+    suffix = "\e[90m#{format_timing_suffix(context_pct)}\e[0m"
     lines = text.lines
     if lines.empty?
       puts suffix
@@ -440,20 +468,20 @@ class Ralph2
 
   def output_tool_use(tool_use, iteration_start)
     reset_waiting_timer
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = format_timing_suffix
     name = tool_use['name']
     params = format_params(tool_use['input'] || {})
-    puts "\e[90m→ #{name} #{params} (#{elapsed})\e[0m"
+    puts "\e[90m→ #{name} #{params} #{suffix}\e[0m"
     puts
   end
 
   def output_tool_result(name, tool_result, tool_use_result, iteration_start)
     reset_waiting_timer
-    elapsed = iteration_start ? format_elapsed((Time.now - iteration_start).to_i) : nil
+    suffix = format_timing_suffix
     # Prefer structured tool_use_result, fall back to content
     data = tool_use_result || { 'content' => tool_result['content'] }
     params = format_params(data)
-    puts "\e[90m← #{name} #{params} (#{elapsed})\e[0m"
+    puts "\e[90m← #{name} #{params} #{suffix}\e[0m"
     puts
   end
 
@@ -502,7 +530,7 @@ class Ralph2
   end
 
   def with_temp_file(content)
-    temp = Tempfile.new(['ralph2-prompt', '.md'])
+    temp = Tempfile.new(['ralph-prompt', '.md'])
     temp.write(content)
     temp.close
     yield temp.path
@@ -563,7 +591,7 @@ class Ralph2
     short_progress += '...' if progress.to_s.length > 200
 
     msg = <<~MSG
-      ralph2: iteration #{@iteration}
+      ralph: iteration #{@iteration}
 
       #{short_progress}
     MSG
@@ -577,13 +605,15 @@ class Ralph2
 
   def display_header
     duration_str = @duration_seconds == Float::INFINITY ? 'unlimited' : format_elapsed(@duration_seconds.to_i)
-    ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
-    if File.exist?(ascii_file)
-      print File.read(ascii_file).chomp
-      puts '─' * 70
-      puts
+    unless @no_art
+      ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
+      if File.exist?(ascii_file)
+        print File.read(ascii_file).chomp
+        puts '─' * 70
+        puts
+      end
     end
-    puts "\e[1mRALPH2\e[0m"
+    puts "\e[1mRALPH v#{VERSION}\e[0m"
     puts
     puts "Braindead agentic loop. Just keep trying until it works."
     puts
@@ -630,16 +660,17 @@ class Ralph2
   def display_progress(progress)
     puts
     if progress == 'DONE'
-      puts "\e[32m  ✓ DONE\e[0m"
+      puts "\e[32m✓ DONE\e[0m"
+      puts
     else
       # Word wrap and indent
       wrapped = word_wrap(progress, 66)
       wrapped.each_line do |line|
         puts "  #{line}"
       end
+      puts
+      puts '─' * 70
     end
-    puts
-    puts '─' * 70
   end
 
   def display_error(message)
@@ -666,6 +697,48 @@ class Ralph2
 
   def word_wrap(text, width)
     text.gsub(/(.{1,#{width}})(\s+|$)/, "\\1\n").strip
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Notifications
+  # ─────────────────────────────────────────────────────────────
+
+  def notify_enabled?
+    ENV['NTFY_TOPIC'] && ENV['NTFY_API_KEY']
+  end
+
+  def send_notification
+    return unless notify_enabled?
+
+    elapsed = format_elapsed((Time.now - @start_time).to_i)
+    goal_name = File.basename(@goal_file, '.*').sub(/-goal$/, '')
+
+    case @exit_reason
+    when :done
+      title = "Ralph: #{goal_name} complete"
+      message = "Goal achieved in #{@iteration} iterations (#{elapsed})"
+    when :timeout
+      title = "Ralph: #{goal_name} timeout"
+      message = "Time budget expired after #{@iteration} iterations (#{elapsed})"
+    when :interrupted
+      title = "Ralph: #{goal_name} interrupted"
+      message = "Stopped at iteration #{@iteration} (#{elapsed})"
+    else
+      title = "Ralph: #{goal_name} exited"
+      message = "Exited after #{@iteration} iterations (#{elapsed})"
+    end
+
+    notify_script = File.join(SCRIPT_DIR, '..', '..', 'scripts', 'notify')
+    payload = { title: title, message: message }.to_json
+
+    IO.popen(notify_script, 'r+') do |io|
+      io.write(payload)
+      io.close_write
+      io.read  # consume output
+    end
+  rescue StandardError => e
+    # Notification failure is non-fatal
+    $stderr.puts "\e[33mNotification failed: #{e.message}\e[0m"
   end
 
   # ─────────────────────────────────────────────────────────────
@@ -812,14 +885,15 @@ options = {
   model: 'sonnet',
   reasoning: 'low',
   no_spinner: true,
+  no_art: false,
   continue: false
 }
 
 OptionParser.new do |opts|
   opts.banner = <<~BANNER
-    Ralph2 - Braindead agentic loop. Just keep trying until it works.
+    Ralph - Braindead agentic loop. Just keep trying until it works.
 
-    Usage: ralph2 --goal=FILE [--duration=4h] [options]
+    Usage: ralph --goal=FILE [--duration=4h] [options]
   BANNER
 
   opts.on('--goal=FILE', 'Goal markdown file (required)') do |f|
@@ -846,30 +920,41 @@ OptionParser.new do |opts|
     options[:continue] = true
   end
 
+  opts.on('--no-art', 'Suppress ASCII art in header') do
+    options[:no_art] = true
+  end
+
   opts.on('-h', '--help', 'Show this help') do
     puts opts
+    exit
+  end
+
+  opts.on('-v', '--version', 'Show version') do
+    puts "ralph #{Ralph::VERSION}"
     exit
   end
 end.parse!
 
 if options[:goal].nil?
   $stderr.puts 'Error: --goal=FILE is required'
-  $stderr.puts 'Usage: ralph2 --goal=FILE [--duration=4h] [options]'
+  $stderr.puts 'Usage: ralph --goal=FILE [--duration=4h] [options]'
   exit 1
 end
 
-ralph = Ralph2.new(
+ralph = Ralph.new(
   goal_file: options[:goal],
   duration: options[:duration],
   model: options[:model],
   reasoning: options[:reasoning],
   no_spinner: options[:no_spinner],
+  no_art: options[:no_art],
   continue_run: options[:continue]
 )
 
 begin
   ralph.run
 rescue Interrupt
+  ralph.interrupt!
   puts "\n\nInterrupted"
   exit 130
 end

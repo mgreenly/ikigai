@@ -37,8 +37,9 @@ HISTORY_FILE = SCRIPT_DIR / "history.md"
 REPORTS_DIR = PROJECT_ROOT / "reports" / "check"
 DEFAULT_TIMEOUT = 600
 
-# Global flag to disable spinner (set by --no-spinner)
-SPINNER_ENABLED = True
+# Global flags - defaults: silent mode (JSON only), no spinner
+SPINNER_ENABLED = False
+SILENT_MODE = True
 
 
 class Spinner:
@@ -81,6 +82,8 @@ class Spinner:
 
 def log(msg: str) -> None:
     """Print timestamped log message."""
+    if SILENT_MODE:
+        return
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{timestamp} | {'check':10} | {msg}", flush=True)
 
@@ -477,17 +480,19 @@ def main() -> int:
     start_time = time.time()
 
     parser = argparse.ArgumentParser(description="Automated test fix loop")
-    parser.add_argument("--fix", action="store_true",
-                        help="Run the fix loop to automatically fix failures")
-    parser.add_argument("--no-spinner", action="store_true",
-                        help="Disable progress spinner (for non-interactive use)")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
     args = parser.parse_args()
 
-    global SPINNER_ENABLED
-    if args.no_spinner:
-        SPINNER_ENABLED = False
+    global SPINNER_ENABLED, SILENT_MODE
+    if args.verbose:
+        SPINNER_ENABLED = True
+        SILENT_MODE = False
+
+    # Fix functionality is disabled (hardcoded to False)
+    args.fix = False
 
     opts = []
     if args.fix:
