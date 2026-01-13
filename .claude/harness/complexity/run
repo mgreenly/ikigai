@@ -407,6 +407,14 @@ def main() -> int:
 
     os.chdir(PROJECT_ROOT)
 
+    # Check file existence early if --file is specified
+    if args.file:
+        import json
+        target_file = args.file
+        if not Path(target_file).exists():
+            print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
+
     # Run complexity check
     success, output = run_make_complexity()
 
@@ -437,10 +445,6 @@ def main() -> int:
         if args.file:
             import json
             target_file = args.file
-            # Check if target file exists
-            if not Path(target_file).exists():
-                print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-                return 1
             # Filter failures to target file
             failures = [f for f in failures if f["file"] == target_file]
             if not failures:

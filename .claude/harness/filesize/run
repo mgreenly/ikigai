@@ -355,6 +355,13 @@ def main() -> int:
 
     os.chdir(PROJECT_ROOT)
 
+    # Check file existence early if --file is specified
+    if args.file:
+        target_file = args.file
+        if not Path(target_file).exists():
+            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
+
     # Run file size check (suppress logging if not in fix mode)
     if args.fix:
         opts = []
@@ -397,10 +404,6 @@ def main() -> int:
         # Filter to target file if --file is specified
         if args.file:
             target_file = args.file
-            # Check if target file exists
-            if not Path(target_file).exists():
-                print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-                return 1
             # Filter failures to target file
             failures = [f for f in failures if f["file"] == target_file]
             if not failures:

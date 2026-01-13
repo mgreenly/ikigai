@@ -568,6 +568,14 @@ def main() -> int:
         SILENT_MODE = False
     args.fix = False
 
+    # Check file existence early if --file is specified
+    if args.file:
+        import json as json_module
+        target_file = args.file
+        if not Path(target_file).exists():
+            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
+
     opts = []
     if args.fix:
         opts.append("fix")
@@ -618,10 +626,6 @@ def main() -> int:
         # Filter gaps to target file if --file is specified
         if args.file:
             target_file = args.file
-            # Check if target file exists
-            if not Path(target_file).exists():
-                print(json_mod.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-                return 1
             # Filter gaps to target file (match full path or just filename)
             gaps = [g for g in gaps if target_file in g["file"] or Path(g["file"]).name == Path(target_file).name]
         items = []

@@ -425,6 +425,13 @@ def main() -> int:
 
     os.chdir(PROJECT_ROOT)
 
+    # Check file existence early if --file is specified
+    if args.file:
+        target_file = args.file
+        if not Path(target_file).exists():
+            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
+
     # Run build (quiet mode when not fixing, for clean JSON output)
     success, output = run_make(quiet=not args.fix)
 
@@ -454,10 +461,6 @@ def main() -> int:
         # Filter errors to target file if --file is specified
         if args.file:
             target_file = args.file
-            # Check if target file exists
-            if not Path(target_file).exists():
-                print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-                return 1
             # Filter errors to target file
             errors = [e for e in errors if e["file"] == target_file]
         items = [format_error_item(error) for error in errors]
