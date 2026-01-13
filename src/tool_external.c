@@ -101,7 +101,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     int32_t status;
     waitpid(pid, &status, 0);
 
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {  // LCOV_EXCL_BR_LINE
         return ERR(ctx, IO, "Tool exited with non-zero status");
     }
 

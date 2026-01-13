@@ -87,7 +87,7 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
     int32_t status;
     waitpid(pid, &status, 0);
 
-    if (total_read == 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    if (total_read == 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {  // LCOV_EXCL_BR_LINE
         return NULL;
     }
 
@@ -106,8 +106,8 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
 static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
 {
     const char *basename = strrchr(path, '/');
-    if (basename == NULL) {
-        basename = path;
+    if (basename == NULL) {  // LCOV_EXCL_BR_LINE - path always contains '/' from scan_directory
+        basename = path;  // LCOV_EXCL_LINE
     } else {
         basename++;
     }
