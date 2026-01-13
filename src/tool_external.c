@@ -41,7 +41,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
         return ERR(ctx, IO, "Failed to fork process");
     }
 
-    if (pid == 0) {
+    if (pid == 0) {  // LCOV_EXCL_START
         // Child process
         close(stdin_pipe[1]);
         close(stdout_pipe[0]);
@@ -61,7 +61,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
 
         execl(tool_path, tool_path, NULL);
         _exit(1);
-    }
+    }  // LCOV_EXCL_STOP
 
     // Parent process
     close(stdin_pipe[0]);

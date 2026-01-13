@@ -4,16 +4,19 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/select.h>
-#include "repl.h"
-#include "shared.h"
-#include "tool.h"
-#include "scrollback.h"
+#include <sys/stat.h>
+#include <unistd.h>
 #include "config.h"
-#include "debug_pipe.h"
 #include "db/connection.h"
 #include "db/message.h"
+#include "debug_pipe.h"
+#include "json_allocator.h"
+#include "repl.h"
+#include "scrollback.h"
+#include "shared.h"
+#include "tool.h"
+#include "tool_registry.h"
 #include "wrapper.h"
 
 /* Test fixtures */
@@ -319,6 +322,164 @@ START_TEST(test_execute_pending_tool_no_session_id) {
 
 END_TEST
 
+START_TEST(test_execute_pending_tool_registry_null) {
+    /* Test when tool_registry is NULL */
+    repl->shared->tool_registry = NULL;
+
+    /* Create a pending tool call for a non-existent tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "external_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_not_found_in_registry) {
+    /* Create a tool registry */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+
+    /* Create a pending tool call for a non-existent tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "nonexistent_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_external_success) {
+    /* Create a temporary tool script that succeeds */
+    char script_path[] = "/tmp/test_tool_success_XXXXXX";
+    int32_t fd = mkstemp(script_path);
+    ck_assert_int_ge(fd, 0);
+
+    char script[] =
+        "#!/bin/sh\n"
+        "printf '{\"result\":\"success\"}'\n";
+    ssize_t written = write(fd, script, strlen(script));
+    ck_assert_int_eq(written, (ssize_t)strlen(script));
+    close(fd);
+    chmod(script_path, 0755);
+
+    /* Create a tool registry and add the tool */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+    ck_assert_ptr_nonnull(repl->shared->tool_registry);
+
+    char schema_str[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(repl);
+    yyjson_doc *schema_doc = yyjson_read_opts(schema_str, strlen(schema_str), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema_doc);
+
+    res_t add_res = ik_tool_registry_add(repl->shared->tool_registry, "test_tool", script_path, schema_doc);
+    ck_assert(is_ok(&add_res));
+
+    /* Create a pending tool call for the external tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "test_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain success */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+
+    /* Clean up */
+    unlink(script_path);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_external_failure) {
+    /* Create a temporary tool script that fails */
+    char script_path[] = "/tmp/test_tool_fail_XXXXXX";
+    int32_t fd = mkstemp(script_path);
+    ck_assert_int_ge(fd, 0);
+
+    char script[] =
+        "#!/bin/sh\n"
+        "exit 1\n";
+    ssize_t written = write(fd, script, strlen(script));
+    ck_assert_int_eq(written, (ssize_t)strlen(script));
+    close(fd);
+    chmod(script_path, 0755);
+
+    /* Create a tool registry and add the tool */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+    ck_assert_ptr_nonnull(repl->shared->tool_registry);
+
+    char schema_str[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(repl);
+    yyjson_doc *schema_doc = yyjson_read_opts(schema_str, strlen(schema_str), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema_doc);
+
+    res_t add_res = ik_tool_registry_add(repl->shared->tool_registry, "test_tool", script_path, schema_doc);
+    ck_assert(is_ok(&add_res));
+
+    /* Create a pending tool call for the external tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "test_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+
+    /* Clean up */
+    unlink(script_path);
+}
+
+END_TEST
+
 /*
  * Test suite
  */
@@ -345,6 +506,10 @@ static Suite *repl_tool_suite(void)
     tcase_add_test(tc_core, test_execute_pending_tool_db_persistence);
     tcase_add_test(tc_core, test_execute_pending_tool_no_db_ctx);
     tcase_add_test(tc_core, test_execute_pending_tool_no_session_id);
+    tcase_add_test(tc_core, test_execute_pending_tool_registry_null);
+    tcase_add_test(tc_core, test_execute_pending_tool_not_found_in_registry);
+    tcase_add_test(tc_core, test_execute_pending_tool_external_success);
+    tcase_add_test(tc_core, test_execute_pending_tool_external_failure);
 
     suite_add_tcase(s, tc_core);
 
