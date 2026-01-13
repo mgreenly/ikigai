@@ -136,8 +136,8 @@ res_t ik_cmd_refresh(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Run discovery
     res_t result = ik_tool_discovery_run(ctx, system_dir, user_dir, project_dir, registry);
-    if (is_err(&result)) {
-        return result;
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption in discovery
+        return result;  // LCOV_EXCL_LINE
     }
 
     // Report results

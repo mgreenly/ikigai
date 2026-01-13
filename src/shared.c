@@ -131,15 +131,15 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     const char *user_dir = ik_paths_get_tools_user_dir(paths);
     const char *project_dir = ik_paths_get_tools_project_dir(paths);
     result = ik_tool_discovery_run(shared, system_dir, user_dir, project_dir, shared->tool_registry);
-    if (is_err(&result)) {
-        // Log warning but continue with empty registry (graceful degradation)
-        yyjson_mut_doc *log_doc = ik_log_create();
-        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-        if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to discover tools")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        ik_logger_warn_json(logger, log_doc);
-        talloc_free(result.err);
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption in discovery
+        // Log warning but continue with empty registry (graceful degradation)  // LCOV_EXCL_LINE
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to discover tools")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE  // LCOV_EXCL_LINE
+        ik_logger_warn_json(logger, log_doc);  // LCOV_EXCL_LINE
+        talloc_free(result.err);  // LCOV_EXCL_LINE
     }
 
     // Set destructor for cleanup

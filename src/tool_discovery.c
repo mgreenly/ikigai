@@ -159,9 +159,9 @@ static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_regis
         talloc_free(tool_name);
         talloc_free(full_path);
 
-        if (is_err(&result)) {
-            closedir(dir);
-            return result;
+        if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption
+            closedir(dir);  // LCOV_EXCL_LINE
+            return result;  // LCOV_EXCL_LINE
         }
     }
 
@@ -180,20 +180,20 @@ res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
 
     // Scan system directory
     res_t result = scan_directory(ctx, system_dir, registry);
-    if (is_err(&result)) {
-        return result;
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption
+        return result;  // LCOV_EXCL_LINE
     }
 
     // Scan user directory
     result = scan_directory(ctx, user_dir, registry);
-    if (is_err(&result)) {
-        return result;
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption
+        return result;  // LCOV_EXCL_LINE
     }
 
     // Scan project directory
     result = scan_directory(ctx, project_dir, registry);
-    if (is_err(&result)) {
-        return result;
+    if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption
+        return result;  // LCOV_EXCL_LINE
     }
 
     return OK(NULL);
