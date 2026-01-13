@@ -33,6 +33,46 @@ typedef struct {
     ik_tool_registry_t *registry; // Tool registry for lookup
 } tool_thread_args_t;
 
+// Core tool execution logic - looks up tool in registry and executes it.
+// Returns JSON result string (success or failure envelope).
+// Used by both synchronous and asynchronous execution paths.
+static char *execute_tool_from_registry(TALLOC_CTX *ctx,
+                                        ik_tool_registry_t *registry,
+                                        const char *tool_name,
+                                        const char *arguments)
+{
+    char *result_json = NULL;
+
+    // Check if registry is available
+    if (registry == NULL) {
+        result_json = ik_tool_wrap_failure(ctx, "Tool registry not initialized", "registry_unavailable");
+        if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        // Look up tool in registry
+        ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, tool_name);
+        if (entry == NULL) {
+            result_json = ik_tool_wrap_failure(ctx, "Tool not found in registry", "tool_not_found");
+            if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            // Execute external tool
+            char *raw_result = NULL;
+            res_t res = ik_tool_external_exec(ctx, entry->path, arguments, &raw_result);
+
+            if (is_err(&res)) {
+                // Tool execution failed (timeout, crash, etc.)
+                result_json = ik_tool_wrap_failure(ctx, res.err->msg, "execution_failed");
+                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            } else {
+                // Tool executed successfully - wrap the result
+                result_json = ik_tool_wrap_success(ctx, raw_result);
+                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        }
+    }
+
+    return result_json;
+}
+
 // Worker thread function - runs tool dispatch in background.
 //
 // Thread safety model:
@@ -43,34 +83,10 @@ typedef struct {
 static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
-    char *result_json = NULL;
 
-    // Check if registry is available
-    if (args->registry == NULL) {
-        result_json = ik_tool_wrap_failure(args->ctx, "Tool registry not initialized", "registry_unavailable");
-        if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    } else {
-        // Look up tool in registry
-        ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(args->registry, args->tool_name);
-        if (entry == NULL) {
-            result_json = ik_tool_wrap_failure(args->ctx, "Tool not found in registry", "tool_not_found");
-            if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        } else {
-            // Execute external tool
-            char *raw_result = NULL;
-            res_t res = ik_tool_external_exec(args->ctx, entry->path, args->arguments, &raw_result);
-
-            if (is_err(&res)) {
-                // Tool execution failed (timeout, crash, etc.)
-                result_json = ik_tool_wrap_failure(args->ctx, res.err->msg, "execution_failed");
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            } else {
-                // Tool executed successfully - wrap the result
-                result_json = ik_tool_wrap_success(args->ctx, raw_result);
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
+    // Execute tool using common logic
+    char *result_json = execute_tool_from_registry(args->ctx, args->registry,
+                                                    args->tool_name, args->arguments);
 
     // Store result directly in agent context.
     // Safe without mutex: main thread won't read until complete=true,
@@ -113,28 +129,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
 
-    // 2. Execute tool via registry lookup
-    char *result_json = NULL;
-    if (repl->shared->tool_registry == NULL) {
-        result_json = ik_tool_wrap_failure(repl, "Tool registry not initialized", "registry_unavailable");
-        if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    } else {
-        ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(repl->shared->tool_registry, tc->name);
-        if (entry == NULL) {
-            result_json = ik_tool_wrap_failure(repl, "Tool not found in registry", "tool_not_found");
-            if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        } else {
-            char *raw_result = NULL;
-            res_t res = ik_tool_external_exec(repl, entry->path, tc->arguments, &raw_result);
-            if (is_err(&res)) {
-                result_json = ik_tool_wrap_failure(repl, res.err->msg, "execution_failed");
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            } else {
-                result_json = ik_tool_wrap_success(repl, raw_result);
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
+    // 2. Execute tool via registry lookup (using common logic)
+    char *result_json = execute_tool_from_registry(repl, repl->shared->tool_registry,
+                                                    tc->name, tc->arguments);
 
     // 3. Add tool result message to conversation
     ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);

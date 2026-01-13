@@ -179,6 +179,20 @@ START_TEST(test_tool_not_found) {
 
 END_TEST
 
+// Test: /tool with empty string args lists all tools
+START_TEST(test_tool_empty_string) {
+    yyjson_doc *schema = create_test_schema("bash");
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema);
+
+    res_t res = ik_cmd_tool(ctx, repl, "");
+    ck_assert(is_ok(&res));
+
+    const char *text = get_scrollback_text(repl->current->scrollback);
+    ck_assert_ptr_nonnull(strstr(text, "Available tools:"));
+}
+
+END_TEST
+
 // Test: /refresh clears and reloads registry
 START_TEST(test_refresh_clears_registry) {
     yyjson_doc *schema = create_test_schema("bash");
@@ -219,6 +233,7 @@ static Suite *commands_tool_suite(void)
     tcase_add_test(tc, test_tool_show_schema);
     tcase_add_test(tc, test_tool_show_schema_whitespace);
     tcase_add_test(tc, test_tool_not_found);
+    tcase_add_test(tc, test_tool_empty_string);
     tcase_add_test(tc, test_refresh_clears_registry);
     tcase_add_test(tc, test_refresh_with_args);
 

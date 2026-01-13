@@ -29,13 +29,13 @@ res_t ik_cmd_tool(void *ctx, ik_repl_ctx_t *repl, const char *args)
         PANIC("Tool registry not initialized");  // LCOV_EXCL_LINE
     }
 
-    // If args provided, show schema for specific tool
-    if (args != NULL && args[0] != '\0') {
+    // Normalize args: NULL, empty, or whitespace-only → NULL (list all)
+    if (args != NULL) {
         // Skip leading whitespace
         while (*args == ' ' || *args == '\t') args++;
 
         if (*args == '\0') {
-            // Only whitespace, treat as list all
+            // Empty or whitespace-only, treat as list all
             args = NULL;
         }
     }
