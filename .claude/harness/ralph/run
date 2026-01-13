@@ -10,6 +10,8 @@
 #   - Total elapsed time
 # Display in display_summary().
 
+# TODO: Add '--no-quotes' flag to disable Ralph quotes in maybe_ralph_says().
+
 require 'json'
 require 'optparse'
 require 'shellwords'

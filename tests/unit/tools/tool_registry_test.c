@@ -1,5 +1,6 @@
-#include "../test_constants.h"
-#include "../../src/tool_registry.h"
+#include "../../test_constants.h"
+#include "../../../src/json_allocator.h"
+#include "../../../src/tool_registry.h"
 
 #include <check.h>
 #include <stdlib.h>
@@ -23,7 +24,8 @@ static void teardown(void)
 static yyjson_doc *create_test_schema(const char *tool_name)
 {
     char *json = talloc_asprintf(test_ctx, "{\"name\":\"%s\",\"description\":\"Test tool\"}", tool_name);
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_alc allocator = ik_make_talloc_allocator(test_ctx);
+    yyjson_doc *doc = yyjson_read_opts(json, strlen(json), 0, &allocator, NULL);
     if (doc == NULL) {
         ck_abort_msg("Failed to parse test schema");
     }
