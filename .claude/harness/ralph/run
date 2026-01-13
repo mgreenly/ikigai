@@ -713,7 +713,7 @@ class Ralph
 
   def display_summarizing
     puts
-    puts "\e[33m  Summarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
+    puts "\e[33mSummarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
   end
 
   def display_summary
