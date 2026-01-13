@@ -51,6 +51,11 @@ Use these instead of raw make commands. They return terse JSON summaries - no ou
 
 **Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) on the Bash tool. Do NOT background or tail logs - just wait.
 
+**Single-file mode:** Use `--file=PATH` to get results for one file only. Same 60 minute timeout applies.
+```bash
+.claude/harness/unit/run --file=src/config.c
+```
+
 **Output format:** All scripts return the same JSON structure:
 ```json
 {"ok": true}
