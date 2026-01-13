@@ -106,6 +106,7 @@ class Ralph
     sleep 2
     display_continue_status
     handle_dirty_state
+    summarize_if_needed if @continue_run
 
     @exit_reason = nil
     loop do
@@ -206,6 +207,8 @@ class Ralph
     puts
     puts "#{progress}"
     puts
+
+    summarize_if_needed
   end
 
   # ─────────────────────────────────────────────────────────────
