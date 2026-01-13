@@ -343,6 +343,8 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, default=None,
+                        help="Check a specific file")
     args = parser.parse_args()
 
     global SPINNER_ENABLED, SILENT_MODE
@@ -392,6 +394,19 @@ def main() -> int:
 
     # Default mode: print JSON and exit
     if not args.fix:
+        # Filter to target file if --file is specified
+        if args.file:
+            target_file = args.file
+            # Check if target file exists
+            if not Path(target_file).exists():
+                print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+                return 1
+            # Filter failures to target file
+            failures = [f for f in failures if f["file"] == target_file]
+            if not failures:
+                # File exists and is not oversized
+                print(json_module.dumps({"ok": True}))
+                return 0
         items = []
         for failure in failures:
             items.append(f"{failure['file']} {failure['bytes']} bytes (limit {failure['limit']})")
