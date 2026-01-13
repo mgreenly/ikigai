@@ -85,9 +85,10 @@ res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **provider_out)
 }
 
 // Mock ik_request_build_from_conversation
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_request_t **req_out)
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_tool_registry_t *registry, ik_request_t **req_out)
 {
     (void)agent;
+    (void)registry;
 
     // Create minimal request
     ik_request_t *req = talloc_zero_(ctx, sizeof(ik_request_t));

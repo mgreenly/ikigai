@@ -7,6 +7,7 @@
 #include "repl.h"
 #include "repl_callbacks.h"
 #include "repl_event_handlers.h"
+#include "shared.h"
 #include "wrapper.h"
 #include "wrapper_internal.h"
 
@@ -52,7 +53,7 @@ void ik_repl_submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *
 
     // Build normalized request from conversation
     ik_request_t *req = NULL;
-    result = ik_request_build_from_conversation_(agent, agent, (void **)&req);
+    result = ik_request_build_from_conversation_(agent, agent, agent->shared->tool_registry, (void **)&req);
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE
         const char *err_msg = error_message(result.err);  // LCOV_EXCL_LINE
         ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));  // LCOV_EXCL_LINE

@@ -56,7 +56,7 @@ START_TEST(test_copy_thinking_message) {
     agent->messages[0]->content_blocks[0].data.thinking.signature = NULL;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -90,7 +90,7 @@ START_TEST(test_copy_thinking_with_signature) {
         talloc_strdup(agent->messages[0], "EqQBCgIYAhIM...");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -124,7 +124,7 @@ START_TEST(test_copy_thinking_null_signature) {
     agent->messages[0]->content_blocks[0].data.thinking.signature = NULL;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -157,7 +157,7 @@ START_TEST(test_copy_redacted_thinking) {
         talloc_strdup(agent->messages[0], "EmwKAhgBEgy...");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);

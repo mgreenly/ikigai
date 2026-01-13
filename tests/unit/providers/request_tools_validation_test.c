@@ -39,7 +39,7 @@ START_TEST(test_null_model_error) {
     agent->thinking_level = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
@@ -56,7 +56,7 @@ START_TEST(test_empty_model_error) {
     agent->thinking_level = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(is_err(&result));
     ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
@@ -75,7 +75,7 @@ START_TEST(test_valid_model_success) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     // Line 245: is_err(&res) is false - request created successfully
     ck_assert(!is_err(&result));
@@ -98,7 +98,7 @@ START_TEST(test_with_system_message) {
     agent->shared->cfg->openai_system_message = talloc_strdup(agent->shared->cfg, "Be helpful");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(req->system_prompt);
@@ -118,7 +118,7 @@ START_TEST(test_null_shared_context) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_null(req->system_prompt);
@@ -138,7 +138,7 @@ START_TEST(test_null_config) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_null(req->system_prompt);
@@ -159,7 +159,7 @@ START_TEST(test_without_system_message) {
     agent->shared->cfg->openai_system_message = NULL;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_null(req->system_prompt);
@@ -178,7 +178,7 @@ START_TEST(test_different_thinking_levels) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->thinking.level, 2);
@@ -207,7 +207,7 @@ START_TEST(test_skip_null_message) {
     agent->messages[1] = NULL;  // Should be skipped
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);  // Only 1 message copied

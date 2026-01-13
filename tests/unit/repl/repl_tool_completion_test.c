@@ -96,9 +96,10 @@ res_t ik_agent_get_provider_(void *agent, void **provider_out)
 }
 
 /* Mock request_build_from_conversation - needed if get_provider succeeds */
-res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
 {
     (void)agent;
+    (void)registry;
 
     if (mock_request_should_fail) {
         /* Return error with ctx to satisfy error context requirements */

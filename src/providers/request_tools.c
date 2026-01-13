@@ -8,6 +8,7 @@
 #include "agent.h"
 #include "error.h"
 #include "shared.h"
+#include "tool_registry.h"
 #include "vendor/yyjson/yyjson.h"
 
 #include <assert.h>
@@ -105,7 +106,7 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
  * Request Building from Agent Conversation
  * ================================================================ */
 
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_request_t **out) {
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_tool_registry_t *registry, ik_request_t **out) {
     assert(agent_ptr != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);       // LCOV_EXCL_BR_LINE
 
@@ -142,10 +143,39 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_re
         }
     }
 
-    // TODO(rel-08): Replace with external tool registry lookup
-    // Internal tools removed - no tools available until external tool system is implemented
-    // Provider serializers will send empty tools array since req->tool_count == 0
-    (void)0; // No-op placeholder
+    // Add tools from registry
+    if (registry != NULL && registry->count > 0) {
+        for (size_t i = 0; i < registry->count; i++) {
+            ik_tool_registry_entry_t *entry = &registry->entries[i];
+
+            // Extract description from schema
+            const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));
+            if (description == NULL) description = "";
+
+            // Extract parameters schema
+            yyjson_val *parameters = yyjson_obj_get(entry->schema_root, "parameters");
+
+            // Serialize parameters to JSON string for ik_request_add_tool
+            char *params_json = NULL;
+            if (parameters != NULL) {
+                params_json = yyjson_val_write(parameters, YYJSON_WRITE_NOFLAG, NULL);
+                if (params_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            }
+
+            // Add tool to request
+            res = ik_request_add_tool(req, entry->name, description,
+                                     params_json ? params_json : "{}", false);
+
+            if (params_json != NULL) {
+                free(params_json);  // yyjson allocates with malloc, not talloc
+            }
+
+            if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+                talloc_free(req);  // LCOV_EXCL_LINE
+                return res;        // LCOV_EXCL_LINE
+            }
+        }
+    }
 
     *out = req;
     return OK(req);

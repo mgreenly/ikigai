@@ -42,7 +42,7 @@ START_TEST(test_build_tool_parameters_json_via_conversation) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(req);

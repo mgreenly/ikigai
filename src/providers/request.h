@@ -3,6 +3,7 @@
 
 #include "error.h"
 #include "providers/provider.h"
+#include "tool_registry.h"
 #include "vendor/yyjson/yyjson.h"
 #include <talloc.h>
 
@@ -154,17 +155,18 @@ res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *descr
  * 1. Create request with agent->model
  * 2. Set system prompt from agent->system_prompt (if non-NULL)
  * 3. Iterate agent->messages and map to request messages
- * 4. Add tool definitions from agent->tools array (if any)
+ * 4. Add tool definitions from registry (if non-NULL)
  * 5. Set thinking level from agent->thinking_level
  *
  * Note: This function expects agent context but since we don't have
  * the full agent.h included, we accept void* and cast internally.
  *
- * @param ctx   Talloc parent context
- * @param agent Agent context (ik_agent_ctx_t*)
- * @param out   Receives allocated request
- * @return      OK with populated request, ERR on allocation failure
+ * @param ctx      Talloc parent context
+ * @param agent    Agent context (ik_agent_ctx_t*)
+ * @param registry Tool registry (ik_tool_registry_t*), can be NULL
+ * @param out      Receives allocated request
+ * @return         OK with populated request, ERR on allocation failure
  */
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_request_t **out);
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_tool_registry_t *registry, ik_request_t **out);
 
 #endif /* IK_PROVIDERS_REQUEST_H */
