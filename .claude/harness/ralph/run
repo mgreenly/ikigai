@@ -1,6 +1,15 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# TODO: Track running totals across all iterations and report at completion:
+#   - Total iteration count
+#   - Total assistant messages count
+#   - Total tool uses count
+#   - Total tokens (input, output, cache_read, cache_create)
+#   - Total dollars spent (calculate from token counts and model pricing)
+#   - Total elapsed time
+# Display in display_summary().
+
 require 'json'
 require 'optparse'
 require 'shellwords'
