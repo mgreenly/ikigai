@@ -32,8 +32,8 @@ SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 class Ralph
   VERSION = '0.2.0'
 
-  SUMMARY_INTERVAL = 5
   MAX_RECENT = 10
+  SUMMARY_INTERVAL = MAX_RECENT / 2
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
@@ -305,8 +305,8 @@ class Ralph
     summary_content = load_summary
     summary_end = calculate_summary_end
     total = count_progress_entries
-    new_summary_end = total - SUMMARY_INTERVAL
-    recent = build_recent_iterations_for_summary
+    new_summary_end = calculate_fixed_coverage(total)
+    recent = build_recent_iterations_for_summary(new_summary_end)
 
     render_template(@summarizer_template, {
       summary_end: summary_end,
@@ -344,14 +344,19 @@ class Ralph
     total - summary_end
   end
 
+  def calculate_fixed_coverage(total)
+    # Round down to nearest multiple of SUMMARY_INTERVAL
+    ((total - SUMMARY_INTERVAL) / SUMMARY_INTERVAL) * SUMMARY_INTERVAL
+  end
+
   def build_recent_iterations
     return '' unless File.exist?(@progress_file)
 
     entries = load_progress_entries
     summary_end = calculate_summary_end
 
-    # Get entries after summary
-    recent_entries = entries.drop(summary_end).take(MAX_RECENT)
+    # Get entries after summary (at most MAX_RECENT - 1; the 10th triggers summary)
+    recent_entries = entries.drop(summary_end).take(MAX_RECENT - 1)
 
     recent_entries.each_with_index.map do |entry, idx|
       iteration_num = summary_end + idx + 1
@@ -359,16 +364,12 @@ class Ralph
     end.join("\n\n")
   end
 
-  def build_recent_iterations_for_summary
+  def build_recent_iterations_for_summary(new_summary_end)
     return '' unless File.exist?(@progress_file)
 
     entries = load_progress_entries
-    total = entries.length
     summary_end = calculate_summary_end
 
-    # Only summarize up to (total - SUMMARY_INTERVAL)
-    # This leaves the most recent SUMMARY_INTERVAL entries raw
-    new_summary_end = total - SUMMARY_INTERVAL
     return '' if new_summary_end <= summary_end
 
     entries_to_summarize = entries[summary_end...new_summary_end]
@@ -612,9 +613,9 @@ class Ralph
   def save_summary(summary)
     File.write(@summary_file, summary)
 
-    # Update metadata with new coverage
+    # Update metadata with new coverage (fixed intervals)
     total = count_progress_entries
-    new_coverage = total - SUMMARY_INTERVAL
+    new_coverage = calculate_fixed_coverage(total)
     File.write(@summary_meta_file, JSON.generate({ 'covers_up_to' => new_coverage }))
   end
 
