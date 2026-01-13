@@ -277,9 +277,9 @@ class Ralph
     new_summary = parse_summary(result)
     if new_summary
       save_summary(new_summary)
-      log 'Summary updated'
+      puts 'Summary updated'
     else
-      log 'Summary generation failed'
+      puts 'Summary generation failed'
     end
   end
 
