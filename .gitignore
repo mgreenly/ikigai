@@ -35,6 +35,11 @@ coverage_html/
 .claude/harness/*/*-progress.jsonl
 .claude/harness/*/*-summary.md
 
+# Ralph loop state files (any directory)
+**/*-ralph-goal.md
+**/*-ralph-progress.jsonl
+**/*-ralph-summary.md
+
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
 
