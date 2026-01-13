@@ -10,6 +10,8 @@
 #include "paths.h"
 #include "render.h"
 #include "terminal.h"
+#include "tool_discovery.h"
+#include "tool_registry.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -119,6 +121,26 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
 
     shared->db_debug_pipe = ik_debug_manager_add_pipe(shared->debug_mgr, "[db]").ok;
     if (shared->db_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Initialize tool registry (rel-08)
+    shared->tool_registry = ik_tool_registry_create(shared);
+    if (shared->tool_registry == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Run initial tool discovery
+    const char *system_dir = ik_paths_get_tools_system_dir(paths);
+    const char *user_dir = ik_paths_get_tools_user_dir(paths);
+    const char *project_dir = ik_paths_get_tools_project_dir(paths);
+    result = ik_tool_discovery_run(shared, system_dir, user_dir, project_dir, shared->tool_registry);
+    if (is_err(&result)) {
+        // Log warning but continue with empty registry (graceful degradation)
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+        if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "message", "Failed to discover tools")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, root, "error", result.err->msg)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        ik_logger_warn_json(logger, log_doc);
+        talloc_free(result.err);
+    }
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

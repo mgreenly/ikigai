@@ -8,6 +8,7 @@
 #include "commands_basic.h"
 #include "commands_mark.h"
 #include "commands_model.h"
+#include "commands_tool.h"
 #include "db/message.h"
 #include "logger.h"
 #include "panic.h"
@@ -62,6 +63,8 @@ static const ik_command_t commands[] = {
     {"model", "Switch LLM model (usage: /model <name>)", ik_cmd_model},
     {"system", "Set system message (usage: /system <text>)", ik_cmd_system},
     {"debug", "Toggle debug output (usage: /debug [on|off])", ik_cmd_debug},
+    {"tool", "List tools or show schema (usage: /tool [name])", ik_cmd_tool},
+    {"refresh", "Reload tool registry", ik_cmd_refresh},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

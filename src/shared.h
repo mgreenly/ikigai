@@ -9,6 +9,7 @@
 #include "paths.h"
 #include "render.h"
 #include "terminal.h"
+#include "tool_registry.h"
 
 #include <inttypes.h>
 #include <stdatomic.h>
@@ -45,6 +46,7 @@ typedef struct ik_shared_ctx {
     ik_debug_pipe_t *db_debug_pipe;      // Database debug pipe
     bool debug_enabled;                   // Debug flag
     atomic_bool fork_pending;             // Fork operation in progress (concurrency control)
+    ik_tool_registry_t *tool_registry;   // External tool registry (rel-08)
 } ik_shared_ctx_t;
 
 // Create shared context (facade that will create infrastructure)
