@@ -319,6 +319,46 @@ START_TEST(test_skip_silent_tool) {
 
 END_TEST
 
+// Test: Skip tools with very large schema output (buffer overflow case)
+START_TEST(test_skip_large_schema) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool that outputs > 8191 bytes (exceeds call_tool_schema buffer)
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/large_tool", system_dir);
+    FILE *f = fopen(path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\n");
+    fprintf(f, "if [ \"$1\" = \"--schema\" ]; then\n");
+    // Generate 9000 bytes of output using dd
+    fprintf(f, "  dd if=/dev/zero bs=9000 count=1 2>/dev/null | tr '\\0' 'x'\n");
+    fprintf(f, "  exit 0\n");
+    fprintf(f, "fi\n");
+    fclose(f);
+    chmod(path, 0755);
+
+    // Create valid tool
+    create_test_tool_in_dir(system_dir, "good", "Good tool");
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    // Should have at least the good tool (large_tool should be skipped due to invalid JSON)
+    ck_assert(registry->count >= 1);
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good_tool"));
+}
+
+END_TEST
+
 static Suite *tool_discovery_suite(void)
 {
     Suite *s = suite_create("ToolDiscovery");
@@ -336,6 +376,7 @@ static Suite *tool_discovery_suite(void)
     tcase_add_test(tc_core, test_skip_invalid_schema);
     tcase_add_test(tc_core, test_skip_crashing_tool);
     tcase_add_test(tc_core, test_skip_silent_tool);
+    tcase_add_test(tc_core, test_skip_large_schema);
 
     suite_add_tcase(s, tc_core);
 

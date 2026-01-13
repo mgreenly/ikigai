@@ -195,6 +195,31 @@ START_TEST(test_tool_large_output) {
 
 END_TEST
 
+// Test: Very large output (buffer overflow case - 70KB output)
+START_TEST(test_tool_very_large_output) {
+    // Create a script that produces > 65535 bytes (exceeds buffer size)
+    const char *script_path = "/tmp/test_overflow_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    // Use dd to generate exactly 70000 bytes, ignoring SIGPIPE
+    fprintf(f, "#!/bin/sh\ndd if=/dev/zero bs=70000 count=1 2>/dev/null | tr '\\0' 'x'; exit 0\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    const char *input_json = "{}";
+    res_t res = ik_tool_external_exec(test_ctx, script_path, input_json, &result);
+
+    ck_assert(!is_err(&res));
+    ck_assert_ptr_nonnull(result);
+    // Output should be truncated at buffer size - 1 (65535 chars + null terminator)
+    ck_assert_uint_eq(strlen(result), 65535);
+
+    unlink(script_path);
+}
+
+END_TEST
+
 static Suite *tool_external_suite(void)
 {
     Suite *s = suite_create("ToolExternal");
@@ -211,6 +236,7 @@ static Suite *tool_external_suite(void)
     tcase_add_test(tc_core, test_tool_multiline_output);
     tcase_add_test(tc_core, test_tool_reads_stdin);
     tcase_add_test(tc_core, test_tool_large_output);
+    tcase_add_test(tc_core, test_tool_very_large_output);
 
     suite_add_tcase(s, tc_core);
 
