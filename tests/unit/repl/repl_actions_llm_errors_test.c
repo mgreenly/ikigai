@@ -140,6 +140,7 @@ static void setup(void)
     ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
     repl->current = agent;
+    agent->shared = shared;
 
     // Create scrollback
     repl->current->scrollback = ik_scrollback_create(repl, 80);

@@ -130,6 +130,7 @@ static void setup(void)
     ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
     repl->current = agent;
+    agent->shared = shared;
 
     // Create config
     shared->cfg = talloc_zero_(test_ctx, sizeof(ik_config_t));
