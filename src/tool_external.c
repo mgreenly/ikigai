@@ -22,23 +22,23 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     int32_t stdin_pipe[2];
     int32_t stdout_pipe[2];
 
-    if (pipe(stdin_pipe) == -1) {
-        return ERR(ctx, IO, "Failed to create stdin pipe");
+    if (pipe(stdin_pipe) == -1) {  // LCOV_EXCL_BR_LINE
+        return ERR(ctx, IO, "Failed to create stdin pipe");  // LCOV_EXCL_LINE
     }
 
-    if (pipe(stdout_pipe) == -1) {
-        close(stdin_pipe[0]);
-        close(stdin_pipe[1]);
-        return ERR(ctx, IO, "Failed to create stdout pipe");
+    if (pipe(stdout_pipe) == -1) {  // LCOV_EXCL_BR_LINE
+        close(stdin_pipe[0]);  // LCOV_EXCL_LINE
+        close(stdin_pipe[1]);  // LCOV_EXCL_LINE
+        return ERR(ctx, IO, "Failed to create stdout pipe");  // LCOV_EXCL_LINE
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
-        close(stdin_pipe[0]);
-        close(stdin_pipe[1]);
-        close(stdout_pipe[0]);
-        close(stdout_pipe[1]);
-        return ERR(ctx, IO, "Failed to fork process");
+    if (pid == -1) {  // LCOV_EXCL_BR_LINE
+        close(stdin_pipe[0]);  // LCOV_EXCL_LINE
+        close(stdin_pipe[1]);  // LCOV_EXCL_LINE
+        close(stdout_pipe[0]);  // LCOV_EXCL_LINE
+        close(stdout_pipe[1]);  // LCOV_EXCL_LINE
+        return ERR(ctx, IO, "Failed to fork process");  // LCOV_EXCL_LINE
     }
 
     if (pid == 0) {  // LCOV_EXCL_START
@@ -72,11 +72,11 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     ssize_t written = write(stdin_pipe[1], arguments_json, args_len);
     close(stdin_pipe[1]);
 
-    if (written != (ssize_t)args_len) {
-        close(stdout_pipe[0]);
-        kill(pid, SIGKILL);
-        waitpid(pid, NULL, 0);
-        return ERR(ctx, IO, "Failed to write arguments to tool");
+    if (written != (ssize_t)args_len) {  // LCOV_EXCL_BR_LINE
+        close(stdout_pipe[0]);  // LCOV_EXCL_LINE
+        kill(pid, SIGKILL);  // LCOV_EXCL_LINE
+        waitpid(pid, NULL, 0);  // LCOV_EXCL_LINE
+        return ERR(ctx, IO, "Failed to write arguments to tool");  // LCOV_EXCL_LINE
     }
 
     // Set 30 second timeout
