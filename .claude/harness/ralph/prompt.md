@@ -30,6 +30,8 @@ Read `.claude/library/<name>/SKILL.md` when needed:
 |-------|--------------|
 <%= advertised_skills %>
 
+**Coverage work:** Before running the coverage harness or writing tests for coverage, first read the `lcov` and `coverage` skills.
+
 # Scripts
 
 Use these instead of raw make commands. They return terse JSON summaries - no output parsing required, minimal context consumed.
@@ -83,13 +85,6 @@ Bad: "Updated some files"
 
 ## Before Acting
 Review Progress first. Don't repeat work already attempted.
-
-## Coverage Work
-**REQUIRED:** Before running `.claude/harness/coverage/run` or writing tests for coverage, you MUST first read:
-1. `.claude/library/lcov/SKILL.md`
-2. `.claude/library/coverage/SKILL.md`
-
-Do NOT run the coverage harness until you have read both skills. They contain critical information about interpreting output and writing effective tests.
 
 ## Scripts
 Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - set the Bash tool's `timeout` parameter using the duration from the table and wait.
