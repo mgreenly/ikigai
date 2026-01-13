@@ -223,6 +223,59 @@ START_TEST(test_build_all_with_tools) {
 
 END_TEST
 
+// Test: Add tool with NULL schema
+START_TEST(test_add_tool_null_schema) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    res_t result = ik_tool_registry_add(registry, "bash", "/usr/bin/bash", NULL);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(registry->count, 1);
+    ck_assert_str_eq(registry->entries[0].name, "bash");
+    ck_assert_str_eq(registry->entries[0].path, "/usr/bin/bash");
+    ck_assert_ptr_null(registry->entries[0].schema_doc);
+}
+
+END_TEST
+
+// Test: Override tool with NULL schema
+START_TEST(test_override_with_null_schema) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    yyjson_doc *schema1 = create_test_schema("bash");
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema1);
+
+    // Override with NULL schema
+    res_t result = ik_tool_registry_add(registry, "bash", "/usr/local/bin/bash", NULL);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(registry->count, 1);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "bash");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->path, "/usr/local/bin/bash");
+    ck_assert_ptr_null(entry->schema_doc);
+}
+
+END_TEST
+
+// Test: Clear registry with NULL schemas
+START_TEST(test_clear_with_null_schemas) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    yyjson_doc *schema1 = create_test_schema("bash");
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema1);
+    ik_tool_registry_add(registry, "python", "/usr/bin/python", NULL);  // NULL schema
+
+    ck_assert_uint_eq(registry->count, 2);
+
+    ik_tool_registry_clear(registry);
+
+    ck_assert_uint_eq(registry->count, 0);
+}
+
+END_TEST
+
 static Suite *tool_registry_suite(void)
 {
     Suite *s = suite_create("ToolRegistry");
@@ -241,6 +294,9 @@ static Suite *tool_registry_suite(void)
     tcase_add_test(tc_core, test_clear_registry);
     tcase_add_test(tc_core, test_build_all_empty);
     tcase_add_test(tc_core, test_build_all_with_tools);
+    tcase_add_test(tc_core, test_add_tool_null_schema);
+    tcase_add_test(tc_core, test_override_with_null_schema);
+    tcase_add_test(tc_core, test_clear_with_null_schemas);
 
     suite_add_tcase(s, tc_core);
 

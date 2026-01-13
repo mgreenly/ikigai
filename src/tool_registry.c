@@ -47,7 +47,7 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
         if (existing->path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         existing->schema_doc = schema_doc;
-        talloc_steal(registry, schema_doc);
+        talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
         existing->schema_root = yyjson_doc_get_root(schema_doc);
 
         return OK(NULL);
@@ -71,7 +71,7 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
     if (entry->path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     entry->schema_doc = schema_doc;
-    talloc_steal(registry, schema_doc);
+    talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
     entry->schema_root = yyjson_doc_get_root(schema_doc);
 
     return OK(NULL);
@@ -101,7 +101,7 @@ yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_
         yyjson_mut_val *tool_schema = yyjson_val_mut_copy(doc, entry->schema_root);
         if (tool_schema == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-        if (!yyjson_mut_arr_append(tools_array, tool_schema)) {
+        if (!yyjson_mut_arr_append(tools_array, tool_schema)) {  // LCOV_EXCL_BR_LINE
             PANIC("Failed to append tool to array");  // LCOV_EXCL_LINE
         }
     }

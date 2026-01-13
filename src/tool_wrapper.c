@@ -33,7 +33,7 @@ char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json)
     yyjson_mut_val *success = yyjson_mut_bool(doc, true);
     if (success == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, root, "tool_success", success)) {
+    if (!yyjson_mut_obj_add_val(doc, root, "tool_success", success)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add tool_success field");  // LCOV_EXCL_LINE
     }
 
@@ -42,7 +42,7 @@ char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json)
     yyjson_mut_val *result_copy = yyjson_val_mut_copy(doc, result_root);
     if (result_copy == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, root, "result", result_copy)) {
+    if (!yyjson_mut_obj_add_val(doc, root, "result", result_copy)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add result field");  // LCOV_EXCL_LINE
     }
 
@@ -74,7 +74,7 @@ char *ik_tool_wrap_failure(TALLOC_CTX *ctx, const char *error, const char *error
     yyjson_mut_val *success = yyjson_mut_bool(doc, false);
     if (success == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, root, "tool_success", success)) {
+    if (!yyjson_mut_obj_add_val(doc, root, "tool_success", success)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add tool_success field");  // LCOV_EXCL_LINE
     }
 
@@ -82,7 +82,7 @@ char *ik_tool_wrap_failure(TALLOC_CTX *ctx, const char *error, const char *error
     yyjson_mut_val *error_val = yyjson_mut_strcpy(doc, error);
     if (error_val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, root, "error", error_val)) {
+    if (!yyjson_mut_obj_add_val(doc, root, "error", error_val)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add error field");  // LCOV_EXCL_LINE
     }
 
@@ -90,7 +90,7 @@ char *ik_tool_wrap_failure(TALLOC_CTX *ctx, const char *error, const char *error
     yyjson_mut_val *error_code_val = yyjson_mut_strcpy(doc, error_code);
     if (error_code_val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val(doc, root, "error_code", error_code_val)) {
+    if (!yyjson_mut_obj_add_val(doc, root, "error_code", error_code_val)) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to add error_code field");  // LCOV_EXCL_LINE
     }
 
