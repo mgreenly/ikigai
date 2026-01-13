@@ -85,9 +85,11 @@ Bad: "Updated some files"
 Review Progress first. Don't repeat work already attempted.
 
 ## Coverage Work
-Before working on test coverage, load these skills first:
-- `.claude/library/lcov/SKILL.md` - Understanding lcov output format
-- `.claude/library/coverage/SKILL.md` - Coverage requirements and strategies
+**REQUIRED:** Before running `.claude/harness/coverage/run` or writing tests for coverage, you MUST first read:
+1. `.claude/library/lcov/SKILL.md`
+2. `.claude/library/coverage/SKILL.md`
+
+Do NOT run the coverage harness until you have read both skills. They contain critical information about interpreting output and writing effective tests.
 
 ## Scripts
 Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - set the Bash tool's `timeout` parameter using the duration from the table and wait.
