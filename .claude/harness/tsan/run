@@ -468,9 +468,10 @@ def format_item(failure: dict) -> str:
     return f"ThreadSanitizer: {error_type} at {file}:{line}"
 
 
-def run_check_only() -> int:
+def run_check_only(target_file: str | None = None) -> int:
     """
     Run check-tsan, parse results, print JSON to stdout and exit.
+    If target_file is specified, only report errors for that file.
     Returns 0 for success, 1 for failures.
     """
     import json as json_module
@@ -479,6 +480,13 @@ def run_check_only() -> int:
     SPINNER_ENABLED = False
 
     os.chdir(PROJECT_ROOT)
+
+    # Validate target_file if provided
+    if target_file:
+        target_path = Path(target_file)
+        if not target_path.exists():
+            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
 
     # Clean up test databases before running
     drop_test_databases()
@@ -510,6 +518,13 @@ def run_check_only() -> int:
         print(json_module.dumps({"ok": False, "items": ["ThreadSanitizer: check failed (could not parse errors)"]}))
         return 1
 
+    # Filter to target file if specified
+    if target_file:
+        all_failures = [f for f in all_failures if f["file"] == target_file]
+        if not all_failures:
+            print(json_module.dumps({"ok": True}))
+            return 0
+
     # Format each failure as an item
     items = [format_item(f) for f in all_failures]
     print(json_module.dumps({"ok": False, "items": items}))
@@ -524,6 +539,7 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, help="Filter results to specific file")
     args = parser.parse_args()
 
     # Hardcode fix to False (fix mode removed)
@@ -537,7 +553,7 @@ def main() -> int:
 
     # Default behavior (no --fix): run check, print JSON, exit
     if not args.fix:
-        return run_check_only()
+        return run_check_only(target_file=args.file)
 
     # --fix mode: full fix loop
 
