@@ -1,23 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# TODO: Track running totals across all iterations and report at completion:
-#   - Total iteration count
-#   - Total assistant messages count
-#   - Total tool uses count
-#   - Total tokens (input, output, cache_read, cache_create)
-#   - Total dollars spent (calculate from token counts and model pricing)
-#   - Total elapsed time
-# Display in display_summary().
-
-# TODO: Add '--no-quotes' flag to disable Ralph quotes in maybe_ralph_says().
-
-# TODO: Support multiple goal files via --goal=FILE1,FILE2,FILE3
-#   - Process each goal file sequentially
-#   - Reset progress/summary files when transitioning to next goal
-#   - Keep running totals (iterations, tokens, cost, time) across all goals
-#   - Report aggregate stats at completion
-
 require 'json'
 require 'optparse'
 require 'shellwords'
@@ -65,8 +48,17 @@ class Ralph
     "Go banana!"
   ].freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:)
-    @goal_file = goal_file
+  # Model pricing (USD per million tokens) - updated 2025-01-13
+  MODEL_PRICING = {
+    'haiku' => { input: 0.80, output: 4.00, cache_read: 0.08, cache_create: 1.00 },
+    'sonnet' => { input: 3.00, output: 15.00, cache_read: 0.30, cache_create: 3.75 },
+    'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
+  }.freeze
+
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:)
+    @goal_files = goal_file.split(',')
+    @goal_file = @goal_files.first
+    @current_goal_index = 0
     @duration_seconds = parse_duration(duration)
     @model = model
     @reasoning = reasoning
@@ -74,6 +66,7 @@ class Ralph
     @summarizer_budget = calculate_thinking_budget('haiku', 'high')
     @no_spinner = no_spinner
     @no_art = no_art
+    @no_quotes = no_quotes
     @continue_run = continue_run
 
     @start_time = Time.now
@@ -85,45 +78,80 @@ class Ralph
     @waiting_timer_displayed = false
     @last_output_time = Time.now
 
-    # Derive state file paths from goal file
-    base = @goal_file.sub(/-goal\.md$/, '').sub(/\.md$/, '')
-    @progress_file = "#{base}-progress.jsonl"
-    @summary_file = "#{base}-summary.md"
-    @summary_meta_file = "#{base}-summary-meta.json"
+    # Running totals across all goals
+    @total_iterations = 0
+    @total_assistant_messages = 0
+    @total_tool_uses = 0
+    @total_tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
+    @total_cost = 0.0
+    @total_elapsed = 0
+
+    set_goal_paths(@goal_file)
 
     # Prompt templates
     @prompt_template = File.join(SCRIPT_DIR, 'prompt.md')
     @summarizer_template = File.join(SCRIPT_DIR, 'summarizer.md')
   end
 
+  def set_goal_paths(goal_file)
+    # Derive state file paths from goal file
+    base = goal_file.sub(/-goal\.md$/, '').sub(/\.md$/, '')
+    @progress_file = "#{base}-progress.jsonl"
+    @summary_file = "#{base}-summary.md"
+    @summary_meta_file = "#{base}-summary-meta.json"
+  end
+
   def run
-    validate_files
-    initialize_state unless @continue_run
-    load_state if @continue_run
+    @goal_files.each_with_index do |goal_file, idx|
+      @goal_file = goal_file
+      @current_goal_index = idx
+      set_goal_paths(@goal_file)
 
-    display_header
-    display_goal
-    sleep 2
-    display_continue_status
-    handle_dirty_state
-    summarize_if_needed if @continue_run
+      validate_files
+      initialize_state if idx > 0 || !@continue_run
+      load_state if idx == 0 && @continue_run
 
-    @exit_reason = nil
-    loop do
-      if time_expired?
-        @exit_reason = :timeout
-        break
+      goal_start_time = Time.now
+
+      if idx == 0
+        display_header
+      else
+        puts
+        puts "\e[1m" + '═' * 70 + "\e[0m"
+        puts "\e[1m  NEXT GOAL (#{idx + 1}/#{@goal_files.length})\e[0m"
+        puts "\e[1m" + '═' * 70 + "\e[0m"
+        puts
       end
 
-      @iteration += 1
-      result = run_iteration
+      display_goal
+      sleep 2
+      display_continue_status if idx == 0
+      handle_dirty_state
+      summarize_if_needed if @continue_run && idx == 0
 
-      if result == 'DONE'
-        @exit_reason = :done
-        break
+      @exit_reason = nil
+      loop do
+        if time_expired?
+          @exit_reason = :timeout
+          break
+        end
+
+        @iteration += 1
+        result = run_iteration
+
+        if result == 'DONE'
+          @exit_reason = :done
+          break
+        end
+
+        summarize_if_needed
       end
 
-      summarize_if_needed
+      # Update running totals for this goal
+      goal_elapsed = (Time.now - goal_start_time).to_i
+      @total_elapsed += goal_elapsed
+
+      break if @exit_reason == :timeout || @exit_reason == :interrupted
     end
 
     display_summary
@@ -435,6 +463,8 @@ class Ralph
 
       result = nil
       tool_names = {}  # track tool_use_id -> tool_name for result lookup
+      assistant_messages = 0
+      tool_uses = 0
 
       start_waiting_timer(iteration_start) if iteration_start
       IO.popen(cmd, 'r') do |io|
@@ -442,13 +472,18 @@ class Ralph
           event = JSON.parse(line) rescue next
           case event['type']
           when 'assistant'
+            assistant_messages += 1
             context_pct = extract_context_percentage(event)
             text = extract_text_content(event)
             output_message(text, iteration_start, context_pct) unless text.empty?
-            extract_tool_uses(event).each do |tool_use|
+            tool_use_list = extract_tool_uses(event)
+            tool_uses += tool_use_list.length
+            tool_use_list.each do |tool_use|
               tool_names[tool_use['id']] = tool_use['name']
               output_tool_use(tool_use, iteration_start)
             end
+            # Track tokens from usage
+            track_usage(event, model) if iteration_start
           when 'user'
             # Tool results only - user text messages don't appear in this context
             extract_tool_results(event).each do |tool_result|
@@ -461,8 +496,41 @@ class Ralph
         end
       end
       stop_waiting_timer if iteration_start
+
+      # Update running totals
+      if iteration_start
+        @total_assistant_messages += assistant_messages
+        @total_tool_uses += tool_uses
+      end
+
       result&.to_json
     end
+  end
+
+  def track_usage(event, model)
+    usage = event.dig('message', 'usage')
+    return unless usage
+
+    input = usage['input_tokens'] || 0
+    output = usage['output_tokens'] || 0
+    cache_read = usage['cache_read_input_tokens'] || 0
+    cache_create = usage['cache_creation_input_tokens'] || 0
+
+    @total_tokens[:input] += input
+    @total_tokens[:output] += output
+    @total_tokens[:cache_read] += cache_read
+    @total_tokens[:cache_create] += cache_create
+
+    # Calculate cost
+    pricing = MODEL_PRICING[model]
+    return unless pricing
+
+    cost = (input * pricing[:input] / 1_000_000.0) +
+           (output * pricing[:output] / 1_000_000.0) +
+           (cache_read * pricing[:cache_read] / 1_000_000.0) +
+           (cache_create * pricing[:cache_create] / 1_000_000.0)
+
+    @total_cost += cost
   end
 
   def format_timing_suffix(context_pct = nil)
@@ -685,6 +753,7 @@ class Ralph
   end
 
   def maybe_ralph_says
+    return if @no_quotes
     return unless rand < 0.03  # 3% chance
 
     puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
@@ -721,13 +790,45 @@ class Ralph
   end
 
   def display_summary
-    elapsed = format_elapsed((Time.now - @start_time).to_i)
+    # Final update of totals
+    @total_iterations += @iteration
+    actual_elapsed = (Time.now - @start_time).to_i
+    @total_elapsed = actual_elapsed if @goal_files.length == 1
+
+    elapsed = format_elapsed(actual_elapsed)
+
     puts
     puts "\e[1m" + '═' * 70 + "\e[0m"
     puts "\e[1m  COMPLETE\e[0m"
-    puts "  Iterations: #{@iteration} | Elapsed: #{elapsed}"
+    puts
+
+    if @goal_files.length > 1
+      puts "  Goals: #{@goal_files.length}"
+    end
+
+    puts "  Iterations: #{@total_iterations}"
+    puts "  Assistant Messages: #{@total_assistant_messages}"
+    puts "  Tool Uses: #{@total_tool_uses}"
+    puts
+
+    puts "  Tokens:"
+    puts "    Input: #{format_number(@total_tokens[:input])}"
+    puts "    Output: #{format_number(@total_tokens[:output])}"
+    puts "    Cache Read: #{format_number(@total_tokens[:cache_read])}"
+    puts "    Cache Create: #{format_number(@total_tokens[:cache_create])}"
+    total_tokens = @total_tokens.values.sum
+    puts "    Total: #{format_number(total_tokens)}"
+    puts
+
+    puts "  Cost: $#{format('%.4f', @total_cost)}"
+    puts "  Elapsed: #{elapsed}"
+
     puts "\e[1m" + '═' * 70 + "\e[0m"
     puts
+  end
+
+  def format_number(num)
+    num.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
   end
 
   def word_wrap(text, width)
@@ -921,6 +1022,7 @@ options = {
   reasoning: 'low',
   no_spinner: true,
   no_art: false,
+  no_quotes: false,
   continue: false
 }
 
@@ -931,7 +1033,7 @@ OptionParser.new do |opts|
     Usage: ralph --goal=FILE [--duration=4h] [options]
   BANNER
 
-  opts.on('--goal=FILE', 'Goal markdown file (required)') do |f|
+  opts.on('--goal=FILE', 'Goal markdown file (required) or comma-separated list') do |f|
     options[:goal] = f
   end
 
@@ -959,6 +1061,10 @@ OptionParser.new do |opts|
     options[:no_art] = true
   end
 
+  opts.on('--no-quotes', 'Disable Ralph quotes') do
+    options[:no_quotes] = true
+  end
+
   opts.on('-h', '--help', 'Show this help') do
     puts opts
     exit
@@ -983,6 +1089,7 @@ ralph = Ralph.new(
   reasoning: options[:reasoning],
   no_spinner: options[:no_spinner],
   no_art: options[:no_art],
+  no_quotes: options[:no_quotes],
   continue_run: options[:continue]
 )
 
