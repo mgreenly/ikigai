@@ -484,6 +484,8 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, default=None,
+                        help="Filter results to a specific file")
     args = parser.parse_args()
 
     global SPINNER_ENABLED, SILENT_MODE
@@ -492,6 +494,15 @@ def main() -> int:
         SILENT_MODE = False
 
     args.fix = False
+
+    # Check file existence early if --file is specified
+    if args.file:
+        import json
+        target_file = args.file
+        if not Path(target_file).exists():
+            result = {"ok": False, "items": [f"{target_file}: file not found"]}
+            print(json.dumps(result))
+            return 1
 
     opts = []
     if args.time_out != DEFAULT_TIMEOUT:
@@ -556,6 +567,16 @@ def main() -> int:
 
     # Check-only mode (no --fix): output JSON and exit
     if not args.fix:
+        # Filter failures to target file if --file is specified
+        if args.file:
+            target_file = args.file
+            # Filter to errors that mention the target file in the file field
+            all_failures = [f for f in all_failures if target_file in f.get("file", "")]
+            # If no failures for this file, it's a success
+            if not all_failures:
+                result = {"ok": True}
+                print(json.dumps(result))
+                return 0
         return output_json_result(ok=False, failures=all_failures)
 
     log(f"Found {len(all_failures)} memory errors across {len(failing_tests)} test(s)")

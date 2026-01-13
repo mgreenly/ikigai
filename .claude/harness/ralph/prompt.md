@@ -36,33 +36,31 @@ Read `.claude/library/<name>/SKILL.md` when needed:
 
 Use these instead of raw make commands. They return terse JSON summaries - no output parsing required, minimal context consumed.
 
-**IMPORTANT:** These scripts produce NO output until they complete. They are long-running. Run them in foreground - do NOT use background tasks, do NOT try to tail logs, just wait for completion.
+| Script                           | Purpose                       |
+|----------------------------------|-------------------------------|
+| `.claude/harness/compile/run`    | Compile and link              |
+| `.claude/harness/filesize/run`   | Check file size limits        |
+| `.claude/harness/unit/run`       | Run unit tests                |
+| `.claude/harness/integration/run`| Run integration tests         |
+| `.claude/harness/complexity/run` | Check cyclomatic complexity   |
+| `.claude/harness/sanitize/run`   | Run sanitizers (ASan, UBSan)  |
+| `.claude/harness/tsan/run`       | Run ThreadSanitizer           |
+| `.claude/harness/valgrind/run`   | Run memory checks             |
+| `.claude/harness/helgrind/run`   | Run thread error detection    |
+| `.claude/harness/coverage/run`   | Check test coverage           |
 
-**Timeouts:** Set the Bash tool's `timeout` parameter (in milliseconds) using the duration from the table below. Do NOT use the shell `timeout` command. Do NOT invent timeout values.
+**Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) on the Bash tool. Do NOT background or tail logs - just wait.
 
-Example:
+**Single-file mode:** Use `--file=PATH` to get results for one file only. Same 60 minute timeout applies.
+```bash
+.claude/harness/unit/run --file=src/config.c
 ```
-Bash tool call:
-  command: ".claude/harness/compile/run"
-  timeout: 1800000
-```
 
+**Output format:** All scripts return the same JSON structure:
 ```json
 {"ok": true}
 {"ok": false, "items": ["src/foo.c:10: error msg", "src/bar.c:22: another"]}
 ```
-
-| Script                           | Purpose                       | Timeout (ms) |
-|----------------------------------|-------------------------------|--------------|
-| `.claude/harness/compile/run`    | Compile and link              | 1800000      |
-| `.claude/harness/check/run`      | Run unit tests                | 1800000      |
-| `.claude/harness/coverage/run`   | Check test coverage           | 1800000      |
-| `.claude/harness/complexity/run` | Check cyclomatic complexity   | 1800000      |
-| `.claude/harness/filesize/run`   | Check file size limits        | 1800000      |
-| `.claude/harness/sanitize/run`   | Run sanitizers (ASan, UBSan)  | 1800000      |
-| `.claude/harness/valgrind/run`   | Run memory checks             | 3600000      |
-| `.claude/harness/helgrind/run`   | Run thread error detection    | 3600000      |
-| `.claude/harness/tsan/run`       | Run ThreadSanitizer           | 1800000      |
 
 # Guidance
 
@@ -87,7 +85,7 @@ Bad: "Updated some files"
 Review Progress first. Don't repeat work already attempted.
 
 ## Scripts
-Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - set the Bash tool's `timeout` parameter using the duration from the table and wait.
+Run checks after implementation actions, not after every file read.
 
 ## When Stuck
 Try multiple approaches before returning. Document what you tried and why it failed.

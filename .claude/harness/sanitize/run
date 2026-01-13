@@ -618,12 +618,20 @@ def format_error_item(failure: dict) -> str:
     return f"{prefix}: {error_type} in {file}:{line}"
 
 
-def run_check_only() -> int:
+def run_check_only(target_file: str | None = None) -> int:
     """
     Run sanitizer check and print JSON result to stdout.
+    If target_file is specified, only report errors for that file.
     Returns 0 for success, 1 for failures.
     """
     os.chdir(PROJECT_ROOT)
+
+    # Validate target_file if provided
+    if target_file:
+        target_path = Path(target_file)
+        if not target_path.exists():
+            print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
 
     # Run make check-sanitize
     success, make_output = run_make_sanitize()
@@ -652,6 +660,13 @@ def run_check_only() -> int:
         print(json.dumps({"ok": False, "items": ["Tests failed but could not parse sanitizer errors"]}))
         return 1
 
+    # Filter to target file if specified
+    if target_file:
+        all_failures = [f for f in all_failures if f["file"] == target_file]
+        if not all_failures:
+            print(json.dumps({"ok": True}))
+            return 0
+
     # Format each failure as a readable item
     items = [format_error_item(f) for f in all_failures]
     print(json.dumps({"ok": False, "items": items}))
@@ -666,6 +681,7 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, help="Filter results to specific file")
     args = parser.parse_args()
 
     global SPINNER_ENABLED, SILENT_MODE
@@ -676,7 +692,7 @@ def main() -> int:
 
     # Default behavior: just run check and output JSON
     if not args.fix:
-        return run_check_only()
+        return run_check_only(target_file=args.file)
 
     opts = []
     if args.time_out != DEFAULT_TIMEOUT:

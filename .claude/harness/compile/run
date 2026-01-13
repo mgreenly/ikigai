@@ -400,6 +400,8 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, default=None,
+                        help="Filter results to a specific file")
     args = parser.parse_args()
 
     global SPINNER_ENABLED
@@ -422,6 +424,13 @@ def main() -> int:
         log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
 
     os.chdir(PROJECT_ROOT)
+
+    # Check file existence early if --file is specified
+    if args.file:
+        target_file = args.file
+        if not Path(target_file).exists():
+            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+            return 1
 
     # Run build (quiet mode when not fixing, for clean JSON output)
     success, output = run_make(quiet=not args.fix)
@@ -449,7 +458,16 @@ def main() -> int:
 
     # Default mode (no --fix): print JSON and exit
     if not args.fix:
+        # Filter errors to target file if --file is specified
+        if args.file:
+            target_file = args.file
+            # Filter errors to target file
+            errors = [e for e in errors if e["file"] == target_file]
         items = [format_error_item(error) for error in errors]
+        if not items and args.file:
+            # File exists, no errors - success
+            print(json_module.dumps({"ok": True}))
+            return 0
         print(json_module.dumps({"ok": False, "items": items}))
         return 1
 
