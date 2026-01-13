@@ -91,7 +91,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 16);     // clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug, exit
+    ck_assert_uint_eq(count, 18);     // clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug, exit, tool, refresh
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -109,7 +109,9 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[12].name, "model");
     ck_assert_str_eq(cmds[13].name, "system");
     ck_assert_str_eq(cmds[14].name, "debug");
-    ck_assert_str_eq(cmds[15].name, "exit");
+    ck_assert_str_eq(cmds[15].name, "tool");
+    ck_assert_str_eq(cmds[16].name, "refresh");
+    ck_assert_str_eq(cmds[17].name, "exit");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);

@@ -30,28 +30,39 @@ Read `.claude/library/<name>/SKILL.md` when needed:
 |-------|--------------|
 <%= advertised_skills %>
 
+**Coverage work:** Before running the coverage harness or writing tests for coverage, first read the `lcov` and `coverage` skills.
+
 # Scripts
 
 Use these instead of raw make commands. They return terse JSON summaries - no output parsing required, minimal context consumed.
 
-**IMPORTANT:** These scripts produce NO output until they complete. They are long-running (up to 30-60 minutes). Run them in foreground with the timeout specified below - do NOT use background tasks, do NOT try to tail logs, just wait for completion.
+**IMPORTANT:** These scripts produce NO output until they complete. They are long-running. Run them in foreground - do NOT use background tasks, do NOT try to tail logs, just wait for completion.
+
+**Timeouts:** Set the Bash tool's `timeout` parameter (in milliseconds) using the duration from the table below. Do NOT use the shell `timeout` command. Do NOT invent timeout values.
+
+Example:
+```
+Bash tool call:
+  command: ".claude/harness/compile/run"
+  timeout: 1800000
+```
 
 ```json
 {"ok": true}
 {"ok": false, "items": ["src/foo.c:10: error msg", "src/bar.c:22: another"]}
 ```
 
-| Script                         | Purpose                       | Timeout |
-|--------------------------------|-------------------------------|---------|
-| `.claude/harness/compile/run`  | Compile and link              | 30m     |
-| `.claude/harness/check/run`    | Run unit tests                | 30m     |
-| `.claude/harness/coverage/run` | Check test coverage           | 30m     |
-| `.claude/harness/complexity/run` | Check cyclomatic complexity | 30m     |
-| `.claude/harness/filesize/run` | Check file size limits        | 30m     |
-| `.claude/harness/sanitize/run` | Run sanitizers (ASan, UBSan)  | 30m     |
-| `.claude/harness/valgrind/run` | Run memory checks             | 60m     |
-| `.claude/harness/helgrind/run` | Run thread error detection    | 60m     |
-| `.claude/harness/tsan/run`     | Run ThreadSanitizer           | 30m     |
+| Script                           | Purpose                       | Timeout (ms) |
+|----------------------------------|-------------------------------|--------------|
+| `.claude/harness/compile/run`    | Compile and link              | 1800000      |
+| `.claude/harness/check/run`      | Run unit tests                | 1800000      |
+| `.claude/harness/coverage/run`   | Check test coverage           | 1800000      |
+| `.claude/harness/complexity/run` | Check cyclomatic complexity   | 1800000      |
+| `.claude/harness/filesize/run`   | Check file size limits        | 1800000      |
+| `.claude/harness/sanitize/run`   | Run sanitizers (ASan, UBSan)  | 1800000      |
+| `.claude/harness/valgrind/run`   | Run memory checks             | 3600000      |
+| `.claude/harness/helgrind/run`   | Run thread error detection    | 3600000      |
+| `.claude/harness/tsan/run`       | Run ThreadSanitizer           | 1800000      |
 
 # Guidance
 
@@ -76,7 +87,7 @@ Bad: "Updated some files"
 Review Progress first. Don't repeat work already attempted.
 
 ## Scripts
-Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - just invoke them with the correct timeout and wait.
+Run checks after implementation actions, not after every file read. These scripts are slow and produce no incremental output - set the Bash tool's `timeout` parameter using the duration from the table and wait.
 
 ## When Stuck
 Try multiple approaches before returning. Document what you tried and why it failed.

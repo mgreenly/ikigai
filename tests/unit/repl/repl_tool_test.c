@@ -4,16 +4,19 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/select.h>
-#include "repl.h"
-#include "shared.h"
-#include "tool.h"
-#include "scrollback.h"
+#include <sys/stat.h>
+#include <unistd.h>
 #include "config.h"
-#include "debug_pipe.h"
 #include "db/connection.h"
 #include "db/message.h"
+#include "debug_pipe.h"
+#include "json_allocator.h"
+#include "repl.h"
+#include "scrollback.h"
+#include "shared.h"
+#include "tool.h"
+#include "tool_registry.h"
 #include "wrapper.h"
 
 /* Test fixtures */
@@ -202,66 +205,6 @@ START_TEST(test_execute_pending_tool_file_read) {
 
 END_TEST
 
-START_TEST(test_execute_pending_tool_debug_output) {
-    /* Note: This test previously verified debug pipe output.
-     * Debug pipes have been replaced with JSONL logger calls.
-     * The logger writes to .ikigai/logs/current.log instead of a pipe.
-     * We verify that the function executes successfully without the debug pipe. */
-
-    /* Execute pending tool call (now uses logger instead of debug pipe) */
-    ik_repl_execute_pending_tool(repl);
-
-    /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->current->pending_tool_call);
-
-    /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->message_count, 2);
-}
-
-END_TEST
-
-START_TEST(test_execute_pending_tool_no_debug_pipe) {
-    /* Verify that when debug pipe is NULL, execution still works */
-    repl->shared->openai_debug_pipe = NULL;
-
-    /* Execute pending tool call */
-    ik_repl_execute_pending_tool(repl);
-
-    /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->current->pending_tool_call);
-
-    /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->message_count, 2);
-}
-
-END_TEST
-
-START_TEST(test_execute_pending_tool_debug_pipe_null_write_end) {
-    /* Create debug pipe and set write_end to NULL to test that branch */
-    res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
-    ck_assert(!debug_res.is_err);
-    ik_debug_pipe_t *debug_pipe = (ik_debug_pipe_t *)debug_res.ok;
-    ck_assert_ptr_nonnull(debug_pipe);
-
-    /* Verify pipe has write_end initially */
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-
-    /* Set write_end to NULL but keep pipe non-NULL */
-    fclose(debug_pipe->write_end);
-    debug_pipe->write_end = NULL;
-    repl->shared->openai_debug_pipe = debug_pipe;
-
-    /* Execute pending tool call - should not crash even with NULL write_end */
-    ik_repl_execute_pending_tool(repl);
-
-    /* Verify pending_tool_call is cleared */
-    ck_assert_ptr_null(repl->current->pending_tool_call);
-
-    /* Verify messages were added to conversation */
-    ck_assert_uint_eq(repl->current->message_count, 2);
-}
-
-END_TEST
 
 START_TEST(test_execute_pending_tool_db_persistence) {
     /* Create a mock database context */
@@ -319,6 +262,164 @@ START_TEST(test_execute_pending_tool_no_session_id) {
 
 END_TEST
 
+START_TEST(test_execute_pending_tool_registry_null) {
+    /* Test when tool_registry is NULL */
+    repl->shared->tool_registry = NULL;
+
+    /* Create a pending tool call for a non-existent tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "external_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_not_found_in_registry) {
+    /* Create a tool registry */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+
+    /* Create a pending tool call for a non-existent tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "nonexistent_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_external_success) {
+    /* Create a temporary tool script that succeeds */
+    char script_path[] = "/tmp/test_tool_success_XXXXXX";
+    int32_t fd = mkstemp(script_path);
+    ck_assert_int_ge(fd, 0);
+
+    char script[] =
+        "#!/bin/sh\n"
+        "printf '{\"result\":\"success\"}'\n";
+    ssize_t written = write(fd, script, strlen(script));
+    ck_assert_int_eq(written, (ssize_t)strlen(script));
+    close(fd);
+    chmod(script_path, 0755);
+
+    /* Create a tool registry and add the tool */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+    ck_assert_ptr_nonnull(repl->shared->tool_registry);
+
+    char schema_str[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(repl);
+    yyjson_doc *schema_doc = yyjson_read_opts(schema_str, strlen(schema_str), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema_doc);
+
+    res_t add_res = ik_tool_registry_add(repl->shared->tool_registry, "test_tool", script_path, schema_doc);
+    ck_assert(is_ok(&add_res));
+
+    /* Create a pending tool call for the external tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "test_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain success */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+
+    /* Clean up */
+    unlink(script_path);
+}
+
+END_TEST
+
+START_TEST(test_execute_pending_tool_external_failure) {
+    /* Create a temporary tool script that fails */
+    char script_path[] = "/tmp/test_tool_fail_XXXXXX";
+    int32_t fd = mkstemp(script_path);
+    ck_assert_int_ge(fd, 0);
+
+    char script[] =
+        "#!/bin/sh\n"
+        "exit 1\n";
+    ssize_t written = write(fd, script, strlen(script));
+    ck_assert_int_eq(written, (ssize_t)strlen(script));
+    close(fd);
+    chmod(script_path, 0755);
+
+    /* Create a tool registry and add the tool */
+    repl->shared->tool_registry = ik_tool_registry_create(repl);
+    ck_assert_ptr_nonnull(repl->shared->tool_registry);
+
+    char schema_str[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(repl);
+    yyjson_doc *schema_doc = yyjson_read_opts(schema_str, strlen(schema_str), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema_doc);
+
+    res_t add_res = ik_tool_registry_add(repl->shared->tool_registry, "test_tool", script_path, schema_doc);
+    ck_assert(is_ok(&add_res));
+
+    /* Create a pending tool call for the external tool */
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = ik_tool_call_create(repl,
+                                                           "call_ext123",
+                                                           "test_tool",
+                                                           "{}");
+
+    /* Execute pending tool call */
+    ik_repl_execute_pending_tool(repl);
+
+    /* Verify pending_tool_call is cleared */
+    ck_assert_ptr_null(repl->current->pending_tool_call);
+
+    /* Verify messages were added (tool_call + failure result) */
+    ck_assert_uint_eq(repl->current->message_count, 2);
+
+    /* Second message should contain failure */
+    ik_message_t *result_msg = repl->current->messages[1];
+    ck_assert(result_msg->role == IK_ROLE_TOOL);
+
+    /* Clean up */
+    unlink(script_path);
+}
+
+END_TEST
+
 /*
  * Test suite
  */
@@ -328,10 +429,6 @@ static Suite *repl_tool_suite(void)
     Suite *s = suite_create("REPL Tool Execution");
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
@@ -339,12 +436,13 @@ static Suite *repl_tool_suite(void)
     tcase_add_test(tc_core, test_execute_pending_tool_clears_pending);
     tcase_add_test(tc_core, test_execute_pending_tool_conversation_messages);
     tcase_add_test(tc_core, test_execute_pending_tool_file_read);
-    tcase_add_test(tc_core, test_execute_pending_tool_debug_output);
-    tcase_add_test(tc_core, test_execute_pending_tool_no_debug_pipe);
-    tcase_add_test(tc_core, test_execute_pending_tool_debug_pipe_null_write_end);
     tcase_add_test(tc_core, test_execute_pending_tool_db_persistence);
     tcase_add_test(tc_core, test_execute_pending_tool_no_db_ctx);
     tcase_add_test(tc_core, test_execute_pending_tool_no_session_id);
+    tcase_add_test(tc_core, test_execute_pending_tool_registry_null);
+    tcase_add_test(tc_core, test_execute_pending_tool_not_found_in_registry);
+    tcase_add_test(tc_core, test_execute_pending_tool_external_success);
+    tcase_add_test(tc_core, test_execute_pending_tool_external_failure);
 
     suite_add_tcase(s, tc_core);
 

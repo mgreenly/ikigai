@@ -1,6 +1,23 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# TODO: Track running totals across all iterations and report at completion:
+#   - Total iteration count
+#   - Total assistant messages count
+#   - Total tool uses count
+#   - Total tokens (input, output, cache_read, cache_create)
+#   - Total dollars spent (calculate from token counts and model pricing)
+#   - Total elapsed time
+# Display in display_summary().
+
+# TODO: Add '--no-quotes' flag to disable Ralph quotes in maybe_ralph_says().
+
+# TODO: Support multiple goal files via --goal=FILE1,FILE2,FILE3
+#   - Process each goal file sequentially
+#   - Reset progress/summary files when transitioning to next goal
+#   - Keep running totals (iterations, tokens, cost, time) across all goals
+#   - Report aggregate stats at completion
+
 require 'json'
 require 'optparse'
 require 'shellwords'
@@ -15,8 +32,8 @@ SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 class Ralph
   VERSION = '0.2.0'
 
-  SUMMARY_INTERVAL = 10
-  MAX_RECENT = 20
+  MAX_RECENT = 10
+  SUMMARY_INTERVAL = MAX_RECENT / 2
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
@@ -72,6 +89,7 @@ class Ralph
     base = @goal_file.sub(/-goal\.md$/, '').sub(/\.md$/, '')
     @progress_file = "#{base}-progress.jsonl"
     @summary_file = "#{base}-summary.md"
+    @summary_meta_file = "#{base}-summary-meta.json"
 
     # Prompt templates
     @prompt_template = File.join(SCRIPT_DIR, 'prompt.md')
@@ -88,6 +106,7 @@ class Ralph
     sleep 2
     display_continue_status
     handle_dirty_state
+    summarize_if_needed if @continue_run
 
     @exit_reason = nil
     loop do
@@ -149,6 +168,7 @@ class Ralph
   def initialize_state
     File.write(@progress_file, '')
     File.write(@summary_file, '')
+    File.write(@summary_meta_file, '{"covers_up_to": 0}')
     @iteration = 0
   end
 
@@ -187,6 +207,8 @@ class Ralph
     puts
     puts "#{progress}"
     puts
+
+    summarize_if_needed
   end
 
   # ─────────────────────────────────────────────────────────────
@@ -232,7 +254,7 @@ class Ralph
 
   def summarize_if_needed
     entries_since_summary = count_entries_since_summary
-    return unless entries_since_summary >= SUMMARY_INTERVAL
+    return unless entries_since_summary >= MAX_RECENT
 
     display_summarizing
     start_spinner('Summarizing')
@@ -242,7 +264,7 @@ class Ralph
       prompt: prompt,
       model: 'haiku',
       thinking_budget: @summarizer_budget,
-      tools: 'StructuredOutput',
+      tools: 'Read,Glob,Grep,StructuredOutput',
       schema: '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"]}'
     )
 
@@ -251,9 +273,11 @@ class Ralph
     new_summary = parse_summary(result)
     if new_summary
       save_summary(new_summary)
-      log 'Summary updated'
+      puts 'Summary updated'
+      puts
     else
-      log 'Summary generation failed'
+      puts 'Summary generation failed'
+      puts
     end
   end
 
@@ -280,13 +304,14 @@ class Ralph
   def build_summarizer_prompt
     summary_content = load_summary
     summary_end = calculate_summary_end
-    current = @iteration
-    recent = build_recent_iterations_for_summary
+    total = count_progress_entries
+    new_summary_end = calculate_fixed_coverage(total)
+    recent = build_recent_iterations_for_summary(new_summary_end)
 
     render_template(@summarizer_template, {
       summary_end: summary_end,
       summary: summary_content,
-      current: current,
+      current: new_summary_end,
       recent: recent
     })
   end
@@ -305,14 +330,12 @@ class Ralph
   end
 
   def calculate_summary_end
-    return 0 unless File.exist?(@summary_file)
+    return 0 unless File.exist?(@summary_meta_file)
 
-    content = File.read(@summary_file).strip
-    return 0 if content.empty?
-
-    # Summary covers iterations in multiples of SUMMARY_INTERVAL
-    total = count_progress_entries
-    (total / SUMMARY_INTERVAL) * SUMMARY_INTERVAL
+    meta = JSON.parse(File.read(@summary_meta_file))
+    meta['covers_up_to'] || 0
+  rescue StandardError
+    0
   end
 
   def count_entries_since_summary
@@ -321,14 +344,19 @@ class Ralph
     total - summary_end
   end
 
+  def calculate_fixed_coverage(total)
+    # Round down to nearest multiple of SUMMARY_INTERVAL
+    ((total - SUMMARY_INTERVAL) / SUMMARY_INTERVAL) * SUMMARY_INTERVAL
+  end
+
   def build_recent_iterations
     return '' unless File.exist?(@progress_file)
 
     entries = load_progress_entries
     summary_end = calculate_summary_end
 
-    # Get entries after summary
-    recent_entries = entries.drop(summary_end).take(MAX_RECENT)
+    # Get entries after summary (at most MAX_RECENT - 1; the 10th triggers summary)
+    recent_entries = entries.drop(summary_end).take(MAX_RECENT - 1)
 
     recent_entries.each_with_index.map do |entry, idx|
       iteration_num = summary_end + idx + 1
@@ -336,16 +364,17 @@ class Ralph
     end.join("\n\n")
   end
 
-  def build_recent_iterations_for_summary
+  def build_recent_iterations_for_summary(new_summary_end)
     return '' unless File.exist?(@progress_file)
 
     entries = load_progress_entries
     summary_end = calculate_summary_end
 
-    # Get all entries after summary
-    recent_entries = entries.drop(summary_end)
+    return '' if new_summary_end <= summary_end
 
-    recent_entries.each_with_index.map do |entry, idx|
+    entries_to_summarize = entries[summary_end...new_summary_end]
+
+    entries_to_summarize.each_with_index.map do |entry, idx|
       iteration_num = summary_end + idx + 1
       "### Iteration #{iteration_num}\n\n#{entry['progress']}"
     end.join("\n\n")
@@ -583,6 +612,11 @@ class Ralph
 
   def save_summary(summary)
     File.write(@summary_file, summary)
+
+    # Update metadata with new coverage (fixed intervals)
+    total = count_progress_entries
+    new_coverage = calculate_fixed_coverage(total)
+    File.write(@summary_meta_file, JSON.generate({ 'covers_up_to' => new_coverage }))
   end
 
   def commit_iteration(progress)
@@ -681,8 +715,9 @@ class Ralph
   end
 
   def display_summarizing
+    puts "\e[33mSummarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
     puts
-    puts "\e[33m  Summarizing progress (every #{SUMMARY_INTERVAL} iterations)...\e[0m"
+    $stdout.flush
   end
 
   def display_summary

@@ -1,16 +1,21 @@
 You are summarizing progress history for an autonomous agent loop.
 
 ## Input
+<% if summary_end > 0 %>
 
-### Current Summary (Iterations 1-<%= summary_end %>)
+### Previous Summary (Iterations 1-<%= summary_end %>)
 <%= summary %>
+<% end %>
 
-### Recent Iterations (<%= summary_end + 1 %>-<%= current %>)
+### Iterations to Summarize (<%= summary_end + 1 %>-<%= current %>)
 <%= recent %>
 
 ## Task
-
-Produce an updated summary covering iterations 1-<%= current %>.
+<% if summary_end > 0 %>
+Produce an updated summary combining the previous summary with the progress reported from iterations <%= summary_end + 1 %>-<%= current %>.
+<% else %>
+Produce a summary of iterations 1-<%= current %>.
+<% end %>
 
 ## Preservation Rules
 
