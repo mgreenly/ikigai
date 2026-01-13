@@ -558,6 +558,8 @@ def main() -> int:
                         help="Enable progress output and spinner")
     parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
                         help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
+    parser.add_argument("--file", type=str, default=None,
+                        help="Filter results to a specific file")
     args = parser.parse_args()
 
     global SPINNER_ENABLED, SILENT_MODE
@@ -613,11 +615,24 @@ def main() -> int:
 
     # Default mode (no --fix): print JSON and exit
     if not args.fix:
+        # Filter gaps to target file if --file is specified
+        if args.file:
+            target_file = args.file
+            # Check if target file exists
+            if not Path(target_file).exists():
+                print(json_mod.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
+                return 1
+            # Filter gaps to target file (match full path or just filename)
+            gaps = [g for g in gaps if target_file in g["file"] or Path(g["file"]).name == Path(target_file).name]
         items = []
         for gap in gaps:
             # Format: "file lines:X% funcs:Y% branches:Z%"
             item = f"{gap['file']} lines:{gap['lines_pct']}% funcs:{gap['funcs_pct']}% branches:{gap['branches_pct']}%"
             items.append(item)
+        if not items and args.file:
+            # File exists, no coverage gaps - success
+            print(json_mod.dumps({"ok": True}))
+            return 0
         print(json_mod.dumps({"ok": False, "items": items}))
         return 1
 
