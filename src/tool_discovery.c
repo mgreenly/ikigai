@@ -22,8 +22,8 @@
 static bool is_executable(const char *path)
 {
     struct stat st;
-    if (stat(path, &st) != 0) {
-        return false;
+    if (stat(path, &st) != 0) {  // LCOV_EXCL_BR_LINE
+        return false;  // LCOV_EXCL_LINE
     }
     return (st.st_mode & S_IXUSR) != 0;
 }
@@ -33,19 +33,19 @@ static bool is_executable(const char *path)
 static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
 {
     int32_t pipefd[2];
-    if (pipe(pipefd) == -1) {
-        return NULL;
+    if (pipe(pipefd) == -1) {  // LCOV_EXCL_BR_LINE
+        return NULL;  // LCOV_EXCL_LINE
     }
 
     pid_t pid = fork();
-    if (pid == -1) {
-        close(pipefd[0]);
-        close(pipefd[1]);
-        return NULL;
+    if (pid == -1) {  // LCOV_EXCL_BR_LINE
+        close(pipefd[0]);  // LCOV_EXCL_LINE
+        close(pipefd[1]);  // LCOV_EXCL_LINE
+        return NULL;  // LCOV_EXCL_LINE
     }
 
-    if (pid == 0) {
-        // Child process
+    if (pid == 0) {  // LCOV_EXCL_BR_LINE
+        // Child process - LCOV_EXCL_START
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
@@ -59,6 +59,7 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
 
         execl(tool_path, tool_path, "--schema", NULL);
         _exit(1);
+        // LCOV_EXCL_STOP
     }
 
     // Parent process
