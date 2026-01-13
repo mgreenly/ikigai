@@ -23,13 +23,13 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     int32_t stdout_pipe[2];
 
     if (pipe(stdin_pipe) == -1) {
-        return ERR(ctx, ERR_IO, "Failed to create stdin pipe");
+        return ERR(ctx, IO, "Failed to create stdin pipe");
     }
 
     if (pipe(stdout_pipe) == -1) {
         close(stdin_pipe[0]);
         close(stdin_pipe[1]);
-        return ERR(ctx, ERR_IO, "Failed to create stdout pipe");
+        return ERR(ctx, IO, "Failed to create stdout pipe");
     }
 
     pid_t pid = fork();
@@ -38,7 +38,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
         close(stdin_pipe[1]);
         close(stdout_pipe[0]);
         close(stdout_pipe[1]);
-        return ERR(ctx, ERR_IO, "Failed to fork process");
+        return ERR(ctx, IO, "Failed to fork process");
     }
 
     if (pid == 0) {
@@ -76,7 +76,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
         close(stdout_pipe[0]);
         kill(pid, SIGKILL);
         waitpid(pid, NULL, 0);
-        return ERR(ctx, ERR_IO, "Failed to write arguments to tool");
+        return ERR(ctx, IO, "Failed to write arguments to tool");
     }
 
     // Set 30 second timeout
@@ -87,7 +87,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     ssize_t total_read = 0;
     ssize_t n;
 
-    while ((n = read(stdout_pipe[0], buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
+    while ((n = read(stdout_pipe[0], buffer + total_read, sizeof(buffer) - (size_t)total_read - 1)) > 0) {
         total_read += n;
         if (total_read >= (ssize_t)(sizeof(buffer) - 1)) {
             break;
@@ -102,11 +102,11 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     waitpid(pid, &status, 0);
 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        return ERR(ctx, ERR_IO, "Tool exited with non-zero status");
+        return ERR(ctx, IO, "Tool exited with non-zero status");
     }
 
     if (total_read == 0) {
-        return ERR(ctx, ERR_IO, "Tool produced no output");
+        return ERR(ctx, IO, "Tool produced no output");
     }
 
     buffer[total_read] = '\0';

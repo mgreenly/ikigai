@@ -6,7 +6,7 @@
 
 // Wrap successful tool execution
 // Returns: {"tool_success": true, "result": {...original...}}
-char *ik_tool_wrap_success(TALLOC_CTX *ctx, const char *tool_result_json);
+char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json);
 
 // Wrap tool failure (crash, timeout, invalid JSON)
 // Returns: {"tool_success": false, "error": "...", "error_code": "..."}

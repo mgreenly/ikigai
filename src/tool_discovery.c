@@ -72,7 +72,7 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
     ssize_t total_read = 0;
     ssize_t n;
 
-    while ((n = read(pipefd[0], buffer + total_read, sizeof(buffer) - total_read - 1)) > 0) {
+    while ((n = read(pipefd[0], buffer + total_read, sizeof(buffer) - (size_t)total_read - 1)) > 0) {
         total_read += n;
         if (total_read >= (ssize_t)(sizeof(buffer) - 1)) {
             break;

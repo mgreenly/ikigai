@@ -7,7 +7,7 @@
 #include <string.h>
 #include <talloc.h>
 
-char *ik_tool_wrap_success(TALLOC_CTX *ctx, const char *tool_result_json)
+char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json)
 {
     // Parse the tool result JSON
     yyjson_alc allocator = ik_make_talloc_allocator(ctx);
