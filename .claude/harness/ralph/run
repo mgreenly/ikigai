@@ -12,6 +12,12 @@
 
 # TODO: Add '--no-quotes' flag to disable Ralph quotes in maybe_ralph_says().
 
+# TODO: Support multiple goal files via --goal=FILE1,FILE2,FILE3
+#   - Process each goal file sequentially
+#   - Reset progress/summary files when transitioning to next goal
+#   - Keep running totals (iterations, tokens, cost, time) across all goals
+#   - Report aggregate stats at completion
+
 require 'json'
 require 'optparse'
 require 'shellwords'
