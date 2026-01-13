@@ -289,27 +289,27 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
         yyjson_mut_doc_set_root(doc, root);
 
         // Tool call fields
-        yyjson_mut_obj_add_str(doc, root, "tool_call_id", tc->id);  // LCOV_EXCL_BR_LINE
-        yyjson_mut_obj_add_str(doc, root, "tool_name", tc->name);  // LCOV_EXCL_BR_LINE
-        yyjson_mut_obj_add_str(doc, root, "tool_args", tc->arguments);  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, root, "tool_call_id", tc->id)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, root, "tool_name", tc->name)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, root, "tool_args", tc->arguments)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         // Thinking block (if present)
         if (agent->pending_thinking_text != NULL) {
             yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
             if (thinking_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_str(doc, thinking_obj, "text", agent->pending_thinking_text);  // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(doc, thinking_obj, "text", agent->pending_thinking_text)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             if (agent->pending_thinking_signature != NULL) {
-                yyjson_mut_obj_add_str(doc, thinking_obj, "signature", agent->pending_thinking_signature);  // LCOV_EXCL_BR_LINE
+                if (!yyjson_mut_obj_add_str(doc, thinking_obj, "signature", agent->pending_thinking_signature)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             }
-            yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj);
+            if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         }
 
         // Redacted thinking (if present)
         if (agent->pending_redacted_data != NULL) {
             yyjson_mut_val *redacted_obj = yyjson_mut_obj(doc);
             if (redacted_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_str(doc, redacted_obj, "data", agent->pending_redacted_data);  // LCOV_EXCL_BR_LINE
-            yyjson_mut_obj_add_val(doc, root, "redacted_thinking", redacted_obj);
+            if (!yyjson_mut_obj_add_str(doc, redacted_obj, "data", agent->pending_redacted_data)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_val(doc, root, "redacted_thinking", redacted_obj)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         }
 
         char *json = yyjson_mut_write(doc, 0, NULL);
