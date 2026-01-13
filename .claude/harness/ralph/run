@@ -254,8 +254,12 @@ class Ralph
 
   def summarize_if_needed
     entries_since_summary = count_entries_since_summary
+    puts "[DEBUG] summarize_if_needed: entries_since=#{entries_since_summary}, max_recent=#{MAX_RECENT}"
+    $stdout.flush
     return unless entries_since_summary >= MAX_RECENT
 
+    puts "[DEBUG] triggering summarization"
+    $stdout.flush
     display_summarizing
     start_spinner('Summarizing')
 
@@ -714,6 +718,7 @@ class Ralph
   def display_summarizing
     puts
     puts "\e[33mSummarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
+    $stdout.flush
   end
 
   def display_summary
