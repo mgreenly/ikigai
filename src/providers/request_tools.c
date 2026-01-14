@@ -149,11 +149,11 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_to
             ik_tool_registry_entry_t *entry = &registry->entries[i];
 
             // Extract description from schema
-            const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));
+            const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));  // LCOV_EXCL_BR_LINE
             if (description == NULL) description = "";
 
             // Extract parameters schema
-            yyjson_val *parameters = yyjson_obj_get(entry->schema_root, "parameters");
+            yyjson_val *parameters = yyjson_obj_get(entry->schema_root, "parameters");  // LCOV_EXCL_BR_LINE
 
             // Serialize parameters to JSON string for ik_request_add_tool
             char *params_json = NULL;

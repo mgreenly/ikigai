@@ -275,6 +275,49 @@ START_TEST(test_build_from_conversation_registry_multiple_tools) {
 }
 END_TEST
 
+/**
+ * Test with null description and null parameters JSON values
+ */
+START_TEST(test_build_from_conversation_null_values) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+
+    // Create registry with tool having null description
+    ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
+    registry->capacity = 1;
+    registry->count = 1;
+    registry->entries = talloc_array(registry, ik_tool_registry_entry_t, 1);
+
+    // Schema with null description value
+    const char *schema_json = "{"
+        "\"name\":\"test_null\","
+        "\"description\":null,"
+        "\"parameters\":null"
+    "}";
+
+    yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
+    ck_assert_ptr_nonnull(schema_doc);
+
+    registry->entries[0].name = talloc_strdup(registry->entries, "test_null");
+    registry->entries[0].path = talloc_strdup(registry->entries, "/tmp/test_null");
+    registry->entries[0].schema_doc = schema_doc;
+    registry->entries[0].schema_root = yyjson_doc_get_root(schema_doc);
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, registry, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(req);
+    ck_assert_int_eq((int)req->tool_count, 1);
+
+    yyjson_doc_free(schema_doc);
+}
+END_TEST
+
 static Suite *request_tools_schema_suite(void)
 {
     Suite *s = suite_create("Request Tools Schema");
@@ -288,6 +331,7 @@ static Suite *request_tools_schema_suite(void)
     tcase_add_test(tc, test_build_from_conversation_registry_no_parameters);
     tcase_add_test(tc, test_build_from_conversation_registry_empty);
     tcase_add_test(tc, test_build_from_conversation_registry_multiple_tools);
+    tcase_add_test(tc, test_build_from_conversation_null_values);
     suite_add_tcase(s, tc);
 
     return s;
