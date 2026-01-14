@@ -167,16 +167,17 @@ class Pluribus
   # ─────────────────────────────────────────────────────────────
 
   AGENT_COLORS = {
-    moderator: "\e[90m",   # gray
-    white: "\e[97m",       # bright white
-    blonde: "\e[93m",      # yellow
-    orange: "\e[38;5;208m", # orange
-    pink: "\e[95m",        # magenta
-    brown: "\e[38;5;130m", # brown
-    blue: "\e[94m"         # blue
+    moderator: "\e[38;5;245m", # gray
+    white: "\e[38;5;255m",     # bright white
+    blonde: "\e[38;5;220m",    # gold
+    orange: "\e[38;5;208m",    # orange
+    pink: "\e[38;5;213m",      # hot pink
+    brown: "\e[38;5;130m",     # brown
+    blue: "\e[38;5;75m"        # sky blue
   }.freeze
 
   def display_header
+    puts
     puts "\e[1mPLURIBUS v#{VERSION}\e[0m"
     puts
     puts "Multi-agent goal refinement conversation"
@@ -187,9 +188,31 @@ class Pluribus
 
   def display_round_header
     elapsed = format_elapsed((Time.now - @start_time).to_i)
+    tokens, cost = calculate_running_totals
     puts
-    puts "\e[1m─── Round #{@round} (#{elapsed}) ───\e[0m"
+    puts "\e[1m─── Round #{@round} (#{elapsed}) │ #{format_number(tokens)} tokens │ $#{format('%.4f', cost)} ───\e[0m"
     puts
+  end
+
+  def calculate_running_totals
+    total_tokens = 0
+    total_cost = 0.0
+    pricing = MODEL_PRICING[@model]
+
+    @agents.each do |agent|
+      stats = agent.stats
+      tokens = stats[:tokens]
+      total_tokens += tokens.values.sum
+
+      if pricing
+        total_cost += (tokens[:input] * pricing[:input] / 1_000_000.0) +
+                      (tokens[:output] * pricing[:output] / 1_000_000.0) +
+                      (tokens[:cache_read] * pricing[:cache_read] / 1_000_000.0) +
+                      (tokens[:cache_create] * pricing[:cache_create] / 1_000_000.0)
+      end
+    end
+
+    [total_tokens, total_cost]
   end
 
   def display_message(speaker, text, color_key)
