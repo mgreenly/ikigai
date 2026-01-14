@@ -17,6 +17,13 @@ class Pluribus
 
   COLORS = %w[white blonde orange pink brown blue].freeze
 
+  # Model pricing (USD per million tokens)
+  MODEL_PRICING = {
+    'haiku' => { input: 0.80, output: 4.00, cache_read: 0.08, cache_create: 1.00 },
+    'sonnet' => { input: 3.00, output: 15.00, cache_read: 0.30, cache_create: 3.75 },
+    'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
+  }.freeze
+
   def initialize(goal:, agent_colors:, model:, debug:, duration:)
     @goal = goal
     @agent_colors = agent_colors
@@ -30,9 +37,15 @@ class Pluribus
     @conversation = []
     @round = 0
 
+    # Tracking totals
+    @total_tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
+    @total_cost = 0.0
+    @total_assistant_messages = 0
+    @total_tool_uses = 0
+
     @debug_dir = nil
     if @debug
-      @debug_dir = "pluribus-debug-#{Time.now.strftime('%Y%m%d-%H%M%S')}"
+      @debug_dir = File.join(SCRIPT_DIR, 'debug')
       FileUtils.mkdir_p(@debug_dir)
       @master_log = File.open("#{@debug_dir}/master.jsonl", 'w')
     end
@@ -131,12 +144,6 @@ class Pluribus
         puts "\e[33mAll agents passed. Conversation stalled.\e[0m"
         break
       end
-
-      # Check if only one agent left
-      if @agents.count(&:active?) <= 1
-        puts "\e[33mOnly one agent remaining. Ending conversation.\e[0m"
-        break
-      end
     end
   end
 
@@ -194,19 +201,55 @@ class Pluribus
   end
 
   def display_summary
+    # Collect stats from all agents
+    @agents.each do |agent|
+      stats = agent.stats
+      @total_tokens[:input] += stats[:tokens][:input]
+      @total_tokens[:output] += stats[:tokens][:output]
+      @total_tokens[:cache_read] += stats[:tokens][:cache_read]
+      @total_tokens[:cache_create] += stats[:tokens][:cache_create]
+      @total_assistant_messages += stats[:assistant_messages]
+      @total_tool_uses += stats[:tool_uses]
+    end
+
+    # Calculate cost
+    pricing = MODEL_PRICING[@model]
+    if pricing
+      @total_cost = (@total_tokens[:input] * pricing[:input] / 1_000_000.0) +
+                    (@total_tokens[:output] * pricing[:output] / 1_000_000.0) +
+                    (@total_tokens[:cache_read] * pricing[:cache_read] / 1_000_000.0) +
+                    (@total_tokens[:cache_create] * pricing[:cache_create] / 1_000_000.0)
+    end
+
     elapsed = format_elapsed((Time.now - @start_time).to_i)
     total_messages = @conversation.count { |m| m[:speaker] != 'Moderator' }
 
     puts
-    puts "\e[1m" + '═' * 50 + "\e[0m"
+    puts "\e[1m" + '═' * 70 + "\e[0m"
     puts "  Rounds: #{@round}"
     puts "  Messages: #{total_messages}"
+    puts "  Assistant Messages: #{@total_assistant_messages}"
+    puts "  Tool Uses: #{@total_tool_uses}"
+    puts
+    puts "  Tokens:"
+    puts "    Input: #{format_number(@total_tokens[:input])}"
+    puts "    Output: #{format_number(@total_tokens[:output])}"
+    puts "    Cache Read: #{format_number(@total_tokens[:cache_read])}"
+    puts "    Cache Create: #{format_number(@total_tokens[:cache_create])}"
+    total_tokens = @total_tokens.values.sum
+    puts "    Total: #{format_number(total_tokens)}"
+    puts
+    puts "  Cost: $#{format('%.4f', @total_cost)}"
     puts "  Elapsed: #{elapsed}"
     if @debug_dir
       puts "  Debug logs: #{@debug_dir}/"
     end
-    puts "\e[1m" + '═' * 50 + "\e[0m"
+    puts "\e[1m" + '═' * 70 + "\e[0m"
     puts
+  end
+
+  def format_number(num)
+    num.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
   end
 
   # ─────────────────────────────────────────────────────────────
@@ -294,7 +337,20 @@ class Agent
     @status = :active
     @io = nil
 
+    # Tracking
+    @tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
+    @assistant_messages = 0
+    @tool_uses = 0
+
     @debug_file = debug_dir ? File.open("#{debug_dir}/#{color}.jsonl", 'w') : nil
+  end
+
+  def stats
+    {
+      tokens: @tokens,
+      assistant_messages: @assistant_messages,
+      tool_uses: @tool_uses
+    }
   end
 
   def start
@@ -397,6 +453,10 @@ class Agent
       log_event('recv', event)
 
       case event['type']
+      when 'assistant'
+        @assistant_messages += 1
+        track_usage(event)
+        track_tool_uses(event)
       when 'result'
         result = event
         break
@@ -404,6 +464,21 @@ class Agent
     end
 
     result
+  end
+
+  def track_usage(event)
+    usage = event.dig('message', 'usage')
+    return unless usage
+
+    @tokens[:input] += usage['input_tokens'] || 0
+    @tokens[:output] += usage['output_tokens'] || 0
+    @tokens[:cache_read] += usage['cache_read_input_tokens'] || 0
+    @tokens[:cache_create] += usage['cache_creation_input_tokens'] || 0
+  end
+
+  def track_tool_uses(event)
+    content = event.dig('message', 'content') || []
+    @tool_uses += content.count { |b| b['type'] == 'tool_use' }
   end
 
   def parse_response(result)
@@ -434,6 +509,11 @@ end
 # CLI
 # ─────────────────────────────────────────────────────────────
 
+# Load personas for help text
+personas_file = File.join(SCRIPT_DIR, 'personas.json')
+available_personas = JSON.parse(File.read(personas_file))
+agents_help = available_personas.map { |k, v| "  #{k.ljust(8)} - #{v['focus']}" }.join("\n")
+
 options = {
   model: 'sonnet',
   agents: 'white,blonde,orange',
@@ -445,6 +525,9 @@ OptionParser.new do |opts|
     Pluribus - Multi-agent goal refinement conversation
 
     Usage: pluribus --goal="Your goal description" [options]
+
+    Available agents:
+#{agents_help}
   BANNER
 
   opts.on('--goal=GOAL', 'Goal to refine (required)') do |g|
@@ -463,7 +546,7 @@ OptionParser.new do |opts|
     options[:duration] = d
   end
 
-  opts.on('--debug', 'Enable debug logging to pluribus-debug-*/') do
+  opts.on('--debug', 'Enable debug logging to debug/') do
     options[:debug] = true
   end
 
