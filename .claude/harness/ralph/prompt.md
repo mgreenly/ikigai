@@ -49,7 +49,7 @@ Use these instead of raw make commands. They return terse JSON summaries - no ou
 | `.claude/harness/helgrind/run`   | Run thread error detection    |
 | `.claude/harness/coverage/run`   | Check test coverage           |
 
-**Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) on the Bash tool. Do NOT background or tail logs - just wait.
+**Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) using the Bash tool. Do NOT background or tail logs, run them one at a time and just wait.
 
 **Single-file mode:** Use `--file=PATH` to get results for one file only. Same 60 minute timeout applies.
 ```bash
@@ -105,7 +105,7 @@ End each iteration with StructuredOutput:
 {"progress": "What you accomplished or attempted this step"}
 ```
 
-When the goal is complete:
+When the goal is complete return only the progress message "DONE":
 
 ```json
 {"progress": "DONE"}
