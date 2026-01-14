@@ -187,7 +187,7 @@ EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_co
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
 REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool tools $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -580,6 +580,33 @@ bash_tool: libexec/ikigai/bash_tool
 
 libexec/ikigai/bash_tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_read_tool: libexec/ikigai/file-read
+
+libexec/ikigai/file-read: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_write_tool: libexec/ikigai/file-write
+
+libexec/ikigai/file-write: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_edit_tool: libexec/ikigai/file-edit
+
+libexec/ikigai/file-edit: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+glob_tool: libexec/ikigai/glob
+
+libexec/ikigai/glob: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+grep_tool: libexec/ikigai/grep
+
+libexec/ikigai/grep: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
