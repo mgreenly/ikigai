@@ -13,7 +13,7 @@ SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 
 # Ralph: Iterative goal completion harness
 class Ralph
-  VERSION = '0.2.0'
+  VERSION = '0.3.0'
 
   MAX_RECENT = 10
   SUMMARY_INTERVAL = MAX_RECENT / 2
@@ -55,7 +55,7 @@ class Ralph
     'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
   }.freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:)
     @goal_files = goal_file.split(',')
     @goal_file = @goal_files.first
     @current_goal_index = 0
@@ -68,6 +68,7 @@ class Ralph
     @no_art = no_art
     @no_quotes = no_quotes
     @continue_run = continue_run
+    @debug = debug
 
     @start_time = Time.now
     @iteration = 0
@@ -89,8 +90,8 @@ class Ralph
     set_goal_paths(@goal_file)
 
     # Prompt templates
-    @prompt_template = File.join(SCRIPT_DIR, 'prompt.md')
-    @summarizer_template = File.join(SCRIPT_DIR, 'summarizer.md')
+    @prompt_template = File.join(SCRIPT_DIR, 'prompt.md.erb')
+    @summarizer_template = File.join(SCRIPT_DIR, 'summarizer.md.erb')
   end
 
   def set_goal_paths(goal_file)
@@ -457,54 +458,154 @@ class Ralph
   # ─────────────────────────────────────────────────────────────
 
   def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:, iteration_start: nil)
-    with_temp_file(prompt) do |prompt_file|
-      env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
-      cmd = "#{env}claude -p #{prompt_file} --model #{model} --tools \"#{tools}\" --verbose --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
+    env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
+    cmd = "#{env}claude -p --model #{model} --tools \"#{tools}\" --verbose --input-format stream-json --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
 
-      result = nil
-      tool_names = {}  # track tool_use_id -> tool_name for result lookup
-      assistant_messages = 0
-      tool_uses = 0
+    result = nil
+    tool_names = {}  # track tool_use_id -> tool_name for result lookup
+    counters = { assistant_messages: 0, tool_uses: 0 }
 
-      start_waiting_timer(iteration_start) if iteration_start
-      IO.popen(cmd, 'r') do |io|
-        io.each_line do |line|
-          event = JSON.parse(line) rescue next
-          case event['type']
-          when 'assistant'
-            assistant_messages += 1
-            context_pct = extract_context_percentage(event)
-            text = extract_text_content(event)
-            output_message(text, iteration_start, context_pct) unless text.empty?
-            tool_use_list = extract_tool_uses(event)
-            tool_uses += tool_use_list.length
-            tool_use_list.each do |tool_use|
-              tool_names[tool_use['id']] = tool_use['name']
-              output_tool_use(tool_use, iteration_start)
-            end
-            # Track tokens from usage
-            track_usage(event, model) if iteration_start
-          when 'user'
-            # Tool results only - user text messages don't appear in this context
-            extract_tool_results(event).each do |tool_result|
-              name = tool_names[tool_result['tool_use_id']] || 'unknown'
-              output_tool_result(name, tool_result, event['tool_use_result'], iteration_start)
-            end
-          when 'result'
-            result = event
-          end
+    start_waiting_timer(iteration_start) if iteration_start
+    IO.popen(cmd, 'r+') do |io|
+      # Send initial prompt via stdin
+      initial_message = {
+        type: 'user',
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: prompt }]
+        }
+      }
+      io.puts(initial_message.to_json)
+      io.flush
+      debug("sent initial prompt (#{prompt.length} chars)")
+
+      # First attempt to read result
+      result = read_until_result(io, tool_names, iteration_start, model, counters)
+
+      # Retry logic for invalid structured output
+      retry_count = 0
+      max_retries = 3
+      last_error = nil
+
+      while result && retry_count < max_retries
+        parsed = parse_progress_result(result)
+
+        if parsed[:error]
+          # Send correction message
+          retry_count += 1
+          last_error = parsed[:error]
+          correction = build_correction_message(parsed[:error])
+          io.puts(correction)
+          io.flush
+
+          # Read next result
+          result = read_until_result(io, tool_names, iteration_start, model, counters)
+        else
+          # Valid result, exit retry loop
+          break
         end
       end
+
+      # Check if retries exhausted
+      if result && retry_count >= max_retries
+        parsed = parse_progress_result(result)
+        if parsed[:error]
+          # Retries exhausted - create error result
+          result = {
+            'structured_output' => {
+              'progress' => "ERROR: Failed to parse structured output after #{max_retries} retries. Last error: #{last_error}"
+            }
+          }
+        end
+      end
+
+      # Close write end after valid result or exhausted retries
+      io.close_write
+    end
       stop_waiting_timer if iteration_start
 
       # Update running totals
       if iteration_start
-        @total_assistant_messages += assistant_messages
-        @total_tool_uses += tool_uses
+        @total_assistant_messages += counters[:assistant_messages]
+        @total_tool_uses += counters[:tool_uses]
       end
 
       result&.to_json
+  end
+
+  def read_until_result(io, tool_names, iteration_start, model, counters)
+    result = nil
+
+    io.each_line do |line|
+      event = JSON.parse(line) rescue next
+      debug("event type: #{event['type']}")
+      case event['type']
+      when 'assistant'
+        counters[:assistant_messages] += 1
+        context_pct = extract_context_percentage(event)
+        text = extract_text_content(event)
+        output_message(text, iteration_start, context_pct) unless text.empty?
+        tool_use_list = extract_tool_uses(event)
+        counters[:tool_uses] += tool_use_list.length
+        tool_use_list.each do |tool_use|
+          tool_names[tool_use['id']] = tool_use['name']
+          output_tool_use(tool_use, iteration_start)
+        end
+        # Track tokens from usage
+        track_usage(event, model) if iteration_start
+      when 'user'
+        # Tool results only - user text messages don't appear in this context
+        extract_tool_results(event).each do |tool_result|
+          name = tool_names[tool_result['tool_use_id']] || 'unknown'
+          output_tool_result(name, tool_result, event['tool_use_result'], iteration_start)
+        end
+      when 'result'
+        result = event
+        break
+      end
     end
+
+    result
+  end
+
+  def parse_progress_result(result)
+    return { error: 'no structured_output' } if result.nil?
+
+    structured = result['structured_output']
+    if structured.nil?
+      return { error: 'no structured_output' }
+    end
+
+    progress = structured['progress']
+    if progress.nil?
+      return { error: 'no progress field' }
+    end
+
+    { progress: progress }
+  end
+
+  def build_correction_message(error_type)
+    correction_text = case error_type
+    when 'no structured_output'
+      'You must use the StructuredOutput tool. Return: {"progress": "what you accomplished"}'
+    when 'no progress field'
+      'Missing "progress" field. Return: {"progress": "what you accomplished"}'
+    else
+      'Invalid output. Use StructuredOutput tool: {"progress": "what you accomplished"}'
+    end
+
+    {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: correction_text
+          }
+        ]
+      }
+    }.to_json
   end
 
   def track_usage(event, model)
@@ -764,7 +865,6 @@ class Ralph
     puts
     if progress == 'DONE'
       puts "\e[32m✓ DONE\e[0m"
-      puts
     else
       # Word wrap and indent
       wrapped = word_wrap(progress, 66)
@@ -799,8 +899,6 @@ class Ralph
 
     puts
     puts "\e[1m" + '═' * 70 + "\e[0m"
-    puts "\e[1m  COMPLETE\e[0m"
-    puts
 
     if @goal_files.length > 1
       puts "  Goals: #{@goal_files.length}"
@@ -884,6 +982,12 @@ class Ralph
   def log(message)
     timestamp = Time.now.strftime('%H:%M:%S')
     puts "  \e[90m[#{timestamp}]\e[0m #{message}"
+  end
+
+  def debug(message)
+    return unless @debug
+
+    $stderr.puts "\e[33m[DEBUG] #{message}\e[0m"
   end
 
   def fatal(message)
@@ -983,7 +1087,7 @@ class Ralph
         if since_output >= 5.0
           @waiting_timer_displayed = true
           elapsed = format_elapsed(since_output.to_i)
-          print "\r(#{elapsed})"
+          print "\rthinking (+#{elapsed})"
           $stdout.flush
         end
         sleep 0.1
@@ -1007,7 +1111,7 @@ class Ralph
   def clear_waiting_timer
     return unless @waiting_timer_displayed
 
-    print "\r#{' ' * 20}\r"
+    print "\r#{' ' * 30}\r"
     $stdout.flush
     @waiting_timer_displayed = false
   end
@@ -1023,7 +1127,8 @@ options = {
   no_spinner: true,
   no_art: false,
   no_quotes: false,
-  continue: false
+  continue: false,
+  debug: false
 }
 
 OptionParser.new do |opts|
@@ -1065,6 +1170,10 @@ OptionParser.new do |opts|
     options[:no_quotes] = true
   end
 
+  opts.on('--debug', 'Enable debug output') do
+    options[:debug] = true
+  end
+
   opts.on('-h', '--help', 'Show this help') do
     puts opts
     exit
@@ -1090,7 +1199,8 @@ ralph = Ralph.new(
   no_spinner: options[:no_spinner],
   no_art: options[:no_art],
   no_quotes: options[:no_quotes],
-  continue_run: options[:continue]
+  continue_run: options[:continue],
+  debug: options[:debug]
 )
 
 begin
