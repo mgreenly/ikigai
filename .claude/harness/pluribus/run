@@ -5,6 +5,7 @@ require 'json'
 require 'optparse'
 require 'erb'
 require 'fileutils'
+require 'time'
 
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 
@@ -297,7 +298,7 @@ class Agent
   end
 
   def start
-    cmd = "claude -p --model #{@model} --input-format stream-json --output-format stream-json --json-schema '#{RESPONSE_SCHEMA}' 2>/dev/null"
+    cmd = "claude -p --verbose --model #{@model} --input-format stream-json --output-format stream-json --json-schema '#{RESPONSE_SCHEMA}' 2>/dev/null"
     @io = IO.popen(cmd, 'r+')
 
     # Send initial system context
