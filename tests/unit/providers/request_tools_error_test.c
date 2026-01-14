@@ -51,7 +51,7 @@ START_TEST(test_set_system_error_cleanup) {
     agent->shared->cfg->openai_system_message = huge_msg;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     // Should still succeed - allocation failures are very rare
     ck_assert(!is_err(&result));
@@ -83,7 +83,7 @@ START_TEST(test_add_message_error_cleanup) {
     }
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     // Should succeed - documenting the error path
     ck_assert(!is_err(&result));
@@ -106,7 +106,7 @@ START_TEST(test_add_tool_error_cleanup) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     // Should succeed with 0 tools (internal tools removed)
     ck_assert(!is_err(&result));

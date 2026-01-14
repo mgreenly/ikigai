@@ -44,7 +44,7 @@ START_TEST(test_glob_required_parameters) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
 
@@ -67,7 +67,7 @@ START_TEST(test_grep_required_parameters) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
 
@@ -89,7 +89,7 @@ START_TEST(test_file_write_required_parameters) {
     agent->message_count = 0;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
 

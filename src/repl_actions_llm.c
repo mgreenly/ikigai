@@ -145,7 +145,7 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
 
     // Build normalized request from conversation
     ik_request_t *req = NULL;
-    result = ik_request_build_from_conversation(agent, agent, &req);
+    result = ik_request_build_from_conversation(agent, agent, agent->shared->tool_registry, &req);
     if (is_err(&result)) {
         const char *err_msg = error_message(result.err);
         ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));

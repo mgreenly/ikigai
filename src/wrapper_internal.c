@@ -14,13 +14,14 @@
 #include "db/connection.h"
 #include "db/message.h"
 #include "logger.h"
+#include "message.h"
 #include "msg.h"
 #include "providers/common/http_multi.h"
 #include "providers/request.h"
 #include "repl.h"
 #include "repl_tool_completion.h"
 #include "scrollback.h"
-#include "message.h"
+#include "tool_registry.h"
 
 // ============================================================================
 // Internal ikigai function wrappers for testing - debug/test builds only
@@ -56,9 +57,9 @@ MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out)
     return ik_agent_get_provider((ik_agent_ctx_t *)agent, (ik_provider_t **)provider_out);
 }
 
-MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
 {
-    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+    return ik_request_build_from_conversation(ctx, agent, (ik_tool_registry_t *)registry, (ik_request_t **)req_out);
 }
 
 MOCKABLE res_t ik_http_multi_create_(void *parent, void **out)

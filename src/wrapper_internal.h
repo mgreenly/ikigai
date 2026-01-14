@@ -49,9 +49,9 @@ MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out)
     return ik_agent_get_provider((ik_agent_ctx_t *)agent, (ik_provider_t **)provider_out);
 }
 
-MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
 {
-    return ik_request_build_from_conversation(ctx, agent, (ik_request_t **)req_out);
+    return ik_request_build_from_conversation(ctx, agent, (ik_tool_registry_t *)registry, (ik_request_t **)req_out);
 }
 
 MOCKABLE res_t ik_http_multi_create_(void *parent, void **out)
@@ -108,7 +108,7 @@ MOCKABLE res_t ik_db_message_insert_(void *db,
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length);
 MOCKABLE res_t ik_repl_render_frame_(void *repl);
 MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out);
-MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out);
+MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out);
 MOCKABLE res_t ik_http_multi_create_(void *parent, void **out);
 MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
 MOCKABLE void ik_agent_start_tool_execution_(void *agent);

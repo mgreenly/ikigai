@@ -54,7 +54,7 @@ START_TEST(test_copy_text_message) {
     agent->messages[0]->content_blocks[0].data.text.text = talloc_strdup(agent->messages[0], "Hello");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -87,7 +87,7 @@ START_TEST(test_copy_tool_call_message) {
     agent->messages[0]->content_blocks[0].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{}");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -123,7 +123,7 @@ START_TEST(test_copy_tool_result_message) {
     agent->messages[0]->content_blocks[0].data.tool_result.is_error = false;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -160,7 +160,7 @@ START_TEST(test_copy_tool_result_error_message) {
     agent->messages[0]->content_blocks[0].data.tool_result.is_error = true;
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);
@@ -206,7 +206,7 @@ START_TEST(test_copy_multiple_content_blocks) {
     agent->messages[0]->content_blocks[2].data.thinking.text = talloc_strdup(agent->messages[0], "Analyzing...");
 
     ik_request_t *req = NULL;
-    res_t result = ik_request_build_from_conversation(test_ctx, agent, &req);
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
     ck_assert_int_eq((int)req->message_count, 1);

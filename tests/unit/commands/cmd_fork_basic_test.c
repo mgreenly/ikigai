@@ -43,9 +43,10 @@ res_t ik_agent_get_provider_(void *agent, void **provider_out)
 }
 
 // Mock ik_request_build_from_conversation_ - default passthrough
-res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void **req_out)
+res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out)
 {
     (void)agent;
+    (void)registry;
     ik_request_t *req = talloc_zero(ctx, ik_request_t);
     if (req == NULL) {
         TALLOC_CTX *err_ctx = talloc_new(NULL);

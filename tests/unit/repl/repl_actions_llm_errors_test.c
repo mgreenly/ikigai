@@ -92,9 +92,10 @@ res_t ik_agent_get_provider(ik_agent_ctx_t *agent, ik_provider_t **provider_out)
 }
 
 // Mock ik_request_build_from_conversation
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_request_t **req_out)
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_tool_registry_t *registry, ik_request_t **req_out)
 {
     (void)agent;
+    (void)registry;
 
     if (mock_build_request_should_fail) {
         if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
@@ -139,6 +140,7 @@ static void setup(void)
     ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
     repl->current = agent;
+    agent->shared = shared;
 
     // Create scrollback
     repl->current->scrollback = ik_scrollback_create(repl, 80);
