@@ -109,6 +109,11 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
         return false; // LCOV_EXCL_LINE
     }
 
+    // OpenAI strict mode requires additionalProperties: false
+    if (!yyjson_mut_obj_add_bool(doc, params_mut, "additionalProperties", false)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
+
     if (!yyjson_mut_obj_add_val(doc, func_obj, "parameters", params_mut)) { // LCOV_EXCL_BR_LINE
         return false; // LCOV_EXCL_LINE
     }

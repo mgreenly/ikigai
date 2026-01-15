@@ -360,6 +360,115 @@ START_TEST(test_skip_large_schema) {
 
 END_TEST
 
+// Test: Tool name with hyphens gets converted to underscores
+START_TEST(test_hyphen_conversion) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool with hyphens in name
+    create_test_tool_in_dir(system_dir, "file-read", "File read tool");
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Hyphens should be converted to underscores
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "file_read");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "file_read");
+}
+
+END_TEST
+
+// Test: Tool without -tool suffix
+START_TEST(test_tool_without_suffix) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool without -tool suffix
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/mytool", system_dir);
+    FILE *f = fopen(path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\n");
+    fprintf(f, "if [ \"$1\" = \"--schema\" ]; then\n");
+    fprintf(f, "  printf '{\"name\":\"mytool\",\"description\":\"Custom tool\"}'\n");
+    fprintf(f, "  exit 0\n");
+    fprintf(f, "fi\n");
+    fprintf(f, "exit 1\n");
+    fclose(f);
+    chmod(path, 0755);
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Name should be used as-is without suffix stripping
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "mytool");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "mytool");
+}
+
+END_TEST
+
+// Test: Tool with short name (shorter than -tool suffix)
+START_TEST(test_short_tool_name) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool with very short name (shorter than "-tool" suffix)
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/a", system_dir);
+    FILE *f = fopen(path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\n");
+    fprintf(f, "if [ \"$1\" = \"--schema\" ]; then\n");
+    fprintf(f, "  printf '{\"name\":\"a\",\"description\":\"Short tool\"}'\n");
+    fprintf(f, "  exit 0\n");
+    fprintf(f, "fi\n");
+    fprintf(f, "exit 1\n");
+    fclose(f);
+    chmod(path, 0755);
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Name should be used as-is
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "a");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "a");
+}
+
+END_TEST
+
 static Suite *tool_discovery_suite(void)
 {
     Suite *s = suite_create("ToolDiscovery");
@@ -378,6 +487,9 @@ static Suite *tool_discovery_suite(void)
     tcase_add_test(tc_core, test_skip_crashing_tool);
     tcase_add_test(tc_core, test_skip_silent_tool);
     tcase_add_test(tc_core, test_skip_large_schema);
+    tcase_add_test(tc_core, test_hyphen_conversion);
+    tcase_add_test(tc_core, test_tool_without_suffix);
+    tcase_add_test(tc_core, test_short_tool_name);
 
     suite_add_tcase(s, tc_core);
 
