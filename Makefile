@@ -192,7 +192,7 @@ REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/requ
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
 
-all: $(CLIENT_TARGET)
+all: $(CLIENT_TARGET) tools
 
 release:
 	@$(MAKE) clean
@@ -651,6 +651,13 @@ else
 endif
 	# Install actual binary to libexec
 	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	# Install tool binaries to libexec
+	install -m 755 libexec/ikigai/bash-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-read-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-write-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-edit-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
 	printf '#!/bin/sh\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
@@ -684,6 +691,12 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/bash-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-read-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-write-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-edit-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/glob-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)
