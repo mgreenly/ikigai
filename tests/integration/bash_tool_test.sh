@@ -1,6 +1,6 @@
 #!/bin/bash
-# Automated bash_tool integration test
-# Tests bash_tool's JSON I/O and command execution
+# Automated bash tool integration test
+# Tests bash tool's JSON I/O and command execution
 #
 # Usage: ./tests/integration/bash_tool_test.sh
 # Exit codes: 0 = success, non-zero = failure
@@ -13,20 +13,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-BASH_TOOL="libexec/ikigai/bash_tool"
+BASH_TOOL="libexec/ikigai/bash-tool"
 
 echo "======================================"
-echo "bash_tool Integration Test Suite"
+echo "bash Integration Test Suite"
 echo "======================================"
 echo "Tool: $BASH_TOOL"
 echo ""
 
-# Verify bash_tool exists
+# Verify bash tool exists
 if [ ! -f "$BASH_TOOL" ]; then
-    echo -e "${RED}✗ bash_tool not found: $BASH_TOOL${NC}"
+    echo -e "${RED}✗ bash tool not found: $BASH_TOOL${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ bash_tool exists${NC}"
+echo -e "${GREEN}✓ bash tool exists${NC}"
 
 # Test 1: Schema flag exits 0
 echo -e "${YELLOW}Testing --schema flag...${NC}"
@@ -86,7 +86,7 @@ echo -e "${GREEN}✓ Non-zero exit code captured${NC}"
 # Test 5: Empty input writes to stderr and exits non-zero
 echo -e "${YELLOW}Testing empty input...${NC}"
 OUTPUT=$(echo -n "" | "$BASH_TOOL" 2>&1 || true)
-if echo "$OUTPUT" | grep -q "bash_tool: empty input"; then
+if echo "$OUTPUT" | grep -q "bash: empty input"; then
     echo -e "${GREEN}✓ Empty input writes to stderr${NC}"
 else
     echo -e "${RED}✗ Empty input not handled correctly${NC}"
@@ -97,7 +97,7 @@ fi
 # Test 6: Invalid JSON writes to stderr and exits non-zero
 echo -e "${YELLOW}Testing invalid JSON...${NC}"
 OUTPUT=$(echo "invalid" | "$BASH_TOOL" 2>&1 || true)
-if echo "$OUTPUT" | grep -q "bash_tool: invalid JSON"; then
+if echo "$OUTPUT" | grep -q "bash: invalid JSON"; then
     echo -e "${GREEN}✓ Invalid JSON writes to stderr${NC}"
 else
     echo -e "${RED}✗ Invalid JSON not handled correctly${NC}"
@@ -108,7 +108,7 @@ fi
 # Test 7: Missing command field writes to stderr and exits non-zero
 echo -e "${YELLOW}Testing missing command field...${NC}"
 OUTPUT=$(echo '{}' | "$BASH_TOOL" 2>&1 || true)
-if echo "$OUTPUT" | grep -q "bash_tool: missing command field"; then
+if echo "$OUTPUT" | grep -q "bash: missing command field"; then
     echo -e "${GREEN}✓ Missing command field error handled${NC}"
 else
     echo -e "${RED}✗ Missing command field not handled correctly${NC}"
@@ -119,7 +119,7 @@ fi
 # Test 8: Non-string command field writes to stderr and exits non-zero
 echo -e "${YELLOW}Testing non-string command field...${NC}"
 OUTPUT=$(echo '{"command":123}' | "$BASH_TOOL" 2>&1 || true)
-if echo "$OUTPUT" | grep -q "bash_tool: command must be a string"; then
+if echo "$OUTPUT" | grep -q "bash: command must be a string"; then
     echo -e "${GREEN}✓ Non-string command field writes to stderr${NC}"
 else
     echo -e "${RED}✗ Non-string command field not handled correctly${NC}"
@@ -140,7 +140,7 @@ fi
 
 echo ""
 echo "======================================"
-echo -e "${GREEN}✓ All bash_tool tests passed!${NC}"
+echo -e "${GREEN}✓ All bash tool tests passed!${NC}"
 echo "======================================"
 
 exit 0

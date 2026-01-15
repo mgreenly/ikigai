@@ -15,7 +15,7 @@ int32_t main(int32_t argc, char **argv)
 
     if (argc == 2 && strcmp(argv[1], "--schema") == 0) {
         printf("{\n");
-        printf("  \"name\": \"bash_tool\",\n");
+        printf("  \"name\": \"bash\",\n");
         printf("  \"description\": \"Execute a shell command and return output\",\n");
         printf("  \"parameters\": {\n");
         printf("    \"type\": \"object\",\n");
@@ -70,7 +70,7 @@ int32_t main(int32_t argc, char **argv)
 
     // Check for empty input
     if (total_read == 0) {
-        fprintf(stderr, "bash_tool: empty input\n");
+        fprintf(stderr, "bash: empty input\n");
         talloc_free(ctx);
         return 1;
     }
@@ -79,7 +79,7 @@ int32_t main(int32_t argc, char **argv)
     yyjson_alc allocator = ik_make_talloc_allocator(ctx);
     yyjson_doc *doc = yyjson_read_opts(input, total_read, 0, &allocator, NULL);
     if (doc == NULL) {
-        fprintf(stderr, "bash_tool: invalid JSON\n");
+        fprintf(stderr, "bash: invalid JSON\n");
         talloc_free(ctx);
         return 1;
     }
@@ -88,14 +88,14 @@ int32_t main(int32_t argc, char **argv)
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *command = yyjson_obj_get(root, "command");
     if (command == NULL) {
-        fprintf(stderr, "bash_tool: missing command field\n");
+        fprintf(stderr, "bash: missing command field\n");
         talloc_free(ctx);
         return 1;
     }
 
     // Check that "command" is a string
     if (!yyjson_is_str(command)) {
-        fprintf(stderr, "bash_tool: command must be a string\n");
+        fprintf(stderr, "bash: command must be a string\n");
         talloc_free(ctx);
         return 1;
     }

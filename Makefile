@@ -576,34 +576,34 @@ bin:
 libexec/ikigai:
 	@mkdir -p libexec/ikigai && echo "📁 libexec/ikigai"
 
-bash_tool: libexec/ikigai/bash_tool
+bash_tool: libexec/ikigai/bash-tool
 
-libexec/ikigai/bash_tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/bash-tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-file_read_tool: libexec/ikigai/file-read
+file_read_tool: libexec/ikigai/file-read-tool
 
-libexec/ikigai/file-read: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-read-tool: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-file_write_tool: libexec/ikigai/file-write
+file_write_tool: libexec/ikigai/file-write-tool
 
-libexec/ikigai/file-write: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-write-tool: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-file_edit_tool: libexec/ikigai/file-edit
+file_edit_tool: libexec/ikigai/file-edit-tool
 
-libexec/ikigai/file-edit: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-edit-tool: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-glob_tool: libexec/ikigai/glob
+glob_tool: libexec/ikigai/glob-tool
 
-libexec/ikigai/glob: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/glob-tool: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-grep_tool: libexec/ikigai/grep
+grep_tool: libexec/ikigai/grep-tool
 
-libexec/ikigai/grep: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/grep-tool: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool
@@ -1274,7 +1274,7 @@ help:
 	@echo "  check           - Build and run all tests (use TEST=name for single test)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
-	@echo "  check-bash-tool - Build and test bash_tool integration"
+	@echo "  check-bash-tool - Build and test bash tool integration"
 	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses credentials.json or OPENAI_API_KEY)"
 	@echo "  verify-mocks-anthropic - Verify Anthropic mock fixtures (uses credentials.json or ANTHROPIC_API_KEY)"
 	@echo "  verify-mocks-google - Verify Google mock fixtures (uses credentials.json or GOOGLE_API_KEY)"

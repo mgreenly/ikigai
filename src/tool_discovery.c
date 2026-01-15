@@ -101,8 +101,9 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
     return doc;
 }
 
-// Extract tool name from path (last component, remove _tool suffix)
-// e.g., "/path/to/bash_tool" -> "bash_tool"
+// Extract tool name from path (last component, strip -tool suffix, convert hyphens to underscores)
+// e.g., "/path/to/bash-tool" -> "bash"
+// e.g., "/path/to/file-read-tool" -> "file_read"
 static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
 {
     const char *basename = strrchr(path, '/');
@@ -112,7 +113,29 @@ static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
         basename++;
     }
 
-    return talloc_strdup(ctx, basename);
+    // Check if basename ends with "-tool" and strip it
+    size_t len = strlen(basename);
+    const char *suffix = "-tool";
+    size_t suffix_len = strlen(suffix);
+
+    char *name = NULL;
+    if (len > suffix_len && strcmp(basename + len - suffix_len, suffix) == 0) {
+        // Strip the suffix
+        name = talloc_strndup(ctx, basename, len - suffix_len);
+    } else {
+        name = talloc_strdup(ctx, basename);
+    }
+
+    if (name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Convert hyphens to underscores
+    for (size_t i = 0; i < strlen(name); i++) {
+        if (name[i] == '-') {
+            name[i] = '_';
+        }
+    }
+
+    return name;
 }
 
 // Scan a single directory and add tools to registry
