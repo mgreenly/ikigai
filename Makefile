@@ -187,12 +187,12 @@ EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_co
 REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
 REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool tools $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
 
-all: $(CLIENT_TARGET)
+all: $(CLIENT_TARGET) tools
 
 release:
 	@$(MAKE) clean
@@ -576,10 +576,37 @@ bin:
 libexec/ikigai:
 	@mkdir -p libexec/ikigai && echo "📁 libexec/ikigai"
 
-bash_tool: libexec/ikigai/bash_tool
+bash_tool: libexec/ikigai/bash-tool
 
-libexec/ikigai/bash_tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/bash-tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_read_tool: libexec/ikigai/file-read-tool
+
+libexec/ikigai/file-read-tool: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_write_tool: libexec/ikigai/file-write-tool
+
+libexec/ikigai/file-write-tool: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+file_edit_tool: libexec/ikigai/file-edit-tool
+
+libexec/ikigai/file-edit-tool: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+glob_tool: libexec/ikigai/glob-tool
+
+libexec/ikigai/glob-tool: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+grep_tool: libexec/ikigai/grep-tool
+
+libexec/ikigai/grep-tool: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
@@ -624,6 +651,13 @@ else
 endif
 	# Install actual binary to libexec
 	install -m 755 $(CLIENT_TARGET) $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	# Install tool binaries to libexec
+	install -m 755 libexec/ikigai/bash-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-read-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-write-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-edit-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
 	printf '#!/bin/sh\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
@@ -657,6 +691,12 @@ endif
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/ikigai
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/bash-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-read-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-write-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-edit-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/glob-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)
@@ -1247,7 +1287,7 @@ help:
 	@echo "  check           - Build and run all tests (use TEST=name for single test)"
 	@echo "  check-unit      - Build and run only unit tests"
 	@echo "  check-integration - Build and run only integration tests"
-	@echo "  check-bash-tool - Build and test bash_tool integration"
+	@echo "  check-bash-tool - Build and test bash tool integration"
 	@echo "  verify-mocks    - Verify OpenAI mock fixtures (uses credentials.json or OPENAI_API_KEY)"
 	@echo "  verify-mocks-anthropic - Verify Anthropic mock fixtures (uses credentials.json or ANTHROPIC_API_KEY)"
 	@echo "  verify-mocks-google - Verify Google mock fixtures (uses credentials.json or GOOGLE_API_KEY)"

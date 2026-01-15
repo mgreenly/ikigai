@@ -1,0 +1,603 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'optparse'
+require 'erb'
+require 'fileutils'
+require 'time'
+
+SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
+
+# Pluribus: Multi-agent conversation for goal refinement
+class Pluribus
+  VERSION = '0.1.0'
+
+  RESPONSE_SCHEMA = '{"type":"object","properties":{"response":{"type":"string"}},"required":["response"]}'
+
+  COLORS = %w[white blonde orange pink brown blue].freeze
+
+  # Model pricing (USD per million tokens)
+  MODEL_PRICING = {
+    'haiku' => { input: 0.80, output: 4.00, cache_read: 0.08, cache_create: 1.00 },
+    'sonnet' => { input: 3.00, output: 15.00, cache_read: 0.30, cache_create: 3.75 },
+    'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
+  }.freeze
+
+  def initialize(goal:, agent_colors:, model:, debug:, duration:)
+    @goal = goal
+    @agent_colors = agent_colors
+    @model = model
+    @debug = debug
+    @duration_seconds = parse_duration(duration)
+    @start_time = Time.now
+
+    @personas = load_personas
+    @agents = []
+    @conversation = []
+    @round = 0
+
+    # Tracking totals
+    @total_tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
+    @total_cost = 0.0
+    @total_assistant_messages = 0
+    @total_tool_uses = 0
+
+    @debug_dir = nil
+    if @debug
+      @debug_dir = File.join(SCRIPT_DIR, 'debug')
+      FileUtils.mkdir_p(@debug_dir)
+      @master_log = File.open("#{@debug_dir}/master.jsonl", 'w')
+    end
+  end
+
+  def run
+    display_header
+    initialize_agents
+    run_conversation_loop
+  rescue Interrupt
+    puts "\n\nInterrupted"
+  ensure
+    cleanup
+    display_summary
+  end
+
+  private
+
+  # ─────────────────────────────────────────────────────────────
+  # Setup
+  # ─────────────────────────────────────────────────────────────
+
+  def load_personas
+    personas_file = File.join(SCRIPT_DIR, 'personas.json')
+    JSON.parse(File.read(personas_file))
+  end
+
+  def initialize_agents
+    puts "Starting #{@agent_colors.length} agents..."
+    puts
+
+    @agent_colors.each do |color|
+      persona = @personas[color]
+      unless persona
+        fatal "Unknown persona: #{color}. Available: #{@personas.keys.join(', ')}"
+      end
+
+      agent = Agent.new(
+        color: color,
+        persona: persona,
+        model: @model,
+        goal: @goal,
+        agent_count: @agent_colors.length,
+        debug_dir: @debug_dir
+      )
+      agent.start
+      @agents << agent
+
+      puts "  Mr. #{color.capitalize} (#{persona['focus']}) - ready"
+    end
+    puts
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Conversation Loop
+  # ─────────────────────────────────────────────────────────────
+
+  def run_conversation_loop
+    # Initial moderator message
+    add_moderator("The conversation begins. Discuss and refine the goal.")
+
+    loop do
+      break if time_expired?
+
+      @round += 1
+      display_round_header
+
+      active_agents = @agents.select(&:active?)
+      break if active_agents.empty?
+
+      round_all_passed = true
+
+      active_agents.each do |agent|
+        break if time_expired?
+
+        # Announce turn
+        add_moderator("Mr. #{agent.color.capitalize}, you're next.")
+
+        # Agent takes turn
+        response = agent.take_turn(@conversation)
+
+        case response
+        when 'PASS'
+          add_moderator("Mr. #{agent.color.capitalize} passes.")
+        when 'DONE'
+          agent.done!
+          add_moderator("Mr. #{agent.color.capitalize} has left the conversation.")
+        else
+          round_all_passed = false
+          add_agent_message(agent, response)
+        end
+      end
+
+      # Check for stall (everyone passed)
+      if round_all_passed
+        puts "\e[33mAll agents passed. Conversation stalled.\e[0m"
+        break
+      end
+    end
+  end
+
+  def add_moderator(text)
+    entry = { speaker: 'Moderator', text: text, timestamp: Time.now.iso8601 }
+    @conversation << entry
+    log_master(entry)
+    display_message('Moderator', text, :moderator)
+  end
+
+  def add_agent_message(agent, text)
+    speaker = "Mr. #{agent.color.capitalize}"
+    entry = { speaker: speaker, text: text, timestamp: Time.now.iso8601 }
+    @conversation << entry
+    log_master(entry)
+    display_message(speaker, text, agent.color.to_sym)
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Display
+  # ─────────────────────────────────────────────────────────────
+
+  AGENT_COLORS = {
+    moderator: "\e[38;5;245m", # gray
+    white: "\e[38;5;255m",     # bright white
+    blonde: "\e[38;5;220m",    # gold
+    orange: "\e[38;5;208m",    # orange
+    pink: "\e[38;5;213m",      # hot pink
+    brown: "\e[38;5;130m",     # brown
+    blue: "\e[38;5;75m"        # sky blue
+  }.freeze
+
+  def display_header
+    puts
+    puts "\e[1mPLURIBUS v#{VERSION}\e[0m"
+    puts
+    puts "Multi-agent goal refinement conversation"
+    puts
+    puts "\e[1mGoal:\e[0m #{@goal[0, 100]}#{'...' if @goal.length > 100}"
+    puts
+  end
+
+  def display_round_header
+    elapsed = format_elapsed((Time.now - @start_time).to_i)
+    tokens, cost = calculate_running_totals
+    puts
+    puts "\e[1m─── Round #{@round} (#{elapsed}) │ #{format_number(tokens)} tokens │ $#{format('%.4f', cost)} ───\e[0m"
+    puts
+  end
+
+  def calculate_running_totals
+    total_tokens = 0
+    total_cost = 0.0
+    pricing = MODEL_PRICING[@model]
+
+    @agents.each do |agent|
+      stats = agent.stats
+      tokens = stats[:tokens]
+      total_tokens += tokens.values.sum
+
+      if pricing
+        total_cost += (tokens[:input] * pricing[:input] / 1_000_000.0) +
+                      (tokens[:output] * pricing[:output] / 1_000_000.0) +
+                      (tokens[:cache_read] * pricing[:cache_read] / 1_000_000.0) +
+                      (tokens[:cache_create] * pricing[:cache_create] / 1_000_000.0)
+      end
+    end
+
+    [total_tokens, total_cost]
+  end
+
+  def display_message(speaker, text, color_key)
+    color = AGENT_COLORS[color_key] || ''
+    reset = "\e[0m"
+
+    puts "#{color}\e[1m#{speaker}:\e[0m#{color} #{text}#{reset}"
+    puts
+  end
+
+  def display_summary
+    # Collect stats from all agents
+    @agents.each do |agent|
+      stats = agent.stats
+      @total_tokens[:input] += stats[:tokens][:input]
+      @total_tokens[:output] += stats[:tokens][:output]
+      @total_tokens[:cache_read] += stats[:tokens][:cache_read]
+      @total_tokens[:cache_create] += stats[:tokens][:cache_create]
+      @total_assistant_messages += stats[:assistant_messages]
+      @total_tool_uses += stats[:tool_uses]
+    end
+
+    # Calculate cost
+    pricing = MODEL_PRICING[@model]
+    if pricing
+      @total_cost = (@total_tokens[:input] * pricing[:input] / 1_000_000.0) +
+                    (@total_tokens[:output] * pricing[:output] / 1_000_000.0) +
+                    (@total_tokens[:cache_read] * pricing[:cache_read] / 1_000_000.0) +
+                    (@total_tokens[:cache_create] * pricing[:cache_create] / 1_000_000.0)
+    end
+
+    elapsed = format_elapsed((Time.now - @start_time).to_i)
+    total_messages = @conversation.count { |m| m[:speaker] != 'Moderator' }
+
+    puts
+    puts "\e[1m" + '═' * 70 + "\e[0m"
+    puts "  Rounds: #{@round}"
+    puts "  Messages: #{total_messages}"
+    puts "  Assistant Messages: #{@total_assistant_messages}"
+    puts "  Tool Uses: #{@total_tool_uses}"
+    puts
+    puts "  Tokens:"
+    puts "    Input: #{format_number(@total_tokens[:input])}"
+    puts "    Output: #{format_number(@total_tokens[:output])}"
+    puts "    Cache Read: #{format_number(@total_tokens[:cache_read])}"
+    puts "    Cache Create: #{format_number(@total_tokens[:cache_create])}"
+    total_tokens = @total_tokens.values.sum
+    puts "    Total: #{format_number(total_tokens)}"
+    puts
+    puts "  Cost: $#{format('%.4f', @total_cost)}"
+    puts "  Elapsed: #{elapsed}"
+    if @debug_dir
+      puts "  Debug logs: #{@debug_dir}/"
+    end
+    puts "\e[1m" + '═' * 70 + "\e[0m"
+    puts
+  end
+
+  def format_number(num)
+    num.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Debug Logging
+  # ─────────────────────────────────────────────────────────────
+
+  def log_master(entry)
+    return unless @master_log
+
+    @master_log.puts(entry.to_json)
+    @master_log.flush
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Cleanup
+  # ─────────────────────────────────────────────────────────────
+
+  def cleanup
+    @agents.each(&:stop)
+    @master_log&.close
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Utilities
+  # ─────────────────────────────────────────────────────────────
+
+  def parse_duration(duration_str)
+    return Float::INFINITY if duration_str.nil?
+
+    value = duration_str.to_i
+    unit = duration_str[-1]
+
+    case unit
+    when 'h' then value * 3600
+    when 'm' then value * 60
+    else value
+    end
+  end
+
+  def format_elapsed(seconds)
+    hours, remainder = seconds.divmod(3600)
+    mins, secs = remainder.divmod(60)
+
+    if hours > 0
+      "#{hours}h #{mins}m #{secs}s"
+    elsif mins > 0
+      "#{mins}m #{secs}s"
+    else
+      "#{secs}s"
+    end
+  end
+
+  def time_expired?
+    return false if @duration_seconds == Float::INFINITY
+
+    elapsed = Time.now - @start_time
+    if elapsed >= @duration_seconds
+      puts "\e[33mTime budget expired.\e[0m"
+      true
+    else
+      false
+    end
+  end
+
+  def fatal(message)
+    $stderr.puts "\e[31mError: #{message}\e[0m"
+    exit 1
+  end
+end
+
+# Individual agent with persistent Claude process
+class Agent
+  attr_reader :color, :persona
+
+  RESPONSE_SCHEMA = '{"type":"object","properties":{"response":{"type":"string"}},"required":["response"]}'
+
+  def initialize(color:, persona:, model:, goal:, agent_count:, debug_dir:)
+    @color = color
+    @persona = persona
+    @model = model
+    @goal = goal
+    @agent_count = agent_count
+
+    @last_seen_index = 0
+    @status = :active
+    @io = nil
+
+    # Tracking
+    @tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
+    @assistant_messages = 0
+    @tool_uses = 0
+
+    @debug_file = debug_dir ? File.open("#{debug_dir}/#{color}.jsonl", 'w') : nil
+  end
+
+  def stats
+    {
+      tokens: @tokens,
+      assistant_messages: @assistant_messages,
+      tool_uses: @tool_uses
+    }
+  end
+
+  def start
+    cmd = "claude -p --verbose --model #{@model} --input-format stream-json --output-format stream-json --json-schema '#{RESPONSE_SCHEMA}' 2>/dev/null"
+    @io = IO.popen(cmd, 'r+')
+
+    # Send initial system context
+    system_prompt = build_system_prompt
+    send_message(system_prompt)
+    read_until_result  # consume initial response
+  end
+
+  def stop
+    return unless @io
+
+    @io.close rescue nil
+    @io = nil
+    @debug_file&.close
+  end
+
+  def active?
+    @status == :active
+  end
+
+  def done!
+    @status = :done
+  end
+
+  MAX_RETRIES = 3
+
+  def take_turn(conversation)
+    unseen = conversation[@last_seen_index..]
+    return 'PASS' if unseen.empty?
+
+    # Format unseen messages
+    text = unseen.map { |m| "#{m[:speaker]}: #{m[:text]}" }.join("\n\n")
+
+    send_message(text)
+    result = read_until_result
+
+    # Retry logic for invalid structured output
+    retry_count = 0
+    while retry_count < MAX_RETRIES
+      parsed = parse_response(result)
+
+      if parsed == :invalid
+        retry_count += 1
+        send_correction
+        result = read_until_result
+      else
+        @last_seen_index = conversation.length
+        return parsed
+      end
+    end
+
+    # Retries exhausted
+    @last_seen_index = conversation.length
+    'UNDECIPHERABLE'
+  end
+
+  def send_correction
+    correction = "You must respond with structured JSON output: {\"response\": \"your message here\"}\n\nRespond with PASS if you have nothing to add, or DONE if you're finished."
+    send_message(correction)
+  end
+
+  private
+
+  def build_system_prompt
+    template_file = File.join(SCRIPT_DIR, 'system.md.erb')
+    template = File.read(template_file)
+    erb = ERB.new(template)
+
+    erb.result_with_hash(
+      color: @color.capitalize,
+      persona: @persona,
+      agent_count: @agent_count,
+      goal: @goal
+    )
+  end
+
+  def send_message(text)
+    msg = {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: text }]
+      }
+    }
+
+    log_event('send', msg)
+    @io.puts(msg.to_json)
+    @io.flush
+  end
+
+  def read_until_result
+    result = nil
+
+    @io.each_line do |line|
+      event = JSON.parse(line) rescue next
+      log_event('recv', event)
+
+      case event['type']
+      when 'assistant'
+        @assistant_messages += 1
+        track_usage(event)
+        track_tool_uses(event)
+      when 'result'
+        result = event
+        break
+      end
+    end
+
+    result
+  end
+
+  def track_usage(event)
+    usage = event.dig('message', 'usage')
+    return unless usage
+
+    @tokens[:input] += usage['input_tokens'] || 0
+    @tokens[:output] += usage['output_tokens'] || 0
+    @tokens[:cache_read] += usage['cache_read_input_tokens'] || 0
+    @tokens[:cache_create] += usage['cache_creation_input_tokens'] || 0
+  end
+
+  def track_tool_uses(event)
+    content = event.dig('message', 'content') || []
+    @tool_uses += content.count { |b| b['type'] == 'tool_use' }
+  end
+
+  def parse_response(result)
+    return :invalid if result.nil?
+
+    structured = result['structured_output']
+    return :invalid unless structured
+
+    response = structured['response']
+    return :invalid unless response
+
+    response.strip
+  end
+
+  def log_event(direction, event)
+    return unless @debug_file
+
+    @debug_file.puts({
+      timestamp: Time.now.iso8601,
+      direction: direction,
+      event: event
+    }.to_json)
+    @debug_file.flush
+  end
+end
+
+# ─────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────
+
+# Load personas for help text
+personas_file = File.join(SCRIPT_DIR, 'personas.json')
+available_personas = JSON.parse(File.read(personas_file))
+agents_help = available_personas.map { |k, v| "  #{k.ljust(8)} - #{v['focus']}" }.join("\n")
+
+options = {
+  model: 'sonnet',
+  agents: 'white,blonde,orange',
+  debug: false
+}
+
+OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Pluribus - Multi-agent goal refinement conversation
+
+    Usage: pluribus --goal="Your goal description" [options]
+
+    Available agents:
+#{agents_help}
+  BANNER
+
+  opts.on('--goal=GOAL', 'Goal to refine (required)') do |g|
+    options[:goal] = g
+  end
+
+  opts.on('--agents=COLORS', "Comma-separated agent colors (default: #{options[:agents]})") do |a|
+    options[:agents] = a
+  end
+
+  opts.on('--model=MODEL', %w[haiku sonnet opus], 'Model: haiku, sonnet, opus (default: sonnet)') do |m|
+    options[:model] = m
+  end
+
+  opts.on('--duration=DURATION', 'Time budget (e.g., 30m, 1h)') do |d|
+    options[:duration] = d
+  end
+
+  opts.on('--debug', 'Enable debug logging to debug/') do
+    options[:debug] = true
+  end
+
+  opts.on('-h', '--help', 'Show this help') do
+    puts opts
+    exit
+  end
+
+  opts.on('-v', '--version', 'Show version') do
+    puts "pluribus #{Pluribus::VERSION}"
+    exit
+  end
+end.parse!
+
+if options[:goal].nil?
+  $stderr.puts 'Error: --goal is required'
+  $stderr.puts 'Usage: pluribus --goal="Your goal description" [options]'
+  exit 1
+end
+
+agent_colors = options[:agents].split(',').map(&:strip).map(&:downcase)
+
+pluribus = Pluribus.new(
+  goal: options[:goal],
+  agent_colors: agent_colors,
+  model: options[:model],
+  debug: options[:debug],
+  duration: options[:duration]
+)
+
+pluribus.run

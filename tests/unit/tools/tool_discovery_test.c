@@ -34,10 +34,11 @@ static void teardown(void)
 }
 
 // Helper: Create a test tool in a specific directory
+// Binary is named {name}-tool, schema outputs canonical {name}
 static void create_test_tool_in_dir(const char *dir, const char *name, const char *description)
 {
     char path[1024];
-    snprintf(path, sizeof(path), "%s/%s_tool", dir, name);
+    snprintf(path, sizeof(path), "%s/%s-tool", dir, name);
 
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
@@ -110,9 +111,9 @@ START_TEST(test_discover_single_tool) {
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
 
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "bash_tool");
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "bash");
     ck_assert_ptr_nonnull(entry);
-    ck_assert_str_eq(entry->name, "bash_tool");
+    ck_assert_str_eq(entry->name, "bash");
 }
 
 END_TEST
@@ -138,9 +139,9 @@ START_TEST(test_discover_multiple_tools) {
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 3);
 
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "bash_tool"));
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "python_tool"));
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "node_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "bash"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "python"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "node"));
 }
 
 END_TEST
@@ -168,7 +169,7 @@ START_TEST(test_override_precedence) {
     ck_assert_uint_eq(registry->count, 1);
 
     // Project version should win
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "bash_tool");
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "bash");
     ck_assert_ptr_nonnull(entry);
     ck_assert(strstr(entry->path, "project") != NULL);
 }
@@ -183,7 +184,7 @@ START_TEST(test_skip_non_executable) {
 
     // Create a non-executable file
     char path[1024];
-    snprintf(path, sizeof(path), "%s/not_executable_tool", system_dir);
+    snprintf(path, sizeof(path), "%s/not_executable-tool", system_dir);
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "#!/bin/sh\necho test\n");
@@ -204,8 +205,8 @@ START_TEST(test_skip_non_executable) {
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "bash_tool"));
-    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "not_executable_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "bash"));
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "not_executable"));
 }
 
 END_TEST
@@ -218,7 +219,7 @@ START_TEST(test_skip_invalid_schema) {
 
     // Create tool that returns invalid JSON
     char path[1024];
-    snprintf(path, sizeof(path), "%s/bad_tool", system_dir);
+    snprintf(path, sizeof(path), "%s/bad-tool", system_dir);
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "#!/bin/sh\n");
@@ -243,8 +244,8 @@ START_TEST(test_skip_invalid_schema) {
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good_tool"));
-    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "bad_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good"));
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "bad"));
 }
 
 END_TEST
@@ -257,7 +258,7 @@ START_TEST(test_skip_crashing_tool) {
 
     // Create tool that exits with non-zero status
     char path[1024];
-    snprintf(path, sizeof(path), "%s/crash_tool", system_dir);
+    snprintf(path, sizeof(path), "%s/crash-tool", system_dir);
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "#!/bin/sh\nexit 1\n");
@@ -278,8 +279,8 @@ START_TEST(test_skip_crashing_tool) {
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good_tool"));
-    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "crash_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good"));
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "crash"));
 }
 
 END_TEST
@@ -292,7 +293,7 @@ START_TEST(test_skip_silent_tool) {
 
     // Create tool that produces no output
     char path[1024];
-    snprintf(path, sizeof(path), "%s/silent_tool", system_dir);
+    snprintf(path, sizeof(path), "%s/silent-tool", system_dir);
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "#!/bin/sh\nexit 0\n");
@@ -313,8 +314,8 @@ START_TEST(test_skip_silent_tool) {
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good_tool"));
-    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "silent_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good"));
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "silent"));
 }
 
 END_TEST
@@ -327,7 +328,7 @@ START_TEST(test_skip_large_schema) {
 
     // Create tool that outputs > 8191 bytes (exceeds call_tool_schema buffer)
     char path[1024];
-    snprintf(path, sizeof(path), "%s/large_tool", system_dir);
+    snprintf(path, sizeof(path), "%s/large-tool", system_dir);
     FILE *f = fopen(path, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "#!/bin/sh\n");
@@ -352,9 +353,118 @@ START_TEST(test_skip_large_schema) {
     );
 
     ck_assert(!is_err(&res));
-    // Should have at least the good tool (large_tool should be skipped due to invalid JSON)
+    // Should have at least the good tool (large-tool should be skipped due to invalid JSON)
     ck_assert(registry->count >= 1);
-    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good_tool"));
+    ck_assert_ptr_nonnull(ik_tool_registry_lookup(registry, "good"));
+}
+
+END_TEST
+
+// Test: Tool name with hyphens gets converted to underscores
+START_TEST(test_hyphen_conversion) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool with hyphens in name
+    create_test_tool_in_dir(system_dir, "file-read", "File read tool");
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Hyphens should be converted to underscores
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "file_read");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "file_read");
+}
+
+END_TEST
+
+// Test: Tool without -tool suffix
+START_TEST(test_tool_without_suffix) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool without -tool suffix
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/mytool", system_dir);
+    FILE *f = fopen(path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\n");
+    fprintf(f, "if [ \"$1\" = \"--schema\" ]; then\n");
+    fprintf(f, "  printf '{\"name\":\"mytool\",\"description\":\"Custom tool\"}'\n");
+    fprintf(f, "  exit 0\n");
+    fprintf(f, "fi\n");
+    fprintf(f, "exit 1\n");
+    fclose(f);
+    chmod(path, 0755);
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Name should be used as-is without suffix stripping
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "mytool");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "mytool");
+}
+
+END_TEST
+
+// Test: Tool with short name (shorter than -tool suffix)
+START_TEST(test_short_tool_name) {
+    char system_dir[512];
+    snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
+    mkdir(system_dir, 0755);
+
+    // Create tool with very short name (shorter than "-tool" suffix)
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/a", system_dir);
+    FILE *f = fopen(path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\n");
+    fprintf(f, "if [ \"$1\" = \"--schema\" ]; then\n");
+    fprintf(f, "  printf '{\"name\":\"a\",\"description\":\"Short tool\"}'\n");
+    fprintf(f, "  exit 0\n");
+    fprintf(f, "fi\n");
+    fprintf(f, "exit 1\n");
+    fclose(f);
+    chmod(path, 0755);
+
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    res_t res = ik_tool_discovery_run(
+        test_ctx,
+        system_dir,
+        "/nonexistent/user",
+        "/nonexistent/project",
+        registry
+    );
+
+    ck_assert(!is_err(&res));
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Name should be used as-is
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "a");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "a");
 }
 
 END_TEST
@@ -377,6 +487,9 @@ static Suite *tool_discovery_suite(void)
     tcase_add_test(tc_core, test_skip_crashing_tool);
     tcase_add_test(tc_core, test_skip_silent_tool);
     tcase_add_test(tc_core, test_skip_large_schema);
+    tcase_add_test(tc_core, test_hyphen_conversion);
+    tcase_add_test(tc_core, test_tool_without_suffix);
+    tcase_add_test(tc_core, test_short_tool_name);
 
     suite_add_tcase(s, tc_core);
 
