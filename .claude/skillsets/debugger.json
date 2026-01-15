@@ -1,15 +1,17 @@
 {
   "preload": [
     "debugger",
-    "gdbserver",
-    "coredump",
-    "valgrind",
-    "sanitizers",
-    "errors",
-    "security/memory-safety",
-    "mocking",
     "align",
     "principles"
   ],
-  "advertise": []
+  "advertise": [
+    {"skill": "gdbserver", "description": "Remote debugging with gdbserver for live crashes/hangs"},
+    {"skill": "coredump", "description": "Post-mortem crash analysis via core dumps"},
+    {"skill": "valgrind", "description": "Memory error detection and leak checking"},
+    {"skill": "sanitizers", "description": "ASan/UBSan/TSan output interpretation"},
+    {"skill": "debug-log", "description": "Adding DEBUG_LOG trace output during development"},
+    {"skill": "errors", "description": "Result types with OK()/ERR() patterns"},
+    {"skill": "security/memory-safety", "description": "Memory safety patterns and checks"},
+    {"skill": "mocking", "description": "Wrapper functions for test mocking"}
+  ]
 }
