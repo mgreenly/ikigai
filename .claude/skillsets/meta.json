@@ -1,14 +1,14 @@
 {
   "preload": [
     "meta",
-    "cdd",
-    "task",
     "align",
     "jj",
-    "principles",
-    "harness"
+    "principles"
   ],
   "advertise": [
-    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"}
+    {"skill": "cdd", "description": "Context Driven Development pipeline workflow"},
+    {"skill": "harness", "description": "Automated quality check loops with escalation"},
+    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
+    {"skill": "ralph", "description": "Automated execution harness for CDD pipeline"}
   ]
 }
