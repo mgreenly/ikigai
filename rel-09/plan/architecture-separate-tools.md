@@ -9,35 +9,37 @@
 
 All web-related tools are external executables, consistent with ikigai's external tool architecture (implemented in rel-08):
 
-- **No internal C code**: These tools are not compiled into ikigai
-- **External executables**: Independent programs in any language (Python, Go, Rust, etc.)
+- **External executables**: Not compiled into ikigai core, separate binaries
+- **C implementation**: Written in C, compiled from source, built by `make tools`
 - **Standard protocol**: Each implements `--schema` flag and JSON stdin/stdout interface
-- **Installation**: Placed in `libexec/ikigai/` (system), `~/.ikigai/tools/` (user), or `.ikigai/tools/` (project)
+- **Installation**: Built to `libexec/ikigai/` (system), can be overridden in `~/.ikigai/tools/` (user) or `.ikigai/tools/` (project)
 - **Discovery**: Automatically discovered by ikigai's external tool framework
 - **Self-contained**: Each manages own credentials, HTTP requests, error handling
 
-## Implementation Phases
+## Tools
 
-- **Phase 1**: Brave Search (`web-search-brave-tool`) - Complete implementation
-- **Phase 2**: Google Search (`web-search-google-tool`) - Follow Phase 1 pattern
-- **Phase 3**: Web fetch (`web-fetch-tool`) - URL fetching and content extraction
-- Architecture and config structure support all from start
-- Only enabled tools advertised to LLM
+Three external executables:
+
+- `web-search-brave-tool` - Brave Search API integration
+- `web-search-google-tool` - Google Custom Search API integration
+- `web-fetch-tool` - URL fetching with HTML→markdown conversion via libxml2
+
+All tools advertised to LLM regardless of credential availability. Missing credentials result in authentication error when tool is called.
 
 ## Rationale
 
 ### Why Separate External Tools?
 
 1. **Simplicity**
-   - No dispatching logic needed in ikigai
-   - No provider enum in C code
+   - No dispatching logic needed in ikigai core
+   - No provider enum in ikigai core
    - Each tool is self-contained and independent
-   - Zero internal C code for web functionality
+   - Web functionality isolated in external executables
 
 2. **Transparency**
    - LLM sees exactly which providers are available
    - Tool descriptions explain provider characteristics
-   - Single enabled tool avoids confusion (default: Brave only)
+   - All tools visible to LLM (authentication errors guide credential setup)
 
 3. **Future-Ready**
    - Perfect alignment with future Tool Sets feature
@@ -45,10 +47,9 @@ All web-related tools are external executables, consistent with ikigai's externa
    - No architecture changes needed
 
 4. **Flexibility**
-   - Users can enable multiple providers by installing tools
    - Each tool is independent
-   - Phased implementation: prove pattern with Brave, extend to others
-   - Users can override system tools with custom implementations
+   - Users can override system tools with custom implementations in `~/.ikigai/tools/`
+   - Project-specific overrides in `.ikigai/tools/`
 
 5. **Maintainability**
    - Add provider: Create new external executable
@@ -95,48 +96,73 @@ All web-related tools are external executables, consistent with ikigai's externa
 
 ## LLM Perspective
 
-### Default Configuration (Brave Only)
-- LLM sees one tool: `web_search_brave`
-- No confusion, simple choice
-- Uses it automatically when web search needed
+### Default Configuration
+- LLM sees all three tools: `web_search_brave`, `web_search_google`, `web_fetch`
+- Tools return authentication errors if credentials missing
+- Errors guide user to configure credentials via environment variables or files
 
-### User Installs Multiple Providers
-User places `web-search-google-tool` in `~/.ikigai/tools/`:
-- LLM sees both `web_search_brave` and `web_search_google`
-- Can choose based on context or requirements
-- Can use both in sequence for comprehensive research
-- Can also see `web_fetch` for URL content extraction
+### With Credentials Configured
+- LLM can choose between providers based on context
+- Can use multiple tools in sequence for comprehensive research
 
-### Implementation Sequence
-- **Phase 1**: Only `web-search-brave-tool` exists in libexec/ikigai/
-- **Phase 2**: Add `web-search-google-tool` to libexec/ikigai/
-- **Phase 3**: Add `web-fetch-tool` to libexec/ikigai/
-- Users can enable/disable via tool installation
-- Users can override with custom implementations
+### Tool Override Examples
+- Override Brave with DuckDuckGo: Place custom `web-search-brave-tool` in `~/.ikigai/tools/`
+- Add Tavily search: Create `web-search-tavily-tool` in `~/.ikigai/tools/`
+- Project-specific search: Place custom tool in `.ikigai/tools/`
 
 ## External Tool Benefits
 
 ### Credential Management
 - Each tool manages own credentials independently
-- No centralized ikigai credentials.json for these tools
-- Tools read from standard locations (e.g., `~/.config/web-search-brave/`)
-- Follows Unix principle: each tool responsible for own config
+- Credential precedence: environment variable → credential file → error
+- Environment variables:
+  - `BRAVE_API_KEY` (overrides `~/.config/ikigai/brave-api-key`)
+  - `GOOGLE_SEARCH_API_KEY` (overrides `~/.config/ikigai/google-api-key`)
+  - `GOOGLE_SEARCH_ENGINE_ID` (overrides `~/.config/ikigai/google-engine-id`)
+- All tools load and advertise regardless of credential availability
+- Missing credentials result in authentication error with helpful message
 
 ### Implementation Language
-- `web-search-brave-tool`: Can be Python with requests library
-- `web-search-google-tool`: Can be Go with net/http
-- `web-fetch-tool`: Can be Rust with reqwest
-- No C code in ikigai for HTTP, JSON parsing, rate limiting, etc.
+- All tools written in C, compiled from source
+- Built by `make tools` target, installed to `libexec/ikigai/`
+- libxml2 dependency for HTML→markdown conversion in web-fetch-tool
+- HTTP client library needed (to be decided)
 
 ### User Customization Examples
 - Override Brave with DuckDuckGo: Place `web-search-brave-tool` (DDG impl) in `~/.ikigai/tools/`
 - Add Tavily search: Create `web-search-tavily-tool` in `~/.ikigai/tools/`
 - Project-specific search: Place custom tool in `.ikigai/tools/` for specialized searches
 
+## Schema Alignment
+
+Both `web-search-*-tool` tools implement identical schemas matching Claude Code's WebSearch tool:
+
+**Input Schema:**
+- `query` (string, required): Search query
+- `allowed_domains` (array of strings, optional): Only include results from these domains
+- `blocked_domains` (array of strings, optional): Exclude results from these domains
+
+**Output Schema:**
+- Identical structure for both providers
+- Matches Claude Code WebSearch response format
+- See `tool-schemas.md` for complete specification
+
+The `web-fetch-tool` follows the file_read pattern:
+
+**Input Schema:**
+- `url` (string, required): URL to fetch
+- `limit` (integer, optional): Maximum lines to return
+- `offset` (integer, optional): Line offset to start from
+
+**Output Schema:**
+- `content` (string): Markdown-converted HTML content
+- `lines_read` (integer): Number of lines returned
+- Limits and offsets apply to markdown, not raw HTML
+
 ## Future: Tool Sets Integration
 
 Tool Sets feature (deferred) will filter available tools per task:
-- `default` set: Only Brave (conserve Google quota)
+- `default` set: Conservative defaults
 - `research` set: Both Brave and Google (LLM chooses)
 - `web` set: All three (search + fetch)
 
@@ -145,5 +171,5 @@ Separate external tools architecture requires no changes for this.
 ## Decision Status
 
 **Approved**: 2025-12-21
-**Updated**: 2026-01-16 (External tool architecture alignment)
+**Updated**: 2026-01-16 (C implementation, schema alignment)
 **Applies to**: rel-09
