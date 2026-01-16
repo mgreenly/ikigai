@@ -639,7 +639,7 @@ clean:
 	rm -f core.* vgcore.* tags 2>/dev/null || true
 	rm -f *.LOG 2>/dev/null || true
 
-install: all
+install:
 	# Create directories
 	install -d $(DESTDIR)$(bindir)
 	install -d $(DESTDIR)$(libexecdir)/ikigai
