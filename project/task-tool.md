@@ -1,6 +1,10 @@
-# Todo List Tools
+# Task Tool
 
 **Status:** Design discussion, not finalized.
+
+**Implementation:** External tool (rel-12)
+
+**Dependencies:** Requires rel-11 (Shared Files) for `ik://` URI scheme
 
 ## Problem
 
@@ -8,7 +12,9 @@ Claude Code's `TodoWrite` tool requires rewriting the entire list on every updat
 
 ## Solution
 
-Simple queue operations with Redis-inspired naming. System holds state; LLM just issues commands. Constant token cost per operation regardless of list size.
+Simple queue operations with Redis-inspired naming implemented as an external tool. System holds state; LLM just issues commands. Constant token cost per operation regardless of list size.
+
+The `task` external tool takes an `agent_id` parameter and stores task details in `ik://system/agents/{agent_id}/tasks.json`.
 
 ## Philosophy
 
@@ -41,18 +47,20 @@ R = right (back of list)
 
 Once learned, the pattern is intuitive and symmetric.
 
-## Usage via Two-Path Model
+## Implementation as External Tool
 
-These are slash commands, consistent with ikigai's minimal tool architecture:
+The `task` tool is implemented as an external tool that:
+- Takes `agent_id` as a required parameter
+- Stores data in `ik://system/agents/{agent_id}/tasks.json`
+- Supports Redis-style deque operations
+- Returns JSON responses
 
+Example tool calls:
+```json
+{"tool": "task", "agent_id": "abc123", "operation": "rpush", "item": "Fix authentication bug"}
+{"tool": "task", "agent_id": "abc123", "operation": "lpop"}
+{"tool": "task", "agent_id": "abc123", "operation": "list"}
 ```
-/slash todo-rpush "Fix authentication bug"
-/slash todo-rpush "Update tests"
-/slash todo-rpush "Write documentation"
-/slash todo-lpop
-```
-
-Under the hood, these route to internal tooling with a queue structure in the database attached to the current agent.
 
 ## What's Covered
 
@@ -106,14 +114,15 @@ Typical workflow:
 4. Review: todo-list or todo-count for progress
 ```
 
-## Open Questions
+## Design Decisions
 
-1. **Multiple lists?** Single default vs named lists (`todo-rpush --list=refactor "item"`)
-2. **Per-agent scope?** Each agent has own list, or shared?
-3. **Persistence?** Survives session restart?
-4. **Integration with sub-agents?** Can parent see child's list?
+1. **Per-agent scope:** Each agent has its own task list via `agent_id` parameter
+2. **Persistence:** Stored in shared file system (`ik://system/agents/{agent_id}/tasks.json`)
+3. **Integration with sub-agents:** Parent can access child's list by passing child's agent_id
+4. **Single list per agent:** One default list; multiple lists not in initial scope
 
 ## Related
 
+- [shared-files.md](shared-files.md) - Shared file system (dependency)
 - [sub-agent-tools.md](sub-agent-tools.md) - Sub-agent fork/send/mail tools
-- [minimal-tool-architecture.md](minimal-tool-architecture.md) - Tool philosophy
+- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture

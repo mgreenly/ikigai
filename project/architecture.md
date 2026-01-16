@@ -10,7 +10,7 @@ Desktop AI coding agent with local tool execution and persistent conversation hi
 
 ## Dependencies
 
-### Current Libraries (rel-02 - OpenAI Integration Complete)
+### Current Libraries (rel-08 - External Tools Complete)
 - **yyjson** - JSON parsing with talloc integration (vendored, migration from jansson complete)
 - **talloc** - Hierarchical pool-based memory allocator ([why?](decisions/talloc-memory-management.md))
 - **libutf8proc** - UTF-8 text processing and Unicode normalization
@@ -46,7 +46,7 @@ Target platform: Debian 13 (Trixie)
 │  └────────────────┘        └─────────────────┘  │
 │                                                 │
 │  ┌────────────────┐        ┌─────────────────┐  │
-│  │  Local Tools   │        │    Database     │  │
+│  │ External Tools │        │    Database     │  │
 │  │                │        │  (PostgreSQL)   │  │
 │  │ - File ops     │        │                 │  │
 │  │ - Shell exec   │        │ - Conversations │  │
@@ -111,6 +111,20 @@ Implemented:
 
 **Deliverable**: Full conversational AI agent with streaming responses and conversation management. Foundation ready for database persistence.
 
+### Completed: External Tools ✅
+
+**Status**: rel-08 released (2026-01-15) - External tool system with LLM integration complete.
+
+Implemented:
+- External tool discovery from 3 directories (core, user home, project)
+- JSON protocol for tool communication (stdin/stdout)
+- Self-description via --schema flag
+- 6 operational tools: bash, grep, glob, file_read, file_write, file_edit
+- Integration with LLM tool calling
+- Tool execution results flow back to conversation
+
+**Deliverable**: Full local tool execution capability with file operations and shell execution. LLM can now perform actions on the local filesystem.
+
 ### Future: Database Persistence
 
 Store conversation history locally with PostgreSQL. ([why PostgreSQL?](decisions/postgresql-valkey.md))
@@ -132,16 +146,15 @@ Features:
 - Google implementation
 - Switch providers via config or command
 
-### Future: Local Tools
+### Future: Advanced Tool Features
 
-Enable file operations and shell execution.
+Extend tool capabilities with code analysis.
 
 Features:
-- Tool interface design
-- File operations (read/write)
-- Shell command execution
-- Code analysis (tree-sitter)
-- Results flow back to conversation
+- Code analysis tools (tree-sitter integration)
+- Advanced text processing tools
+- Project-specific custom tools
+- Tool composition and chaining
 
 ### Future: Enhanced Terminal
 
@@ -160,7 +173,7 @@ Client loads configuration from `~/.config/ikigai/config.json`.
 
 If the config file doesn't exist, a default configuration is created automatically on first run.
 
-**Current (rel-02 - OpenAI Integration)**:
+**Current (rel-08 - External Tools)**:
 ```json
 {
   "openai_api_key": "YOUR_API_KEY_HERE",
