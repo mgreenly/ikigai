@@ -6,23 +6,11 @@ description: Find the most critical alignment gap in release plan.
 
 **Token budget:** Do not exceed 140k tokens. When approaching limit, finish verifying the current item and stop.
 
-## CRITICAL: This Command Verifies PLAN Only
-
 **What this command does:**
 - Verifies `$CDD_DIR/plan/*.md` documents
 - Checks README → user-stories → plan alignment
 - Verifies plan follows project conventions
 - Identifies missing specifications in the plan
-
-**What this command does NOT do:**
-- Does NOT verify tasks (`$CDD_DIR/tasks/`)
-- Does NOT check if plan items are covered by tasks
-- Does NOT verify order.json or task completeness
-- Does NOT care about task execution readiness
-
-**Separation of concerns:**
-- `/cdd:gap-plan` - Verifies PLAN documents only (this command)
-- `/cdd:gap-tasks` - Verifies TASKS against plan (separate command)
 
 ## Process
 
@@ -31,8 +19,6 @@ description: Find the most critical alignment gap in release plan.
 3. When an item is verified, append it to `$CDD_DIR/verified.md`
 4. Work incrementally - verify items one at a time, not all at once
 5. Report gaps found and suggest fixes
-
-**Scope boundary:** STOP at plan verification. Do not venture into task verification.
 
 ## Alignment Checks
 
@@ -71,7 +57,7 @@ This list is not exhaustive. Identify other gaps relevant to the specific plan.
 
 ## What Makes a Good Plan?
 
-The plan is the **coordination layer** - it specifies everything that independent tasks must agree on:
+The plan is the **coordination layer** - it specifies shared contracts and decisions:
 
 **Plan SHOULD include:**
 - Public function signatures (names, parameters, return types)
@@ -86,6 +72,3 @@ The plan is the **coordination layer** - it specifies everything that independen
 - Function bodies or implementation code
 - Detailed algorithms or control flow
 - Working test code
-- Task sequencing or dependencies (that's for order.json)
-
-**Key insight:** If two tasks need to agree on something, the plan must decide it.
