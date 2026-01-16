@@ -104,6 +104,7 @@ static yyjson_doc *call_tool_schema(TALLOC_CTX *ctx, const char *tool_path)
 // Extract tool name from path (last component, strip -tool suffix, convert hyphens to underscores)
 // e.g., "/path/to/bash-tool" -> "bash"
 // e.g., "/path/to/file-read-tool" -> "file_read"
+// Precondition: path must end with "-tool" (enforced by scan_directory caller)
 static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
 {
     const char *basename = strrchr(path, '/');
@@ -113,19 +114,17 @@ static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
         basename++;
     }
 
-    // Check if basename ends with "-tool" and strip it
+    // Strip "-tool" suffix (caller guarantees this exists)
     size_t len = strlen(basename);
     const char *suffix = "-tool";
     size_t suffix_len = strlen(suffix);
 
-    char *name = NULL;
-    if (len > suffix_len && strcmp(basename + len - suffix_len, suffix) == 0) {
-        // Strip the suffix
-        name = talloc_strndup(ctx, basename, len - suffix_len);
-    } else {
-        name = talloc_strdup(ctx, basename);
+    // Precondition check - basename must end with "-tool"
+    if (len <= suffix_len || strcmp(basename + len - suffix_len, suffix) != 0) {  // LCOV_EXCL_BR_LINE
+        PANIC("extract_tool_name called with path not ending in -tool");  // LCOV_EXCL_LINE
     }
 
+    char *name = talloc_strndup(ctx, basename, len - suffix_len);
     if (name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Convert hyphens to underscores
