@@ -1,12 +1,19 @@
-# rel-08 Plan
+# rel-09 Plan
 
 Module-level architecture plans describing what modules exist and how they interact.
 
 ## Key Decisions
 
+**External Tool Architecture:**
+- All tools are external executables (no internal C code in ikigai)
+- Installed to `libexec/ikigai/` (system) or `~/.ikigai/tools/` (user) or `.ikigai/tools/` (project)
+- Each tool implements `--schema` flag and JSON stdin/stdout protocol
+- Tool discovery and execution via external tool framework (implemented in rel-08)
+
 **Implementation Phases:**
-- **Phase 1**: Brave Search only (`web_search_brave` tool)
-- **Phase 2**: Add Google Search (`web_search_google` tool)
+- **Phase 1**: Brave Search only (`web-search-brave-tool`)
+- **Phase 2**: Add Google Search (`web-search-google-tool`)
+- **Phase 3**: Add web fetch capability (`web-fetch-tool`)
 - Architecture supports multiple providers from start
 - Implement one completely before adding next
 
@@ -17,18 +24,19 @@ Module-level architecture plans describing what modules exist and how they inter
 - Makes capability discoverable
 
 **Multiple Providers:**
-- Two independent tools: `web_search_brave` and `web_search_google`
+- Three independent external executables: `web-search-brave-tool`, `web-search-google-tool`, `web-fetch-tool`
 - No shared code between them
-- Each has own source file (tool_web_search_brave.c, tool_web_search_google.c)
-- Each reads own config/credentials sections
+- Each is separate executable (any language: Python, Go, Rust, etc.)
+- Each manages own config/credentials (not centralized in ikigai)
 - Each makes own HTTP API calls
 - No coordination or abstraction layer
-- Hierarchical config structure: `web_search.brave.*`, `web_search.google.*`
+- Each tool discovers its own credentials from standard locations
 
 **Tool Parameters:**
 - Start minimal: `query` (required), `count`/`num` (optional)
 - Provider-specific response formats (described in tool descriptions)
 - Defer freshness/country/language until requested
+- web-fetch-tool: `url` (required), `prompt` (optional) for content extraction
 
 **Display:**
 - Use existing tool_call/tool_result pattern (dimmed in scrollback)
@@ -39,19 +47,17 @@ Module-level architecture plans describing what modules exist and how they inter
 - Defer fancy formatting for success cases
 
 **Naming:**
-- Provider-specific: `web_search_brave`, `web_search_google`
-- Descriptions mention provider
-- Tool names grouped by namespace prefix
+- External tool naming: hyphen-separated ending in `-tool`
+- Examples: `web-search-brave-tool`, `web-search-google-tool`, `web-fetch-tool`
+- Tool names in API: `web_search_brave`, `web_search_google`, `web_fetch`
+- Descriptions mention provider capabilities
 
 **Configuration:**
-- Hierarchical structure ready for multiple providers
-- Credentials: `~/.config/ikigai/credentials.json`
-  - `{"web_search": {"brave": {"api_key": "..."}}}`
-  - `{"web_search": {"google": {"api_key": "...", "engine_id": "..."}}}`
-- Config: `~/.config/ikigai/config.json`
-  - `{"web_search": {"brave": {"enabled": true, "default_count": 10}}}`
-  - `{"web_search": {"google": {"enabled": false, "default_count": 10}}}`
-- Pattern established by rel-07, extended for hierarchical search tools
+- Each tool manages own credentials independently
+- Tools read from standard config locations (e.g., `~/.config/web-search-brave/`, `~/.config/web-search-google/`)
+- No centralized ikigai credentials.json for these tools
+- Each tool implements own config/credential discovery logic
+- Tools may provide `--configure` flag for interactive setup
 
 **Response Format:**
 - JSON envelopes for all tools
