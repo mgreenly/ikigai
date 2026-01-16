@@ -659,7 +659,7 @@ endif
 	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
-	printf '#!/bin/sh\n' > $(DESTDIR)$(bindir)/ikigai
+	printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_CONFIG_DIR=%s\n' "$(configdir)" >> $(DESTDIR)$(bindir)/ikigai
 ifeq ($(IS_USER_INSTALL),yes)

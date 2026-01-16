@@ -8,8 +8,7 @@
 #include <talloc.h>
 
 // Test wrapping successful tool output
-START_TEST(test_wrap_success_basic)
-{
+START_TEST(test_wrap_success_basic) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tool_json[] = "{\"output\": \"test result\"}";
 
@@ -37,8 +36,7 @@ START_TEST(test_wrap_success_basic)
 END_TEST
 
 // Test wrapping nested JSON objects
-START_TEST(test_wrap_success_nested)
-{
+START_TEST(test_wrap_success_nested) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tool_json[] = "{\"data\": {\"key\": \"value\", \"count\": 42}}";
 
@@ -67,8 +65,7 @@ START_TEST(test_wrap_success_nested)
 END_TEST
 
 // Test wrapping empty JSON object
-START_TEST(test_wrap_success_empty)
-{
+START_TEST(test_wrap_success_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tool_json[] = "{}";
 
@@ -93,8 +90,7 @@ START_TEST(test_wrap_success_empty)
 END_TEST
 
 // Test handling of invalid JSON - should return failure wrapper
-START_TEST(test_wrap_success_invalid_json)
-{
+START_TEST(test_wrap_success_invalid_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tool_json[] = "not valid json {";
 
@@ -122,8 +118,7 @@ START_TEST(test_wrap_success_invalid_json)
 END_TEST
 
 // Test wrapping failure with error message
-START_TEST(test_wrap_failure_basic)
-{
+START_TEST(test_wrap_failure_basic) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char *wrapped = ik_tool_wrap_failure(ctx, "Execution failed", "EXEC_ERROR");
@@ -149,8 +144,7 @@ START_TEST(test_wrap_failure_basic)
 END_TEST
 
 // Test wrapping timeout error
-START_TEST(test_wrap_failure_timeout)
-{
+START_TEST(test_wrap_failure_timeout) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char *wrapped = ik_tool_wrap_failure(ctx, "Tool execution timed out after 30 seconds", "TIMEOUT");
@@ -176,8 +170,7 @@ START_TEST(test_wrap_failure_timeout)
 END_TEST
 
 // Test wrapping with empty error message
-START_TEST(test_wrap_failure_empty_message)
-{
+START_TEST(test_wrap_failure_empty_message) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char *wrapped = ik_tool_wrap_failure(ctx, "", "UNKNOWN");

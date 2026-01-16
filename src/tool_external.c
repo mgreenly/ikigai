@@ -15,9 +15,9 @@
 #include <unistd.h>
 
 res_t ik_tool_external_exec(TALLOC_CTX *ctx,
-                             const char *tool_path,
-                             const char *arguments_json,
-                             char **out_result)
+                            const char *tool_path,
+                            const char *arguments_json,
+                            char **out_result)
 {
     int32_t stdin_pipe[2];
     int32_t stdout_pipe[2];

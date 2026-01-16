@@ -27,7 +27,6 @@
 #include <inttypes.h>
 #include <talloc.h>
 
-
 // Test fixtures
 static const char *DB_NAME;
 static ik_db_ctx_t *db;

@@ -17,8 +17,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_paths_get_bin_dir)
-{
+START_TEST(test_paths_get_bin_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -43,8 +42,7 @@ START_TEST(test_paths_get_bin_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_config_dir)
-{
+START_TEST(test_paths_get_config_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -69,8 +67,7 @@ START_TEST(test_paths_get_config_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_data_dir)
-{
+START_TEST(test_paths_get_data_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -95,8 +92,7 @@ START_TEST(test_paths_get_data_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_libexec_dir)
-{
+START_TEST(test_paths_get_libexec_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -121,8 +117,7 @@ START_TEST(test_paths_get_libexec_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_tools_system_dir)
-{
+START_TEST(test_paths_get_tools_system_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -148,8 +143,7 @@ START_TEST(test_paths_get_tools_system_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_tools_user_dir)
-{
+START_TEST(test_paths_get_tools_user_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
@@ -174,8 +168,7 @@ START_TEST(test_paths_get_tools_user_dir)
 }
 END_TEST
 
-START_TEST(test_paths_get_tools_project_dir)
-{
+START_TEST(test_paths_get_tools_project_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);

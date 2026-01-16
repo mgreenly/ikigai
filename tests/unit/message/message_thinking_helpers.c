@@ -37,8 +37,8 @@ START_TEST(test_from_db_tool_call_with_thinking) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":{\"text\":\"Let me analyze...\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":{\"text\":\"Let me analyze...\"}}"),
     };
 
     ik_message_t *out = NULL;
@@ -62,8 +62,8 @@ START_TEST(test_from_db_tool_call_with_signature) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":{\"text\":\"Think carefully...\",\"signature\":\"EqQBCgIYAhIM...\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":{\"text\":\"Think carefully...\",\"signature\":\"EqQBCgIYAhIM...\"}}"),
     };
 
     ik_message_t *out = NULL;
@@ -86,8 +86,8 @@ START_TEST(test_from_db_tool_call_with_redacted) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"redacted_thinking\":{\"data\":\"EmwKAhgBEgy...\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"redacted_thinking\":{\"data\":\"EmwKAhgBEgy...\"}}"),
     };
 
     ik_message_t *out = NULL;
@@ -109,7 +109,7 @@ START_TEST(test_from_db_tool_call_no_thinking) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -129,8 +129,8 @@ START_TEST(test_from_db_tool_call_empty_thinking) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":{}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":{}}"),
     };
 
     ik_message_t *out = NULL;
@@ -151,9 +151,9 @@ START_TEST(test_from_db_tool_call_thinking_and_redacted) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":{\"text\":\"My thinking...\",\"signature\":\"sig123\"},"
-            "\"redacted_thinking\":{\"data\":\"redacted_data\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":{\"text\":\"My thinking...\",\"signature\":\"sig123\"},"
+                                   "\"redacted_thinking\":{\"data\":\"redacted_data\"}}"),
     };
 
     ik_message_t *out = NULL;
@@ -178,8 +178,8 @@ START_TEST(test_from_db_tool_call_thinking_not_object) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":\"not an object\"}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":\"not an object\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -200,8 +200,8 @@ START_TEST(test_from_db_tool_call_redacted_not_object) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"redacted_thinking\":\"not an object\"}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"redacted_thinking\":\"not an object\"}"),
     };
 
     ik_message_t *out = NULL;
@@ -222,8 +222,8 @@ START_TEST(test_from_db_tool_call_thinking_no_text) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"thinking\":{\"signature\":\"sig123\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"thinking\":{\"signature\":\"sig123\"}}"),
     };
 
     ik_message_t *out = NULL;
@@ -244,8 +244,8 @@ START_TEST(test_from_db_tool_call_redacted_no_data) {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
         .data_json = talloc_strdup(test_ctx,
-            "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
-            "\"redacted_thinking\":{\"other_field\":\"value\"}}"),
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\","
+                                   "\"redacted_thinking\":{\"other_field\":\"value\"}}"),
     };
 
     ik_message_t *out = NULL;

@@ -56,7 +56,10 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
     // Grow array if needed
     if (registry->count >= registry->capacity) {
         registry->capacity *= 2;
-        registry->entries = talloc_realloc(registry, registry->entries, ik_tool_registry_entry_t, (unsigned int)registry->capacity);
+        registry->entries = talloc_realloc(registry,
+                                           registry->entries,
+                                           ik_tool_registry_entry_t,
+                                           (unsigned int)registry->capacity);
         if (registry->entries == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     }
 

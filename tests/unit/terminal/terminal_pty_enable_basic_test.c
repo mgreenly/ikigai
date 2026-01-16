@@ -18,8 +18,7 @@
 // ============================================================================
 // Test: CSI u enable with no response (normal for some terminals)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_no_response)
-{
+START_TEST(test_pty_csi_u_enable_no_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -58,8 +57,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable with unexpected response format (still succeeds)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_unexpected_response)
-{
+START_TEST(test_pty_csi_u_enable_unexpected_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -102,8 +100,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable with valid response and flags parsing
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_valid_flags)
-{
+START_TEST(test_pty_csi_u_enable_valid_flags) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -144,8 +141,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable with unexpected response and NO logger (covers line 142)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_unexpected_no_logger)
-{
+START_TEST(test_pty_csi_u_enable_unexpected_no_logger) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);

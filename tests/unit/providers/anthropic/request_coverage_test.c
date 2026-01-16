@@ -139,7 +139,6 @@ END_TEST
 // is a static function. The non-streaming path appears to be dead code since
 // only ik_anthropic_serialize_request_stream is exposed in the public API.
 
-
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */

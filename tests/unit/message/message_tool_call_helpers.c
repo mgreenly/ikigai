@@ -150,7 +150,8 @@ START_TEST(test_tool_call_invalid_arguments_type) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":789}"),
+        .data_json = talloc_strdup(test_ctx,
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":789}"),
     };
 
     ik_message_t *out = NULL;
@@ -166,7 +167,8 @@ START_TEST(test_tool_call_valid) {
     ik_msg_t db_msg = {
         .kind = talloc_strdup(test_ctx, "tool_call"),
         .content = NULL,
-        .data_json = talloc_strdup(test_ctx, "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
+        .data_json = talloc_strdup(test_ctx,
+                                   "{\"tool_call_id\":\"call_123\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
     };
 
     ik_message_t *out = NULL;

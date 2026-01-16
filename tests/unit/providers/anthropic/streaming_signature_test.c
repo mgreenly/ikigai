@@ -94,7 +94,8 @@ END_TEST
 
 START_TEST(test_redacted_thinking_captured) {
     // Verify redacted data stored in context
-    const char *json = "{\"index\": 1, \"content_block\": {\"type\": \"redacted_thinking\", \"data\": \"EmwKAhgBEgy...\"}}";
+    const char *json =
+        "{\"index\": 1, \"content_block\": {\"type\": \"redacted_thinking\", \"data\": \"EmwKAhgBEgy...\"}}";
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_nonnull(doc);
     ik_anthropic_process_content_block_start(stream_ctx, yyjson_doc_get_root(doc));

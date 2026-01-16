@@ -31,12 +31,11 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-
 /* Test: Serialize request with tools */
 START_TEST(test_serialize_with_tools) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     ik_test_add_tool(ctx, req, "test_tool", "A test tool",
-             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 0; // IK_TOOL_AUTO
 
     char *json = NULL;
@@ -63,7 +62,7 @@ END_TEST
 START_TEST(test_tool_choice_none) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     ik_test_add_tool(ctx, req, "test_tool", "A test tool",
-             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 1; // IK_TOOL_NONE
 
     char *json = NULL;
@@ -82,7 +81,7 @@ END_TEST
 START_TEST(test_tool_choice_required) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     ik_test_add_tool(ctx, req, "test_tool", "A test tool",
-             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
 
     char *json = NULL;
@@ -101,7 +100,7 @@ END_TEST
 START_TEST(test_tool_choice_invalid) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     ik_test_add_tool(ctx, req, "test_tool", "A test tool",
-             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
     req->tool_choice_mode = 999; /* Invalid value to trigger default case */
 
     char *json = NULL;
@@ -286,13 +285,14 @@ END_TEST
 START_TEST(test_serialize_with_multiple_tools) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     ik_test_add_tool(ctx, req, "tool_one", "First tool",
-             "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
-    ik_test_add_tool(ctx, req,
-             "tool_two",
-             "Second tool",
-             "{\"type\":\"object\",\"properties\":{\"arg1\":{\"type\":\"string\"}},\"required\":[\"arg1\"],\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}");
+    ik_test_add_tool(ctx,
+                     req,
+                     "tool_two",
+                     "Second tool",
+                     "{\"type\":\"object\",\"properties\":{\"arg1\":{\"type\":\"string\"}},\"required\":[\"arg1\"],\"additionalProperties\":false}");
     ik_test_add_tool(ctx, req, "tool_three", "Third tool",
-             "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}},\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}},\"additionalProperties\":false}");
     req->tool_choice_mode = 0;
 
     char *json = NULL;
@@ -338,12 +338,16 @@ START_TEST(test_serialize_full_featured_request) {
     req->max_output_tokens = 4096;
     ik_test_add_message(ctx, req, IK_ROLE_USER, "Hello");
     ik_test_add_message(ctx, req, IK_ROLE_ASSISTANT, "Hi!");
-    ik_test_add_tool(ctx, req,
-             "get_weather",
-             "Get weather info",
-             "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"],\"additionalProperties\":false}");
-    ik_test_add_tool(ctx, req, "search", "Search the web",
-             "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"additionalProperties\":false}");
+    ik_test_add_tool(ctx,
+                     req,
+                     "get_weather",
+                     "Get weather info",
+                     "{\"type\":\"object\",\"properties\":{\"city\":{\"type\":\"string\"}},\"required\":[\"city\"],\"additionalProperties\":false}");
+    ik_test_add_tool(ctx,
+                     req,
+                     "search",
+                     "Search the web",
+                     "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\"}},\"additionalProperties\":false}");
     req->tool_choice_mode = 2; // IK_TOOL_REQUIRED
 
     char *json = NULL;
@@ -374,7 +378,7 @@ START_TEST(test_tool_properties_as_array) {
     ik_request_t *req = ik_test_create_minimal_request(ctx);
     /* Properties is an array instead of object - malformed but shouldn't crash */
     ik_test_add_tool(ctx, req, "bad_tool", "Tool with array properties",
-             "{\"type\":\"object\",\"properties\":[],\"additionalProperties\":false}");
+                     "{\"type\":\"object\",\"properties\":[],\"additionalProperties\":false}");
 
     char *json = NULL;
     res_t result = ik_openai_serialize_chat_request(ctx, req, false, &json);

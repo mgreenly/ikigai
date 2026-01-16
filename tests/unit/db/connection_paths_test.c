@@ -25,8 +25,7 @@ static void teardown(void)
 }
 
 // Test: db_init constructs correct migrations path from data_dir
-START_TEST(test_db_init_uses_data_dir)
-{
+START_TEST(test_db_init_uses_data_dir) {
     // Skip if no PostgreSQL available
     if (getenv("SKIP_LIVE_DB_TESTS")) {
         ck_assert(1);
@@ -66,7 +65,7 @@ START_TEST(test_db_init_uses_data_dir)
     if (is_err(&result)) {
         const char *msg = error_message(result.err);
         ck_assert_msg(strstr(msg, "Cannot open migrations directory") == NULL,
-                     "ik_db_init should use data_dir/migrations, not hardcoded path");
+                      "ik_db_init should use data_dir/migrations, not hardcoded path");
     }
 
     // Cleanup
@@ -80,8 +79,7 @@ START_TEST(test_db_init_uses_data_dir)
 END_TEST
 
 // Test: db_init fails gracefully when migrations dir missing
-START_TEST(test_db_init_missing_migrations)
-{
+START_TEST(test_db_init_missing_migrations) {
     if (getenv("SKIP_LIVE_DB_TESTS")) {
         ck_assert(1);
         return;

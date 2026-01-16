@@ -159,8 +159,8 @@ START_TEST(test_file_read_error_end_to_end) {
 
     // Step 3: Execute tool and get stub error result (tools not yet implemented)
     char *tool_result_json = talloc_asprintf(test_ctx,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
-        tool_name);
+                                             "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
+                                             tool_name);
     ck_assert_ptr_nonnull(tool_result_json);
 
     // Verify the tool result contains error
@@ -294,8 +294,8 @@ START_TEST(test_tool_exec_file_read_handles_missing_file) {
     // Execute tool on non-existent file - now returns stub
     const char *tool_name = "file_read";
     char *json = talloc_asprintf(ctx,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
-        tool_name);
+                                 "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool '%s' unavailable.\"}",
+                                 tool_name);
     ck_assert_ptr_nonnull(json);
 
     // Parse and verify error structure

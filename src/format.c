@@ -335,7 +335,11 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
     // Try to parse JSON
     yyjson_alc allocator = ik_make_talloc_allocator(parent);
     // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
-    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)result_json, strlen(result_json), 0, &allocator, NULL);
+    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)result_json,
+                                       strlen(result_json),
+                                       0,
+                                       &allocator,
+                                       NULL);
     if (doc == NULL) {
         // Invalid JSON - show raw, truncated
         ik_format_truncate_and_append(buf, result_json, strlen(result_json));

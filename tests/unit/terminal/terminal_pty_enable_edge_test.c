@@ -17,8 +17,7 @@
 // ============================================================================
 // Test: CSI u enable response missing ESC prefix (covers line 116 short-circuit)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_missing_esc)
-{
+START_TEST(test_pty_csi_u_enable_missing_esc) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -59,8 +58,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response missing '[' (covers line 116 short-circuit)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_missing_bracket)
-{
+START_TEST(test_pty_csi_u_enable_missing_bracket) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -100,8 +98,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response missing '?' (covers line 116 short-circuit)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_missing_question)
-{
+START_TEST(test_pty_csi_u_enable_missing_question) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -141,8 +138,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response with non-digit character in flags (covers line 133)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_non_digit_in_flags)
-{
+START_TEST(test_pty_csi_u_enable_non_digit_in_flags) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -182,8 +178,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable with too short response (< 4 bytes) - covers n >= 4 branch
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_short_response)
-{
+START_TEST(test_pty_csi_u_enable_short_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -224,8 +219,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response with no 'u' terminator (covers line 133 loop exit)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_no_terminator)
-{
+START_TEST(test_pty_csi_u_enable_no_terminator) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -265,8 +259,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable with long unexpected response (>32 bytes) - covers line 149 loop
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_long_unexpected_response)
-{
+START_TEST(test_pty_csi_u_enable_long_unexpected_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -307,8 +300,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response with character > '9' in flags (covers line 133)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_char_above_nine)
-{
+START_TEST(test_pty_csi_u_enable_char_above_nine) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -350,8 +342,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u enable response with character < '0' in flags (covers line 133)
 // ============================================================================
-START_TEST(test_pty_csi_u_enable_char_below_zero)
-{
+START_TEST(test_pty_csi_u_enable_char_below_zero) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);

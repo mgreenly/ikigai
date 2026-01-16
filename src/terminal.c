@@ -1,9 +1,11 @@
 // Terminal module - Raw mode and alternate screen management
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <talloc.h>
@@ -171,6 +173,7 @@ res_t ik_term_init(TALLOC_CTX *ctx, ik_logger_t *logger, ik_term_ctx_t **ctx_out
     }
     return ik_term_init_with_fd(ctx, logger, tty_fd, ctx_out);
 }
+
 /* LCOV_EXCL_STOP */
 
 // Initialize terminal with pre-opened file descriptor (for testing with PTY)
@@ -201,10 +204,15 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
     raw.c_cc[VTIME] = 0;
 
     // Apply raw mode immediately (no blocking)
-    if (posix_tcsetattr_(tty_fd, TCSANOW, &raw) < 0) {
+    errno = 0;  // Clear errno before call
+    int tcset_ret = posix_tcsetattr_(tty_fd, TCSANOW, &raw);
+    DEBUG_LOG("tcsetattr returned %d, errno=%d (%s)", tcset_ret, errno, strerror(errno));
+    if (tcset_ret < 0) {
+        DEBUG_LOG("tcsetattr FAILED, returning error");
         posix_close_(tty_fd);
         return ERR(ctx, IO, "Failed to set raw mode");
     }
+    DEBUG_LOG("tcsetattr SUCCEEDED, continuing init");
 
     // Flush any stale input that was queued before raw mode
     if (posix_tcflush_(tty_fd, TCIFLUSH) < 0) {

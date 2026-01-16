@@ -45,13 +45,14 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     shared->paths = paths;
 
     // Use injected logger (DI pattern - explicit dependency)
+    // Note: Do NOT talloc_steal - logger must outlive shared for final logging
     assert(logger != NULL);  // LCOV_EXCL_BR_LINE
     shared->logger = logger;
-    talloc_steal(shared, logger);  // Transfer ownership
 
     // Initialize terminal (raw mode + alternate screen)
     DEBUG_LOG("=== About to call ik_term_init ===");
     res_t result = ik_term_init(shared, shared->logger, &shared->term);
+    DEBUG_LOG("=== ik_term_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
         DEBUG_LOG("=== ik_term_init failed: %s ===", error_message(result.err));
         talloc_free(shared);

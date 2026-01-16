@@ -18,8 +18,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_get_bin_dir)
-{
+START_TEST(test_get_bin_dir) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
@@ -45,8 +44,7 @@ START_TEST(test_get_bin_dir)
 }
 END_TEST
 
-START_TEST(test_get_config_dir)
-{
+START_TEST(test_get_config_dir) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
@@ -72,8 +70,7 @@ START_TEST(test_get_config_dir)
 }
 END_TEST
 
-START_TEST(test_get_data_dir)
-{
+START_TEST(test_get_data_dir) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
@@ -99,8 +96,7 @@ START_TEST(test_get_data_dir)
 }
 END_TEST
 
-START_TEST(test_get_libexec_dir)
-{
+START_TEST(test_get_libexec_dir) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
@@ -126,8 +122,7 @@ START_TEST(test_get_libexec_dir)
 }
 END_TEST
 
-START_TEST(test_getters_not_null)
-{
+START_TEST(test_getters_not_null) {
     // Setup
     test_paths_setup_env();
     setenv("HOME", "/home/testuser", 1);
@@ -150,8 +145,7 @@ START_TEST(test_getters_not_null)
 }
 END_TEST
 
-START_TEST(test_getters_const_strings)
-{
+START_TEST(test_getters_const_strings) {
     // Setup
     test_paths_setup_env();
     setenv("HOME", "/home/testuser", 1);

@@ -17,8 +17,7 @@
 // ============================================================================
 // Test: CSI u probe with valid response - terminal supports CSI u
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_valid_response)
-{
+START_TEST(test_pty_csi_u_probe_valid_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -60,8 +59,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with invalid response format (no 'u' terminator)
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_invalid_no_terminator)
-{
+START_TEST(test_pty_csi_u_probe_invalid_no_terminator) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -100,8 +98,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with too short response (< 4 bytes)
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_short_response)
-{
+START_TEST(test_pty_csi_u_probe_short_response) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -138,8 +135,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with response missing ESC prefix
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_missing_esc)
-{
+START_TEST(test_pty_csi_u_probe_missing_esc) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -176,8 +172,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with response missing '[' after ESC
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_missing_bracket)
-{
+START_TEST(test_pty_csi_u_probe_missing_bracket) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -214,8 +209,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with response missing '?' after '['
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_missing_question)
-{
+START_TEST(test_pty_csi_u_probe_missing_question) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -252,8 +246,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe select timeout (no response at all)
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_timeout)
-{
+START_TEST(test_pty_csi_u_probe_timeout) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -281,8 +274,7 @@ END_TEST
 // ============================================================================
 // Test: CSI u probe with multi-digit flags
 // ============================================================================
-START_TEST(test_pty_csi_u_probe_multi_digit_flags)
-{
+START_TEST(test_pty_csi_u_probe_multi_digit_flags) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);

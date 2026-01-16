@@ -10,10 +10,9 @@
 // Override precedence: Project > User > System (most specific wins)
 // Missing/empty directories handled gracefully (no error)
 // Internally uses async primitives but blocks until done
-res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
-                             const char *system_dir,   // PREFIX/libexec/ikigai/ (system tools)
-                             const char *user_dir,     // ~/.ikigai/tools/ (user tools)
-                             const char *project_dir,  // $PWD/.ikigai/tools/ (project tools)
-                             ik_tool_registry_t *registry);
+res_t ik_tool_discovery_run(TALLOC_CTX *ctx, const char *system_dir,   // PREFIX/libexec/ikigai/ (system tools)
+                            const char *user_dir,      // ~/.ikigai/tools/ (user tools)
+                            const char *project_dir,   // $PWD/.ikigai/tools/ (project tools)
+                            ik_tool_registry_t *registry);
 
 #endif // IK_TOOL_DISCOVERY_H

@@ -165,6 +165,15 @@ static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_regis
             continue;
         }
 
+        // Only consider files ending in "-tool"
+        const char *suffix = "-tool";
+        size_t name_len = strlen(entry->d_name);
+        size_t suffix_len = strlen(suffix);
+        if (name_len <= suffix_len || strcmp(entry->d_name + name_len - suffix_len, suffix) != 0) {
+            talloc_free(full_path);
+            continue;
+        }
+
         // Call tool with --schema
         yyjson_doc *schema_doc = call_tool_schema(ctx, full_path);
         if (schema_doc == NULL) {
@@ -193,10 +202,10 @@ static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_regis
 }
 
 res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
-                             const char *system_dir,
-                             const char *user_dir,
-                             const char *project_dir,
-                             ik_tool_registry_t *registry)
+                            const char *system_dir,
+                            const char *user_dir,
+                            const char *project_dir,
+                            ik_tool_registry_t *registry)
 {
     // Scan all three directories in order: system, user, project
     // Override precedence: project > user > system (later scans override earlier)

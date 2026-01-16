@@ -18,8 +18,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_env_all_vars_set)
-{
+START_TEST(test_env_all_vars_set) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -43,8 +42,7 @@ START_TEST(test_env_all_vars_set)
 }
 END_TEST
 
-START_TEST(test_env_missing_bin_dir)
-{
+START_TEST(test_env_missing_bin_dir) {
     // Setup (missing IKIGAI_BIN_DIR)
     unsetenv("IKIGAI_BIN_DIR");
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -67,8 +65,7 @@ START_TEST(test_env_missing_bin_dir)
 }
 END_TEST
 
-START_TEST(test_env_missing_config_dir)
-{
+START_TEST(test_env_missing_config_dir) {
     // Setup (missing IKIGAI_CONFIG_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     unsetenv("IKIGAI_CONFIG_DIR");
@@ -91,8 +88,7 @@ START_TEST(test_env_missing_config_dir)
 }
 END_TEST
 
-START_TEST(test_env_missing_data_dir)
-{
+START_TEST(test_env_missing_data_dir) {
     // Setup (missing IKIGAI_DATA_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -115,8 +111,7 @@ START_TEST(test_env_missing_data_dir)
 }
 END_TEST
 
-START_TEST(test_env_missing_libexec_dir)
-{
+START_TEST(test_env_missing_libexec_dir) {
     // Setup (missing IKIGAI_LIBEXEC_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -139,8 +134,7 @@ START_TEST(test_env_missing_libexec_dir)
 }
 END_TEST
 
-START_TEST(test_env_empty_string)
-{
+START_TEST(test_env_empty_string) {
     // Setup (IKIGAI_BIN_DIR set to empty string)
     setenv("IKIGAI_BIN_DIR", "", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -163,8 +157,7 @@ START_TEST(test_env_empty_string)
 }
 END_TEST
 
-START_TEST(test_env_with_spaces)
-{
+START_TEST(test_env_with_spaces) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/test/path with spaces/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -189,8 +182,7 @@ START_TEST(test_env_with_spaces)
 }
 END_TEST
 
-START_TEST(test_env_with_trailing_slash)
-{
+START_TEST(test_env_with_trailing_slash) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/test/bin/", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config/", 1);

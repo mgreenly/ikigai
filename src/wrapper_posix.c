@@ -65,6 +65,7 @@ static const char *format_bytes(const void *buf, size_t count)
     result[out_pos] = '\0';
     return result;
 }
+
 #endif
 
 // ============================================================================

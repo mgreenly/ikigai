@@ -20,8 +20,7 @@
 // ============================================================================
 // Test: Basic PTY terminal initialization succeeds
 // ============================================================================
-START_TEST(test_pty_init_success)
-{
+START_TEST(test_pty_init_success) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
 
@@ -58,8 +57,7 @@ END_TEST
 // ============================================================================
 // Test: Terminal get_size works with PTY
 // ============================================================================
-START_TEST(test_pty_get_size)
-{
+START_TEST(test_pty_get_size) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 40, 120), 0);
@@ -99,8 +97,7 @@ END_TEST
 // ============================================================================
 // Test: Cleanup with NULL is safe
 // ============================================================================
-START_TEST(test_pty_cleanup_null_safe)
-{
+START_TEST(test_pty_cleanup_null_safe) {
     // Should not crash
     ik_term_cleanup(NULL);
 }
@@ -109,8 +106,7 @@ END_TEST
 // ============================================================================
 // Test: Terminal cleanup without CSI u enabled (no disable sequence)
 // ============================================================================
-START_TEST(test_pty_cleanup_no_csi_u)
-{
+START_TEST(test_pty_cleanup_no_csi_u) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);
@@ -138,8 +134,7 @@ END_TEST
 // ============================================================================
 // Test: Terminal cleanup with CSI u enabled writes disable sequence
 // ============================================================================
-START_TEST(test_pty_cleanup_csi_u_disable)
-{
+START_TEST(test_pty_cleanup_csi_u_disable) {
     pty_pair_t pty;
     ck_assert_int_eq(create_pty_pair(&pty), 0);
     ck_assert_int_eq(pty_set_size(&pty, 24, 80), 0);

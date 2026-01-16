@@ -127,7 +127,6 @@ static void test_teardown(void)
 // Helper macro to skip test if DB not available
 #define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
-
 // ========== Test Cases ==========
 
 // Test: restore_agents handles agent with empty history
