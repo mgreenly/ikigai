@@ -205,7 +205,6 @@ START_TEST(test_execute_pending_tool_file_read) {
 
 END_TEST
 
-
 START_TEST(test_execute_pending_tool_db_persistence) {
     /* Create a mock database context */
     repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);

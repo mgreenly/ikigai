@@ -137,7 +137,10 @@ START_TEST(test_db_init_postgres_scheme) {
     // Test postgres:// scheme (alternative to postgresql://)
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "postgres://nonexistent-host-99999/testdb?connect_timeout=1", "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx,
+                           "postgres://nonexistent-host-99999/testdb?connect_timeout=1",
+                           "share/ikigai",
+                           &db_ctx);
 
     // Should fail with DB_CONNECT, not INVALID_ARG (validation should pass)
     ck_assert(is_err(&res));
@@ -152,7 +155,10 @@ START_TEST(test_db_init_key_value_format) {
     // Test libpq key=value format
     // This will likely fail to connect but should pass validation
     // Use connect_timeout=1 to fail fast in CI environments
-    res_t res = ik_db_init(test_ctx, "host=nonexistent-host-99999 dbname=testdb connect_timeout=1", "share/ikigai", &db_ctx);
+    res_t res = ik_db_init(test_ctx,
+                           "host=nonexistent-host-99999 dbname=testdb connect_timeout=1",
+                           "share/ikigai",
+                           &db_ctx);
 
     // Should fail with DB_CONNECT (libpq handles the parsing)
     ck_assert(is_err(&res));

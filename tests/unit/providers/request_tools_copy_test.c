@@ -224,7 +224,6 @@ START_TEST(test_copy_multiple_content_blocks) {
 }
 END_TEST
 
-
 static Suite *request_tools_copy_suite(void)
 {
     Suite *s = suite_create("Request Tools Copy");

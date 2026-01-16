@@ -17,8 +17,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_paths_init_success)
-{
+START_TEST(test_paths_init_success) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -46,8 +45,7 @@ START_TEST(test_paths_init_success)
 }
 END_TEST
 
-START_TEST(test_paths_init_missing_bin_dir)
-{
+START_TEST(test_paths_init_missing_bin_dir) {
     // Setup environment (missing IKIGAI_BIN_DIR)
     unsetenv("IKIGAI_BIN_DIR");
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -70,8 +68,7 @@ START_TEST(test_paths_init_missing_bin_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_missing_config_dir)
-{
+START_TEST(test_paths_init_missing_config_dir) {
     // Setup environment (missing IKIGAI_CONFIG_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     unsetenv("IKIGAI_CONFIG_DIR");
@@ -94,8 +91,7 @@ START_TEST(test_paths_init_missing_config_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_missing_data_dir)
-{
+START_TEST(test_paths_init_missing_data_dir) {
     // Setup environment (missing IKIGAI_DATA_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -118,8 +114,7 @@ START_TEST(test_paths_init_missing_data_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_missing_libexec_dir)
-{
+START_TEST(test_paths_init_missing_libexec_dir) {
     // Setup environment (missing IKIGAI_LIBEXEC_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -142,8 +137,7 @@ START_TEST(test_paths_init_missing_libexec_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_empty_bin_dir)
-{
+START_TEST(test_paths_init_empty_bin_dir) {
     // Setup environment (empty IKIGAI_BIN_DIR)
     setenv("IKIGAI_BIN_DIR", "", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -167,8 +161,7 @@ START_TEST(test_paths_init_empty_bin_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_empty_config_dir)
-{
+START_TEST(test_paths_init_empty_config_dir) {
     // Setup environment (empty IKIGAI_CONFIG_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "", 1);
@@ -192,8 +185,7 @@ START_TEST(test_paths_init_empty_config_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_empty_data_dir)
-{
+START_TEST(test_paths_init_empty_data_dir) {
     // Setup environment (empty IKIGAI_DATA_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -217,8 +209,7 @@ START_TEST(test_paths_init_empty_data_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_empty_libexec_dir)
-{
+START_TEST(test_paths_init_empty_libexec_dir) {
     // Setup environment (empty IKIGAI_LIBEXEC_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
@@ -242,8 +233,7 @@ START_TEST(test_paths_init_empty_libexec_dir)
 }
 END_TEST
 
-START_TEST(test_paths_init_no_home)
-{
+START_TEST(test_paths_init_no_home) {
     // Setup environment (no HOME for tilde expansion)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);

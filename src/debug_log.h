@@ -11,12 +11,14 @@
 void ik_debug_log_init(void);
 
 // Internal function - use DEBUG_LOG macro instead
-void ik_debug_log_write(const char *file, int line, const char *func,
-                        const char *fmt, ...) __attribute__((format(printf, 4, 5)));
+void ik_debug_log_write(const char *file, int line, const char *func, const char *fmt,
+                        ...) __attribute__((format(printf,
+                                                   4,
+                                                   5)));
 
 // Macro that adds file/line/function context and timestamp
 #define DEBUG_LOG(fmt, ...) \
-    ik_debug_log_write(__FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
+        ik_debug_log_write(__FILE__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 
 #else
 

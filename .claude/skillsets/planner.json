@@ -12,7 +12,6 @@
     "style",
     "tdd",
     "naming",
-    "log",
     "patterns/vtable",
     "patterns/result-type",
     "patterns/arena-allocator",

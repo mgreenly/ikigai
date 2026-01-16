@@ -106,7 +106,8 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
 
     // Build normalized request from conversation
     ik_request_t *req = NULL;
-    res = ik_request_build_from_conversation_(repl->current, repl->current, repl->current->shared->tool_registry, (void **)&req);
+    res = ik_request_build_from_conversation_(repl->current, repl->current, repl->current->shared->tool_registry,
+                                              (void **)&req);
     if (is_err(&res)) {
         const char *err_msg = error_message(res.err);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));

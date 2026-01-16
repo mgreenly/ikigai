@@ -3,11 +3,10 @@
     "align",
     "coverage",
     "ctags",
-    "database",
     "errors",
     "jj",
     "lcov",
-    "log",
+    "debugger",
     "makefile",
     "memory",
     "mocking",
@@ -15,12 +14,12 @@
     "principles",
     "quality",
     "scm",
-    "source-code",
     "style",
     "tdd",
     "testability"
   ],
   "advertise": [
-    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"}
+    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
+    {"skill": "database", "description": "PostgreSQL schema and query patterns"}
   ]
 }

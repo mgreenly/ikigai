@@ -68,7 +68,7 @@ static void *tool_thread_worker(void *arg)
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
     char *result_json = execute_tool_from_registry(args->ctx, args->registry,
-                                                    args->tool_name, args->arguments);
+                                                   args->tool_name, args->arguments);
     args->agent->tool_thread_result = result_json;
     pthread_mutex_lock_(&args->agent->tool_thread_mutex);
     args->agent->tool_thread_complete = true;
@@ -79,10 +79,10 @@ static void *tool_thread_worker(void *arg)
 
 // Build tool_call data_json for database with thinking/redacted blocks.
 static char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
-                                           const ik_tool_call_t *tc,
-                                           const char *thinking_text,
-                                           const char *thinking_signature,
-                                           const char *redacted_data)
+                                          const ik_tool_call_t *tc,
+                                          const char *thinking_text,
+                                          const char *thinking_signature,
+                                          const char *redacted_data)
 {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -214,15 +214,15 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     char *summary = talloc_asprintf(agent, "%s(%s)", tc->name, tc->arguments);
     if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_message_t *tc_msg = ik_message_create_tool_call_with_thinking(agent, agent->pending_thinking_text,
-                                                                      agent->pending_thinking_signature,
-                                                                      agent->pending_redacted_data,
-                                                                      tc->id, tc->name, tc->arguments);
+                                                                     agent->pending_thinking_signature,
+                                                                     agent->pending_redacted_data,
+                                                                     tc->id, tc->name, tc->arguments);
     const char *formatted_call = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
     if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
         char *data_json = ik_build_tool_call_data_json(agent, tc, agent->pending_thinking_text,
-                                                        agent->pending_thinking_signature,
-                                                        agent->pending_redacted_data);
+                                                       agent->pending_thinking_signature,
+                                                       agent->pending_redacted_data);
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
                               agent->uuid, "tool_call", formatted_call, data_json);
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,

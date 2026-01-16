@@ -20,8 +20,7 @@ static void teardown(void)
 }
 
 // Test 1: Development mode (via IKIGAI_DATA_DIR env var)
-START_TEST(test_data_dir_development)
-{
+START_TEST(test_data_dir_development) {
     setenv("IKIGAI_BIN_DIR", "/tmp/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/tmp/test/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/tmp/test/share/ikigai", 1);
@@ -38,8 +37,7 @@ START_TEST(test_data_dir_development)
 END_TEST
 
 // Test 2: User install (XDG paths)
-START_TEST(test_data_dir_user_install)
-{
+START_TEST(test_data_dir_user_install) {
     setenv("IKIGAI_BIN_DIR", "/home/user/.local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/home/user/.config/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/home/user/.local/share/ikigai", 1);
@@ -56,8 +54,7 @@ START_TEST(test_data_dir_user_install)
 END_TEST
 
 // Test 3: System install
-START_TEST(test_data_dir_system_install)
-{
+START_TEST(test_data_dir_system_install) {
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);

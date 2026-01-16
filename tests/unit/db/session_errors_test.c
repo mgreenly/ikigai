@@ -105,7 +105,6 @@ START_TEST(test_db_session_get_active_query_failure) {
     talloc_free(ctx);
 }
 
-
 END_TEST
 
 // Suite configuration

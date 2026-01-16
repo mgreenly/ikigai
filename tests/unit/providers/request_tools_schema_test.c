@@ -72,15 +72,15 @@ START_TEST(test_build_from_conversation_with_registry) {
 
     // Create schema JSON for a test tool
     const char *schema_json = "{"
-        "\"name\":\"test_tool\","
-        "\"description\":\"A test tool\","
-        "\"parameters\":{"
-            "\"type\":\"object\","
-            "\"properties\":{"
-                "\"arg1\":{\"type\":\"string\"}"
-            "}"
-        "}"
-    "}";
+                              "\"name\":\"test_tool\","
+                              "\"description\":\"A test tool\","
+                              "\"parameters\":{"
+                              "\"type\":\"object\","
+                              "\"properties\":{"
+                              "\"arg1\":{\"type\":\"string\"}"
+                              "}"
+                              "}"
+                              "}";
 
     yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
     ck_assert_ptr_nonnull(schema_doc);
@@ -122,11 +122,11 @@ START_TEST(test_build_from_conversation_registry_no_description) {
 
     // Schema with no description field
     const char *schema_json = "{"
-        "\"name\":\"tool2\","
-        "\"parameters\":{"
-            "\"type\":\"object\""
-        "}"
-    "}";
+                              "\"name\":\"tool2\","
+                              "\"parameters\":{"
+                              "\"type\":\"object\""
+                              "}"
+                              "}";
 
     yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
     ck_assert_ptr_nonnull(schema_doc);
@@ -168,9 +168,9 @@ START_TEST(test_build_from_conversation_registry_no_parameters) {
 
     // Schema with no parameters field
     const char *schema_json = "{"
-        "\"name\":\"tool3\","
-        "\"description\":\"Another test tool\""
-    "}";
+                              "\"name\":\"tool3\","
+                              "\"description\":\"Another test tool\""
+                              "}";
 
     yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
     ck_assert_ptr_nonnull(schema_doc);
@@ -238,10 +238,10 @@ START_TEST(test_build_from_conversation_registry_multiple_tools) {
 
     // First tool
     const char *schema1_json = "{"
-        "\"name\":\"tool_a\","
-        "\"description\":\"First tool\","
-        "\"parameters\":{\"type\":\"object\"}"
-    "}";
+                               "\"name\":\"tool_a\","
+                               "\"description\":\"First tool\","
+                               "\"parameters\":{\"type\":\"object\"}"
+                               "}";
     yyjson_doc *schema1_doc = yyjson_read(schema1_json, strlen(schema1_json), 0);
     registry->entries[0].name = talloc_strdup(registry->entries, "tool_a");
     registry->entries[0].path = talloc_strdup(registry->entries, "/tmp/tool_a");
@@ -250,9 +250,9 @@ START_TEST(test_build_from_conversation_registry_multiple_tools) {
 
     // Second tool
     const char *schema2_json = "{"
-        "\"name\":\"tool_b\","
-        "\"description\":\"Second tool\""
-    "}";
+                               "\"name\":\"tool_b\","
+                               "\"description\":\"Second tool\""
+                               "}";
     yyjson_doc *schema2_doc = yyjson_read(schema2_json, strlen(schema2_json), 0);
     registry->entries[1].name = talloc_strdup(registry->entries, "tool_b");
     registry->entries[1].path = talloc_strdup(registry->entries, "/tmp/tool_b");
@@ -294,10 +294,10 @@ START_TEST(test_build_from_conversation_null_values) {
 
     // Schema with null description value
     const char *schema_json = "{"
-        "\"name\":\"test_null\","
-        "\"description\":null,"
-        "\"parameters\":null"
-    "}";
+                              "\"name\":\"test_null\","
+                              "\"description\":null,"
+                              "\"parameters\":null"
+                              "}";
 
     yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
     ck_assert_ptr_nonnull(schema_doc);

@@ -22,8 +22,7 @@ extern int64_t session_id;
  * @param created_at Creation timestamp
  * @param fork_message_id Fork message ID
  */
-void insert_agent(const char *uuid, const char *parent_uuid,
-                  int64_t created_at, int64_t fork_message_id);
+void insert_agent(const char *uuid, const char *parent_uuid, int64_t created_at, int64_t fork_message_id);
 
 /**
  * Insert a message into the database
@@ -31,8 +30,7 @@ void insert_agent(const char *uuid, const char *parent_uuid,
  * @param kind Message kind
  * @param content Message content
  */
-void insert_message(const char *agent_uuid, const char *kind,
-                    const char *content);
+void insert_message(const char *agent_uuid, const char *kind, const char *content);
 
 /**
  * Create minimal repl context for testing

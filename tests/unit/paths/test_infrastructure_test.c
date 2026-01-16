@@ -6,8 +6,7 @@
 #include "../../test_utils.h"
 
 // Test: Verify all 4 directories exist after setup
-START_TEST(test_paths_setup_creates_directories)
-{
+START_TEST(test_paths_setup_creates_directories) {
     const char *prefix = test_paths_setup_env();
     ck_assert_msg(prefix != NULL, "test_paths_setup_env returned NULL");
 
@@ -36,8 +35,7 @@ START_TEST(test_paths_setup_creates_directories)
 END_TEST
 
 // Test: Verify all 4 env vars set correctly
-START_TEST(test_paths_setup_sets_environment)
-{
+START_TEST(test_paths_setup_sets_environment) {
     const char *prefix = test_paths_setup_env();
     ck_assert_msg(prefix != NULL, "test_paths_setup_env returned NULL");
 
@@ -71,8 +69,7 @@ START_TEST(test_paths_setup_sets_environment)
 END_TEST
 
 // Test: Verify return value matches pattern /tmp/ikigai_test_${PID}
-START_TEST(test_paths_setup_returns_prefix)
-{
+START_TEST(test_paths_setup_returns_prefix) {
     const char *prefix = test_paths_setup_env();
     ck_assert_msg(prefix != NULL, "test_paths_setup_env returned NULL");
 
@@ -94,8 +91,7 @@ START_TEST(test_paths_setup_returns_prefix)
 END_TEST
 
 // Test: Verify prefix contains actual PID
-START_TEST(test_paths_setup_pid_isolation)
-{
+START_TEST(test_paths_setup_pid_isolation) {
     const char *prefix = test_paths_setup_env();
     ck_assert_msg(prefix != NULL, "test_paths_setup_env returned NULL");
 
@@ -109,8 +105,7 @@ START_TEST(test_paths_setup_pid_isolation)
 END_TEST
 
 // Test: Verify env vars unset after cleanup
-START_TEST(test_paths_cleanup_unsets_environment)
-{
+START_TEST(test_paths_cleanup_unsets_environment) {
     test_paths_setup_env();
     test_paths_cleanup_env();
 
@@ -122,8 +117,7 @@ START_TEST(test_paths_cleanup_unsets_environment)
 END_TEST
 
 // Test: Verify directories removed after cleanup
-START_TEST(test_paths_cleanup_removes_directories)
-{
+START_TEST(test_paths_cleanup_removes_directories) {
     const char *prefix = test_paths_setup_env();
     ck_assert_msg(prefix != NULL, "test_paths_setup_env returned NULL");
 
@@ -140,8 +134,7 @@ START_TEST(test_paths_cleanup_removes_directories)
 END_TEST
 
 // Test: Verify calling cleanup twice doesn't crash
-START_TEST(test_paths_cleanup_idempotent)
-{
+START_TEST(test_paths_cleanup_idempotent) {
     test_paths_setup_env();
     test_paths_cleanup_env();
     test_paths_cleanup_env();  // Should not crash

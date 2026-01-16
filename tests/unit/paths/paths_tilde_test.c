@@ -17,8 +17,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_paths_expand_tilde_home)
-{
+START_TEST(test_paths_expand_tilde_home) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 
@@ -33,8 +32,7 @@ START_TEST(test_paths_expand_tilde_home)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_alone)
-{
+START_TEST(test_paths_expand_tilde_alone) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 
@@ -49,8 +47,7 @@ START_TEST(test_paths_expand_tilde_alone)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_not_at_start)
-{
+START_TEST(test_paths_expand_tilde_not_at_start) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 
@@ -65,8 +62,7 @@ START_TEST(test_paths_expand_tilde_not_at_start)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_absolute)
-{
+START_TEST(test_paths_expand_tilde_absolute) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 
@@ -81,8 +77,7 @@ START_TEST(test_paths_expand_tilde_absolute)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_relative)
-{
+START_TEST(test_paths_expand_tilde_relative) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 
@@ -97,8 +92,7 @@ START_TEST(test_paths_expand_tilde_relative)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_no_home)
-{
+START_TEST(test_paths_expand_tilde_no_home) {
     // Setup - unset HOME
     unsetenv("HOME");
 
@@ -112,8 +106,7 @@ START_TEST(test_paths_expand_tilde_no_home)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_null_input)
-{
+START_TEST(test_paths_expand_tilde_null_input) {
     // Test
     char *expanded = NULL;
     res_t result = ik_paths_expand_tilde(test_ctx, NULL, &expanded);
@@ -124,8 +117,7 @@ START_TEST(test_paths_expand_tilde_null_input)
 }
 END_TEST
 
-START_TEST(test_paths_expand_tilde_tilde_non_slash)
-{
+START_TEST(test_paths_expand_tilde_tilde_non_slash) {
     // Setup
     setenv("HOME", "/home/testuser", 1);
 

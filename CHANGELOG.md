@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-08] - 2026-01-15
+
+### Added
+
+#### External Tool System Infrastructure (Complete)
+- **Tool discovery**: Automatic tool detection and registration system
+- **Tool command**: `/tool` command infrastructure for tool management
+- **External tools**: Offer tools to AI providers for execution
+- **Bash tool**: Full bash tool implementation with integration tests
+
+#### Ralph Automation Harness (Complete)
+- **Ralph v0.3.0**: Bidirectional streaming with retry logic for automated task execution
+- **Ralph loop harness**: Iterative requirement completion with history tracking
+- **Work agent pattern**: Moved history writing from ralph loop to work agent
+- **Goal tracking**: Ralph goal file for self-improvement TODOs
+
+#### Quality Harnesses
+- **Fix-checks**: Automated check fixing with sub-agent orchestration
+- **Notify**: Push notifications via ntfy.sh for long-running tasks
+- **Pluribus**: Additional quality harness for multi-agent coordination
+- **Check-? **: Documented 60-minute timeout, foreground execution, JSON output format
+
+#### CDD Pipeline Improvements
+- **Gap verification**: Checklists for gap-plan and gap-tasks commands
+- **TDD enforcement**: Enforced TDD across CDD pipeline with streamlined verification
+- **$CDD_DIR requirement**: Environment variable required for workspace path
+- **Pull-request skill**: Concise PR template for consistent pull requests
+
+#### Documentation
+- **Test refactoring strategy**: Comprehensive document for test improvement approach
+- **Paths module planning**: Phase 0 planning for paths module foundation
+- **Meta README**: Rewritten .claude README with meta-level architecture overview
+
+### Changed
+
+#### Version Control Migration
+- **Git to jj**: Migrated from git to Jujutsu (jj) for version control
+- **jj workflow**: Updated all VCS operations to use jj commands
+
+#### Build System
+- **Install target**: Removed all dependency from install target for cleaner builds
+- **Secrets management**: Moved NTFY_TOPIC to secrets file for security
+
+#### Agent System Simplification
+- **Task skill removed**: Removed task skill and associated scripts
+- **CDD skill simplified**: Streamlined cdd skill after task removal
+- **Logging skills**: Reorganized into debug-log and event-log skills
+- **Harness --file support**: Added --file flag to harness scripts for targeted execution
+
+### Fixed
+- **Segfault on exit**: Fixed crash during application shutdown
+- **Tool discovery crash**: Fixed crash in tool discovery initialization
+- **Quality harness bugs**: Various bugfixes in quality harness execution
+
+### Removed
+
+#### Dead Code Pruning
+- ik_error_category_name
+- ik_content_block_thinking
+- Database layer dead code
+- Various unused functions identified by prune harness
+
+### Development
+
+#### Testing & Quality Gates
+- **Test infrastructure**: Comprehensive test infrastructure improvements
+- **Coverage**: Maintained 100% (lines, functions, branches)
+- **Sanitizers**: Clean runs through ASan, UBSan, TSan
+- **Memory checkers**: All tests pass under Valgrind and Helgrind
+
+### Technical Metrics
+- **Changes**: 1,683 files modified, +188,063/-39,589 lines
+- **Commits**: 433 commits over development cycle
+- **Test coverage**: 100% lines, functions, and branches
+- **Code quality**: All lint, format, and sanitizer checks pass
+- **Quality gates**: 7 gates (lint, check, sanitize, tsan, valgrind, helgrind, coverage)
+
 ## [rel-07] - 2026-01-02
 
 ### Added
@@ -576,6 +653,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-08]: https://github.com/mgreenly/ikigai/releases/tag/rel-08
 [rel-07]: https://github.com/mgreenly/ikigai/releases/tag/rel-07
 [rel-06]: https://github.com/mgreenly/ikigai/releases/tag/rel-06
 [rel-05]: https://github.com/mgreenly/ikigai/releases/tag/rel-05

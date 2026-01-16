@@ -18,8 +18,7 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_tools_system_dir)
-{
+START_TEST(test_tools_system_dir) {
     // Setup
     test_paths_setup_env();
 
@@ -37,8 +36,7 @@ START_TEST(test_tools_system_dir)
 }
 END_TEST
 
-START_TEST(test_tools_user_dir)
-{
+START_TEST(test_tools_user_dir) {
     // Setup
     test_paths_setup_env();
     setenv("HOME", "/home/testuser", 1);
@@ -57,8 +55,7 @@ START_TEST(test_tools_user_dir)
 }
 END_TEST
 
-START_TEST(test_tools_project_dir)
-{
+START_TEST(test_tools_project_dir) {
     // Setup
     test_paths_setup_env();
 
@@ -76,8 +73,7 @@ START_TEST(test_tools_project_dir)
 }
 END_TEST
 
-START_TEST(test_tools_all_three_accessible)
-{
+START_TEST(test_tools_all_three_accessible) {
     // Setup
     test_paths_setup_env();
     setenv("HOME", "/home/testuser", 1);
@@ -105,8 +101,7 @@ START_TEST(test_tools_all_three_accessible)
 }
 END_TEST
 
-START_TEST(test_tools_user_dir_expands_tilde)
-{
+START_TEST(test_tools_user_dir_expands_tilde) {
     // Setup
     test_paths_setup_env();
     setenv("HOME", "/custom/home/path", 1);
@@ -125,8 +120,7 @@ START_TEST(test_tools_user_dir_expands_tilde)
 }
 END_TEST
 
-START_TEST(test_tools_project_dir_relative)
-{
+START_TEST(test_tools_project_dir_relative) {
     // Setup
     test_paths_setup_env();
 

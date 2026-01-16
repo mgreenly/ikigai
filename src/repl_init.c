@@ -24,7 +24,7 @@ static int repl_destructor(ik_repl_ctx_t *repl)
     // it orphaned. If a bash command is stuck, we wait (known limitation:
     // "Bash command timeout - not implemented" in README Out of Scope).
     // The alternative (pthread_cancel) risks leaving resources in bad state.
-    if (repl->current->tool_thread_running) {  // LCOV_EXCL_BR_LINE
+    if (repl->current != NULL && repl->current->tool_thread_running) {  // LCOV_EXCL_BR_LINE
         pthread_join_(repl->current->tool_thread, NULL);  // LCOV_EXCL_LINE
     }
 

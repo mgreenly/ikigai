@@ -57,14 +57,13 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id, const
  * @param tool_args        Tool arguments JSON
  * @return                 Allocated message
  */
-ik_message_t *ik_message_create_tool_call_with_thinking(
-    TALLOC_CTX *ctx,
-    const char *thinking_text,
-    const char *thinking_sig,
-    const char *redacted_data,
-    const char *tool_id,
-    const char *tool_name,
-    const char *tool_args);
+ik_message_t *ik_message_create_tool_call_with_thinking(TALLOC_CTX *ctx,
+                                                        const char *thinking_text,
+                                                        const char *thinking_sig,
+                                                        const char *redacted_data,
+                                                        const char *tool_id,
+                                                        const char *tool_name,
+                                                        const char *tool_args);
 
 /**
  * Create a tool result message

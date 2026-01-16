@@ -18,3 +18,12 @@ Automated fix loops. Each harness runs a make target, spawns sub-agents to fix f
 **Commands:** `/check-<name>` runs the corresponding harness with `--no-spinner`
 
 **Quality:** `quality/run` orchestrates all harnesses in sequence until stable
+
+## Running check-* Skills
+
+When invoking check-* skills via Bash:
+
+- **Timeout:** Use 60 minute timeout (`timeout: 3600000`)
+- **Foreground:** Always run in foreground (never use `run_in_background`)
+- **Blocking:** No output until completion—do not tail or monitor, just wait
+- **Output format:** Structured JSON: `{"ok": true/false, "items": [...]}`

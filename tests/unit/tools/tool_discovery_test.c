@@ -63,7 +63,7 @@ START_TEST(test_missing_directories) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 0);
@@ -106,7 +106,7 @@ START_TEST(test_discover_single_tool) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -201,7 +201,7 @@ START_TEST(test_skip_non_executable) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -240,7 +240,7 @@ START_TEST(test_skip_invalid_schema) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -275,7 +275,7 @@ START_TEST(test_skip_crashing_tool) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -310,7 +310,7 @@ START_TEST(test_skip_silent_tool) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -350,7 +350,7 @@ START_TEST(test_skip_large_schema) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     // Should have at least the good tool (large-tool should be skipped due to invalid JSON)
@@ -376,7 +376,7 @@ START_TEST(test_hyphen_conversion) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
     ck_assert_uint_eq(registry->count, 1);
@@ -389,13 +389,13 @@ START_TEST(test_hyphen_conversion) {
 
 END_TEST
 
-// Test: Tool without -tool suffix
+// Test: Executable without -tool suffix is skipped
 START_TEST(test_tool_without_suffix) {
     char system_dir[512];
     snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
     mkdir(system_dir, 0755);
 
-    // Create tool without -tool suffix
+    // Create executable without -tool suffix (should be skipped)
     char path[1024];
     snprintf(path, sizeof(path), "%s/mytool", system_dir);
     FILE *f = fopen(path, "w");
@@ -416,26 +416,22 @@ START_TEST(test_tool_without_suffix) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
-    ck_assert_uint_eq(registry->count, 1);
-
-    // Name should be used as-is without suffix stripping
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "mytool");
-    ck_assert_ptr_nonnull(entry);
-    ck_assert_str_eq(entry->name, "mytool");
+    // Executable without -tool suffix should be skipped
+    ck_assert_uint_eq(registry->count, 0);
 }
 
 END_TEST
 
-// Test: Tool with short name (shorter than -tool suffix)
+// Test: Executable with short name (shorter than -tool suffix) is skipped
 START_TEST(test_short_tool_name) {
     char system_dir[512];
     snprintf(system_dir, sizeof(system_dir), "%s/system", test_dir);
     mkdir(system_dir, 0755);
 
-    // Create tool with very short name (shorter than "-tool" suffix)
+    // Create executable with very short name (should be skipped)
     char path[1024];
     snprintf(path, sizeof(path), "%s/a", system_dir);
     FILE *f = fopen(path, "w");
@@ -456,15 +452,11 @@ START_TEST(test_short_tool_name) {
         "/nonexistent/user",
         "/nonexistent/project",
         registry
-    );
+        );
 
     ck_assert(!is_err(&res));
-    ck_assert_uint_eq(registry->count, 1);
-
-    // Name should be used as-is
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "a");
-    ck_assert_ptr_nonnull(entry);
-    ck_assert_str_eq(entry->name, "a");
+    // Executable without -tool suffix should be skipped
+    ck_assert_uint_eq(registry->count, 0);
 }
 
 END_TEST

@@ -3,7 +3,8 @@
     "jj",
     "errors",
     "style",
-    "tdd"
+    "tdd",
+    "debug-log"
   ],
   "advertise": []
 }

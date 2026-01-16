@@ -97,7 +97,7 @@ START_TEST(test_execute_tool_and_add_result_message) {
 
     /* Execute the tool dispatcher - now returns stub response */
     char *tool_output = talloc_asprintf(ctx,
-        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool 'glob' unavailable.\"}");
+                                        "{\"success\": false, \"error\": \"Tool system not yet implemented. Tool 'glob' unavailable.\"}");
     ck_assert_ptr_nonnull(tool_output);
 
     /* Create a canonical tool_result message using new API */

@@ -25,8 +25,7 @@ static void teardown(void)
     test_paths_cleanup_env();
 }
 
-START_TEST(test_paths_to_db_init_integration)
-{
+START_TEST(test_paths_to_db_init_integration) {
     if (getenv("SKIP_LIVE_DB_TESTS")) {
         ck_assert(1);
         return;
@@ -77,7 +76,7 @@ START_TEST(test_paths_to_db_init_integration)
     if (is_err(&result)) {
         const char *msg = error_message(result.err);
         ck_assert_msg(strstr(msg, "Cannot open migrations directory") == NULL,
-                     "Integration: paths -> db_init should find migrations at %s", migrations_path);
+                      "Integration: paths -> db_init should find migrations at %s", migrations_path);
     }
 
     // Cleanup
