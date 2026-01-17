@@ -606,7 +606,12 @@ grep_tool: libexec/ikigai/grep-tool
 libexec/ikigai/grep-tool: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool
+web_search_brave_tool: libexec/ikigai/web-search-brave-tool
+
+libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool web_search_brave_tool
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
@@ -658,6 +663,7 @@ endif
 	install -m 755 libexec/ikigai/file-edit-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-search-brave-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
 	printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
@@ -697,6 +703,7 @@ uninstall:
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-edit-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/glob-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-brave-tool
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)

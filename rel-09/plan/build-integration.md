@@ -10,43 +10,75 @@ All three tools are C programs built from source and installed as external execu
 - `web-search-google-tool` - Google Custom Search API client
 - `web-fetch-tool` - HTTP fetcher with HTML→markdown conversion
 
-## Build Target
+## Build Targets
 
-Add `make tools` target that builds all three external tools.
-
-### Target Definition
-
-```makefile
-tools: web-search-brave-tool web-search-google-tool web-fetch-tool
-
-web-search-brave-tool: tools/web-search-brave.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(HTTP_LIBS)
-
-web-search-google-tool: tools/web-search-google.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(HTTP_LIBS)
-
-web-fetch-tool: tools/web-fetch.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(HTTP_LIBS) $(XML_LIBS)
-```
+Add three new external tools following the existing pattern established by bash-tool, file-read-tool, etc.
 
 ### Source Location
 
-Tool source files live in `tools/` directory:
+Tool source files follow existing pattern in `src/tools/TOOLNAME/main.c`:
 
 ```
-tools/
-├── web-search-brave.c
-├── web-search-google.c
-└── web-fetch.c
+src/tools/
+├── web_search_brave/
+│   └── main.c
+├── web_search_google/
+│   └── main.c
+└── web_fetch/
+    └── main.c
 ```
 
-Not in `src/` because these are external executables, not ikigai core code.
+**Rationale:** External tools ARE still ikigai source code, just built as separate executables. Keeping them in `src/tools/` maintains consistency with existing tools (bash, file_read, file_write, file_edit, glob, grep).
+
+### Target Definitions
+
+Following existing Makefile pattern (see Makefile:581-609):
+
+```makefile
+# Web search tool (Brave)
+web_search_brave_tool: libexec/ikigai/web-search-brave-tool
+
+libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(TYPE_FLAGS) \
+		-o $@ $< $(TOOL_COMMON_SRCS) $(CLIENT_LIBS) -lcurl
+
+# Web search tool (Google)
+web_search_google_tool: libexec/ikigai/web-search-google-tool
+
+libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(TYPE_FLAGS) \
+		-o $@ $< $(TOOL_COMMON_SRCS) $(CLIENT_LIBS) -lcurl
+
+# Web fetch tool
+web_fetch_tool: libexec/ikigai/web-fetch-tool
+
+libexec/ikigai/web-fetch-tool: src/tools/web_fetch/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(TYPE_FLAGS) \
+		-o $@ $< $(TOOL_COMMON_SRCS) $(CLIENT_LIBS) -lcurl $(shell pkg-config --libs libxml-2.0)
+```
+
+**Key points:**
+- Builds to `libexec/ikigai/TOOLNAME-tool` (consistent with existing tools)
+- Uses existing Makefile variables: `$(BASE_FLAGS)`, `$(WARNING_FLAGS)`, `$(CLIENT_LIBS)`, etc.
+- Uses `$(TOOL_COMMON_SRCS)` for shared tool infrastructure
+- Appends `-lcurl` directly (already in CLIENT_LIBS, but explicit for clarity)
+- web-fetch-tool adds libxml2 via `pkg-config --libs libxml-2.0` (per-target, not global)
+- Convenience targets (`web_search_brave_tool:`) follow existing pattern
+
+### Update Aggregate Tools Target
+
+Update existing `tools:` target to include web tools:
+
+```makefile
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool \
+       web_search_brave_tool web_search_google_tool web_fetch_tool
+```
 
 ## Dependencies
 
 ### libxml2
 
-Required for HTML parsing in `web-fetch-tool`.
+Required for HTML parsing in `web-fetch-tool` only.
 
 **Package names:**
 - Debian/Ubuntu: `libxml2-dev`
@@ -54,11 +86,17 @@ Required for HTML parsing in `web-fetch-tool`.
 - macOS: `brew install libxml2`
 - Arch: `libxml2`
 
-**Compiler flags:**
+**Makefile handling:**
+
+libxml2 is added **per-target** (not globally) using pkg-config inline:
+
 ```makefile
-XML_CFLAGS := $(shell pkg-config --cflags libxml-2.0)
-XML_LIBS := $(shell pkg-config --libs libxml-2.0)
+libexec/ikigai/web-fetch-tool: src/tools/web_fetch/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(TYPE_FLAGS) \
+		-o $@ $< $(TOOL_COMMON_SRCS) $(CLIENT_LIBS) -lcurl $(shell pkg-config --libs libxml-2.0)
 ```
+
+**No global variables needed** - pkg-config is called inline in the target where it's needed. This keeps libxml2 scoped to web-fetch-tool only.
 
 ### HTTP Client Library
 
@@ -89,28 +127,27 @@ Tools need JSON parsing for:
 3. Credentials file parsing (`~/.config/ikigai/credentials.json`)
 4. API response parsing (Brave/Google return JSON)
 
-**Options:**
+**Decision: yyjson (already used by ikigai core)**
 
-1. **jsmn** (minimalist)
-   - Pros: Single header, no dependencies
-   - Cons: Manual parsing, more code
+ikigai core already uses yyjson for all JSON operations. Web tools should use the same library for consistency.
 
-2. **cJSON**
-   - Pros: Simple API, easy to use
-   - Cons: Additional dependency
-   - Flags: `-lcjson`
+**Rationale:**
+- Already vendored in `vendor/yyjson/` (no new dependency)
+- Fast, well-tested, used throughout ikigai
+- Talloc integration via `src/json_allocator.h` and `src/json_allocator.c`
+- Consistent API patterns with ikigai core
 
-3. **jansson**
-   - Pros: Clean API, good documentation
-   - Cons: Less common
-   - Flags: `$(shell pkg-config --cflags --libs jansson)`
+**Usage in tools:**
+```c
+#include "vendor/yyjson/yyjson.h"
+#include "json_allocator.h"
 
-**Recommendation:** cJSON for simplicity.
-
-**Compiler flags:**
-```makefile
-JSON_LIBS := -lcjson
+// Parse with talloc allocator
+yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+yyjson_doc *doc = yyjson_read_opts(input, len, 0, &allocator, NULL);
 ```
+
+**No additional Makefile changes needed** - yyjson source is already in `$(TOOL_COMMON_SRCS)` and json_allocator.c is compiled with tools.
 
 **Credentials file structure** (see `tool-schemas.md`):
 ```json
@@ -122,65 +159,127 @@ JSON_LIBS := -lcjson
 }
 ```
 
-Tools must parse nested JSON to extract credentials.
+Tools must parse nested JSON to extract credentials using yyjson API.
 
 ## Makefile Variables
 
-Add to top of Makefile:
+**No new global variables needed.**
+
+Web tools use existing Makefile infrastructure:
+- `$(CLIENT_LIBS)` already includes `-lcurl` (HTTP client)
+- `$(TOOL_COMMON_SRCS)` already includes yyjson and json_allocator (JSON parsing)
+- `$(BASE_FLAGS)`, `$(WARNING_FLAGS)`, etc. already defined
+
+**Only web-fetch-tool needs libxml2** for HTML parsing. This is added per-target:
 
 ```makefile
-# External tool dependencies
-XML_CFLAGS := $(shell pkg-config --cflags libxml-2.0)
-XML_LIBS := $(shell pkg-config --libs libxml-2.0)
-HTTP_CFLAGS := $(shell pkg-config --cflags libcurl)
-HTTP_LIBS := $(shell pkg-config --libs libcurl)
-JSON_LIBS := -lcjson
-
-# Update CFLAGS to include external tool flags
-CFLAGS += $(XML_CFLAGS) $(HTTP_CFLAGS)
+libexec/ikigai/web-fetch-tool: src/tools/web_fetch/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	$(CC) $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(DEP_FLAGS) $(TYPE_FLAGS) \
+		-o $@ $< $(TOOL_COMMON_SRCS) $(CLIENT_LIBS) -lcurl $(shell pkg-config --libs libxml-2.0)
 ```
+
+**Why per-target?**
+- Only one tool needs libxml2 (web-fetch-tool)
+- Adding to global CFLAGS would affect all compilation unnecessarily
+- Per-target flags keep dependencies explicit and scoped
 
 ## Installation
 
-External tools install to `libexec/ikigai/`:
+Update existing `install:` target to include web tools (Makefile:645-660):
 
 ```makefile
-install: tools
-	install -d $(DESTDIR)$(PREFIX)/libexec/ikigai
-	install -m 755 web-search-brave-tool $(DESTDIR)$(PREFIX)/libexec/ikigai/
-	install -m 755 web-search-google-tool $(DESTDIR)$(PREFIX)/libexec/ikigai/
-	install -m 755 web-fetch-tool $(DESTDIR)$(PREFIX)/libexec/ikigai/
+install: ikigai tools
+	install -d $(DESTDIR)$(bindir)
+	install -d $(DESTDIR)$(datadir)/ikigai
+	install -d $(DESTDIR)$(configdir)
+	install -d $(DESTDIR)$(libexecdir)/ikigai
+	# ... existing ikigai installation ...
+
+	# Install tool binaries to libexec
+	install -m 755 libexec/ikigai/bash-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-read-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-write-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/file-edit-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
+	# Add web tools:
+	install -m 755 libexec/ikigai/web-search-brave-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-search-google-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-fetch-tool $(DESTDIR)$(libexecdir)/ikigai/
 ```
 
 **Path resolution:**
-- `PREFIX` defaults to `/usr/local`
+- Uses existing `$(libexecdir)` variable (defaults to `$(PREFIX)/libexec`)
 - System install: `/usr/local/libexec/ikigai/web-search-brave-tool`
-- User override: `~/.ikigai/tools/web-search-brave-tool`
-- Project override: `.ikigai/tools/web-search-brave-tool`
+- User override: `~/.ikigai/tools/web-search-brave-tool` (tool discovery checks here first)
+- Project override: `.ikigai/tools/web-search-brave-tool` (tool discovery checks here second)
 
 ## Clean Target
 
-Update clean target to remove built tools:
+**No changes needed.** Existing `clean:` target already removes `libexec/` directory (Makefile:635):
 
 ```makefile
 clean:
-	rm -f $(OBJS) ikigai
-	rm -f web-search-brave-tool web-search-google-tool web-fetch-tool
-	rm -f tests/unit/*.o tests/integration/*.o
+	rm -rf build build-* bin libexec $(COVERAGE_DIR) coverage_html reports
+```
+
+Web tools built to `libexec/ikigai/web-*-tool` are already cleaned by this target.
+
+## Uninstall Target
+
+Update existing `uninstall:` target to remove web tools (Makefile:693-701):
+
+```makefile
+uninstall:
+	# ... existing removals ...
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/bash-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-read-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-write-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-edit-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/glob-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
+	# Add web tools:
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-brave-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-google-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-fetch-tool
+	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
+	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ```
 
 ## Dependency Checking
 
-Optional: Add dependency checks to fail fast if libraries missing:
+Optional: Add dependency check for libxml2 (only new dependency):
 
 ```makefile
-check-deps:
+check-web-deps:
 	@pkg-config --exists libxml-2.0 || (echo "libxml2 not found. Install libxml2-dev" && false)
-	@pkg-config --exists libcurl || (echo "libcurl not found. Install libcurl-dev" && false)
-	@echo "Dependencies OK"
+	@echo "Web tool dependencies OK"
 
-tools: check-deps
+web_fetch_tool: check-web-deps
 ```
+
+**Note:** libcurl is already required by ikigai core, so no check needed.
+
+## Summary of Makefile Changes
+
+**Files to create:**
+- `src/tools/web_search_brave/main.c`
+- `src/tools/web_search_google/main.c`
+- `src/tools/web_fetch/main.c`
+
+**Makefile modifications:**
+1. Add 3 new tool build targets (following existing pattern)
+2. Add 3 convenience targets: `web_search_brave_tool`, `web_search_google_tool`, `web_fetch_tool`
+3. Update aggregate `tools:` target to include web tools
+4. Update `install:` target to install web tools
+5. Update `uninstall:` target to remove web tools
+6. No changes to `clean:` (already removes libexec/)
+7. No new global variables needed
+
+**Dependencies:**
+- libxml2-dev (new, only for web-fetch-tool)
+- libcurl (already required by ikigai core)
+- yyjson (already vendored in ikigai)
 
 ## Build Order
 
@@ -207,27 +306,29 @@ make install      # Install both core and tools
 
 ## Testing Tools
 
-Tools can be tested independently:
+Tools can be tested independently from build directory:
 
 ```bash
 # Test schema output
-./web-search-brave-tool --schema
+libexec/ikigai/web-search-brave-tool --schema
 
-# Test execution
-echo '{"query":"test search"}' | ./web-search-brave-tool
+# Test execution (requires BRAVE_API_KEY environment variable)
+echo '{"query":"test search"}' | libexec/ikigai/web-search-brave-tool
 
-# Test with missing credentials (should fail gracefully)
-env -u BRAVE_API_KEY ./web-search-brave-tool <<< '{"query":"test"}'
+# Test with missing credentials (should return error with _event field)
+env -u BRAVE_API_KEY libexec/ikigai/web-search-brave-tool <<< '{"query":"test"}'
 ```
+
+**Note:** During test/build, environment variables for credentials are always set. Tools should handle both env var credentials (for testing) and credentials file (for production).
 
 ## Documentation
 
 Update `project/external-tool-architecture.md` to reference these build instructions.
 
 Update `README.md` to document:
-- Build dependencies (libxml2, libcurl, cjson)
+- Build dependencies (libxml2-dev for web-fetch-tool only; libcurl already required)
 - Installation instructions
-- Credential configuration
+- Credential configuration (environment variables + credentials.json)
 
 ## Implementation Notes
 
@@ -235,9 +336,9 @@ Update `README.md` to document:
 
 **libxml2**: Industry standard, excellent HTML parsing, well-maintained
 
-**libcurl**: De facto standard for HTTP in C, handles TLS, redirects, timeouts automatically
+**libcurl**: De facto standard for HTTP in C, handles TLS, redirects, timeouts automatically (already used by ikigai core)
 
-**cJSON**: Lightweight, simple API, sufficient for tool I/O needs
+**yyjson**: High-performance JSON library already used throughout ikigai core, vendored in `vendor/yyjson/`, integrates with talloc via `src/json_allocator.c`
 
 ### Alternative: Static Linking
 

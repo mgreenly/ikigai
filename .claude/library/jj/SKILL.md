@@ -66,6 +66,18 @@ This skill does NOT permit:
 - Rebase commits
 - Create new commits on any mutable revision
 
+## CRITICAL: Never Squash Without Permission
+
+**NEVER run `jj squash` unless the user explicitly asks you to squash commits.**
+
+- `jj squash` modifies commit history by combining commits
+- This is a destructive operation that requires explicit user permission
+- Even though commits are recoverable via `jj op restore`, squashing without permission violates the align skill's core principle
+
+**When to squash:** Only when user explicitly says "squash" or "squash commits"
+
+**What to do instead:** Create separate commits with `jj commit -m "msg"` and let the user decide later if they want to squash.
+
 ## Common Commands
 
 | Task | Command |

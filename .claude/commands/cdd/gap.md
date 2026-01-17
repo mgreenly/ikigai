@@ -49,7 +49,12 @@ Verify plan documents follow project conventions:
 3. **Memory management** - Are talloc ownership rules specified? Error context lifetime correct?
 4. **Integration points** - Are call sites and signature changes specified completely?
 5. **Research references** - Does plan reference `$CDD_DIR/research/` documents appropriately?
-6. **Build changes** - Are Makefile updates identified (new targets, dependencies, flags)?
+6. **Build changes** - CRITICAL: Compare plan's Makefile specifications against actual Makefile:
+   - Do new targets follow existing patterns (source paths, build output locations)?
+   - Are library flags scoped per-target or added globally (avoid global CFLAGS pollution)?
+   - Are aggregate targets updated (tools, install, uninstall, clean)?
+   - Do new dependencies use existing libraries where possible?
+   - Read the actual Makefile to verify pattern consistency
 7. **Database migrations** - If schema changes, are migrations specified?
 8. **Test strategy** - Does plan specify what should be tested and how?
 9. **No function bodies** - Plan should have signatures and contracts, not implementation code
