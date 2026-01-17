@@ -38,4 +38,7 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
 // Clear all entries (for /refresh)
 void ik_tool_registry_clear(ik_tool_registry_t *registry);
 
+// Sort entries alphabetically by name
+void ik_tool_registry_sort(ik_tool_registry_t *registry);
+
 #endif // IK_TOOL_REGISTRY_H

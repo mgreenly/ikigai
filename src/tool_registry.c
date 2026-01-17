@@ -2,6 +2,8 @@
 
 #include "panic.h"
 
+#include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -110,4 +112,22 @@ yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_
     }
 
     return tools_array;
+}
+
+// Comparator for qsort - sorts entries alphabetically by name
+static int32_t compare_entries(const void *a, const void *b)
+{
+    const ik_tool_registry_entry_t *entry_a = (const ik_tool_registry_entry_t *)a;
+    const ik_tool_registry_entry_t *entry_b = (const ik_tool_registry_entry_t *)b;
+    return strcmp(entry_a->name, entry_b->name);
+}
+
+void ik_tool_registry_sort(ik_tool_registry_t *registry)
+{
+    // No-op on empty or single-entry registry
+    if (registry->count <= 1) {
+        return;
+    }
+
+    qsort(registry->entries, registry->count, sizeof(ik_tool_registry_entry_t), compare_entries);
 }

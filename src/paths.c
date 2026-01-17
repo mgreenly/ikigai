@@ -1,4 +1,5 @@
 #include "paths.h"
+#include "debug_log.h"
 #include "panic.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -61,11 +62,17 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
     const char *data_dir = getenv("IKIGAI_DATA_DIR");
     const char *libexec_dir = getenv("IKIGAI_LIBEXEC_DIR");
 
+    DEBUG_LOG("ik_paths_init: IKIGAI_BIN_DIR=%s", bin_dir ? bin_dir : "NULL");
+    DEBUG_LOG("ik_paths_init: IKIGAI_CONFIG_DIR=%s", config_dir ? config_dir : "NULL");
+    DEBUG_LOG("ik_paths_init: IKIGAI_DATA_DIR=%s", data_dir ? data_dir : "NULL");
+    DEBUG_LOG("ik_paths_init: IKIGAI_LIBEXEC_DIR=%s", libexec_dir ? libexec_dir : "NULL");
+
     // Check if all required environment variables are set and non-empty
     if (bin_dir == NULL || bin_dir[0] == '\0' ||
         config_dir == NULL || config_dir[0] == '\0' ||
         data_dir == NULL || data_dir[0] == '\0' ||
         libexec_dir == NULL || libexec_dir[0] == '\0') {
+        DEBUG_LOG("ik_paths_init: ERROR - Missing required environment variable");
         return ERR(ctx, INVALID_ARG, "Missing required environment variable IKIGAI_*_DIR");
     }
 

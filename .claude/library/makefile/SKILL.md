@@ -134,6 +134,17 @@ VCR_RECORD=1 make check-unit         # Re-record fixtures during test run
 make vcr-record-openai               # Re-record all OpenAI fixtures
 ```
 
+## Tool Build Pattern
+
+```makefile
+tool_name_tool: libexec/ikigai/tool-name-tool
+
+libexec/ikigai/tool-name-tool: src/tools/tool_name/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+```
+
+**Critical:** `$(LDFLAGS)` must come before `-o $@ $^`, not after. Libraries go at the end.
+
 ## Important Notes
 
 - Never run parallel make with different targets - different BUILD modes use incompatible flags.
