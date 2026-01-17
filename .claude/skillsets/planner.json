@@ -5,6 +5,7 @@
     "planner",
     "meta",
     "cdd",
+    "ralph",
     "source-code",
     "ddd",
     "di",
@@ -14,8 +15,7 @@
     "naming",
     "patterns/vtable",
     "patterns/result-type",
-    "patterns/arena-allocator",
-    "task-authoring"
+    "patterns/arena-allocator"
   ],
   "advertise": [
     {"skill": "pull-request", "description": "Load before creating pull requests"},
