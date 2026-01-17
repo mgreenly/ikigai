@@ -47,3 +47,24 @@ Each fixed item is logged with:
 - Consistent with existing tool wrapper pattern
 
 ---
+
+### 2026-01-16 - HTTP Client Library Decided
+
+**Gap Reference:** Major Gap #4 in gap.md (HTTP client library not decided)
+
+**Issue:** build-integration.md listed options and recommended libcurl but left it as "Decision needed."
+
+**Resolution:** Committed to libcurl (ikigai already uses it throughout).
+
+**Changes Made:**
+1. **plan/build-integration.md:65-82** - Changed from "Decision needed" to "Decision: libcurl"
+2. Added rationale: ikigai core already depends on libcurl for provider API calls
+3. Added note that no additional build dependencies needed
+
+**Rationale:**
+- libcurl already used in ikigai core (`-lcurl` in CLIENT_LIBS)
+- Consistent with ikigai's HTTP abstraction (`src/wrapper_curl.c`)
+- Mature, battle-tested, widely available
+- Handles HTTPS, redirects, timeouts automatically
+
+---

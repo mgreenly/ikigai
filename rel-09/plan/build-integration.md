@@ -62,30 +62,24 @@ XML_LIBS := $(shell pkg-config --libs libxml-2.0)
 
 ### HTTP Client Library
 
-Decision needed: Which HTTP client library to use?
+**Decision: libcurl**
 
-**Options:**
+ikigai core already uses libcurl for all HTTP operations (provider API calls). External tools will use the same library for consistency.
 
-1. **libcurl**
-   - Pros: Mature, widely available, full-featured
-   - Cons: Large dependency, more than we need
-   - Flags: `$(shell pkg-config --cflags --libs libcurl)`
-
-2. **http-parser + raw sockets**
-   - Pros: Minimal, full control
-   - Cons: More code to write, TLS handling complex
-
-3. **neon**
-   - Pros: WebDAV-focused, good HTTP support
-   - Cons: Less common, may not be in all distros
-
-**Recommendation:** libcurl for reliability and TLS handling.
+**Rationale:**
+- Already a dependency (ikigai links against `-lcurl`)
+- Mature, battle-tested, widely available
+- Handles HTTPS, redirects, timeouts automatically
+- Consistent with ikigai's HTTP abstraction (see `src/wrapper_curl.c`)
+- No additional build dependencies needed
 
 **Compiler flags:**
 ```makefile
 HTTP_CFLAGS := $(shell pkg-config --cflags libcurl)
 HTTP_LIBS := $(shell pkg-config --libs libcurl)
 ```
+
+**Note:** libcurl is already a dependency of ikigai core (see Makefile `CLIENT_LIBS`). No additional installation required.
 
 ### JSON Library
 
