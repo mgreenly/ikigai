@@ -4,7 +4,7 @@
 
 This document identifies gaps, contradictions, and missing specifications in the rel-09 plan that must be resolved before implementation.
 
-**Status:** 3 of 9 gaps resolved (see verified.md for details)
+**Status:** 5 of 9 gaps resolved (see verified.md for details)
 
 ---
 
@@ -123,9 +123,11 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ---
 
-### 2. Memory Management Not Specified
+### ✅ RESOLVED: 2. Memory Management Not Specified
 
-**Issue:** Plan doesn't specify memory management approach for external tools
+**Resolution:** See verified.md (2026-01-16 - Memory Management and Return Value Conventions Documented)
+
+**Original Issue:** Plan doesn't specify memory management approach for external tools
 
 **Questions:**
 - Do tools use talloc (ikigai's approach) or malloc/free?
@@ -162,9 +164,11 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ---
 
-### 3. Return Value Convention Unclear
+### ✅ RESOLVED: 3. Return Value Convention Unclear
 
-**Issue:** Plan doesn't specify internal error handling pattern for external tools
+**Resolution:** See verified.md (2026-01-16 - Memory Management and Return Value Conventions Documented)
+
+**Original Issue:** Plan doesn't specify internal error handling pattern for external tools
 
 **Question:** Do external tools use:
 - ikigai's res_t with OK()/ERR() patterns internally?
@@ -384,18 +388,18 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 ## Summary
 
 **Total gaps identified:** 9 (1 critical, 5 major, 3 medium)
-**Resolved:** 3 gaps (see verified.md)
-**Remaining:** 6 gaps
+**Resolved:** 5 gaps (see verified.md)
+**Remaining:** 4 gaps
 
 **✅ Resolved:**
 - Critical: stderr protocol conflict → Used `_event` field in JSON
+- Major #2: Memory management unspecified → Documented talloc patterns in tool-implementation.md
+- Major #3: Return value conventions unclear → Documented exit codes and internal patterns
 - Major #4: HTTP library not decided → Committed to libcurl
 - Medium #6: Error handling protocol contradiction → Resolved with stderr fix
 
 **Remaining Major gaps:**
-- #1: Missing internal specifications
-- #2: Memory management unspecified
-- #3: Return value conventions unclear
+- #1: Missing internal specifications (partially addressed by tool-implementation.md)
 - #5: Test strategy missing
 
 **Remaining Medium gaps:**
@@ -406,7 +410,8 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 **Next steps:**
 1. ✅ Resolve critical stderr conflict (DONE - used _event field)
 2. ✅ Decide HTTP library (DONE - libcurl)
-3. Document memory management pattern (gap #2)
-4. Document return value conventions (gap #3)
+3. ✅ Document memory management pattern (DONE - tool-implementation.md)
+4. ✅ Document return value conventions (DONE - tool-implementation.md)
 5. Add test strategy (gap #5)
-6. Fill remaining specification gaps
+6. Fill remaining specification gaps (#7, #8, #9)
+7. Review gap #1 (may be resolved by tool-implementation.md)

@@ -13,8 +13,8 @@ Each fixed item is logged with:
 
 **Initial verification:** 2026-01-16
 **Gaps identified:** 9 total (1 critical, 5 major, 3 medium)
-**Resolved:** 3 gaps
-**Remaining:** 6 gaps
+**Resolved:** 5 gaps
+**Remaining:** 4 gaps
 **See:** gap.md for complete list
 
 ---
@@ -70,5 +70,34 @@ Each fixed item is logged with:
 - Consistent with ikigai's HTTP abstraction (`src/wrapper_curl.c`)
 - Mature, battle-tested, widely available
 - Handles HTTPS, redirects, timeouts automatically
+
+---
+
+### 2026-01-16 - Memory Management and Return Value Conventions Documented
+
+**Gap Reference:** Major Gaps #2 and #3 in gap.md (Memory management + Return value conventions)
+
+**Issue:** Plan didn't specify internal implementation patterns for external tools.
+
+**Resolution:** Created `plan/tool-implementation.md` documenting existing patterns from current tools.
+
+**Changes Made:**
+1. **plan/tool-implementation.md** - New comprehensive document specifying:
+   - Memory management: talloc with single root context
+   - Return value conventions: exit codes and internal function patterns
+   - Standard tool structure template
+   - Library memory handling (libcurl, libxml2, cJSON)
+   - Common implementation patterns
+   - Build integration
+   - Testing approach
+2. **plan/README.md** - Added tool-implementation.md to plan documents table
+
+**Patterns Documented:**
+- Memory: `void *ctx = talloc_new(NULL);` at start, all allocations off ctx, single `talloc_free(ctx)` cleanup
+- Returns: Exit 0 for tool execution (check JSON `success` field), exit 1 for crashes, internal functions use `0/-1`
+- Structure: --schema handling, stdin reading, JSON parsing, operation, output, cleanup
+- No res_t (tools are standalone executables, not linked against ikigai core)
+
+**Source:** Patterns extracted from existing tools in `src/tools/` (bash, file_read, file_write, glob, grep)
 
 ---

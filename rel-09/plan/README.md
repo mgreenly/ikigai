@@ -104,6 +104,7 @@ Module-level architecture plans describing what modules exist and how they inter
 | `architecture-separate-tools.md` | Rationale for separate tools vs generic interface | Updated |
 | `tool-schemas.md` | Exact JSON schemas for all three tools | New |
 | `build-integration.md` | Makefile changes and build dependencies | New |
+| `tool-implementation.md` | Internal C implementation patterns (memory, errors, structure) | New |
 
 ## Research References
 
