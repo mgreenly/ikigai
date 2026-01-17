@@ -4,7 +4,7 @@
 
 This document identifies gaps, contradictions, and missing specifications in the rel-09 plan that must be resolved before implementation.
 
-**Status:** 5 of 9 gaps resolved (see verified.md for details)
+**Status:** 7 of 9 gaps resolved (see verified.md for details)
 
 ---
 
@@ -318,9 +318,11 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ---
 
-### 8. Domain Filtering Implementation Incomplete
+### ✅ RESOLVED: 8. Domain Filtering Implementation Incomplete
 
-**Issue:** Domain filtering behavior not fully specified
+**Resolution:** See verified.md (2026-01-16 - Domain Filtering Algorithm Specified)
+
+**Original Issue:** Domain filtering behavior not fully specified
 
 **Brave Search:**
 - tool-schemas.md:86 says "implemented via post-processing"
@@ -353,9 +355,11 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ---
 
-### 9. Database Integration Incomplete
+### ✅ RESOLVED: 9. Database Integration Incomplete
 
-**Issue:** Plan doesn't specify how to store config_required events in database
+**Resolution:** See verified.md (2026-01-16 - Database Integration Specified)
+
+**Original Issue:** Plan doesn't specify how to store config_required events in database
 
 **Finding:** The `messages` table already exists with support for arbitrary event types
 
@@ -388,8 +392,8 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 ## Summary
 
 **Total gaps identified:** 9 (1 critical, 5 major, 3 medium)
-**Resolved:** 5 gaps (see verified.md)
-**Remaining:** 4 gaps
+**Resolved:** 7 gaps (see verified.md)
+**Remaining:** 2 gaps
 
 **✅ Resolved:**
 - Critical: stderr protocol conflict → Used `_event` field in JSON
@@ -397,21 +401,19 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 - Major #3: Return value conventions unclear → Documented exit codes and internal patterns
 - Major #4: HTTP library not decided → Committed to libcurl
 - Medium #6: Error handling protocol contradiction → Resolved with stderr fix
+- Medium #8: Domain filtering incomplete → Specified algorithms in tool-schemas.md
+- Medium #9: Database integration incomplete → Specified integration in build-integration.md
 
-**Remaining Major gaps:**
-- #1: Missing internal specifications (partially addressed by tool-implementation.md)
-- #5: Test strategy missing
-
-**Remaining Medium gaps:**
-- #7: External tool framework integration incomplete
-- #8: Domain filtering incomplete
-- #9: Database integration incomplete
+**Remaining gaps:**
+- Major #1: Missing internal specifications (partially addressed by tool-implementation.md)
+- Major #5: Test strategy missing (partially addressed, needs HTTP mocking details)
+- Medium #7: External tool framework integration incomplete
 
 **Next steps:**
 1. ✅ Resolve critical stderr conflict (DONE - used _event field)
 2. ✅ Decide HTTP library (DONE - libcurl)
 3. ✅ Document memory management pattern (DONE - tool-implementation.md)
 4. ✅ Document return value conventions (DONE - tool-implementation.md)
-5. Add test strategy (gap #5)
-6. Fill remaining specification gaps (#7, #8, #9)
-7. Review gap #1 (may be resolved by tool-implementation.md)
+5. ✅ Specify domain filtering (DONE - tool-schemas.md)
+6. ✅ Specify database integration (DONE - build-integration.md)
+7. Review remaining gaps (#1, #5, #7) - assess if blocking or acceptable

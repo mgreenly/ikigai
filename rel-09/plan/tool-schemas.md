@@ -535,6 +535,103 @@ Tools must map provider-specific API responses to the common format:
 
 The common format allows LLM to use either tool interchangeably.
 
+### Domain Filtering
+
+Both tools support `allowed_domains` and `blocked_domains` parameters, but implementation differs.
+
+#### Brave Search: Post-Processing
+
+Brave API doesn't support native domain filtering. Tools implement filtering via post-processing:
+
+**Algorithm:**
+1. Make single API request (no domain filtering parameters)
+2. For each result in response:
+   - Extract hostname from URL (e.g., "https://www.example.com/page" → "www.example.com")
+   - Normalize: Convert to lowercase
+   - Apply filtering rules (see below)
+3. Return filtered results
+
+**Filtering Rules:**
+
+**allowed_domains (whitelist):**
+- If `allowed_domains` is empty or not provided: include all results
+- If `allowed_domains` is non-empty: include only results where hostname exactly matches one of the allowed domains
+- Match is case-insensitive exact match only (no wildcard subdomains)
+- Examples:
+  - `allowed_domains: ["example.com"]` matches "example.com" only
+  - Does NOT match "www.example.com" or "blog.example.com"
+  - To include subdomains, user must explicitly list them: `["example.com", "www.example.com", "blog.example.com"]`
+
+**blocked_domains (blacklist):**
+- If `blocked_domains` is empty or not provided: include all results
+- If `blocked_domains` is non-empty: exclude results where hostname exactly matches any blocked domain
+- Match is case-insensitive exact match only
+- Applied after `allowed_domains` filtering
+
+**Deduplication:**
+- Track seen URLs during filtering
+- If same URL appears multiple times, include only first occurrence
+
+#### Google Search: Multiple Parallel API Calls
+
+Google API supports native site filtering via `siteSearch` and `siteSearchFilter` parameters, but only for single domain per request.
+
+**For allowed_domains with multiple domains:**
+
+When `allowed_domains` contains multiple domains, make parallel API calls and aggregate results:
+
+**Algorithm:**
+1. Split `num` parameter across domains:
+   ```
+   per_domain = num / domain_count  (integer division)
+   remainder = num % domain_count
+
+   For each domain at index i:
+     if i < remainder:
+       num_for_domain = per_domain + 1
+     else:
+       num_for_domain = per_domain
+   ```
+
+2. Make parallel Google API calls, one per domain:
+   - Each call: `siteSearch=domain`, `siteSearchFilter=i` (include), `num=num_for_domain`
+   - Skip calls where `num_for_domain = 0` (no point, saves quota)
+
+3. Wait for all responses (or timeout)
+
+4. Round-robin merge results:
+   - Take result[0] from domain[0], result[0] from domain[1], ..., result[1] from domain[0], ...
+   - Continue until `num` results collected or all results exhausted
+   - Track seen URLs during merge
+   - If same URL appears from multiple domains, skip duplicate (only count unique URLs)
+
+5. Return merged results with actual count
+
+**Pagination with start parameter:**
+- Split `start` across domains: `start_per_domain = start / domain_count`
+- Each API call gets `start=start_per_domain`
+
+**Partial failure handling:**
+- If some domain API calls fail (timeout, error), include results from successful calls
+- Final count may be less than requested `num`
+
+**For blocked_domains with multiple domains:**
+
+Post-processing approach (same as Brave):
+1. Make single API request with no site filtering
+2. Post-process to remove results where hostname matches any blocked domain
+3. Exact match, case-insensitive, no wildcards
+
+**For single allowed_domain or single blocked_domain:**
+- Use native Google API parameters (single API call)
+- `allowed_domains` with 1 element: `siteSearch=domain`, `siteSearchFilter=i`
+- `blocked_domains` with 1 element: `siteSearch=domain`, `siteSearchFilter=e`
+
+**Quota implications:**
+- Single domain: 1 API call
+- Multiple allowed_domains (N domains): N API calls in parallel
+- Multiple blocked_domains: 1 API call + post-processing
+
 ### HTML to Markdown Conversion
 
 The `web-fetch-tool` uses libxml2 for HTML parsing (see `../research/html-to-markdown.md`):

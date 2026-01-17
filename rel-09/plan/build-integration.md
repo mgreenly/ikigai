@@ -298,3 +298,115 @@ The `_` prefix indicates internal metadata not meant for LLM consumption.
 Tools must respect the 30-second execution timeout enforced by ikigai's external tool framework.
 
 Internal HTTP timeouts should be shorter (e.g., 10 seconds) to allow for retry logic.
+
+---
+
+## Database Integration for config_required Events
+
+Tools emit `config_required` events via the `_event` field in JSON output. ikigai must extract these events and store them in the database.
+
+### Integration Point: tool_wrapper.c
+
+The `ik_tool_wrap_success()` function (or equivalent wrapper) must be updated to:
+
+1. **Parse tool JSON output** and extract optional `_event` field
+2. **If `_event` field present:**
+   - Store event in messages table
+   - Remove `_event` field from result before wrapping for LLM
+3. **Wrap remaining result** for LLM as usual
+
+### Event Structure
+
+Tools include `_event` field in JSON output:
+
+```json
+{
+  "success": false,
+  "error": "...",
+  "error_code": "AUTH_MISSING",
+  "_event": {
+    "kind": "config_required",
+    "content": "⚠ Configuration Required\n\n...",
+    "data": {
+      "tool": "web_search_brave",
+      "credential": "api_key",
+      "signup_url": "https://brave.com/search/api/"
+    }
+  }
+}
+```
+
+### Database Schema
+
+Messages table (share/ikigai/migrations/001-initial-schema.sql:41-48) already supports arbitrary event types:
+
+```sql
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id BIGINT NOT NULL REFERENCES sessions(id),
+    kind TEXT NOT NULL,        -- Event type: 'config_required'
+    content TEXT,              -- User-facing message from _event.content
+    data JSONB,                -- Structured metadata from _event.data
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### Insertion Logic
+
+When `_event` field is present in tool output:
+
+```c
+// Pseudo-code for tool_wrapper.c
+res_t ik_tool_wrap_success(ctx, tool_output_json, wrapped_result) {
+    // 1. Parse tool JSON
+    yyjson_val *event = yyjson_obj_get(root, "_event");
+
+    if (event != NULL) {
+        // 2. Extract event fields
+        const char *kind = yyjson_get_str(yyjson_obj_get(event, "kind"));
+        const char *content = yyjson_get_str(yyjson_obj_get(event, "content"));
+        yyjson_val *data = yyjson_obj_get(event, "data");
+
+        // 3. Serialize data to JSON string for JSONB column
+        char *data_json = yyjson_val_write(data, 0, NULL);
+
+        // 4. Insert into messages table
+        // INSERT INTO messages (session_id, kind, content, data)
+        // VALUES ($1, $2, $3, $4::jsonb)
+        // Use current session_id from context
+
+        // 5. Remove _event field from tool result
+        yyjson_mut_obj_remove(mutable_root, "_event");
+
+        // 6. Free data_json after insertion
+        free(data_json);
+    }
+
+    // 7. Wrap remaining result for LLM (without _event field)
+    // ... existing wrapping logic ...
+}
+```
+
+### Display Logic
+
+Scrollback rendering must query and display `config_required` events:
+
+**Query:** When loading conversation history, fetch all messages including `kind='config_required'`
+
+**Rendering:** Events with `kind='config_required'` displayed in dim yellow, separate from tool_result
+
+**Association:** Event is inserted immediately after tool execution completes, so it appears in the same conversation turn as the tool_call/tool_result pair.
+
+### Event Lifecycle
+
+1. Tool executes, finds credentials missing
+2. Tool returns JSON with `success: false` and `_event` field
+3. `ik_tool_wrap_success()` extracts `_event`, stores in database
+4. `_event` removed from result
+5. Wrapped result sent to LLM: `{"tool_success": true, "result": {"success": false, "error": "..."}}`
+6. LLM sees only the error message, not the event metadata
+7. User sees both:
+   - Tool result in dim gray
+   - Config event in dim yellow (queried from messages table during scrollback render)
+
+This separation allows tools to provide rich setup instructions to users without cluttering the LLM context.
