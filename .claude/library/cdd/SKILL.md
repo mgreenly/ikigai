@@ -60,9 +60,9 @@ Use user/agent interactive development time during the Research and Plan phases 
 
 **Verification:**
 ```
-/cdd:gap-plan  # Verify README/user-stories → plan alignment
+/cdd:gap  # Verify README/user-stories → plan alignment
 fix gaps
-/cdd:gap-plan  # Repeat until clean
+/cdd:gap  # Repeat until clean
 ```
 
 Checks alignment down the pyramid:

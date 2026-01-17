@@ -23,7 +23,7 @@ Compact the file at `$ARGUMENTS` to reduce token usage while preserving informat
 8. Commit the change with message: `chore(cdd): compact <filename>`
 
 **Validation:**
-- If `$ARGUMENTS` is empty, respond with: "Usage: /cdd:compact <filepath>"
+- If `$ARGUMENTS` is empty, respond with: "Usage: /compact <filepath>"
 - If file is not in $CDD_DIR/, respond with: "Error: File must be within $CDD_DIR/ directory"
 - If file doesn't exist, respond with: "Error: File not found: <filepath>"
 

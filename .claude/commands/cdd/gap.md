@@ -14,16 +14,6 @@ description: Find the most critical alignment gap in release plan.
 - Verifies plan follows project conventions
 - Identifies missing specifications in the plan
 
-**What this command does NOT do:**
-- Does NOT verify tasks (`$CDD_DIR/tasks/`)
-- Does NOT check if plan items are covered by tasks
-- Does NOT verify order.json or task completeness
-- Does NOT care about task execution readiness
-
-**Separation of concerns:**
-- `/cdd:gap-plan` - Verifies PLAN documents only (this command)
-- `/cdd:gap-tasks` - Verifies TASKS against plan (separate command)
-
 ## Process
 
 1. Read `$CDD_DIR/verified.md` to see what has already been verified
@@ -31,8 +21,6 @@ description: Find the most critical alignment gap in release plan.
 3. When an item is verified, append it to `$CDD_DIR/verified.md`
 4. Work incrementally - verify items one at a time, not all at once
 5. Report gaps found and suggest fixes
-
-**Scope boundary:** STOP at plan verification. Do not venture into task verification.
 
 ## Alignment Checks
 

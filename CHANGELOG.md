@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Check-? **: Documented 60-minute timeout, foreground execution, JSON output format
 
 #### CDD Pipeline Improvements
-- **Gap verification**: Checklists for gap-plan and gap-tasks commands
+- **Gap verification**: Checklists for gap command
 - **TDD enforcement**: Enforced TDD across CDD pipeline with streamlined verification
 - **$CDD_DIR requirement**: Environment variable required for workspace path
 - **Pull-request skill**: Concise PR template for consistent pull requests
