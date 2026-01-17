@@ -120,12 +120,22 @@ Success response:
 
 ### Error Response
 
-When credentials are missing or invalid:
+When credentials are missing or invalid (with config_required event):
 
 ```json
 {
   "success": false,
-  "error": "Web search requires API key configuration.\n\nBrave Search offers 2,000 free searches/month.\nGet your key: https://brave.com/search/api/\nAdd to: ~/.config/ikigai/credentials.json as 'web_search.brave.api_key'"
+  "error": "Web search requires API key configuration.\n\nBrave Search offers 2,000 free searches/month.\nGet your key: https://brave.com/search/api/\nAdd to: ~/.config/ikigai/credentials.json as 'web_search.brave.api_key'",
+  "error_code": "AUTH_MISSING",
+  "_event": {
+    "kind": "config_required",
+    "content": "⚠ Configuration Required\n\nWeb search needs an API key. Brave Search offers 2,000 free searches/month.\n\nGet your key: https://brave.com/search/api/\nAdd to: ~/.config/ikigai/credentials.json\n\nExample:\n{\n  \"web_search\": {\n    \"brave\": {\n      \"api_key\": \"your-api-key-here\"\n    }\n  }\n}",
+    "data": {
+      "tool": "web_search_brave",
+      "credential": "api_key",
+      "signup_url": "https://brave.com/search/api/"
+    }
+  }
 }
 ```
 
@@ -143,6 +153,7 @@ When rate limit exceeded (HTTP 429 from Brave):
 - `success` (boolean): Always `false` for errors
 - `error` (string): Human-readable error message
 - `error_code` (string, optional): Machine-readable error code
+- `_event` (object, optional): Metadata event for ikigai to extract and handle
 
 **Error codes:**
 - `AUTH_MISSING` - Credentials not configured
@@ -151,26 +162,20 @@ When rate limit exceeded (HTTP 429 from Brave):
 - `NETWORK_ERROR` - Connection or timeout failure
 - `API_ERROR` - Provider API returned error
 
-Non-zero exit code indicates failure.
+**Exit codes:**
+- Exit 0: Tool executed successfully (check `success` field for operation result)
+- Exit non-zero: Tool crashed or failed to execute
 
-**config_required Event:**
+**Event Handling:**
 
-When credentials are missing, the tool writes a `config_required` event to **stderr** (see user-stories/first-time-discovery.md):
+The optional `_event` field contains metadata for ikigai to process:
+- ikigai extracts `_event` field from tool output
+- Stores event in messages table (kind='config_required')
+- Removes `_event` before wrapping result for LLM
+- User sees event displayed in dim yellow
+- LLM sees only the error message (not the event metadata)
 
-```json
-{
-  "kind": "config_required",
-  "content": "⚠ Configuration Required\n\nWeb search needs an API key. Brave Search offers 2,000 free searches/month.\n\nGet your key: https://brave.com/search/api/\nAdd to: ~/.config/ikigai/credentials.json\n\nExample:\n{\n  \"web_search\": {\n    \"brave\": {\n      \"api_key\": \"your-api-key-here\"\n    }\n  }\n}",
-  "data_json": "{\"tool\": \"web_search_brave\", \"credential\": \"api_key\", \"signup_url\": \"https://brave.com/search/api/\"}"
-}
-```
-
-**Important:**
-- Error response goes to **stdout** (sent to LLM)
-- config_required event goes to **stderr** (captured by ikigai, stored in database, displayed to user)
-- This separation allows LLM to see error while user gets detailed setup instructions
-
-This event is stored in the database and displayed to users in dim yellow.
+This separation allows LLM to explain the situation while user gets detailed setup instructions.
 
 ---
 
@@ -291,12 +296,21 @@ Success response (identical to Brave):
 
 ### Error Response
 
-When credentials are missing or invalid:
+When credentials are missing or invalid (with config_required event):
 
 ```json
 {
   "success": false,
-  "error": "Web search requires API key configuration.\n\nGoogle Custom Search offers 100 free searches/day.\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json as 'web_search.google.api_key' and 'web_search.google.engine_id'"
+  "error": "Web search requires API key configuration.\n\nGoogle Custom Search offers 100 free searches/day.\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json as 'web_search.google.api_key' and 'web_search.google.engine_id'",
+  "error_code": "AUTH_MISSING",
+  "_event": {
+    "kind": "config_required",
+    "content": "⚠ Configuration Required\n\nWeb search needs an API key and Search Engine ID. Google Custom Search offers 100 free searches/day.\n\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json\n\nExample:\n{\n  \"web_search\": {\n    \"google\": {\n      \"api_key\": \"your-api-key-here\",\n      \"engine_id\": \"your-search-engine-id\"\n    }\n  }\n}",
+    "data": {
+      "tool": "web_search_google",
+      "credentials": ["api_key", "engine_id"]
+    }
+  }
 }
 ```
 
@@ -314,24 +328,15 @@ When rate limit exceeded (HTTP 403 with `dailyLimitExceeded`):
 - `success` (boolean): Always `false` for errors
 - `error` (string): Human-readable error message
 - `error_code` (string, optional): Machine-readable error code
+- `_event` (object, optional): Metadata event for ikigai to extract and handle
 
 **Error codes:** Same as Brave (AUTH_MISSING, AUTH_INVALID, RATE_LIMIT, NETWORK_ERROR, API_ERROR)
 
-Non-zero exit code indicates failure.
+**Exit codes:**
+- Exit 0: Tool executed successfully (check `success` field for operation result)
+- Exit non-zero: Tool crashed or failed to execute
 
-**config_required Event:**
-
-When credentials are missing, writes a `config_required` event to **stderr** (similar to Brave but with Google-specific instructions):
-
-```json
-{
-  "kind": "config_required",
-  "content": "⚠ Configuration Required\n\nWeb search needs an API key and Search Engine ID. Google Custom Search offers 100 free searches/day.\n\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json\n\nExample:\n{\n  \"web_search\": {\n    \"google\": {\n      \"api_key\": \"your-api-key-here\",\n      \"engine_id\": \"your-search-engine-id\"\n    }\n  }\n}",
-  "data_json": "{\"tool\": \"web_search_google\", \"credentials\": [\"api_key\", \"engine_id\"]}"
-}
-```
-
-Event written to stderr, captured by ikigai, and displayed to user in dim yellow.
+**Event Handling:** Same as web-search-brave-tool - `_event` field extracted by ikigai, stored in messages table, removed before wrapping for LLM.
 
 ---
 

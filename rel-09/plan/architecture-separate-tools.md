@@ -109,32 +109,45 @@ All tools advertised to LLM regardless of credential availability. Missing crede
 
 When search tools detect missing credentials:
 
-1. **Tool returns error response** (sent to LLM):
+1. **Tool returns error response with optional `_event` field**:
    ```json
    {
      "success": false,
-     "error": "Web search requires API key configuration.\n\n..."
+     "error": "Web search requires API key configuration.\n\n...",
+     "error_code": "AUTH_MISSING",
+     "_event": {
+       "kind": "config_required",
+       "content": "⚠ Configuration Required\n\n...",
+       "data": {"tool": "web_search_brave", "credential": "api_key", "signup_url": "..."}
+     }
    }
    ```
 
-2. **Tool emits config_required event** (NOT sent to LLM, stored in database):
+2. **ikigai processes the response**:
+   - Extracts `_event` field (if present)
+   - Stores event in messages table (kind='config_required')
+   - Removes `_event` from result before wrapping for LLM
+   - Wraps remaining fields: `{"tool_success": true, "result": {"success": false, "error": "..."}}`
+
+3. **LLM receives** (via tool_result):
    ```json
    {
-     "kind": "config_required",
-     "content": "⚠ Configuration Required\n\n...",
-     "data_json": "{\"tool\": \"web_search_brave\", ...}"
+     "tool_success": true,
+     "result": {
+       "success": false,
+       "error": "Web search requires API key configuration.\n\n...",
+       "error_code": "AUTH_MISSING"
+     }
    }
    ```
-
-3. **ikigai displays event to user** in dim yellow (separate from tool_result)
 
 4. **User sees both**:
    - Tool error (dim gray) - LLM uses this to explain situation
-   - Config event (dim yellow) - User sees detailed setup instructions
+   - Config event (dim yellow) - User sees detailed setup instructions from messages table
 
 See user-stories/first-time-discovery.md for complete example.
 
-**Implementation:** Tools write event to stderr (separate from stdout JSON response). ikigai's external tool framework captures stderr and emits database event.
+**Implementation:** Tools include optional `_event` field in stdout JSON. ikigai's tool_wrapper.c extracts and handles `_event` before wrapping for LLM. The `_` prefix indicates internal metadata not meant for LLM consumption.
 
 ### Tool Override Examples
 - Override Brave with DuckDuckGo: Place custom `web-search-brave-tool` in `~/.ikigai/tools/`

@@ -19,12 +19,13 @@ Module-level architecture plans describing what modules exist and how they inter
 **Tool Availability:**
 - All tools advertised to LLM even without credentials configured
 - Tools return authentication error when credentials missing
-- Tools emit `config_required` event for user display (dim yellow warning)
+- Tools include `_event` field for config_required metadata (dim yellow warning)
 - Credential precedence: environment variable → credentials.json → error
 - Environment variables: BRAVE_API_KEY, GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
 
 **config_required Events:**
-- When credentials missing, tools emit structured event for database storage
+- When credentials missing, tools include `_event` field in JSON output
+- ikigai extracts `_event`, stores in messages table, removes from LLM result
 - Event displayed to user in dim yellow (not sent to LLM)
 - Event includes setup instructions, signup URLs, and credential paths
 - See user-stories/first-time-discovery.md for example

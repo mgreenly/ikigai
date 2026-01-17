@@ -262,9 +262,42 @@ Decision: Dynamic linking preferred for standard distro packages.
 
 All tools must:
 1. Validate JSON input from stdin
-2. Return meaningful error messages on stdout
-3. Exit with non-zero code on failure
-4. Never write to stderr (protocol uses stdout only)
+2. Return meaningful error messages on stdout (as JSON with `success: false` field)
+3. Exit 0 for successful execution (even if operation failed - use `success` field to indicate operation failure)
+4. Exit non-zero only for tool crashes or fatal errors
+5. Include optional `_event` field in JSON output for metadata (extracted by ikigai, not sent to LLM)
+6. Never write to stderr (protocol uses stdout only, stderr is discarded)
+
+**Event Field Protocol:**
+
+Tools can include an optional `_event` field in their JSON output for out-of-band metadata:
+
+```json
+{
+  "success": false,
+  "error": "...",
+  "error_code": "AUTH_MISSING",
+  "_event": {
+    "kind": "config_required",
+    "content": "User-facing message with setup instructions",
+    "data": {"tool": "web_search_brave", "credential": "api_key", ...}
+  }
+}
+```
+
+**Processing:**
+- ikigai's tool_wrapper.c extracts `_event` field from tool output
+- Event stored in messages table (kind='config_required')
+- `_event` field removed before wrapping result for LLM
+- User sees event displayed separately (dim yellow)
+- LLM sees only the error message (not the event metadata)
+
+**Use cases:**
+- Configuration required (missing credentials)
+- User action needed (external setup, approval, etc.)
+- Important warnings (not errors)
+
+The `_` prefix indicates internal metadata not meant for LLM consumption.
 
 ### Timeouts
 

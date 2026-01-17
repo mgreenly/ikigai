@@ -56,12 +56,14 @@ Use user/agent interactive development time during the Research and Plan phases 
 **What:** Iterative verification of plan alignment.
 
 **Artifacts:**
-- `$CDD_DIR/verified.md` - Log of items verified and issues resolved
+- `$CDD_DIR/gap.md` - List of issues to investigate and resolve
+- `$CDD_DIR/verified.md` - Log of issues that have been fixed
 
 **Verification:**
 ```
-/cdd:gap  # Verify README/user-stories → plan alignment
-fix gaps
+/cdd:gap  # Verify README/user-stories → plan alignment, writes gap.md
+fix gaps  # Address issues in gap.md, update plan documents
+update verified.md  # Log what was fixed with references to gap.md
 /cdd:gap  # Repeat until clean
 ```
 
@@ -74,9 +76,10 @@ Checks alignment down the pyramid:
 
 **Key insights:**
 - Specific checklists prevent vague "find issues" prompts
-- `verified.md` prevents re-checking completed items
+- `gap.md` contains current issues to investigate
+- `verified.md` tracks what's been fixed, prevents re-checking completed items
 
-**Convergence pattern:** Each gap-finding run identifies the highest-priority issue. After fixing, re-run. When no substantive gaps remain, verification is complete.
+**Convergence pattern:** Each gap-finding run identifies issues and writes gap.md. After fixing, log in verified.md and re-run. When no substantive gaps remain, verification is complete.
 
 ### 4. Execute
 
@@ -123,7 +126,8 @@ $CDD_DIR/
 │   └── README.md      # Index/overview
 ├── plan/              # Implementation decisions
 │   └── README.md      # Index/overview
-├── verified.md        # Verification log (concerns + resolutions)
+├── gap.md             # Current issues to investigate and resolve
+├── verified.md        # Log of issues that have been fixed
 ├── goals/             # Ralph goal files and execution state
 │   ├── *-goal.md      # Goal definition(s)
 │   ├── *-progress.jsonl   # Progress tracking (auto-generated)

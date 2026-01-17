@@ -1,0 +1,49 @@
+# Verification Log
+
+This document tracks issues that have been fixed in the rel-09 plan.
+
+## Format
+
+Each fixed item is logged with:
+- Date/time fixed
+- What was changed
+- Reference to original gap in gap.md
+
+## Status
+
+**Initial verification:** 2026-01-16
+**Gaps identified:** 9 total (1 critical, 5 major, 3 medium)
+**See:** gap.md for complete list of issues
+
+---
+
+## Fixed Items
+
+### 2026-01-16 - stderr Protocol Conflict Resolved
+
+**Gap Reference:** Critical Gap in gap.md (stderr protocol conflict)
+
+**Issue:** Plan specified tools should write config_required events to stderr, but rel-08 discards stderr. This created a fundamental protocol conflict.
+
+**Resolution:** Changed event mechanism to use `_event` field in JSON output instead of stderr.
+
+**Changes Made:**
+1. **plan/architecture-separate-tools.md:108-137** - Updated config_required mechanism to use `_event` field
+2. **plan/tool-schemas.md:121-173** - Updated Brave search tool error response to include `_event` field
+3. **plan/tool-schemas.md:297-339** - Updated Google search tool error response to use `_event` field
+4. **plan/build-integration.md:261-294** - Clarified error handling protocol and documented `_event` field usage
+5. **plan/README.md:19-30** - Updated tool availability section to reference `_event` field
+
+**New Protocol:**
+- Tools include optional `_event` field in stdout JSON: `{..., "_event": {kind, content, data}}`
+- ikigai's tool_wrapper.c extracts `_event`, stores in messages table, removes from result
+- LLM receives wrapped result without `_event` field
+- User sees event displayed separately in dim yellow
+
+**Benefits:**
+- No breaking changes to rel-08
+- Works within existing stdout-only protocol
+- Events cleanly separated from LLM output
+- Consistent with existing tool wrapper pattern
+
+---
