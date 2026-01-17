@@ -99,11 +99,42 @@ All tools advertised to LLM regardless of credential availability. Missing crede
 ### Default Configuration
 - LLM sees all three tools: `web_search_brave`, `web_search_google`, `web_fetch`
 - Tools return authentication errors if credentials missing
-- Errors guide user to configure credentials via environment variables or files
+- Errors guide user to configure credentials via environment variables or credentials.json
 
 ### With Credentials Configured
 - LLM can choose between providers based on context
 - Can use multiple tools in sequence for comprehensive research
+
+## config_required Event Mechanism
+
+When search tools detect missing credentials:
+
+1. **Tool returns error response** (sent to LLM):
+   ```json
+   {
+     "success": false,
+     "error": "Web search requires API key configuration.\n\n..."
+   }
+   ```
+
+2. **Tool emits config_required event** (NOT sent to LLM, stored in database):
+   ```json
+   {
+     "kind": "config_required",
+     "content": "⚠ Configuration Required\n\n...",
+     "data_json": "{\"tool\": \"web_search_brave\", ...}"
+   }
+   ```
+
+3. **ikigai displays event to user** in dim yellow (separate from tool_result)
+
+4. **User sees both**:
+   - Tool error (dim gray) - LLM uses this to explain situation
+   - Config event (dim yellow) - User sees detailed setup instructions
+
+See user-stories/first-time-discovery.md for complete example.
+
+**Implementation:** Tools write event to stderr (separate from stdout JSON response). ikigai's external tool framework captures stderr and emits database event.
 
 ### Tool Override Examples
 - Override Brave with DuckDuckGo: Place custom `web-search-brave-tool` in `~/.ikigai/tools/`
@@ -114,13 +145,25 @@ All tools advertised to LLM regardless of credential availability. Missing crede
 
 ### Credential Management
 - Each tool manages own credentials independently
-- Credential precedence: environment variable → credential file → error
+- Credential precedence: environment variable → credentials.json → error
 - Environment variables:
-  - `BRAVE_API_KEY` (overrides `~/.config/ikigai/brave-api-key`)
-  - `GOOGLE_SEARCH_API_KEY` (overrides `~/.config/ikigai/google-api-key`)
-  - `GOOGLE_SEARCH_ENGINE_ID` (overrides `~/.config/ikigai/google-engine-id`)
+  - `BRAVE_API_KEY`
+  - `GOOGLE_SEARCH_API_KEY`
+  - `GOOGLE_SEARCH_ENGINE_ID`
+- Credentials file: `~/.config/ikigai/credentials.json`
+  ```json
+  {
+    "web_search": {
+      "brave": {"api_key": "your-api-key"},
+      "google": {"api_key": "your-api-key", "engine_id": "your-cx-id"}
+    }
+  }
+  ```
 - All tools load and advertise regardless of credential availability
-- Missing credentials result in authentication error with helpful message
+- Missing credentials result in:
+  - Authentication error in tool output (JSON with `success: false`)
+  - `config_required` event emitted for display to user
+  - Non-zero exit code
 
 ### Implementation Language
 - All tools written in C, compiled from source
@@ -135,29 +178,40 @@ All tools advertised to LLM regardless of credential availability. Missing crede
 
 ## Schema Alignment
 
-Both `web-search-*-tool` tools implement identical schemas matching Claude Code's WebSearch tool:
+Both `web-search-*-tool` tools implement similar schemas with provider-specific parameter names:
 
-**Input Schema:**
+**web-search-brave-tool Input Schema** (see `../research/brave.md`):
 - `query` (string, required): Search query
+- `count` (integer, optional): Results to return (1-20, default: 10)
+- `offset` (integer, optional): Pagination offset (default: 0)
 - `allowed_domains` (array of strings, optional): Only include results from these domains
 - `blocked_domains` (array of strings, optional): Exclude results from these domains
 
-**Output Schema:**
-- Identical structure for both providers
-- Matches Claude Code WebSearch response format
+**web-search-google-tool Input Schema** (see `../research/google.md`):
+- `query` (string, required): Search query
+- `num` (integer, optional): Results to return (1-10, default: 10)
+- `start` (integer, optional): 1-based result index (default: 1, max: 91)
+- `allowed_domains` (array of strings, optional): Only include results from these domains
+- `blocked_domains` (array of strings, optional): Exclude results from these domains
+
+**Key Difference:** Brave uses `count`/`offset` (0-based), Google uses `num`/`start` (1-based).
+
+**Output Schema (Identical for Both):**
+- Success: `{success: true, results: [{title, url, snippet}], count: N}`
+- Error: `{success: false, error: "message", error_code: "CODE"}`
 - See `tool-schemas.md` for complete specification
 
-The `web-fetch-tool` follows the file_read pattern:
+The `web-fetch-tool` returns structured content (see `../research/html-to-markdown.md`):
 
 **Input Schema:**
 - `url` (string, required): URL to fetch
-- `limit` (integer, optional): Maximum lines to return
 - `offset` (integer, optional): Line offset to start from
+- `limit` (integer, optional): Maximum lines to return
 
 **Output Schema:**
-- `content` (string): Markdown-converted HTML content
-- `lines_read` (integer): Number of lines returned
-- Limits and offsets apply to markdown, not raw HTML
+- Success: `{success: true, url: "...", title: "...", content: "markdown..."}`
+- Error: `{success: false, error: "message", error_code: "CODE"}`
+- Offsets and limits apply to markdown, not raw HTML
 
 ## Future: Tool Sets Integration
 

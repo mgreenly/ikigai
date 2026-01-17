@@ -14,21 +14,12 @@ rel-09 implements three external tools for web search and content retrieval:
 
 ## Research Documents
 
-### In-Scope Documents
-
-| Document | Description | Status |
-|----------|-------------|--------|
-| `brave.md` | Brave Search API specification | Complete |
-| `google.md` | Google Custom Search API specification | Complete |
-| `all-providers-comparison.md` | Provider comparison (Brave and Google in-scope) | Complete |
-
-### Out-of-Scope Research (Preserved for Future Reference)
-
-| Document | Description | Status |
-|----------|-------------|--------|
-| `duckduckgo.md` | DuckDuckGo (not in scope for rel-09) | Reference only |
-| `tavily.md` | Tavily API (not in scope for rel-09) | Reference only |
-| `scraping-comparison.md` | Scraping analysis (not in scope for rel-09) | Reference only |
+| Document | Description |
+|----------|-------------|
+| `brave.md` | Brave Search API specification |
+| `google.md` | Google Custom Search API specification |
+| `all-providers-comparison.md` | Provider comparison showing why Brave and Google were selected |
+| `html-to-markdown.md` | HTML to markdown conversion using libxml2 for web-fetch-tool |
 
 ## Key Findings
 
@@ -61,7 +52,7 @@ See `all-providers-comparison.md` for detailed comparison.
 
 ## Research Scope
 
-For each in-scope tool, the research documents:
+**Search tools** (brave, google):
 - API endpoint and authentication
 - Request parameters
 - Response format and fields
@@ -69,15 +60,9 @@ For each in-scope tool, the research documents:
 - Error codes and responses
 - Pagination
 
-All findings are based on official documentation and external sources. Implementation decisions are in `../plan/`.
+**Web-fetch tool**:
+- HTML to markdown conversion using libxml2
+- DOM tree traversal patterns
+- Element-to-markdown mapping strategies
 
-## Out-of-Scope Items
-
-The following providers and approaches were researched but are **not in scope for rel-09**:
-
-- **DuckDuckGo** - No official search API; scraping not recommended
-- **Tavily** - Smaller free tier; added complexity not needed
-- **Scraping approaches** - Bing/DuckDuckGo scraping not needed with official APIs
-- **Other providers** - Serper, Exa, SearXNG, etc. not in scope
-
-These research documents are preserved for future reference and potential use in later releases.
+All findings are based on official documentation and web sources. Implementation decisions are in `../plan/`.

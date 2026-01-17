@@ -1,199 +1,94 @@
-# Web Search API Providers - Comparison
+# Brave vs Google Search APIs - Comparison
 
-Comprehensive comparison of web search API providers researched in December 2024.
+Comparison of the two search API providers selected for rel-09.
 
-## rel-09 Scope
+## Selected Providers
 
-**In-scope providers for rel-09:**
-- **Brave Search API** - Primary search provider
-- **Google Custom Search API** - Alternative search provider
+**Brave Search API** and **Google Custom Search API** were selected as the two search providers for rel-09. Both offer:
+- Official, well-documented APIs
+- Generous free tiers for typical usage
+- High reliability
+- Full web search results
 
-All other providers listed below are out of scope for rel-09 but preserved for future reference.
+Users can choose their preferred provider based on personal preference.
 
-## Key Finding
+## Side-by-Side Comparison
 
-**No provider offers a public API with full search results that requires zero authentication.**
+| Feature | Brave Search API | Google Custom Search API |
+|---------|------------------|--------------------------|
+| **Free Tier** | 2,000 requests/month | 100 requests/day (~3,000/month) |
+| **Rate Limit** | 1 request/second | Not specified |
+| **Authentication** | API key only | API key + Search Engine ID (CX) |
+| **Setup Complexity** | Low (single API key) | Medium (requires CSE creation) |
+| **Response Format** | JSON | JSON |
+| **Pagination** | `offset` parameter | `start` parameter |
+| **Max Results/Request** | 20 | 10 |
+| **Total Results Limit** | Unlimited | 100 per query |
+| **Documentation Quality** | Excellent | Excellent |
+| **Reliability** | High | High |
 
-The only truly "no-auth" option is DuckDuckGo's Instant Answer API, which only returns knowledge graph results, not full search results.
+## Brave Search API
 
-## Provider Categories
+**Strengths:**
+- Simpler authentication (API key only)
+- Higher results per request (20 vs 10)
+- No hard limit on total results per query
+- Privacy-focused provider
 
-### In-Scope for rel-09
+**Setup:**
+1. Register at api-dashboard.search.brave.com
+2. Subscribe to Free AI tier
+3. Copy API key
 
-| Provider | Free Tier | Auth | Reliability | Status |
-|----------|-----------|------|-------------|--------|
-| Brave | 2,000/month | API key | High | **In-scope** |
-| Google Custom Search | 100/day (~3,000/month) | API key + CX | High | **In-scope** |
+**Endpoint:**
+```
+GET https://api.search.brave.com/res/v1/web/search
+```
 
-### No API Key Required (Out of Scope for rel-09)
+**Authentication:**
+```http
+X-Subscription-Token: <API_KEY>
+```
 
-| Provider | Type | Full Search | Reliability |
-|----------|------|-------------|-------------|
-| DuckDuckGo Instant Answer | Official API | No (knowledge graph only) | Medium |
-| DuckDuckGo HTML Scraping | Unofficial | Yes | Low (fragile) |
-| SearXNG (Self-hosted) | Open source | Yes (aggregated) | Medium-High |
+## Google Custom Search API
 
-### API Key Required - Generous Free Tier (>1000/month) (Out of Scope for rel-09)
+**Strengths:**
+- Slightly larger free tier (100/day vs ~67/day)
+- Google's search quality and index
+- Well-established, mature API
 
-| Provider | Free Tier | Rate Limit | Paid Cost |
-|----------|-----------|------------|-----------|
-| Serper | 2,500/month | Not specified | $50 for 50k |
-| Exa | 2,000 one-time | Not specified | $5 per 1k |
+**Setup:**
+1. Create Google Cloud project
+2. Enable Custom Search API
+3. Get API key
+4. Create Programmable Search Engine
+5. Get Search Engine ID (CX)
+6. Enable "Search the entire web" in settings
 
-### API Key Required - Limited Free Tier (Out of Scope for rel-09)
+**Endpoint:**
+```
+GET https://customsearch.googleapis.com/customsearch/v1
+```
 
-| Provider | Free Tier | Paid Cost | Notes |
-|----------|-----------|-----------|-------|
-| Tavily | 1,000/month | Not specified | AI-optimized |
-| SearchAPI | 100 one-time | $40/month | Trial only |
-| ValueSERP | 100 one-time | Not specified | Trial only |
-| Zenserp | 50/month | €23.99/month | Smallest ongoing |
-| SerpAPI | 100/month | $75/month for 5k | Limited free |
+**Authentication:**
+```
+?key=<API_KEY>&cx=<SEARCH_ENGINE_ID>
+```
 
-### Requires Paid Subscription (Out of Scope for rel-09)
+## Selection Rationale
 
-| Provider | Minimum Cost | Notes |
-|----------|--------------|-------|
-| Perplexity | $20/month Pro | $5 API credit/month |
-| YOU.com | Free tier exists | Poor documentation |
+Both providers were selected because:
 
-### Retired
+1. **Official APIs** - No scraping, stable contracts
+2. **Generous free tiers** - 2,000-3,000 requests/month covers typical usage
+3. **High reliability** - Well-maintained, documented
+4. **User choice** - Different users prefer different providers
 
-| Provider | Status |
-|----------|--------|
-| Bing Search API | Retired August 11, 2025 |
-
-## Provider Details
-
-### Brave Search API (IN-SCOPE for rel-09)
-
-- **Endpoint**: `https://api.search.brave.com/res/v1/web/search`
-- **Auth**: `X-Subscription-Token` header
-- **Free tier**: 2,000/month, 1 req/sec
-- **Signup**: api-dashboard.search.brave.com
-- **Response**: JSON with structured results
-- **Documentation**: Excellent
-- **Reliability**: High
-- **rel-09 Status**: Primary search provider
-
-### Google Custom Search (IN-SCOPE for rel-09)
-
-- **Endpoint**: `https://customsearch.googleapis.com/customsearch/v1`
-- **Auth**: API key + CX ID in query params
-- **Free tier**: 100/day (~3,000/month)
-- **Signup**: Requires Google Cloud project + search engine creation
-- **Response**: JSON
-- **Documentation**: Excellent
-- **Reliability**: High
-- **rel-09 Status**: Alternative search provider
-
-### Serper (OUT OF SCOPE for rel-09)
-
-- **Endpoint**: `https://serper.dev/search/search`
-- **Auth**: Bearer token
-- **Free tier**: 2,500/month (most generous)
-- **Response time**: 1-3 seconds
-- **Type**: Third-party Google SERP scraper
-
-### Exa (OUT OF SCOPE for rel-09)
-
-- **Free tier**: 2,000 one-time (no expiration)
-- **Features**: Semantic/neural search, AI-optimized
-- **Response time**: 1.18 seconds (fastest)
-- **Use case**: AI agents, RAG systems
-
-### Tavily (OUT OF SCOPE for rel-09)
-
-- **Endpoint**: `https://api.tavily.com/search`
-- **Auth**: Bearer token
-- **Free tier**: 1,000/month
-- **Features**: AI-generated answers, content extraction
-- **Use case**: AI agents, LLM integrations
-- **Note**: See `tavily.md` for details
-
-### DuckDuckGo (OUT OF SCOPE for rel-09)
-
-**Instant Answer API**
-- **Endpoint**: `https://api.duckduckgo.com/`
-- **Auth**: None
-- **Results**: Knowledge graph only, not full search
-
-**HTML Scraping**
-- **Endpoint**: `https://html.duckduckgo.com/html/`
-- **Auth**: None
-- **Anti-scraping**: Aggressive (CAPTCHA, VQD, IP blocking)
-- **Success rate**: 94% residential, 61% datacenter
-- **Reliability**: Low
-- **Note**: See `duckduckgo.md` for details
-
-### SearXNG (OUT OF SCOPE for rel-09)
-
-- **Type**: Self-hosted meta-search
-- **Auth**: None (self-hosted)
-- **Sources**: Aggregates from 247 services
-- **Deployment**: Docker, VPS (512MB RAM minimum)
-- **Privacy**: Excellent
-
-## Ranking by Free Tier (In-Scope Providers Highlighted)
-
-| Rank | Provider | Free Tier | Auth | rel-09 Status |
-|------|----------|-----------|------|---------------|
-| 1 | **Google Custom Search** | 100/day (~3k/month) | API key + CX | **IN-SCOPE** |
-| 2 | Serper | 2,500/month | API key | Out of scope |
-| 3 | **Brave** | 2,000/month | API key | **IN-SCOPE** |
-| 4 | Exa | 2,000 one-time | API key | Out of scope |
-| 5 | Tavily | 1,000/month | API key | Out of scope |
-| 6 | SerpAPI | 100/month | API key | Out of scope |
-| 7 | Zenserp | 50/month | API key | Out of scope |
-| 8 | DuckDuckGo Scraping | Unlimited* | None | Out of scope |
-
-*Unofficial, subject to blocking
-
-## Ranking by Reliability (In-Scope Providers Highlighted)
-
-| Provider | Reliability | Notes | rel-09 Status |
-|----------|-------------|-------|---------------|
-| **Brave** | High | Official API, excellent docs | **IN-SCOPE** |
-| **Google** | High | Official API, well-documented | **IN-SCOPE** |
-| Serper | Medium-High | Third-party API | Out of scope |
-| Tavily | Medium-High | AI-focused | Out of scope |
-| Exa | Medium-High | AI-focused | Out of scope |
-| SearXNG | Medium | Self-hosted, requires maintenance | Out of scope |
-| DuckDuckGo Scraping | Low | Unofficial, fragile | Out of scope |
-
-## Ranking by Setup Complexity (In-Scope Providers Highlighted)
-
-| Provider | Complexity | Steps | rel-09 Status |
-|----------|------------|-------|---------------|
-| DuckDuckGo Scraping | None | Just HTTP requests | Out of scope |
-| **Brave** | Low | Signup → Copy API key | **IN-SCOPE** |
-| Serper | Low | Signup → Copy API key | Out of scope |
-| Exa | Low | Signup → Copy API key | Out of scope |
-| Tavily | Low | Signup → Copy API key | Out of scope |
-| **Google** | Medium | Signup → Create CSE → Get key + CX | **IN-SCOPE** |
-| SearXNG | High | Deploy → Configure → Maintain | Out of scope |
-
-## Scraping Comparison (OUT OF SCOPE for rel-09)
-
-**Note**: Scraping approaches are not in scope for rel-09. See `scraping-comparison.md` for detailed analysis.
-
-If scraping were required, Bing would be superior to DuckDuckGo:
-
-| Criterion | Bing | DuckDuckGo |
-|-----------|------|------------|
-| Anti-bot measures | Lenient | Aggressive (CAPTCHA, VQD) |
-| HTML structure | Cleanest | Simple |
-| Ad presence | Fewer | Minimal |
-| Implementation | Simple | Complex |
-| Success rate | High | Moderate (61% datacenter) |
+Providing both gives users flexibility without adding implementation complexity (both follow the same external tool protocol).
 
 ## Sources
 
 - [Brave Search API](https://brave.com/search/api/)
-- [Google Custom Search API](https://developers.google.com/custom-search/v1/overview)
-- [Serper](https://serper.dev/)
-- [Exa](https://exa.ai/)
-- [Tavily](https://docs.tavily.com/)
-- [SearXNG Documentation](https://docs.searxng.org/)
-- [7 Free Web Search APIs for AI Agents - KDnuggets](https://www.kdnuggets.com/7-free-web-search-apis-for-ai-agents)
-- [Best SERP API Comparison 2025](https://dev.to/ritzaco/best-serp-api-comparison-2025-serpapi-vs-exa-vs-tavily-vs-scrapingdog-vs-scrapingbee-2jci)
+- [Brave Search API Documentation](https://api-dashboard.search.brave.com/app/documentation)
+- [Google Custom Search JSON API](https://developers.google.com/custom-search/v1/overview)
+- [Google Custom Search API Reference](https://developers.google.com/custom-search/v1/reference/rest/v1/cse/list)

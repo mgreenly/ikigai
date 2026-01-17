@@ -4,17 +4,25 @@ Search and fetch from the web in your conversations. Ask about current events, r
 
 ## Features
 
-**Three Web Tools**
+**Two Search Tools (User's Choice of Provider)**
 - `web-search-brave-tool` - Search using Brave Search API
 - `web-search-google-tool` - Search using Google Custom Search API
-- `web-fetch-tool` - Fetch URL and convert to markdown
 
-**Key Capabilities**
+Both search tools provide identical capabilities:
 - Rich search with filters (freshness, domains, language, safe search)
 - Pagination for deep results
-- HTML to markdown conversion
-- Tools follow standard external tool protocol
-- Each tool manages its own credentials
+- Require API credentials (configured once via environment variables or config file)
+- Always advertised to LLM; return setup instructions if credentials not configured
+
+**Web Fetch Tool**
+- `web-fetch-tool` - Fetch any URL and convert HTML to markdown
+- No credentials required
+- Works immediately out of the box
+- Returns clean markdown suitable for LLM processing
+
+**All tools:**
+- Follow standard external tool protocol
+- Each manages its own credentials independently
 
 ## User Experience
 
@@ -36,7 +44,9 @@ Search and fetch from the web in your conversations. Ask about current events, r
 
 **See detailed scenarios:**
 - [First-Time Discovery](user-stories/first-time-discovery.md) - Learning about web search through use
-- [Successful Search](user-stories/successful-search.md) - Normal operation with configured credentials
+- [Successful Search](user-stories/successful-search.md) - Normal operation with Brave Search
+- [Google Custom Search](user-stories/google-search.md) - Using Google as alternative provider
+- [Web Fetch](user-stories/web-fetch.md) - Fetching and analyzing URL content
 - [Rate Limit Exceeded](user-stories/rate-limit-exceeded.md) - Handling quota exhaustion gracefully
 
 ## Value

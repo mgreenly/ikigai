@@ -19,8 +19,15 @@ Module-level architecture plans describing what modules exist and how they inter
 **Tool Availability:**
 - All tools advertised to LLM even without credentials configured
 - Tools return authentication error when credentials missing
-- Credential precedence: environment variable → credential file → error
+- Tools emit `config_required` event for user display (dim yellow warning)
+- Credential precedence: environment variable → credentials.json → error
 - Environment variables: BRAVE_API_KEY, GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
+
+**config_required Events:**
+- When credentials missing, tools emit structured event for database storage
+- Event displayed to user in dim yellow (not sent to LLM)
+- Event includes setup instructions, signup URLs, and credential paths
+- See user-stories/first-time-discovery.md for example
 
 **Multiple Providers:**
 - Three independent external executables: `web-search-brave-tool`, `web-search-google-tool`, `web-fetch-tool`
@@ -32,20 +39,33 @@ Module-level architecture plans describing what modules exist and how they inter
 - Credential discovery: environment variable → credential file
 
 **Tool Parameters:**
-- `web-search-*-tool`: Identical schema matching Claude Code's WebSearch tool
+- `web-search-brave-tool`: Brave Search with pagination
   - `query` (required): Search query string
+  - `count` (optional): Results to return (1-20, default: 10)
+  - `offset` (optional): Pagination offset (default: 0)
   - `allowed_domains` (optional): Array of domains to include
   - `blocked_domains` (optional): Array of domains to exclude
-- `web-fetch-tool`: URL fetching with limit/offset like file_read
+- `web-search-google-tool`: Google Custom Search with pagination
+  - `query` (required): Search query string
+  - `num` (optional): Results to return (1-10, default: 10)
+  - `start` (optional): 1-based result index (default: 1, max: 91)
+  - `allowed_domains` (optional): Array of domains to include
+  - `blocked_domains` (optional): Array of domains to exclude
+- `web-fetch-tool`: URL fetching with offset/limit
   - `url` (required): URL to fetch
-  - `limit` (optional): Maximum lines to return
   - `offset` (optional): Line offset to start from
+  - `limit` (optional): Maximum lines to return
   - Uses libxml2 to convert HTML→markdown before applying limits
 
 **Response Format:**
-- Both `web-search-*-tool` tools return identical JSON structure
-- Matches Claude Code WebSearch response format exactly
-- `web-fetch-tool` returns markdown content with line count (like file_read)
+- Both `web-search-*-tool` tools return identical JSON structure:
+  - Success: `{success: true, results: [{title, url, snippet}], count: N}`
+  - Error: `{success: false, error: "message", error_code: "CODE"}`
+- `web-fetch-tool` returns:
+  - Success: `{success: true, url: "...", title: "...", content: "markdown..."}`
+  - Error: `{success: false, error: "message", error_code: "CODE"}`
+- All tools include `success` boolean field
+- Errors include machine-readable `error_code` field
 
 **Naming:**
 - External tool naming: hyphen-separated ending in `-tool`
@@ -59,13 +79,22 @@ Module-level architecture plans describing what modules exist and how they inter
 - HTTP client library needed for API calls (decide which)
 
 **Configuration:**
-- Credential precedence: environment variable → credential file → error
+- Credential precedence: environment variable → credentials.json → error
 - Environment variables:
-  - BRAVE_API_KEY (overrides ~/.config/ikigai/brave-api-key)
-  - GOOGLE_SEARCH_API_KEY (overrides ~/.config/ikigai/google-api-key)
-  - GOOGLE_SEARCH_ENGINE_ID (overrides ~/.config/ikigai/google-engine-id)
+  - `BRAVE_API_KEY`
+  - `GOOGLE_SEARCH_API_KEY`
+  - `GOOGLE_SEARCH_ENGINE_ID`
+- Credentials file: `~/.config/ikigai/credentials.json`
+  ```json
+  {
+    "web_search": {
+      "brave": {"api_key": "..."},
+      "google": {"api_key": "...", "engine_id": "..."}
+    }
+  }
+  ```
 - Tools always load and advertise to LLM
-- Missing credentials result in authentication error when tool is called
+- Missing credentials result in authentication error and `config_required` event
 
 ## Plan Documents
 
@@ -74,6 +103,15 @@ Module-level architecture plans describing what modules exist and how they inter
 | `architecture-separate-tools.md` | Rationale for separate tools vs generic interface | Updated |
 | `tool-schemas.md` | Exact JSON schemas for all three tools | New |
 | `build-integration.md` | Makefile changes and build dependencies | New |
+
+## Research References
+
+Plan documents reference research for implementation details:
+
+- `../research/brave.md` - Brave Search API endpoints, parameters, response format
+- `../research/google.md` - Google Custom Search API endpoints, parameters, response format
+- `../research/all-providers-comparison.md` - Why Brave and Google were selected
+- `../research/html-to-markdown.md` - libxml2 usage, DOM traversal, element mapping
 
 ## Abstraction Level
 

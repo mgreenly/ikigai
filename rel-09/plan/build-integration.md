@@ -89,7 +89,11 @@ HTTP_LIBS := $(shell pkg-config --libs libcurl)
 
 ### JSON Library
 
-Tools need JSON parsing for stdin and JSON generation for stdout.
+Tools need JSON parsing for:
+1. Tool input from stdin (request parameters)
+2. Tool output to stdout (response data)
+3. Credentials file parsing (`~/.config/ikigai/credentials.json`)
+4. API response parsing (Brave/Google return JSON)
 
 **Options:**
 
@@ -113,6 +117,18 @@ Tools need JSON parsing for stdin and JSON generation for stdout.
 ```makefile
 JSON_LIBS := -lcjson
 ```
+
+**Credentials file structure** (see `tool-schemas.md`):
+```json
+{
+  "web_search": {
+    "brave": {"api_key": "..."},
+    "google": {"api_key": "...", "engine_id": "..."}
+  }
+}
+```
+
+Tools must parse nested JSON to extract credentials.
 
 ## Makefile Variables
 
