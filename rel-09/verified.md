@@ -13,7 +13,9 @@ Each fixed item is logged with:
 
 **Initial verification:** 2026-01-16
 **Gaps identified:** 9 total (1 critical, 5 major, 3 medium)
-**See:** gap.md for complete list of issues
+**Resolved:** 3 gaps
+**Remaining:** 6 gaps
+**See:** gap.md for complete list
 
 ---
 
@@ -45,6 +47,8 @@ Each fixed item is logged with:
 - Works within existing stdout-only protocol
 - Events cleanly separated from LLM output
 - Consistent with existing tool wrapper pattern
+
+**Note:** This also resolves Medium Gap #6 (Error Handling Protocol Contradiction), which was caused by the stderr conflict between plan documents.
 
 ---
 

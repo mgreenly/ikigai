@@ -4,11 +4,17 @@
 
 This document identifies gaps, contradictions, and missing specifications in the rel-09 plan that must be resolved before implementation.
 
+**Status:** 3 of 9 gaps resolved (see verified.md for details)
+
 ---
 
 ## Critical Gap (Blocks Implementation)
 
-### stderr Protocol Conflict with rel-08
+### ✅ RESOLVED: stderr Protocol Conflict with rel-08
+
+**Resolution:** See verified.md (2026-01-16 - stderr Protocol Conflict Resolved)
+
+**Original Issue:** rel-09 plan requires event mechanism that doesn't exist in rel-08
 
 **Issue:** rel-09 plan requires event mechanism that doesn't exist in rel-08
 
@@ -195,9 +201,11 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ---
 
-### 4. HTTP Client Library Not Decided
+### ✅ RESOLVED: 4. HTTP Client Library Not Decided
 
-**Issue:** build-integration.md:65-82 lists HTTP library options but doesn't make final decision
+**Resolution:** See verified.md (2026-01-16 - HTTP Client Library Decided)
+
+**Original Issue:** build-integration.md:65-82 lists HTTP library options but doesn't make final decision
 
 **Options listed:**
 1. libcurl (recommended but not decided)
@@ -262,24 +270,13 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 
 ## Medium Gaps (Incomplete Specifications)
 
-### 6. Error Handling Protocol Contradiction
+### ✅ RESOLVED: 6. Error Handling Protocol Contradiction
 
-**Issue:** Contradiction in stderr usage within plan documents
+**Resolution:** Resolved as part of stderr protocol fix (see verified.md)
 
-**build-integration.md:267** states:
-- "Never write to stderr (protocol uses stdout only)"
+**Original Issue:** Contradiction in stderr usage within plan documents - plan documents disagreed on whether to use stderr for events.
 
-**But architecture-separate-tools.md:137 and tool-schemas.md:158-172 specify:**
-- Tools must write config_required events to stderr
-- Two-channel pattern: stdout for JSON, stderr for events
-
-**Impact:** Direct contradiction will confuse implementers.
-
-**Resolution:** Based on analysis of existing protocol (see Critical Gap above):
-- Keep build-integration.md:267 as-is (stderr stays discarded)
-- Update architecture-separate-tools.md and tool-schemas.md to use `_event` field approach
-- Tools write: `{..., "_event": {...}}` in stdout JSON
-- ikigai extracts `_event` from output before wrapping for LLM
+**Resolution:** Updated all plan documents to use `_event` field approach instead of stderr. Contradiction eliminated.
 
 ---
 
@@ -387,24 +384,29 @@ plan/README.md:119-123 promises "Module names, Major structs (names and purpose)
 ## Summary
 
 **Total gaps identified:** 9 (1 critical, 5 major, 3 medium)
+**Resolved:** 3 gaps (see verified.md)
+**Remaining:** 6 gaps
 
-**Critical:** stderr protocol conflict must be resolved before any implementation
+**✅ Resolved:**
+- Critical: stderr protocol conflict → Used `_event` field in JSON
+- Major #4: HTTP library not decided → Committed to libcurl
+- Medium #6: Error handling protocol contradiction → Resolved with stderr fix
 
-**Major gaps prevent implementation:**
-- Missing internal specifications
-- Memory management unspecified
-- Return value conventions unclear
-- HTTP library not decided
-- Test strategy missing
+**Remaining Major gaps:**
+- #1: Missing internal specifications
+- #2: Memory management unspecified
+- #3: Return value conventions unclear
+- #5: Test strategy missing
 
-**Medium gaps create ambiguity:**
-- Error handling protocol contradiction
-- External tool framework integration incomplete
-- Domain filtering incomplete
-- Database integration incomplete
+**Remaining Medium gaps:**
+- #7: External tool framework integration incomplete
+- #8: Domain filtering incomplete
+- #9: Database integration incomplete
 
 **Next steps:**
-1. Resolve critical stderr conflict (recommend: modify rel-08 to capture stderr)
-2. Fill major gaps with additional plan documents
-3. Clarify medium gaps with updated specifications
-4. Update verified.md as gaps are addressed
+1. ✅ Resolve critical stderr conflict (DONE - used _event field)
+2. ✅ Decide HTTP library (DONE - libcurl)
+3. Document memory management pattern (gap #2)
+4. Document return value conventions (gap #3)
+5. Add test strategy (gap #5)
+6. Fill remaining specification gaps
