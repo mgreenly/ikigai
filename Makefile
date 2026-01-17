@@ -218,6 +218,9 @@ $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(T
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
+# web_fetch_test requires web-fetch-tool to exist before running
+$(BUILDDIR)/tests/unit/tools/web_fetch_test: | libexec/ikigai/web-fetch-tool
+
 # Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
 TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
 
@@ -616,7 +619,12 @@ web_search_google_tool: libexec/ikigai/web-search-google-tool
 libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool web_search_brave_tool web_search_google_tool
+web_fetch_tool: libexec/ikigai/web-fetch-tool
+
+libexec/ikigai/web-fetch-tool: src/tools/web_fetch/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool web_search_brave_tool web_search_google_tool web_fetch_tool
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
@@ -670,6 +678,7 @@ endif
 	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/web-search-brave-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/web-search-google-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-fetch-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
 	printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
@@ -711,6 +720,7 @@ uninstall:
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-brave-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-google-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-fetch-tool
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)
