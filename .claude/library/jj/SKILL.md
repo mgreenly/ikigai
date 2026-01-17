@@ -10,24 +10,13 @@ Standard jj operations for day-to-day development work.
 
 ## CRITICAL: Commits Are Permanent
 
-**When the user says "commit", you MUST immediately create an immutable commit using `jj commit -m "msg"`.**
+**When user says "commit": IMMEDIATELY use `jj commit -m "msg"`**
 
-Commits in jj are:
-- **Permanent** - Stored in the operation log forever
-- **Immutable** - Cannot be lost or overwritten
-- **Recoverable** - Can always be restored via `jj op restore`
+- Committed changes are **permanent** and stored forever in operation log
+- Uncommitted changes **can be lost** during rebases/restores
+- Every commit is **recoverable** via `jj op restore`
 
-Working copy changes that are NOT committed:
-- **Can be lost** - Rebases, restores, and other operations can discard them
-- **Are temporary** - Only the most recent snapshot is preserved
-- **Are NOT permanent** - Must be committed to be safe
-
-**There is no "half-assed" commit. When you commit, it's permanent. If you don't commit, changes can be lost.**
-
-When the user asks you to commit:
-1. Use `jj commit -m "descriptive message"` immediately
-2. This creates a permanent, immutable commit
-3. The changes are now safe and recoverable forever
+Run `make check` periodically to catch issues early.
 
 ## Configuration
 
@@ -36,16 +25,7 @@ When the user asks you to commit:
 
 ## Commit Policy
 
-**When user says "commit": IMMEDIATELY use `jj commit -m "msg"`**
-
-- NOT `jj describe` (only updates description, doesn't create new commit)
-- NOT "I'll commit later" (changes can be lost)
-- NOT "working on it" (working copy is mutable)
-- YES `jj commit -m "descriptive message"` (creates permanent immutable commit)
-
-**Every commit you create is permanent and can never be lost.**
-
-Run `make check` periodically to catch issues early.
+Use `jj commit -m "msg"` to create permanent commits. NOT `jj describe` (only updates description without creating commit).
 
 ## Prohibited Operations
 
@@ -66,17 +46,32 @@ This skill does NOT permit:
 - Rebase commits
 - Create new commits on any mutable revision
 
-## CRITICAL: Never Squash Without Permission
+## Squashing (Permission Required)
 
-**NEVER run `jj squash` unless the user explicitly asks you to squash commits.**
+**NEVER squash without explicit user permission.** Only when user says "squash" or "squash commits".
 
-- `jj squash` modifies commit history by combining commits
-- This is a destructive operation that requires explicit user permission
-- Even though commits are recoverable via `jj op restore`, squashing without permission violates the align skill's core principle
+**Squashing workflow:**
+1. `jj edit <revision>` - Move to commit to squash
+2. `jj squash -m "message"` - Squash into parent (MUST use `-m` flag in CLI)
+3. Repeat for additional commits
 
-**When to squash:** Only when user explicitly says "squash" or "squash commits"
+**Flag limitations:**
+- ✗ `jj squash -r <rev> --into <dest>` - INVALID (flags cannot combine)
+- ✓ `jj edit <rev>` then `jj squash -m "msg"` - VALID
 
-**What to do instead:** Create separate commits with `jj commit -m "msg"` and let the user decide later if they want to squash.
+**Recovery:** `jj op log` then `jj op restore <id>` (all operations are logged)
+
+## Common Flags
+
+| Flag | Why Use It |
+|------|------------|
+| `-m "message"` | Provide commit/squash message inline (required in non-interactive environments) |
+| `-r <revision>` | Specify which revision to operate on (alternative to `jj edit` first) |
+| `--into <dest>` | Squash into specific destination (cannot combine with `-r`) |
+| `--no-graph` | Show log output without tree visualization (cleaner for parsing) |
+| `--stat` | Show file change statistics in diff (lines added/removed per file) |
+| `--bookmark <name>` | Push specific bookmark to remote |
+| `-d <dest>` | Set destination for rebase operation |
 
 ## Common Commands
 
@@ -86,13 +81,13 @@ This skill does NOT permit:
 | View changes | `jj diff` |
 | View log | `jj log` |
 | **Commit all files** | **`jj commit -m "msg"`** |
-| Squash into parent | `jj squash` |
+| Squash into parent | `jj squash -m "msg"` |
+| Edit a commit | `jj edit <revision>` |
 | Create bookmark | `jj bookmark create <name>` |
 | Update bookmark to @ | `jj bookmark set <name>` |
 | Push bookmark | `jj git push --bookmark <name>` |
 | Fetch from remote | `jj git fetch` |
 | Restore working copy | `jj restore` |
-| Edit existing commit | `jj edit <revision>` |
 | Create commit on revision | `jj new <revision>` |
 | Rebase | `jj rebase -d <destination>` |
 | Create tag | `jj tag set <name> -r <revision>` |
@@ -101,18 +96,7 @@ This skill does NOT permit:
 
 ## Key Concepts
 
-### Working Copy is Always a Commit
-In jj, `@` (working copy) is always a commit being edited. There's no staging area.
-
-### Bookmarks vs Branches
-jj "bookmarks" are equivalent to git "branches". They're just named pointers to commits.
-
-### Immutable vs Mutable
-- `◆` = immutable (protected, permanently committed)
-- `○` = mutable (can still edit, NOT permanently committed yet)
-- `@` = current working copy (MUTABLE - changes can be lost until committed)
-
-**Key insight**: Only immutable commits (◆) are truly permanent. Mutable commits (○) and working copy (@) changes can be lost. When you run `jj commit -m "msg"`, the current working copy becomes an immutable commit.
-
-### "Update the bookmark"
-When the user says "update the bookmark", find the most recent bookmark in `@`'s ancestry and move it to `@` using `jj bookmark set <name>`.
+- **Working copy** (`@`): Always a commit being edited (no staging area)
+- **Bookmarks**: Equivalent to git branches (named pointers to commits)
+- **Immutability**: `◆` = permanent, `○` = mutable, `@` = mutable (lost if not committed)
+- **Update bookmark**: Find recent bookmark in ancestry, use `jj bookmark set <name>`
