@@ -61,12 +61,11 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 || `bash`, `file_read`, `file_write`, `file_edit`, `glob`, `grep` | `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep` |
 | **rel-09: Web Tools** |||
 || `web-fetch`, `web-search-brave`, `web-search-google` | `WebFetch`, `WebSearch` |
-| **rel-10: Internal Tools** |||
-|| `fork`, `check-mail`, `kill` | `Task`, `TaskOutput`, `KillShell` |
-|| `send`, `mark`, `rewind`, `model` | — (ikigai-specific) |
-| **rel-13: Agent State Documents** |||
-|| `todo` | `TodoWrite` |
-| **rel-15: System prompts, skills, tools** |||
+| **rel-12: Task Tool** |||
+|| `task` | — (ikigai-specific) |
+| **rel-14: Agent State Documents** |||
+|| Structured agent state files | — |
+| **rel-16: System prompts, skills, tools** |||
 || `/mode`, `!` prefix commands | `EnterPlanMode`, `ExitPlanMode`, `Skill` |
 | **Far Future** |||
 || `bash_interactive`, `LSP`, `Notebook` | —, `LSP`, `NotebookEdit` |
@@ -81,7 +80,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Multi-line input with readline-style shortcuts
 - Scrollback buffer with O(1) arithmetic reflow
 - Viewport scrolling (Page Up/Down, auto-scroll)
-- 100% test coverage
+- Comprehensive test coverage
 
 
 ### rel-02: LLM Integration (complete)
@@ -163,16 +162,18 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Separate config.json (settings) and credentials.json (API keys)
 
 
-### rel-08: External Tool Architecture (future)
+### rel-08: External Tool Architecture (complete)
 
 **Objective**: Zero-overhead custom tools via JSON protocol
 
 **Features**:
-- External executables as first-class tools (same efficiency as built-in)
-- Self-describing via `--schema`, JSON in/out protocol
-- Auto-discovery from system and user directories
-- Migrate all built-in tools to external: bash, file_read, file_write, file_edit, glob, grep
-- `/tool` and `/refresh` commands for inspection and reload
+- External tool infrastructure (discovery, registry, execution)
+- 6 production tools: `bash`, `grep`, `glob`, `file_read`, `file_write`, `file_edit`
+- JSON I/O protocol with `--schema` self-description
+- 3-tier discovery: system (`/usr/share/ikigai/tools/`), user (`~/.ikigai/tools/`), project (`.ikigai/tools/`)
+- Directory precedence: project overrides user overrides system
+- Commands: `/tool [NAME]` (inspect), `/refresh` (reload all tools)
+- Comprehensive test coverage maintained
 
 
 ### rel-09: Web Tools (future)
@@ -185,17 +186,6 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - `web-search-google` - Google Custom Search (100 free/day)
 - Each tool manages its own credentials
 
-### rel-10: Internal Tools (future)
-
-**Objective**: Expose orchestration primitives as agent-callable tools
-
-**Features**:
-- `mark` / `rewind` - Conversation checkpoints and rollback
-- `fork` / `kill` - Child agent lifecycle
-- `send` / `check-mail` - Inter-agent messaging
-- `model` - Switch LLM model mid-conversation
-- Slash commands become thin wrappers over internal tools
-- User-defined prompt commands use `!` prefix (distinct from `/` tools)
 
 ### rel-11: Shared Files (future)
 
@@ -209,7 +199,22 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - See [shared-files.md](shared-files.md) for design details
 
 
-### rel-12: Tool Sets (future)
+### rel-12: Task Tool (future)
+
+**Objective**: External tool for per-agent task queue management
+
+**Dependencies**: Requires rel-11 (Shared Files) for `ik://` URI scheme
+
+**Features**:
+- `task` external tool with Redis-style deque operations
+- Takes `agent_id` parameter for per-agent scope
+- Stores data in `ik://system/agents/{agent_id}/tasks.json`
+- Operations: lpush, rpush, lpop, rpop, lpeek, rpeek, list, count
+- Constant O(1) token cost per operation (vs TodoWrite's O(n))
+- See [task-tool.md](task-tool.md) for design details
+
+
+### rel-13: Tool Sets (future)
 
 **Objective**: Named collections of tools for task-specific and model-optimized configurations
 
@@ -221,19 +226,17 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Per-task profiles (coding, research, file-heavy workflows)
 
 
-### rel-13: Agent State Documents (future)
+### rel-14: Agent State Documents (future)
 
 **Objective**: Reserved StoredAssets for agent state with schema-enforced structure
 
 **Features**:
-- `ikigai:///agent/{self}/todos.json` - Task tracking (TodoWrite equivalent)
 - `ikigai:///agent/{self}/inbox.json` - Message queue for `check-mail`
 - `ikigai:///agent/{self}/config.json` - Agent settings (model, toolset)
 - System-provided schemas, user-extensible
-- `todo` internal tool wrapping todos.json with structured operations
 
 
-### rel-14: Token Estimation (future)
+### rel-15: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -244,7 +247,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-15: System prompts, skills and tools (future)
+### rel-16: System prompts, skills and tools (future)
 
 **Objective**: Layered primitives for tool/prompt configuration
 
@@ -256,7 +259,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - `!` prefix for user-defined prompt commands (distinct from `/` tools)
 
 
-### rel-16: User Experience (future)
+### rel-17: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -266,7 +269,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Status bar showing live agent count and total memory usage (via `talloc_total_size`)
 
 
-### rel-17: Codebase Refactor & MVP Release (future)
+### rel-18: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 

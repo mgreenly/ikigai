@@ -8,7 +8,7 @@ This order generally works well. Each check builds on what comes before:
 
 1. **compile** - Does it build? If not, nothing else matters. Don't dig into code logic yet - just make it compile.
 
-2. **filesize** - Are files small enough to reason about? Large files blow up context. Get files manageable before diving deep into them.
+2. **filesize** - Are files small enough to reason about? Large files blow up context. Get files manageable before diving deep into them. Split oversized files logically by responsibility - extract related functions into cohesive modules.
 
 3. **check** - Do basic tests pass? Establishes a working baseline. Know the code works before changing it - you need a reference point.
 

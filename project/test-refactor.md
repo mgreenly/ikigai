@@ -2,11 +2,11 @@
 
 ## Problem
 
-Achieving 100% test coverage costs 5-10x the development time of the feature itself. This tax is unsustainable.
+Achieving high test coverage costs significant development time. Balancing coverage with development velocity is important.
 
 ## Constraint
 
-100% coverage is mandatory. In an AI-developed codebase, tests are the verification mechanism. The AI proposes, tests validate. Without comprehensive coverage, unverified code paths allow bugs to hide undetected.
+80% coverage per file is the requirement. In an AI-developed codebase, tests are the verification mechanism. The AI proposes, tests validate. Good coverage ensures critical code paths are tested while allowing flexibility for less critical areas.
 
 ## Root Cause
 

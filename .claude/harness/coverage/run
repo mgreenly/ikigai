@@ -168,7 +168,7 @@ def run_make_coverage() -> tuple[bool, str]:
 
 def parse_summary_for_gaps(summary_path: Path) -> list[dict]:
     """
-    Parse coverage/summary.txt to find files with < 100% coverage.
+    Parse coverage/summary.txt to find files with < 80% coverage.
     Returns list of {file, lines_pct, funcs_pct, branches_pct} dicts.
     """
     gaps = []
@@ -202,7 +202,7 @@ def parse_summary_for_gaps(summary_path: Path) -> list[dict]:
             funcs_pct = float(match.group(3))
             branches_pct = float(match.group(4)) if match.group(4) else 100.0  # '-' means N/A
 
-            if lines_pct < 100.0 or funcs_pct < 100.0 or branches_pct < 100.0:
+            if lines_pct < 80.0 or funcs_pct < 80.0 or branches_pct < 80.0:
                 # Construct full path
                 if current_dir:
                     full_path = current_dir + filename

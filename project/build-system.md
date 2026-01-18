@@ -51,13 +51,13 @@ Four different sanitizers and tools, each specialized:
 
 The combo target `make check-dynamic` runs all four. Clean rebuild between each to avoid conflicts.
 
-### Coverage: 100% Threshold Enforced
+### Coverage: 80% Per-File Threshold Enforced
 
 ```bash
 make coverage
 ```
 
-Generates line and branch coverage report, enforced at 100%.
+Generates line and branch coverage report, enforced at 80% per file.
 
 Uses `lcov` for text-based reports. Shows per-file coverage and summary.
 
@@ -275,7 +275,7 @@ make ci
 
 Executes:
 1. `make lint` - Complexity checks
-2. `make coverage` - 100% coverage enforcement
+2. `make coverage` - 80% per-file coverage enforcement
 3. `make check-dynamic` - All sanitizers + Valgrind
 4. `make release` - Build with `-Werror`
 
@@ -357,7 +357,7 @@ The build system provides:
 
 - **19 warning flags** at compile time
 - **4 dynamic analysis tools** (ASan/UBSan, TSan, Valgrind Memcheck, Helgrind)
-- **100% coverage threshold** enforced
+- **80% per-file coverage threshold** enforced
 - **Code quality metrics** (complexity ≤15, nesting ≤5, files ≤500 lines)
 - **MOCKABLE seams** for testing error paths
 - **Multi-distro validation** (Arch, Debian, Fedora)

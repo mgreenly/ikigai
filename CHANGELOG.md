@@ -5,6 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rel-09] - 2026-01-17
+
+### Added
+
+#### Web Search Tools (Complete)
+- **web-search-brave-tool**: Brave Search API integration with domain filtering
+  - Pagination support (count/offset parameters)
+  - Domain filtering (allowed_domains/blocked_domains)
+  - Post-processing domain filter implementation
+  - Comprehensive unit tests with 100% coverage
+  - Credential discovery: BRAVE_API_KEY → credentials.json → config_required event
+- **web-search-google-tool**: Google Custom Search API integration
+  - Pagination support (num/start parameters, 1-based indexing)
+  - Domain filtering via parallel multi-domain calls
+  - Parallel request handling for multiple allowed_domains
+  - Comprehensive unit tests with 100% coverage
+  - Credential discovery: GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
+- **Common search features**:
+  - Identical JSON response format across both providers
+  - Tools always advertised to LLM (even without credentials)
+  - Helpful config_required events with setup instructions and signup URLs
+  - Memory-safe talloc implementation
+  - Error handling with machine-readable error codes
+
+#### Web Fetch Tool (Complete)
+- **web-fetch-tool**: URL content fetching with HTML→markdown conversion
+  - HTTP fetching via libcurl with redirect support
+  - HTML parsing using libxml2
+  - DOM-to-markdown conversion (headings, paragraphs, links, lists, formatting)
+  - Script/style/nav tag stripping for clean output
+  - Pagination support (offset/limit on markdown lines)
+  - Title extraction from HTML
+  - No credentials required (works out of the box)
+  - 100% test coverage with 30+ unit tests
+  - HTML test fixtures for deterministic testing
+
+#### Tool System Improvements
+- **Alphabetical tool sorting**: Tools displayed in sorted order via `/tool` command
+  - Sort performed once after discovery (not on every display)
+  - Consistent ordering across invocations and after `/refresh`
+  - Added `ik_tool_registry_sort()` function using qsort
+- **Environment variable support**: Added BRAVE_API_KEY, GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
+- **Diagnostic improvements**: Helpful error messages for missing IKIGAI_*_DIR variables
+
+#### Documentation
+- **CDD artifacts**: Complete research, plan, user stories, and goal files for web tools
+- **Tool sorting plan**: Specification for alphabetical tool registry sorting
+- **jj skill updates**: Added squashing workflow documentation with flag usage
+  - Common flags reference (−m, −r, --into, --no-graph, --stat)
+  - Flag limitation warnings (cannot combine -r and --into)
+  - Recovery instructions (jj op log → jj op restore)
+  - Compacted skill from 119 to 102 lines (14% reduction)
+
+### Changed
+
+#### Build System
+- **Makefile tool targets**: Added web_search_brave_tool, web_search_google_tool, web_fetch_tool
+- **libxml2 integration**: pkg-config integration for web-fetch-tool HTML parsing
+- **Install targets**: Updated to install all three new web tools
+- **Uninstall targets**: Updated to remove all three new web tools
+- **Compiler flag ordering**: Documented critical flag order for tool builds
+
+### Technical Metrics
+- **New files**: 20 files added (3 tools, 13 HTML test fixtures, 4 unit test suites)
+- **Lines changed**: +1,757 lines for search tools, +1,650 lines for fetch tool
+- **Test coverage**: 100% lines, functions, and branches for all new tools
+- **Code quality**: All lint, format, and sanitizer checks pass
+- **Memory safety**: Clean Valgrind runs, no memory leaks
+
 ## [rel-08] - 2026-01-15
 
 ### Added
@@ -28,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Check-? **: Documented 60-minute timeout, foreground execution, JSON output format
 
 #### CDD Pipeline Improvements
-- **Gap verification**: Checklists for gap-plan and gap-tasks commands
+- **Gap verification**: Checklists for gap command
 - **TDD enforcement**: Enforced TDD across CDD pipeline with streamlined verification
 - **$CDD_DIR requirement**: Environment variable required for workspace path
 - **Pull-request skill**: Concise PR template for consistent pull requests

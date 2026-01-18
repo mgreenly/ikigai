@@ -102,7 +102,7 @@ Automated quality check loops. Each harness runs a make target, spawns fix sub-a
 - [harness/quality/](harness/quality/) - Orchestrate all quality checks
 - [harness/sanitize/](harness/sanitize/) - Fix AddressSanitizer errors
 - [harness/valgrind/](harness/valgrind/) - Fix Valgrind memory errors
-- [harness/coverage/](harness/coverage/) - Enforce 100% test coverage
+- [harness/coverage/](harness/coverage/) - Enforce 80% per-file test coverage
 
 ## Integration System
 

@@ -5,6 +5,7 @@
     "planner",
     "meta",
     "cdd",
+    "ralph",
     "source-code",
     "ddd",
     "di",
@@ -14,10 +15,10 @@
     "naming",
     "patterns/vtable",
     "patterns/result-type",
-    "patterns/arena-allocator",
-    "task-authoring"
+    "patterns/arena-allocator"
   ],
   "advertise": [
+    {"skill": "goal-authoring", "description": "Writing effective Ralph goal files"},
     {"skill": "pull-request", "description": "Load before creating pull requests"},
     {"skill": "patterns/adapter", "description": "Interface compatibility wrappers"},
     {"skill": "patterns/callback-context", "description": "Callback with void* context passing"},

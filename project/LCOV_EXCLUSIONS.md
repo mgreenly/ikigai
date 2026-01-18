@@ -4,7 +4,7 @@ This document explains why certain code blocks in the ikigai codebase are legiti
 
 ## Overview
 
-While we maintain 100% test coverage as a strict policy, there are specific categories of code that are fundamentally untestable in a unit test environment. These exclusions are documented here to justify their necessity.
+While we maintain 80% test coverage per file as our requirement, there are specific categories of code that are fundamentally untestable in a unit test environment. These exclusions are documented here to justify their necessity.
 
 ## Legitimate Exclusion Categories
 
@@ -195,10 +195,10 @@ Some defensive programming branches are fundamentally unreachable but kept for r
 After removing unjustified exclusions:
 
 - **Lines excluded:** 819 (only legitimate exclusions remain)
-- **Coverage target:** 100% of testable code
+- **Coverage target:** 80% per file of testable code
 - **Excluded categories:** 4 (panic, wrappers, signals, main)
 
-All other code must maintain 100% line, function, and branch coverage.
+All other code must maintain 80% line, function, and branch coverage per file.
 
 ---
 
