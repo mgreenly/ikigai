@@ -782,12 +782,12 @@ libexec/ikigai/grep-tool: src/tools/grep/main.c src/tools/grep/grep.c $(TOOL_COM
 
 web_search_brave_tool: libexec/ikigai/web-search-brave-tool
 
-libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c src/tools/web_search_brave/web_search_brave.c src/tools/web_search_brave/auth_error.c src/tools/web_search_brave/domain_utils.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c src/tools/web_search_brave/web_search_brave.c src/tools/web_search_brave/auth_error.c src/tools/web_search_brave/domain_utils.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c src/wrapper_json.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS) $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 web_search_google_tool: libexec/ikigai/web-search-google-tool
 
-libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c src/tools/web_search_google/web_search_google.c src/tools/web_search_google/error_output.c src/tools/web_search_google/http_utils.c src/tools/web_search_google/result_utils.c src/tools/web_search_google/response_processor.c src/tools/web_search_google/schema.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c src/tools/web_search_google/web_search_google.c src/tools/web_search_google/error_output.c src/tools/web_search_google/http_utils.c src/tools/web_search_google/result_utils.c src/tools/web_search_google/response_processor.c src/tools/web_search_google/schema.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c src/wrapper_json.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 web_fetch_tool: libexec/ikigai/web-fetch-tool
@@ -1238,6 +1238,7 @@ distro-check:
 		echo ""; \
 		echo "=== Testing on $$distro ==="; \
 		if [ -f distros/$$distro/docker-compose.yml ]; then \
+			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml down -v 2>/dev/null || true; \
 			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml up --build --abort-on-container-exit --exit-code-from test || exit 1; \
 			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml down -v; \
 		else \

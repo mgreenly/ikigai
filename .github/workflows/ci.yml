@@ -31,7 +31,7 @@ jobs:
         env:
           POSTGRES_USER: ikigai
           POSTGRES_PASSWORD: ikigai
-          POSTGRES_DB: postgres
+          POSTGRES_DB: ikigai
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

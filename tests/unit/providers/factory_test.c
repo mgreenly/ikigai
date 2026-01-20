@@ -221,8 +221,8 @@ START_TEST(test_create_missing_credentials) {
     // Create credentials file WITHOUT the provider we're requesting
     f = fopen(creds_path, "w");
     ck_assert_ptr_nonnull(f);
-    // Create valid JSON but without openai credentials
-    fprintf(f, "{\"anthropic\":{\"api_key\":\"test-key\"}}");
+    // Create valid JSON but without openai credentials (using flat format)
+    fprintf(f, "{\"ANTHROPIC_API_KEY\":\"test-key\"}");
     fclose(f);
     chmod(creds_path, 0600);
 
@@ -267,10 +267,10 @@ START_TEST(test_create_success_openai) {
     const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
     setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
-    // Create credentials file with openai credentials
+    // Create credentials file with openai credentials (using flat format)
     f = fopen(creds_path, "w");
     ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"openai\":{\"api_key\":\"test-openai-key\"}}");
+    fprintf(f, "{\"OPENAI_API_KEY\":\"test-openai-key\"}");
     fclose(f);
     chmod(creds_path, 0600);
 
@@ -314,10 +314,10 @@ START_TEST(test_create_success_anthropic) {
     const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
     setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
-    // Create credentials file with anthropic credentials
+    // Create credentials file with anthropic credentials (using flat format)
     f = fopen(creds_path, "w");
     ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"anthropic\":{\"api_key\":\"test-anthropic-key\"}}");
+    fprintf(f, "{\"ANTHROPIC_API_KEY\":\"test-anthropic-key\"}");
     fclose(f);
     chmod(creds_path, 0600);
 
@@ -361,10 +361,10 @@ START_TEST(test_create_success_google) {
     const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
     setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
-    // Create credentials file with google credentials
+    // Create credentials file with google credentials (using flat format)
     f = fopen(creds_path, "w");
     ck_assert_ptr_nonnull(f);
-    fprintf(f, "{\"google\":{\"api_key\":\"test-google-key\"}}");
+    fprintf(f, "{\"GOOGLE_API_KEY\":\"test-google-key\"}");
     fclose(f);
     chmod(creds_path, 0600);
 

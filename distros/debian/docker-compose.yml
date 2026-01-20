@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_USER: ikigai
       POSTGRES_PASSWORD: ikigai
-      POSTGRES_DB: postgres
+      POSTGRES_DB: ikigai
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ikigai"]
       interval: 5s

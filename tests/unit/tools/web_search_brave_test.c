@@ -166,7 +166,7 @@ START_TEST(test_credentials_from_file) {
 
     FILE *f = fopen(cred_path, "w");
     if (f != NULL) {
-        fprintf(f, "{\"web_search\":{\"brave\":{\"api_key\":\"test_from_file\"}}}");
+        fprintf(f, "{\"BRAVE_API_KEY\":\"test_from_file\"}");
         fclose(f);
 
         char *output = NULL;
