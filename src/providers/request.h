@@ -40,8 +40,8 @@ ik_content_block_t *ik_content_block_text(TALLOC_CTX *ctx, const char *text);
  * @param arguments JSON arguments string (will be copied)
  * @return          Allocated content block, or NULL on OOM
  */
-ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
-                                                const char *name, const char *arguments);
+ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id, const char *name,
+                                               const char *arguments);
 
 /**
  * Create tool result content block
@@ -52,8 +52,10 @@ ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
  * @param is_error     true if tool execution failed
  * @return             Allocated content block, or NULL on OOM
  */
-ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
-                                                  const char *content, bool is_error);
+ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx,
+                                                 const char *tool_call_id,
+                                                 const char *content,
+                                                 bool is_error);
 
 /* ================================================================
  * Request Builder Functions
@@ -112,8 +114,7 @@ res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text
  * @param count  Number of content blocks
  * @return       OK on success, ERR on allocation failure
  */
-res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
-                                     ik_content_block_t *blocks, size_t count);
+res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role, ik_content_block_t *blocks, size_t count);
 
 /**
  * Configure thinking level
@@ -125,8 +126,7 @@ res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
  * @param level           Thinking level (NONE, LOW, MED, HIGH)
  * @param include_summary Include thinking summary in response
  */
-void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level,
-                              bool include_summary);
+void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level, bool include_summary);
 
 /**
  * Add tool definition
@@ -141,8 +141,11 @@ void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level,
  * @param strict      Enable strict schema validation
  * @return            OK on success, ERR on allocation failure
  */
-res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *description,
-                           const char *parameters, bool strict);
+res_t ik_request_add_tool(ik_request_t *req,
+                          const char *name,
+                          const char *description,
+                          const char *parameters,
+                          bool strict);
 
 /**
  * Build complete request from agent state
@@ -167,6 +170,7 @@ res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *descr
  * @param out      Receives allocated request
  * @return         OK with populated request, ERR on allocation failure
  */
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_tool_registry_t *registry, ik_request_t **out);
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent, ik_tool_registry_t *registry,
+                                         ik_request_t **out);
 
 #endif /* IK_PROVIDERS_REQUEST_H */

@@ -90,6 +90,12 @@ MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
     return curl_multi_strerror(code);
 }
 
+MOCKABLE CURLMcode curl_multi_wait_(CURLM *multi, struct curl_waitfd *extra_fds,
+                                    unsigned int extra_nfds, int timeout_ms, int *numfds)
+{
+    return curl_multi_wait(multi, extra_fds, extra_nfds, timeout_ms, numfds);
+}
+
 #else
 
 MOCKABLE CURL *curl_easy_init_(void);
@@ -118,6 +124,11 @@ MOCKABLE CURLMcode curl_multi_fdset_(CURLM *multi,
 MOCKABLE CURLMcode curl_multi_timeout_(CURLM *multi, long *timeout);
 MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue);
 MOCKABLE const char *curl_multi_strerror_(CURLMcode code);
+MOCKABLE CURLMcode curl_multi_wait_(CURLM *multi,
+                                    struct curl_waitfd *extra_fds,
+                                    unsigned int extra_nfds,
+                                    int timeout_ms,
+                                    int *numfds);
 #endif
 
 #endif // IK_WRAPPER_CURL_H

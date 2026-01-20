@@ -1,14 +1,17 @@
+#include "bash.h"
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <talloc.h>
 
 #include "json_allocator.h"
+#include "panic.h"
 
 #include "vendor/yyjson/yyjson.h"
 
+/* LCOV_EXCL_START */
 int32_t main(int32_t argc, char **argv)
 {
     void *ctx = talloc_new(NULL);
@@ -36,10 +39,7 @@ int32_t main(int32_t argc, char **argv)
     size_t buffer_size = 4096;
     size_t total_read = 0;
     char *input = talloc_array(ctx, char, (unsigned int)buffer_size);
-    if (input == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
+    if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t bytes_read;
     while ((bytes_read = fread(input + total_read, 1, buffer_size - total_read, stdin)) > 0) {
@@ -49,10 +49,7 @@ int32_t main(int32_t argc, char **argv)
         if (total_read >= buffer_size) {
             buffer_size *= 2;
             input = talloc_realloc(ctx, input, char, (unsigned int)buffer_size);
-            if (input == NULL) {
-                talloc_free(ctx);
-                return 1;
-            }
+            if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         }
     }
 
@@ -61,10 +58,7 @@ int32_t main(int32_t argc, char **argv)
         input[total_read] = '\0';
     } else {
         input = talloc_realloc(ctx, input, char, (unsigned int)(total_read + 1));
-        if (input == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
+        if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         input[total_read] = '\0';
     }
 
@@ -100,141 +94,10 @@ int32_t main(int32_t argc, char **argv)
         return 1;
     }
 
-    // Execute command via popen
     const char *cmd_str = yyjson_get_str(command);
-    FILE *pipe = popen(cmd_str, "r");
-    if (pipe == NULL) {
-        // popen() failed - treat as exit code 127
-        // Build JSON result with proper escaping using yyjson
-        yyjson_alc fail_allocator = ik_make_talloc_allocator(ctx);
-        yyjson_mut_doc *fail_doc = yyjson_mut_doc_new(&fail_allocator);
-        if (fail_doc == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
-
-        yyjson_mut_val *fail_obj = yyjson_mut_obj(fail_doc);
-        if (fail_obj == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
-
-        yyjson_mut_val *fail_output = yyjson_mut_str(fail_doc, "");
-        if (fail_output == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
-
-        yyjson_mut_val *fail_exit = yyjson_mut_int(fail_doc, 127);
-        if (fail_exit == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
-
-        yyjson_mut_obj_add_val(fail_doc, fail_obj, "output", fail_output);
-        yyjson_mut_obj_add_val(fail_doc, fail_obj, "exit_code", fail_exit);
-        yyjson_mut_doc_set_root(fail_doc, fail_obj);
-
-        char *fail_json = yyjson_mut_write(fail_doc, 0, NULL);
-        if (fail_json == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
-
-        printf("%s\n", fail_json);
-        free(fail_json);
-        talloc_free(ctx);
-        return 0;
-    }
-
-    // Read output from pipe into buffer starting at 4KB
-    size_t output_buffer_size = 4096;
-    size_t output_total_read = 0;
-    char *output = talloc_array(ctx, char, (unsigned int)output_buffer_size);
-    if (output == NULL) {
-        pclose(pipe);
-        talloc_free(ctx);
-        return 1;
-    }
-
-    size_t output_bytes_read;
-    while ((output_bytes_read = fread(output + output_total_read, 1, output_buffer_size - output_total_read, pipe)) > 0) {
-        output_total_read += output_bytes_read;
-
-        // If buffer is full, grow it
-        if (output_total_read >= output_buffer_size) {
-            output_buffer_size *= 2;
-            output = talloc_realloc(ctx, output, char, (unsigned int)output_buffer_size);
-            if (output == NULL) {
-                pclose(pipe);
-                talloc_free(ctx);
-                return 1;
-            }
-        }
-    }
-
-    // Null-terminate the output
-    if (output_total_read < output_buffer_size) {
-        output[output_total_read] = '\0';
-    } else {
-        output = talloc_realloc(ctx, output, char, (unsigned int)(output_total_read + 1));
-        if (output == NULL) {
-            pclose(pipe);
-            talloc_free(ctx);
-            return 1;
-        }
-        output[output_total_read] = '\0';
-    }
-
-    // Get exit code from pclose
-    int32_t status = pclose(pipe);
-    int32_t exit_code = WEXITSTATUS(status);
-
-    // Strip single trailing newline from output (if present)
-    if (output_total_read > 0 && output[output_total_read - 1] == '\n') {
-        output[output_total_read - 1] = '\0';
-    }
-
-    // Build JSON result with proper escaping using yyjson
-    yyjson_alc output_allocator = ik_make_talloc_allocator(ctx);
-    yyjson_mut_doc *output_doc = yyjson_mut_doc_new(&output_allocator);
-    if (output_doc == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_val *result_obj = yyjson_mut_obj(output_doc);
-    if (result_obj == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_val *output_val = yyjson_mut_str(output_doc, output);
-    if (output_val == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_val *exit_code_val = yyjson_mut_int(output_doc, exit_code);
-    if (exit_code_val == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_obj_add_val(output_doc, result_obj, "output", output_val);
-    yyjson_mut_obj_add_val(output_doc, result_obj, "exit_code", exit_code_val);
-    yyjson_mut_doc_set_root(output_doc, result_obj);
-
-    // Write JSON to stdout
-    char *json_str = yyjson_mut_write(output_doc, 0, NULL);
-    if (json_str == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    printf("%s\n", json_str);
-    free(json_str);
-
+    int32_t result = bash_execute(ctx, cmd_str);
     talloc_free(ctx);
-    return 0;
+    return result;
 }
+
+/* LCOV_EXCL_STOP */

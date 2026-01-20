@@ -38,8 +38,10 @@ typedef struct ik_google_stream_ctx ik_google_stream_ctx_t;
  * - finish_reason = IK_FINISH_UNKNOWN
  * - usage = all zeros
  */
-res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_ctx,
-                                    ik_google_stream_ctx_t **out_stream_ctx);
+res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx,
+                                  ik_stream_cb_t cb,
+                                  void *cb_ctx,
+                                  ik_google_stream_ctx_t **out_stream_ctx);
 
 /**
  * Process single SSE data chunk from Google API
@@ -111,7 +113,6 @@ ik_finish_reason_t ik_google_stream_get_finish_reason(ik_google_stream_ctx_t *st
  * Used by completion callback to provide a consistent response
  * for both streaming and non-streaming requests.
  */
-ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
-                                                 ik_google_stream_ctx_t *stream_ctx);
+ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx, ik_google_stream_ctx_t *stream_ctx);
 
 #endif /* IK_PROVIDERS_GOOGLE_STREAMING_H */

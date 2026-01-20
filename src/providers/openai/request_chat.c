@@ -67,7 +67,7 @@ static bool ensure_all_properties_required(yyjson_mut_doc *doc, yyjson_mut_val *
  * Serialize a single tool definition to Chat Completions format
  */
 static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
-                                  const ik_tool_def_t *tool)
+                                const ik_tool_def_t *tool)
 {
     assert(doc != NULL);       // LCOV_EXCL_BR_LINE
     assert(tools_arr != NULL); // LCOV_EXCL_BR_LINE
@@ -97,7 +97,7 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
 
     // Parse parameters JSON and add as object
     yyjson_doc *params_doc = yyjson_read(tool->parameters,
-                                          strlen(tool->parameters), 0);
+                                         strlen(tool->parameters), 0);
     if (!params_doc) return false;
 
     yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
@@ -172,7 +172,7 @@ static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_
  * ================================================================ */
 
 res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
-                                        bool streaming, char **out_json)
+                                       bool streaming, char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE

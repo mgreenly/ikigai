@@ -42,8 +42,8 @@ typedef struct ik_openai_chat_stream_ctx ik_openai_chat_stream_ctx_t;
  * to start_stream() and handled by the HTTP multi layer.
  */
 ik_openai_chat_stream_ctx_t *ik_openai_chat_stream_ctx_create(TALLOC_CTX *ctx,
-                                                                ik_stream_cb_t stream_cb,
-                                                                void *stream_ctx);
+                                                              ik_stream_cb_t stream_cb,
+                                                              void *stream_ctx);
 
 /**
  * Process single SSE data event from OpenAI Chat Completions API
@@ -65,8 +65,7 @@ ik_openai_chat_stream_ctx_t *ik_openai_chat_stream_ctx_create(TALLOC_CTX *ctx,
  *
  * This function is called from the curl write callback during perform().
  */
-void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx,
-                                          const char *data);
+void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx, const char *data);
 
 /**
  * Get accumulated usage statistics
@@ -109,8 +108,7 @@ ik_finish_reason_t ik_openai_chat_stream_get_finish_reason(ik_openai_chat_stream
  * Call this after streaming completes to get a response suitable for the
  * completion callback.
  */
-ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
-                                                      ik_openai_chat_stream_ctx_t *sctx);
+ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx, ik_openai_chat_stream_ctx_t *sctx);
 
 /**
  * OpenAI Responses API streaming context
@@ -141,8 +139,8 @@ typedef struct ik_openai_responses_stream_ctx ik_openai_responses_stream_ctx_t;
  * to start_stream() and handled by the HTTP multi layer.
  */
 ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_CTX *ctx,
-                                                                          ik_stream_cb_t stream_cb,
-                                                                          void *stream_ctx);
+                                                                        ik_stream_cb_t stream_cb,
+                                                                        void *stream_ctx);
 
 /**
  * Process single SSE event from OpenAI Responses API
@@ -167,8 +165,8 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
  * This function is called from the SSE parser callback during perform().
  */
 void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *stream_ctx,
-                                                const char *event_name,
-                                                const char *data);
+                                              const char *event_name,
+                                              const char *data);
 
 /**
  * Get accumulated usage statistics
@@ -225,7 +223,6 @@ size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t 
  * Call this after streaming completes to get a response suitable for the
  * completion callback.
  */
-ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx,
-                                                           ik_openai_responses_stream_ctx_t *sctx);
+ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx, ik_openai_responses_stream_ctx_t *sctx);
 
 #endif /* IK_PROVIDERS_OPENAI_STREAMING_H */

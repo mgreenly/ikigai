@@ -60,7 +60,7 @@ static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage)
  * Parse function call output item
  */
 static res_t parse_function_call(TALLOC_CTX *ctx, TALLOC_CTX *blocks_ctx,
-                                  yyjson_val *item, ik_content_block_t *out_block)
+                                 yyjson_val *item, ik_content_block_t *out_block)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(blocks_ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -195,7 +195,7 @@ ik_finish_reason_t ik_openai_map_responses_status(const char *status, const char
 }
 
 res_t ik_openai_parse_responses_response(TALLOC_CTX *ctx, const char *json,
-                                          size_t json_len, ik_response_t **out_resp)
+                                         size_t json_len, ik_response_t **out_resp)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(json != NULL);     // LCOV_EXCL_BR_LINE

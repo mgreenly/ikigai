@@ -32,7 +32,8 @@ static const char *VALID_KINDS[] = {
 };
 
 // Validate event kind
-bool ik_db_message_is_valid_kind(const char *kind) {
+bool ik_db_message_is_valid_kind(const char *kind)
+{
     if (kind == NULL) {
         return false;
     }
@@ -47,11 +48,12 @@ bool ik_db_message_is_valid_kind(const char *kind) {
 }
 
 res_t ik_db_message_insert(ik_db_ctx_t *db,
-                            int64_t session_id,
-                            const char *agent_uuid,
-                            const char *kind,
-                            const char *content,
-                            const char *data_json) {
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json)
+{
     // Preconditions
     assert(db != NULL);                         // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);                   // LCOV_EXCL_BR_LINE
@@ -104,7 +106,8 @@ ik_msg_t *ik_msg_create_tool_result(void *parent,
                                     const char *name,
                                     const char *output,
                                     bool success,
-                                    const char *content) {
+                                    const char *content)
+{
     assert(tool_call_id != NULL);  // LCOV_EXCL_BR_LINE
     assert(name != NULL);           // LCOV_EXCL_BR_LINE
     assert(output != NULL);         // LCOV_EXCL_BR_LINE

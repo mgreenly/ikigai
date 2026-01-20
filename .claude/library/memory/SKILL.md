@@ -137,6 +137,29 @@ res_t process(TALLOC_CTX *ctx, input_t *in) {
 }
 ```
 
+## Avoiding Fixed-Size Allocations
+
+**CRITICAL**: Never use fixed-size allocations unless you know the exact size of the data.
+
+```c
+// NEVER: char buffer[1024]; sprintf(buffer, "%s: %s", key, value);
+// ALWAYS: char *str = talloc_asprintf(ctx, "%s: %s", key, value);
+```
+
+**Strategies for unknown sizes:**
+
+1. **Determine size first**: stat() for files, Content-Length for HTTP
+2. **Growable buffers**: Start small, use talloc_realloc() to grow
+3. **Read-measure-reread**: Count bytes first pass, allocate exact size, reread
+4. **Return errors**: Fail if data exceeds reasonable limit
+
+**Common cases:**
+- String building → `talloc_asprintf(ctx, fmt, ...)`
+- Path building → `talloc_asprintf(ctx, "%s/%s", dir, file)`
+- File reading → `stat()` first, allocate `st.st_size`, then `read()`
+
+**Rule**: If you don't know the size, use dynamic allocation.
+
 ## CRITICAL: Error Context Lifetime
 
 **DANGER**: Never allocate errors on temporary contexts.

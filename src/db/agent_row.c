@@ -11,8 +11,8 @@
 #include <talloc.h>
 
 res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                             PGresult *res, int row_index,
-                             ik_db_agent_row_t **out)
+                            PGresult *res, int row_index,
+                            ik_db_agent_row_t **out)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);     // LCOV_EXCL_BR_LINE

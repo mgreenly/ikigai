@@ -18,7 +18,7 @@
  * Parse tool call from JSON (including arguments string parsing)
  */
 static res_t parse_chat_tool_call(TALLOC_CTX *ctx, TALLOC_CTX *blocks_ctx, yyjson_val *tc_val,
-                                   ik_content_block_t *out_block)
+                                  ik_content_block_t *out_block)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(blocks_ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -142,7 +142,7 @@ ik_finish_reason_t ik_openai_map_chat_finish_reason(const char *finish_reason)
 }
 
 res_t ik_openai_parse_chat_response(TALLOC_CTX *ctx, const char *json,
-                                     size_t json_len, ik_response_t **out_resp)
+                                    size_t json_len, ik_response_t **out_resp)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(json != NULL);     // LCOV_EXCL_BR_LINE
@@ -310,8 +310,8 @@ res_t ik_openai_parse_chat_response(TALLOC_CTX *ctx, const char *json,
 }
 
 res_t ik_openai_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
-                             size_t json_len, ik_error_category_t *out_category,
-                             char **out_message)
+                            size_t json_len, ik_error_category_t *out_category,
+                            char **out_message)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(out_category != NULL); // LCOV_EXCL_BR_LINE

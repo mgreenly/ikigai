@@ -32,18 +32,20 @@ typedef struct {
  * Forward Declarations - Vtable Methods
  * ================================================================ */
 
-static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
-                              fd_set *exc_fds, int *max_fd);
+static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd);
 static res_t anthropic_perform(void *ctx, int *running_handles);
 static res_t anthropic_timeout(void *ctx, long *timeout_ms);
 static void anthropic_info_read(void *ctx, ik_logger_t *logger);
-static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
-                                      ik_provider_completion_cb_t completion_cb,
-                                      void *completion_ctx);
-static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
-                                     ik_stream_cb_t stream_cb, void *stream_ctx,
+static res_t anthropic_start_request(void *ctx,
+                                     const ik_request_t *req,
                                      ik_provider_completion_cb_t completion_cb,
                                      void *completion_ctx);
+static res_t anthropic_start_stream(void *ctx,
+                                    const ik_request_t *req,
+                                    ik_stream_cb_t stream_cb,
+                                    void *stream_ctx,
+                                    ik_provider_completion_cb_t completion_cb,
+                                    void *completion_ctx);
 static void anthropic_cleanup(void *ctx);
 static void anthropic_cancel(void *ctx);
 
@@ -164,7 +166,7 @@ void ik_anthropic_stream_completion_cb(const ik_http_completion_t *completion, v
  * ================================================================ */
 
 static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
-                              fd_set *exc_fds, int *max_fd)
+                             fd_set *exc_fds, int *max_fd)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE
@@ -256,8 +258,8 @@ static void anthropic_info_read(void *ctx, ik_logger_t *logger)
 }
 
 static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
-                                      ik_provider_completion_cb_t completion_cb,
-                                      void *completion_ctx)
+                                     ik_provider_completion_cb_t completion_cb,
+                                     void *completion_ctx)
 {
     assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
     assert(req != NULL);           // LCOV_EXCL_BR_LINE
@@ -268,9 +270,9 @@ static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
 }
 
 static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
-                                     ik_stream_cb_t stream_cb, void *stream_ctx,
-                                     ik_provider_completion_cb_t completion_cb,
-                                     void *completion_ctx)
+                                    ik_stream_cb_t stream_cb, void *stream_ctx,
+                                    ik_provider_completion_cb_t completion_cb,
+                                    void *completion_ctx)
 {
     assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
     assert(req != NULL);           // LCOV_EXCL_BR_LINE
@@ -285,7 +287,7 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
 
     // Create streaming context for event processing
     res_t r = ik_anthropic_stream_ctx_create(active_stream, stream_cb, stream_ctx,
-                                              &active_stream->stream_ctx);
+                                             &active_stream->stream_ctx);
     if (is_err(&r)) { // LCOV_EXCL_BR_LINE
         talloc_free(active_stream); // LCOV_EXCL_LINE
         return r; // LCOV_EXCL_LINE
@@ -334,8 +336,8 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
 
     // Add request to http_multi
     r = ik_http_multi_add_request(impl_ctx->http_multi, &http_req,
-                                   ik_anthropic_stream_write_cb, active_stream,
-                                   ik_anthropic_stream_completion_cb, active_stream);
+                                  ik_anthropic_stream_write_cb, active_stream,
+                                  ik_anthropic_stream_completion_cb, active_stream);
     if (is_err(&r)) { // LCOV_EXCL_BR_LINE
         impl_ctx->active_stream = NULL; // LCOV_EXCL_LINE
         talloc_free(active_stream); // LCOV_EXCL_LINE

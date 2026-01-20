@@ -41,8 +41,7 @@ typedef struct {
 /**
  * HTTP completion callback for non-streaming requests
  */
-void ik_openai_http_completion_handler(const ik_http_completion_t *http_completion,
-                                        void *user_ctx);
+void ik_openai_http_completion_handler(const ik_http_completion_t *http_completion, void *user_ctx);
 
 /**
  * curl write callback for SSE streaming
@@ -52,7 +51,6 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
 /**
  * HTTP completion callback for streaming requests
  */
-void ik_openai_stream_completion_handler(const ik_http_completion_t *http_completion,
-                                          void *user_ctx);
+void ik_openai_stream_completion_handler(const ik_http_completion_t *http_completion, void *user_ctx);
 
 #endif // IK_OPENAI_HANDLERS_H

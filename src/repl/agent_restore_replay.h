@@ -15,10 +15,8 @@
  * @param replay_ctx Replay context with messages (must not be NULL)
  * @param logger Logger for warnings (may be NULL)
  */
-void ik_agent_restore_populate_conversation(
-    ik_agent_ctx_t *agent,
-    ik_replay_context_t *replay_ctx,
-    ik_logger_t *logger);
+void ik_agent_restore_populate_conversation(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx,
+                                            ik_logger_t *logger);
 
 /**
  * Populate agent scrollback from replay context
@@ -30,10 +28,7 @@ void ik_agent_restore_populate_conversation(
  * @param replay_ctx Replay context with messages (must not be NULL)
  * @param logger Logger for warnings (may be NULL)
  */
-void ik_agent_restore_populate_scrollback(
-    ik_agent_ctx_t *agent,
-    ik_replay_context_t *replay_ctx,
-    ik_logger_t *logger);
+void ik_agent_restore_populate_scrollback(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx, ik_logger_t *logger);
 
 /**
  * Restore mark stack from replay context
@@ -44,8 +39,6 @@ void ik_agent_restore_populate_scrollback(
  * @param agent Agent context (must not be NULL)
  * @param replay_ctx Replay context with marks (must not be NULL)
  */
-void ik_agent_restore_marks(
-    ik_agent_ctx_t *agent,
-    ik_replay_context_t *replay_ctx);
+void ik_agent_restore_marks(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx);
 
 #endif // IK_REPL_AGENT_RESTORE_REPLAY_H

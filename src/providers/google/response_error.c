@@ -16,8 +16,8 @@
  * Parse Google error response
  */
 res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
-                              size_t json_len, ik_error_category_t *out_category,
-                              char **out_message)
+                            size_t json_len, ik_error_category_t *out_category,
+                            char **out_message)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(out_category != NULL); // LCOV_EXCL_BR_LINE

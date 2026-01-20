@@ -28,7 +28,6 @@ static int compare_agents_by_created_at(const void *a, const void *b)
     return 0;
 }
 
-
 // Helper: Handle fresh install by writing initial events
 static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
 {
@@ -38,7 +37,7 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
     // Write clear event to establish session start
     res_t clear_res = ik_db_message_insert(
         db_ctx, repl->shared->session_id, repl->current->uuid, "clear", NULL, "{}"
-    );
+        );
     if (is_err(&clear_res)) {     // LCOV_EXCL_BR_LINE
         yyjson_mut_doc *clear_log = ik_log_create();     // LCOV_EXCL_LINE
         yyjson_mut_val *clear_root = yyjson_mut_doc_get_root(clear_log);     // LCOV_EXCL_LINE
@@ -53,7 +52,7 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         res_t system_res = ik_db_message_insert(
             db_ctx, repl->shared->session_id, repl->current->uuid,
             "system", cfg->openai_system_message, "{}"
-        );
+            );
         if (is_err(&system_res)) {     // LCOV_EXCL_BR_LINE
             yyjson_mut_doc *sys_log = ik_log_create();     // LCOV_EXCL_LINE
             yyjson_mut_val *sys_root = yyjson_mut_doc_get_root(sys_log);     // LCOV_EXCL_LINE
@@ -63,7 +62,7 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         } else {
             res_t render_res = ik_event_render(
                 repl->current->scrollback, "system", cfg->openai_system_message, "{}"
-            );
+                );
             if (is_err(&render_res)) {     // LCOV_EXCL_BR_LINE
                 yyjson_mut_doc *render_log = ik_log_create();     // LCOV_EXCL_LINE
                 yyjson_mut_val *render_root = yyjson_mut_doc_get_root(render_log);     // LCOV_EXCL_LINE

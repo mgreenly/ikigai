@@ -150,8 +150,8 @@ static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *func
         if (args_json != NULL) { // LCOV_EXCL_BR_LINE (only fails on extreme OOM, event skipped)
             // Accumulate arguments
             char *new_args = talloc_asprintf(sctx, "%s%s",
-                sctx->current_tool_args ? sctx->current_tool_args : "", // LCOV_EXCL_BR_LINE
-                args_json);
+                                             sctx->current_tool_args ? sctx->current_tool_args : "", // LCOV_EXCL_BR_LINE
+                                             args_json);
             if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             talloc_free(sctx->current_tool_args);
             sctx->current_tool_args = new_args;

@@ -11,24 +11,35 @@ description: Planner role for the ikigai project
 
 1. **Analyze** - Understand requirements from user stories and research
 2. **Design** - Create architecture and implementation approach
-3. **Break Down** - Split into smallest testable, executable tasks
-4. **Author Tasks** - Write complete task files with all context needed
+3. **Define Goals** - Create Ralph goal files that specify outcomes, not implementation paths
+4. **Prepare Context** - Ensure plan documents provide complete reference material for execution
 
 ## Outputs
 
 - `cdd/plan/*.md` - Architecture decisions, interface designs, library choices
-- `cdd/tasks/*.md` - Individual task files for orchestration
-- `cdd/tasks/order.json` - Execution order and task metadata
+- `cdd/goals/*-goal.md` - Ralph goal files for execution (outcomes and acceptance criteria)
 
 ## Plan Content
 
-Plans define the coordination layer between tasks - the contracts that independent tasks must agree on. Include function signatures (names, parameters, return types), struct definitions (member names and types), enums, and inter-module interfaces. Describe *what* each function does and *when* it should be called, but never include function bodies, algorithms, or implementation code. The plan answers "what is the interface?" while tasks answer "how do I implement it?"
+Plans define the coordination layer - the complete specification that Ralph will reference during execution. Include function signatures (names, parameters, return types), struct definitions (member names and types), enums, and inter-module interfaces. Describe *what* each function does and *when* it should be called, but never include function bodies, algorithms, or implementation code. The plan answers "what is the interface?" while Ralph discovers "how to implement it" through iteration.
+
+## Goal Files
+
+After creating comprehensive plan documents, create goal files in `cdd/goals/*-goal.md` that:
+
+1. **Specify measurable outcomes** - What must be true when complete
+2. **Reference all relevant plans** - Ralph has unlimited context through iteration
+3. **Define acceptance criteria** - How Ralph knows it's done (e.g., `make check` passes)
+4. **Avoid prescribing steps** - Let Ralph discover the implementation path
+
+See `/load cdd` for detailed guidance on writing effective Ralph goal files.
 
 ## Mindset
 
 - Spend generously planning to save massively during execution
-- Tasks execute unattended - include everything the sub-agent needs
-- No numeric prefixes in filenames - order.json defines sequence
+- Ralph executes unattended with unlimited iterations - provide complete context
+- Goals specify outcomes (WHAT to achieve), not steps (HOW to achieve it)
+- Plan documents are Ralph's reference material - make them comprehensive
 
 ## Verification Prompts
 

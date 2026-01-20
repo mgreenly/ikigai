@@ -16,7 +16,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 /* ================================================================
  * Message Deep Copy
  * ================================================================ */
@@ -45,48 +44,48 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
         dst->type = src->type;
 
         switch (src->type) {  // LCOV_EXCL_BR_LINE
-        case IK_CONTENT_TEXT:
-            dst->data.text.text = talloc_strdup(req, src->data.text.text);
-            if (dst->data.text.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            break;
+            case IK_CONTENT_TEXT:
+                dst->data.text.text = talloc_strdup(req, src->data.text.text);
+                if (dst->data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                break;
 
-        case IK_CONTENT_TOOL_CALL:
-            dst->data.tool_call.id = talloc_strdup(req, src->data.tool_call.id);
-            dst->data.tool_call.name = talloc_strdup(req, src->data.tool_call.name);
-            dst->data.tool_call.arguments = talloc_strdup(req, src->data.tool_call.arguments);
-            if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL ||  // LCOV_EXCL_BR_LINE
-                dst->data.tool_call.arguments == NULL) {  // LCOV_EXCL_BR_LINE
-                PANIC("Out of memory");  // LCOV_EXCL_LINE
-            }
-            break;
+            case IK_CONTENT_TOOL_CALL:
+                dst->data.tool_call.id = talloc_strdup(req, src->data.tool_call.id);
+                dst->data.tool_call.name = talloc_strdup(req, src->data.tool_call.name);
+                dst->data.tool_call.arguments = talloc_strdup(req, src->data.tool_call.arguments);
+                if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL || // LCOV_EXCL_BR_LINE
+                    dst->data.tool_call.arguments == NULL) { // LCOV_EXCL_BR_LINE
+                    PANIC("Out of memory"); // LCOV_EXCL_LINE
+                }
+                break;
 
-        case IK_CONTENT_TOOL_RESULT:
-            dst->data.tool_result.tool_call_id = talloc_strdup(req, src->data.tool_result.tool_call_id);
-            dst->data.tool_result.content = talloc_strdup(req, src->data.tool_result.content);
-            dst->data.tool_result.is_error = src->data.tool_result.is_error;
-            if (dst->data.tool_result.tool_call_id == NULL || dst->data.tool_result.content == NULL) {  // LCOV_EXCL_BR_LINE
-                PANIC("Out of memory");  // LCOV_EXCL_LINE
-            }
-            break;
+            case IK_CONTENT_TOOL_RESULT:
+                dst->data.tool_result.tool_call_id = talloc_strdup(req, src->data.tool_result.tool_call_id);
+                dst->data.tool_result.content = talloc_strdup(req, src->data.tool_result.content);
+                dst->data.tool_result.is_error = src->data.tool_result.is_error;
+                if (dst->data.tool_result.tool_call_id == NULL || dst->data.tool_result.content == NULL) { // LCOV_EXCL_BR_LINE
+                    PANIC("Out of memory"); // LCOV_EXCL_LINE
+                }
+                break;
 
-        case IK_CONTENT_THINKING:
-            dst->data.thinking.text = talloc_strdup(req, src->data.thinking.text);
-            if (dst->data.thinking.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            if (src->data.thinking.signature != NULL) {
-                dst->data.thinking.signature = talloc_strdup(req, src->data.thinking.signature);
-                if (dst->data.thinking.signature == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            } else {
-                dst->data.thinking.signature = NULL;
-            }
-            break;
+            case IK_CONTENT_THINKING:
+                dst->data.thinking.text = talloc_strdup(req, src->data.thinking.text);
+                if (dst->data.thinking.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                if (src->data.thinking.signature != NULL) {
+                    dst->data.thinking.signature = talloc_strdup(req, src->data.thinking.signature);
+                    if (dst->data.thinking.signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                } else {
+                    dst->data.thinking.signature = NULL;
+                }
+                break;
 
-        case IK_CONTENT_REDACTED_THINKING:
-            dst->data.redacted_thinking.data = talloc_strdup(req, src->data.redacted_thinking.data);
-            if (dst->data.redacted_thinking.data == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            break;
+            case IK_CONTENT_REDACTED_THINKING:
+                dst->data.redacted_thinking.data = talloc_strdup(req, src->data.redacted_thinking.data);
+                if (dst->data.redacted_thinking.data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                break;
 
-        default: // LCOV_EXCL_LINE
-            PANIC("Unknown content type"); // LCOV_EXCL_LINE
+            default: // LCOV_EXCL_LINE
+                PANIC("Unknown content type"); // LCOV_EXCL_LINE
         }
     }
 
@@ -106,7 +105,11 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
  * Request Building from Agent Conversation
  * ================================================================ */
 
-res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_tool_registry_t *registry, ik_request_t **out) {
+res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
+                                         void *agent_ptr,
+                                         ik_tool_registry_t *registry,
+                                         ik_request_t **out)
+{
     assert(agent_ptr != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);       // LCOV_EXCL_BR_LINE
 
@@ -164,7 +167,7 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx, void *agent_ptr, ik_to
 
             // Add tool to request
             res = ik_request_add_tool(req, entry->name, description,
-                                     params_json ? params_json : "{}", false);
+                                      params_json ? params_json : "{}", false);
 
             if (params_json != NULL) {
                 free(params_json);  // yyjson allocates with malloc, not talloc

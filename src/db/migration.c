@@ -37,7 +37,8 @@ static int get_current_version(PGconn *conn)
 
     TALLOC_CTX *tmp_ctx = tmp_ctx_create();
 
-    ik_pg_result_wrapper_t *res_wrapper = ik_db_wrap_pg_result(tmp_ctx, PQexec(conn, "SELECT schema_version FROM schema_metadata LIMIT 1"));
+    ik_pg_result_wrapper_t *res_wrapper = ik_db_wrap_pg_result(tmp_ctx, PQexec(conn,
+                                                                               "SELECT schema_version FROM schema_metadata LIMIT 1"));
     PGresult *res = res_wrapper->pg_result;
 
     // If query fails, table probably doesn't exist - return 0 for fresh database
@@ -156,7 +157,7 @@ static int compare_migrations(const void *a, const void *b)
  * @return OK on success, ERR on failure
  */
 static res_t scan_migrations(TALLOC_CTX *ctx, const char *migrations_dir,
-                              migration_entry_t **entries_out, size_t *count_out)
+                             migration_entry_t **entries_out, size_t *count_out)
 {
     assert(ctx != NULL);               // LCOV_EXCL_BR_LINE
     assert(migrations_dir != NULL);    // LCOV_EXCL_BR_LINE

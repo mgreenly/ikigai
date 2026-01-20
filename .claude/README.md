@@ -74,7 +74,7 @@ Skillsets are JSON files that bundle related skills for specific workflows.
 
 ### [scripts/](scripts/)
 
-Executable TypeScript/shell scripts for task management and quality checks.
+Executable scripts for task management and quality checks.
 
 **Meta perspective:** Scripts are the executable layer. Skills provide knowledge, scripts provide action. Scripts manipulate state (task lifecycle), invoke tools (make targets), and enforce invariants (quality gates).
 

@@ -20,17 +20,17 @@ yyjson_mut_val *ik_openai_serialize_message(yyjson_mut_doc *doc, const ik_messag
     /* Add role */
     const char *role_str = NULL;
     switch (msg->role) {  // LCOV_EXCL_BR_LINE: default case unreachable
-    case IK_ROLE_USER:
-        role_str = "user";
-        break;
-    case IK_ROLE_ASSISTANT:
-        role_str = "assistant";
-        break;
-    case IK_ROLE_TOOL:
-        role_str = "tool";
-        break;
-    default:  // LCOV_EXCL_LINE
-        PANIC("Unknown role");  // LCOV_EXCL_LINE
+        case IK_ROLE_USER:
+            role_str = "user";
+            break;
+        case IK_ROLE_ASSISTANT:
+            role_str = "assistant";
+            break;
+        case IK_ROLE_TOOL:
+            role_str = "tool";
+            break;
+        default: // LCOV_EXCL_LINE
+            PANIC("Unknown role"); // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_str(doc, msg_obj, "role", role_str)) {  // LCOV_EXCL_BR_LINE

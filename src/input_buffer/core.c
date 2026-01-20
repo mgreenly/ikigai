@@ -14,10 +14,10 @@
 ik_input_buffer_t *ik_input_buffer_create(void *parent)
 {
     ik_input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(ik_input_buffer_t));
-    if (input_buffer == NULL)PANIC("OOM");  // LCOV_EXCL_BR_LINE
+    if (input_buffer == NULL) PANIC("OOM"); // LCOV_EXCL_BR_LINE
 
     res_t res = ik_byte_array_create(input_buffer, 64);
-    if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
+    if (is_err(&res)) PANIC("alloc fail"); // LCOV_EXCL_BR_LINE
     input_buffer->text = res.ok;
 
     input_buffer->cursor = ik_input_buffer_cursor_create(input_buffer);
@@ -123,7 +123,7 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
     /* Insert bytes at cursor position */
     for (size_t i = 0; i < num_bytes; i++) {
         res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset + i, utf8_bytes[i]);
-        if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
+        if (is_err(&res)) PANIC("alloc fail"); // LCOV_EXCL_BR_LINE
     }
 
     /* Advance cursor by number of bytes inserted */
@@ -147,7 +147,7 @@ res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
 
     /* Insert newline byte at cursor position */
     res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset, '\n');
-    if (is_err(&res))PANIC("alloc fail");  // LCOV_EXCL_BR_LINE
+    if (is_err(&res)) PANIC("alloc fail"); // LCOV_EXCL_BR_LINE
 
     /* Advance cursor by 1 byte */
     input_buffer->cursor_byte_offset += 1;
@@ -234,7 +234,7 @@ static size_t find_next_char_end(const uint8_t *data, size_t data_len, size_t cu
     assert(data != NULL); // LCOV_EXCL_BR_LINE
 
     /* If cursor at end, return same position */
-    if (cursor_pos >= data_len)return cursor_pos;  // LCOV_EXCL_LINE - defensive: caller checks cursor < data_len
+    if (cursor_pos >= data_len) return cursor_pos; // LCOV_EXCL_LINE - defensive: caller checks cursor < data_len
 
     /* Determine the length of the UTF-8 character at cursor_pos */
     uint8_t first_byte = data[cursor_pos];
@@ -306,7 +306,7 @@ res_t ik_input_buffer_cursor_left(ik_input_buffer_t *input_buffer)
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
 
     // Defensive check: text can be NULL (lazy allocation), but cursor > 0 implies text exists
-    if (text == NULL)return OK(NULL);  // LCOV_EXCL_LINE - defensive: cursor > 0 implies text != NULL
+    if (text == NULL) return OK(NULL); // LCOV_EXCL_LINE - defensive: cursor > 0 implies text != NULL
 
     ik_input_buffer_cursor_move_left(input_buffer->cursor, text, text_len);
 

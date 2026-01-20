@@ -7,7 +7,7 @@ description: Creating pull requests with concise descriptions
 
 ## Creating PRs
 
-**This is a jj repository.** The `gh pr create` command requires a git repository and will fail. Use `gh api` instead to create PRs via the GitHub API.
+**This is a jj repository.** Use `gh pr create --repo` to create PRs without needing a git repository.
 
 No test plan section - CI runs the full quality suite automatically.
 
@@ -16,32 +16,31 @@ No test plan section - CI runs the full quality suite automatically.
 ```markdown
 <concise description of what changed and why>
 
----
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with Ralph harness
 ```
 
 ## Command
 
 ```bash
-gh api repos/mgreenly/ikigai/pulls \
-  --method POST \
-  --field title="<title>" \
-  --field head="<branch-name>" \
-  --field base="main" \
-  --field body="$(cat <<'EOF'
+gh pr create \
+  --repo mgreenly/ikigai \
+  --base main \
+  --head <bookmark-name> \
+  --title "<title>" \
+  --body "$(cat <<'EOF'
 <description>
 
----
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with Ralph harness
 EOF
 )"
 ```
 
 **Parameters:**
-- `title`: PR title (imperative mood, concise)
-- `head`: Source branch name (e.g., `rel-08-a`)
-- `base`: Target branch (usually `main`)
-- `body`: PR description
+- `--repo`: Repository in owner/repo format (required for jj repos)
+- `--base`: Target branch (usually `main`)
+- `--head`: Source bookmark name (e.g., `rel-09-rc5`)
+- `--title`: PR title (imperative mood, concise)
+- `--body`: PR description
 
 ## Guidelines
 
@@ -57,8 +56,7 @@ EOF
 ```
 Remove dead code: ik_content_block_thinking
 
----
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with Ralph harness
 ```
 
 **Feature addition:**
@@ -68,8 +66,7 @@ Add JSON export for metrics data
 Enables users to export their usage metrics in JSON format
 for integration with external tools.
 
----
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with Ralph harness
 ```
 
 **Bug fix:**
@@ -79,6 +76,5 @@ Fix null pointer dereference in config parser
 The parser didn't handle missing optional fields correctly
 when the config file used the legacy format.
 
----
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with Ralph harness
 ```

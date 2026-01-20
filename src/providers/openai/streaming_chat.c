@@ -15,8 +15,8 @@
  * ================================================================ */
 
 ik_openai_chat_stream_ctx_t *ik_openai_chat_stream_ctx_create(TALLOC_CTX *ctx,
-                                                                ik_stream_cb_t stream_cb,
-                                                                void *stream_ctx)
+                                                              ik_stream_cb_t stream_cb,
+                                                              void *stream_ctx)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(stream_cb != NULL);  // LCOV_EXCL_BR_LINE
@@ -48,13 +48,14 @@ ik_openai_chat_stream_ctx_t *ik_openai_chat_stream_ctx_create(TALLOC_CTX *ctx,
  * ================================================================ */
 
 ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
-                                                      ik_openai_chat_stream_ctx_t *sctx)
+                                                    ik_openai_chat_stream_ctx_t *sctx)
 {
     assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(sctx != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate response structure
-    ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+    ik_response_t *resp = talloc_zero(ctx,
+                                      ik_response_t);
     if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Copy model
@@ -82,7 +83,8 @@ ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
         block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
         if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
-            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+                                                        sctx->current_tool_args !=
+                                                        NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     } else {
         // No tool call - empty content

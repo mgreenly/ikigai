@@ -19,8 +19,7 @@
  * @param out Output parameter for parsed row (must not be NULL)
  * @return OK with parsed row on success, ERR on failure
  */
-res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                             PGresult *res, int row_index,
-                             ik_db_agent_row_t **out);
+res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, PGresult *res, int row_index,
+                            ik_db_agent_row_t **out);
 
 #endif // IK_DB_AGENT_ROW_H

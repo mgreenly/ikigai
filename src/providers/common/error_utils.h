@@ -58,9 +58,6 @@ bool ik_error_is_retryable(int category);
  *
  * Memory: Allocated on provided talloc context.
  */
-char *ik_error_user_message(TALLOC_CTX *ctx,
-                             const char *provider,
-                             int category,
-                             const char *detail);
+char *ik_error_user_message(TALLOC_CTX *ctx, const char *provider, int category, const char *detail);
 
 #endif /* IK_PROVIDERS_COMMON_ERROR_UTILS_H */

@@ -122,8 +122,8 @@ static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage)
  * Process single SSE event
  */
 void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *stream_ctx,
-                                                const char *event_name,
-                                                const char *data)
+                                              const char *event_name,
+                                              const char *data)
 {
     assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(event_name != NULL); // LCOV_EXCL_BR_LINE
@@ -154,8 +154,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         }
 
         maybe_emit_start(stream_ctx);
-    }
-    else if (strcmp(event_name, "response.output_text.delta") == 0) {
+    }else if (strcmp(event_name, "response.output_text.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
             const char *delta = yyjson_get_str_(delta_val);
@@ -176,8 +175,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                 emit_event(stream_ctx, &event);
             }
         }
-    }
-    else if (strcmp(event_name, "response.reasoning_summary_text.delta") == 0) {
+    }else if (strcmp(event_name, "response.reasoning_summary_text.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
             const char *delta = yyjson_get_str_(delta_val);
@@ -198,8 +196,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                 emit_event(stream_ctx, &event);
             }
         }
-    }
-    else if (strcmp(event_name, "response.output_item.added") == 0) {
+    }else if (strcmp(event_name, "response.output_item.added") == 0) {
         yyjson_val *item_val = yyjson_obj_get(root, "item");
         if (item_val != NULL && yyjson_is_obj(item_val)) {
             yyjson_val *type_val = yyjson_obj_get(item_val, "type");
@@ -240,8 +237,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                 }
             }
         }
-    }
-    else if (strcmp(event_name, "response.function_call_arguments.delta") == 0) {
+    }else if (strcmp(event_name, "response.function_call_arguments.delta") == 0) {
         yyjson_val *delta_val = yyjson_obj_get(root, "delta");
         if (delta_val != NULL && yyjson_is_str(delta_val)) {
             const char *delta = yyjson_get_str_(delta_val);
@@ -254,8 +250,8 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
 
                 // Accumulate arguments
                 char *new_args = talloc_asprintf(stream_ctx, "%s%s",
-                    stream_ctx->current_tool_args ? stream_ctx->current_tool_args : "",
-                    delta);
+                                                 stream_ctx->current_tool_args ? stream_ctx->current_tool_args : "",
+                                                 delta);
                 if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                 talloc_free(stream_ctx->current_tool_args);
                 stream_ctx->current_tool_args = new_args;
@@ -268,11 +264,9 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                 emit_event(stream_ctx, &event);
             }
         }
-    }
-    else if (strcmp(event_name, "response.function_call_arguments.done") == 0) {
+    }else if (strcmp(event_name, "response.function_call_arguments.done") == 0) {
         // No-op: arguments already accumulated via delta events
-    }
-    else if (strcmp(event_name, "response.output_item.done") == 0) {
+    }else if (strcmp(event_name, "response.output_item.done") == 0) {
         yyjson_val *output_index_val = yyjson_obj_get(root, "output_index");
         int32_t output_index = -1;
         if (output_index_val != NULL && yyjson_is_int(output_index_val)) {
@@ -289,8 +283,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
 
             // NOTE: Do NOT clear tool data here - response builder needs it later
         }
-    }
-    else if (strcmp(event_name, "response.completed") == 0) {
+    }else if (strcmp(event_name, "response.completed") == 0) {
         maybe_end_tool_call(stream_ctx);
 
         yyjson_val *response_val = yyjson_obj_get(root, "response");
@@ -323,8 +316,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
             .data.done.provider_data = NULL
         };
         emit_event(stream_ctx, &event);
-    }
-    else if (strcmp(event_name, "error") == 0) {
+    }else if (strcmp(event_name, "error") == 0) {
         yyjson_val *error_val = yyjson_obj_get_(root, "error");
         if (error_val != NULL && yyjson_is_obj(error_val)) {
             yyjson_val *message_val = yyjson_obj_get_(error_val, "message");

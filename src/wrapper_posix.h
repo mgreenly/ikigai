@@ -4,14 +4,18 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <glob.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
+
 #include "wrapper_base.h"
 
 #ifdef NDEBUG
@@ -151,6 +155,26 @@ MOCKABLE char *posix_getcwd_(char *buf, size_t size)
     return getcwd(buf, size);
 }
 
+MOCKABLE char *getenv_(const char *name)
+{
+    return getenv(name);
+}
+
+MOCKABLE struct passwd *getpwuid_(uid_t uid)
+{
+    return getpwuid(uid);
+}
+
+MOCKABLE int glob_(const char *pattern, int flags, int (*errfunc)(const char *, int), glob_t *pglob)
+{
+    return glob(pattern, flags, errfunc, pglob);
+}
+
+MOCKABLE void globfree_(glob_t *pglob)
+{
+    globfree(pglob);
+}
+
 #else
 
 MOCKABLE int posix_open_(const char *pathname, int flags);
@@ -180,6 +204,10 @@ MOCKABLE DIR *opendir_(const char *name);
 MOCKABLE int posix_access_(const char *pathname, int mode);
 MOCKABLE int posix_rename_(const char *oldpath, const char *newpath);
 MOCKABLE char *posix_getcwd_(char *buf, size_t size);
+MOCKABLE char *getenv_(const char *name);
+MOCKABLE struct passwd *getpwuid_(uid_t uid);
+MOCKABLE int glob_(const char *pattern, int flags, int (*errfunc)(const char *, int), glob_t *pglob);
+MOCKABLE void globfree_(glob_t *pglob);
 
 #endif
 

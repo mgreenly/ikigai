@@ -1,3 +1,8 @@
+#include "file_read.h"
+
+#include "json_allocator.h"
+#include "panic.h"
+
 #include <errno.h>
 #include <inttypes.h>
 #include <libgen.h>
@@ -7,46 +12,9 @@
 #include <sys/stat.h>
 #include <talloc.h>
 
-#include "json_allocator.h"
-
 #include "vendor/yyjson/yyjson.h"
 
-static void output_error(void *ctx, const char *error, const char *error_code)
-{
-    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(&allocator);
-    if (doc == NULL) {
-        exit(1);
-    }
-
-    yyjson_mut_val *obj = yyjson_mut_obj(doc);
-    if (obj == NULL) {
-        exit(1);
-    }
-
-    yyjson_mut_val *error_val = yyjson_mut_str(doc, error);
-    if (error_val == NULL) {
-        exit(1);
-    }
-
-    yyjson_mut_val *error_code_val = yyjson_mut_str(doc, error_code);
-    if (error_code_val == NULL) {
-        exit(1);
-    }
-
-    yyjson_mut_obj_add_val(doc, obj, "error", error_val);
-    yyjson_mut_obj_add_val(doc, obj, "error_code", error_code_val);
-    yyjson_mut_doc_set_root(doc, obj);
-
-    char *json_str = yyjson_mut_write(doc, 0, NULL);
-    if (json_str == NULL) {
-        exit(1);
-    }
-
-    printf("%s\n", json_str);
-    free(json_str);
-}
-
+/* LCOV_EXCL_START */
 int32_t main(int32_t argc, char **argv)
 {
     void *ctx = talloc_new(NULL);
@@ -82,10 +50,7 @@ int32_t main(int32_t argc, char **argv)
     size_t buffer_size = 4096;
     size_t total_read = 0;
     char *input = talloc_array(ctx, char, (unsigned int)buffer_size);
-    if (input == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
+    if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t bytes_read;
     while ((bytes_read = fread(input + total_read, 1, buffer_size - total_read, stdin)) > 0) {
@@ -94,10 +59,7 @@ int32_t main(int32_t argc, char **argv)
         if (total_read >= buffer_size) {
             buffer_size *= 2;
             input = talloc_realloc(ctx, input, char, (unsigned int)buffer_size);
-            if (input == NULL) {
-                talloc_free(ctx);
-                return 1;
-            }
+            if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         }
     }
 
@@ -105,10 +67,7 @@ int32_t main(int32_t argc, char **argv)
         input[total_read] = '\0';
     } else {
         input = talloc_realloc(ctx, input, char, (unsigned int)(total_read + 1));
-        if (input == NULL) {
-            talloc_free(ctx);
-            return 1;
-        }
+        if (input == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         input[total_read] = '\0';
     }
 
@@ -156,146 +115,11 @@ int32_t main(int32_t argc, char **argv)
         has_limit = true;
     }
 
-    // Open file
-    FILE *fp = fopen(path, "r");
-    if (fp == NULL) {
-        if (errno == ENOENT) {
-            char error_msg[512];
-            snprintf(error_msg, sizeof(error_msg), "File not found: %s", path);
-            output_error(ctx, error_msg, "FILE_NOT_FOUND");
-        } else if (errno == EACCES) {
-            char error_msg[512];
-            snprintf(error_msg, sizeof(error_msg), "Permission denied: %s", path);
-            output_error(ctx, error_msg, "PERMISSION_DENIED");
-        } else {
-            char error_msg[512];
-            snprintf(error_msg, sizeof(error_msg), "Cannot open file: %s", path);
-            output_error(ctx, error_msg, "OPEN_FAILED");
-        }
-        talloc_free(ctx);
-        return 0;
-    }
-
-    // Read file contents
-    char *content = NULL;
-    size_t content_size = 0;
-
-    if (!has_offset && !has_limit) {
-        // Read entire file
-        struct stat st;
-        if (fstat(fileno(fp), &st) != 0) {
-            fclose(fp);
-            char error_msg[512];
-            snprintf(error_msg, sizeof(error_msg), "Cannot get file size: %s", path);
-            output_error(ctx, error_msg, "SIZE_FAILED");
-            talloc_free(ctx);
-            return 0;
-        }
-
-        content_size = (size_t)st.st_size;
-        content = talloc_array(ctx, char, (unsigned int)(content_size + 1));
-        if (content == NULL) {
-            fclose(fp);
-            talloc_free(ctx);
-            return 1;
-        }
-
-        size_t read_bytes = fread(content, 1, content_size, fp);
-        if (read_bytes != content_size) {
-            fclose(fp);
-            char error_msg[512];
-            snprintf(error_msg, sizeof(error_msg), "Failed to read file: %s", path);
-            output_error(ctx, error_msg, "READ_FAILED");
-            talloc_free(ctx);
-            return 0;
-        }
-        content[content_size] = '\0';
-    } else {
-        // Line-by-line reading with offset/limit
-        char *line = NULL;
-        size_t line_size = 0;
-        int64_t current_line = 0;
-        int64_t lines_read = 0;
-
-        size_t output_buffer_size = 4096;
-        content = talloc_array(ctx, char, (unsigned int)output_buffer_size);
-        if (content == NULL) {
-            fclose(fp);
-            talloc_free(ctx);
-            return 1;
-        }
-        content[0] = '\0';
-        content_size = 0;
-
-        while (getline(&line, &line_size, fp) != -1) {
-            current_line++;
-
-            // Skip lines before offset
-            if (has_offset && current_line < offset) {
-                continue;
-            }
-
-            // Stop if we've read enough lines
-            if (has_limit && lines_read >= limit) {
-                break;
-            }
-
-            // Append line to content
-            size_t line_len = strlen(line);
-            while (content_size + line_len + 1 > output_buffer_size) {
-                output_buffer_size *= 2;
-                content = talloc_realloc(ctx, content, char, (unsigned int)output_buffer_size);
-                if (content == NULL) {
-                    free(line);
-                    fclose(fp);
-                    talloc_free(ctx);
-                    return 1;
-                }
-            }
-
-            memcpy(content + content_size, line, line_len);
-            content_size += line_len;
-            content[content_size] = '\0';
-            lines_read++;
-        }
-
-        free(line);
-    }
-
-    fclose(fp);
-
-    // Build JSON response
-    yyjson_alc output_allocator = ik_make_talloc_allocator(ctx);
-    yyjson_mut_doc *output_doc = yyjson_mut_doc_new(&output_allocator);
-    if (output_doc == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_val *result_obj = yyjson_mut_obj(output_doc);
-    if (result_obj == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_val *output_val = yyjson_mut_str(output_doc, content);
-    if (output_val == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    yyjson_mut_obj_add_val(output_doc, result_obj, "output", output_val);
-    yyjson_mut_doc_set_root(output_doc, result_obj);
-
-    char *json_str = yyjson_mut_write(output_doc, 0, NULL);
-    if (json_str == NULL) {
-        talloc_free(ctx);
-        return 1;
-    }
-
-    printf("%s\n", json_str);
-    free(json_str);
+    // Execute file read (outputs JSON directly)
+    file_read_execute(ctx, path, has_offset, offset, has_limit, limit);
 
     talloc_free(ctx);
     return 0;
 }
+
+/* LCOV_EXCL_STOP */

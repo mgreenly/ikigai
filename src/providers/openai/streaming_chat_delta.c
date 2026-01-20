@@ -162,8 +162,8 @@ void ik_openai_chat_process_delta(ik_openai_chat_stream_ctx_t *sctx, void *delta
                         if (arguments != NULL && sctx->in_tool_call) { // LCOV_EXCL_BR_LINE - defensive check, get_str on valid string returns non-NULL
                             // Accumulate arguments
                             char *new_args = talloc_asprintf(sctx, "%s%s",
-                                sctx->current_tool_args ? sctx->current_tool_args : "", // LCOV_EXCL_BR_LINE - current_tool_args NULL only if START failed
-                                arguments);
+                                                             sctx->current_tool_args ? sctx->current_tool_args : "", // LCOV_EXCL_BR_LINE - current_tool_args NULL only if START failed
+                                                             arguments);
                             if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                             talloc_free(sctx->current_tool_args);
                             sctx->current_tool_args = new_args;

@@ -47,9 +47,9 @@ static const char *get_env_var_for_provider(const char *provider)
 }
 
 char *ik_error_user_message(TALLOC_CTX *ctx,
-                             const char *provider,
-                             int category,
-                             const char *detail)
+                            const char *provider,
+                            int category,
+                            const char *detail)
 {
     assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
     assert(provider != NULL); // LCOV_EXCL_BR_LINE
@@ -97,7 +97,10 @@ char *ik_error_user_message(TALLOC_CTX *ctx,
 
         case IK_ERR_CAT_SERVER:
             if (detail != NULL) {
-                message = talloc_asprintf(ctx, "%s server error. This is temporary, retrying may succeed. %s", provider, detail);
+                message = talloc_asprintf(ctx,
+                                          "%s server error. This is temporary, retrying may succeed. %s",
+                                          provider,
+                                          detail);
             } else {
                 message = talloc_asprintf(ctx, "%s server error. This is temporary, retrying may succeed.", provider);
             }

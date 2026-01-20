@@ -39,7 +39,6 @@
  * - 404      -> IK_ERR_CAT_NOT_FOUND
  * - 500, 529 -> IK_ERR_CAT_SERVER
  */
-res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
-                                 ik_error_category_t *out_category);
+res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category);
 
 #endif /* IK_PROVIDERS_ANTHROPIC_ERROR_H */

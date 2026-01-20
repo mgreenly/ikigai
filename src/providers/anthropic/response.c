@@ -40,13 +40,12 @@ ik_finish_reason_t ik_anthropic_map_finish_reason(const char *stop_reason)
     return IK_FINISH_UNKNOWN;
 }
 
-
 /* ================================================================
  * Async Vtable Implementations (Stubs)
  * ================================================================ */
 
 res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req,
-                                  ik_provider_completion_cb_t cb, void *cb_ctx)
+                                 ik_provider_completion_cb_t cb, void *cb_ctx)
 {
     assert(impl_ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -61,4 +60,3 @@ res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req,
     // TODO: Serialize request, build headers, start HTTP POST
     return OK(NULL);
 }
-

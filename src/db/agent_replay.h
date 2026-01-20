@@ -18,8 +18,10 @@
  * @param clear_id_out Output for clear message ID (0 if not found)
  * @return OK on success, ERR on database failure
  */
-res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                          const char *agent_uuid, int64_t max_id,
+res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx,
+                          TALLOC_CTX *ctx,
+                          const char *agent_uuid,
+                          int64_t max_id,
                           int64_t *clear_id_out);
 
 /**
@@ -39,10 +41,11 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  * @param count_out Output for number of ranges (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                                    const char *agent_uuid,
-                                    ik_replay_range_t **ranges_out,
-                                    size_t *count_out);
+res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx,
+                                   TALLOC_CTX *ctx,
+                                   const char *agent_uuid,
+                                   ik_replay_range_t **ranges_out,
+                                   size_t *count_out);
 
 /**
  * Query messages for a single replay range
@@ -57,10 +60,11 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  * @param count_out Output for number of messages (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                            const ik_replay_range_t *range,
-                            ik_msg_t ***messages_out,
-                            size_t *count_out);
+res_t ik_agent_query_range(ik_db_ctx_t *db_ctx,
+                           TALLOC_CTX *ctx,
+                           const ik_replay_range_t *range,
+                           ik_msg_t ***messages_out,
+                           size_t *count_out);
 
 /**
  * Replay history for an agent using range-based algorithm
@@ -74,8 +78,9 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  * @param ctx_out Output for replay context (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                               const char *agent_uuid,
-                               ik_replay_context_t **ctx_out);
+res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx,
+                              TALLOC_CTX *ctx,
+                              const char *agent_uuid,
+                              ik_replay_context_t **ctx_out);
 
 #endif // IK_DB_AGENT_REPLAY_H

@@ -57,6 +57,15 @@ int main(void)
     res_t result = ik_paths_init(root_ctx, &paths);
     DEBUG_LOG("=== paths_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
+        fprintf(stderr, "Error: %s\n", error_message(result.err));
+        fprintf(stderr, "\nRequired environment variables:\n");
+        fprintf(stderr, "  IKIGAI_BIN_DIR\n");
+        fprintf(stderr, "  IKIGAI_CONFIG_DIR\n");
+        fprintf(stderr, "  IKIGAI_DATA_DIR\n");
+        fprintf(stderr, "  IKIGAI_LIBEXEC_DIR\n");
+        fprintf(stderr, "\nIf using direnv, run: direnv allow .\n");
+        fprintf(stderr, "Otherwise, source .envrc: source .envrc\n");
+
         doc = ik_log_create();
         root = yyjson_mut_doc_get_root(doc);
         yyjson_mut_obj_add_str(doc, root, "event", "paths_init_error");

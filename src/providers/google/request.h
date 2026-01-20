@@ -63,8 +63,12 @@ res_t ik_google_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char
  * - ERR(INVALID_ARG) if any parameter is NULL
  * - ERR(PARSE) if URL construction fails
  */
-res_t ik_google_build_url(TALLOC_CTX *ctx, const char *base_url, const char *model,
-                           const char *api_key, bool streaming, char **out_url);
+res_t ik_google_build_url(TALLOC_CTX *ctx,
+                          const char *base_url,
+                          const char *model,
+                          const char *api_key,
+                          bool streaming,
+                          char **out_url);
 
 /**
  * Build HTTP headers for Google API

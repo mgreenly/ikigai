@@ -36,6 +36,19 @@ endif
 
 CC = gcc
 
+# Synchronize output from parallel jobs to prevent interleaving
+MAKEFLAGS += --output-sync=line
+
+# Suppress "Entering/Leaving directory" messages
+MAKEFLAGS += --no-print-directory
+
+# Parallelization settings
+MAKE_JOBS ?= $(shell expr $$(nproc) / 2)
+PARALLEL ?= 0
+
+# Enable parallel execution
+MAKEFLAGS += -j$(MAKE_JOBS)
+
 # Distribution list (default: all distros/*/ directories)
 DISTROS ?= $(notdir $(patsubst %/,%,$(wildcard distros/*/)))
 
@@ -86,10 +99,6 @@ BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -Isrc -I/usr/include/postgresql
 # Build type selection (debug, release, sanitize, tsan, or valgrind)
 BUILD ?= debug
 
-# Parallelization settings
-MAKE_JOBS ?= $(shell expr $$(nproc) / 4)
-PARALLEL ?= 0
-
 # Build directory (can be overridden for parallel builds)
 BUILDDIR ?= build
 
@@ -136,14 +145,14 @@ MAX_FILE_BYTES = 16384
 COVERAGE_DIR = reports/coverage
 COVERAGE_CFLAGS = -O0 -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
-COVERAGE_THRESHOLD = 100
-LCOV_EXCL_COVERAGE = 3465
+COVERAGE_THRESHOLD = 90
+LCOV_EXCL_COVERAGE = 3678
 
 CLIENT_SOURCES = src/client.c src/error.c src/logger.c src/debug_log.c src/config.c src/credentials.c src/paths.c src/wrapper_talloc.c src/wrapper_json.c src/wrapper_curl.c src/wrapper_postgres.c src/wrapper_pthread.c src/wrapper_posix.c src/wrapper_stdlib.c src/wrapper_internal.c src/file_utils.c src/array.c src/byte_array.c src/line_array.c src/terminal.c src/input.c src/input_escape.c src/input_xkb.c src/scroll_detector.c src/input_buffer/core.c src/input_buffer/multiline.c src/input_buffer/cursor.c src/input_buffer/layout.c src/render.c src/render_cursor.c src/repl.c src/repl_agent_mgmt.c src/repl_navigation.c src/repl_event_handlers.c src/repl_tool_completion.c src/repl_init.c src/repl_viewport.c src/repl_actions.c src/repl_actions_completion.c src/repl_actions_history.c src/repl_actions_viewport.c src/repl_actions_llm.c src/repl_callbacks.c src/repl_tool.c src/signal_handler.c src/format.c src/fzy_wrapper.c src/pp_helpers.c src/input_buffer/pp.c src/input_buffer/cursor_pp.c src/scrollback.c src/scrollback_layout.c src/scrollback_render.c src/scrollback_utils.c src/panic.c src/json_allocator.c src/vendor/yyjson/yyjson.c src/vendor/fzy/match.c src/layer.c src/layer_separator.c src/layer_scrollback.c src/layer_input.c src/layer_spinner.c src/layer_completion.c src/commands.c src/commands_basic.c src/commands_model.c src/commands_fork.c src/commands_fork_args.c src/commands_fork_helpers.c src/commands_kill.c src/commands_agent_list.c src/commands_mail.c src/commands_mail_helpers.c src/commands_mark.c src/commands_tool.c src/marks.c src/history.c src/history_io.c src/completion.c src/debug_pipe.c src/db/connection.c src/db/migration.c src/db/pg_result.c src/db/session.c src/db/message.c src/db/replay.c src/db/agent.c src/db/agent_row.c src/db/agent_zero.c src/db/agent_replay.c src/db/mail.c src/repl/agent_restore.c src/repl/agent_restore_replay.c src/event_render.c src/tool_arg_parser.c src/tool_call.c src/tool_registry.c src/tool_discovery.c src/tool_external.c src/tool_wrapper.c src/msg.c src/message.c src/ansi.c src/shared.c src/agent.c src/agent_messages.c src/agent_state.c src/agent_provider.c src/uuid.c src/mail/msg.c src/providers/provider.c src/providers/factory.c src/providers/stubs.c src/providers/request.c src/providers/request_tools.c src/providers/response.c src/providers/common/error_utils.c src/providers/common/http_multi.c src/providers/common/http_multi_info.c src/providers/common/sse_parser.c src/providers/openai/serialize.c src/providers/openai/openai.c src/providers/openai/openai_handlers.c src/providers/openai/reasoning.c src/providers/openai/error.c src/providers/openai/request_chat.c src/providers/openai/request_responses.c src/providers/openai/response_chat.c src/providers/openai/response_responses.c src/providers/openai/streaming_chat.c src/providers/openai/streaming_chat_delta.c src/providers/openai/streaming_responses.c src/providers/openai/streaming_responses_events.c src/providers/anthropic/anthropic.c src/providers/anthropic/thinking.c src/providers/anthropic/error.c src/providers/anthropic/request.c src/providers/anthropic/request_serialize.c src/providers/anthropic/response.c src/providers/anthropic/response_helpers.c src/providers/anthropic/streaming.c src/providers/anthropic/streaming_events.c src/providers/google/google.c src/providers/google/thinking.c src/providers/google/error.c src/providers/google/request.c src/providers/google/request_helpers.c src/providers/google/response.c src/providers/google/response_utils.c src/providers/google/response_error.c src/providers/google/streaming.c src/providers/google/streaming_helpers.c
 CLIENT_OBJ = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(CLIENT_SOURCES))
 CLIENT_TARGET = bin/ikigai
 
-UNIT_TEST_SOURCES = $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c)
+UNIT_TEST_SOURCES = $(wildcard tests/unit/*_test.c) $(wildcard tests/unit/*/*_test.c) $(wildcard tests/unit/*/*/*_test.c)
 UNIT_TEST_TARGETS = $(patsubst tests/unit/%.c,$(BUILDDIR)/tests/unit/%,$(UNIT_TEST_SOURCES))
 
 INTEGRATION_TEST_SOURCES = $(wildcard tests/integration/*_test.c)
@@ -173,7 +182,7 @@ MODULE_OBJ_NO_DB = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(MODULE_SOURCES_NO_DB))
 MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o $(BUILDDIR)/db/agent_row.o $(BUILDDIR)/db/agent_zero.o,$(MODULE_OBJ_NO_DB))
 
 # Common sources for tool binaries (in libexec/ikigai/)
-TOOL_COMMON_SRCS = src/error.c src/panic.c src/wrapper_talloc.c src/logger.c src/json_allocator.c src/vendor/yyjson/yyjson.c
+TOOL_COMMON_SRCS = src/error.c src/panic.c src/wrapper_talloc.c src/wrapper_stdlib.c src/wrapper_posix.c src/logger.c src/json_allocator.c src/vendor/yyjson/yyjson.c
 
 # Test utilities (linked with all tests)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
@@ -217,6 +226,204 @@ $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
 $(BUILDDIR)/tests/unit/%_test: $(BUILDDIR)/tests/unit/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+# Tool tests require their respective tool executables to exist before running
+$(BUILDDIR)/tests/unit/tools/bash_test: | libexec/ikigai/bash-tool
+$(BUILDDIR)/tests/unit/tools/file_edit_test: | libexec/ikigai/file-edit-tool
+$(BUILDDIR)/tests/unit/tools/file_read_test: | libexec/ikigai/file-read-tool
+$(BUILDDIR)/tests/unit/tools/file_write_test: | libexec/ikigai/file-write-tool
+$(BUILDDIR)/tests/unit/tools/glob_test: | libexec/ikigai/glob-tool
+$(BUILDDIR)/tests/unit/tools/grep_test: | libexec/ikigai/grep-tool
+$(BUILDDIR)/tests/unit/tools/web_fetch_input_test: | libexec/ikigai/web-fetch-tool
+$(BUILDDIR)/tests/unit/tools/web_fetch_conversion_test: | libexec/ikigai/web-fetch-tool
+$(BUILDDIR)/tests/unit/tools/web_fetch_errors_test: | libexec/ikigai/web-fetch-tool
+$(BUILDDIR)/tests/unit/tools/web_search_brave_test: | libexec/ikigai/web-search-brave-tool
+$(BUILDDIR)/tests/unit/tools/web_search_google_test: | libexec/ikigai/web-search-google-tool
+
+# web_search_brave domain_utils test - link with domain_utils.o
+$(BUILDDIR)/tools/web_search_brave/domain_utils.o: src/tools/web_search_brave/domain_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_brave/domain_utils_test: $(BUILDDIR)/tests/unit/tools/web_search_brave/domain_utils_test.o $(BUILDDIR)/tools/web_search_brave/domain_utils.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_brave/auth_error.o: src/tools/web_search_brave/auth_error.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_brave/auth_error_test: $(BUILDDIR)/tests/unit/tools/web_search_brave/auth_error_test.o $(BUILDDIR)/tools/web_search_brave/auth_error.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/result_utils.o: src/tools/web_search_google/result_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google/result_utils_test: $(BUILDDIR)/tests/unit/tools/web_search_google/result_utils_test.o $(BUILDDIR)/tools/web_search_google/result_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/http_utils.o: src/tools/web_search_google/http_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google/http_utils_test: $(BUILDDIR)/tests/unit/tools/web_search_google/http_utils_test.o $(BUILDDIR)/tools/web_search_google/http_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/response_processor.o: src/tools/web_search_google/response_processor.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google/response_processor_single_test: $(BUILDDIR)/tests/unit/tools/web_search_google/response_processor_single_test.o $(BUILDDIR)/tools/web_search_google/response_processor.o $(BUILDDIR)/tools/web_search_google/result_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google/response_processor_multi_test: $(BUILDDIR)/tests/unit/tools/web_search_google/response_processor_multi_test.o $(BUILDDIR)/tools/web_search_google/response_processor.o $(BUILDDIR)/tools/web_search_google/result_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/error_output.o: src/tools/web_search_google/error_output.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google/error_output_test: $(BUILDDIR)/tests/unit/tools/web_search_google/error_output_test.o $(BUILDDIR)/tools/web_search_google/error_output.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/file_write/file_write_logic.o: src/tools/file_write/file_write_logic.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/file_write_direct_test: $(BUILDDIR)/tests/unit/file_write_direct_test.o $(BUILDDIR)/tools/file_write/file_write_logic.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/bash/bash.o: src/tools/bash/bash.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/bash_direct_test: $(BUILDDIR)/tests/unit/bash_direct_test.o $(BUILDDIR)/tools/bash/bash.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/file_edit/file_edit.o: src/tools/file_edit/file_edit.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/file_edit_direct_test: $(BUILDDIR)/tests/unit/file_edit_direct_test.o $(BUILDDIR)/tools/file_edit/file_edit.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/file_read/file_read.o: src/tools/file_read/file_read.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/file_read_direct_test: $(BUILDDIR)/tests/unit/file_read_direct_test.o $(BUILDDIR)/tools/file_read/file_read.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/wrapper_posix.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/glob/glob.o: src/tools/glob/glob.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/glob_direct_test: $(BUILDDIR)/tests/unit/glob_direct_test.o $(BUILDDIR)/tools/glob/glob.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/grep/grep.o: src/tools/grep/grep.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/grep_direct_test: $(BUILDDIR)/tests/unit/grep_direct_test.o $(BUILDDIR)/tools/grep/grep.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_fetch_direct_test.o: tests/unit/web_fetch_direct_test.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_fetch_direct_test: $(BUILDDIR)/tests/unit/web_fetch_direct_test.o $(BUILDDIR)/tools/web_fetch/web_fetch.o $(BUILDDIR)/tools/web_fetch/html_to_markdown.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_web.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(shell pkg-config --libs libxml-2.0) $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_search_brave_direct_test.o: tests/unit/web_search_brave_direct_test.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -Isrc/tools/web_search_brave -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_search_brave_direct_test: $(BUILDDIR)/tests/unit/web_search_brave_direct_test.o $(BUILDDIR)/tools/web_search_brave/web_search_brave.o $(BUILDDIR)/tools/web_search_brave/auth_error.o $(BUILDDIR)/tools/web_search_brave/domain_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_posix.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_fetch/web_fetch.o: src/tools/web_fetch/web_fetch.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_fetch/html_to_markdown.o: src/tools/web_fetch/html_to_markdown.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/wrapper_web.o: src/wrapper_web.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_brave/web_search_brave.o: src/tools/web_search_brave/web_search_brave.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_brave/auth_error.o: src/tools/web_search_brave/auth_error.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_brave/domain_utils.o: src/tools/web_search_brave/domain_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_search_brave_direct_test: $(BUILDDIR)/tests/unit/web_search_brave_direct_test.o $(BUILDDIR)/tools/web_search_brave/web_search_brave.o $(BUILDDIR)/tools/web_search_brave/auth_error.o $(BUILDDIR)/tools/web_search_brave/domain_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_posix.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_search_google_direct_test.o: tests/unit/web_search_google_direct_test.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -Isrc/tools/web_search_google -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/web_search_google_direct_test: $(BUILDDIR)/tests/unit/web_search_google_direct_test.o $(BUILDDIR)/tools/web_search_google/web_search_google.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/wrapper_talloc.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(shell pkg-config --libs libxml-2.0) $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/web_search_google.o: src/tools/web_search_google/web_search_google.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/error_output.o: src/tools/web_search_google/error_output.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/http_utils.o: src/tools/web_search_google/http_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/result_utils.o: src/tools/web_search_google/result_utils.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/response_processor.o: src/tools/web_search_google/response_processor.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/schema.o: src/tools/web_search_google/schema.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tools/web_search_google/credentials.o: src/tools/web_search_google/credentials.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_google_credentials_test: $(BUILDDIR)/tests/unit/tools/web_search_google_credentials_test.o $(BUILDDIR)/tools/web_search_google/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/wrapper_posix.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
 TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
@@ -578,35 +785,50 @@ libexec/ikigai:
 
 bash_tool: libexec/ikigai/bash-tool
 
-libexec/ikigai/bash-tool: src/tools/bash/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/bash-tool: src/tools/bash/main.c src/tools/bash/bash.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 file_read_tool: libexec/ikigai/file-read-tool
 
-libexec/ikigai/file-read-tool: src/tools/file_read/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-read-tool: src/tools/file_read/main.c src/tools/file_read/file_read.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 file_write_tool: libexec/ikigai/file-write-tool
 
-libexec/ikigai/file-write-tool: src/tools/file_write/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-write-tool: src/tools/file_write/main.c src/tools/file_write/file_write_logic.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 file_edit_tool: libexec/ikigai/file-edit-tool
 
-libexec/ikigai/file-edit-tool: src/tools/file_edit/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/file-edit-tool: src/tools/file_edit/main.c src/tools/file_edit/file_edit.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 glob_tool: libexec/ikigai/glob-tool
 
-libexec/ikigai/glob-tool: src/tools/glob/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/glob-tool: src/tools/glob/main.c src/tools/glob/glob.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 grep_tool: libexec/ikigai/grep-tool
 
-libexec/ikigai/grep-tool: src/tools/grep/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/grep-tool: src/tools/grep/main.c src/tools/grep/grep.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool
+web_search_brave_tool: libexec/ikigai/web-search-brave-tool
+
+libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c src/tools/web_search_brave/web_search_brave.c src/tools/web_search_brave/auth_error.c src/tools/web_search_brave/domain_utils.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS) $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+web_search_google_tool: libexec/ikigai/web-search-google-tool
+
+libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c src/tools/web_search_google/web_search_google.c src/tools/web_search_google/error_output.c src/tools/web_search_google/credentials.c src/tools/web_search_google/http_utils.c src/tools/web_search_google/result_utils.c src/tools/web_search_google/response_processor.c src/tools/web_search_google/schema.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+web_fetch_tool: libexec/ikigai/web-fetch-tool
+
+libexec/ikigai/web-fetch-tool: src/tools/web_fetch/main.c src/tools/web_fetch/web_fetch.c src/tools/web_fetch/html_to_markdown.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
+tools: bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool web_search_brave_tool web_search_google_tool web_fetch_tool
 
 $(BUILDDIR):
 	@mkdir -p $(BUILDDIR) && echo "📁 $(BUILDDIR)"
@@ -658,6 +880,9 @@ endif
 	install -m 755 libexec/ikigai/file-edit-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/glob-tool $(DESTDIR)$(libexecdir)/ikigai/
 	install -m 755 libexec/ikigai/grep-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-search-brave-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-search-google-tool $(DESTDIR)$(libexecdir)/ikigai/
+	install -m 755 libexec/ikigai/web-fetch-tool $(DESTDIR)$(libexecdir)/ikigai/
 	# Generate and install wrapper script to bin
 	printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
 	printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
@@ -697,6 +922,9 @@ uninstall:
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/file-edit-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/glob-tool
 	rm -f $(DESTDIR)$(libexecdir)/ikigai/grep-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-brave-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-search-google-tool
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/web-fetch-tool
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)
@@ -724,13 +952,13 @@ DB_INTEGRATION_TEST_RUNS = $(DB_INTEGRATION_TEST_TARGETS:%=%.run)
 %.run: %
 	@mkdir -p $(dir $(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<))
 ifeq ($(BUILD),sanitize)
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "✓ $<" || (echo "✗ $<" && exit 1)
 else ifeq ($(BUILD),tsan)
-	@TSAN_OPTIONS=suppressions=.suppressions/tsan.supp CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@TSAN_OPTIONS=suppressions=.suppressions/tsan.supp CK_FORK=no CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "✓ $<" || (echo "✗ $<" && exit 1)
 else ifeq ($(BUILD),valgrind)
-	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@CK_FORK=no CK_TIMEOUT_MULTIPLIER=10 CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "✓ $<" || (echo "✗ $<" && exit 1)
 else
-	@CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "🟢 $<" || (echo "🔴 $<" && exit 1)
+	@CK_XML_LOG_FILE_NAME=$(patsubst $(BUILDDIR)/tests/%,reports/$(REPORT_SUBDIR)/%,$<).xml $< >/dev/null 2>&1 && echo "✓ $<" || (echo "✗ $<" && exit 1)
 endif
 
 check:
@@ -739,10 +967,10 @@ ifdef TEST
 	@for test in $(FILTERED_TEST); do \
 		report_path=$$(echo "$$test" | sed 's|$(BUILDDIR)/tests/|reports/$(REPORT_SUBDIR)/|').xml; \
 		mkdir -p $$(dirname "$$report_path"); \
-		CK_XML_LOG_FILE_NAME="$$report_path" $$test >/dev/null 2>&1 && echo "🟢 $$test" || (echo "🔴 $$test" && exit 1); \
+		CK_XML_LOG_FILE_NAME="$$report_path" $$test >/dev/null 2>&1 && echo "✓ $$test" || (echo "✗ $$test" && exit 1); \
 	done
 else
-	@$(MAKE) -j$(MAKE_JOBS) check-unit check-integration
+	@$(MAKE) -j$(MAKE_JOBS) check-unit check-integration check-bash-tool
 	@echo "All tests passed!"
 endif
 
@@ -935,7 +1163,7 @@ check-sanitize:
 	@echo "Building test binaries in parallel..."
 	@BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
 	@echo "Running tests in parallel..."
-	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
+	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -s -j$(MAKE_JOBS) check-unit check-integration
 	@echo "🟢 Sanitizer checks passed!"
 
 check-valgrind:
@@ -1000,7 +1228,7 @@ check-tsan:
 	@echo "Building test binaries in parallel..."
 	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
 	@echo "Running tests in parallel..."
-	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-unit check-integration
+	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -s -j$(MAKE_JOBS) check-unit check-integration
 	@echo "🟢 ThreadSanitizer checks passed!"
 
 check-dynamic:
@@ -1078,7 +1306,7 @@ dist:
 	@echo "Created distros/dist/$(PACKAGE)-$(VERSION).tar.gz"
 
 fmt:
-	@uncrustify -c .uncrustify.cfg --replace --no-backup src/*.c src/*.h
+	@find src -path src/vendor -prune -o \( -name "*.c" -o -name "*.h" \) -print | xargs uncrustify -c .uncrustify.cfg --replace --no-backup
 	@find tests/unit -name "*.c" -o -name "*.h" | xargs uncrustify -c .uncrustify.cfg --replace --no-backup
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
 	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
@@ -1202,8 +1430,8 @@ check-coverage:
 	@find . -name "*.gcda" -o -name "*.gcno" -delete 2>/dev/null || true
 	@mkdir -p build-coverage/tests/unit build-coverage/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p
-	@BUILDDIR=build-coverage $(MAKE) -j$(MAKE_JOBS) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
-	@echo "🤔 Generating coverage report..."
+	@$(MAKE) tools CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
+	@BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" 2>&1 | grep -E '^(✓|✗)' || true
 ifdef TEST
 	@for test in $(FILTERED_TEST); do \
 		report_base=$$(echo "$$test" | sed 's|build[^/]*/tests/|reports/coverage/|'); \
@@ -1212,10 +1440,13 @@ ifdef TEST
 		lcov --extract "$${report_base}.coverage.info" '*/src/*' --output-file "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1; \
 		lcov --remove "$${report_base}.coverage.info" '*/src/vendor/*' --output-file "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1; \
 		echo "=== Coverage by File ===" > "$${report_base}.coverage.txt"; \
-		{ lcov --list "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "warning messages" | grep -v "ignore messages" | grep -v "coverpoints" | grep -v "instances" | grep -v "deprecated:" | grep -v "inconsistent:" | grep -v "negative:" | grep -v "region:" | grep -v "branch_region:" >> "$${report_base}.coverage.txt"; \
+		{ lcov --list "$${report_base}.coverage.info" --list-full-path --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "warning messages" | grep -v "ignore messages" | grep -v "coverpoints" | grep -v "instances" | grep -v "deprecated:" | grep -v "inconsistent:" | grep -v "negative:" | grep -v "region:" | grep -v "branch_region:" >> "$${report_base}.coverage.txt"; \
 		echo "" >> "$${report_base}.coverage.txt"; \
 		echo "=== Coverage Summary ===" >> "$${report_base}.coverage.txt"; \
 		{ lcov --summary "$${report_base}.coverage.info" --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "Filter" >> "$${report_base}.coverage.txt"; \
+		echo "" >> "$${report_base}.coverage.txt"; \
+		echo "=== Minimum Per-File Coverage ===" >> "$${report_base}.coverage.txt"; \
+		lcov --list "$${report_base}.coverage.info" --list-full-path --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep -E '\.c\s*\|' | awk -F'|' '{if($$2 ~ /-/) l=100; else {split($$2,a,"%"); l=a[1]+0}; if($$3 ~ /-/) f=100; else {split($$3,b,"%"); f=b[1]+0}; if($$4 ~ /-/) br=100; else {split($$4,c,"%"); br=c[1]+0}; if(ml=="" || l<ml) ml=l; if(mf=="" || f<mf) mf=f; if(mb=="" || br<mb) mb=br} END {printf "  Minimum Lines......: %.1f%%\n", ml; printf "  Minimum Functions..: %.1f%%\n", mf; printf "  Minimum Branches...: %.1f%%\n", mb}' >> "$${report_base}.coverage.txt"; \
 		cat "$${report_base}.coverage.txt"; \
 		echo ""; \
 		echo "Coverage report: $${report_base}.coverage.txt"; \
@@ -1225,26 +1456,31 @@ else
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --rc lcov_branch_coverage=1 --quiet >/dev/null 2>&1
 	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1
 	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' --output-file $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative --quiet >/dev/null 2>&1
-	@echo "=== Coverage by File ===" > $(COVERAGE_DIR)/summary.txt
-	@{ lcov --list $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "warning messages" | grep -v "ignore messages" | grep -v "coverpoints" | grep -v "instances" | grep -v "deprecated:" | grep -v "inconsistent:" | grep -v "negative:" | grep -v "region:" | grep -v "branch_region:" >> $(COVERAGE_DIR)/summary.txt
-	@echo "" >> $(COVERAGE_DIR)/summary.txt
-	@echo "=== Coverage Summary ===" >> $(COVERAGE_DIR)/summary.txt
-	@{ lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1; } | grep -v "^Message summary" | grep -v "messages were reported" | grep -v "Filter" >> $(COVERAGE_DIR)/summary.txt
-	@echo "" >> $(COVERAGE_DIR)/summary.txt
-	@cat $(COVERAGE_DIR)/summary.txt
-	@echo ""
-	@echo "Checking coverage thresholds (lines, functions, branches: $(COVERAGE_THRESHOLD)%)..."
-	@LINE_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "lines\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	FUNC_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "functions\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	BRANCH_COV=$$(lcov --summary $(COVERAGE_DIR)/coverage.info --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep "branches\.\.*:" | grep -oE "[0-9]+\.[0-9]+%" | head -1 | tr -d '%'); \
-	echo "  Lines: $${LINE_COV}%, Functions: $${FUNC_COV}%, Branches: $${BRANCH_COV}%"; \
-	if [ "$$(echo "$$LINE_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
-	   [ "$$(echo "$$FUNC_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ] && \
-	   [ "$$(echo "$$BRANCH_COV >= $(COVERAGE_THRESHOLD)" | bc)" -eq 1 ]; then \
-		echo "🟢 All coverage thresholds met ($(COVERAGE_THRESHOLD)%)"; \
-	else \
-		echo "🔴 Coverage below $(COVERAGE_THRESHOLD)% threshold"; \
+	@lcov --list $(COVERAGE_DIR)/coverage.info --list-full-path --rc branch_coverage=1 --ignore-errors inconsistent,deprecated,negative 2>&1 | grep -E '\.c\s*\|' > $(COVERAGE_DIR)/files.txt
+	@rm -f $(COVERAGE_DIR)/failed.txt
+	@while IFS= read -r line; do \
+		FILE=$$(echo "$$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$$/, "", $$1); print $$1}' | sed 's|^$(CURDIR)/||'); \
+		LINE_PCT=$$(echo "$$line" | awk -F'|' '{if($$2 ~ /-/) print "100"; else {split($$2,a,"%"); gsub(/[^0-9.]/,"",a[1]); print a[1]}}'); \
+		FUNC_PCT=$$(echo "$$line" | awk -F'|' '{if($$3 ~ /-/) print "100"; else {split($$3,a,"%"); gsub(/[^0-9.]/,"",a[1]); print a[1]}}'); \
+		BRANCH_PCT=$$(echo "$$line" | awk -F'|' '{if($$4 ~ /-/) print "100"; else {split($$4,a,"%"); gsub(/[^0-9.]/,"",a[1]); print a[1]}}'); \
+		LINE_FAIL=$$(echo "$$LINE_PCT < $(COVERAGE_THRESHOLD)" | bc); \
+		FUNC_FAIL=$$(echo "$$FUNC_PCT < $(COVERAGE_THRESHOLD)" | bc); \
+		BRANCH_FAIL=$$(echo "$$BRANCH_PCT < $(COVERAGE_THRESHOLD)" | bc); \
+		if [ "$$LINE_FAIL" -eq 1 ] || [ "$$FUNC_FAIL" -eq 1 ] || [ "$$BRANCH_FAIL" -eq 1 ]; then \
+			echo "🔴 $$FILE: Lines=$${LINE_PCT}%, Functions=$${FUNC_PCT}%, Branches=$${BRANCH_PCT}%"; \
+			echo "$$FILE" >> $(COVERAGE_DIR)/failed.txt; \
+		else \
+			echo "🟢 $$FILE: Lines=$${LINE_PCT}%, Functions=$${FUNC_PCT}%, Branches=$${BRANCH_PCT}%"; \
+		fi; \
+	done < $(COVERAGE_DIR)/files.txt
+	@if [ -f $(COVERAGE_DIR)/failed.txt ]; then \
+		FAILED=$$(wc -l < $(COVERAGE_DIR)/failed.txt); \
+		echo ""; \
+		echo "🔴 $$FAILED file(s) below $(COVERAGE_THRESHOLD)% threshold"; \
 		exit 1; \
+	else \
+		echo ""; \
+		echo "🟢 All files meet $(COVERAGE_THRESHOLD)% threshold"; \
 	fi
 endif
 

@@ -51,7 +51,7 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, num_params, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -77,9 +77,9 @@ res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 }
 
 res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                                    const char *agent_uuid,
-                                    ik_replay_range_t **ranges_out,
-                                    size_t *count_out)
+                                   const char *agent_uuid,
+                                   ik_replay_range_t **ranges_out,
+                                   size_t *count_out)
 {
     assert(db_ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
@@ -113,7 +113,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
         if (count >= capacity) {
             capacity *= 2;
             ik_replay_range_t *new_ranges = talloc_realloc(tmp, ranges, ik_replay_range_t,
-                                                            (unsigned int)capacity);
+                                                           (unsigned int)capacity);
             if (new_ranges == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
             ranges = new_ranges;
         }
@@ -177,9 +177,9 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 }
 
 res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                            const ik_replay_range_t *range,
-                            ik_msg_t ***messages_out,
-                            size_t *count_out)
+                           const ik_replay_range_t *range,
+                           ik_msg_t ***messages_out,
+                           size_t *count_out)
 {
     assert(db_ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
@@ -209,7 +209,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 3, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *pg_res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -273,8 +273,8 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 }
 
 res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                               const char *agent_uuid,
-                               ik_replay_context_t **ctx_out)
+                              const char *agent_uuid,
+                              ik_replay_context_t **ctx_out)
 {
     assert(db_ctx != NULL);     // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
@@ -324,7 +324,7 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
             if (replay_ctx->count >= replay_ctx->capacity) {
                 size_t new_capacity = replay_ctx->capacity == 0 ? 16 : replay_ctx->capacity * 2;
                 ik_msg_t **new_messages = talloc_realloc(replay_ctx, replay_ctx->messages, ik_msg_t *,
-                                                              (unsigned int)new_capacity);
+                                                         (unsigned int)new_capacity);
                 if (new_messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 replay_ctx->messages = new_messages;
                 replay_ctx->capacity = new_capacity;

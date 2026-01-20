@@ -7,7 +7,8 @@
 #include <inttypes.h>
 #include <talloc.h>
 
-void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger) {
+void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger)
+{
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     (void)logger;  /* May be NULL, used for future logging */
 
@@ -43,16 +44,17 @@ void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger) {
                         } else if (response_code >= 400 && response_code < 500) {
                             completion.type = IK_HTTP_CLIENT_ERROR;
                             completion.error_message = talloc_asprintf(multi,
-                                "HTTP %ld error", response_code);
+                                                                       "HTTP %ld error", response_code);
                         } else if (response_code >= 500 && response_code < 600) {
                             completion.type = IK_HTTP_SERVER_ERROR;
                             completion.error_message = talloc_asprintf(multi,
-                                "HTTP %ld server error", response_code);
+                                                                       "HTTP %ld server error", response_code);
                         } else {
                             /* Unexpected response code */
                             completion.type = IK_HTTP_NETWORK_ERROR;
                             completion.error_message = talloc_asprintf(multi,
-                                "Unexpected HTTP response code: %ld", response_code);
+                                                                       "Unexpected HTTP response code: %ld",
+                                                                       response_code);
                         }
 
                         /* Transfer response body to completion */
@@ -66,7 +68,8 @@ void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger) {
                         completion.type = IK_HTTP_NETWORK_ERROR;
                         completion.http_code = 0;
                         completion.error_message = talloc_asprintf(multi,
-                            "Connection error: %s", curl_easy_strerror_(curl_result));
+                                                                   "Connection error: %s",
+                                                                   curl_easy_strerror_(curl_result));
                     }
 
                     /* Invoke completion callback if provided */

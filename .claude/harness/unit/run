@@ -1,203 +1,217 @@
-#!/usr/bin/env python3
-import sys
-sys.dont_write_bytecode = True
-"""
-harness/unit - Run unit tests
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-Runs unit tests, optionally filtering to tests for a specific source file.
-"""
+#
+# harness/unit - Run unit tests
+#
+# Runs unit tests, parses XML reports, outputs JSON summary.
+# No fix functionality - check only.
+#
 
-import argparse
-import subprocess
-import sys
-import os
-import json
-import xml.etree.ElementTree as ET
-from pathlib import Path
+require 'json'
+require 'optparse'
+require 'fileutils'
+require 'rexml/document'
+require 'pathname'
+require 'set'
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-REPORTS_DIR = PROJECT_ROOT / "reports" / "check"
+# Run command and capture output, suppressing all output
+def run_cmd(cmd, env: {}, timeout: nil)
+  stdout_str = ''
+  status = nil
 
+  # Merge environment variables
+  full_env = ENV.to_h.merge(env)
 
-def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeout: int | None = None) -> tuple[int, str, str]:
-    """Run a command and return (returncode, stdout, stderr)."""
-    result = subprocess.run(
-        cmd,
-        capture_output=capture,
-        text=True,
-        cwd=cwd or PROJECT_ROOT,
-        timeout=timeout,
+  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  status = $?
+
+  [status.exitstatus, stdout_str]
+end
+
+# Find unit test files for a source file
+# Maps: src/foo.c -> tests/unit/foo*_test.c OR tests/unit/foo/*_test.c
+def find_test_files_for_source(source_file, project_root)
+  source_path = Pathname.new(source_file)
+
+  # Remove src/ prefix and .c suffix
+  return [] unless source_path.to_s.start_with?('src/')
+
+  relative = source_path.relative_path_from(Pathname.new('src'))
+  stem = source_path.basename('.*').to_s  # filename without extension
+  parent = relative.dirname
+
+  test_files = []
+
+  # Strategy 1: Look in tests/unit/parent_dir/ for stem*_test.c files
+  test_dir = Pathname.new(project_root) / 'tests' / 'unit' / parent
+  if test_dir.exist?
+    test_dir.glob("#{stem}*_test.c").each do |test_file|
+      test_files << test_file.relative_path_from(project_root).to_s
+    end
+  end
+
+  # Strategy 2: Look in tests/unit/parent_dir/stem/ for *_test.c files
+  test_subdir = Pathname.new(project_root) / 'tests' / 'unit' / parent / stem
+  if test_subdir.exist?
+    test_subdir.glob('*_test.c').each do |test_file|
+      test_files << test_file.relative_path_from(project_root).to_s
+    end
+  end
+
+  test_files.sort
+end
+
+# Run unit tests
+def run_unit_tests(test_files: nil)
+  if test_files
+    # Run specific test files
+    all_success = true
+    test_files.each do |test_file|
+      test_name = File.basename(test_file, '.*')
+      exit_code, _output = run_cmd(
+        ['make', 'check-unit', "TEST=#{test_name}"],
+        timeout: 1800
+      )
+      all_success = false if exit_code != 0
+    end
+    all_success
+  else
+    # Run all unit tests
+    exit_code, _output = run_cmd(
+      ['make', 'check-unit'],
+      timeout: 1800
     )
-    return result.returncode, result.stdout or "", result.stderr or ""
+    exit_code == 0
+  end
+end
 
+# Parse XML reports from reports/check/unit/ to extract failing tests
+def parse_failures_from_xml(reports_dir, filter_files: nil)
+  failures = []
 
-def find_test_files_for_source(source_file: str) -> list[str]:
-    """
-    Find unit test files for a source file.
-    Maps: src/foo.c -> tests/unit/foo*_test.c OR tests/unit/foo/*_test.c
-          src/db/agent.c -> tests/unit/db/agent*_test.c OR tests/unit/db/agent/*_test.c
-    """
-    source_path = Path(source_file)
+  unit_dir = Pathname.new(reports_dir) / 'unit'
+  return failures unless unit_dir.exist?
 
-    # Remove src/ prefix and .c suffix
-    if not str(source_path).startswith("src/"):
-        return []
+  # Convert filter files to set of basenames for matching
+  filter_basenames = nil
+  if filter_files
+    filter_basenames = Set.new(filter_files.map { |f| File.basename(f, '.*') })
+  end
 
-    relative = source_path.relative_to("src")
-    stem = relative.stem  # filename without extension
-    parent = relative.parent
+  # Iterate over all XML files
+  unit_dir.glob('**/*.xml').each do |xml_file|
+    # Check if this XML file matches our filter
+    if filter_basenames && !filter_basenames.include?(xml_file.basename('.*').to_s)
+      next
+    end
 
-    test_files = []
+    begin
+      doc = REXML::Document.new(File.read(xml_file))
 
-    # Strategy 1: Look in tests/unit/parent_dir/ for stem*_test.c files
-    test_dir = PROJECT_ROOT / "tests" / "unit" / parent
-    if test_dir.exists():
-        for test_file in test_dir.glob(f"{stem}*_test.c"):
-            test_files.append(str(test_file.relative_to(PROJECT_ROOT)))
+      # Find all test elements with result='failure'
+      REXML::XPath.each(doc, "//test[@result='failure']") do |test|
+        path_elem = REXML::XPath.first(test, 'path')
+        fn_elem = REXML::XPath.first(test, 'fn')
+        id_elem = REXML::XPath.first(test, 'id')
+        msg_elem = REXML::XPath.first(test, 'message')
 
-    # Strategy 2: Look in tests/unit/parent_dir/stem/ for *_test.c files
-    test_subdir = PROJECT_ROOT / "tests" / "unit" / parent / stem
-    if test_subdir.exists():
-        for test_file in test_subdir.glob("*_test.c"):
-            test_files.append(str(test_file.relative_to(PROJECT_ROOT)))
+        next unless path_elem && fn_elem && id_elem
 
-    return sorted(test_files)
+        # fn format: "basic_test.c:156"
+        fn_parts = fn_elem.text.split(':')
+        filename = fn_parts[0]
+        line = fn_parts.length > 1 ? fn_parts[1] : '1'
 
+        # Build full file path
+        file_path = "#{path_elem.text}/#{filename}"
 
-def run_unit_tests(test_files: list[str] | None = None) -> tuple[bool, str]:
-    """Run unit tests and return (success, output)."""
-    if test_files:
-        # Run specific test files
-        all_success = True
-        combined_output = ""
-        for test_file in test_files:
-            test_name = Path(test_file).stem
-            code, stdout, stderr = run_cmd(
-                ["make", "-j1", "MAKE_JOBS=1", "check-unit", f"TEST={test_name}"],
-                timeout=1800
-            )
-            combined_output += stdout + stderr
-            if code != 0:
-                all_success = False
-        return all_success, combined_output
-    else:
-        # Run all unit tests
-        code, stdout, stderr = run_cmd(["make", "-j1", "MAKE_JOBS=1", "check-unit"], timeout=1800)
-        return code == 0, stdout + stderr
+        failures << {
+          file: file_path,
+          function: id_elem.text,
+          line: line,
+          message: msg_elem ? msg_elem.text : 'test failure'
+        }
+      end
+    rescue REXML::ParseException
+      # Skip malformed XML files
+      next
+    end
+  end
 
+  failures.sort_by { |f| [f[:file], f[:function]] }
+end
 
-def parse_failures_from_xml(filter_files: list[str] | None = None) -> list[dict]:
-    """
-    Parse XML reports from reports/check/ to extract failing tests.
-    If filter_files is provided, only return failures from those test files.
-    Returns list of {file, function, line, message} dicts.
-    """
-    failures = []
+# Format failure as: test_file:line function_name: message
+def format_failure_item(failure)
+  "#{failure[:file]}:#{failure[:line]} #{failure[:function]}: #{failure[:message]}"
+end
 
-    if not REPORTS_DIR.exists():
-        return failures
+def main
+  options = {}
 
-    # Convert filter files to set of basenames for matching
-    filter_basenames = None
-    if filter_files:
-        filter_basenames = {Path(f).stem for f in filter_files}
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: run.rb [options]'
+    opts.on('--file FILE', 'Source file to test (filters to relevant unit tests)') do |f|
+      options[:file] = f
+    end
+  end.parse!
 
-    ns = {"check": "http://check.sourceforge.net/ns"}
+  # Change to project root (3 levels up from harness/unit/)
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
 
-    for xml_file in (REPORTS_DIR / "unit").rglob("*.xml"):
-        # Check if this XML file matches our filter
-        if filter_basenames and xml_file.stem not in filter_basenames:
-            continue
+  reports_dir = File.join(project_root, 'reports', 'check')
 
-        try:
-            tree = ET.parse(xml_file)
-            root = tree.getroot()
+  test_files = nil
+  if options[:file]
+    target_file = options[:file]
 
-            for test in root.findall(".//check:test[@result='failure']", ns):
-                path_elem = test.find("check:path", ns)
-                fn_elem = test.find("check:fn", ns)
-                id_elem = test.find("check:id", ns)
-                msg_elem = test.find("check:message", ns)
+    # Check if target file exists
+    unless File.exist?(target_file)
+      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
+      exit 1
+    end
 
-                if path_elem is None or fn_elem is None or id_elem is None:
-                    continue
+    # Find test files for this source file
+    test_files = find_test_files_for_source(target_file, project_root)
 
-                # fn format: "basic_test.c:156"
-                fn_parts = fn_elem.text.split(":")
-                filename = fn_parts[0]
-                line = fn_parts[1] if len(fn_parts) > 1 else "1"
+    if test_files.empty?
+      puts JSON.generate(ok: false, items: ["#{target_file}: no unit tests found"])
+      exit 1
+    end
+  end
 
-                # Build full file path
-                file_path = f"{path_elem.text}/{filename}"
+  # Run tests
+  success = run_unit_tests(test_files: test_files)
 
-                failures.append({
-                    "file": file_path,
-                    "function": id_elem.text,
-                    "line": line,
-                    "message": msg_elem.text if msg_elem is not None else "test failure",
-                })
+  if success
+    puts JSON.generate(ok: true)
+    exit 0
+  end
 
-        except ET.ParseError:
-            continue
+  # Parse failures from XML
+  failures = parse_failures_from_xml(reports_dir, filter_files: test_files)
 
-    failures.sort(key=lambda f: (f["file"], f["function"]))
-    return failures
+  if failures.empty?
+    # Tests failed but no XML failures found - report generic error
+    puts JSON.generate(ok: false, items: ['Unit tests failed but no failures could be parsed'])
+    exit 1
+  end
 
+  # Return failures as items
+  items = failures.map { |f| format_failure_item(f) }
+  puts JSON.generate(ok: false, items: items)
+  exit 1
+end
 
-def format_failure_item(failure: dict) -> str:
-    """Format a failure as: test_file:line function_name: message"""
-    return f"{failure['file']}:{failure['line']} {failure['function']}: {failure['message']}"
-
-
-def main() -> int:
-    """Main entry point."""
-    parser = argparse.ArgumentParser(description="Run unit tests")
-    parser.add_argument("--file", type=str, default=None,
-                        help="Source file to test (filters to relevant unit tests)")
-    args = parser.parse_args()
-
-    os.chdir(PROJECT_ROOT)
-
-    test_files = None
-    if args.file:
-        target_file = args.file
-
-        # Check if target file exists
-        if not Path(target_file).exists():
-            print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-            return 1
-
-        # Find test files for this source file
-        test_files = find_test_files_for_source(target_file)
-
-        if not test_files:
-            print(json.dumps({"ok": False, "items": [f"{target_file}: no unit tests found"]}))
-            return 1
-
-    # Run tests
-    success, output = run_unit_tests(test_files)
-
-    if success:
-        print(json.dumps({"ok": True}))
-        return 0
-
-    # Parse failures from XML
-    failures = parse_failures_from_xml(test_files)
-
-    if not failures:
-        # Tests failed but no XML failures found - report generic error
-        print(json.dumps({"ok": False, "items": ["Unit tests failed but no failures could be parsed"]}))
-        return 1
-
-    # Return failures as items
-    items = [format_failure_item(f) for f in failures]
-    print(json.dumps({"ok": False, "items": items}))
-    return 1
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit(130)
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

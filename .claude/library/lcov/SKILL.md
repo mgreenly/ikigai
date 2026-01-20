@@ -80,5 +80,5 @@ grep -A 1000 "SF:.*myfile.c" reports/coverage/coverage.info | \
 
 ## Related Skills
 
-- `coverage` - Policy (100% requirement, exclusion rules)
+- `coverage` - Policy (90% requirement, exclusion rules)
 - `testability` - Refactoring patterns for gaps

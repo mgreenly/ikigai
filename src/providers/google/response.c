@@ -19,7 +19,7 @@
  * Parse content parts from candidate
  */
 static res_t parse_content_parts(TALLOC_CTX *ctx, yyjson_val *parts_arr,
-                                   ik_content_block_t **out_blocks, size_t *out_count)
+                                 ik_content_block_t **out_blocks, size_t *out_count)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(parts_arr != NULL);  // LCOV_EXCL_BR_LINE
@@ -121,7 +121,7 @@ static res_t parse_content_parts(TALLOC_CTX *ctx, yyjson_val *parts_arr,
  * Parse Google JSON response to internal format
  */
 res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len,
-                                 ik_response_t **out_resp)
+                               ik_response_t **out_resp)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(json != NULL);     // LCOV_EXCL_BR_LINE
@@ -239,7 +239,7 @@ res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_le
         yyjson_val *parts = yyjson_obj_get(content, "parts");
         if (parts != NULL && yyjson_is_arr(parts)) {
             res_t result = parse_content_parts(resp, parts, &resp->content_blocks,
-                                                &resp->content_count);
+                                               &resp->content_count);
             if (is_err(&result)) {
                 yyjson_doc_free(doc);
                 return result;
@@ -266,7 +266,7 @@ res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_le
  * ================================================================ */
 
 res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req,
-                                ik_provider_completion_cb_t cb, void *cb_ctx)
+                              ik_provider_completion_cb_t cb, void *cb_ctx)
 {
     assert(impl_ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -282,9 +282,9 @@ res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req,
 }
 
 res_t ik_google_start_stream(void *impl_ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb,
-                               void *completion_ctx)
+                             ik_stream_cb_t stream_cb, void *stream_ctx,
+                             ik_provider_completion_cb_t completion_cb,
+                             void *completion_ctx)
 {
     assert(impl_ctx != NULL);     // LCOV_EXCL_BR_LINE
     assert(req != NULL);          // LCOV_EXCL_BR_LINE

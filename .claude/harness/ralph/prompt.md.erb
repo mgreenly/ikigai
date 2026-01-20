@@ -102,13 +102,13 @@ You have limited context. Running out crashes the iteration and loses all progre
 End each iteration with StructuredOutput:
 
 ```json
-{"progress": "What you accomplished or attempted this step"}
+{"summary": "What you accomplished or attempted this step"}
 ```
 
-When the goal is complete return only the progress message "DONE":
+When the goal is complete return only the message "DONE":
 
 ```json
-{"progress": "DONE"}
+{"summary": "DONE"}
 ```
 
-The `progress` value is appended to the Progress section for the next iteration. Be concise but specific - future iterations will rely on this to avoid repeating work.
+The `summary` value is appended to the Progress section for the next iteration. Be concise but specific - future iterations will rely on this to avoid repeating work.

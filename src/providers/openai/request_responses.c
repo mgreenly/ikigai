@@ -22,7 +22,7 @@
  * (Same nested format as Chat Completions)
  */
 static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
-                                       const ik_tool_def_t *tool)
+                                     const ik_tool_def_t *tool)
 {
     assert(doc != NULL);       // LCOV_EXCL_BR_LINE
     assert(tools_arr != NULL); // LCOV_EXCL_BR_LINE
@@ -52,7 +52,7 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
 
     // Parse parameters JSON and add as object
     yyjson_doc *params_doc = yyjson_read(tool->parameters,
-                                          strlen(tool->parameters), 0);
+                                         strlen(tool->parameters), 0);
     if (!params_doc) return false; // LCOV_EXCL_BR_LINE
 
     yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
@@ -117,7 +117,7 @@ static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_
  * ================================================================ */
 
 res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t *req,
-                                             bool streaming, char **out_json)
+                                            bool streaming, char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -154,8 +154,8 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
 
     // Determine input format: string for single user message, array for multi-turn
     bool use_string_input = (req->message_count == 1 &&
-                              req->messages[0].role == IK_ROLE_USER &&
-                              req->messages[0].content_count > 0);
+                             req->messages[0].role == IK_ROLE_USER &&
+                             req->messages[0].content_count > 0);
 
     if (use_string_input) {
         // Single user message: concatenate text content into string input

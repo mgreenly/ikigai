@@ -42,9 +42,9 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
             ik_error_category_t category;
             char *error_msg = NULL;
             res_t parse_res = ik_openai_parse_error(req_ctx, http_completion->http_code,
-                                                     http_completion->response_body,
-                                                     http_completion->response_len,
-                                                     &category, &error_msg);
+                                                    http_completion->response_body,
+                                                    http_completion->response_len,
+                                                    &category, &error_msg);
             if (is_ok(&parse_res)) {  // LCOV_EXCL_BR_LINE
                 provider_completion.error_category = category;
                 provider_completion.error_message = error_msg;
@@ -52,7 +52,7 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
                 // Fallback to generic error message  // LCOV_EXCL_START
                 provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
                 provider_completion.error_message = talloc_asprintf(req_ctx,
-                    "HTTP %d error", http_completion->http_code);
+                                                                    "HTTP %d error", http_completion->http_code);
             }  // LCOV_EXCL_STOP
         } else {
             // Network error or no response body
@@ -80,14 +80,14 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
 
     if (req_ctx->use_responses_api) {
         parse_res = ik_openai_parse_responses_response(req_ctx,
-                                                        http_completion->response_body,
-                                                        http_completion->response_len,
-                                                        &response);
+                                                       http_completion->response_body,
+                                                       http_completion->response_len,
+                                                       &response);
     } else {
         parse_res = ik_openai_parse_chat_response(req_ctx,
-                                                   http_completion->response_body,
-                                                   http_completion->response_len,
-                                                   &response);
+                                                  http_completion->response_body,
+                                                  http_completion->response_len,
+                                                  &response);
     }
 
     if (is_err(&parse_res)) {
@@ -96,7 +96,7 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
         provider_completion.response = NULL;
         provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
         provider_completion.error_message = talloc_asprintf(req_ctx,
-            "Failed to parse response: %s", parse_res.err->msg);
+                                                            "Failed to parse response: %s", parse_res.err->msg);
         provider_completion.retry_after_ms = -1;
 
         // Invoke user callback with error
@@ -137,16 +137,16 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
 
     // Responses API has its own SSE parser - delegate to its write callback
     if (req_ctx->use_responses_api) {
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
         return ik_openai_responses_stream_write_callback((void *)data, 1, len, req_ctx->parser_ctx);
-        #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
     }
 
     // Chat Completions API: Parse SSE manually
     // Append to buffer (handles incomplete lines across chunks)
     char *new_buffer = talloc_realloc(req_ctx, req_ctx->sse_buffer,
-                                       char, (unsigned int)(req_ctx->sse_buffer_len + len + 1));
+                                      char, (unsigned int)(req_ctx->sse_buffer_len + len + 1));
     if (new_buffer == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     memcpy(new_buffer + req_ctx->sse_buffer_len, data, len);
@@ -196,7 +196,7 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
  * Invokes user's completion callback with final metadata.
  */
 void ik_openai_stream_completion_handler(const ik_http_completion_t *http_completion,
-                                          void *user_ctx)
+                                         void *user_ctx)
 {
     ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)user_ctx;
     assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
@@ -217,16 +217,16 @@ void ik_openai_stream_completion_handler(const ik_http_completion_t *http_comple
             ik_error_category_t category;
             char *error_msg = NULL;
             res_t parse_res = ik_openai_parse_error(req_ctx, http_completion->http_code,
-                                                     http_completion->response_body,
-                                                     http_completion->response_len,
-                                                     &category, &error_msg);
+                                                    http_completion->response_body,
+                                                    http_completion->response_len,
+                                                    &category, &error_msg);
             if (is_ok(&parse_res)) {  // LCOV_EXCL_BR_LINE
                 provider_completion.error_category = category;
                 provider_completion.error_message = error_msg;
             } else {  // LCOV_EXCL_START
                 provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
                 provider_completion.error_message = talloc_asprintf(req_ctx,
-                    "HTTP %d error", http_completion->http_code);
+                                                                    "HTTP %d error", http_completion->http_code);
             }  // LCOV_EXCL_STOP
         } else {
             if (http_completion->http_code == 0) {

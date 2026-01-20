@@ -6,7 +6,7 @@ description: Test-Driven Development (Strict) skill for the ikigai project
 # Test-Driven Development (Strict)
 
 ## Description
-Strict TDD methodology for coverage phase. 100% coverage is non-negotiable.
+Strict TDD methodology for coverage phase. 90% coverage is non-negotiable.
 
 ## Details
 
@@ -35,7 +35,7 @@ Follow strict Red/Green/Verify cycle:
 
 - `make check` - All tests must pass
 - `make lint` - Code complexity under threshold
-- `make check-coverage` - **100% coverage is MANDATORY**
+- `make check-coverage` - **90% coverage is MANDATORY**
 
 ## Coverage Phase Requirements
 

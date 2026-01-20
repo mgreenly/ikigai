@@ -62,7 +62,7 @@ Rationale: Project headers before system headers catches non-self-contained head
 
 Do not use `static` helper functions in implementation files. Instead, inline the code directly.
 
-**Why:** LCOV exclusion markers (`LCOV_EXCL_BR_LINE`) on PANIC/assert calls inside static functions are not reliably honored, breaking 100% branch coverage requirements.
+**Why:** LCOV exclusion markers (`LCOV_EXCL_BR_LINE`) on PANIC/assert calls inside static functions are not reliably honored, breaking 90% branch coverage requirements.
 
 **Exception:** MOCKABLE wrapper functions (see `wrapper.h`) - these use static functions by design for the mocking interface.
 

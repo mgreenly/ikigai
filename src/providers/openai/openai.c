@@ -20,18 +20,20 @@
  * Forward Declarations - Vtable Methods
  * ================================================================ */
 
-static res_t openai_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
-                           fd_set *exc_fds, int *max_fd);
+static res_t openai_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd);
 static res_t openai_perform(void *ctx, int *running_handles);
 static res_t openai_timeout(void *ctx, long *timeout_ms);
 static void openai_info_read(void *ctx, ik_logger_t *logger);
-static res_t openai_start_request(void *ctx, const ik_request_t *req,
-                                   ik_provider_completion_cb_t completion_cb,
-                                   void *completion_ctx);
-static res_t openai_start_stream(void *ctx, const ik_request_t *req,
-                                  ik_stream_cb_t stream_cb, void *stream_ctx,
+static res_t openai_start_request(void *ctx,
+                                  const ik_request_t *req,
                                   ik_provider_completion_cb_t completion_cb,
                                   void *completion_ctx);
+static res_t openai_start_stream(void *ctx,
+                                 const ik_request_t *req,
+                                 ik_stream_cb_t stream_cb,
+                                 void *stream_ctx,
+                                 ik_provider_completion_cb_t completion_cb,
+                                 void *completion_ctx);
 static void openai_cleanup(void *ctx);
 static void openai_cancel(void *ctx);
 
@@ -60,7 +62,7 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
 }
 
 res_t ik_openai_create_with_options(TALLOC_CTX *ctx, const char *api_key,
-                                     bool use_responses_api, ik_provider_t **out)
+                                    bool use_responses_api, ik_provider_t **out)
 {
     assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
     assert(api_key != NULL); // LCOV_EXCL_BR_LINE
@@ -113,7 +115,7 @@ res_t ik_openai_create_with_options(TALLOC_CTX *ctx, const char *api_key,
  * ================================================================ */
 
 static res_t openai_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds,
-                           fd_set *exc_fds, int *max_fd)
+                          fd_set *exc_fds, int *max_fd)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE
@@ -156,8 +158,8 @@ static void openai_info_read(void *ctx, ik_logger_t *logger)
  * ================================================================ */
 
 static res_t openai_start_request(void *ctx, const ik_request_t *req,
-                                   ik_provider_completion_cb_t completion_cb,
-                                   void *completion_ctx)
+                                  ik_provider_completion_cb_t completion_cb,
+                                  void *completion_ctx)
 {
     assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
     assert(req != NULL);           // LCOV_EXCL_BR_LINE
@@ -167,7 +169,7 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
 
     // Determine which API to use
     bool use_responses_api = impl_ctx->use_responses_api
-        || ik_openai_prefer_responses_api(req->model);
+                             || ik_openai_prefer_responses_api(req->model);
 
     // Create request context for tracking this request
     ik_openai_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_request_ctx_t);
@@ -223,10 +225,10 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     // Note: headers_tmp is char ** but http_req expects const char **
     // This cast is safe because we're not modifying the pointed-to strings
     // Disable cast-qual warning for this specific cast
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     const char **headers_const = (const char **)headers_tmp;
-    #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 
     ik_http_request_t http_req = {
         .url = url,
@@ -238,11 +240,11 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
 
     // Add request to multi handle
     res_t add_res = ik_http_multi_add_request(impl_ctx->http_multi,
-                                               &http_req,
-                                               NULL,  // No streaming write callback
-                                               NULL,  // No write context
-                                               ik_openai_http_completion_handler,
-                                               req_ctx);
+                                              &http_req,
+                                              NULL,   // No streaming write callback
+                                              NULL,   // No write context
+                                              ik_openai_http_completion_handler,
+                                              req_ctx);
 
     if (is_err(&add_res)) {
         talloc_steal(impl_ctx, add_res.err);
@@ -255,9 +257,9 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
 }
 
 static res_t openai_start_stream(void *ctx, const ik_request_t *req,
-                                  ik_stream_cb_t stream_cb, void *stream_ctx,
-                                  ik_provider_completion_cb_t completion_cb,
-                                  void *completion_ctx)
+                                 ik_stream_cb_t stream_cb, void *stream_ctx,
+                                 ik_provider_completion_cb_t completion_cb,
+                                 void *completion_ctx)
 {
     assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
     assert(req != NULL);           // LCOV_EXCL_BR_LINE
@@ -268,7 +270,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
 
     // Determine which API to use
     bool use_responses_api = impl_ctx->use_responses_api
-        || ik_openai_prefer_responses_api(req->model);
+                             || ik_openai_prefer_responses_api(req->model);
 
     // Create streaming request context
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_stream_request_ctx_t);
@@ -335,10 +337,10 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
         return headers_res;
     }
 
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     const char **headers_const = (const char **)headers_tmp;
-    #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 
     // Build HTTP request specification
     ik_http_request_t http_req = {
@@ -374,13 +376,13 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
 
 #ifndef NDEBUG
 res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx, const ik_request_t *req,
-                                         bool stream, char **out_json)
+                                        bool stream, char **out_json)
 {
     return ik_openai_serialize_chat_request(ctx, req, stream, out_json);
 }
 
 res_t ik_openai_serialize_responses_request_(TALLOC_CTX *ctx, const ik_request_t *req,
-                                              bool stream, char **out_json)
+                                             bool stream, char **out_json)
 {
     return ik_openai_serialize_responses_request(ctx, req, stream, out_json);
 }
@@ -399,6 +401,7 @@ res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out
 {
     return ik_openai_build_headers(ctx, api_key, out_headers);
 }
+
 #endif
 
 static void openai_cleanup(void *ctx)

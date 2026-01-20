@@ -27,7 +27,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
     const char *query_root = "SELECT uuid FROM agents WHERE parent_uuid IS NULL";
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query_root, 0, NULL,
-                                                   NULL, NULL, NULL, 0));
+                                                  NULL, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
@@ -61,7 +61,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
         "WHERE table_name = 'messages' AND column_name = 'agent_uuid'";
     ik_pg_result_wrapper_t *column_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, check_column, 0, NULL,
-                                                   NULL, NULL, NULL, 0));
+                                                  NULL, NULL, NULL, 0));
     PGresult *column_res = column_wrapper->pg_result;
 
     bool agent_uuid_exists = false;
@@ -75,7 +75,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
         const char *check_orphans = "SELECT 1 FROM messages WHERE agent_uuid IS NULL LIMIT 1";
         ik_pg_result_wrapper_t *orphan_wrapper =
             ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, check_orphans, 0, NULL,
-                                                       NULL, NULL, NULL, 0));
+                                                      NULL, NULL, NULL, 0));
         PGresult *orphan_res = orphan_wrapper->pg_result;
 
         if (PQresultStatus(orphan_res) == PGRES_TUPLES_OK) {     // LCOV_EXCL_BR_LINE
@@ -98,7 +98,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
 
     ik_pg_result_wrapper_t *insert_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, insert_query, 2, NULL,
-                                                   insert_params, NULL, NULL, 0));
+                                                  insert_params, NULL, NULL, 0));
     PGresult *insert_res = insert_wrapper->pg_result;
 
     if (PQresultStatus(insert_res) != PGRES_COMMAND_OK) {     // LCOV_EXCL_BR_LINE
@@ -114,7 +114,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
 
         ik_pg_result_wrapper_t *adopt_wrapper =
             ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, adopt_query, 1, NULL,
-                                                       adopt_params, NULL, NULL, 0));
+                                                      adopt_params, NULL, NULL, 0));
         PGresult *adopt_res = adopt_wrapper->pg_result;
 
         if (PQresultStatus(adopt_res) != PGRES_COMMAND_OK) {     // LCOV_EXCL_BR_LINE

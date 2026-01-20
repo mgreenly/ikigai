@@ -303,5 +303,19 @@ MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
     return curl_multi_strerror(code);
 }
 
+MOCKABLE CURLMcode curl_multi_wait_(CURLM *multi, struct curl_waitfd *extra_fds,
+                                    unsigned int extra_nfds, int timeout_ms, int *numfds)
+{
+    // VCR playback mode: immediate return (no actual network I/O)
+    if (vcr_is_active() && !vcr_is_recording()) {
+        if (numfds) {
+            *numfds = 1;  // Simulate activity
+        }
+        return CURLM_OK;
+    }
+
+    return curl_multi_wait(multi, extra_fds, extra_nfds, timeout_ms, numfds);
+}
+
 // LCOV_EXCL_STOP
 #endif

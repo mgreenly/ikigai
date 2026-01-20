@@ -189,8 +189,8 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
             if (thinking != NULL) {
                 // Accumulate thinking text
                 char *new_text = talloc_asprintf(sctx, "%s%s",
-                    sctx->current_thinking_text ? sctx->current_thinking_text : "",
-                    thinking);
+                                                 sctx->current_thinking_text ? sctx->current_thinking_text : "",
+                                                 thinking);
                 if (new_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                 talloc_free(sctx->current_thinking_text);
                 sctx->current_thinking_text = new_text;
@@ -225,8 +225,8 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
             if (partial_json != NULL) {
                 // Accumulate arguments (like OpenAI does)
                 char *new_args = talloc_asprintf(sctx, "%s%s",
-                    sctx->current_tool_args ? sctx->current_tool_args : "",
-                    partial_json);
+                                                 sctx->current_tool_args ? sctx->current_tool_args : "",
+                                                 partial_json);
                 if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
                 talloc_free(sctx->current_tool_args);
                 sctx->current_tool_args = new_args;

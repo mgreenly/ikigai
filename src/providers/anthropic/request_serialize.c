@@ -94,7 +94,7 @@ bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val 
     // Single text block uses simple string format
     if (message->content_count == 1 && message->content_blocks[0].type == IK_CONTENT_TEXT) {
         if (!yyjson_mut_obj_add_str_(doc, msg_obj, "content",
-                                      message->content_blocks[0].data.text.text)) {
+                                     message->content_blocks[0].data.text.text)) {
             return false;
         }
         return true;

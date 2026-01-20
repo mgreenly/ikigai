@@ -24,7 +24,7 @@
  * Internal serialize request implementation
  */
 static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req,
-                                         char **out_json)
+                                        char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -142,7 +142,7 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
 
             // Parse parameters JSON and add as "input_schema"
             yyjson_doc *params_doc = yyjson_read(tool->parameters,
-                                                  strlen(tool->parameters), 0);
+                                                 strlen(tool->parameters), 0);
             if (!params_doc) {
                 yyjson_mut_doc_free(doc);
                 return ERR(ctx, PARSE, "Invalid tool parameters JSON");

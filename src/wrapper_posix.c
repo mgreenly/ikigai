@@ -10,13 +10,16 @@
 #ifndef NDEBUG
 // LCOV_EXCL_START
 
+#include <ctype.h>
 #include <fcntl.h>
+#include <glob.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
 
 // ============================================================================
 // Debug helpers
@@ -215,6 +218,26 @@ MOCKABLE int posix_rename_(const char *oldpath, const char *newpath)
 MOCKABLE char *posix_getcwd_(char *buf, size_t size)
 {
     return getcwd(buf, size);
+}
+
+MOCKABLE char *getenv_(const char *name)
+{
+    return getenv(name);
+}
+
+MOCKABLE struct passwd *getpwuid_(uid_t uid)
+{
+    return getpwuid(uid);
+}
+
+MOCKABLE int glob_(const char *pattern, int flags, int (*errfunc)(const char *, int), glob_t *pglob)
+{
+    return glob(pattern, flags, errfunc, pglob);
+}
+
+MOCKABLE void globfree_(glob_t *pglob)
+{
+    globfree(pglob);
 }
 
 // LCOV_EXCL_STOP

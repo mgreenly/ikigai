@@ -56,13 +56,15 @@ Use user/agent interactive development time during the Research and Plan phases 
 **What:** Iterative verification of plan alignment.
 
 **Artifacts:**
-- `$CDD_DIR/verified.md` - Log of items verified and issues resolved
+- `$CDD_DIR/gap.md` - List of issues to investigate and resolve
+- `$CDD_DIR/verified.md` - Log of issues that have been fixed
 
 **Verification:**
 ```
-/cdd:gap-plan  # Verify README/user-stories → plan alignment
-fix gaps
-/cdd:gap-plan  # Repeat until clean
+/cdd:gap  # Verify README/user-stories → plan alignment, writes gap.md
+fix gaps  # Address issues in gap.md, update plan documents
+update verified.md  # Log what was fixed with references to gap.md
+/cdd:gap  # Repeat until clean
 ```
 
 Checks alignment down the pyramid:
@@ -74,33 +76,62 @@ Checks alignment down the pyramid:
 
 **Key insights:**
 - Specific checklists prevent vague "find issues" prompts
-- `verified.md` prevents re-checking completed items
+- `gap.md` contains current issues to investigate
+- `verified.md` tracks what's been fixed, prevents re-checking completed items
 
-**Convergence pattern:** Each gap-finding run identifies the highest-priority issue. After fixing, re-run. When no substantive gaps remain, verification is complete.
+**Convergence pattern:** Each gap-finding run identifies issues and writes gap.md. After fixing, log in verified.md and re-run. When no substantive gaps remain, verification is complete.
 
 ### 4. Execute
 
-**What:** Execution via the ralph harness script.
+**What:** Unattended execution via the Ralph harness script.
+
+**Artifacts:**
+- `$CDD_DIR/goals/*-goal.md` - Goal file(s) for ralph loop execution
+- `$CDD_DIR/goals/*-progress.jsonl` - Auto-generated progress log
+- `$CDD_DIR/goals/*-summary.md` - Auto-generated progress summary
+
+**Ralph script:**
+```bash
+.claude/harness/ralph/run \
+  --goal=$CDD_DIR/goals/implementation-goal.md \
+  --duration=4h \
+  --model=sonnet \
+  --reasoning=low
+```
 
 **Process:**
-```
-ralph → /check-quality → /refactor → /check-quality
-```
+Ralph iteratively works toward the goal until DONE or time expires:
+1. Read goal + progress history
+2. Make incremental progress (code changes, tests, fixes)
+3. Commit progress via `jj commit`
+4. Append progress to JSONL file
+5. Repeat until objective achieved
 
-**Why this structure:** Execution is unattended. No human to provide missing context.
+**Why Ralph:** The plan phase prepared complete context. Ralph execution is mechanical - read plan, implement, test, commit. No research, no exploration, just steady progress toward the goal using the plan as a reference.
+
+**Post-execution:**
+After Ralph completes (or during iterations), quality checks and refactoring may be needed:
+```
+ralph → /check:quality → /refactor → /check:quality
+```
 
 ## Directory Structure
 
 ```
 $CDD_DIR/
-├── README.md          # High-level release description
+├── README.md          # High-level release description (PRD)
 ├── user-stories/      # User actions and system responses
 │   └── README.md      # Index/overview
 ├── research/          # Internet facts for reference
 │   └── README.md      # Index/overview
 ├── plan/              # Implementation decisions
 │   └── README.md      # Index/overview
-├── verified.md        # Verification log (concerns + resolutions)
+├── gap.md             # Current issues to investigate and resolve
+├── verified.md        # Log of issues that have been fixed
+├── goals/             # Ralph goal files and execution state
+│   ├── *-goal.md      # Goal definition(s)
+│   ├── *-progress.jsonl   # Progress tracking (auto-generated)
+│   └── *-summary.md   # Progress summary (auto-generated)
 ├── tmp/               # Temp files during execution
 └── ...                # Other files permitted, ignored by pipeline
 ```
@@ -145,6 +176,17 @@ user-stories + research (derived)
 4. Higher-level documents may change through iteration—but when they do, all derived artifacts must be reviewed and realigned
 
 **Why this matters:** Consistency is enforced during authoring because it cannot be enforced during execution.
+
+## Writing Ralph Goal Files
+
+After creating plan documents, write goal files in `$CDD_DIR/goals/*-goal.md`.
+
+**Use `/load goal-authoring` for detailed guidance.** Key points:
+
+- Ralph has unlimited context through iteration - reference all relevant docs
+- Specify WHAT to achieve (outcomes), never HOW (steps/order)
+- One cohesive objective per goal - trust Ralph to discover the path
+- Complete acceptance criteria - Ralph needs to know when done
 
 ## Lifecycle
 

@@ -1,544 +1,155 @@
-#!/usr/bin/env python3
-import sys
-sys.dont_write_bytecode = True
-"""
-harness/compile - Automated compile/link error fix loop
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-Runs make, fixes compile/link errors one at a time with escalation,
-commits on success, reverts on exhaustion, continues until all pass
-or no progress is made.
-"""
+#
+# harness/compile - Compile/link error check
+#
+# Runs make, parses compile/link errors, outputs JSON summary.
+# No fix functionality - check only.
+#
 
-import argparse
-import subprocess
-import sys
-import os
-import re
-import threading
-import time
-from datetime import datetime
-from pathlib import Path
+require 'json'
+require 'optparse'
+require 'fileutils'
 
-# Configuration
-MAX_ATTEMPTS_PER_ERROR = 3
+# Run command and capture output, suppressing all output
+def run_cmd(cmd, env: {})
+  stdout_str = ''
+  stderr_str = ''
+  status = nil
 
-# Escalation ladder: (model, thinking_budget, display_name)
-ESCALATION_LADDER = {
-    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
-    2: ("claude-opus-4-20250514", "10000", "opus:think"),
-    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
-}
+  # Merge environment variables
+  full_env = ENV.to_h.merge(env)
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-HISTORY_FILE = SCRIPT_DIR / "history.md"
-DEFAULT_TIMEOUT = 600
+  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  status = $?
 
-# Global flag to disable spinner (default: off for silent JSON output)
-SPINNER_ENABLED = False
-SILENT_MODE = True
+  [status.exitstatus, stdout_str]
+end
 
+# Parse compiler/linker errors from make output
+def parse_errors(output)
+  errors = []
+  seen_files = Set.new
 
-class Spinner:
-    """Threaded spinner for long-running operations."""
+  # GCC/Clang error pattern: file.c:123:45: error: message
+  error_pattern = /^([^\s:]+):(\d+):(\d+):\s*error:\s*(.+)$/
 
-    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+  # First try compiler errors
+  output.scan(error_pattern) do |file, line, col, message|
+    # Only report first error per file (they often cascade)
+    next if seen_files.include?(file)
+    seen_files.add(file)
 
-    def __init__(self, message: str = ""):
-        self.message = message
-        self.running = False
-        self.thread: threading.Thread | None = None
-        self.start_time: float = 0
-
-    def _spin(self) -> None:
-        idx = 0
-        while self.running:
-            elapsed = int(time.time() - self.start_time)
-            mins, secs = divmod(elapsed, 60)
-            frame = self.FRAMES[idx % len(self.FRAMES)]
-            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
-            sys.stdout.flush()
-            idx += 1
-            time.sleep(0.1)
-        sys.stdout.write("\r" + " " * 60 + "\r")
-        sys.stdout.flush()
-
-    def start(self) -> None:
-        if not SPINNER_ENABLED:
-            return
-        self.running = True
-        self.start_time = time.time()
-        self.thread = threading.Thread(target=self._spin, daemon=True)
-        self.thread.start()
-
-    def stop(self) -> None:
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1)
-
-
-def log(msg: str) -> None:
-    """Print timestamped log message."""
-    if SILENT_MODE:
-        return
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{timestamp} | {'compile':10} | {msg}", flush=True)
-
-
-def format_elapsed(seconds: float) -> str:
-    """Format elapsed seconds as human-readable string."""
-    hours, remainder = divmod(int(seconds), 3600)
-    mins, secs = divmod(remainder, 60)
-    if hours > 0:
-        return f"{hours}h {mins}m {secs}s"
-    elif mins > 0:
-        return f"{mins}m {secs}s"
-    else:
-        return f"{secs}s"
-
-
-def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tuple[int, str, str]:
-    """Run a command and return (returncode, stdout, stderr)."""
-    result = subprocess.run(
-        cmd,
-        capture_output=capture,
-        text=True,
-        cwd=cwd or PROJECT_ROOT,
-    )
-    return result.returncode, result.stdout or "", result.stderr or ""
-
-
-def run_make(quiet: bool = False) -> tuple[bool, str]:
-    """Run make clean, then make all build-tests and return (success, output)."""
-    if not quiet:
-        log("Running make clean...")
-    spinner = Spinner("Running make clean")
-    spinner.start()
-    code, _, stderr = run_cmd(["make", "clean"])
-    spinner.stop()
-    if code != 0 and not quiet:
-        log(f"WARNING: make clean failed (exit {code}): {stderr[:200]}")
-    if not quiet:
-        log("Running make all build-tests...")
-    spinner = Spinner("Running make all build-tests")
-    spinner.start()
-    code, stdout, stderr = run_cmd(["make", "-j1", "all", "build-tests"])
-    spinner.stop()
-    output = stdout + stderr
-    return code == 0, output
-
-
-def parse_errors(output: str) -> list[dict]:
-    """
-    Parse compiler/linker errors from make output.
-    Returns list of {file, line, col, message, output} dicts.
-
-    Groups multiple errors in the same file together.
-    """
-    errors = []
-    seen_files = set()
-
-    # GCC/Clang error pattern: file.c:123:45: error: message
-    error_pattern = re.compile(
-        r'^([^\s:]+):(\d+):(\d+):\s*error:\s*(.+)$',
-        re.MULTILINE
-    )
-
-    # Linker error pattern: undefined reference to `symbol'
-    linker_pattern = re.compile(
-        r"undefined reference to [`']([^'`]+)[`']",
-        re.MULTILINE
-    )
-
-    # First try compiler errors
-    for match in error_pattern.finditer(output):
-        file_path = match.group(1)
-        line = match.group(2)
-        col = match.group(3)
-        message = match.group(4)
-
-        # Only report first error per file (they often cascade)
-        if file_path in seen_files:
-            continue
-        seen_files.add(file_path)
-
-        errors.append({
-            "file": file_path,
-            "line": line,
-            "col": col,
-            "message": message,
-            "output": output,
-        })
-
-    # If no compiler errors, check for linker errors
-    if not errors:
-        linker_matches = linker_pattern.findall(output)
-        if linker_matches:
-            # For linker errors, we don't have a specific file/line
-            # Try to find the object file being linked
-            obj_pattern = re.compile(r'([^\s]+\.o):', re.MULTILINE)
-            obj_match = obj_pattern.search(output)
-
-            errors.append({
-                "file": obj_match.group(1) if obj_match else "unknown",
-                "line": "1",
-                "col": "1",
-                "message": f"undefined reference to: {', '.join(linker_matches[:3])}",
-                "output": output,
-            })
-
-    return errors
-
-
-def load_prompt_template() -> str:
-    """Load the fix prompt template."""
-    if not FIX_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
-        sys.exit(1)
-    return FIX_PROMPT_TEMPLATE.read_text()
-
-
-def process_conditionals(template: str, variables: dict) -> str:
-    """
-    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
-    Includes block content if variable is truthy, removes it otherwise.
-    """
-    # Pattern: {{#if var_name}}...content...{{/if}}
-    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
-
-    def replacer(match: re.Match) -> str:
-        var_name = match.group(1)
-        content = match.group(2)
-        if variables.get(var_name):
-            return content
-        return ""
-
-    return pattern.sub(replacer, template)
-
-
-def build_prompt(error: dict) -> str:
-    """Build the fix prompt from template."""
-    template = load_prompt_template()
-
-    # Build variables dict for conditional processing
-    variables = {
-        "file": error["file"],
-        "line": error["line"],
-        "message": error["message"],
-        "output": error["output"],
-        "history": load_history(),
+    errors << {
+      file: file,
+      line: line,
+      col: col,
+      message: message
     }
-
-    # Process conditionals first
-    prompt = process_conditionals(template, variables)
-
-    # Then substitute variables
-    for key, value in variables.items():
-        prompt = prompt.replace("{{" + key + "}}", value)
-
-    return prompt
-
-
-def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
-    """
-    Invoke Claude CLI with the prompt via stdin.
-    Returns (success, response).
-    """
-    import json
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-        f.write(prompt)
-        prompt_file = f.name
-
-    spinner = Spinner(f"Waiting for {model_name}")
-    try:
-        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 20'
-        env = os.environ.copy()
-        env["MAX_THINKING_TOKENS"] = thinking_budget
-        spinner.start()
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=timeout,
-            env=env,
-        )
-        spinner.stop()
-        code = result.returncode
-        stdout = result.stdout or ""
-        stderr = result.stderr or ""
-    except subprocess.TimeoutExpired:
-        spinner.stop()
-        return False, f"Timeout after {timeout} seconds"
-    finally:
-        Path(prompt_file).unlink(missing_ok=True)
-
-    if code != 0:
-        return False, stderr
-
-    try:
-        result = json.loads(stdout)
-        return True, result.get("result", "")
-    except json.JSONDecodeError:
-        return True, stdout
-
-
-def jj_get_modified_files() -> set[str]:
-    """Get set of currently modified files."""
-    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
-    files = set()
-    for line in stdout.strip().split('\n'):
-        if line.strip():
-            parts = line.split(None, 1)
-            if len(parts) == 2:
-                files.add(parts[1])
-    return files
-
-
-def jj_commit(error: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
-    """Commit only files that changed during fix attempt."""
-    files_after = jj_get_modified_files()
-    new_changes = files_after - files_before
-
-    if not new_changes:
-        return False
-
-    file_name = Path(error["file"]).name
-    short_msg = error["message"][:50]
-    msg = f"fix: {file_name} - {short_msg}\n\nharness/compile | {model_name} | attempt {attempt}"
-
-    code, _, _ = run_cmd(["jj", "commit", "-m", msg])
-    return code == 0
-
-
-def jj_revert(files_before: set[str] | None = None) -> None:
-    """Revert changes made during fix attempt."""
-    if files_before is not None:
-        files_after = jj_get_modified_files()
-        new_changes = files_after - files_before
-        if new_changes:
-            log("Reverting uncommitted changes...")
-            for f in new_changes:
-                run_cmd(["jj", "restore", f])
-    else:
-        if jj_get_modified_files():
-            log("Reverting uncommitted changes...")
-            run_cmd(["jj", "restore"])
-
-
-def check_build() -> bool:
-    """Check if make all build-tests succeeds."""
-    code, _, _ = run_cmd(["make", "-j1", "all", "build-tests"])
-    return code == 0
-
-
-def truncate_history() -> None:
-    """Truncate history file at start of new file's fix attempts."""
-    HISTORY_FILE.write_text("")
-
-
-def load_history() -> str:
-    """Load history content, returning empty string if file doesn't exist."""
-    if HISTORY_FILE.exists():
-        return HISTORY_FILE.read_text()
-    return ""
-
-
-def try_fix_error(error: dict, timeout: int) -> bool:
-    """
-    Attempt to fix a compile/link error.
-    Returns True if fixed, False if exhausted attempts.
-    """
-    file = error["file"]
-    message = error["message"][:50]
-
-    truncate_history()
-    files_before = jj_get_modified_files()
-
-    for attempt in range(1, MAX_ATTEMPTS_PER_ERROR + 1):
-        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
-
-        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_ERROR})")
-
-        prompt = build_prompt(error)
-        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-
-        if not success:
-            log(f"{model_name} invocation FAILED: {response[:200]}")
-            continue
-
-        # Verify the fix
-        if check_build():
-            log(f"{model_name} SUCCESS")
-            jj_commit(error, model_name, attempt, files_before)
-            return True
-        else:
-            log(f"{model_name} FAILED (build still fails)")
-
-    # Exhausted all attempts
-    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_ERROR} attempts")
-    jj_revert(files_before)
-    return False
-
-
-def format_error_item(error: dict) -> str:
-    """Format an error dict as 'file:line:col: message' string."""
-    return f"{error['file']}:{error['line']}:{error['col']}: {error['message']}"
-
-
-def main() -> int:
-    """Main entry point."""
-    import json as json_module
-
-    start_time = time.time()
-    parser = argparse.ArgumentParser(description="Automated compile/link error fix loop")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Enable progress output and spinner")
-    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
-                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
-    parser.add_argument("--file", type=str, default=None,
-                        help="Filter results to a specific file")
-    args = parser.parse_args()
-
-    global SPINNER_ENABLED
-    global SILENT_MODE
-    if args.verbose:
-        SPINNER_ENABLED = True
-        SILENT_MODE = False
-
-    # Hardcode fix to False - fix functionality stays but is never enabled via CLI
-    args.fix = False
-
-    opts = []
-    if args.fix:
-        opts.append("fix")
-    if args.time_out != DEFAULT_TIMEOUT:
-        opts.append(f"timeout={args.time_out}s")
-
-    # Only log in fix mode
-    if args.fix:
-        log("Starting" + (f" ({', '.join(opts)})" if opts else ""))
-
-    os.chdir(PROJECT_ROOT)
-
-    # Check file existence early if --file is specified
-    if args.file:
-        target_file = args.file
-        if not Path(target_file).exists():
-            print(json_module.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-            return 1
-
-    # Run build (quiet mode when not fixing, for clean JSON output)
-    success, output = run_make(quiet=not args.fix)
-
-    if success:
-        if args.fix:
-            log(f"Build succeeded! (elapsed: {format_elapsed(time.time() - start_time)})")
-        else:
-            print(json_module.dumps({"ok": True}))
-        return 0
-
-    errors = parse_errors(output)
-
-    if not errors:
-        if args.fix:
-            log("make failed but couldn't parse errors")
-            log("Output tail:")
-            for line in output.split('\n')[-20:]:
-                log(f"  {line}")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-        else:
-            # Can't parse errors but build failed - report empty items
-            print(json_module.dumps({"ok": False, "items": []}))
-        return 1
-
-    # Default mode (no --fix): print JSON and exit
-    if not args.fix:
-        # Filter errors to target file if --file is specified
-        if args.file:
-            target_file = args.file
-            # Filter errors to target file
-            errors = [e for e in errors if e["file"] == target_file]
-        items = [format_error_item(error) for error in errors]
-        if not items and args.file:
-            # File exists, no errors - success
-            print(json_module.dumps({"ok": True}))
-            return 0
-        print(json_module.dumps({"ok": False, "items": items}))
-        return 1
-
-    log(f"Found {len(errors)} file(s) with errors")
-
-    pass_num = 0
-
-    while True:
-        pass_num += 1
-        log(f"=== Pass {pass_num} ===")
-
-        if pass_num > 1:
-            # Re-run make for subsequent passes
-            success, output = run_make()
-
-            if success:
-                log(f"Build succeeded! (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 0
-
-            errors = parse_errors(output)
-
-            if not errors:
-                log("make failed but couldn't parse errors")
-                log("Output tail:")
-                for line in output.split('\n')[-20:]:
-                    log(f"  {line}")
-                log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 1
-
-            log(f"Found {len(errors)} file(s) with errors")
-
-        fixed_count = 0
-        skipped = []
-        fix_times: list[float] = []
-
-        for i, error in enumerate(errors, 1):
-            file = error["file"]
-            line = error["line"]
-            msg = error["message"][:50]
-            log(f"[{i}/{len(errors)}] {file}:{line}: {msg}")
-
-            fix_start = time.time()
-            if try_fix_error(error, args.time_out):
-                fixed_count += 1
-            else:
-                skipped.append(f"{file}:{line}")
-            fix_elapsed = time.time() - fix_start
-            fix_times.append(fix_elapsed)
-            avg_time = sum(fix_times) / len(fix_times)
-            remaining = len(errors) - i
-            eta = avg_time * remaining
-            log(f"elapsed: {format_elapsed(fix_elapsed)} | ETA: {format_elapsed(eta)}")
-
-        log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
-
-        if fixed_count > 0 and len(skipped) == 0:
-            log(f"All errors fixed! (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
-
-        if fixed_count == 0:
-            log("No progress made. Stopping.")
-            if skipped:
-                log("Skipped errors:")
-                for f in skipped:
-                    log(f"  - {f}")
-            log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit(130)
+  end
+
+  # If no compiler errors, check for linker errors
+  if errors.empty?
+    # Linker error pattern: undefined reference to `symbol'
+    linker_matches = output.scan(/undefined reference to [`']([^'`]+)[`']/)
+
+    unless linker_matches.empty?
+      # Try to find the object file being linked
+      obj_match = output.match(/([^\s]+\.o):/)
+
+      errors << {
+        file: obj_match ? obj_match[1] : 'unknown',
+        line: '1',
+        col: '1',
+        message: "undefined reference to: #{linker_matches.flatten.take(3).join(', ')}"
+      }
+    end
+  end
+
+  errors
+end
+
+# Format error dict as 'file:line:col: message' string
+def format_error_item(error)
+  "#{error[:file]}:#{error[:line]}:#{error[:col]}: #{error[:message]}"
+end
+
+# Run make with appropriate parallelization
+def run_make_build
+  exit_code, output = run_cmd(['make', 'all', 'build-tests'])
+
+  [exit_code == 0, output]
+end
+
+def main
+  options = {}
+
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: run.rb [options]'
+    opts.on('--file FILE', 'Filter results to specific file') do |f|
+      options[:file] = f
+    end
+  end.parse!
+
+  # Change to project root (3 levels up from harness/compile/)
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
+
+  # Check file existence early if --file is specified
+  if options[:file]
+    target_file = options[:file]
+    unless File.exist?(target_file)
+      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
+      exit 1
+    end
+  end
+
+  # Run make clean first
+  run_cmd(['make', 'clean'])
+
+  # Run build
+  success, output = run_make_build
+
+  if success
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Parse errors
+  errors = parse_errors(output)
+
+  # Filter errors to target file if --file is specified
+  if options[:file]
+    target_file = options[:file]
+    errors = errors.select { |e| e[:file] == target_file }
+
+    if errors.empty?
+      # File exists, no errors - success
+      puts JSON.generate(ok: true)
+      exit 0
+    end
+  end
+
+  if errors.empty?
+    # Build failed but couldn't parse errors
+    puts JSON.generate(ok: false, items: [])
+    exit 1
+  end
+
+  # Format and output errors
+  items = errors.map { |e| format_error_item(e) }
+  puts JSON.generate(ok: false, items: items)
+  exit 1
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

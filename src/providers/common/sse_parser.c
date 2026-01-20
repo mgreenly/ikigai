@@ -20,7 +20,8 @@
 
 #define SSE_INITIAL_BUFFER_SIZE 4096
 
-ik_sse_parser_t *ik_sse_parser_create(void *parent) {
+ik_sse_parser_t *ik_sse_parser_create(void *parent)
+{
     ik_sse_parser_t *parser = talloc_zero(parent, ik_sse_parser_t);
     if (!parser) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate SSE parser"); // LCOV_EXCL_LINE
@@ -39,7 +40,8 @@ ik_sse_parser_t *ik_sse_parser_create(void *parent) {
     return parser;
 }
 
-void ik_sse_parser_feed(ik_sse_parser_t *parser, const char *data, size_t len) {
+void ik_sse_parser_feed(ik_sse_parser_t *parser, const char *data, size_t len)
+{
     assert(parser != NULL); // LCOV_EXCL_BR_LINE
     assert(data != NULL || len == 0); // LCOV_EXCL_BR_LINE
 
@@ -70,7 +72,8 @@ void ik_sse_parser_feed(ik_sse_parser_t *parser, const char *data, size_t len) {
     parser->buffer[parser->len] = '\0';
 }
 
-ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx) {
+ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx)
+{
     assert(parser != NULL); // LCOV_EXCL_BR_LINE
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
 
@@ -204,7 +207,8 @@ ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx) {
     return event;
 }
 
-bool ik_sse_event_is_done(const ik_sse_event_t *event) {
+bool ik_sse_event_is_done(const ik_sse_event_t *event)
+{
     assert(event != NULL); // LCOV_EXCL_BR_LINE
 
     if (!event->data) {
@@ -214,7 +218,8 @@ bool ik_sse_event_is_done(const ik_sse_event_t *event) {
     return strcmp(event->data, "[DONE]") == 0;
 }
 
-void ik_sse_parser_reset(ik_sse_parser_t *parser) {
+void ik_sse_parser_reset(ik_sse_parser_t *parser)
+{
     assert(parser != NULL); // LCOV_EXCL_BR_LINE
 
     parser->len = 0;

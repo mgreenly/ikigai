@@ -67,7 +67,10 @@ res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, const char *data_dir, ik
  * - ERR_DB_MIGRATE: Migration failed
  * - ERR_IO: Cannot read migrations directory
  */
-res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx);
+res_t ik_db_init_with_migrations(TALLOC_CTX *ctx,
+                                 const char *conn_str,
+                                 const char *migrations_dir,
+                                 ik_db_ctx_t **out_ctx);
 
 /**
  * Begin transaction

@@ -33,7 +33,7 @@ static ik_error_category_t status_to_category(int32_t status)
 }
 
 res_t ik_anthropic_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
-                                 ik_error_category_t *out_category)
+                                ik_error_category_t *out_category)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(body != NULL); // LCOV_EXCL_BR_LINE
