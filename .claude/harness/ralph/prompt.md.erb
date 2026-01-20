@@ -51,6 +51,8 @@ Use these instead of raw make commands. They return terse JSON summaries - no ou
 
 **Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) using the Bash tool. Do NOT background or tail logs, run them one at a time and just wait.
 
+**Quality gate requirement:** When goal acceptance criteria require all checks to pass, run them in the order listed above (compile → filesize → unit → integration → complexity → sanitize → tsan → valgrind → helgrind → coverage). All 10 must pass without file changes between runs. If any check fails, fix it and restart from the beginning of the sequence.
+
 **Single-file mode:** Use `--file=PATH` to get results for one file only. Same 60 minute timeout applies.
 ```bash
 .claude/harness/unit/run --file=src/config.c
