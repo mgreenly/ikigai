@@ -1,4 +1,5 @@
 #include "../../test_constants.h"
+#include "../../test_utils.h"
 
 #include <check.h>
 #include <inttypes.h>
@@ -12,32 +13,17 @@
 
 static TALLOC_CTX *test_ctx;
 static const char *tool_path = "libexec/ikigai/web-search-brave-tool";
-static char *test_config_dir;
 
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     unsetenv("BRAVE_API_KEY");
-
-    const char *home = getenv("HOME");
-    test_config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai_test_%d", home, getpid());
-    mkdir(test_config_dir, 0700);
-
-    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
-    setenv("IKIGAI_BIN_DIR", "/tmp/test_bin", 1);
-    setenv("IKIGAI_DATA_DIR", "/tmp/test_data", 1);
-    setenv("IKIGAI_LIBEXEC_DIR", "/tmp/test_libexec", 1);
+    test_paths_setup_env();
 }
 
 static void teardown(void)
 {
-    if (test_config_dir != NULL) {
-        rmdir(test_config_dir);
-    }
-    unsetenv("IKIGAI_CONFIG_DIR");
-    unsetenv("IKIGAI_BIN_DIR");
-    unsetenv("IKIGAI_DATA_DIR");
-    unsetenv("IKIGAI_LIBEXEC_DIR");
+    test_paths_cleanup_env();
     talloc_free(test_ctx);
 }
 
@@ -175,7 +161,8 @@ END_TEST
 START_TEST(test_credentials_from_file) {
     unsetenv("BRAVE_API_KEY");
 
-    char *cred_path = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char *cred_path = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
 
     FILE *f = fopen(cred_path, "w");
     if (f != NULL) {

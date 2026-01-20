@@ -1,4 +1,5 @@
 #include "../../test_constants.h"
+#include "../../test_utils.h"
 
 #include <check.h>
 #include <inttypes.h>
@@ -13,37 +14,20 @@
 #include "../../../src/tools/web_search_brave/credentials.h"
 
 static TALLOC_CTX *test_ctx;
-static char *test_config_dir;
-static char *test_config_file;
 
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
-
-    const char *home = getenv("HOME");
-    test_config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai_test_%d", home, getpid());
-    test_config_file = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
-
-    mkdir(test_config_dir, 0700);
-
-    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
-    setenv("IKIGAI_BIN_DIR", "/tmp/test_bin", 1);
-    setenv("IKIGAI_DATA_DIR", "/tmp/test_data", 1);
-    setenv("IKIGAI_LIBEXEC_DIR", "/tmp/test_libexec", 1);
+    test_paths_setup_env();
 }
 
 static void teardown(void)
 {
-    if (test_config_file != NULL) {
-        unlink(test_config_file);
-    }
-    if (test_config_dir != NULL) {
-        rmdir(test_config_dir);
-    }
-    unsetenv("IKIGAI_CONFIG_DIR");
-    unsetenv("IKIGAI_BIN_DIR");
-    unsetenv("IKIGAI_DATA_DIR");
-    unsetenv("IKIGAI_LIBEXEC_DIR");
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char config_file[512];
+    snprintf(config_file, sizeof(config_file), "%s/credentials.json", config_dir);
+    unlink(config_file);
+    test_paths_cleanup_env();
     talloc_free(test_ctx);
 }
 
@@ -77,6 +61,10 @@ START_TEST(test_load_from_file) {
 
     const char *json = "{\"web_search\":{\"brave\":{\"api_key\":\"file-api-key\"}}}";
 
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
+
     FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
@@ -99,6 +87,10 @@ START_TEST(test_file_missing_web_search_key) {
 
     const char *json = "{\"other_key\":{}}";
 
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
+
     FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
@@ -119,6 +111,10 @@ START_TEST(test_file_missing_brave_key) {
     unsetenv("BRAVE_API_KEY");
 
     const char *json = "{\"web_search\":{\"other_provider\":{}}}";
+
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
 
     FILE *f = fopen(test_config_file, "w");
     if (f) {
@@ -141,6 +137,10 @@ START_TEST(test_file_missing_api_key_field) {
 
     const char *json = "{\"web_search\":{\"brave\":{\"other_field\":\"value\"}}}";
 
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
+
     FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
@@ -161,6 +161,10 @@ START_TEST(test_file_api_key_not_string) {
     unsetenv("BRAVE_API_KEY");
 
     const char *json = "{\"web_search\":{\"brave\":{\"api_key\":123}}}";
+
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
 
     FILE *f = fopen(test_config_file, "w");
     if (f) {
@@ -183,6 +187,10 @@ START_TEST(test_file_invalid_json) {
 
     const char *json = "{invalid json here}";
 
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
+
     FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
@@ -201,6 +209,10 @@ END_TEST
 
 START_TEST(test_no_env_no_file) {
     unsetenv("BRAVE_API_KEY");
+
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
 
     struct stat st;
     bool had_file = (stat(test_config_file, &st) == 0);
@@ -225,6 +237,10 @@ START_TEST(test_no_home_fails) {
     unsetenv("BRAVE_API_KEY");
 
     const char *json = "{\"web_search\":{\"brave\":{\"api_key\":\"test-key\"}}}";
+
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
 
     FILE *f = fopen(test_config_file, "w");
     if (f) {
@@ -252,6 +268,10 @@ START_TEST(test_file_permission_error) {
     unsetenv("BRAVE_API_KEY");
 
     const char *json = "{\"web_search\":{\"brave\":{\"api_key\":\"test-key\"}}}";
+
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char test_config_file[512];
+    snprintf(test_config_file, sizeof(test_config_file), "%s/credentials.json", config_dir);
 
     FILE *f = fopen(test_config_file, "w");
     if (f) {
