@@ -14,6 +14,16 @@ jobs:
       image: debian:13.2@sha256:c71b05eac0b20adb4cdcc9f7b052227efd7da381ad10bb92f972e8eae7c6cdc9
       env:
         PGHOST: postgres
+        IKIGAI_DEV: 1
+        IKIGAI_BIN_DIR: /workspace/bin
+        IKIGAI_CONFIG_DIR: /workspace/etc/ikigai
+        IKIGAI_DATA_DIR: /workspace/share/ikigai
+        IKIGAI_LIBEXEC_DIR: /workspace/libexec/ikigai
+        BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+        GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
+        GOOGLE_SEARCH_ENGINE_ID: ${{ secrets.GOOGLE_SEARCH_ENGINE_ID }}
+        NTFY_API_KEY: ${{ secrets.NTFY_API_KEY }}
+        NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
 
     services:
       postgres:
