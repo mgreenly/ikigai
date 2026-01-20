@@ -6,12 +6,13 @@
 
 #include "wrapper_stdlib.h"
 
-#ifndef NDEBUG
-// LCOV_EXCL_START
-
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
+
+#ifndef NDEBUG
+// LCOV_EXCL_START
 
 // ============================================================================
 // C standard library wrappers - debug/test builds only
@@ -43,6 +44,11 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     return strftime(s, max, format, tm);
 #pragma GCC diagnostic pop
+}
+
+MOCKABLE char *getenv_(const char *name)
+{
+    return getenv(name);
 }
 
 // LCOV_EXCL_STOP

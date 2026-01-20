@@ -1,10 +1,12 @@
 #include "credentials.h"
+
 #include "json_allocator.h"
 #include "panic.h"
-#include "vendor/yyjson/yyjson.h"
-#include "wrapper.h"
+#include "wrapper_json.h"
+#include "wrapper_posix.h"
+#include "wrapper_stdlib.h"
+#include "wrapper_talloc.h"
 
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,7 +44,7 @@ static res_t expand_tilde(TALLOC_CTX *ctx, const char *path, char **out_path)
 static const char *get_env_nonempty(const char *name)
 {
     assert(name != NULL); // LCOV_EXCL_BR_LINE
-    const char *value = getenv(name);
+    const char *value = getenv_(name);
     if (value && value[0] != '\0') {
         return value;
     }

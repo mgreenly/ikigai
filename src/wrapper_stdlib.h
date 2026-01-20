@@ -35,12 +35,18 @@ MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct 
 #pragma GCC diagnostic pop
 }
 
+MOCKABLE char *getenv_(const char *name)
+{
+    return getenv(name);
+}
+
 #else
 
 MOCKABLE int vsnprintf_(char *str, size_t size, const char *format, va_list ap);
 MOCKABLE int snprintf_(char *str, size_t size, const char *format, ...);
 MOCKABLE struct tm *gmtime_(const time_t *timep);
 MOCKABLE size_t strftime_(char *s, size_t max, const char *format, const struct tm *tm);
+MOCKABLE char *getenv_(const char *name);
 
 #endif
 
