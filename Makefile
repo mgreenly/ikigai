@@ -52,25 +52,68 @@ endif
 # Diagnostic flags for cleaner error output
 DIAG_FLAGS = -fmax-errors=1 -fno-diagnostics-show-caret
 
+# Linker flags (varies by BUILD mode)
+LDFLAGS ?=
+ifeq ($(BUILD),sanitize)
+  LDFLAGS = -fsanitize=address,undefined -Wl,--gc-sections
+else ifeq ($(BUILD),tsan)
+  LDFLAGS = -fsanitize=thread -Wl,--gc-sections
+else
+  LDFLAGS = -Wl,--gc-sections
+endif
+
+# Linker libraries
+LDLIBS = -ltalloc -luuid -lb64 -lpthread -lutf8proc -lcurl -lpq -lxkbcommon -lxml2
+
+# Function/data sections for gc-sections
+SECTION_FLAGS = -ffunction-sections -fdata-sections
+
 # Combined compiler flags
-CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS)
+CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS) $(SECTION_FLAGS)
 
 # Relaxed flags for vendor files
 VENDOR_CFLAGS = $(BASE_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS) -Wno-conversion
 
 # Discover all source files
 SRC_FILES = $(shell find src -name '*.c' -not -path '*/vendor/*' 2>/dev/null)
+TOOL_FILES = $(shell find tools -name '*.c' 2>/dev/null)
 TEST_FILES = $(shell find tests -name '*.c' 2>/dev/null)
 VENDOR_FILES = $(shell find src/vendor -name '*.c' 2>/dev/null)
 
 # Convert to object files
 SRC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC_FILES))
+TOOL_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(TOOL_FILES))
 TEST_OBJECTS = $(patsubst tests/%.c,$(BUILDDIR)/tests/%.o,$(TEST_FILES))
 VENDOR_OBJECTS = $(patsubst src/vendor/%.c,$(BUILDDIR)/vendor/%.o,$(VENDOR_FILES))
 
 # All sources and objects
-ALL_SOURCES = $(SRC_FILES) $(TEST_FILES) $(VENDOR_FILES)
-ALL_OBJECTS = $(SRC_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
+ALL_SOURCES = $(SRC_FILES) $(TOOL_FILES) $(TEST_FILES) $(VENDOR_FILES)
+ALL_OBJECTS = $(SRC_OBJECTS) $(TOOL_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
+
+# Binary-specific objects
+VCR_STUBS = $(BUILDDIR)/tests/helpers/vcr_stubs_helper.o
+IKIGAI_OBJECTS = $(SRC_OBJECTS) $(VENDOR_OBJECTS) $(VCR_STUBS)
+
+# Test helper objects
+TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils_helper.o
+TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts_helper.o
+VCR_HELPER_OBJ = $(BUILDDIR)/tests/helpers/vcr_helper.o
+TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/helpers/terminal_pty_helper.o
+
+# Module objects for tests (all src objects + vendor, tools excluded naturally)
+MODULE_OBJ = $(SRC_OBJECTS) $(VENDOR_OBJECTS)
+
+# Discover all tool binaries
+TOOL_NAMES = $(shell find tools -name 'main.c' 2>/dev/null | sed 's|tools/||; s|/main.c||')
+TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(TOOL_NAMES))
+
+# Discover all test binaries
+UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' 2>/dev/null))
+INTEGRATION_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/integration -name '*_test.c' 2>/dev/null))
+TEST_BINARIES = $(UNIT_TEST_BINARIES) $(INTEGRATION_TEST_BINARIES)
+
+# All binaries
+ALL_BINARIES = bin/ikigai $(TOOL_BINARIES) $(TEST_BINARIES)
 
 # Parallel execution settings
 MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
@@ -107,11 +150,22 @@ $(BUILDDIR)/vendor/%.o: src/vendor/%.c
 		exit 1; \
 	fi
 
+# Pattern rule: compile tool files from tools/
+$(BUILDDIR)/tools/%.o: tools/%.c
+	@mkdir -p $(dir $@)
+	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
+
 # Include dependency files
 -include $(ALL_OBJECTS:.o=.d)
 
 # Include check targets
 include .make/check-compile.mk
+include .make/check-link.mk
 
 # clean: Remove build artifacts
 clean:
@@ -122,6 +176,7 @@ clean:
 help:
 	@echo "Available targets:"
 	@echo "  check-compile  - Compile all source files to .o files"
+	@echo "  check-link     - Link the main ikigai binary"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
 	@echo ""
@@ -135,4 +190,5 @@ help:
 	@echo "Examples:"
 	@echo "  make check-compile              - Compile all files"
 	@echo "  make check-compile FILE=src/main.c  - Compile single file"
+	@echo "  make check-link                 - Link bin/ikigai"
 	@echo "  make check-compile BUILD=release    - Compile in release mode"

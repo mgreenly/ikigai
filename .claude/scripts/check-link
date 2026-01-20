@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Harness wrapper for check-link target
+exec make check-link "$@"
