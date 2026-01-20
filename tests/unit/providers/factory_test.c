@@ -193,22 +193,16 @@ START_TEST(test_create_missing_credentials) {
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
 
-    // Get home directory and manipulate credentials
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        talloc_free(ctx);
-        ck_abort_msg("HOME not set");
-    }
-
-    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    // Create test-specific config directory
+    char *config_dir = talloc_asprintf(ctx, "/tmp/ikigai_factory_test_%d", getpid());
     char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
 
-    // Backup existing credentials if any
-    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
-    rename(creds_path, backup_path);  // OK if this fails (no existing file)
-
-    // Create directory if it doesn't exist
+    // Create directory
     mkdir(config_dir, 0700);
+
+    // Set IKIGAI_CONFIG_DIR to use our test directory
+    const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
+    setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
     // Create credentials file WITHOUT the provider we're requesting
     f = fopen(creds_path, "w");
@@ -230,9 +224,14 @@ START_TEST(test_create_missing_credentials) {
     ck_assert_int_eq(error_code(res.err), ERR_MISSING_CREDENTIALS);
     ck_assert_str_contains(error_message(res.err), "OPENAI_API_KEY");
 
-    // Restore credentials
+    // Cleanup: restore environment and remove test files
     unlink(creds_path);
-    rename(backup_path, creds_path);  // OK if this fails
+    rmdir(config_dir);
+    if (orig_config_dir != NULL) {
+        setenv("IKIGAI_CONFIG_DIR", orig_config_dir, 1);
+    } else {
+        unsetenv("IKIGAI_CONFIG_DIR");
+    }
 
     talloc_free(ctx);
 }
@@ -243,22 +242,16 @@ START_TEST(test_create_success_openai) {
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
 
-    // Get home directory and manipulate credentials
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        talloc_free(ctx);
-        ck_abort_msg("HOME not set");
-    }
-
-    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    // Create test-specific config directory
+    char *config_dir = talloc_asprintf(ctx, "/tmp/ikigai_factory_test_%d", getpid());
     char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
 
-    // Backup existing credentials if any
-    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
-    rename(creds_path, backup_path);  // OK if this fails (no existing file)
-
-    // Create directory if it doesn't exist
+    // Create directory
     mkdir(config_dir, 0700);
+
+    // Set IKIGAI_CONFIG_DIR to use our test directory
+    const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
+    setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
     // Create credentials file with openai credentials
     f = fopen(creds_path, "w");
@@ -278,9 +271,14 @@ START_TEST(test_create_success_openai) {
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(provider);
 
-    // Restore credentials
+    // Cleanup: restore environment and remove test files
     unlink(creds_path);
-    rename(backup_path, creds_path);  // OK if this fails
+    rmdir(config_dir);
+    if (orig_config_dir != NULL) {
+        setenv("IKIGAI_CONFIG_DIR", orig_config_dir, 1);
+    } else {
+        unsetenv("IKIGAI_CONFIG_DIR");
+    }
 
     talloc_free(ctx);
 }
@@ -291,22 +289,16 @@ START_TEST(test_create_success_anthropic) {
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
 
-    // Get home directory and manipulate credentials
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        talloc_free(ctx);
-        ck_abort_msg("HOME not set");
-    }
-
-    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    // Create test-specific config directory
+    char *config_dir = talloc_asprintf(ctx, "/tmp/ikigai_factory_test_%d", getpid());
     char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
 
-    // Backup existing credentials if any
-    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
-    rename(creds_path, backup_path);  // OK if this fails (no existing file)
-
-    // Create directory if it doesn't exist
+    // Create directory
     mkdir(config_dir, 0700);
+
+    // Set IKIGAI_CONFIG_DIR to use our test directory
+    const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
+    setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
     // Create credentials file with anthropic credentials
     f = fopen(creds_path, "w");
@@ -326,9 +318,14 @@ START_TEST(test_create_success_anthropic) {
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(provider);
 
-    // Restore credentials
+    // Cleanup: restore environment and remove test files
     unlink(creds_path);
-    rename(backup_path, creds_path);  // OK if this fails
+    rmdir(config_dir);
+    if (orig_config_dir != NULL) {
+        setenv("IKIGAI_CONFIG_DIR", orig_config_dir, 1);
+    } else {
+        unsetenv("IKIGAI_CONFIG_DIR");
+    }
 
     talloc_free(ctx);
 }
@@ -339,22 +336,16 @@ START_TEST(test_create_success_google) {
     ik_provider_t *provider = NULL;
     FILE *f = NULL;
 
-    // Get home directory and manipulate credentials
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        talloc_free(ctx);
-        ck_abort_msg("HOME not set");
-    }
-
-    char *config_dir = talloc_asprintf(ctx, "%s/.config/ikigai", home);
+    // Create test-specific config directory
+    char *config_dir = talloc_asprintf(ctx, "/tmp/ikigai_factory_test_%d", getpid());
     char *creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
 
-    // Backup existing credentials if any
-    char *backup_path = talloc_asprintf(ctx, "%s.test_backup_%d", creds_path, getpid());
-    rename(creds_path, backup_path);  // OK if this fails (no existing file)
-
-    // Create directory if it doesn't exist
+    // Create directory
     mkdir(config_dir, 0700);
+
+    // Set IKIGAI_CONFIG_DIR to use our test directory
+    const char *orig_config_dir = getenv("IKIGAI_CONFIG_DIR");
+    setenv("IKIGAI_CONFIG_DIR", config_dir, 1);
 
     // Create credentials file with google credentials
     f = fopen(creds_path, "w");
@@ -374,9 +365,14 @@ START_TEST(test_create_success_google) {
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(provider);
 
-    // Restore credentials
+    // Cleanup: restore environment and remove test files
     unlink(creds_path);
-    rename(backup_path, creds_path);  // OK if this fails
+    rmdir(config_dir);
+    if (orig_config_dir != NULL) {
+        setenv("IKIGAI_CONFIG_DIR", orig_config_dir, 1);
+    } else {
+        unsetenv("IKIGAI_CONFIG_DIR");
+    }
 
     talloc_free(ctx);
 }
