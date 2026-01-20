@@ -1,6 +1,8 @@
-# ikigai
-
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
+
+⚠️ This is an early stage experiment. Stay way, you absolutely should not try and use this, it's not ready!
+
+# ikigai
 
 An experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
 

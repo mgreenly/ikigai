@@ -160,98 +160,74 @@ $ .claude/harness/compile/fix
 [Commits on success, reverts on failure]
 ```
 
-## Output Format Requirements
+## Output Format Requirements (CRITICAL)
 
-All check-* targets follow the same output pattern for consistency and parseability.
+**These two rules are non-negotiable. Every check-* target MUST follow them exactly.**
 
-### Example Outputs
+### Rule 1: Bulk Mode (no FILE=)
 
-#### Bulk Mode: Complete Success
+**One line per file/target. Green circle or red circle. Nothing else.**
 
-```bash
-$ make check-compile
-🟢 src/main.c
-🟢 src/config.c
-🟢 src/agent.c
-🟢 src/error.c
-🟢 src/logger.c
-🟢 src/repl.c
-🟢 tests/unit/config_test.c
-🟢 tests/unit/agent_test.c
-🟢 src/vendor/yyjson/yyjson.c
-🟢 src/vendor/fzy/match.c
-✅ All files compiled
-$ echo $?
-0
 ```
-
-#### Bulk Mode: Partial Failure
-
-```bash
-$ make check-compile
 🟢 src/main.c
 🟢 src/config.c
 🔴 src/agent.c
 🟢 src/error.c
-🟢 src/logger.c
-🔴 src/repl.c
-🟢 tests/unit/config_test.c
-🟢 tests/unit/agent_test.c
-🔴 tests/unit/repl_test.c
-🟢 src/vendor/yyjson/yyjson.c
-🟢 src/vendor/fzy/match.c
-❌ 3 files failed to compile
-make: *** [.make/check-compile.mk:30: check-compile] Error 1
-$ echo $?
-2
+✅ All files compiled
 ```
 
-**Bulk Mode Rules:**
-- One line per file: `🟢 filename` or `🔴 filename`
-- Files process in parallel, output may be interleaved but synchronized per line
-- Final summary: `✅ All files <verb>` (success) or `❌ N files failed to <verb>` (failure)
-- No other output (no "Building...", no progress bars, no verbose logs)
-- Exit code 0 on success, non-zero on failure
-
-#### Single File Mode: Success
-
-```bash
-$ make check-compile FILE=src/main.c
+Or on failure:
+```
 🟢 src/main.c
-$ echo $?
-0
+🔴 src/agent.c
+❌ 1 files failed to compile
 ```
 
-#### Single File Mode: Failure
+- Each file gets exactly ONE line: `🟢 path` or `🔴 path`
+- Final summary line: `✅ All ...` or `❌ N failed ...`
+- **Nothing else.** No "Building...", no progress, no verbose output.
+- Exit code: 0 on success, non-zero on failure
 
+### Rule 2: Single File Mode (FILE=path)
+
+**One line per error. Red circle followed by error description. Nothing else.**
+
+Success:
+```
+🟢 src/main.c
+```
+
+Failure:
+```
+🔴 src/agent.c:42:5: error: 'unknown_var' undeclared
+🔴 src/agent.c:50:10: error: expected ';' before '}'
+```
+
+- Success: exactly ONE line `🟢 path`
+- Failure: ONE line per error, each starting with `🔴 `
+- Error format: `🔴 path:line:col: message`
+- **No summary line** in single-file mode
+- Exit code: 0 on success, non-zero on failure
+
+### The Unavoidable `make: ***` Line
+
+When a recipe exits non-zero, make prints `make: *** [target] Error N` to stderr. **This cannot be suppressed from within the Makefile.** It's printed by make itself after the recipe completes.
+
+For direct `make` invocation, users will see this trailing line:
+```
+🔴 src/agent.c:42:5: error: 'unknown_var' undeclared
+make: *** [.make/check-compile.mk:30: check-compile] Error 1
+```
+
+The harness wrapper scripts (`.claude/scripts/check-*`) filter this line:
 ```bash
-$ make check-compile FILE=src/agent.c
-🔴 src/agent.c:42:5: error: 'unknown_var' undeclared (first use in this function)
-$ echo $?
-2
+make check-link "$@" 2>&1 | grep -v "^make: \*\*\*"
+exit ${PIPESTATUS[0]}
 ```
 
-#### Single File Mode: Multiple Errors (One Line Per Error)
-
-```bash
-$ make check-compile FILE=tests/unit/web_search_brave_direct_test.c
-🔴 tests/unit/web_search_brave_direct_test.c:1:10: fatal error: web_search_brave.h: No such file or directory
-$ echo $?
-2
-```
-
-**Single File Mode Rules:**
-- Success: Exactly one line `🟢 filename`
-- Failure: One `🔴` line per error/issue in that file
-- Each error line starts with `🔴 `
-- Format: `🔴 filename:line:col: error message` (follows compiler error format)
-- With `-fmax-errors=1`, only first error shown per file
-- No summary line in single-file mode
-- Exit code 0 on success, non-zero on failure
+**Accept this limitation.** Don't waste time trying to suppress it from the Makefile.
 
 ### Compiler Flags for Clean Output
-
-To ensure one-line-per-error output, use these flags:
 
 ```makefile
 DIAG_FLAGS = -fmax-errors=1 -fno-diagnostics-show-caret
@@ -268,12 +244,15 @@ The build system integrates with the `.claude/harness/` system through a three-l
 
 ### Level 2: `.claude/scripts/check-<name>`
 - Thin wrapper script
-- Calls `make check-<name> --no-spinner`
+- Filters make's `make: ***` error line from output
+- Preserves exit code
 - Used by harness system
 
 ```bash
 #!/usr/bin/env bash
-exec make check-<name> "$@" --no-spinner
+# Harness wrapper - filters make's error messages for clean output
+make check-<name> "$@" 2>&1 | grep -v "^make: \*\*\*"
+exit ${PIPESTATUS[0]}
 ```
 
 ### Level 3: `.claude/harness/<name>/fix`
@@ -284,7 +263,9 @@ exec make check-<name> "$@" --no-spinner
 
 ## Parallelization (CRITICAL REQUIREMENT)
 
-**ALL check-* targets MUST honor MAKE_JOBS and run in parallel by default.**
+**Parallel execution is non-negotiable. Any approach that runs serially will be rejected.**
+
+This is a hard constraint, not a preference. If an implementation choice cannot support parallel execution, find a different approach. Serial builds are unacceptable on modern multi-core machines.
 
 ```makefile
 MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
@@ -292,9 +273,9 @@ MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
 
 ### Requirements
 
-1. **Default parallel execution**: Every check-* target that processes multiple files MUST use `-j$(MAKE_JOBS)`
+1. **Default parallel execution**: Every check-* target MUST use `-j$(MAKE_JOBS)`. No exceptions.
 2. **MAKE_JOBS respected**: Users can override: `make check-compile MAKE_JOBS=8`
-3. **No serial fallbacks**: Never run serially when parallel is possible
+3. **No serial fallbacks**: If something can't parallelize, redesign it until it can.
 4. **Output synchronization**: Use `--output-sync=line` for clean parallel output
 5. **Keep going**: Use `-k` flag to continue on errors and report all failures
 
@@ -335,6 +316,91 @@ endif
 ```
 
 Usage: `make check-compile BUILD=release`
+
+## Test Linking: Mock and Helper Discovery
+
+Tests link against `MODULE_OBJ` (all src/*.o except main.o) plus automatically discovered helpers and mocks.
+
+### The Problem
+
+Tests often define mock implementations of functions that also exist in `MODULE_OBJ`:
+```c
+// In test file - conflicts with real implementation
+res_t ik_db_message_insert(...) { /* mock */ }
+```
+
+This causes "multiple definition" linker errors.
+
+### The Solution
+
+1. **`--allow-multiple-definition`**: Added to test link flags. Allows duplicate symbols.
+2. **Link order matters**: Mocks/helpers linked BEFORE `MODULE_OBJ`. First definition wins.
+3. **Automatic discovery**: Dependencies extracted from `.d` files generated during compilation.
+
+### Dependency Extraction Pattern
+
+The `.d` file (generated by `-MMD -MP`) lists all headers a source file includes. We extract linkable dependencies:
+
+```makefile
+# Extract *_helper.o, *_mock.o, and helpers/*_test.o from .d file
+define deps_from_d_file_script
+grep -oE '[^ \\:]*(_helper|_mock)\.h|[^ \\:]*helpers/[^ \\:]*_test\.h' $(1) 2>/dev/null | \
+  sort -u | while read p; do \
+    # Normalize ../.. paths
+    while echo "$$p" | grep -q '[^/]*/\.\./'; do p=$$(echo "$$p" | sed 's|[^/]*/\.\./||'); done; \
+    echo "$(BUILDDIR)/$${p%.h}.o"; \
+  done
+endef
+```
+
+This discovers:
+- `*_helper.h` → `*_helper.o` (test helpers)
+- `*_mock.h` → `*_mock.o` (mock implementations)
+- `helpers/*_test.h` → `helpers/*_test.o` (test suite helpers)
+
+### Link Command Structure
+
+```makefile
+$(CC) $(LDFLAGS) -Wl,--allow-multiple-definition \
+    -o $@ \
+    $<                    # test.o (may contain inline mocks)
+    $$deps                # discovered helpers/mocks (override MODULE_OBJ)
+    $(MODULE_OBJ)         # real implementations (overridden by earlier defs)
+    $(TOOL_LIB_OBJECTS)   # tool library objects
+    $(VCR_STUBS)          # VCR weak symbol stubs
+    -lcheck -lm ...       # libraries
+```
+
+### Test Binary Discovery
+
+Tests are discovered by pattern, excluding helper directories:
+
+```makefile
+# Exclude helpers/ - those are test suite helpers, not standalone tests
+UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,\
+    $(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*'))
+```
+
+Files in `helpers/` directories (like `helpers/openai_serialize_user_test.c`) are compiled as objects but not built as standalone binaries - they're linked into coordinator tests.
+
+### Multi-Phase Targets
+
+When a target needs prerequisites built first (e.g., check-link needs objects before linking), **do NOT use make prerequisites**. Order-only prerequisites like `target: | $(PREREQS)` build serially. The `-j` flag only applies to the recipe, not prerequisite resolution.
+
+**Solution**: Explicit multi-phase recipes with parallel builds in each phase.
+
+```makefile
+check-link:
+ifndef FILE
+	@# Phase 1: Compile all objects in parallel
+	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS) 2>&1 | grep -E "^(🟢|🔴)" || true
+	@# Phase 2: Link all binaries in parallel
+	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_BINARIES) 2>&1 | grep -E "^(🟢|🔴)" || true; \
+	# ... count failures and report
+endif
+```
+
+This pattern applies to ANY target with dependencies - always use explicit parallel invocations, never rely on make's prerequisite system for bulk operations.
 
 ## Pattern Rules
 

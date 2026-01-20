@@ -98,18 +98,28 @@ IKIGAI_OBJECTS = $(SRC_OBJECTS) $(VENDOR_OBJECTS) $(VCR_STUBS)
 TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils_helper.o
 TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts_helper.o
 VCR_HELPER_OBJ = $(BUILDDIR)/tests/helpers/vcr_helper.o
-TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/helpers/terminal_pty_helper.o
+TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helper.o
+REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helper.o
+REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helper.o
+OPENAI_SERIALIZE_HELPERS_OBJ = $(patsubst tests/%.c,$(BUILDDIR)/tests/%.o,$(shell find tests/unit/providers/openai/helpers -name '*.c' 2>/dev/null))
+MESSAGE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/message/message_tool_call_helper.o $(BUILDDIR)/tests/unit/message/message_tool_result_helper.o $(BUILDDIR)/tests/unit/message/message_thinking_helper.o
+AGENT_RESTORE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/repl/agent_restore_test_helper.o
+ANTHROPIC_SERIALIZE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helper.o $(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helper.o
 
-# Module objects for tests (all src objects + vendor, tools excluded naturally)
-MODULE_OBJ = $(SRC_OBJECTS) $(VENDOR_OBJECTS)
+# Module objects for tests and tools (all src objects + vendor, EXCEPT main.o)
+MODULE_OBJ = $(filter-out $(BUILDDIR)/main.o,$(SRC_OBJECTS)) $(VENDOR_OBJECTS)
+
+# Tool objects for tests (all tool objects EXCEPT main.o files)
+TOOL_MAIN_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(shell find tools -name 'main.c' 2>/dev/null))
+TOOL_LIB_OBJECTS = $(filter-out $(TOOL_MAIN_OBJECTS),$(TOOL_OBJECTS))
 
 # Discover all tool binaries
 TOOL_NAMES = $(shell find tools -name 'main.c' 2>/dev/null | sed 's|tools/||; s|/main.c||')
 TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(TOOL_NAMES))
 
-# Discover all test binaries
-UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' 2>/dev/null))
-INTEGRATION_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/integration -name '*_test.c' 2>/dev/null))
+# Discover all test binaries (exclude helpers/ - those are test suite helpers, not standalone tests)
+UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
+INTEGRATION_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/integration -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
 TEST_BINARIES = $(UNIT_TEST_BINARIES) $(INTEGRATION_TEST_BINARIES)
 
 # All binaries

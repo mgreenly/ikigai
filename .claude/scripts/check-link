@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 # Harness wrapper for check-link target
-exec make check-link "$@"
+# Filters make's error messages for clean output
+make check-link "$@" 2>&1 | grep -v "^make: \*\*\*"
+exit ${PIPESTATUS[0]}
