@@ -4,6 +4,7 @@
 #include "domain_utils.h"
 #include "json_allocator.h"
 #include "panic.h"
+#include "paths.h"
 #include "wrapper_posix.h"
 #include "wrapper_stdlib.h"
 #include "wrapper_web.h"
@@ -47,9 +48,11 @@ int32_t web_search_brave_execute(void *ctx, const web_search_brave_params_t *par
         api_key = talloc_strdup(ctx, env_key);
         if (api_key == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     } else {
-        const char *home = getenv_("HOME");
-        if (home != NULL) {
-            char *cred_path = talloc_asprintf(ctx, "%s/.config/ikigai/credentials.json", home);
+        ik_paths_t *paths = NULL;
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        if (is_ok(&paths_res)) {
+            const char *config_dir = ik_paths_get_config_dir(paths);
+            char *cred_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
             if (cred_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
             FILE *f = fopen_(cred_path, "r");

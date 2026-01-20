@@ -2,6 +2,7 @@
 
 #include "../../json_allocator.h"
 #include "../../panic.h"
+#include "../../paths.h"
 #include "../../wrapper.h"
 
 #include "../../vendor/yyjson/yyjson.h"
@@ -75,16 +76,11 @@ int32_t load_credentials(void *ctx, char **out_api_key, char **out_engine_id)
     if (api_key_env != NULL) {
         *out_api_key = talloc_strdup(ctx, api_key_env);
     } else {
-        const char *home = getenv_("HOME");
-        if (home == NULL) {
-            struct passwd *pw = getpwuid_(getuid());
-            if (pw != NULL) {
-                home = pw->pw_dir;
-            }
-        }
-
-        if (home != NULL) {
-            char *config_path = talloc_asprintf(ctx, "%s/.config/ikigai/credentials.json", home);
+        ik_paths_t *paths = NULL;
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        if (is_ok(&paths_res)) {
+            const char *config_dir = ik_paths_get_config_dir(paths);
+            char *config_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
             if (load_credential_from_file(ctx, config_path, "api_key", out_api_key) != 0) {
                 *out_api_key = NULL;
             }
@@ -97,16 +93,11 @@ int32_t load_credentials(void *ctx, char **out_api_key, char **out_engine_id)
     if (engine_id_env != NULL) {
         *out_engine_id = talloc_strdup(ctx, engine_id_env);
     } else {
-        const char *home = getenv_("HOME");
-        if (home == NULL) {
-            struct passwd *pw = getpwuid_(getuid());
-            if (pw != NULL) {
-                home = pw->pw_dir;
-            }
-        }
-
-        if (home != NULL) {
-            char *config_path = talloc_asprintf(ctx, "%s/.config/ikigai/credentials.json", home);
+        ik_paths_t *paths = NULL;
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        if (is_ok(&paths_res)) {
+            const char *config_dir = ik_paths_get_config_dir(paths);
+            char *config_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
             if (load_credential_from_file(ctx, config_path, "engine_id", out_engine_id) != 0) {
                 *out_engine_id = NULL;
             }
