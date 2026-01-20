@@ -1,9 +1,9 @@
 #include "web_search_brave.h"
 
-#include "../../credentials.h"
-#include "../../error.h"
 #include "auth_error.h"
+#include "credentials.h"
 #include "domain_utils.h"
+#include "error.h"
 #include "json_allocator.h"
 #include "panic.h"
 #include "wrapper_posix.h"

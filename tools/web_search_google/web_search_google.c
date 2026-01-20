@@ -1,7 +1,7 @@
 #include "web_search_google.h"
 
-#include "../../credentials.h"
-#include "../../error.h"
+#include "credentials.h"
+#include "error.h"
 #include "error_output.h"
 #include "http_utils.h"
 #include "json_allocator.h"

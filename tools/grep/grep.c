@@ -1,5 +1,8 @@
 #include "grep.h"
 
+#include "panic.h"
+#include "wrapper_posix.h"
+
 #include <glob.h>
 #include <regex.h>
 #include <stdio.h>
@@ -7,9 +10,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <talloc.h>
-
-#include "../../panic.h"
-#include "../../wrapper_posix.h"
 
 int32_t grep_search(void *ctx, const grep_params_t *params, grep_result_t *out)
 {

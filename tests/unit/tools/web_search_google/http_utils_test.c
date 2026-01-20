@@ -1,6 +1,6 @@
 #include "../../../test_constants.h"
 
-#include "../../../../src/tools/web_search_google/http_utils.h"
+#include "tools/web_search_google/http_utils.h"
 
 #include <check.h>
 #include <string.h>

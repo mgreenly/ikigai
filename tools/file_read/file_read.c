@@ -1,8 +1,8 @@
 #include "file_read.h"
 
-#include "../../json_allocator.h"
-#include "../../panic.h"
-#include "../../wrapper_posix.h"
+#include "json_allocator.h"
+#include "panic.h"
+#include "wrapper_posix.h"
 
 #include <errno.h>
 #include <stdio.h>

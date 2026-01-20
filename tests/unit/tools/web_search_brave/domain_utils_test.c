@@ -1,4 +1,4 @@
-#include "../../../../src/tools/web_search_brave/domain_utils.h"
+#include "tools/web_search_brave/domain_utils.h"
 
 #include <check.h>
 #include <inttypes.h>

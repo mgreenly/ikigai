@@ -1,6 +1,6 @@
 #include "../../../test_constants.h"
 
-#include "../../../../src/tools/web_search_google/error_output.h"
+#include "tools/web_search_google/error_output.h"
 
 #include <check.h>
 #include <stdlib.h>

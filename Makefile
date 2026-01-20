@@ -32,7 +32,7 @@ TSAN_FLAGS = -fsanitize=thread
 VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
 
 # Base flags
-BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -Isrc -I/usr/include/postgresql -I/usr/include/libxml2
+BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -I. -Isrc -I/usr/include/postgresql -I/usr/include/libxml2
 
 # Build type selection (debug, release, sanitize, tsan, or valgrind)
 BUILD ?= debug

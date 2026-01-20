@@ -1,7 +1,7 @@
 #include "../../../test_constants.h"
 
-#include "../../../../src/json_allocator.h"
-#include "../../../../src/tools/web_search_google/result_utils.h"
+#include "json_allocator.h"
+#include "tools/web_search_google/result_utils.h"
 
 #include <check.h>
 #include <talloc.h>

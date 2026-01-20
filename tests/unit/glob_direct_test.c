@@ -1,7 +1,7 @@
-#include "../../src/tools/glob/glob_tool.h"
+#include "tools/glob/glob_tool.h"
 
-#include "../../src/json_allocator.h"
-#include "../../src/panic.h"
+#include "json_allocator.h"
+#include "panic.h"
 
 #include <check.h>
 #include <glob.h>

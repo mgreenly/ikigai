@@ -1,6 +1,6 @@
 #include "../../../test_constants.h"
 
-#include "../../../../src/tools/web_search_brave/auth_error.h"
+#include "tools/web_search_brave/auth_error.h"
 
 #include <check.h>
 #include <stdio.h>

@@ -1,5 +1,8 @@
 #include "grep.h"
 
+#include "json_allocator.h"
+#include "panic.h"
+
 #include <inttypes.h>
 #include <regex.h>
 #include <stdio.h>
@@ -7,10 +10,7 @@
 #include <string.h>
 #include <talloc.h>
 
-#include "../../json_allocator.h"
-#include "../../panic.h"
-
-#include "../../vendor/yyjson/yyjson.h"
+#include "vendor/yyjson/yyjson.h"
 
 /* LCOV_EXCL_START */
 int32_t main(int32_t argc, char **argv)

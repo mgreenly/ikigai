@@ -1,3 +1,5 @@
+#include "tools/grep/grep.h"
+
 #include <check.h>
 #include <glob.h>
 #include <stdio.h>
@@ -5,8 +7,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <talloc.h>
-
-#include "../../src/tools/grep/grep.h"
 
 // Wrapper function declarations
 int glob_(const char *pattern, int flags, int (*errfunc)(const char *, int), glob_t *pglob);
