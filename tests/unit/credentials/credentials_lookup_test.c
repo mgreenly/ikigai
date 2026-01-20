@@ -428,6 +428,59 @@ START_TEST(test_env_var_without_file_credentials) {
 }
 
 END_TEST
+
+START_TEST(test_env_var_overrides_file_brave_google_search_ntfy) {
+    const char *tmpfile = "/tmp/test_creds_override_all.json";
+    FILE *f = fopen(tmpfile, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"BRAVE_API_KEY\":\"file-key-brave\","
+            "\"GOOGLE_SEARCH_API_KEY\":\"file-key-google-search\","
+            "\"GOOGLE_SEARCH_ENGINE_ID\":\"file-id-google-engine\","
+            "\"NTFY_API_KEY\":\"file-key-ntfy\","
+            "\"NTFY_TOPIC\":\"file-topic-ntfy\"}");
+    fclose(f);
+    chmod(tmpfile, 0600);
+
+    setenv("BRAVE_API_KEY", "env-key-brave", 1);
+    setenv("GOOGLE_SEARCH_API_KEY", "env-key-google-search", 1);
+    setenv("GOOGLE_SEARCH_ENGINE_ID", "env-id-google-engine", 1);
+    setenv("NTFY_API_KEY", "env-key-ntfy", 1);
+    setenv("NTFY_TOPIC", "env-topic-ntfy", 1);
+
+    ik_credentials_t *creds = NULL;
+    res_t result = ik_credentials_load(test_ctx, tmpfile, &creds);
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(creds);
+
+    const char *brave_key = ik_credentials_get(creds, "BRAVE_API_KEY");
+    ck_assert_ptr_nonnull(brave_key);
+    ck_assert_str_eq(brave_key, "env-key-brave");
+
+    const char *google_search_key = ik_credentials_get(creds, "GOOGLE_SEARCH_API_KEY");
+    ck_assert_ptr_nonnull(google_search_key);
+    ck_assert_str_eq(google_search_key, "env-key-google-search");
+
+    const char *google_engine_id = ik_credentials_get(creds, "GOOGLE_SEARCH_ENGINE_ID");
+    ck_assert_ptr_nonnull(google_engine_id);
+    ck_assert_str_eq(google_engine_id, "env-id-google-engine");
+
+    const char *ntfy_key = ik_credentials_get(creds, "NTFY_API_KEY");
+    ck_assert_ptr_nonnull(ntfy_key);
+    ck_assert_str_eq(ntfy_key, "env-key-ntfy");
+
+    const char *ntfy_topic = ik_credentials_get(creds, "NTFY_TOPIC");
+    ck_assert_ptr_nonnull(ntfy_topic);
+    ck_assert_str_eq(ntfy_topic, "env-topic-ntfy");
+
+    unsetenv("BRAVE_API_KEY");
+    unsetenv("GOOGLE_SEARCH_API_KEY");
+    unsetenv("GOOGLE_SEARCH_ENGINE_ID");
+    unsetenv("NTFY_API_KEY");
+    unsetenv("NTFY_TOPIC");
+    unlink(tmpfile);
+}
+
+END_TEST
 /* Mock functions for testing edge cases */
 static bool mock_yyjson_doc_get_root_null = false;
 yyjson_val *yyjson_doc_get_root_(yyjson_doc *doc)
@@ -512,6 +565,7 @@ static Suite *credentials_suite(void)
     tcase_add_test(tc_core, test_tilde_expansion_no_home);
     tcase_add_test(tc_core, test_empty_env_var_ignored);
     tcase_add_test(tc_core, test_env_var_without_file_credentials);
+    tcase_add_test(tc_core, test_env_var_overrides_file_brave_google_search_ntfy);
     tcase_add_test(tc_core, test_yyjson_doc_get_root_null);
     tcase_add_test(tc_core, test_yyjson_get_str_null);
     suite_add_tcase(s, tc_core);
