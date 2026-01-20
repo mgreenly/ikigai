@@ -1,9 +1,9 @@
-#include "web_search_google.h"
+#include "tools/web_search_google/web_search_google.h"
 
-#include "http_utils.h"
+#include "tools/web_search_google/http_utils.h"
 #include "json_allocator.h"
 #include "panic.h"
-#include "response_processor.h"
+#include "tools/web_search_google/response_processor.h"
 #include "wrapper_web.h"
 
 #include <check.h>
