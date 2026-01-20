@@ -1215,7 +1215,7 @@ distro-images:
 	@echo "Building Docker images for distributions: $(DISTROS)"
 	@for distro in $(DISTROS); do \
 		echo "Building ikigai-ci-$$distro..."; \
-		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
+		script -q -e -c "docker build --progress=plain -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro ." /dev/null || exit 1; \
 	done
 	@echo "🟢 All images built successfully!"
 
@@ -1229,7 +1229,7 @@ distro-images-clean:
 
 distro-clean:
 	@echo "Cleaning build artifacts using $(word 1,$(DISTROS)) Docker image..."
-	@docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$(word 1,$(DISTROS)) bash -c "make clean"
+	@script -q -e -c "docker run --rm --user $$(id -u):$$(id -g) -v \"$$(pwd)\":/workspace ikigai-ci-$(word 1,$(DISTROS)) bash -c 'make clean'" /dev/null
 	@echo "🟢 Clean complete!"
 
 distro-check:
@@ -1239,11 +1239,11 @@ distro-check:
 		echo "=== Testing on $$distro ==="; \
 		if [ -f distros/$$distro/docker-compose.yml ]; then \
 			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml down -v 2>/dev/null || true; \
-			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml up --build --abort-on-container-exit --exit-code-from test || exit 1; \
+			script -q -e -c "UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml up --build --abort-on-container-exit --exit-code-from test" /dev/null || exit 1; \
 			UID=$$(id -u) GID=$$(id -g) docker-compose -f distros/$$distro/docker-compose.yml down -v; \
 		else \
-			docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
-			docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "make ci" || exit 1; \
+			script -q -e -c "docker build --progress=plain -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro ." /dev/null || exit 1; \
+			script -q -e -c "docker run --rm --user $$(id -u):$$(id -g) -v \"$$(pwd)\":/workspace ikigai-ci-$$distro bash -c 'make ci'" /dev/null || exit 1; \
 		fi; \
 		echo "🟢 $$distro passed!"; \
 	done
@@ -1256,8 +1256,8 @@ distro-package:
 	@for distro in $(DISTROS); do \
 		echo ""; \
 		echo "=== Building package for $$distro ==="; \
-		docker build -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro . || exit 1; \
-		docker run --rm --user $$(id -u):$$(id -g) -v "$$(pwd)":/workspace ikigai-ci-$$distro bash -c "distros/$$distro/package.sh" || exit 1; \
+		script -q -e -c "docker build --progress=plain -f distros/$$distro/Dockerfile -t ikigai-ci-$$distro ." /dev/null || exit 1; \
+		script -q -e -c "docker run --rm --user $$(id -u):$$(id -g) -v \"$$(pwd)\":/workspace ikigai-ci-$$distro bash -c 'distros/$$distro/package.sh'" /dev/null || exit 1; \
 		echo "🟢 $$distro package built!"; \
 	done
 	@echo ""
