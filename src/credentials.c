@@ -49,6 +49,24 @@ static const char *get_env_nonempty(const char *name)
     return NULL;
 }
 
+// Helper to load a single credential from flat JSON structure
+static void load_credential_field(yyjson_val *root, const char *key, ik_credentials_t *creds, char **field)
+{
+    assert(root != NULL); // LCOV_EXCL_BR_LINE
+    assert(key != NULL); // LCOV_EXCL_BR_LINE
+    assert(creds != NULL); // LCOV_EXCL_BR_LINE
+    assert(field != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *val = yyjson_obj_get_(root, key);
+    if (val && yyjson_is_str(val)) {
+        const char *str = yyjson_get_str_(val);
+        if (str && str[0] != '\0') {
+            *field = talloc_strdup(creds, str);
+            if (*field == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+    }
+}
+
 // Helper to load credentials from JSON file
 static res_t load_from_file(TALLOC_CTX *ctx, const char *path, ik_credentials_t *creds)
 {
@@ -76,42 +94,15 @@ static res_t load_from_file(TALLOC_CTX *ctx, const char *path, ik_credentials_t 
         return ERR(ctx, PARSE, "JSON root is not an object");
     }
 
-    // Extract provider credentials
-    yyjson_val *openai_obj = yyjson_obj_get_(root, "openai");
-    if (openai_obj && yyjson_is_obj(openai_obj)) {
-        yyjson_val *api_key = yyjson_obj_get_(openai_obj, "api_key");
-        if (api_key && yyjson_is_str(api_key)) {
-            const char *key_str = yyjson_get_str_(api_key);
-            if (key_str && key_str[0] != '\0') {
-                creds->openai_api_key = talloc_strdup(creds, key_str);
-                if (creds->openai_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
-
-    yyjson_val *anthropic_obj = yyjson_obj_get_(root, "anthropic");
-    if (anthropic_obj && yyjson_is_obj(anthropic_obj)) {
-        yyjson_val *api_key = yyjson_obj_get_(anthropic_obj, "api_key");
-        if (api_key && yyjson_is_str(api_key)) {
-            const char *key_str = yyjson_get_str_(api_key);
-            if (key_str && key_str[0] != '\0') {
-                creds->anthropic_api_key = talloc_strdup(creds, key_str);
-                if (creds->anthropic_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
-
-    yyjson_val *google_obj = yyjson_obj_get_(root, "google");
-    if (google_obj && yyjson_is_obj(google_obj)) {
-        yyjson_val *api_key = yyjson_obj_get_(google_obj, "api_key");
-        if (api_key && yyjson_is_str(api_key)) {
-            const char *key_str = yyjson_get_str_(api_key);
-            if (key_str && key_str[0] != '\0') {
-                creds->google_api_key = talloc_strdup(creds, key_str);
-                if (creds->google_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
+    // Load all credentials from flat JSON structure
+    load_credential_field(root, "OPENAI_API_KEY", creds, &creds->openai_api_key);
+    load_credential_field(root, "ANTHROPIC_API_KEY", creds, &creds->anthropic_api_key);
+    load_credential_field(root, "GOOGLE_API_KEY", creds, &creds->google_api_key);
+    load_credential_field(root, "BRAVE_API_KEY", creds, &creds->brave_api_key);
+    load_credential_field(root, "GOOGLE_SEARCH_API_KEY", creds, &creds->google_search_api_key);
+    load_credential_field(root, "GOOGLE_SEARCH_ENGINE_ID", creds, &creds->google_search_engine_id);
+    load_credential_field(root, "NTFY_API_KEY", creds, &creds->ntfy_api_key);
+    load_credential_field(root, "NTFY_TOPIC", creds, &creds->ntfy_topic);
 
     return OK(NULL);
 }
@@ -160,7 +151,6 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
     // Override with environment variables (higher precedence)
     const char *env_openai = get_env_nonempty("OPENAI_API_KEY");
     if (env_openai) {
-        // Free file value if present
         if (creds->openai_api_key) {
             talloc_free(creds->openai_api_key);
         }
@@ -186,21 +176,76 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
         if (creds->google_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
+    const char *env_brave = get_env_nonempty("BRAVE_API_KEY");
+    if (env_brave) {
+        if (creds->brave_api_key) {
+            talloc_free(creds->brave_api_key);
+        }
+        creds->brave_api_key = talloc_strdup(creds, env_brave);
+        if (creds->brave_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_google_search = get_env_nonempty("GOOGLE_SEARCH_API_KEY");
+    if (env_google_search) {
+        if (creds->google_search_api_key) {
+            talloc_free(creds->google_search_api_key);
+        }
+        creds->google_search_api_key = talloc_strdup(creds, env_google_search);
+        if (creds->google_search_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_google_engine = get_env_nonempty("GOOGLE_SEARCH_ENGINE_ID");
+    if (env_google_engine) {
+        if (creds->google_search_engine_id) {
+            talloc_free(creds->google_search_engine_id);
+        }
+        creds->google_search_engine_id = talloc_strdup(creds, env_google_engine);
+        if (creds->google_search_engine_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_ntfy_key = get_env_nonempty("NTFY_API_KEY");
+    if (env_ntfy_key) {
+        if (creds->ntfy_api_key) {
+            talloc_free(creds->ntfy_api_key);
+        }
+        creds->ntfy_api_key = talloc_strdup(creds, env_ntfy_key);
+        if (creds->ntfy_api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_ntfy_topic = get_env_nonempty("NTFY_TOPIC");
+    if (env_ntfy_topic) {
+        if (creds->ntfy_topic) {
+            talloc_free(creds->ntfy_topic);
+        }
+        creds->ntfy_topic = talloc_strdup(creds, env_ntfy_topic);
+        if (creds->ntfy_topic == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
     *out_creds = creds;
     return OK(creds);
 }
 
-const char *ik_credentials_get(const ik_credentials_t *creds, const char *provider)
+const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_var_name)
 {
     assert(creds != NULL); // LCOV_EXCL_BR_LINE
-    assert(provider != NULL); // LCOV_EXCL_BR_LINE
+    assert(env_var_name != NULL); // LCOV_EXCL_BR_LINE
 
-    if (strcmp(provider, "openai") == 0) {
+    if (strcmp(env_var_name, "OPENAI_API_KEY") == 0) {
         return creds->openai_api_key;
-    } else if (strcmp(provider, "anthropic") == 0) {
+    } else if (strcmp(env_var_name, "ANTHROPIC_API_KEY") == 0) {
         return creds->anthropic_api_key;
-    } else if (strcmp(provider, "google") == 0) {
+    } else if (strcmp(env_var_name, "GOOGLE_API_KEY") == 0) {
         return creds->google_api_key;
+    } else if (strcmp(env_var_name, "BRAVE_API_KEY") == 0) {
+        return creds->brave_api_key;
+    } else if (strcmp(env_var_name, "GOOGLE_SEARCH_API_KEY") == 0) {
+        return creds->google_search_api_key;
+    } else if (strcmp(env_var_name, "GOOGLE_SEARCH_ENGINE_ID") == 0) {
+        return creds->google_search_engine_id;
+    } else if (strcmp(env_var_name, "NTFY_API_KEY") == 0) {
+        return creds->ntfy_api_key;
+    } else if (strcmp(env_var_name, "NTFY_TOPIC") == 0) {
+        return creds->ntfy_topic;
     }
 
     return NULL;

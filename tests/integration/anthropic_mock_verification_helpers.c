@@ -37,7 +37,7 @@ const char *get_api_key_anthropic(TALLOC_CTX *ctx)
         return NULL;
     }
 
-    return ik_credentials_get(creds, "anthropic");
+    return ik_credentials_get(creds, "ANTHROPIC_API_KEY");
 }
 
 // Helper: Create SSE accumulator

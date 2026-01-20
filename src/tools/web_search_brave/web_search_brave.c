@@ -1,10 +1,11 @@
 #include "web_search_brave.h"
 
+#include "../../credentials.h"
+#include "../../error.h"
 #include "auth_error.h"
 #include "domain_utils.h"
 #include "json_allocator.h"
 #include "panic.h"
-#include "paths.h"
 #include "wrapper_posix.h"
 #include "wrapper_stdlib.h"
 #include "wrapper_web.h"
@@ -42,50 +43,11 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, void *us
 
 int32_t web_search_brave_execute(void *ctx, const web_search_brave_params_t *params)
 {
-    char *api_key = NULL;
-    const char *env_key = getenv_("BRAVE_API_KEY");
-    if (env_key != NULL && env_key[0] != '\0') {
-        api_key = talloc_strdup(ctx, env_key);
-        if (api_key == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    } else {
-        ik_paths_t *paths = NULL;
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        if (is_ok(&paths_res)) {
-            const char *config_dir = ik_paths_get_config_dir(paths);
-            char *cred_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
-            if (cred_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-            FILE *f = fopen_(cred_path, "r");
-            if (f != NULL) {
-                fseek_(f, 0, SEEK_END);
-                int64_t fsize = ftell_(f);
-                fseek_(f, 0, SEEK_SET);
-
-                char *content = talloc_array(ctx, char, (unsigned int)(fsize + 1));
-                if (content == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-                size_t cred_bytes_read = fread_(content, 1, (size_t)fsize, f);
-                fclose_(f);
-                content[cred_bytes_read] = '\0';
-
-                yyjson_alc cred_allocator = ik_make_talloc_allocator(ctx);
-                yyjson_doc *cred_doc = yyjson_read_opts(content, cred_bytes_read, 0, &cred_allocator, NULL);
-                if (cred_doc != NULL) {
-                    yyjson_val *cred_root = yyjson_doc_get_root(cred_doc);  // LCOV_EXCL_BR_LINE
-                    yyjson_val *web_search = yyjson_obj_get(cred_root, "web_search");
-                    if (web_search != NULL) {
-                        yyjson_val *brave = yyjson_obj_get(web_search, "brave");
-                        if (brave != NULL) {
-                            yyjson_val *api_key_val = yyjson_obj_get(brave, "api_key");
-                            if (api_key_val != NULL && yyjson_is_str(api_key_val)) {
-                                api_key = talloc_strdup(ctx, yyjson_get_str(api_key_val));
-                                if (api_key == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    ik_credentials_t *creds = NULL;
+    res_t load_res = ik_credentials_load(ctx, NULL, &creds);
+    const char *api_key = NULL;
+    if (is_ok(&load_res)) {
+        api_key = ik_credentials_get(creds, "BRAVE_API_KEY");
     }
 
     if (api_key == NULL) {

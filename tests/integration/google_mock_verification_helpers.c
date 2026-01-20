@@ -37,7 +37,7 @@ const char *get_api_key_google(TALLOC_CTX *ctx)
         return NULL;
     }
 
-    return ik_credentials_get(creds, "google");
+    return ik_credentials_get(creds, "GOOGLE_API_KEY");
 }
 
 // Helper: Create SSE accumulator

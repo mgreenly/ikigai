@@ -1,6 +1,7 @@
 #include "web_search_google.h"
 
-#include "credentials.h"
+#include "../../credentials.h"
+#include "../../error.h"
 #include "error_output.h"
 #include "http_utils.h"
 #include "json_allocator.h"
@@ -21,11 +22,20 @@
 
 int32_t web_search_google_execute(void *ctx, const web_search_google_params_t *params)
 {
-    char *api_key = NULL;
-    char *engine_id = NULL;
-    if (load_credentials(ctx, &api_key, &engine_id) != 0) {
+    ik_credentials_t *creds = NULL;
+    res_t load_res = ik_credentials_load(ctx, NULL, &creds);
+    if (is_err(&load_res)) {
         const char *error_msg =
-            "Web search requires API key configuration.\n\nGoogle Custom Search offers 100 free searches/day.\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json as 'web_search.google.api_key' and 'web_search.google.engine_id'";
+            "Web search requires API key configuration.\n\nGoogle Custom Search offers 100 free searches/day.\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json as 'GOOGLE_SEARCH_API_KEY' and 'GOOGLE_SEARCH_ENGINE_ID'";
+        output_error_with_event(ctx, error_msg, "AUTH_MISSING");
+        return 0;
+    }
+
+    const char *api_key = ik_credentials_get(creds, "GOOGLE_SEARCH_API_KEY");
+    const char *engine_id = ik_credentials_get(creds, "GOOGLE_SEARCH_ENGINE_ID");
+    if (api_key == NULL || engine_id == NULL) {
+        const char *error_msg =
+            "Web search requires API key configuration.\n\nGoogle Custom Search offers 100 free searches/day.\nGet API key: https://developers.google.com/custom-search/v1/overview\nGet Search Engine ID: https://programmablesearchengine.google.com/controlpanel/create\nAdd to: ~/.config/ikigai/credentials.json as 'GOOGLE_SEARCH_API_KEY' and 'GOOGLE_SEARCH_ENGINE_ID'";
         output_error_with_event(ctx, error_msg, "AUTH_MISSING");
         return 0;
     }

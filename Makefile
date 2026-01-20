@@ -389,19 +389,6 @@ $(BUILDDIR)/tools/web_search_google/schema.o: src/tools/web_search_google/schema
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tools/web_search_google/credentials.o: src/tools/web_search_google/credentials.c
-	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
-
-$(BUILDDIR)/tests/unit/tools/web_search_google_credentials_test: $(BUILDDIR)/tests/unit/tools/web_search_google_credentials_test.o $(BUILDDIR)/tools/web_search_google/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_talloc.o
-	@mkdir -p $(dir $@)
-	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
-
-$(BUILDDIR)/tools/web_search_brave/credentials.o: src/tools/web_search_brave/credentials.c
-	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
-
-$(BUILDDIR)/tests/unit/tools/web_search_brave_credentials_test: $(BUILDDIR)/tests/unit/tools/web_search_brave_credentials_test.o $(BUILDDIR)/tools/web_search_brave/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_talloc.o
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
@@ -795,12 +782,12 @@ libexec/ikigai/grep-tool: src/tools/grep/main.c src/tools/grep/grep.c $(TOOL_COM
 
 web_search_brave_tool: libexec/ikigai/web-search-brave-tool
 
-libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c src/tools/web_search_brave/web_search_brave.c src/tools/web_search_brave/auth_error.c src/tools/web_search_brave/domain_utils.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/web-search-brave-tool: src/tools/web_search_brave/main.c src/tools/web_search_brave/web_search_brave.c src/tools/web_search_brave/auth_error.c src/tools/web_search_brave/domain_utils.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ $(CLIENT_LIBS) $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 web_search_google_tool: libexec/ikigai/web-search-google-tool
 
-libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c src/tools/web_search_google/web_search_google.c src/tools/web_search_google/error_output.c src/tools/web_search_google/credentials.c src/tools/web_search_google/http_utils.c src/tools/web_search_google/result_utils.c src/tools/web_search_google/response_processor.c src/tools/web_search_google/schema.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+libexec/ikigai/web-search-google-tool: src/tools/web_search_google/main.c src/tools/web_search_google/web_search_google.c src/tools/web_search_google/error_output.c src/tools/web_search_google/http_utils.c src/tools/web_search_google/result_utils.c src/tools/web_search_google/response_processor.c src/tools/web_search_google/schema.c src/credentials.c src/wrapper_posix.c src/wrapper_web.c $(TOOL_COMMON_SRCS) | libexec/ikigai
 	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) $(LDFLAGS) -o $@ $^ -ltalloc -lcurl $(shell pkg-config --libs libxml-2.0) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 web_fetch_tool: libexec/ikigai/web-fetch-tool
