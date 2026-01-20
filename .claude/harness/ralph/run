@@ -459,7 +459,7 @@ class Ralph
 
   def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:, iteration_start: nil)
     env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
-    cmd = "#{env}claude -p --model #{model} --tools \"#{tools}\" --verbose --input-format stream-json --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
+    cmd = "#{env}ANTHROPIC_API_KEY= claude -p --model #{model} --tools \"#{tools}\" --verbose --input-format stream-json --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
 
     result = nil
     tool_names = {}  # track tool_use_id -> tool_name for result lookup
