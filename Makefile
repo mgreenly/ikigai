@@ -394,9 +394,6 @@ $(BUILDDIR)/tools/web_search_google/schema.o: src/tools/web_search_google/schema
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-	@mkdir -p $(dir $@)
-	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
-
 # Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
 TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helper.o
 

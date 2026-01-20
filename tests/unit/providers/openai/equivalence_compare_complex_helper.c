@@ -17,10 +17,10 @@
  *
  * @return NULL if blocks match, error message otherwise
  */
-static const char *compare_content_block(TALLOC_CTX *ctx,
-                                         const ik_content_block_t *block_a,
-                                         const ik_content_block_t *block_b,
-                                         size_t index)
+static char *compare_content_block(TALLOC_CTX *ctx,
+                                   const ik_content_block_t *block_a,
+                                   const ik_content_block_t *block_b,
+                                   size_t index)
 {
     /* Type must match */
     if (block_a->type != block_b->type) {
@@ -75,6 +75,10 @@ static const char *compare_content_block(TALLOC_CTX *ctx,
             break;
         }
 
+        case IK_CONTENT_REDACTED_THINKING:
+            /* Both blocks are redacted thinking - types match, so equal */
+            break;
+
         case IK_CONTENT_TOOL_RESULT:
             /* Tool results shouldn't appear in responses (only in requests) */
             return talloc_asprintf(ctx, "Unexpected tool result in response at block %zu", index);
@@ -108,7 +112,7 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
         const ik_content_block_t *block_a = &resp_a->content_blocks[i];
         const ik_content_block_t *block_b = &resp_b->content_blocks[i];
 
-        const char *error = compare_content_block(result, block_a, block_b, i);
+        char *error = compare_content_block(result, block_a, block_b, i);
         if (error != NULL) {
             result->matches = false;
             result->diff_message = error;
@@ -171,10 +175,10 @@ ik_compare_result_t *ik_compare_responses(TALLOC_CTX *ctx,
  *
  * @return NULL if events match, error message otherwise
  */
-static const char *compare_stream_event(TALLOC_CTX *ctx,
-                                        const ik_stream_event_t *event_a,
-                                        const ik_stream_event_t *event_b,
-                                        size_t index)
+static char *compare_stream_event(TALLOC_CTX *ctx,
+                                  const ik_stream_event_t *event_a,
+                                  const ik_stream_event_t *event_b,
+                                  size_t index)
 {
     /* Event type must match */
     if (event_a->type != event_b->type) {
@@ -282,7 +286,7 @@ ik_compare_result_t *ik_compare_stream_events(TALLOC_CTX *ctx,
         const ik_stream_event_t *event_a = &events_a->events[i];
         const ik_stream_event_t *event_b = &events_b->events[i];
 
-        const char *error = compare_stream_event(result, event_a, event_b, i);
+        char *error = compare_stream_event(result, event_a, event_b, i);
         if (error != NULL) {
             result->matches = false;
             result->diff_message = error;

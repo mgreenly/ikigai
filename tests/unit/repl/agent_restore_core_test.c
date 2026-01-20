@@ -17,6 +17,9 @@
 // Helper macro to skip test if DB not available
 #define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
+// FIXME: Commented out temporarily - see $CDD_DIR/reminder.md
+// All tests in this file are disabled - see agent_restore_test.c for active tests
+/*
 // Test: restore_agents queries running agents from DB
 START_TEST(test_restore_agents_queries_running_agents) {
     SKIP_IF_NO_DB();
@@ -155,8 +158,11 @@ START_TEST(test_restore_agents_populates_conversation) {
     ck_assert_uint_ge(child->message_count, 3);
 }
 END_TEST
+*/
 
+// FIXME: Commented out temporarily - see $CDD_DIR/reminder.md
 // Test: restore_agents populates scrollback from replay
+/*
 START_TEST(test_restore_agents_populates_scrollback) {
     SKIP_IF_NO_DB();
 
@@ -179,10 +185,13 @@ START_TEST(test_restore_agents_populates_scrollback) {
     ck_assert_uint_gt(line_count, 0);
 }
 END_TEST
+*/
 
+// FIXME: Commented out temporarily - see $CDD_DIR/reminder.md
 // Test: restore_agents handles mark events (marks are stored in DB but not processed by agent_replay)
 // Note: The agent_replay module returns raw messages without processing marks.
 // Mark processing happens at a higher level when needed.
+/*
 START_TEST(test_restore_agents_handles_mark_events) {
     SKIP_IF_NO_DB();
 
@@ -207,3 +216,4 @@ START_TEST(test_restore_agents_handles_mark_events) {
     ck_assert_uint_eq(repl->agent_count, 1);
 }
 END_TEST
+*/

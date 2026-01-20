@@ -6,6 +6,26 @@
 #include <stdarg.h>
 #include <curl/curl.h>
 
+/* Forward declarations */
+CURLM *curl_multi_init_(void);
+CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles);
+CURLMcode curl_multi_fdset_(CURLM *multi_handle, fd_set *read_fd_set,
+                            fd_set *write_fd_set, fd_set *exc_fd_set,
+                            int *max_fd);
+CURLMcode curl_multi_timeout_(CURLM *multi_handle, long *timeout);
+CURLMcode curl_multi_cleanup_(CURLM *multi_handle);
+CURL *curl_easy_init_(void);
+void curl_easy_cleanup_(CURL *curl);
+CURLcode curl_easy_setopt_(CURL *curl, CURLoption option, const void *val);
+CURLMcode curl_multi_add_handle_(CURLM *multi_handle, CURL *curl_handle);
+CURLMcode curl_multi_remove_handle_(CURLM *multi_handle, CURL *curl_handle);
+CURLMsg *curl_multi_info_read_(CURLM *multi_handle, int *msgs_in_queue);
+const char *curl_multi_strerror_(CURLMcode code);
+const char *curl_easy_strerror_(CURLcode code);
+CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...);
+struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string);
+void curl_slist_free_all_(struct curl_slist *list);
+
 /* Curl mock implementations that delegate to real curl functions */
 
 CURLM *curl_multi_init_(void)

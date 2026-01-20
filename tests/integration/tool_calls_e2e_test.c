@@ -83,7 +83,6 @@ static ik_stream_event_type_t captured_event_types[32];
 static size_t captured_event_count;
 static bool completion_called;
 static bool completion_success;
-static ik_error_category_t captured_error_category;
 static char captured_error_message[256];
 
 /* Mock implementations */

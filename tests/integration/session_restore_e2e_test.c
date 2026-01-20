@@ -530,7 +530,13 @@ START_TEST(test_restore_forked_agent) {
     ik_config_t *cfg = ik_test_create_config(ctx);
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, test_dir, ".ikigai", logger, &shared);
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
 
