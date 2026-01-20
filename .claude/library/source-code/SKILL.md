@@ -11,7 +11,7 @@ Comprehensive reference for all C source files in the Ikigai REPL project organi
 
 ## Core Infrastructure
 
-- `src/client.c` - Main entry point for the REPL application, loads configuration and initializes the event loop.
+- `src/main.c` - Main entry point for the REPL application, loads configuration and initializes the event loop.
 - `src/shared.c` - Shared context initialization for terminal, rendering, database, and history.
 - `src/panic.c` - Panic handler for unrecoverable errors with safe async-signal-safe cleanup.
 - `src/error.c` - Error handling wrapper using talloc-based allocator for consistent memory management.
