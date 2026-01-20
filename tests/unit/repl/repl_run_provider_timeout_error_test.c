@@ -4,7 +4,7 @@
  * @brief Unit test for REPL run when provider timeout returns error
  */
 
-#include "repl_run_common.h"
+#include "repl_run_helper.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/providers/provider.h"

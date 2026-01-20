@@ -8,7 +8,7 @@
 #include "../../../src/error.h"
 #include "../../../src/shared.h"
 #include "../../../src/tool_registry.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <stdlib.h>

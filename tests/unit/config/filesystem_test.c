@@ -13,7 +13,7 @@
 #include "../../../src/config.h"
 #include "../../../src/paths.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock state for controlling posix_stat_
 static bool mock_stat_should_fail = false;

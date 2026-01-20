@@ -1,6 +1,6 @@
 #include "../../../../src/providers/common/http_multi.h"
 #include "../../../../src/wrapper.h"
-#include "../../../test_utils.h"
+#include "../../../test_utils_helper.h"
 
 #include <check.h>
 #include <curl/curl.h>

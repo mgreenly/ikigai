@@ -1,4 +1,4 @@
-#include "anthropic_mock_verification_helpers.h"
+#include "anthropic_mock_verification_helper.h"
 
 #include <check.h>
 #include <curl/curl.h>

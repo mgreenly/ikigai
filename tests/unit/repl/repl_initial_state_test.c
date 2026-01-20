@@ -17,7 +17,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Check if buffer contains ANSI cursor positioning escape sequence.

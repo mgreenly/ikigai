@@ -3,7 +3,7 @@
  * @brief VCR implementation - HTTP recording/replay for deterministic tests
  */
 
-#include "vcr.h"
+#include "vcr_helper.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

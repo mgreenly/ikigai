@@ -10,7 +10,7 @@
 
 #include "../../../src/format.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *ctx;

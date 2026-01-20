@@ -16,7 +16,7 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /*
  * Note: Lines 79-80 test is not included here because it would cause a PANIC.

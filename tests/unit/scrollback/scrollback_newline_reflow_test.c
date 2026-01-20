@@ -8,7 +8,7 @@
 #include <talloc.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Line with embedded newlines counts correctly

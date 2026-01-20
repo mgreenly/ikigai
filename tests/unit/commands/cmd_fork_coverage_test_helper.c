@@ -3,7 +3,7 @@
  * @brief Mock functions for cmd_fork_coverage_test
  */
 
-#include "cmd_fork_coverage_test_mocks.h"
+#include "cmd_fork_coverage_test_helper.h"
 
 #include "../../../src/agent.h"
 #include "../../../src/error.h"

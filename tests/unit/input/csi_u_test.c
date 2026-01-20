@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: CSI u plain Enter emits NEWLINE (submit)
 START_TEST(test_csi_u_plain_enter) {

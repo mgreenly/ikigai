@@ -8,7 +8,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 #include "../terminal/terminal_test_mocks.h"
 

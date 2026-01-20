@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test delete from beginning
 START_TEST(test_array_delete_from_beginning) {

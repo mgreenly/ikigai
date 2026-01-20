@@ -1,4 +1,4 @@
-#include "request_chat_coverage_helpers.h"
+#include "request_chat_coverage_helper.h"
 
 #include <talloc.h>
 

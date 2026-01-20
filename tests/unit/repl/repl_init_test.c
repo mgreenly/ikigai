@@ -17,7 +17,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Mock state for controlling posix_open_ failures

@@ -6,7 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Column preservation when moving up and down through lines of different lengths */
 START_TEST(test_cursor_up_down_column_preservation) {

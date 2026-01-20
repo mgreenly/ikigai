@@ -4,7 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "../../../src/line_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test appending to empty array (first allocation)
 START_TEST(test_line_array_append_first) {

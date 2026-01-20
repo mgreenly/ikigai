@@ -13,7 +13,7 @@
 #include "providers/anthropic/request_serialize.h"
 #include "providers/provider.h"
 #include "wrapper_json.h"
-#include "message_serialize_helpers.h"
+#include "message_serialize_helper.h"
 
 static TALLOC_CTX *test_ctx;
 

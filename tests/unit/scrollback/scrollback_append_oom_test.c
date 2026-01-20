@@ -3,7 +3,7 @@
 #include <talloc.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: OOM handling during append (array reallocation failure - text_offsets)
 START_TEST(test_scrollback_append_oom_array_realloc) {

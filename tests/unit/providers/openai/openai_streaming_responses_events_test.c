@@ -12,7 +12,7 @@
 #include "providers/provider.h"
 #include "wrapper_json.h"
 #include "vendor/yyjson/yyjson.h"
-#include "openai_streaming_responses_events_test_helpers.c"
+#include "openai_streaming_responses_events_test_helper.c"
 
 START_TEST(test_invalid_json) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(

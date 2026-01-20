@@ -8,7 +8,7 @@
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/format.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Pretty-print empty input_buffer */
 START_TEST(test_pp_input_buffer_empty) {

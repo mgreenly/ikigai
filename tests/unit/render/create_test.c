@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/render.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: successful ik_render_create
 START_TEST(test_render_create_success) {

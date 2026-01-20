@@ -1,7 +1,7 @@
 // Terminal module PTY-based CSI u probe tests
 // Tests CSI u probe functionality using real pseudo-terminals
 
-#include "terminal_pty_helpers.h"
+#include "terminal_pty_helper.h"
 
 #include <check.h>
 #include <pthread.h>
@@ -12,7 +12,7 @@
 #include "../../../src/error.h"
 #include "../../../src/logger.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // ============================================================================
 // Test: CSI u probe with valid response - terminal supports CSI u

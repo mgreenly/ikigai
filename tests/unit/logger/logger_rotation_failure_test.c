@@ -10,7 +10,7 @@
 #include <talloc.h>
 #include "../../../src/logger.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Helper: setup temp directory
 static char test_dir[256];

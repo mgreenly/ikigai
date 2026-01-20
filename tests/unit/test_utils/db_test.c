@@ -3,7 +3,7 @@
  * @brief Tests for database test utilities
  */
 
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
 #include <check.h>

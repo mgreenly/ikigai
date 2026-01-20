@@ -3,7 +3,7 @@
  * @brief Shared test helpers for OpenAI Responses API event tests
  */
 
-#include "openai_streaming_responses_events_test_helpers.h"
+#include "openai_streaming_responses_events_test_helper.h"
 #include <talloc.h>
 #include "wrapper_talloc.h"
 #include "error.h"

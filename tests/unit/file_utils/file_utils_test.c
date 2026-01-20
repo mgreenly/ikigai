@@ -1,6 +1,6 @@
 #include "../../../src/file_utils.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <signal.h>

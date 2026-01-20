@@ -17,7 +17,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/completion.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Document height includes completion when active

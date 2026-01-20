@@ -7,7 +7,7 @@
 #include "../../src/error.h"
 #include "../../src/paths.h"
 #include "../../src/wrapper.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 START_TEST(test_config_full_flow) {
 

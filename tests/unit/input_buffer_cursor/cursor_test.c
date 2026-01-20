@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/cursor.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test cursor creation
 START_TEST(test_cursor_create) {

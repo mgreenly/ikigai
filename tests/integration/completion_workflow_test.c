@@ -14,7 +14,7 @@
 #include "../../src/completion.h"
 #include "../../src/history.h"
 #include "../../src/input_buffer/core.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include "completion_test_mocks.h"
 
 /* Test: Full command completion workflow */

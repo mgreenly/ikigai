@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: parse arrow up escape sequence byte by byte
 START_TEST(test_input_parse_arrow_up) {

@@ -6,7 +6,7 @@
  * Tests for reasoning, tool choice, and input format edge cases.
  */
 
-#include "request_responses_test_helpers.h"
+#include "request_responses_test_helper.h"
 
 /* ================================================================
  * Reasoning Invalid Level Test

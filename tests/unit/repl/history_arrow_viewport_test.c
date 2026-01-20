@@ -21,7 +21,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Arrow up with viewport_offset > 0 scrolls viewport instead of history */
 START_TEST(test_arrow_up_with_viewport_offset_scrolls) {

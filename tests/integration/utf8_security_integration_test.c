@@ -5,7 +5,7 @@
 #include <talloc.h>
 #include "../../src/input.h"
 #include "../../src/error.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // ========================================================================
 // UTF-8 Overlong Encoding Tests (Security Vulnerability)

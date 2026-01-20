@@ -6,7 +6,7 @@
  * Tests error paths and success cases for tool_result messages in ik_message_from_db_msg.
  */
 
-#include "message_tool_result_helpers.h"
+#include "message_tool_result_helper.h"
 
 #include "../../../src/message.h"
 

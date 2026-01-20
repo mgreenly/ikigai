@@ -11,7 +11,7 @@
 #include "../../src/repl_actions.h"
 #include "../../src/input.h"
 #include "../../src/terminal.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // Mock terminal file descriptor
 static int32_t mock_tty_fd = 100;

@@ -1,5 +1,5 @@
 /**
- * @file repl_run_common.h
+ * @file repl_run_helper.h
  * @brief Shared mock functions for REPL event loop tests
  */
 
@@ -18,7 +18,7 @@
 #include "../../../src/terminal.h"
 #include "../../../src/render.h"
 #include "../../../src/providers/provider.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock read tracking
 extern const char *mock_input;

@@ -64,7 +64,7 @@ Follow existing patterns in Makefile (search for `_HELPERS_OBJ`).
 ## Validation
 
 Before reporting done, run:
-1. `make clean && make all build-tests` - ensure compilation succeeds
+1. `make clean && make check-compile` - ensure compilation succeeds
 2. `make filesize` - ensure the file is now under the limit
 
 ## When Done

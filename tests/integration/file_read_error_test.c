@@ -26,7 +26,7 @@
 #include "../../src/error.h"
 #include "../../src/msg.h"
 #include "../../src/tool.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // ========== Test Database Setup ==========
 

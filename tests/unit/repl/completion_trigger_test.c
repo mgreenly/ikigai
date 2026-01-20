@@ -13,7 +13,7 @@
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Typing "/" triggers completion display with all commands */
 START_TEST(test_typing_slash_triggers_completion) {

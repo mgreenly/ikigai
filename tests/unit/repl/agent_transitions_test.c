@@ -10,7 +10,7 @@
 #include "../../../src/wrapper_pthread.h"
 #include <talloc.h>
 #include <string.h>
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Forward declaration for wrapper function
 ssize_t posix_write_(int fd, const void *buf, size_t count);

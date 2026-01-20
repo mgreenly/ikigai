@@ -7,7 +7,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/error.h"
 #include "../../../src/shared.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <stdlib.h>

@@ -12,7 +12,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Scroll up increases viewport_offset by 3
 START_TEST(test_scroll_up_increases_offset) {

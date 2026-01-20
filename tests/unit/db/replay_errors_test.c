@@ -5,7 +5,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <inttypes.h>

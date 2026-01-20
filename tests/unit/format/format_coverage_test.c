@@ -11,7 +11,7 @@
 #include "../../../src/format.h"
 #include "../../../src/tool.h"
 #include "../../../src/vendor/yyjson/yyjson.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *ctx;

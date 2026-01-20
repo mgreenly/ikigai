@@ -1,7 +1,7 @@
 // Terminal module PTY-based CSI u enable edge case tests
 // Tests edge cases and boundary conditions for CSI u enable using real pseudo-terminals
 
-#include "terminal_pty_helpers.h"
+#include "terminal_pty_helper.h"
 
 #include <check.h>
 #include <pthread.h>
@@ -12,7 +12,7 @@
 #include "../../../src/error.h"
 #include "../../../src/logger.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // ============================================================================
 // Test: CSI u enable response missing ESC prefix (covers line 116 short-circuit)

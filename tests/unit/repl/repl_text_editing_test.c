@@ -12,7 +12,7 @@
 #include "../../../src/input.h"
 #include "../../../src/shared.h"
 #include "../../../src/agent.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Process CHAR action */
 START_TEST(test_repl_process_action_char) {

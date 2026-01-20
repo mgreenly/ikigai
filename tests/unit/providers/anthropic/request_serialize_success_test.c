@@ -7,8 +7,8 @@
  */
 
 #include <check.h>
-#include "content_block_serialize_helpers.h"
-#include "message_serialize_helpers.h"
+#include "content_block_serialize_helper.h"
+#include "message_serialize_helper.h"
 
 /* ================================================================
  * Test Suite Orchestration - runs split test suites

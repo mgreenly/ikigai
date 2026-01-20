@@ -16,7 +16,7 @@
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Tab accepts single match */
 START_TEST(test_tab_wraps_around) {

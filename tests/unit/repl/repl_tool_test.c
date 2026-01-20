@@ -1,4 +1,4 @@
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/agent.h"
 #include "../../../src/message.h"
 #include <check.h>

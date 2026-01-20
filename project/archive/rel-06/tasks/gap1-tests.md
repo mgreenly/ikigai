@@ -53,7 +53,7 @@ Multi-agent persistence is a critical feature. Without proper test coverage:
 - tests/unit/agent/agent_test.c (READ - existing agent tests, shows test structure and patterns)
 - tests/unit/db/agent_registry_test.c (READ - DB-related tests with transaction rollback pattern)
 - tests/unit/db/agent_replay_test.c (READ - replay tests with helper functions for inserting messages)
-- tests/test_utils.h (READ - test utilities and database helpers)
+- tests/test_utils_helper.h (READ - test utilities and database helpers)
 
 **Source files being tested:**
 - src/agent.h (READ - `ik_agent_restore()` declaration)
@@ -175,7 +175,7 @@ Create new test file for `ik_repl_restore_agents()`:
 #include "../../../src/agent.h"
 #include "../../../src/repl.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -292,7 +292,7 @@ Create integration test file for complete restoration scenarios:
 #include "../../src/agent.h"
 #include "../../src/repl.h"
 #include "../../src/error.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>

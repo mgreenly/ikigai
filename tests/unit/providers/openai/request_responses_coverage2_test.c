@@ -6,7 +6,7 @@
  * Tests for optional fields, validation, and URL building edge cases.
  */
 
-#include "request_responses_test_helpers.h"
+#include "request_responses_test_helper.h"
 
 /* ================================================================
  * System Prompt Test

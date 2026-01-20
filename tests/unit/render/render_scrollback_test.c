@@ -8,7 +8,7 @@
 #include <string.h>
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;

@@ -13,7 +13,7 @@
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <libpq-fe.h>

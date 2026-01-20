@@ -1,10 +1,10 @@
-#include "../../../tests/helpers/test_contexts.h"
+#include "../../../tests/helpers/test_contexts_helper.h"
 
 #include "../../../src/error.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>

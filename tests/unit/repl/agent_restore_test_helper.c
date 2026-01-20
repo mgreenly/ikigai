@@ -3,7 +3,7 @@
  * @brief Helper functions for agent restore tests
  */
 
-#include "agent_restore_test_helpers.h"
+#include "agent_restore_test_helper.h"
 
 #include "../../../src/db/agent.h"
 #include "../../../src/db/message.h"
@@ -12,7 +12,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/logger.h"
 #include "../../../src/layer_wrappers.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>

@@ -185,18 +185,18 @@ MODULE_OBJ_NO_DB_AGENT = $(filter-out $(BUILDDIR)/db/agent.o $(BUILDDIR)/db/agen
 TOOL_COMMON_SRCS = src/error.c src/panic.c src/wrapper_talloc.c src/wrapper_stdlib.c src/wrapper_posix.c src/logger.c src/json_allocator.c src/paths.c src/debug_log.c src/vendor/yyjson/yyjson.c
 
 # Test utilities (linked with all tests)
-TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils.o
-TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts.o
-VCR_OBJ = $(BUILDDIR)/tests/helpers/vcr.o
-VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs.o
-REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_common.o
+TEST_UTILS_OBJ = $(BUILDDIR)/tests/test_utils_helper.o
+TEST_CONTEXTS_OBJ = $(BUILDDIR)/tests/helpers/test_contexts_helper.o
+VCR_OBJ = $(BUILDDIR)/tests/helpers/vcr_helper.o
+VCR_STUBS_OBJ = $(BUILDDIR)/tests/helpers/vcr_stubs_helper.o
+REPL_RUN_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_run_helper.o
 REPL_STREAMING_COMMON_OBJ = $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o
-EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o
-EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o
-REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o
-REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o
+EQUIVALENCE_FIXTURES_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures_helper.o
+EQUIVALENCE_COMPARE_OBJ = $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic_helper.o $(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex_helper.o
+REQUEST_RESPONSES_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helper.o
+REQUEST_CHAT_COVERAGE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helper.o
 
-.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool build-tests verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool tools $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
+.PHONY: all release clean install uninstall check check-unit check-integration check-bash-tool check-compile check-link verify-mocks verify-mocks-anthropic verify-mocks-google verify-mocks-all verify-credentials check-sanitize check-valgrind check-helgrind check-tsan check-dynamic dist fmt lint check-complexity filesize cloc ci install-deps check-coverage help tags distro-check distro-images distro-images-clean distro-clean distro-package clean-test-runs vcr-record-openai vcr-record-anthropic vcr-record-google vcr-record-all bash_tool file_read_tool file_write_tool file_edit_tool glob_tool grep_tool tools $(UNIT_TEST_RUNS) $(INTEGRATION_TEST_RUNS)
 
 # Prevent Make from deleting intermediate files (needed for coverage .gcno files)
 .SECONDARY:
@@ -220,6 +220,11 @@ $(BUILDDIR)/%.o: src/%.c | $(BUILDDIR)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 $(BUILDDIR)/tests/unit/%_test.o: tests/unit/%_test.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+# General pattern rule for test helper files (*_helper.c)
+$(BUILDDIR)/tests/%_helper.o: tests/%_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -393,9 +398,9 @@ $(BUILDDIR)/tools/web_search_google/schema.o: src/tools/web_search_google/schema
 	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
-TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
+TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helper.o
 
-$(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o: tests/unit/terminal/terminal_pty_helpers.c
+$(BUILDDIR)/tests/unit/terminal/terminal_pty_helper.o: tests/unit/terminal/terminal_pty_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -428,11 +433,11 @@ $(BUILDDIR)/tests/unit/providers/common/http_multi_info_test: $(BUILDDIR)/tests/
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Special case: cmd_fork_coverage_test requires its own mocks
-$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_mocks.o: tests/unit/commands/cmd_fork_coverage_test_mocks.c
+$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_helper.o: tests/unit/commands/cmd_fork_coverage_test_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test: $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test.o $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_mocks.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
+$(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test: $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test.o $(BUILDDIR)/tests/unit/commands/cmd_fork_coverage_test_helper.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ)
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
@@ -454,17 +459,17 @@ $(BUILDDIR)/tests/unit/providers/openai/openai_serialize_test: $(BUILDDIR)/tests
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Message test helper compilation
-MESSAGE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/message/message_tool_call_helpers.o $(BUILDDIR)/tests/unit/message/message_tool_result_helpers.o $(BUILDDIR)/tests/unit/message/message_thinking_helpers.o
+MESSAGE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/message/message_tool_call_helper.o $(BUILDDIR)/tests/unit/message/message_tool_result_helper.o $(BUILDDIR)/tests/unit/message/message_thinking_helper.o
 
-$(BUILDDIR)/tests/unit/message/message_tool_call_helpers.o: tests/unit/message/message_tool_call_helpers.c
+$(BUILDDIR)/tests/unit/message/message_tool_call_helper.o: tests/unit/message/message_tool_call_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/message/message_tool_result_helpers.o: tests/unit/message/message_tool_result_helpers.c
+$(BUILDDIR)/tests/unit/message/message_tool_result_helper.o: tests/unit/message/message_tool_result_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/message/message_thinking_helpers.o: tests/unit/message/message_thinking_helpers.c
+$(BUILDDIR)/tests/unit/message/message_thinking_helper.o: tests/unit/message/message_thinking_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -473,9 +478,9 @@ $(BUILDDIR)/tests/unit/message/message_from_db_test: $(BUILDDIR)/tests/unit/mess
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Agent restore test helper compilation
-AGENT_RESTORE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/repl/agent_restore_test_helpers.o
+AGENT_RESTORE_TEST_HELPERS_OBJ = $(BUILDDIR)/tests/unit/repl/agent_restore_test_helper.o
 
-$(BUILDDIR)/tests/unit/repl/agent_restore_test_helpers.o: tests/unit/repl/agent_restore_test_helpers.c
+$(BUILDDIR)/tests/unit/repl/agent_restore_test_helper.o: tests/unit/repl/agent_restore_test_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -484,13 +489,17 @@ $(BUILDDIR)/tests/unit/repl/agent_restore_test: $(BUILDDIR)/tests/unit/repl/agen
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Anthropic request serialize test helper compilation
-ANTHROPIC_SERIALIZE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helpers.o $(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helpers.o
+ANTHROPIC_SERIALIZE_HELPERS_OBJ = $(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helper.o $(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helper.o
 
-$(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helpers.o: tests/unit/providers/anthropic/content_block_serialize_helpers.c
+$(BUILDDIR)/tests/unit/providers/anthropic/content_block_serialize_helper.o: tests/unit/providers/anthropic/content_block_serialize_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helpers.o: tests/unit/providers/anthropic/message_serialize_helpers.c
+$(BUILDDIR)/tests/unit/providers/anthropic/message_serialize_helper.o: tests/unit/providers/anthropic/message_serialize_helper.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/providers/factory_helper.o: tests/unit/providers/factory_helper.c
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -505,16 +514,16 @@ $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(M
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Mock verification helper compilation
-$(BUILDDIR)/tests/integration/google_mock_verification_helpers.o: tests/integration/google_mock_verification_helpers.c tests/integration/google_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
+$(BUILDDIR)/tests/integration/google_mock_verification_helper.o: tests/integration/google_mock_verification_helper.c tests/integration/google_mock_verification_helper.h | $(BUILDDIR)/tests/integration
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/integration/google_mock_verification_test: $(BUILDDIR)/tests/integration/google_mock_verification_test.o $(BUILDDIR)/tests/integration/google_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
+$(BUILDDIR)/tests/integration/google_mock_verification_test: $(BUILDDIR)/tests/integration/google_mock_verification_test.o $(BUILDDIR)/tests/integration/google_mock_verification_helper.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o: tests/integration/anthropic_mock_verification_helpers.c tests/integration/anthropic_mock_verification_helpers.h | $(BUILDDIR)/tests/integration
+$(BUILDDIR)/tests/integration/anthropic_mock_verification_helper.o: tests/integration/anthropic_mock_verification_helper.c tests/integration/anthropic_mock_verification_helper.h | $(BUILDDIR)/tests/integration
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/integration/anthropic_mock_verification_test: $(BUILDDIR)/tests/integration/anthropic_mock_verification_test.o $(BUILDDIR)/tests/integration/anthropic_mock_verification_helpers.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
+$(BUILDDIR)/tests/integration/anthropic_mock_verification_test: $(BUILDDIR)/tests/integration/anthropic_mock_verification_test.o $(BUILDDIR)/tests/integration/anthropic_mock_verification_helper.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # DB integration test compilation
@@ -524,22 +533,22 @@ $(BUILDDIR)/tests/integration/db/%_test.o: tests/integration/db/%_test.c | $(BUI
 $(BUILDDIR)/tests/integration/db/%_test: $(BUILDDIR)/tests/integration/db/%_test.o $(MODULE_OBJ) $(TEST_UTILS_OBJ) $(VCR_STUBS_OBJ) | $(BUILDDIR)/tests/integration/db
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/test_utils.o: tests/test_utils.c tests/test_utils.h | $(BUILDDIR)/tests
+$(BUILDDIR)/tests/test_utils_helper.o: tests/test_utils_helper.c tests/test_utils_helper.h | $(BUILDDIR)/tests
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/helpers/test_contexts.o: tests/helpers/test_contexts.c tests/helpers/test_contexts.h | $(BUILDDIR)/tests
+$(BUILDDIR)/tests/helpers/test_contexts_helper.o: tests/helpers/test_contexts_helper.c tests/helpers/test_contexts_helper.h | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/helpers/vcr.o: tests/helpers/vcr.c tests/helpers/vcr.h | $(BUILDDIR)/tests
+$(BUILDDIR)/tests/helpers/vcr_helper.o: tests/helpers/vcr_helper.c tests/helpers/vcr_helper.h | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/helpers/vcr_stubs.o: tests/helpers/vcr_stubs.c | $(BUILDDIR)/tests
+$(BUILDDIR)/tests/helpers/vcr_stubs_helper.o: tests/helpers/vcr_stubs_helper.c | $(BUILDDIR)/tests
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/repl/repl_run_common.o: tests/unit/repl/repl_run_common.c tests/unit/repl/repl_run_common.h
+$(BUILDDIR)/tests/unit/repl/repl_run_helper.o: tests/unit/repl/repl_run_helper.c tests/unit/repl/repl_run_helper.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -548,15 +557,15 @@ $(BUILDDIR)/tests/unit/repl/repl_streaming_test_common.o: tests/unit/repl/repl_s
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 # Equivalence test support objects
-$(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures.o: tests/unit/providers/openai/equivalence_fixtures.c tests/unit/providers/openai/equivalence_fixtures.h
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_fixtures_helper.o: tests/unit/providers/openai/equivalence_fixtures_helper.c tests/unit/providers/openai/equivalence_fixtures_helper.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic.o: tests/unit/providers/openai/equivalence_compare_basic.c tests/unit/providers/openai/equivalence_compare.h
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_basic_helper.o: tests/unit/providers/openai/equivalence_compare_basic_helper.c tests/unit/providers/openai/equivalence_compare.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex.o: tests/unit/providers/openai/equivalence_compare_complex.c tests/unit/providers/openai/equivalence_compare.h
+$(BUILDDIR)/tests/unit/providers/openai/equivalence_compare_complex_helper.o: tests/unit/providers/openai/equivalence_compare_complex_helper.c tests/unit/providers/openai/equivalence_compare.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -566,12 +575,12 @@ $(BUILDDIR)/tests/unit/providers/openai/equivalence_test: $(BUILDDIR)/tests/unit
 	@$(CC) $(LDFLAGS) -o $@ $^ $(LIBS) -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
 # Request responses test helper compilation
-$(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helpers.o: tests/unit/providers/openai/request_responses_test_helpers.c tests/unit/providers/openai/request_responses_test_helpers.h
+$(BUILDDIR)/tests/unit/providers/openai/request_responses_test_helper.o: tests/unit/providers/openai/request_responses_test_helper.c tests/unit/providers/openai/request_responses_test_helper.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
 # Request chat coverage test helper compilation
-$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helpers.o: tests/unit/providers/openai/request_chat_coverage_helpers.c tests/unit/providers/openai/request_chat_coverage_helpers.h
+$(BUILDDIR)/tests/unit/providers/openai/request_chat_coverage_helper.o: tests/unit/providers/openai/request_chat_coverage_helper.c tests/unit/providers/openai/request_chat_coverage_helper.h
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
@@ -942,8 +951,64 @@ else
 endif
 
 # Build test binaries without running them
-build-tests: $(TEST_TARGETS)
-	@echo "Test binaries built successfully!"
+# List all source files for check-compile (excluding vendor)
+ALL_SRC_FILES = $(filter-out src/vendor/%, $(shell find src -name '*.c' 2>/dev/null))
+ALL_TEST_FILES = $(shell find tests -name '*.c' 2>/dev/null)
+ALL_COMPILE_FILES = $(ALL_SRC_FILES) $(ALL_TEST_FILES)
+
+# Create .check-compile targets for parallel compilation
+CHECK_COMPILE_TARGETS = $(addsuffix .check-compile, $(ALL_COMPILE_FILES))
+
+# List all link targets
+TOOL_TARGETS = libexec/ikigai/bash-tool libexec/ikigai/file-read-tool libexec/ikigai/file-write-tool libexec/ikigai/file-edit-tool libexec/ikigai/glob-tool libexec/ikigai/grep-tool libexec/ikigai/web-search-brave-tool libexec/ikigai/web-search-google-tool libexec/ikigai/web-fetch-tool
+ALL_LINK_TARGETS = $(CLIENT_TARGET) $(TEST_TARGETS) $(TOOL_TARGETS)
+
+# Create .check-link targets for parallel linking
+CHECK_LINK_TARGETS = $(addsuffix .check-link, $(ALL_LINK_TARGETS))
+
+# Pattern rule: compile individual .c file
+%.c.check-compile:
+	@src=$(patsubst %.check-compile,%,$@); \
+	obj=$$(echo $$src | sed 's|^src/|$(BUILDDIR)/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
+	if $(MAKE) -s $$obj >/dev/null 2>&1; then \
+		echo "🟢 $$src"; \
+	else \
+		echo "🔴 $$src"; \
+	fi
+
+# Pattern rule: link individual binary
+%.check-link:
+	@target=$(patsubst %.check-link,%,$@); \
+	if $(MAKE) -s $$target >/dev/null 2>&1; then \
+		echo "🟢 $$target"; \
+	else \
+		echo "🔴 $$target"; \
+	fi
+
+# check-compile: Compile all .c files in parallel
+check-compile:
+ifdef FILE
+	@obj=$$(echo $(FILE) | sed 's|^src/|$(BUILDDIR)/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
+	if output=$$($(MAKE) -s $$obj 2>&1); then \
+		echo "🟢 $(FILE)"; \
+	else \
+		echo "$$output" | grep -v '^make\[' | grep -v '^cc1:' | grep -v '🔴\|🔨\|🔗' | sed 's/^/🔴 /'; \
+	fi
+else
+	@$(MAKE) $(CHECK_COMPILE_TARGETS) || true
+endif
+
+# check-link: Link all binaries in parallel
+check-link:
+ifdef FILE
+	@if output=$$($(MAKE) -s $(FILE) 2>&1); then \
+		echo "🟢 $(FILE)"; \
+	else \
+		echo "$$output" | grep -v '^make\[' | grep -v '^cc1:' | grep -v '^collect2:' | grep -v '🔴\|🔨\|🔗' | sed 's/^/🔴 /'; \
+	fi
+else
+	@$(MAKE) $(CHECK_LINK_TARGETS) || true
+endif
 
 # Parallel-safe test execution using Make's -j flag
 # Each test creates a .run target that depends on the test binary
@@ -1128,7 +1193,7 @@ check-sanitize:
 	@mkdir -p build-sanitize/tests/unit build-sanitize/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-sanitize/tests/unit|' | xargs mkdir -p
 	@echo "Building test binaries in parallel..."
-	@BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-compile
 	@echo "Running tests in parallel..."
 	@LSAN_OPTIONS=suppressions=.suppressions/lsan.supp BUILD=sanitize BUILDDIR=build-sanitize SKIP_SIGNAL_TESTS=1 $(MAKE) -s -j$(MAKE_JOBS) check-unit check-integration
 	@echo "🟢 Sanitizer checks passed!"
@@ -1165,7 +1230,7 @@ check-valgrind:
 check-helgrind:
 	@echo "Building tests for Helgrind..."
 	@rm -rf build-helgrind
-	@BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@BUILD=valgrind BUILDDIR=build-helgrind SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-compile
 	@echo "Running tests under Valgrind Helgrind..."
 	@ulimit -n 1024; \
 	if ! find build-helgrind/tests -type f -executable | sort | xargs -I {} -P $(MAKE_JOBS) sh -c \
@@ -1193,7 +1258,7 @@ check-tsan:
 	@mkdir -p build-tsan/tests/unit build-tsan/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-tsan/tests/unit|' | xargs mkdir -p
 	@echo "Building test binaries in parallel..."
-	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) build-tests
+	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -j$(MAKE_JOBS) check-compile
 	@echo "Running tests in parallel..."
 	@BUILD=tsan BUILDDIR=build-tsan SKIP_SIGNAL_TESTS=1 $(MAKE) -s -j$(MAKE_JOBS) check-unit check-integration
 	@echo "🟢 ThreadSanitizer checks passed!"
@@ -1277,7 +1342,7 @@ fmt:
 	@find src -path src/vendor -prune -o \( -name "*.c" -o -name "*.h" \) -print | xargs uncrustify -c .uncrustify.cfg --replace --no-backup
 	@find tests/unit -name "*.c" -o -name "*.h" | xargs uncrustify -c .uncrustify.cfg --replace --no-backup
 	@[ ! -d tests/integration ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/integration/*.c
-	@[ ! -f tests/test_utils.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils.c tests/test_utils.h
+	@[ ! -f tests/test_utils_helper.c ] || uncrustify -c .uncrustify.cfg --replace --no-backup tests/test_utils_helper.c tests/test_utils_helper.h
 
 check-complexity:
 	@echo "Checking complexity in src/*.c..."
@@ -1391,7 +1456,7 @@ coverage-map:
 	@mkdir -p build-coverage/tests/unit build-coverage/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p
 	@find tests/integration -type d | sed 's|tests/integration|build-coverage/tests/integration|' | xargs mkdir -p
-	@BUILDDIR=build-coverage $(MAKE) build-tests CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
+	@BUILDDIR=build-coverage $(MAKE) check-compile CFLAGS="$(CFLAGS) $(COVERAGE_CFLAGS)" LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)"
 	@BUILDDIR=build-coverage .claude/scripts/generate-coverage-map.sh
 
 check-coverage:

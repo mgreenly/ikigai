@@ -4,7 +4,7 @@
 #include <talloc.h>
 
 #include "../../../src/format.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Create format buffer successfully
 START_TEST(test_format_buffer_create_success) {

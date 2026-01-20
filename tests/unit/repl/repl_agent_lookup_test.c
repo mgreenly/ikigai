@@ -9,8 +9,8 @@
 #include "../../../src/repl.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
-#include "../../test_utils.h"
-#include "../../helpers/test_contexts.h"
+#include "../../test_utils_helper.h"
+#include "../../helpers/test_contexts_helper.h"
 
 // Test fixture data
 static ik_repl_ctx_t *repl = NULL;

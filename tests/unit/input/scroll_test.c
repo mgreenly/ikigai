@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: IK_INPUT_SCROLL_UP enum value exists and is distinct
 START_TEST(test_scroll_up_enum_exists) {

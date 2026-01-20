@@ -3,7 +3,7 @@
  * @brief Unit tests for /fork command - coverage gaps
  */
 
-#include "cmd_fork_coverage_test_mocks.h"
+#include "cmd_fork_coverage_test_helper.h"
 
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
@@ -21,7 +21,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <inttypes.h>

@@ -14,7 +14,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Up arrow from empty input loads last entry */
 START_TEST(test_history_up_from_empty_input) {

@@ -6,7 +6,7 @@
 #include "../../../src/terminal.h"
 #include "../../../src/render.h"
 #include "../../../src/history.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <errno.h>

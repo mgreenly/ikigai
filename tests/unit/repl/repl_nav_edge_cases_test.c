@@ -8,7 +8,7 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/agent.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture data
 static TALLOC_CTX *test_ctx = NULL;

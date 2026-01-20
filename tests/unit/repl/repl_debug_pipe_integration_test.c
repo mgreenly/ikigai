@@ -11,7 +11,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/debug_pipe.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Debug pipe manager integration with debug_enabled=true

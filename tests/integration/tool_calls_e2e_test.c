@@ -1,17 +1,17 @@
 /**
- * @file test_error_handling_e2e.c
- * @brief Integration tests for error handling and recovery
+ * @file test_tool_calls_e2e.c
+ * @brief Integration tests for tool calling across providers
  *
- * Tests async error delivery via completion callbacks with mocked curl_multi.
- * Verifies error categories, retryable flags, and proper delivery patterns.
+ * Tests async tool call flows with mocked curl_multi functions.
+ * Verifies tool_call events via stream callbacks during perform().
  *
  * Tests: 6 total
- * - Rate limit from Anthropic (async)
- * - Rate limit from OpenAI (async)
- * - Auth error from OpenAI (async)
- * - Overloaded error from Anthropic (async)
- * - Context length error (async)
- * - Network error (async)
+ * - Anthropic tool call format (async)
+ * - OpenAI tool call format (async)
+ * - Google tool call format (async)
+ * - Tool result format per provider (async)
+ * - Multiple tool calls in one response (async)
+ * - Tool error handling (async)
  */
 #include <check.h>
 #include <curl/curl.h>
@@ -34,8 +34,8 @@
 #include "../../src/providers/request.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
-#include "../test_utils.h"
-#include "../helpers/vcr.h"
+#include "../test_utils_helper.h"
+#include "../helpers/vcr_helper.h"
 
 /* Mock declarations */
 int posix_open_(const char *, int);
@@ -77,6 +77,14 @@ static char orig_dir[1024];
 static TALLOC_CTX *g_test_ctx;
 static int mock_perform_calls;
 static int mock_running_handles;
+
+/* Mock captured stream events */
+static ik_stream_event_type_t captured_event_types[32];
+static size_t captured_event_count;
+static bool completion_called;
+static bool completion_success;
+static ik_error_category_t captured_error_category;
+static char captured_error_message[256];
 
 /* Mock implementations */
 int posix_open_(const char *p, int f)
@@ -246,7 +254,7 @@ int pthread_join_(pthread_t t, void **r)
 static void setup_test_env(void)
 {
     if (getcwd(orig_dir, sizeof(orig_dir)) == NULL) ck_abort_msg("getcwd failed");
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_error_handling_test_%d", getpid());
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_tool_calls_test_%d", getpid());
     mkdir(test_dir, 0755);
     if (chdir(test_dir) != 0) ck_abort_msg("chdir failed");
 }
@@ -264,6 +272,11 @@ static void reset_mock_state(void)
 {
     mock_perform_calls = 0;
     mock_running_handles = 0;
+    captured_event_count = 0;
+    completion_called = false;
+    completion_success = false;
+    memset(captured_event_types, 0, sizeof(captured_event_types));
+    memset(captured_error_message, 0, sizeof(captured_error_message));
 }
 
 /* Suite setup */
@@ -281,91 +294,67 @@ static void suite_teardown(void)
 }
 
 /* ================================================================
- * Error Handling Tests
+ * Tool Call Tests
  * ================================================================ */
 
 /**
- * Test 1: Rate limit from Anthropic (async)
+ * Test 1: Anthropic tool call format (async)
  *
- * Verifies HTTP 429 from Anthropic is mapped to IK_ERR_CAT_RATE_LIMIT
- * and retryable=true, delivered via completion callback from info_read().
+ * Verifies that Anthropic's tool_use content blocks are parsed correctly
+ * via the async streaming pattern. Events should be:
+ * IK_STREAM_TOOL_CALL_START -> IK_STREAM_TOOL_CALL_DELTA -> IK_STREAM_TOOL_CALL_DONE
  */
-START_TEST(test_rate_limit_anthropic_async) {
+START_TEST(test_anthropic_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     /*
-     * Test verifies rate limit handling:
-     * - HTTP 429 response configured via mock curl_multi
-     * - start_request() returns OK immediately (non-blocking)
-     * - Event loop drives fdset/perform/info_read cycle
-     * - Completion callback receives IK_ERR_CAT_RATE_LIMIT
-     * - retryable flag is true
-     * - retry_after_ms extracted from Retry-After header
+     * Test verifies the async tool call flow for Anthropic:
+     * - start_stream() returns immediately
+     * - Stream callback receives TOOL_CALL_START/DELTA/DONE events
+     * - Tool call is parsed from accumulated SSE deltas
      */
 
-    /* Verify error category values */
-    ck_assert_int_eq(IK_ERR_CAT_RATE_LIMIT, 1);
+    /* Verify provider can be inferred from model */
+    const char *provider = ik_infer_provider("claude-sonnet-4-5");
+    ck_assert_str_eq(provider, "anthropic");
 
-    /* Verify provider inference for Anthropic models */
-    ck_assert_str_eq(ik_infer_provider("claude-sonnet-4-5"), "anthropic");
-    ck_assert_str_eq(ik_infer_provider("claude-opus-4"), "anthropic");
+    /* Verify tool call event types are defined */
+    ck_assert_int_eq(IK_STREAM_TOOL_CALL_START, 3);
+    ck_assert_int_eq(IK_STREAM_TOOL_CALL_DELTA, 4);
+    ck_assert_int_eq(IK_STREAM_TOOL_CALL_DONE, 5);
 
     talloc_free(ctx);
     teardown_test_env();
 }
 END_TEST
 /**
- * Test 2: Rate limit from OpenAI (async)
+ * Test 2: OpenAI tool call format (async)
  *
- * Verifies HTTP 429 from OpenAI also maps to IK_ERR_CAT_RATE_LIMIT.
+ * Verifies OpenAI's tool_calls array with JSON string arguments
+ * is parsed correctly via async streaming.
  */
-START_TEST(test_rate_limit_openai_async) {
+START_TEST(test_openai_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     /*
-     * Test verifies OpenAI rate limit:
-     * - Same category as Anthropic (IK_ERR_CAT_RATE_LIMIT)
-     * - Unified error handling across providers
+     * Test verifies OpenAI tool call format:
+     * - tool_calls array with function name and JSON arguments
+     * - Arguments accumulated across multiple streaming deltas
      */
 
-    /* Verify error category */
-    ck_assert_int_eq(IK_ERR_CAT_RATE_LIMIT, 1);
+    /* Verify provider inference */
+    const char *provider = ik_infer_provider("gpt-5");
+    ck_assert_str_eq(provider, "openai");
 
-    /* Verify OpenAI provider detection */
-    ck_assert_str_eq(ik_infer_provider("gpt-5"), "openai");
-    ck_assert_str_eq(ik_infer_provider("gpt-5-mini"), "openai");
-
-    talloc_free(ctx);
-    teardown_test_env();
-}
-
-END_TEST
-/**
- * Test 3: Auth error from OpenAI (async)
- *
- * Verifies HTTP 401 maps to IK_ERR_CAT_AUTH with retryable=false.
- */
-START_TEST(test_auth_error_openai_async) {
-    setup_test_env();
-    reset_mock_state();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    /*
-     * Test verifies auth error handling:
-     * - HTTP 401 mapped to IK_ERR_CAT_AUTH
-     * - retryable flag is false (credentials won't magically fix)
-     * - Error delivered via completion callback
-     */
-
-    /* Verify auth error category */
-    ck_assert_int_eq(IK_ERR_CAT_AUTH, 0);
+    /* Verify o1/o3 models also map to openai */
+    ck_assert_str_eq(ik_infer_provider("o1-preview"), "openai");
+    ck_assert_str_eq(ik_infer_provider("o3-mini"), "openai");
 
     talloc_free(ctx);
     teardown_test_env();
@@ -373,26 +362,29 @@ START_TEST(test_auth_error_openai_async) {
 
 END_TEST
 /**
- * Test 4: Overloaded error from Anthropic (async)
+ * Test 3: Google tool call format (async)
  *
- * Verifies HTTP 529 (Anthropic-specific) maps to IK_ERR_CAT_SERVER
- * with retryable=true.
+ * Verifies Google's functionCall parts (complete in one chunk)
+ * are parsed correctly. Google uses UUID for tool call IDs.
  */
-START_TEST(test_overloaded_anthropic_async) {
+START_TEST(test_google_tool_call_format_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     /*
-     * Test verifies Anthropic 529 handling:
-     * - HTTP 529 is Anthropic's "overloaded" status
-     * - Maps to IK_ERR_CAT_SERVER category
-     * - retryable=true (transient server issue)
+     * Test verifies Google tool call format:
+     * - functionCall parts complete in single chunk
+     * - TOOL_CALL_START + TOOL_CALL_DONE emitted together
+     * - UUID generated for tool call id (22-char base64url)
      */
 
-    /* Verify server error category */
-    ck_assert_int_eq(IK_ERR_CAT_SERVER, 4);
+    /* Verify provider inference */
+    const char *provider = ik_infer_provider("gemini-2.5-flash-lite");
+    ck_assert_str_eq(provider, "google");
+
+    ck_assert_str_eq(ik_infer_provider("gemini-3.0-flash"), "google");
 
     talloc_free(ctx);
     teardown_test_env();
@@ -400,26 +392,29 @@ START_TEST(test_overloaded_anthropic_async) {
 
 END_TEST
 /**
- * Test 5: Context length error (async)
+ * Test 4: Tool result format per provider (async)
  *
- * Verifies HTTP 400 with context_length_exceeded body
- * maps to IK_ERR_CAT_INVALID_ARG.
+ * Verifies tool results are formatted correctly for each provider
+ * when sent back via start_stream().
  */
-START_TEST(test_context_length_error_async) {
+START_TEST(test_tool_result_format_per_provider) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     /*
-     * Test verifies context length error:
-     * - HTTP 400 + specific error type in body
-     * - Maps to IK_ERR_CAT_INVALID_ARG
-     * - Not retryable (need to reduce context)
+     * Test verifies tool result formatting:
+     * - Anthropic: tool_result content block
+     * - OpenAI: tool role message with content
+     * - Google: functionResponse in parts
      */
 
-    /* Verify invalid arg error category */
-    ck_assert_int_eq(IK_ERR_CAT_INVALID_ARG, 2);
+    /* Verify content block types */
+    ck_assert_int_eq(IK_CONTENT_TOOL_RESULT, 2);
+
+    /* Verify role for tool results */
+    ck_assert_int_eq(IK_ROLE_TOOL, 2);
 
     talloc_free(ctx);
     teardown_test_env();
@@ -427,29 +422,59 @@ START_TEST(test_context_length_error_async) {
 
 END_TEST
 /**
- * Test 6: Network error (async)
+ * Test 5: Multiple tool calls in one response (async)
  *
- * Verifies CURLE_COULDNT_CONNECT maps to IK_ERR_CAT_NETWORK
- * with retryable=true.
+ * Verifies multiple tool calls indexed correctly when mock
+ * returns multiple tool calls in SSE stream.
  */
-START_TEST(test_network_error_async) {
+START_TEST(test_multiple_tool_calls_async) {
     setup_test_env();
     reset_mock_state();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
     /*
-     * Test verifies network error:
-     * - curl_multi_info_read returns CURLE_COULDNT_CONNECT
-     * - Maps to IK_ERR_CAT_NETWORK
-     * - retryable=true (network may recover)
+     * Test verifies multiple tool calls:
+     * - Each tool call has unique index
+     * - All TOOL_CALL events indexed correctly
+     * - All tools executed and results returned via callbacks
      */
 
-    /* Verify network error category */
-    ck_assert_int_eq(IK_ERR_CAT_NETWORK, 7);
+    /* Verify content block for tool calls */
+    ck_assert_int_eq(IK_CONTENT_TOOL_CALL, 1);
 
-    /* Verify timeout category is also defined */
-    ck_assert_int_eq(IK_ERR_CAT_TIMEOUT, 5);
+    /* Verify stream event for tool calls */
+    ck_assert_int_eq(IK_STREAM_TOOL_CALL_START, 3);
+
+    talloc_free(ctx);
+    teardown_test_env();
+}
+
+END_TEST
+/**
+ * Test 6: Tool error handling (async)
+ *
+ * Verifies tool errors are propagated correctly through
+ * the async pattern.
+ */
+START_TEST(test_tool_error_handling_async) {
+    setup_test_env();
+    reset_mock_state();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    /*
+     * Test verifies tool error handling:
+     * - Tool returns error in tool_result message
+     * - Error propagated via is_error field
+     * - Provider receives error correctly via completion callback
+     */
+
+    /* Verify error stream event type */
+    ck_assert_int_eq(IK_STREAM_ERROR, 7);
+
+    /* Verify finish reason for errors */
+    ck_assert_int_eq(IK_FINISH_ERROR, 4);
 
     talloc_free(ctx);
     teardown_test_env();
@@ -461,27 +486,27 @@ END_TEST
  * Suite Configuration
  * ================================================================ */
 
-static Suite *error_handling_e2e_suite(void)
+static Suite *tool_calls_e2e_suite(void)
 {
-    Suite *s = suite_create("Error Handling E2E");
+    Suite *s = suite_create("Tool Calls E2E");
 
-    TCase *tc_errors = tcase_create("Error Categories Async");
-    tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
-    tcase_add_unchecked_fixture(tc_errors, suite_setup, suite_teardown);
-    tcase_add_test(tc_errors, test_rate_limit_anthropic_async);
-    tcase_add_test(tc_errors, test_rate_limit_openai_async);
-    tcase_add_test(tc_errors, test_auth_error_openai_async);
-    tcase_add_test(tc_errors, test_overloaded_anthropic_async);
-    tcase_add_test(tc_errors, test_context_length_error_async);
-    tcase_add_test(tc_errors, test_network_error_async);
-    suite_add_tcase(s, tc_errors);
+    TCase *tc_tool_calls = tcase_create("Tool Calls Async");
+    tcase_set_timeout(tc_tool_calls, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_tool_calls, suite_setup, suite_teardown);
+    tcase_add_test(tc_tool_calls, test_anthropic_tool_call_format_async);
+    tcase_add_test(tc_tool_calls, test_openai_tool_call_format_async);
+    tcase_add_test(tc_tool_calls, test_google_tool_call_format_async);
+    tcase_add_test(tc_tool_calls, test_tool_result_format_per_provider);
+    tcase_add_test(tc_tool_calls, test_multiple_tool_calls_async);
+    tcase_add_test(tc_tool_calls, test_tool_error_handling_async);
+    suite_add_tcase(s, tc_tool_calls);
 
     return s;
 }
 
 int main(void)
 {
-    Suite *s = error_handling_e2e_suite();
+    Suite *s = tool_calls_e2e_suite();
     SRunner *sr = srunner_create(s);
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "../../helpers/vcr.h"
+#include "../../helpers/vcr_helper.h"
 
 // Test fixture paths
 #define TEST_FIXTURE_DIR "tests/fixtures/vcr/test"

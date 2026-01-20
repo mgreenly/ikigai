@@ -20,7 +20,7 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/render.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write wrapper for testing (required by render system)
 ssize_t posix_write_(int fd, const void *buf, size_t count);

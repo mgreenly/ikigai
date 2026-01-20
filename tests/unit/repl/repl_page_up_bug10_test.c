@@ -25,7 +25,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/terminal.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test exact user scenario from Bug #10

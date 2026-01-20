@@ -1,7 +1,7 @@
 #include "message.h"
 #include "msg.h"
 #include "providers/provider.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "vendor/yyjson/yyjson.h"
 
 #include <check.h>

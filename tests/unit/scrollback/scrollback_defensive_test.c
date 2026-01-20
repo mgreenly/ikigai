@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Defensive error in ik_scrollback_find_logical_line_at_physical_row (lines 324-325)
 // This tests the "should never happen" case where total_physical_lines is inconsistent

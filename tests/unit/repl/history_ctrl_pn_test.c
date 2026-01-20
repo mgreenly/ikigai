@@ -18,7 +18,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Ctrl+P starts browsing with empty input */
 START_TEST(test_ctrl_p_starts_browsing_empty) {

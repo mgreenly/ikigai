@@ -6,7 +6,7 @@
  * Tests to achieve 100% coverage of tool serialization error paths.
  */
 
-#include "request_responses_test_helpers.h"
+#include "request_responses_test_helper.h"
 
 /* ================================================================
  * serialize_responses_tool Error Path Tests

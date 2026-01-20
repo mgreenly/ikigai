@@ -14,7 +14,7 @@
 #include "../../src/repl_actions.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include "completion_test_mocks.h"
 
 static void press_space(ik_repl_ctx_t *r)

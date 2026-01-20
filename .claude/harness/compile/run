@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 #
-# harness/compile - Compile/link error check
+# harness/compile - Compile error check
 #
-# Runs make, parses compile/link errors, outputs JSON summary.
+# Runs make check-compile, parses compile errors, outputs JSON summary.
 # No fix functionality - check only.
 #
 
@@ -29,42 +29,43 @@ def run_cmd(cmd, env: {})
   [status.exitstatus, stdout_str]
 end
 
-# Parse compiler/linker errors from make output
+# Parse compiler errors from make check-compile output
 def parse_errors(output)
   errors = []
   seen_files = Set.new
 
-  # GCC/Clang error pattern: file.c:123:45: error: message
-  error_pattern = /^([^\s:]+):(\d+):(\d+):\s*error:\s*(.+)$/
+  # Two output formats:
+  # 1. With FILE=: 🔴 file.c:123:45: error: message (detailed)
+  # 2. Without FILE=: 🔴 file.c (summary only)
+  detailed_pattern = /^🔴 ([^\s:]+):(\d+):(\d+):\s*error:\s*(.+)$/
+  summary_pattern = /^🔴 ([^\s]+\.c)$/
 
-  # First try compiler errors
-  output.scan(error_pattern) do |file, line, col, message|
-    # Only report first error per file (they often cascade)
-    next if seen_files.include?(file)
-    seen_files.add(file)
+  output.each_line do |line|
+    if line =~ detailed_pattern
+      file, line_num, col, message = $1, $2, $3, $4
 
-    errors << {
-      file: file,
-      line: line,
-      col: col,
-      message: message
-    }
-  end
-
-  # If no compiler errors, check for linker errors
-  if errors.empty?
-    # Linker error pattern: undefined reference to `symbol'
-    linker_matches = output.scan(/undefined reference to [`']([^'`]+)[`']/)
-
-    unless linker_matches.empty?
-      # Try to find the object file being linked
-      obj_match = output.match(/([^\s]+\.o):/)
+      # Only report first error per file (they often cascade)
+      next if seen_files.include?(file)
+      seen_files.add(file)
 
       errors << {
-        file: obj_match ? obj_match[1] : 'unknown',
+        file: file,
+        line: line_num,
+        col: col,
+        message: message
+      }
+    elsif line =~ summary_pattern
+      file = $1
+
+      # Only report first error per file
+      next if seen_files.include?(file)
+      seen_files.add(file)
+
+      errors << {
+        file: file,
         line: '1',
         col: '1',
-        message: "undefined reference to: #{linker_matches.flatten.take(3).join(', ')}"
+        message: 'compilation failed'
       }
     end
   end
@@ -77,9 +78,12 @@ def format_error_item(error)
   "#{error[:file]}:#{error[:line]}:#{error[:col]}: #{error[:message]}"
 end
 
-# Run make with appropriate parallelization
-def run_make_build
-  exit_code, output = run_cmd(['make', 'all', 'build-tests'])
+# Run make check-compile
+def run_make_build(file: nil)
+  cmd = ['make', 'check-compile']
+  cmd << "FILE=#{file}" if file
+
+  exit_code, output = run_cmd(cmd)
 
   [exit_code == 0, output]
 end
@@ -112,32 +116,15 @@ def main
   run_cmd(['make', 'clean'])
 
   # Run build
-  success, output = run_make_build
-
-  if success
-    puts JSON.generate(ok: true)
-    exit 0
-  end
+  success, output = run_make_build(file: options[:file])
 
   # Parse errors
   errors = parse_errors(output)
 
-  # Filter errors to target file if --file is specified
-  if options[:file]
-    target_file = options[:file]
-    errors = errors.select { |e| e[:file] == target_file }
-
-    if errors.empty?
-      # File exists, no errors - success
-      puts JSON.generate(ok: true)
-      exit 0
-    end
-  end
-
   if errors.empty?
-    # Build failed but couldn't parse errors
-    puts JSON.generate(ok: false, items: [])
-    exit 1
+    # No errors found - success
+    puts JSON.generate(ok: true)
+    exit 0
   end
 
   # Format and output errors

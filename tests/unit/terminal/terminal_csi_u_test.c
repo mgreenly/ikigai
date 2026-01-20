@@ -5,7 +5,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "terminal_test_mocks.h"
 
 // Test: csi_u_supported field exists and is initialized

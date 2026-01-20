@@ -15,7 +15,7 @@
 #include "../../../src/paths.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Forward declaration for suite function

@@ -14,7 +14,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include <string.h>
 
 /* Test: Typing /ex triggers autocomplete suggesting /exit */

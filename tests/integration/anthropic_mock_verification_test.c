@@ -1,4 +1,4 @@
-#include "anthropic_mock_verification_helpers.h"
+#include "anthropic_mock_verification_helper.h"
 
 #include <check.h>
 #include <stdio.h>
@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <talloc.h>
 #include "../../src/vendor/yyjson/yyjson.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 /**
  * Anthropic Mock Verification Test Suite

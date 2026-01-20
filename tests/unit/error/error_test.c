@@ -2,7 +2,7 @@
 #include <talloc.h>
 #include <signal.h>
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Helper function that returns success
 static res_t helper_success(TALLOC_CTX *ctx)

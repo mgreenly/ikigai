@@ -3,7 +3,7 @@
 #include "../../../src/db/replay.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <inttypes.h>

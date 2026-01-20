@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/byte_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test byte array creation with invalid increment (0)
 START_TEST(test_byte_array_create_invalid_increment) {

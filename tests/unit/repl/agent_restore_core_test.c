@@ -3,8 +3,8 @@
  * @brief Core test functions for agent restore functionality
  */
 
-#include "agent_restore_core_tests.h"
-#include "agent_restore_test_helpers.h"
+#include "agent_restore_core_test.h"
+#include "agent_restore_test_helper.h"
 
 #include "../../../src/repl/agent_restore.h"
 #include "../../../src/db/agent.h"

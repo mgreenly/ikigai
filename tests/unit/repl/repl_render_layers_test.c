@@ -16,7 +16,7 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/byte_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;

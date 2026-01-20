@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test successful array creation
 START_TEST(test_array_create_success) {

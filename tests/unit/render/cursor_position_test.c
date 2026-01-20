@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/render.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Internal function for testing cursor position calculation
 typedef struct {

@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include "../../src/repl.h"
 #include "../../src/logger.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // Mock terminal file descriptor
 static int mock_tty_fd = 100;

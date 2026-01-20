@@ -13,7 +13,7 @@
 #include "error.h"
 #include "wrapper.h"
 #include "vendor/yyjson/yyjson.h"
-#include "request_chat_coverage_helpers.h"
+#include "request_chat_coverage_helper.h"
 
 #include <check.h>
 #include <talloc.h>

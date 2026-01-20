@@ -15,7 +15,7 @@
 #include "../../../src/paths.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/agent.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Mock state for controlling failures

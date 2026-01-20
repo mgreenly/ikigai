@@ -18,7 +18,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/commands.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: /clear command clears autocomplete state */
 START_TEST(test_clear_command_clears_autocomplete) {

@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Ctrl+Left generates NAV_PREV_SIBLING
 START_TEST(test_ctrl_left_arrow) {

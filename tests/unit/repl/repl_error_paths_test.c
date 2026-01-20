@@ -11,7 +11,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture data
 static TALLOC_CTX *test_ctx = NULL;

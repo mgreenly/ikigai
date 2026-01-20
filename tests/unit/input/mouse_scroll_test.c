@@ -6,7 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Mouse scroll up sequence ESC [ < 64 ; col ; row M should generate IK_INPUT_SCROLL_UP
 START_TEST(test_mouse_scroll_up_parsing) {

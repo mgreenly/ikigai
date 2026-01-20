@@ -21,7 +21,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_page_up_after_typing_in_input_buffer) {
     void *ctx = talloc_new(NULL);

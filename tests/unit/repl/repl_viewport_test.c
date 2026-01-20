@@ -10,7 +10,7 @@
 #include <talloc.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Viewport with empty scrollback (input buffer fills screen) */
 START_TEST(test_viewport_empty_scrollback) {

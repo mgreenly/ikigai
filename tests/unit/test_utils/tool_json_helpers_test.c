@@ -3,7 +3,7 @@
 #include <talloc.h>
 
 #include "../../../src/vendor/yyjson/yyjson.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;

@@ -3,7 +3,7 @@
 #include "../../src/repl.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 #include <check.h>
 #include <curl/curl.h>

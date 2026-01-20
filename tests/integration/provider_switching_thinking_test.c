@@ -27,8 +27,8 @@
 #include "../../src/providers/request.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
-#include "../test_utils.h"
-#include "../helpers/vcr.h"
+#include "../test_utils_helper.h"
+#include "../helpers/vcr_helper.h"
 
 /* Mock declarations */
 int posix_open_(const char *, int); int posix_tcgetattr_(int, struct termios *);

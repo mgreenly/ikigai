@@ -3,7 +3,7 @@
  * @brief Implementation of shared test infrastructure
  */
 
-#include "request_responses_test_helpers.h"
+#include "request_responses_test_helper.h"
 
 // Mock state
 int32_t yyjson_fail_count = 0;

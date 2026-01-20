@@ -7,7 +7,7 @@
  * will link against vcr.o which provides the real implementations.
  */
 
-#include "vcr.h"
+#include "vcr_helper.h"
 
 // Weak symbol stubs - will be replaced by real implementations when vcr.o is linked
 

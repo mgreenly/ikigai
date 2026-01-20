@@ -2,7 +2,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
 #include "../../../src/uuid.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>

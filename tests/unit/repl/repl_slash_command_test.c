@@ -12,7 +12,7 @@
 #include "../../../src/input.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/shared.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: /pp command clears input buffer after execution */
 START_TEST(test_pp_command_clears_input_buffer) {

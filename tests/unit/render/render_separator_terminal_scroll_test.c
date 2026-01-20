@@ -13,7 +13,7 @@
 #include <inttypes.h>
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Separator as last line should NOT have trailing \r\n

@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/cursor.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test move left with ASCII text
 START_TEST(test_cursor_move_left_ascii) {

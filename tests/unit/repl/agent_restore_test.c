@@ -20,9 +20,9 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
-#include "../../test_utils.h"
-#include "agent_restore_test_helpers.h"
-#include "agent_restore_core_tests.h"
+#include "../../test_utils_helper.h"
+#include "agent_restore_test_helper.h"
+#include "agent_restore_core_test.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>

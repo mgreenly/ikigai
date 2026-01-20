@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Verify all 4 directories exist after setup
 START_TEST(test_paths_setup_creates_directories) {

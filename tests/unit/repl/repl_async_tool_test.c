@@ -1,7 +1,7 @@
 #include "agent.h"
 #include "message.h"
 #include "providers/provider.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/agent.h"
 #include <check.h>
 #include <talloc.h>

@@ -14,7 +14,7 @@
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Typing "/" triggers completion automatically */
 START_TEST(test_tab_triggers_completion) {

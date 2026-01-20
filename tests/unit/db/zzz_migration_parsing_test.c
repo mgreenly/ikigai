@@ -1,7 +1,7 @@
 #include "../../../src/db/migration.h"
 #include "../../../src/db/pg_result.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <libpq-fe.h>

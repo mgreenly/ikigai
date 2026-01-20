@@ -3,7 +3,7 @@
  * @brief Shared mock implementations for REPL event loop tests
  */
 
-#include "repl_run_common.h"
+#include "repl_run_helper.h"
 #include <curl/curl.h>
 #include <sys/select.h>
 #include <errno.h>

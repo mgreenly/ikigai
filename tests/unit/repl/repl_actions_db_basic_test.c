@@ -21,7 +21,7 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/logger.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
 

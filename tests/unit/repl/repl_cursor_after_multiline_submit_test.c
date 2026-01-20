@@ -14,7 +14,7 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Helper to create minimal REPL context for testing
 static ik_repl_ctx_t *create_test_repl(void *ctx)

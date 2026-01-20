@@ -8,9 +8,9 @@
  * - Thinking block tests
  */
 
-#include "message_tool_call_helpers.h"
-#include "message_tool_result_helpers.h"
-#include "message_thinking_helpers.h"
+#include "message_tool_call_helper.h"
+#include "message_tool_result_helper.h"
+#include "message_thinking_helper.h"
 
 #include <check.h>
 

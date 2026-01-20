@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "../tests/helpers/vcr.h"
+#include "../tests/helpers/vcr_helper.h"
 
 // ============================================================================
 // libcurl wrappers - debug/test builds only

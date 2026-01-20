@@ -13,7 +13,7 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/debug_pipe.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Create a minimal REPL context for debug command testing.

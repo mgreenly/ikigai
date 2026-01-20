@@ -7,7 +7,7 @@
 #include "../../../src/config.h"
 #include "../../../src/paths.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_error_code_strings) {
     // Test that new error codes have string representations

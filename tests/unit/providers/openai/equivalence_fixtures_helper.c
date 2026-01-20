@@ -3,7 +3,7 @@
  * @brief Test fixtures for OpenAI equivalence validation
  */
 
-#include "equivalence_fixtures.h"
+#include "equivalence_fixtures_helper.h"
 #include "providers/provider.h"
 #include "panic.h"
 #include <string.h>

@@ -6,7 +6,7 @@
  * Tests thinking and redacted thinking blocks in tool_call messages.
  */
 
-#include "message_thinking_helpers.h"
+#include "message_thinking_helper.h"
 
 #include "../../../src/message.h"
 

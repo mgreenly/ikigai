@@ -13,7 +13,7 @@
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Read single complete line */
 START_TEST(test_debug_pipe_read_single_line) {

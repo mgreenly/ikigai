@@ -21,7 +21,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Forward declarations

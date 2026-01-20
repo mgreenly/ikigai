@@ -13,7 +13,7 @@
 #include "../../../src/debug_pipe.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Create debug pipe manager */
 START_TEST(test_debug_mgr_create) {

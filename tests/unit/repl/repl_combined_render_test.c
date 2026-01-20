@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include "../../../src/repl.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write() implementation to avoid actual terminal writes
 static char *mock_write_buffer = NULL;

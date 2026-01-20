@@ -13,7 +13,7 @@
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write() implementation
 static char *mock_write_buffer = NULL;

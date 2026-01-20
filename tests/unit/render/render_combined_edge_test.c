@@ -7,7 +7,7 @@
 #include <talloc.h>
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Invalid scrollback_start_line (>= total_lines) returns error */
 START_TEST(test_render_combined_invalid_scrollback_start) {

@@ -9,7 +9,7 @@
 #include "repl.h"
 
 #include "../../../src/agent.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "config.h"
 #include "logger.h"
 #include "providers/provider.h"

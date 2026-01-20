@@ -16,7 +16,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_page_up_with_4_lines) {
     void *ctx = talloc_new(NULL);

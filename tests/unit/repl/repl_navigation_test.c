@@ -12,7 +12,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/shared.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Process ARROW_LEFT action */
 START_TEST(test_repl_process_action_arrow_left) {

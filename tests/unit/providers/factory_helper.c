@@ -6,7 +6,7 @@
  * the actual provider implementations. They simply return ERR_NOT_IMPLEMENTED.
  */
 
-#include "factory_stubs.h"
+#include "factory_helper.h"
 
 // Stub implementation for OpenAI factory
 res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out)
