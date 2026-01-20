@@ -1,7 +1,7 @@
-FROM debian:13.2@sha256:c71b05eac0b20adb4cdcc9f7b052227efd7da381ad10bb92f972e8eae7c6cdc9
+FROM ubuntu:24.04
 
-# Install build dependencies
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+# Install build dependencies (matching GitHub CI)
+RUN apt-get update && apt-get install -y \
     build-essential \
     uncrustify \
     complexity \
@@ -21,9 +21,6 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     sudo \
     libxml2-dev \
     bc \
-    debhelper \
-    dpkg-dev \
-    fakeroot \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

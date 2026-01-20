@@ -10,6 +10,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    container:
+      image: debian:13.2@sha256:c71b05eac0b20adb4cdcc9f7b052227efd7da381ad10bb92f972e8eae7c6cdc9
+      env:
+        PGHOST: postgres
+
     services:
       postgres:
         image: postgres:16
@@ -22,16 +27,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install build dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+        apt-get update
+        apt-get upgrade -y
+        apt-get install -y \
           build-essential \
           uncrustify \
           complexity \
@@ -46,15 +50,21 @@ jobs:
           libxkbcommon-dev \
           postgresql-client \
           lcov \
-          valgrind
+          valgrind \
+          git \
+          sudo \
+          libxml2-dev \
+          bc \
+          debhelper \
+          dpkg-dev \
+          fakeroot
 
     - name: Show tool versions
       run: |
-        lcov --version
-        gcc --version | head -1
-
-    - name: Install vendored dependencies
-      run: make install-deps
+        echo "Debian version:" && cat /etc/debian_version
+        echo "gcc:" && gcc --version | head -1
+        echo "lcov package:" && dpkg -l lcov | grep lcov
+        echo "lcov binary:" && lcov --version
 
     - name: Check file sizes
       run: make check-filesize

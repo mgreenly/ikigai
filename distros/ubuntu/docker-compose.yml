@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16
@@ -16,7 +18,7 @@ services:
   test:
     build:
       context: ../..
-      dockerfile: distros/debian/Dockerfile
+      dockerfile: distros/ubuntu/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -25,10 +27,10 @@ services:
     volumes:
       - ../..:/workspace
     working_dir: /workspace
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${UID}:${GID}"
     networks:
       - test-network
-    command: /bin/bash
+    command: make ci
 
 networks:
   test-network:
