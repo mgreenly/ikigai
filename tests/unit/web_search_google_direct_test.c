@@ -29,6 +29,7 @@ static int64_t mock_http_code = 200;
 static char *mock_response_data = NULL;
 static char *mock_google_search_api_key = NULL;
 static char *mock_google_search_engine_id = NULL;
+static char *mock_env_home = NULL;
 
 // Captured from curl_easy_setopt_
 static size_t (*captured_write_callback)(void *, size_t, size_t, void *) = NULL;
@@ -56,6 +57,12 @@ char *getenv_(const char *name)
     }
     if (strcmp(name, "GOOGLE_SEARCH_ENGINE_ID") == 0) {
         return mock_google_search_engine_id;
+    }
+    if (strcmp(name, "HOME") == 0) {
+        return mock_env_home;
+    }
+    if (strcmp(name, "IKIGAI_CONFIG_DIR") == 0) {
+        return NULL;
     }
     return NULL;
 }
@@ -239,6 +246,7 @@ static void setup(void)
     mock_response_data = NULL;
     mock_google_search_api_key = talloc_strdup(test_ctx, "test_api_key");
     mock_google_search_engine_id = talloc_strdup(test_ctx, "test_engine_id");
+    mock_env_home = talloc_strdup(test_ctx, "/tmp");
     captured_write_callback = NULL;
     captured_write_data = NULL;
 }
@@ -249,6 +257,7 @@ static void teardown(void)
     test_ctx = NULL;
     mock_google_search_api_key = NULL;
     mock_google_search_engine_id = NULL;
+    mock_env_home = NULL;
 }
 
 static int32_t run_test(web_search_google_params_t *params)

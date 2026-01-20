@@ -24,6 +24,7 @@ static CURLcode mock_perform_return = CURLE_OK;
 static int64_t mock_http_code = 200;
 static char *mock_response_data = NULL;
 static char *mock_env_brave_key = NULL;
+static char *mock_env_home = NULL;
 
 // Captured from curl_easy_setopt_
 static size_t (*captured_write_callback)(void *, size_t, size_t, void *) = NULL;
@@ -106,6 +107,12 @@ char *getenv_(const char *name)
     if (strcmp(name, "BRAVE_API_KEY") == 0) {
         return mock_env_brave_key;
     }
+    if (strcmp(name, "HOME") == 0) {
+        return mock_env_home;
+    }
+    if (strcmp(name, "IKIGAI_CONFIG_DIR") == 0) {
+        return NULL;
+    }
     return NULL;
 }
 
@@ -136,6 +143,7 @@ static void setup(void)
     mock_http_code = 200;
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": []}}");
     mock_env_brave_key = talloc_strdup(test_ctx, "test_key");
+    mock_env_home = talloc_strdup(test_ctx, "/tmp");
     captured_write_callback = NULL;
     captured_write_data = NULL;
 }
@@ -145,6 +153,7 @@ static void teardown(void)
     talloc_free(test_ctx);
     test_ctx = NULL;
     mock_env_brave_key = NULL;
+    mock_env_home = NULL;
     captured_write_callback = NULL;
     captured_write_data = NULL;
 }
