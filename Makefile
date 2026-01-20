@@ -1369,15 +1369,17 @@ tags:
 
 ci:
 	@echo "Running CI checks..."
+	@$(MAKE) clean
+	@$(MAKE) all
 	@$(MAKE) filesize
-	@$(MAKE) check-complexity
-	@$(MAKE) check-coverage
 	@$(MAKE) check-unit
 	@$(MAKE) check-integration
+	@$(MAKE) check-complexity
 	@$(MAKE) check-sanitize
 	@$(MAKE) check-tsan
 	@$(MAKE) check-valgrind
 	@$(MAKE) check-helgrind
+	@$(MAKE) check-coverage
 	@echo "🟢 All CI checks passed"
 
 # Generate source file -> test mapping for targeted coverage runs

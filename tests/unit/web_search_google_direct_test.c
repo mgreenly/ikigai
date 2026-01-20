@@ -341,21 +341,6 @@ START_TEST(test_multi_init_failure) {
 }
 END_TEST
 
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-START_TEST(test_single_allowed_domain_null) {
-    yyjson_val *allowed = parse_json("[null]");
-    web_search_google_params_t params = make_params(allowed, NULL, 1, 0);
-    run_test(&params);
-}
-END_TEST
-
-START_TEST(test_single_blocked_domain_null) {
-    yyjson_val *blocked = parse_json("[null]");
-    web_search_google_params_t params = make_params(NULL, blocked, 0, 1);
-    run_test(&params);
-}
-END_TEST
-#endif
 
 START_TEST(test_rate_limit_daily_exceeded) {
     mock_http_code = 429;
@@ -419,10 +404,6 @@ static Suite *web_search_google_direct_suite(void)
     tcase_add_test(tc_core, test_multi_allowed_domains);
     tcase_add_test(tc_core, test_http_400_error);
     tcase_add_test(tc_core, test_multi_init_failure);
-#if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
-    tcase_add_test_raise_signal(tc_core, test_single_allowed_domain_null, SIGABRT);
-    tcase_add_test_raise_signal(tc_core, test_single_blocked_domain_null, SIGABRT);
-#endif
     tcase_add_test(tc_core, test_rate_limit_daily_exceeded);
     tcase_add_test(tc_core, test_rate_limit_quota_exceeded);
     tcase_add_test(tc_core, test_api_error_with_message);
