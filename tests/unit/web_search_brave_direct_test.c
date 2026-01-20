@@ -12,7 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <talloc.h>
+#include <unistd.h>
 
 #include "vendor/yyjson/yyjson.h"
 
@@ -189,6 +191,9 @@ void xmlFreeDoc_(xmlDocPtr cur)
     (void)cur;
 }
 
+static char *test_config_dir = NULL;
+static char *test_creds_file = NULL;
+
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -203,10 +208,37 @@ static void setup(void)
     mock_fread_pos = 0;
     captured_write_callback = NULL;
     captured_write_data = NULL;
+
+    // Create temp directory for test credentials
+    test_config_dir = talloc_asprintf(test_ctx, "/tmp/ikigai_test_%d", getpid());
+    mkdir(test_config_dir, 0700);
+    test_creds_file = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
+
+    // Write test credentials file with flat JSON structure
+    FILE *f = fopen(test_creds_file, "w");
+    if (f) {
+        fprintf(f, "{\"BRAVE_API_KEY\": \"test_key\"}");
+        fclose(f);
+        chmod(test_creds_file, 0600);
+    }
+
+    // Set environment variable so credentials loader finds our test file
+    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
 }
 
 static void teardown(void)
 {
+    // Clean up test credentials file
+    if (test_creds_file) {
+        unlink(test_creds_file);
+        test_creds_file = NULL;
+    }
+    if (test_config_dir) {
+        rmdir(test_config_dir);
+        test_config_dir = NULL;
+    }
+    unsetenv("IKIGAI_CONFIG_DIR");
+
     talloc_free(test_ctx);
     test_ctx = NULL;
     mock_env_brave_key = NULL;

@@ -353,7 +353,7 @@ $(BUILDDIR)/tests/unit/web_search_brave_direct_test.o: tests/unit/web_search_bra
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(shell pkg-config --cflags libxml-2.0) -Isrc/tools/web_search_brave -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/web_search_brave_direct_test: $(BUILDDIR)/tests/unit/web_search_brave_direct_test.o $(BUILDDIR)/tools/web_search_brave/web_search_brave.o $(BUILDDIR)/tools/web_search_brave/auth_error.o $(BUILDDIR)/tools/web_search_brave/credentials.o $(BUILDDIR)/tools/web_search_brave/domain_utils.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_posix.o
+$(BUILDDIR)/tests/unit/web_search_brave_direct_test: $(BUILDDIR)/tests/unit/web_search_brave_direct_test.o $(BUILDDIR)/tools/web_search_brave/web_search_brave.o $(BUILDDIR)/tools/web_search_brave/auth_error.o $(BUILDDIR)/tools/web_search_brave/domain_utils.o $(BUILDDIR)/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_posix.o
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
@@ -377,7 +377,7 @@ $(BUILDDIR)/tests/unit/web_search_google_direct_test.o: tests/unit/web_search_go
 	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) -Isrc/tools/web_search_google -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
 
-$(BUILDDIR)/tests/unit/web_search_google_direct_test: $(BUILDDIR)/tests/unit/web_search_google_direct_test.o $(BUILDDIR)/tools/web_search_google/web_search_google.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_stdlib.o
+$(BUILDDIR)/tests/unit/web_search_google_direct_test: $(BUILDDIR)/tests/unit/web_search_google_direct_test.o $(BUILDDIR)/tools/web_search_google/web_search_google.o $(BUILDDIR)/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_talloc.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_stdlib.o
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit -lcurl $(shell pkg-config --libs libxml-2.0) $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
