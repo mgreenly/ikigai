@@ -28,7 +28,7 @@ static res_t expand_tilde(TALLOC_CTX *ctx, const char *path, char **out_path)
     }
 
     // Get HOME environment variable
-    const char *home = getenv("HOME");
+    const char *home = getenv_("HOME");
     if (!home) {
         return ERR(ctx, INVALID_ARG, "HOME not set, cannot expand ~");
     }
@@ -119,7 +119,7 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
     char *expanded_path = NULL;
     if (!creds_path) {
         // Check for IKIGAI_CONFIG_DIR environment variable
-        const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+        const char *config_dir = getenv_("IKIGAI_CONFIG_DIR");
         if (config_dir) {
             creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
             if (creds_path == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

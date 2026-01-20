@@ -24,9 +24,6 @@ static CURLcode mock_perform_return = CURLE_OK;
 static int64_t mock_http_code = 200;
 static char *mock_response_data = NULL;
 static char *mock_env_brave_key = NULL;
-static char *mock_env_home = NULL;
-static FILE *mock_fopen_return = NULL;
-static char *mock_credentials_content = NULL;
 
 // Captured from curl_easy_setopt_
 static size_t (*captured_write_callback)(void *, size_t, size_t, void *) = NULL;
@@ -109,67 +106,7 @@ char *getenv_(const char *name)
     if (strcmp(name, "BRAVE_API_KEY") == 0) {
         return mock_env_brave_key;
     }
-    if (strcmp(name, "HOME") == 0) {
-        return mock_env_home;
-    }
     return NULL;
-}
-
-FILE *fopen_(const char *path, const char *mode)
-{
-    (void)path;
-    (void)mode;
-    return mock_fopen_return;
-}
-
-int32_t fclose_(FILE *stream)
-{
-    (void)stream;
-    return 0;
-}
-
-// Create a dummy static FILE to use as mock
-static FILE mock_file_handle_storage;
-static size_t mock_fread_pos = 0;
-
-int fseek_(FILE *stream, long offset, int whence)
-{
-    (void)stream;
-    if (whence == SEEK_SET) {
-        mock_fread_pos = (size_t)offset;
-    } else if (whence == SEEK_END) {
-        if (mock_credentials_content != NULL) {
-            mock_fread_pos = strlen(mock_credentials_content);
-        } else {
-            mock_fread_pos = 0;
-        }
-    }
-    return 0;
-}
-
-long ftell_(FILE *stream)
-{
-    (void)stream;
-    return (long)mock_fread_pos;
-}
-
-size_t fread_(void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-    (void)stream;
-    if (mock_credentials_content == NULL) {
-        return 0;
-    }
-    size_t content_len = strlen(mock_credentials_content);
-    size_t bytes_to_read = size * nmemb;
-    size_t bytes_available = content_len > mock_fread_pos ? content_len - mock_fread_pos : 0;
-    size_t bytes_read = bytes_to_read < bytes_available ? bytes_to_read : bytes_available;
-
-    if (bytes_read > 0) {
-        memcpy(ptr, mock_credentials_content + mock_fread_pos, bytes_read);
-        mock_fread_pos += bytes_read;
-    }
-
-    return bytes_read;
 }
 
 // Forward declare libxml2 types
@@ -191,9 +128,6 @@ void xmlFreeDoc_(xmlDocPtr cur)
     (void)cur;
 }
 
-static char *test_config_dir = NULL;
-static char *test_creds_file = NULL;
-
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
@@ -202,47 +136,15 @@ static void setup(void)
     mock_http_code = 200;
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": []}}");
     mock_env_brave_key = talloc_strdup(test_ctx, "test_key");
-    mock_env_home = NULL;
-    mock_fopen_return = NULL;
-    mock_credentials_content = NULL;
-    mock_fread_pos = 0;
     captured_write_callback = NULL;
     captured_write_data = NULL;
-
-    // Create temp directory for test credentials
-    test_config_dir = talloc_asprintf(test_ctx, "/tmp/ikigai_test_%d", getpid());
-    mkdir(test_config_dir, 0700);
-    test_creds_file = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
-
-    // Write test credentials file with flat JSON structure
-    FILE *f = fopen(test_creds_file, "w");
-    if (f) {
-        fprintf(f, "{\"BRAVE_API_KEY\": \"test_key\"}");
-        fclose(f);
-        chmod(test_creds_file, 0600);
-    }
-
-    // Set environment variable so credentials loader finds our test file
-    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
 }
 
 static void teardown(void)
 {
-    // Clean up test credentials file
-    if (test_creds_file) {
-        unlink(test_creds_file);
-        test_creds_file = NULL;
-    }
-    if (test_config_dir) {
-        rmdir(test_config_dir);
-        test_config_dir = NULL;
-    }
-    unsetenv("IKIGAI_CONFIG_DIR");
-
     talloc_free(test_ctx);
     test_ctx = NULL;
     mock_env_brave_key = NULL;
-    mock_env_home = NULL;
     captured_write_callback = NULL;
     captured_write_data = NULL;
 }
@@ -420,72 +322,6 @@ END_TEST
 START_TEST(test_empty_api_key_env)
 {
     mock_env_brave_key = talloc_strdup(test_ctx, "");
-    mock_env_home = NULL;
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_not_found)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = NULL;
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_invalid_json)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = &mock_file_handle_storage;
-    mock_credentials_content = talloc_strdup(test_ctx, "not valid json");
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_missing_web_search)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = &mock_file_handle_storage;
-    mock_credentials_content = talloc_strdup(test_ctx, "{\"other_field\": \"value\"}");
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_missing_brave)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = &mock_file_handle_storage;
-    mock_credentials_content = talloc_strdup(test_ctx, "{\"web_search\": {\"google\": {}}}");
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_api_key_not_string)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = &mock_file_handle_storage;
-    mock_credentials_content = talloc_strdup(test_ctx, "{\"web_search\": {\"brave\": {\"api_key\": 123}}}");
-    web_search_brave_params_t p = mk_p();
-    ck_assert_int_eq(run(&p), 0);
-}
-END_TEST
-
-START_TEST(test_credentials_file_valid_api_key)
-{
-    mock_env_brave_key = NULL;
-    mock_env_home = talloc_strdup(test_ctx, "/home/test");
-    mock_fopen_return = &mock_file_handle_storage;
-    mock_credentials_content = talloc_strdup(test_ctx, "{\"web_search\": {\"brave\": {\"api_key\": \"creds_key\"}}}");
     web_search_brave_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
@@ -574,12 +410,6 @@ static Suite *web_search_brave_direct_suite(void)
     tcase_add_test(tc_core, test_blocked_domains_match);
     tcase_add_test(tc_core, test_blocked_domains_no_match);
     tcase_add_test(tc_core, test_empty_api_key_env);
-    tcase_add_test(tc_core, test_credentials_file_not_found);
-    tcase_add_test(tc_core, test_credentials_file_invalid_json);
-    tcase_add_test(tc_core, test_credentials_file_missing_web_search);
-    tcase_add_test(tc_core, test_credentials_file_missing_brave);
-    tcase_add_test(tc_core, test_credentials_file_api_key_not_string);
-    tcase_add_test(tc_core, test_credentials_file_valid_api_key);
     tcase_add_test(tc_core, test_result_missing_title);
     tcase_add_test(tc_core, test_result_missing_description);
     tcase_add_test(tc_core, test_result_title_not_string);

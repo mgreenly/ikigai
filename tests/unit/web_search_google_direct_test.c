@@ -23,18 +23,18 @@ static void *test_ctx = NULL;
 static CURL *mock_curl_return = NULL;
 static CURLcode mock_perform_return = CURLE_OK;
 static CURLM *mock_multi_handle_return = NULL;
-static int32_t mock_load_credentials_return = 0;
 static char *mock_url_encode_return = NULL;
 static char *mock_process_responses_return = NULL;
 static int64_t mock_http_code = 200;
 static char *mock_response_data = NULL;
+static char *mock_google_search_api_key = NULL;
+static char *mock_google_search_engine_id = NULL;
 
 // Captured from curl_easy_setopt_
 static size_t (*captured_write_callback)(void *, size_t, size_t, void *) = NULL;
 static void *captured_write_data = NULL;
 
 // Forward declarations of helper functions
-int32_t load_credentials(void *ctx, char **api_key, char **engine_id);
 void output_error_with_event(void *ctx, const char *msg, const char *code);
 void output_error(void *ctx, const char *msg, const char *code);
 char *url_encode(void *ctx, const char *str);
@@ -49,14 +49,15 @@ char *process_responses(void *ctx,
 const char *curl_easy_strerror_(CURLcode code);
 
 // Mock implementations
-int32_t load_credentials(void *ctx, char **api_key, char **engine_id)
+char *getenv_(const char *name)
 {
-    (void)ctx;
-    if (mock_load_credentials_return == 0) {
-        *api_key = talloc_strdup(ctx, "test_api_key");
-        *engine_id = talloc_strdup(ctx, "test_engine_id");
+    if (strcmp(name, "GOOGLE_SEARCH_API_KEY") == 0) {
+        return mock_google_search_api_key;
     }
-    return mock_load_credentials_return;
+    if (strcmp(name, "GOOGLE_SEARCH_ENGINE_ID") == 0) {
+        return mock_google_search_engine_id;
+    }
+    return NULL;
 }
 
 void output_error_with_event(void *ctx, const char *msg, const char *code)
@@ -226,55 +227,28 @@ void curl_easy_cleanup(CURL *curl)
     (void)curl;
 }
 
-static char *test_config_dir = NULL;
-static char *test_creds_file = NULL;
-
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     mock_curl_return = (CURL *)0x1234;
     mock_perform_return = CURLE_OK;
     mock_multi_handle_return = (CURLM *)0x5678;
-    mock_load_credentials_return = 0;
     mock_url_encode_return = NULL;
     mock_process_responses_return = NULL;
     mock_http_code = 200;
     mock_response_data = NULL;
+    mock_google_search_api_key = talloc_strdup(test_ctx, "test_api_key");
+    mock_google_search_engine_id = talloc_strdup(test_ctx, "test_engine_id");
     captured_write_callback = NULL;
     captured_write_data = NULL;
-
-    // Create temp directory for test credentials
-    test_config_dir = talloc_asprintf(test_ctx, "/tmp/ikigai_test_google_%d", getpid());
-    mkdir(test_config_dir, 0700);
-    test_creds_file = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
-
-    // Write test credentials file with flat JSON structure
-    FILE *f = fopen(test_creds_file, "w");
-    if (f) {
-        fprintf(f, "{\"GOOGLE_SEARCH_API_KEY\": \"test_api_key\", \"GOOGLE_SEARCH_ENGINE_ID\": \"test_engine_id\"}");
-        fclose(f);
-        chmod(test_creds_file, 0600);
-    }
-
-    // Set environment variable so credentials loader finds our test file
-    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
 }
 
 static void teardown(void)
 {
-    // Clean up test credentials file
-    if (test_creds_file) {
-        unlink(test_creds_file);
-        test_creds_file = NULL;
-    }
-    if (test_config_dir) {
-        rmdir(test_config_dir);
-        test_config_dir = NULL;
-    }
-    unsetenv("IKIGAI_CONFIG_DIR");
-
     talloc_free(test_ctx);
     test_ctx = NULL;
+    mock_google_search_api_key = NULL;
+    mock_google_search_engine_id = NULL;
 }
 
 static int32_t run_test(web_search_google_params_t *params)
@@ -304,7 +278,8 @@ static yyjson_val *parse_json(const char *json_str)
 }
 
 START_TEST(test_no_credentials) {
-    mock_load_credentials_return = 1;
+    mock_google_search_api_key = NULL;
+    mock_google_search_engine_id = NULL;
     web_search_google_params_t params = make_params(NULL, NULL, 0, 0);
     ck_assert_int_eq(run_test(&params), 0);
 }
