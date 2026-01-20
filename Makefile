@@ -49,42 +49,63 @@ else
   MODE_FLAGS = $(DEBUG_FLAGS)
 endif
 
+# Diagnostic flags for cleaner error output
+DIAG_FLAGS = -fmax-errors=1 -fno-diagnostics-show-caret
+
 # Combined compiler flags
-CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS)
+CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS)
 
 # Relaxed flags for vendor files
-VENDOR_CFLAGS = $(BASE_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) -Wno-conversion
+VENDOR_CFLAGS = $(BASE_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS) -Wno-conversion
 
 # Discover all source files
-SOURCES = $(shell find src tests -name '*.c' -not -path '*/vendor/*' 2>/dev/null)
-VENDOR_SOURCES = $(shell find src/vendor -name '*.c' 2>/dev/null)
-ALL_SOURCES = $(SOURCES) $(VENDOR_SOURCES)
+SRC_FILES = $(shell find src -name '*.c' -not -path '*/vendor/*' 2>/dev/null)
+TEST_FILES = $(shell find tests -name '*.c' 2>/dev/null)
+VENDOR_FILES = $(shell find src/vendor -name '*.c' 2>/dev/null)
 
 # Convert to object files
-OBJECTS = $(patsubst %.c,$(BUILDDIR)/%.o,$(SOURCES))
-VENDOR_OBJECTS = $(patsubst %.c,$(BUILDDIR)/%.o,$(VENDOR_SOURCES))
-ALL_OBJECTS = $(OBJECTS) $(VENDOR_OBJECTS)
+SRC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC_FILES))
+TEST_OBJECTS = $(patsubst tests/%.c,$(BUILDDIR)/tests/%.o,$(TEST_FILES))
+VENDOR_OBJECTS = $(patsubst src/vendor/%.c,$(BUILDDIR)/vendor/%.o,$(VENDOR_FILES))
 
-# Parallel execution
+# All sources and objects
+ALL_SOURCES = $(SRC_FILES) $(TEST_FILES) $(VENDOR_FILES)
+ALL_OBJECTS = $(SRC_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
+
+# Parallel execution settings
+MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
 MAKEFLAGS += --output-sync=line
 MAKEFLAGS += --no-print-directory
-MAKE_JOBS ?= $(shell expr $$(nproc) / 2)
-MAKEFLAGS += -j$(MAKE_JOBS)
 
 # Pattern rule: compile source files from src/
 $(BUILDDIR)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
 
 # Pattern rule: compile test files from tests/
 $(BUILDDIR)/tests/%.o: tests/%.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
 
 # Pattern rule: compile vendor files with relaxed warnings
 $(BUILDDIR)/vendor/%.o: src/vendor/%.c
 	@mkdir -p $(dir $@)
-	@$(CC) $(VENDOR_CFLAGS) -c $< -o $@
+	@if $(CC) $(VENDOR_CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
 
 # Include dependency files
 -include $(ALL_OBJECTS:.o=.d)
@@ -93,23 +114,23 @@ $(BUILDDIR)/vendor/%.o: src/vendor/%.c
 check-compile:
 ifdef FILE
 	@obj=$$(echo $(FILE) | sed 's|^src/|$(BUILDDIR)/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
-	if output=$$($(MAKE) -s $$obj 2>&1); then \
+	mkdir -p $$(dirname $$obj); \
+	if echo "$(FILE)" | grep -q "^src/vendor/"; then \
+		cflags="$(VENDOR_CFLAGS)"; \
+	else \
+		cflags="$(CFLAGS)"; \
+	fi; \
+	if output=$$($(CC) $$cflags -c $(FILE) -o $$obj 2>&1); then \
 		echo "🟢 $(FILE)"; \
 	else \
-		echo "🔴 $(FILE)"; \
-		echo "$$output" | grep -v '^make\[' | grep -v '^cc1:'; \
-		exit 1; \
+		error=$$(echo "$$output" | head -1); \
+		echo "🔴 $$error"; \
 	fi
 else
-	@failed=0; \
-	for src in $(ALL_SOURCES); do \
-		obj=$$(echo $$src | sed 's|^src/|$(BUILDDIR)/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
-		if output=$$($(MAKE) -s $$obj 2>&1); then \
-			echo "🟢 $$src"; \
-		else \
-			echo "🔴 $$src"; \
-			failed=$$((failed + 1)); \
-		fi; \
+	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS) 2>&1 | grep -E "^(🟢|🔴)" || true; \
+	failed=0; \
+	for obj in $(ALL_OBJECTS); do \
+		[ ! -f "$$obj" ] && failed=$$((failed + 1)); \
 	done; \
 	if [ $$failed -eq 0 ]; then \
 		echo "✅ All files compiled"; \
