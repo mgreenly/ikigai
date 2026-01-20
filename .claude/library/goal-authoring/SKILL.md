@@ -34,6 +34,7 @@ Writing effective goal files for Ralph loop execution in `$CDD_DIR/goals/`.
 3. **One cohesive objective** - Not artificially small, not entire release
 4. **Complete acceptance criteria** - Ralph needs to know when done
 5. **Trust Ralph to iterate** - Discovers path, learns from failures
+6. **Be explicit about discovery** - If work requires finding all instances of X, state it clearly in both objective and outcomes. Ralph has gotten stuck when discovery wasn't explicit. Write "Discover and fix all hardcoded paths" not "Fix hardcoded paths" or "Fix paths at lines 10, 25, 40"
 
 ## Example: Bad vs Good
 
@@ -80,11 +81,33 @@ Implement web-fetch tool with HTML-to-markdown conversion per plan/web-fetch.md.
 
 Why better: Complete objective, comprehensive references, measurable outcomes, clear acceptance.
 
+**Discovery example:**
+```markdown
+## Objective
+Discover all hardcoded ~/.config/ikigai path references in tests/ directory and update them to use IKIGAI_CONFIG_DIR environment variable.
+
+## Reference
+- tests/test_utils.c:692-730 - test_paths_setup_env() sets IKIGAI_CONFIG_DIR
+- .envrc:3 - Shows IKIGAI_CONFIG_DIR=$PWD/etc/ikigai
+
+## Outcomes
+- All hardcoded ~/.config/ikigai references in tests/ discovered via grep
+- All discovered test files updated to use getenv("IKIGAI_CONFIG_DIR")
+- No hardcoded ~/.config/ikigai paths remain in tests directory
+
+## Acceptance
+- grep -r "\.config/ikigai" tests/ returns no hardcoded paths
+- check-unit passes
+```
+
+Why explicit discovery matters: Objective starts with "Discover", first outcome confirms discovery happened. Ralph won't skip the grep step.
+
 ## Anti-Patterns
 
 ❌ **Step-by-step instructions** - "First do X, then Y" (Ralph discovers path)
 ❌ **Minimal references** - "Save context" (Ralph iterates, include all relevant)
 ❌ **Vague outcomes** - "Feature implemented" (Be specific and measurable)
 ❌ **Tiny goals** - Breaking cohesive work into artificial steps
+❌ **Pre-discovered work** - Listing specific file:line locations to fix (Ralph should discover)
 
-✅ **Do this:** Comprehensive objective, all references, measurable outcomes, trust Ralph to iterate.
+✅ **Do this:** Comprehensive objective, all references, measurable outcomes, trust Ralph to iterate and discover.

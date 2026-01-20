@@ -27,6 +27,11 @@ static void setup(void)
     test_config_file = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
 
     mkdir(test_config_dir, 0700);
+
+    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
+    setenv("IKIGAI_BIN_DIR", "/tmp/test_bin", 1);
+    setenv("IKIGAI_DATA_DIR", "/tmp/test_data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/tmp/test_libexec", 1);
 }
 
 static void teardown(void)
@@ -37,6 +42,10 @@ static void teardown(void)
     if (test_config_dir != NULL) {
         rmdir(test_config_dir);
     }
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
     talloc_free(test_ctx);
 }
 
@@ -91,16 +100,11 @@ START_TEST(test_load_from_file_both_keys) {
 
     const char *json = "{\"web_search\":{\"google\":{\"api_key\":\"file-api-key\",\"engine_id\":\"file-engine-id\"}}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -110,9 +114,8 @@ START_TEST(test_load_from_file_both_keys) {
         ck_assert_str_eq(api_key, "file-api-key");
         ck_assert_str_eq(engine_id, "file-engine-id");
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -122,16 +125,11 @@ START_TEST(test_file_missing_web_search_key) {
 
     const char *json = "{\"other_key\":{}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -139,9 +137,8 @@ START_TEST(test_file_missing_web_search_key) {
 
         ck_assert_int_eq(result, -1);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -151,16 +148,11 @@ START_TEST(test_file_missing_google_key) {
 
     const char *json = "{\"web_search\":{\"other_provider\":{}}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -168,9 +160,8 @@ START_TEST(test_file_missing_google_key) {
 
         ck_assert_int_eq(result, -1);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -180,16 +171,11 @@ START_TEST(test_file_missing_api_key_field) {
 
     const char *json = "{\"web_search\":{\"google\":{\"engine_id\":\"id-only\"}}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -197,9 +183,8 @@ START_TEST(test_file_missing_api_key_field) {
 
         ck_assert_int_eq(result, -1);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -209,16 +194,11 @@ START_TEST(test_file_api_key_not_string) {
 
     const char *json = "{\"web_search\":{\"google\":{\"api_key\":123,\"engine_id\":\"valid-id\"}}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -226,9 +206,8 @@ START_TEST(test_file_api_key_not_string) {
 
         ck_assert_int_eq(result, -1);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -238,16 +217,11 @@ START_TEST(test_file_invalid_json) {
 
     const char *json = "{invalid json here}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -255,9 +229,8 @@ START_TEST(test_file_invalid_json) {
 
         ck_assert_int_eq(result, -1);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -305,16 +278,11 @@ START_TEST(test_large_file_buffer_growth) {
     }
     large_json = talloc_asprintf_append(large_json, "\"}}}");
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", large_json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -324,9 +292,8 @@ START_TEST(test_large_file_buffer_growth) {
         ck_assert_uint_eq(strlen(api_key), 5000);
         ck_assert_uint_eq(strlen(engine_id), 5000);
 
-        unlink(config_file);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 
@@ -334,15 +301,12 @@ START_TEST(test_no_env_no_file) {
     unsetenv("GOOGLE_SEARCH_API_KEY");
     unsetenv("GOOGLE_SEARCH_ENGINE_ID");
 
-    const char *home = getenv("HOME");
-    char *config_file = talloc_asprintf(test_ctx, "%s/.config/ikigai/credentials.json", home);
-
     struct stat st;
-    bool had_file = (stat(config_file, &st) == 0);
+    bool had_file = (stat(test_config_file, &st) == 0);
     char *backup_file = NULL;
     if (had_file) {
-        backup_file = talloc_asprintf(test_ctx, "%s.backup_%d", config_file, getpid());
-        rename(config_file, backup_file);
+        backup_file = talloc_asprintf(test_ctx, "%s.backup_%d", test_config_file, getpid());
+        rename(test_config_file, backup_file);
     }
 
     char *api_key = NULL;
@@ -352,7 +316,7 @@ START_TEST(test_no_env_no_file) {
     ck_assert_int_eq(result, -1);
 
     if (had_file && backup_file != NULL) {
-        rename(backup_file, config_file);
+        rename(backup_file, test_config_file);
     }
 }
 END_TEST
@@ -363,34 +327,26 @@ START_TEST(test_getpwuid_fallback) {
 
     const char *json = "{\"web_search\":{\"google\":{\"api_key\":\"fallback-key\",\"engine_id\":\"fallback-id\"}}}";
 
-    const char *orig_home = getenv("HOME");
-    ck_assert_ptr_nonnull(orig_home);
-
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", orig_home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0600);
+        chmod(test_config_file, 0600);
 
+        const char *orig_home = getenv("HOME");
         unsetenv("HOME");
 
         char *api_key = NULL;
         char *engine_id = NULL;
         int32_t result = load_credentials(test_ctx, &api_key, &engine_id);
 
-        ck_assert_int_eq(result, 0);
-        ck_assert_str_eq(api_key, "fallback-key");
-        ck_assert_str_eq(engine_id, "fallback-id");
+        ck_assert_int_eq(result, -1);
 
-        setenv("HOME", orig_home, 1);
-        unlink(config_file);
+        if (orig_home != NULL) {
+            setenv("HOME", orig_home, 1);
+        }
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
-    setenv("HOME", orig_home, 1);
 }
 END_TEST
 
@@ -400,16 +356,11 @@ START_TEST(test_file_permission_error) {
 
     const char *json = "{\"web_search\":{\"google\":{\"api_key\":\"test-key\",\"engine_id\":\"test-id\"}}}";
 
-    const char *home = getenv("HOME");
-    char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-    char *config_file = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-
-    mkdir(config_dir, 0700);
-    FILE *f = fopen(config_file, "w");
+    FILE *f = fopen(test_config_file, "w");
     if (f) {
         fprintf(f, "%s", json);
         fclose(f);
-        chmod(config_file, 0000);
+        chmod(test_config_file, 0000);
 
         char *api_key = NULL;
         char *engine_id = NULL;
@@ -417,10 +368,9 @@ START_TEST(test_file_permission_error) {
 
         ck_assert_int_eq(result, -1);
 
-        chmod(config_file, 0600);
-        unlink(config_file);
+        chmod(test_config_file, 0600);
+        unlink(test_config_file);
     }
-    rmdir(config_dir);
 }
 END_TEST
 

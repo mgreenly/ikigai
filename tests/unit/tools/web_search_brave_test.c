@@ -12,15 +12,32 @@
 
 static TALLOC_CTX *test_ctx;
 static const char *tool_path = "libexec/ikigai/web-search-brave-tool";
+static char *test_config_dir;
 
 static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     unsetenv("BRAVE_API_KEY");
+
+    const char *home = getenv("HOME");
+    test_config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai_test_%d", home, getpid());
+    mkdir(test_config_dir, 0700);
+
+    setenv("IKIGAI_CONFIG_DIR", test_config_dir, 1);
+    setenv("IKIGAI_BIN_DIR", "/tmp/test_bin", 1);
+    setenv("IKIGAI_DATA_DIR", "/tmp/test_data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/tmp/test_libexec", 1);
 }
 
 static void teardown(void)
 {
+    if (test_config_dir != NULL) {
+        rmdir(test_config_dir);
+    }
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
     talloc_free(test_ctx);
 }
 
@@ -138,28 +155,19 @@ END_TEST
 START_TEST(test_missing_credentials) {
     unsetenv("BRAVE_API_KEY");
 
-    const char *home = getenv("HOME");
-    if (home != NULL) {
-        char *cred_path = talloc_asprintf(test_ctx, "%s/.config/ikigai/credentials.json", home);
-        char *backup_path = talloc_asprintf(test_ctx, "%s.backup", cred_path);
-        rename(cred_path, backup_path);
+    char *output = NULL;
+    int32_t exit_code = run_tool("{\"query\": \"test\"}", &output, NULL);
 
-        char *output = NULL;
-        int32_t exit_code = run_tool("{\"query\": \"test\"}", &output, NULL);
+    ck_assert_int_eq(exit_code, 0);
+    ck_assert_ptr_nonnull(output);
 
-        rename(backup_path, cred_path);
-
-        ck_assert_int_eq(exit_code, 0);
-        ck_assert_ptr_nonnull(output);
-
-        ck_assert(strstr(output, "\"success\": false") != NULL);
-        ck_assert(strstr(output, "\"error_code\": \"AUTH_MISSING\"") != NULL);
-        ck_assert(strstr(output, "\"_event\"") != NULL);
-        ck_assert(strstr(output, "\"kind\": \"config_required\"") != NULL);
-        ck_assert(strstr(output, "\"tool\": \"web_search_brave\"") != NULL);
-        ck_assert(strstr(output, "\"credential\": \"api_key\"") != NULL);
-        ck_assert(strstr(output, "\"signup_url\"") != NULL);
-    }
+    ck_assert(strstr(output, "\"success\": false") != NULL);
+    ck_assert(strstr(output, "\"error_code\": \"AUTH_MISSING\"") != NULL);
+    ck_assert(strstr(output, "\"_event\"") != NULL);
+    ck_assert(strstr(output, "\"kind\": \"config_required\"") != NULL);
+    ck_assert(strstr(output, "\"tool\": \"web_search_brave\"") != NULL);
+    ck_assert(strstr(output, "\"credential\": \"api_key\"") != NULL);
+    ck_assert(strstr(output, "\"signup_url\"") != NULL);
 }
 
 END_TEST
@@ -167,29 +175,20 @@ END_TEST
 START_TEST(test_credentials_from_file) {
     unsetenv("BRAVE_API_KEY");
 
-    const char *home = getenv("HOME");
-    if (home != NULL) {
-        char *config_dir = talloc_asprintf(test_ctx, "%s/.config/ikigai", home);
-        char *cred_path = talloc_asprintf(test_ctx, "%s/credentials.json", config_dir);
-        char *backup_path = talloc_asprintf(test_ctx, "%s.backup.test", cred_path);
+    char *cred_path = talloc_asprintf(test_ctx, "%s/credentials.json", test_config_dir);
 
-        rename(cred_path, backup_path);
-        mkdir(config_dir, 0755);
+    FILE *f = fopen(cred_path, "w");
+    if (f != NULL) {
+        fprintf(f, "{\"web_search\":{\"brave\":{\"api_key\":\"test_from_file\"}}}");
+        fclose(f);
 
-        FILE *f = fopen(cred_path, "w");
-        if (f != NULL) {
-            fprintf(f, "{\"web_search\":{\"brave\":{\"api_key\":\"test_from_file\"}}}");
-            fclose(f);
+        char *output = NULL;
+        int32_t exit_code = run_tool("{\"query\": \"test\"}", &output, NULL);
 
-            char *output = NULL;
-            int32_t exit_code = run_tool("{\"query\": \"test\"}", &output, NULL);
+        ck_assert_int_eq(exit_code, 0);
+        ck_assert_ptr_nonnull(output);
 
-            ck_assert_int_eq(exit_code, 0);
-            ck_assert_ptr_nonnull(output);
-
-            unlink(cred_path);
-            rename(backup_path, cred_path);
-        }
+        unlink(cred_path);
     }
 }
 

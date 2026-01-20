@@ -27,8 +27,8 @@ int32_t load_api_key(void *ctx, char **out_key)
 
     const char *config_dir = ik_paths_get_config_dir(paths);
     char *cred_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
-    if (cred_path == NULL) {
-        return -1;
+    if (cred_path == NULL) {  // LCOV_EXCL_BR_LINE
+        return -1;  // LCOV_EXCL_LINE
     }
 
     FILE *f = fopen(cred_path, "r");
@@ -41,9 +41,9 @@ int32_t load_api_key(void *ctx, char **out_key)
     fseek(f, 0, SEEK_SET);
 
     char *content = talloc_array(ctx, char, (unsigned int)(fsize + 1));
-    if (content == NULL) {
-        fclose(f);
-        return -1;
+    if (content == NULL) {  // LCOV_EXCL_BR_LINE
+        fclose(f);  // LCOV_EXCL_LINE
+        return -1;  // LCOV_EXCL_LINE
     }
 
     size_t bytes_read = fread(content, 1, (size_t)fsize, f);

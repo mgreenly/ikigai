@@ -397,6 +397,14 @@ $(BUILDDIR)/tests/unit/tools/web_search_google_credentials_test: $(BUILDDIR)/tes
 	@mkdir -p $(dir $@)
 	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
 
+$(BUILDDIR)/tools/web_search_brave/credentials.o: src/tools/web_search_brave/credentials.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c -o $@ $< && echo "🔨 $@" || (echo "🔴 $@" && exit 1)
+
+$(BUILDDIR)/tests/unit/tools/web_search_brave_credentials_test: $(BUILDDIR)/tests/unit/tools/web_search_brave_credentials_test.o $(BUILDDIR)/tools/web_search_brave/credentials.o $(BUILDDIR)/json_allocator.o $(BUILDDIR)/vendor/yyjson/yyjson.o $(BUILDDIR)/panic.o $(BUILDDIR)/logger.o $(BUILDDIR)/error.o $(BUILDDIR)/paths.o $(BUILDDIR)/debug_log.o $(BUILDDIR)/wrapper_posix.o $(BUILDDIR)/wrapper_stdlib.o $(BUILDDIR)/wrapper_talloc.o
+	@mkdir -p $(dir $@)
+	@$(CC) $(LDFLAGS) -o $@ $^ -lcheck -lm -lsubunit $(CLIENT_LIBS) && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+
 # Terminal PTY test helper compilation - all terminal_pty_* tests require -lutil for openpty()
 TERMINAL_PTY_HELPERS_OBJ = $(BUILDDIR)/tests/unit/terminal/terminal_pty_helpers.o
 
