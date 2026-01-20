@@ -347,7 +347,14 @@ START_TEST(test_tilde_expansion_no_home) {
         home_copy = strdup(original_home);
     }
 
+    char *original_config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char *config_dir_copy = NULL;
+    if (original_config_dir) {
+        config_dir_copy = strdup(original_config_dir);
+    }
+
     unsetenv("HOME");
+    unsetenv("IKIGAI_CONFIG_DIR");
 
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, NULL, &creds);
@@ -357,6 +364,10 @@ START_TEST(test_tilde_expansion_no_home) {
     if (home_copy) {
         setenv("HOME", home_copy, 1);
         free(home_copy);
+    }
+    if (config_dir_copy) {
+        setenv("IKIGAI_CONFIG_DIR", config_dir_copy, 1);
+        free(config_dir_copy);
     }
 }
 

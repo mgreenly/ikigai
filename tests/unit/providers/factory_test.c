@@ -163,8 +163,16 @@ START_TEST(test_create_credentials_load_error) {
         saved_home = strdup(home);
     }
 
-    // Unset HOME to trigger expand_tilde error in ik_credentials_load
+    // Save current IKIGAI_CONFIG_DIR value
+    const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+    char *saved_config_dir = NULL;
+    if (config_dir != NULL) {
+        saved_config_dir = strdup(config_dir);
+    }
+
+    // Unset HOME and IKIGAI_CONFIG_DIR to trigger expand_tilde error in ik_credentials_load
     unsetenv("HOME");
+    unsetenv("IKIGAI_CONFIG_DIR");
 
     // Clear environment variables so it must use the file
     unsetenv("OPENAI_API_KEY");
@@ -182,6 +190,12 @@ START_TEST(test_create_credentials_load_error) {
     if (saved_home != NULL) {
         setenv("HOME", saved_home, 1);
         free(saved_home);
+    }
+
+    // Restore IKIGAI_CONFIG_DIR
+    if (saved_config_dir != NULL) {
+        setenv("IKIGAI_CONFIG_DIR", saved_config_dir, 1);
+        free(saved_config_dir);
     }
 
     talloc_free(ctx);

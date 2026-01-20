@@ -168,9 +168,7 @@ START_TEST(test_missing_both_credentials) {
     unsetenv("GOOGLE_SEARCH_ENGINE_ID");
 
     const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
-    if (config_dir == NULL) {
-        config_dir = "~/.config/ikigai";
-    }
+    ck_assert_ptr_nonnull(config_dir);
     char cred_path[512];
     snprintf(cred_path, sizeof(cred_path), "%s/credentials.json", config_dir);
     char backup_path[1024];

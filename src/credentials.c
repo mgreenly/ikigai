@@ -125,7 +125,14 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
     const char *creds_path = path;
     char *expanded_path = NULL;
     if (!creds_path) {
-        creds_path = "~/.config/ikigai/credentials.json";
+        // Check for IKIGAI_CONFIG_DIR environment variable
+        const char *config_dir = getenv("IKIGAI_CONFIG_DIR");
+        if (config_dir) {
+            creds_path = talloc_asprintf(ctx, "%s/credentials.json", config_dir);
+            if (creds_path == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            creds_path = "~/.config/ikigai/credentials.json";
+        }
     }
 
     // Expand tilde in path
