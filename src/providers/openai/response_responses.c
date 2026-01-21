@@ -162,6 +162,186 @@ static size_t count_content_blocks(yyjson_val *output_arr)
     return total;
 }
 
+/**
+ * Process output_text content item
+ */
+static void process_output_text(yyjson_val *content_item, ik_content_block_t *blocks,
+                                 size_t *block_idx)
+{
+    assert(content_item != NULL); // LCOV_EXCL_BR_LINE
+    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
+    assert(block_idx != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *text_val = yyjson_obj_get(content_item, "text");
+    if (text_val == NULL) return;
+
+    const char *text = yyjson_get_str(text_val);
+    if (text == NULL) return;
+
+    blocks[*block_idx].type = IK_CONTENT_TEXT;
+    blocks[*block_idx].data.text.text = talloc_strdup(blocks, text);
+    if (blocks[*block_idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    (*block_idx)++;
+}
+
+/**
+ * Process refusal content item
+ */
+static void process_refusal(yyjson_val *content_item, ik_content_block_t *blocks,
+                            size_t *block_idx)
+{
+    assert(content_item != NULL); // LCOV_EXCL_BR_LINE
+    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
+    assert(block_idx != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *refusal_val = yyjson_obj_get(content_item, "refusal");
+    if (refusal_val == NULL) return;
+
+    const char *refusal = yyjson_get_str(refusal_val);
+    if (refusal == NULL) return;
+
+    blocks[*block_idx].type = IK_CONTENT_TEXT;
+    blocks[*block_idx].data.text.text = talloc_strdup(blocks, refusal);
+    if (blocks[*block_idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    (*block_idx)++;
+}
+
+/**
+ * Process single content item from message
+ */
+static void process_content_item(yyjson_val *content_item, ik_content_block_t *blocks,
+                                 size_t *block_idx)
+{
+    assert(content_item != NULL); // LCOV_EXCL_BR_LINE
+    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
+    assert(block_idx != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *content_type_val = yyjson_obj_get(content_item, "type");
+    if (content_type_val == NULL) return;
+
+    const char *content_type = yyjson_get_str(content_type_val);
+    if (content_type == NULL) return;
+
+    if (strcmp(content_type, "output_text") == 0) {
+        process_output_text(content_item, blocks, block_idx);
+    } else if (strcmp(content_type, "refusal") == 0) {
+        process_refusal(content_item, blocks, block_idx);
+    }
+}
+
+/**
+ * Process message content array
+ */
+static void process_message_content(yyjson_val *content_arr, ik_content_block_t *blocks,
+                                    size_t *block_idx)
+{
+    assert(content_arr != NULL); // LCOV_EXCL_BR_LINE
+    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
+    assert(block_idx != NULL); // LCOV_EXCL_BR_LINE
+
+    if (!yyjson_is_arr(content_arr)) return;
+
+    size_t content_idx, content_max;
+    yyjson_val *content_item;
+    yyjson_arr_foreach(content_arr, content_idx, content_max, content_item) { // LCOV_EXCL_BR_LINE - vendor macro loop branches
+        process_content_item(content_item, blocks, block_idx);
+    }
+}
+
+/**
+ * Process single output item (message or function_call)
+ */
+static res_t process_output_item(TALLOC_CTX *resp_ctx, yyjson_val *item,
+                                 ik_content_block_t *blocks, size_t *block_idx)
+{
+    assert(resp_ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(item != NULL); // LCOV_EXCL_BR_LINE
+    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
+    assert(block_idx != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *type_val = yyjson_obj_get(item, "type");
+    if (type_val == NULL) return OK(NULL);
+
+    const char *type = yyjson_get_str(type_val);
+    if (type == NULL) return OK(NULL);
+
+    if (strcmp(type, "message") == 0) {
+        yyjson_val *content_arr = yyjson_obj_get(item, "content");
+        if (content_arr != NULL) {
+            process_message_content(content_arr, blocks, block_idx);
+        }
+    } else if (strcmp(type, "function_call") == 0) {
+        res_t result = parse_function_call(resp_ctx, blocks, item, &blocks[*block_idx]);
+        if (is_err(&result)) return result;
+        (*block_idx)++;
+    }
+
+    return OK(NULL);
+}
+
+/**
+ * Check for error response in JSON
+ */
+static res_t check_for_error_response(TALLOC_CTX *ctx, yyjson_val *root)
+{
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(root != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *error_obj = yyjson_obj_get(root, "error");
+    if (error_obj == NULL) return OK(NULL);
+
+    const char *error_msg = "Unknown error"; // LCOV_EXCL_BR_LINE - compiler artifact on string literal assignment
+    yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
+    if (msg_val != NULL) {
+        const char *msg = yyjson_get_str(msg_val);
+        if (msg != NULL) {
+            error_msg = msg;
+        }
+    }
+    return ERR(ctx, PROVIDER, "API error: %s", error_msg);
+}
+
+/**
+ * Extract basic fields (model, usage, status) from response
+ */
+static void extract_basic_fields(ik_response_t *resp, yyjson_val *root)
+{
+    assert(resp != NULL); // LCOV_EXCL_BR_LINE
+    assert(root != NULL); // LCOV_EXCL_BR_LINE
+
+    // Extract model
+    yyjson_val *model_val = yyjson_obj_get(root, "model");
+    if (model_val != NULL) {
+        const char *model = yyjson_get_str(model_val);
+        if (model != NULL) {
+            resp->model = talloc_strdup(resp, model);
+            if (resp->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+    }
+
+    // Extract usage
+    yyjson_val *usage_val = yyjson_obj_get(root, "usage");
+    parse_usage(usage_val, &resp->usage);
+
+    // Extract status and incomplete_details
+    yyjson_val *status_val = yyjson_obj_get(root, "status");
+    const char *status = NULL;
+    if (status_val != NULL) {
+        status = yyjson_get_str(status_val);
+    }
+
+    const char *incomplete_reason = NULL; // LCOV_EXCL_BR_LINE - compiler artifact on NULL assignment
+    yyjson_val *incomplete_details = yyjson_obj_get(root, "incomplete_details");
+    if (incomplete_details != NULL) {
+        yyjson_val *reason_val = yyjson_obj_get(incomplete_details, "reason");
+        if (reason_val != NULL) {
+            incomplete_reason = yyjson_get_str(reason_val);
+        }
+    }
+
+    resp->finish_reason = ik_openai_map_responses_status(status, incomplete_reason); // LCOV_EXCL_BR_LINE - compiler artifact on function call
+}
+
 /* ================================================================
  * Public Functions
  * ================================================================ */
@@ -215,55 +395,15 @@ res_t ik_openai_parse_responses_response(TALLOC_CTX *ctx, const char *json,
     }
 
     // Check for error response
-    yyjson_val *error_obj = yyjson_obj_get(root, "error");
-    if (error_obj != NULL) {
-        // Extract error message
-        const char *error_msg = "Unknown error"; // LCOV_EXCL_BR_LINE - compiler artifact on string literal assignment
-        yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
-        if (msg_val != NULL) {
-            const char *msg = yyjson_get_str(msg_val);
-            if (msg != NULL) {
-                error_msg = msg;
-            }
-        }
-        return ERR(ctx, PROVIDER, "API error: %s", error_msg);
-    }
+    res_t error_check = check_for_error_response(ctx, root);
+    if (is_err(&error_check)) return error_check;
 
     // Allocate response structure
     ik_response_t *resp = talloc_zero(ctx, ik_response_t);
     if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Extract model
-    yyjson_val *model_val = yyjson_obj_get(root, "model");
-    if (model_val != NULL) {
-        const char *model = yyjson_get_str(model_val);
-        if (model != NULL) {
-            resp->model = talloc_strdup(resp, model);
-            if (resp->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        }
-    }
-
-    // Extract usage
-    yyjson_val *usage_val = yyjson_obj_get(root, "usage");
-    parse_usage(usage_val, &resp->usage);
-
-    // Extract status and incomplete_details
-    yyjson_val *status_val = yyjson_obj_get(root, "status");
-    const char *status = NULL;
-    if (status_val != NULL) {
-        status = yyjson_get_str(status_val);
-    }
-
-    const char *incomplete_reason = NULL; // LCOV_EXCL_BR_LINE - compiler artifact on NULL assignment
-    yyjson_val *incomplete_details = yyjson_obj_get(root, "incomplete_details");
-    if (incomplete_details != NULL) {
-        yyjson_val *reason_val = yyjson_obj_get(incomplete_details, "reason");
-        if (reason_val != NULL) {
-            incomplete_reason = yyjson_get_str(reason_val);
-        }
-    }
-
-    resp->finish_reason = ik_openai_map_responses_status(status, incomplete_reason); // LCOV_EXCL_BR_LINE - compiler artifact on function call
+    // Extract basic fields (model, usage, status)
+    extract_basic_fields(resp, root);
 
     // Extract output array
     yyjson_val *output_arr = yyjson_obj_get(root, "output");
@@ -304,70 +444,8 @@ res_t ik_openai_parse_responses_response(TALLOC_CTX *ctx, const char *json,
     size_t out_idx, out_max;
     yyjson_val *item;
     yyjson_arr_foreach(output_arr, out_idx, out_max, item) { // LCOV_EXCL_BR_LINE - vendor macro loop branches
-        // Get type field
-        yyjson_val *type_val = yyjson_obj_get(item, "type");
-        if (type_val == NULL) {
-            continue;
-        }
-        const char *type = yyjson_get_str(type_val);
-        if (type == NULL) {
-            continue;
-        }
-
-        if (strcmp(type, "message") == 0) {
-            // Process message content array
-            yyjson_val *content_arr = yyjson_obj_get(item, "content");
-            if (content_arr == NULL || !yyjson_is_arr(content_arr)) {
-                continue;
-            }
-
-            size_t content_idx, content_max;
-            yyjson_val *content_item;
-            yyjson_arr_foreach(content_arr, content_idx, content_max, content_item) { // LCOV_EXCL_BR_LINE - vendor macro loop branches
-                // Get content type
-                yyjson_val *content_type_val = yyjson_obj_get(content_item, "type");
-                if (content_type_val == NULL) {
-                    continue;
-                }
-                const char *content_type = yyjson_get_str(content_type_val);
-                if (content_type == NULL) {
-                    continue;
-                }
-
-                if (strcmp(content_type, "output_text") == 0) {
-                    // Extract text from output_text
-                    yyjson_val *text_val = yyjson_obj_get(content_item, "text");
-                    if (text_val != NULL) {
-                        const char *text = yyjson_get_str(text_val);
-                        if (text != NULL) {
-                            blocks[block_idx].type = IK_CONTENT_TEXT;
-                            blocks[block_idx].data.text.text = talloc_strdup(blocks, text);
-                            if (blocks[block_idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                            block_idx++;
-                        }
-                    }
-                } else if (strcmp(content_type, "refusal") == 0) {
-                    // Extract refusal text
-                    yyjson_val *refusal_val = yyjson_obj_get(content_item, "refusal");
-                    if (refusal_val != NULL) {
-                        const char *refusal = yyjson_get_str(refusal_val);
-                        if (refusal != NULL) {
-                            blocks[block_idx].type = IK_CONTENT_TEXT;
-                            blocks[block_idx].data.text.text = talloc_strdup(blocks, refusal);
-                            if (blocks[block_idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                            block_idx++;
-                        }
-                    }
-                }
-            }
-        } else if (strcmp(type, "function_call") == 0) {
-            // Parse function call
-            res_t result = parse_function_call(resp, blocks, item, &blocks[block_idx]);
-            if (is_err(&result)) {
-                return result;
-            }
-            block_idx++;
-        }
+        res_t result = process_output_item(resp, item, blocks, &block_idx);
+        if (is_err(&result)) return result;
     }
 
     // Update content_count to actual blocks added (may be less if some items were skipped)
