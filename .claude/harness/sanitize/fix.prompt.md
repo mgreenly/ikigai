@@ -89,7 +89,8 @@ Other agents have already tried to fix this error. Learn from their attempts:
 Verify the fix by running in order:
 1. `.claude/scripts/check-compile`
 2. `.claude/scripts/check-link`
-3. `.claude/scripts/check-sanitize`
+3. `.claude/scripts/check-unit`
+4. `.claude/scripts/check-sanitize`
 
 ## When Done
 

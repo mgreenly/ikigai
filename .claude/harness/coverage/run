@@ -28,33 +28,37 @@ def run_cmd(cmd, env: {}, chdir: nil)
 end
 
 # Run make check-coverage and capture output
-def run_make_coverage(project_root)
+def run_make_coverage(project_root, threshold: nil)
+  # Build command with optional threshold override
+  cmd = ['make', 'check-coverage']
+  cmd << "COVERAGE_THRESHOLD=#{threshold}" if threshold
+
   # Run make check-coverage once - it handles parallelization
-  exit_code, output = run_cmd(
-    ['make', 'check-coverage'],
-    chdir: project_root
-  )
+  exit_code, output = run_cmd(cmd, chdir: project_root)
 
   [exit_code == 0, output]
 end
 
 # Parse output for 🔴 lines (coverage failures)
-# Returns array of hashes: {file:, lines:, functions:, branches:}
+# Returns array of hashes: {file:} or {file:, lines:, functions:, branches:}
 def parse_coverage_failures(output)
   failures = []
-  # Match: 🔴 src/file.c: Lines=X%, Functions=Y%, Branches=Z%
-  pattern = /^🔴\s+(.+?):\s+Lines=(\d+\.?\d*%),\s+Functions=(\d+\.?\d*%),\s+Branches=(\d+\.?\d*%)/
+  # Match detailed format: 🔴 src/file.c: Lines=X%, Functions=Y%, Branches=Z%
+  detailed_pattern = /^🔴\s+(.+?):\s+Lines=(\d+\.?\d*%),\s+Functions=(\d+\.?\d*%),\s+Branches=(\d+\.?\d*%)/
+  # Match simple format: 🔴 src/file.c
+  simple_pattern = /^🔴\s+(.+\.c)\s*$/
 
   output.each_line do |line|
-    match = pattern.match(line)
-    next unless match
-
-    failures << {
-      file: match[1],
-      lines: match[2],
-      functions: match[3],
-      branches: match[4]
-    }
+    if (match = detailed_pattern.match(line))
+      failures << {
+        file: match[1],
+        lines: match[2],
+        functions: match[3],
+        branches: match[4]
+      }
+    elsif (match = simple_pattern.match(line))
+      failures << { file: match[1] }
+    end
   end
   failures
 end
@@ -190,7 +194,7 @@ def resolve_source_path(target_file)
 end
 
 # Main check function
-def run_check_only(target_file: nil)
+def run_check_only(target_file: nil, threshold: nil)
   # Get project root
   script_dir = File.dirname(File.realpath(__FILE__))
   project_root = File.expand_path('../../..', script_dir)
@@ -229,7 +233,7 @@ def run_check_only(target_file: nil)
   # Otherwise, run make check-coverage and check if it passes
   # The Makefile checks overall coverage (lines, functions, branches >= 90%)
   # which is the actual policy: "90% coverage for ENTIRE codebase"
-  success, output = run_make_coverage(project_root)
+  success, output = run_make_coverage(project_root, threshold: threshold)
 
   # Check if make check-coverage passed (exit code 0 = success)
   if success
@@ -255,10 +259,13 @@ def main
     opts.on('--file FILE', 'Filter results to specific file') do |file|
       options[:file] = file
     end
+    opts.on('--threshold PCT', Integer, 'Override coverage threshold percentage') do |pct|
+      options[:threshold] = pct
+    end
   end.parse!
 
   # Run check and exit with appropriate code
-  exit run_check_only(target_file: options[:file])
+  exit run_check_only(target_file: options[:file], threshold: options[:threshold])
 end
 
 if __FILE__ == $PROGRAM_NAME

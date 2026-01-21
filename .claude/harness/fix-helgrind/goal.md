@@ -32,4 +32,9 @@ All code must pass Valgrind Helgrind (thread error detection) checks.
 
 ## Acceptance
 
-DONE when `check-helgrind` returns `{"ok": true}`
+DONE when ALL of these return `{"ok": true}`:
+1. `check-compile`
+2. `check-link`
+3. `check-unit`
+4. `check-integration`
+5. `check-helgrind`

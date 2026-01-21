@@ -65,7 +65,8 @@ Verify the fix by running in order:
 1. `.claude/scripts/check-compile`
 2. `.claude/scripts/check-link`
 3. `.claude/scripts/check-unit`
-4. `.claude/scripts/check-valgrind`
+4. `.claude/scripts/check-integration`
+5. `.claude/scripts/check-valgrind`
 
 ## When Done
 

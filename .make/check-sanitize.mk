@@ -4,6 +4,7 @@
 .PHONY: check-sanitize
 
 SANITIZE_BUILDDIR = build-sanitize
+LSAN_SUPP = .suppressions/lsan.supp
 
 check-sanitize:
 ifdef FILE
@@ -12,7 +13,7 @@ ifdef FILE
 		exit 1; \
 	fi; \
 	stderr=$$(mktemp); \
-	"$(FILE)" >"$$stderr" 2>&1 || true; \
+	LSAN_OPTIONS="suppressions=$(LSAN_SUPP)" "$(FILE)" >"$$stderr" 2>&1 || true; \
 	if grep -qE '==.*==ERROR: AddressSanitizer|runtime error:' "$$stderr"; then \
 		sed 's/^/🔴 /' "$$stderr"; \
 		rm -f "$$stderr"; exit 1; \
@@ -27,7 +28,7 @@ else
 	xargs -P$(MAKE_JOBS) -I{} sh -c ' \
 		tmpdir="$$1"; bin="$$2"; \
 		stderr="$$tmpdir/stderr.$$$$"; \
-		"$$bin" >"$$stderr" 2>&1; \
+		LSAN_OPTIONS="suppressions=.suppressions/lsan.supp" "$$bin" >"$$stderr" 2>&1; \
 		if grep -qE "==.*==ERROR: AddressSanitizer|runtime error:" "$$stderr"; then \
 			echo "$$bin" >> "$$tmpdir/sanitizer_failed"; \
 		fi; \

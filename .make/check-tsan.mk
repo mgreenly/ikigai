@@ -4,6 +4,7 @@
 .PHONY: check-tsan
 
 TSAN_BUILDDIR = build-tsan
+TSAN_SUPP = .suppressions/tsan.supp
 
 check-tsan:
 ifdef FILE
@@ -12,7 +13,7 @@ ifdef FILE
 		exit 1; \
 	fi; \
 	output=$$(mktemp); \
-	"$(FILE)" >"$$output" 2>&1; \
+	TSAN_OPTIONS="suppressions=$(TSAN_SUPP)" "$(FILE)" >"$$output" 2>&1; \
 	exitcode=$$?; \
 	if grep -qE 'WARNING: ThreadSanitizer:' "$$output"; then \
 		grep -E 'WARNING: ThreadSanitizer:|^  |^    ' "$$output" | sed 's/^/🔴 /'; \
@@ -34,7 +35,7 @@ else
 	xargs -P$(MAKE_JOBS) -I{} sh -c ' \
 		tmpdir="$$1"; bin="$$2"; \
 		output="$$tmpdir/$$(basename $$bin).out"; \
-		"$$bin" >"$$output" 2>&1; \
+		TSAN_OPTIONS="suppressions=.suppressions/tsan.supp" "$$bin" >"$$output" 2>&1; \
 		exitcode=$$?; \
 		if grep -qE "WARNING: ThreadSanitizer:" "$$output"; then \
 			echo "$$bin" >> "$$tmpdir/tsan_failed"; \

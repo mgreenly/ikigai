@@ -3,219 +3,31 @@
 
 require 'json'
 require 'optparse'
-require 'set'
 
-# Run command and capture output, suppressing all output
-def run_cmd(cmd, env: {}, chdir: nil)
-  stdout_str = ''
-  stderr_str = ''
-  status = nil
-
-  # Merge environment variables
-  full_env = ENV.to_h.merge(env)
-
-  # Change directory if specified
-  orig_dir = Dir.pwd
-  Dir.chdir(chdir) if chdir
-
-  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
-    stdout_str = io.read
+options = {}
+OptionParser.new do |opts|
+  opts.banner = 'Usage: check-valgrind [options]'
+  opts.on('--file FILE', 'Run check on specific file') do |file|
+    options[:file] = file
   end
-  status = $?
+end.parse!
 
-  Dir.chdir(orig_dir) if chdir
+# Build command
+cmd = options[:file] ? "make check-valgrind FILE=#{options[:file]}" : 'make check-valgrind'
 
-  [status.exitstatus, stdout_str]
+# Run and capture output
+output = `#{cmd} 2>&1`
+exit_code = $?.exitstatus
+
+# Parse 🔴 lines
+items = output.each_line.filter_map do |line|
+  line = line.strip
+  line[2..].strip if line.start_with?('🔴 ')
 end
 
-# Run make check-valgrind with parallelization
-def run_make_valgrind(project_root)
-  exit_code, output = run_cmd(
-    ['make', 'check-valgrind'],
-    chdir: project_root
-  )
-
-  [exit_code == 0, output]
-end
-
-# Parse failing test binaries from emoji markers in make output
-def parse_failing_tests(output)
-  failing_tests = []
-  output.each_line do |line|
-    # Only process lines that start with emoji markers, ignore all other output
-    next unless line.start_with?('🔴 ', '🟢 ')
-
-    line = line.strip
-    if line.start_with?('🔴 ')
-      binary_path = line[2..-1].strip
-      # Only include if it looks like a path (contains / and starts with build-)
-      if !binary_path.empty? && binary_path.include?('/') && binary_path.start_with?('build-')
-        failing_tests << binary_path
-      end
-    end
-  end
-  failing_tests
-end
-
-# Run a single test binary to capture Valgrind output
-def run_single_test(test_binary, project_root)
-  env = {
-    'VALGRIND_OPTIONS' => '--leak-check=full --show-leak-kinds=all --track-origins=yes',
-    'CK_FORK' => 'no'
-  }
-  exit_code, output = run_cmd([test_binary], env: env, chdir: project_root)
-  [exit_code == 0, output]
-end
-
-# Parse Valgrind output to extract memory errors
-def parse_failures(output)
-  failures = []
-  seen_files = Set.new
-
-  # Valgrind error patterns:
-  # ==PID== Invalid read of size N
-  # ==PID== Conditional jump or move depends on uninitialised value(s)
-  # ==PID== Use of uninitialised value of size N
-  # ==PID== N bytes in M blocks are definitely lost
-  error_patterns = [
-    [/==\d+==\s+(Invalid (?:read|write) of size \d+)/, 'memory error'],
-    [/==\d+==\s+(Conditional jump or move depends on uninitialised value)/, 'uninitialized'],
-    [/==\d+==\s+(Use of uninitialised value of size \d+)/, 'uninitialized'],
-    [/==\d+==\s+(\d+ bytes in \d+ blocks are (?:definitely|indirectly|possibly) lost)/, 'memory leak'],
-    [/==\d+==\s+(Invalid free)/, 'invalid free'],
-    [/==\d+==\s+(Mismatched free)/, 'mismatched free']
-  ]
-
-  # Location pattern: ==PID==    at/by 0x...: function (file.c:123)
-  location_pattern = /==\d+==\s+(?:at|by)\s+0x[0-9A-Fa-f]+:\s+\S+\s+\((\S+):(\d+)\)/
-
-  lines = output.lines.map(&:chomp)
-  i = 0
-  while i < lines.length
-    line = lines[i]
-
-    error_patterns.each do |pattern, error_category|
-      match = pattern.match(line)
-      if match
-        error_type = match[1]
-        stack_lines = []
-
-        # Collect stack trace (next 20 lines)
-        ((i + 1)...[i + 20, lines.length].min).each do |j|
-          stack_lines << lines[j]
-
-          loc_match = location_pattern.match(lines[j])
-          if loc_match
-            file = loc_match[1]
-            line_num = loc_match[2]
-            if !seen_files.include?(file) && (file.start_with?('src/') || file.start_with?('tests/'))
-              seen_files.add(file)
-              failures << {
-                file: file,
-                line: line_num,
-                error_type: "Valgrind: #{error_category}",
-                message: error_type,
-                stack: stack_lines.take(15).join("\n")
-              }
-              break
-            end
-          end
-        end
-        break
-      end
-    end
-
-    i += 1
-  end
-
-  failures
-end
-
-# Format a failure as a human-readable item string
-def format_error_item(failure)
-  "#{failure[:error_type]} in #{failure[:file]}:#{failure[:line]}"
-end
-
-# Main check function
-def run_check_only(target_file: nil)
-  # Get project root
-  script_dir = File.dirname(File.realpath(__FILE__))
-  project_root = File.expand_path('../../..', script_dir)
-  Dir.chdir(project_root)
-
-  # Validate target_file if provided
-  if target_file
-    unless File.exist?(target_file)
-      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
-      return 1
-    end
-  end
-
-  # Run make check-valgrind with parallelization
-  success, make_output = run_make_valgrind(project_root)
-
-  if success
-    puts JSON.generate(ok: true)
-    return 0
-  end
-
-  # Parse failing test binaries
-  failing_tests = parse_failing_tests(make_output)
-
-  if failing_tests.empty?
-    # Build failed but couldn't parse test failures
-    puts JSON.generate(ok: false, items: ['Build or test infrastructure failure'])
-    return 1
-  end
-
-  # Run each failing test to get Valgrind output
-  all_failures = []
-  failing_tests.each do |test_binary|
-    _, test_output = run_single_test(test_binary, project_root)
-    failures = parse_failures(test_output)
-    all_failures.concat(failures)
-  end
-
-  if all_failures.empty?
-    # Tests failed but couldn't parse Valgrind errors - report which tests failed
-    items = failing_tests.map { |test| "#{test}: test failed (no Valgrind errors detected)" }
-    puts JSON.generate(ok: false, items: items)
-    return 1
-  end
-
-  # Filter to target file if specified
-  if target_file
-    all_failures = all_failures.select { |f| f[:file] == target_file }
-    if all_failures.empty?
-      puts JSON.generate(ok: true)
-      return 0
-    end
-  end
-
-  # Format each failure as a readable item
-  items = all_failures.map { |f| format_error_item(f) }
-  puts JSON.generate(ok: false, items: items)
-  1
-end
-
-def main
-  options = {}
-
-  OptionParser.new do |opts|
-    opts.banner = 'Usage: run.rb [options]'
-    opts.on('--file FILE', 'Filter results to specific file') do |file|
-      options[:file] = file
-    end
-  end.parse!
-
-  # Run check and exit with appropriate code
-  exit run_check_only(target_file: options[:file])
-end
-
-if __FILE__ == $PROGRAM_NAME
-  begin
-    main
-  rescue Interrupt
-    exit 130
-  end
+if exit_code == 0
+  puts JSON.generate(ok: true)
+else
+  puts JSON.generate(ok: false, items: items.empty? ? ['check failed'] : items)
+  exit 1
 end

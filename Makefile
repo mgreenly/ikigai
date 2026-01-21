@@ -30,6 +30,12 @@ RELEASE_FLAGS = -O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2
 SANITIZE_FLAGS = -fsanitize=address,undefined
 TSAN_FLAGS = -fsanitize=thread
 VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+COVERAGE_FLAGS = -O0 -g3 -fprofile-arcs -ftest-coverage
+
+# Coverage settings
+COVERAGE_DIR = reports/coverage
+COVERAGE_THRESHOLD ?= 90
+COVERAGE_LDFLAGS = --coverage
 
 # Base flags
 BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -I. -Isrc -I/usr/include/postgresql -I/usr/include/libxml2
@@ -169,10 +175,14 @@ include .make/check-filesize.mk
 include .make/check-complexity.mk
 include .make/check-sanitize.mk
 include .make/check-tsan.mk
+include .make/check-valgrind.mk
+include .make/check-helgrind.mk
+include .make/check-coverage.mk
 
 # clean: Remove build artifacts
 clean:
-	@rm -rf $(BUILDDIR) build-sanitize build-tsan
+	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR)
+	@find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	@echo "✨ Cleaned"
 
 # help: Show available targets
@@ -186,6 +196,9 @@ help:
 	@echo "  check-complexity - Verify cyclomatic complexity under threshold (default: 15)"
 	@echo "  check-sanitize - Run tests with AddressSanitizer/UBSan (uses build-sanitize/)"
 	@echo "  check-tsan     - Run tests with ThreadSanitizer (uses build-tsan/)"
+	@echo "  check-valgrind - Run tests under Valgrind Memcheck (uses build-valgrind/)"
+	@echo "  check-helgrind - Run tests under Valgrind Helgrind (uses build-helgrind/)"
+	@echo "  check-coverage - Check code coverage meets $(COVERAGE_THRESHOLD)% threshold"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
 	@echo ""

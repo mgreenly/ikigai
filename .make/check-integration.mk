@@ -6,8 +6,8 @@
 check-integration:
 ifdef FILE
 	@# Single test mode - run one test binary and show detailed per-assertion results
-	@mkdir -p reports/check/$$(dirname $(FILE) | sed 's|^build/tests/||')
-	@xml_path=$$(echo $(FILE) | sed 's|^build/tests/|reports/check/|').xml; \
+	@mkdir -p reports/check/$$(dirname $(FILE) | sed 's|^$(BUILDDIR)/tests/||')
+	@xml_path=$$(echo $(FILE) | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
 	if [ ! -x "$(FILE)" ]; then \
 		echo "🔴 $(FILE): binary not found (run make check-link first)"; \
 		exit 1; \
@@ -33,7 +33,7 @@ else
 	@# Phase 4: Check each binary's XML for pass/fail, one line per binary
 	@passed=0; failed=0; \
 	for bin in $(INTEGRATION_TEST_BINARIES); do \
-		xml=$$(echo $$bin | sed 's|^build/tests/|reports/check/|').xml; \
+		xml=$$(echo $$bin | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
 		if [ ! -f "$$xml" ]; then \
 			echo "🔴 $$bin"; \
 			failed=$$((failed + 1)); \

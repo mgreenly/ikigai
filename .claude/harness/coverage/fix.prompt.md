@@ -49,10 +49,11 @@ Other agents have already tried to fix this error. Learn from their attempts:
 ## Validation
 
 Verify the fix by running in order:
-1. `.claude/scripts/check-compile`
-2. `.claude/scripts/check-link`
-3. `.claude/scripts/check-unit`
-4. `.claude/scripts/check-coverage`
+1. `make check-compile`
+2. `make check-link`
+3. `make check-unit`
+4. `make check-integration`
+5. `make check-coverage`
 
 ## When Done
 
