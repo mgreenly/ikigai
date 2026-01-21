@@ -33,11 +33,16 @@ bin/ikigai: $(IKIGAI_OBJECTS)
 # Tool binaries
 # =============================================================================
 
+# Secondary expansion needed to convert hyphens in binary names back to underscores for directory lookup
+# e.g., libexec/ikigai/file-read-tool needs to find build/tools/file_read/main.o
+.SECONDEXPANSION:
+
 # Each tool links with: tool-specific objects + all src objects + vendor
 # Over-link strategy: gc-sections strips unused symbols
-libexec/ikigai/%-tool: $(BUILDDIR)/tools/%/main.o $(MODULE_OBJ) $(VCR_STUBS)
+libexec/ikigai/%-tool: $$(BUILDDIR)/tools/$$(subst -,_,$$*)/main.o $(MODULE_OBJ) $(VCR_STUBS)
 	@mkdir -p $(dir $@)
-	@tool_objs=$$(find $(BUILDDIR)/tools/$* -name '*.o' 2>/dev/null | tr '\n' ' '); \
+	@tool_dir=$$(echo "$*" | tr '-' '_'); \
+	tool_objs=$$(find $(BUILDDIR)/tools/$$tool_dir -name '*.o' 2>/dev/null | tr '\n' ' '); \
 	if $(CC) $(LDFLAGS) -o $@ $$tool_objs $(MODULE_OBJ) $(VCR_STUBS) $(LDLIBS) 2>&1; then \
 		echo "🟢 $@"; \
 	else \

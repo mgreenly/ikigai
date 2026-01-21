@@ -113,9 +113,9 @@ MODULE_OBJ = $(filter-out $(BUILDDIR)/main.o,$(SRC_OBJECTS)) $(VENDOR_OBJECTS)
 TOOL_MAIN_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(shell find tools -name 'main.c' 2>/dev/null))
 TOOL_LIB_OBJECTS = $(filter-out $(TOOL_MAIN_OBJECTS),$(TOOL_OBJECTS))
 
-# Discover all tool binaries
+# Discover all tool binaries (convert underscores to hyphens for Unix convention)
 TOOL_NAMES = $(shell find tools -name 'main.c' 2>/dev/null | sed 's|tools/||; s|/main.c||')
-TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(TOOL_NAMES))
+TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(subst _,-,$(TOOL_NAMES)))
 
 # Discover all test binaries (exclude helpers/ - those are test suite helpers, not standalone tests)
 UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))

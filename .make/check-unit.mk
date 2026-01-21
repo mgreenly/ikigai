@@ -5,7 +5,7 @@
 
 check-unit:
 ifdef FILE
-	@# Single test mode - run one test binary and show detailed results
+	@# Single test mode - run one test binary and show detailed per-assertion results
 	@mkdir -p reports/check/$$(dirname $(FILE) | sed 's|^build/tests/||')
 	@xml_path=$$(echo $(FILE) | sed 's|^build/tests/|reports/check/|').xml; \
 	if [ ! -x "$(FILE)" ]; then \
@@ -22,7 +22,7 @@ ifdef FILE
 		exit 1; \
 	fi
 else
-	@# Bulk mode - run all unit tests in parallel
+	@# Bulk mode - run all unit tests in parallel, one line per binary
 	@# Phase 1: Ensure binaries are built (continue even if some fail)
 	@$(MAKE) -s check-link >/dev/null 2>&1 || true
 	@# Phase 2: Create output directories
@@ -30,20 +30,26 @@ else
 	@find tests/unit -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
 	@# Phase 3: Run all tests in parallel (each writes XML, suppress console output)
 	@echo $(UNIT_TEST_BINARIES) | tr ' ' '\n' | xargs -P$(MAKE_JOBS) -I{} sh -c '{} >/dev/null 2>&1 || true'
-	@# Phase 4: Parse all XML files and report results
+	@# Phase 4: Check each binary's XML for pass/fail, one line per binary
 	@passed=0; failed=0; \
-	for xml in $$(find reports/check/unit -name '*.xml' 2>/dev/null | sort); do \
-		.make/parse-check-xml.sh "$$xml"; \
-		fc=$$(grep -c 'result="failure"' "$$xml" 2>/dev/null) || fc=0; \
-		pc=$$(grep -c 'result="success"' "$$xml" 2>/dev/null) || pc=0; \
-		failed=$$((failed + fc)); \
-		passed=$$((passed + pc)); \
+	for bin in $(UNIT_TEST_BINARIES); do \
+		xml=$$(echo $$bin | sed 's|^build/tests/|reports/check/|').xml; \
+		if [ ! -f "$$xml" ]; then \
+			echo "🔴 $$bin"; \
+			failed=$$((failed + 1)); \
+		elif grep -q 'result="failure"' "$$xml"; then \
+			echo "🔴 $$bin"; \
+			failed=$$((failed + 1)); \
+		else \
+			echo "🟢 $$bin"; \
+			passed=$$((passed + 1)); \
+		fi; \
 	done; \
 	total=$$((passed + failed)); \
 	if [ $$failed -eq 0 ]; then \
-		echo "✅ All $$total tests passed"; \
+		echo "✅ All $$total test binaries passed"; \
 	else \
-		echo "❌ $$failed/$$total tests failed"; \
+		echo "❌ $$failed/$$total test binaries failed"; \
 		exit 1; \
 	fi
 endif
