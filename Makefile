@@ -176,6 +176,7 @@ $(BUILDDIR)/tools/%.o: tools/%.c
 # Include check targets
 include .make/check-compile.mk
 include .make/check-link.mk
+include .make/check-unit.mk
 
 # clean: Remove build artifacts
 clean:
@@ -186,7 +187,8 @@ clean:
 help:
 	@echo "Available targets:"
 	@echo "  check-compile  - Compile all source files to .o files"
-	@echo "  check-link     - Link the main ikigai binary"
+	@echo "  check-link     - Link all binaries (main, tools, tests)"
+	@echo "  check-unit     - Run unit tests with XML output"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
 	@echo ""
