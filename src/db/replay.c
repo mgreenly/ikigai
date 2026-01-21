@@ -137,6 +137,137 @@ static res_t append_message(ik_replay_context_t *context, int64_t id,
     return OK(NULL);
 }
 
+// Helper: extract label from mark event data_json
+static char *extract_mark_label(ik_replay_context_t *context, const char *data_json)
+{
+    if (data_json == NULL) {
+        return NULL;
+    }
+
+    yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
+    if (doc == NULL) {
+        return NULL;
+    }
+
+    char *label = NULL;
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    yyjson_val *label_val = yyjson_obj_get_(root, "label");
+    if (label_val != NULL && yyjson_is_str(label_val)) {
+        const char *label_str = yyjson_get_str_(label_val);
+        if (label_str != NULL) {
+            label = talloc_strdup(context, label_str);
+            if (label == NULL) // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+    }
+    yyjson_doc_free(doc);
+    return label;
+}
+
+// Helper: process mark event
+static res_t process_mark_event(ik_replay_context_t *context, int64_t id,
+                                const char *kind, const char *content,
+                                const char *data_json)
+{
+    res_t res = append_message(context, id, kind, content, data_json);
+    if (is_err(&res)) { // LCOV_EXCL_BR_LINE - never returns error (PANICs)
+        return res; // LCOV_EXCL_LINE
+    }
+
+    char *label = extract_mark_label(context, data_json);
+
+    ensure_mark_stack_capacity(context);
+    size_t idx = context->mark_stack.count;
+    context->mark_stack.marks[idx].message_id = id;
+    context->mark_stack.marks[idx].label = label;
+    context->mark_stack.marks[idx].context_idx = context->count - 1;
+    context->mark_stack.count++;
+
+    return OK(NULL);
+}
+
+// Helper: log rewind error with message and id
+static void log_rewind_error(ik_logger_t *logger, const char *message, int64_t id)
+{
+    yyjson_mut_doc *log_doc = ik_log_create();
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
+    if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(log_doc, root, "message", message)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    ik_logger_error_json(logger, log_doc);
+}
+
+// Helper: parse target_message_id from rewind event data
+static int64_t parse_rewind_target(const char *data_json, int64_t id,
+                                   ik_logger_t *logger, bool *valid)
+{
+    *valid = false;
+
+    if (data_json == NULL) {
+        log_rewind_error(logger, "Malformed rewind event: missing data field", id);
+        return 0;
+    }
+
+    yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
+    if (doc == NULL) {
+        log_rewind_error(logger, "Malformed rewind event: invalid JSON in data field", id);
+        return 0;
+    }
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    yyjson_val *target_val = yyjson_obj_get_(root, "target_message_id");
+    if (target_val == NULL || !yyjson_is_int(target_val)) {
+        log_rewind_error(logger, "Malformed rewind event: missing or invalid target_message_id", id);
+        yyjson_doc_free(doc);
+        return 0;
+    }
+
+    int64_t target_message_id = yyjson_get_sint_(target_val);
+    yyjson_doc_free(doc);
+    *valid = true;
+    return target_message_id;
+}
+
+// Helper: process rewind event
+static res_t process_rewind_event(ik_replay_context_t *context, int64_t id,
+                                  const char *kind, const char *content,
+                                  const char *data_json, ik_logger_t *logger)
+{
+    bool valid;
+    int64_t target_message_id = parse_rewind_target(data_json, id, logger, &valid);
+    if (!valid) {
+        return OK(NULL);
+    }
+
+    ik_replay_mark_t *mark = find_mark(context, target_message_id);
+    if (mark == NULL) {
+        yyjson_mut_doc *log_doc = ik_log_create();
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
+        if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
+                                    "Invalid rewind event: target mark not found")) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_int(log_doc, log_root, "target_message_id",
+                                    target_message_id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        ik_logger_error_json(logger, log_doc);
+        return OK(NULL);
+    }
+
+    context->count = mark->context_idx + 1;
+    size_t mark_idx = (size_t)(mark - context->mark_stack.marks);
+    context->mark_stack.count = mark_idx + 1;
+
+    return append_message(context, id, kind, content, data_json);
+}
+
+// Helper: check if event kind is a message type
+static bool is_message_event(const char *kind)
+{
+    return strcmp(kind, "system") == 0 || strcmp(kind, "user") == 0 ||
+           strcmp(kind, "assistant") == 0 || strcmp(kind, "tool_call") == 0 ||
+           strcmp(kind, "tool_result") == 0;
+}
+
 // Helper: process a single event according to replay algorithm
 static res_t process_event(ik_replay_context_t *context, int64_t id,
                            const char *kind, const char *content,
@@ -145,132 +276,24 @@ static res_t process_event(ik_replay_context_t *context, int64_t id,
     assert(context != NULL); // LCOV_EXCL_BR_LINE
     assert(kind != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Handle different event kinds according to algorithm
     if (strcmp(kind, "clear") == 0) {
-        // Clear: Empty context array and mark stack (set count = 0)
-        // Note: we don't free memory, just reset counts
-        // Memory will be freed when context is freed
         context->count = 0;
         context->mark_stack.count = 0;
         return OK(NULL);
     }
 
-    if (strcmp(kind, "system") == 0 || strcmp(kind, "user") == 0 ||
-        strcmp(kind, "assistant") == 0 || strcmp(kind, "tool_call") == 0 ||
-        strcmp(kind, "tool_result") == 0) {
-        // Append message to context array
+    if (is_message_event(kind)) {
         return append_message(context, id, kind, content, data_json);
     }
 
     if (strcmp(kind, "mark") == 0) {
-        // Append mark message to context
-        res_t res = append_message(context, id, kind, content, data_json);
-        if (is_err(&res)) { // LCOV_EXCL_BR_LINE - never returns error (PANICs)
-            return res; // LCOV_EXCL_LINE
-        }
-
-        // Extract label from data_json (or NULL for auto-numbered)
-        char *label = NULL;
-        if (data_json != NULL) {
-            yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
-            if (doc != NULL) {
-                yyjson_val *root = yyjson_doc_get_root_(doc);
-                yyjson_val *label_val = yyjson_obj_get_(root, "label");
-                if (label_val != NULL && yyjson_is_str(label_val)) {
-                    const char *label_str = yyjson_get_str_(label_val);
-                    if (label_str != NULL) {
-                        label = talloc_strdup(context, label_str);
-                        if (label == NULL) // LCOV_EXCL_BR_LINE
-                            PANIC("Out of memory"); // LCOV_EXCL_LINE
-                    }
-                }
-                yyjson_doc_free(doc);
-            }
-        }
-
-        // Push mark onto stack
-        ensure_mark_stack_capacity(context);
-        size_t idx = context->mark_stack.count;
-        context->mark_stack.marks[idx].message_id = id;
-        context->mark_stack.marks[idx].label = label;
-        context->mark_stack.marks[idx].context_idx = context->count - 1;
-        context->mark_stack.count++;
-
-        return OK(NULL);
+        return process_mark_event(context, id, kind, content, data_json);
     }
 
     if (strcmp(kind, "rewind") == 0) {
-        // Parse target_message_id from data_json
-        if (data_json == NULL) {
-            yyjson_mut_doc *log_doc = ik_log_create();
-            yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-            if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_str(log_doc, root, "message",
-                                        "Malformed rewind event: missing data field")) PANIC("Out of memory");                     // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            ik_logger_error_json(logger, log_doc);
-            return OK(NULL);
-        }
-
-        yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
-        if (doc == NULL) {
-            yyjson_mut_doc *log_doc = ik_log_create();
-            yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);
-            if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_str(log_doc, root, "message",
-                                        "Malformed rewind event: invalid JSON in data field")) PANIC("Out of memory");                     // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_int(log_doc, root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            ik_logger_error_json(logger, log_doc);
-            return OK(NULL);
-        }
-
-        yyjson_val *root = yyjson_doc_get_root_(doc);
-        yyjson_val *target_val = yyjson_obj_get_(root, "target_message_id");
-        if (target_val == NULL || !yyjson_is_int(target_val)) {
-            yyjson_mut_doc *log_doc = ik_log_create();
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-            if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_str(log_doc,
-                                        log_root,
-                                        "message",
-                                        "Malformed rewind event: missing or invalid target_message_id")) PANIC(
-                    "Out of memory");                                                                                                                    // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            ik_logger_error_json(logger, log_doc);
-            yyjson_doc_free(doc);
-            return OK(NULL);
-        }
-
-        int64_t target_message_id = yyjson_get_sint_(target_val);
-        yyjson_doc_free(doc);
-
-        // Find mark in mark_stack matching target_message_id
-        ik_replay_mark_t *mark = find_mark(context, target_message_id);
-        if (mark == NULL) {
-            yyjson_mut_doc *log_doc = ik_log_create();
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-            if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_str(log_doc, log_root, "message",
-                                        "Invalid rewind event: target mark not found")) PANIC("Out of memory");                         // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_int(log_doc, log_root, "id", (int64_t)id)) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            if (!yyjson_mut_obj_add_int(log_doc, log_root, "target_message_id",
-                                        target_message_id)) PANIC("Out of memory");                                   // LCOV_EXCL_BR_LINE
-            ik_logger_error_json(logger, log_doc);
-            return OK(NULL);
-        }
-
-        // Truncate context to mark's context_idx + 1 (keep the mark itself)
-        context->count = mark->context_idx + 1;
-
-        // Remove all marks after target from mark_stack
-        size_t mark_idx = (size_t)(mark - context->mark_stack.marks);
-        context->mark_stack.count = mark_idx + 1;
-
-        // Append rewind event itself to context (records the rewind action)
-        return append_message(context, id, kind, content, data_json);
+        return process_rewind_event(context, id, kind, content, data_json, logger);
     }
 
-    // Unknown event kind - this shouldn't happen if database is valid
     yyjson_mut_doc *log_doc = ik_log_create();
     yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
     if (log_root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
