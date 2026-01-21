@@ -4,7 +4,7 @@
 #
 # harness/complexity - Complexity check
 #
-# Runs make check-complexity, parses complex functions, outputs JSON summary.
+# Runs make check-complexity, parses 🟢/🔴 output, outputs JSON summary.
 # No fix functionality - check only.
 #
 
@@ -29,58 +29,74 @@ def run_cmd(cmd, env: {})
   [status.exitstatus, stdout_str]
 end
 
-# Run make check-complexity with parallelization
-def run_make_complexity
-  # Try parallel first
-  exit_code, output = run_cmd(['make', 'check-complexity'])
+# Run make check-complexity
+def run_make_complexity(file: nil)
+  cmd = ['make', 'check-complexity']
+  cmd << "FILE=#{file}" if file
 
-  # If failed, re-run serially for clean error output
-  if exit_code != 0
-    exit_code, output = run_cmd(['make', 'MAKE_JOBS=1', 'check-complexity'])
-  end
+  exit_code, output = run_cmd(cmd)
 
   [exit_code == 0, output]
 end
 
-# Parse make check-complexity output to extract complex functions
+# Parse make check-complexity output to extract failures
 def parse_failures(output)
   failures = []
   seen = Set.new
 
-  # Pattern for complexity scores:
-  # Score | ln-ct | nc-lns| file-name(line): proc-name
-  #    15      42      35   src/foo.c(123): some_function
-  score_pattern = /^\s*(\d+)\s+\d+\s+\d+\s+(\S+)\((\d+)\):\s+(\S+)/
+  # Two output formats:
+  # 1. With FILE=: 🔴 file.c:123: function (complexity N)
+  #                🔴 file.c: nesting depth N (max M)
+  # 2. Without FILE=: 🔴 file.c (summary only)
 
-  # Pattern for nesting depth:
-  # complexity: /path/to/file.c:123: nesting depth reached level 6 in function_name
-  nesting_pattern = /complexity:\s*(\S+):(\d+):\s*nesting depth reached level (\d+)\s+in\s+(\S+)/
+  complexity_pattern = /^🔴 ([^:]+):(\d+): (.+) \(complexity (\d+)\)$/
+  nesting_pattern = /^🔴 ([^:]+): nesting depth (\d+) \(max \d+\)$/
+  summary_pattern = /^🔴 ([^\s]+\.c)$/
 
-  output.scan(score_pattern) do |score, file, line, function|
-    key = [file, function]
-    unless seen.include?(key)
-      seen.add(key)
-      failures << {
-        file: file,
-        line: line,
-        function: function,
-        score: score.to_i,
-        issue_type: 'complexity'
-      }
-    end
-  end
+  output.each_line do |line|
+    line = line.strip
 
-  output.scan(nesting_pattern) do |file, line, depth, function|
-    key = [file, function]
-    unless seen.include?(key)
-      seen.add(key)
-      failures << {
-        file: file,
-        line: line,
-        function: function,
-        score: depth.to_i,
-        issue_type: 'nesting'
-      }
+    if line =~ complexity_pattern
+      file, line_num, function, score = $1, $2, $3, $4
+      key = "#{file}:#{function}"
+
+      unless seen.include?(key)
+        seen.add(key)
+        failures << {
+          file: file,
+          line: line_num,
+          function: function,
+          score: score.to_i,
+          issue_type: 'complexity'
+        }
+      end
+    elsif line =~ nesting_pattern
+      file, depth = $1, $2
+      key = "#{file}:nesting"
+
+      unless seen.include?(key)
+        seen.add(key)
+        failures << {
+          file: file,
+          line: '1',
+          function: nil,
+          score: depth.to_i,
+          issue_type: 'nesting'
+        }
+      end
+    elsif line =~ summary_pattern
+      file = $1
+
+      unless seen.include?(file)
+        seen.add(file)
+        failures << {
+          file: file,
+          line: '1',
+          function: nil,
+          score: nil,
+          issue_type: 'summary'
+        }
+      end
     end
   end
 
@@ -89,10 +105,13 @@ end
 
 # Format failure item based on issue type
 def format_failure_item(failure)
-  if failure[:issue_type] == 'nesting'
-    "#{failure[:file]}:#{failure[:function]} nesting=#{failure[:score]}"
+  case failure[:issue_type]
+  when 'complexity'
+    "#{failure[:file]}:#{failure[:line]}: #{failure[:function]} (complexity #{failure[:score]})"
+  when 'nesting'
+    "#{failure[:file]}: nesting depth #{failure[:score]}"
   else
-    "#{failure[:file]}:#{failure[:function]} complexity=#{failure[:score]}"
+    "#{failure[:file]}: complexity/nesting threshold exceeded"
   end
 end
 
@@ -100,8 +119,8 @@ def main
   options = {}
 
   OptionParser.new do |opts|
-    opts.banner = 'Usage: run.rb [options]'
-    opts.on('--file FILE', 'Filter results to specific file') do |f|
+    opts.banner = 'Usage: check-complexity [options]'
+    opts.on('--file FILE', 'Check specific file') do |f|
       options[:file] = f
     end
   end.parse!
@@ -121,7 +140,7 @@ def main
   end
 
   # Run complexity check
-  success, output = run_make_complexity
+  success, output = run_make_complexity(file: options[:file])
 
   if success
     puts JSON.generate(ok: true)
@@ -131,21 +150,9 @@ def main
   # Parse failures
   failures = parse_failures(output)
 
-  # Filter to target file if --file is specified
-  if options[:file]
-    target_file = options[:file]
-    failures = failures.select { |f| f[:file] == target_file }
-
-    if failures.empty?
-      # File exists, no complexity issues
-      puts JSON.generate(ok: true)
-      exit 0
-    end
-  end
-
   if failures.empty?
-    # Check failed but couldn't parse failures
-    puts JSON.generate(ok: false, items: [])
+    # Check failed but couldn't parse failures - shouldn't happen
+    puts JSON.generate(ok: false, items: ['complexity check failed (unknown error)'])
     exit 1
   end
 

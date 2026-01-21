@@ -166,6 +166,7 @@ include .make/check-link.mk
 include .make/check-unit.mk
 include .make/check-integration.mk
 include .make/check-filesize.mk
+include .make/check-complexity.mk
 
 # clean: Remove build artifacts
 clean:
@@ -180,6 +181,7 @@ help:
 	@echo "  check-unit     - Run unit tests with XML output"
 	@echo "  check-integration - Run integration tests with XML output"
 	@echo "  check-filesize - Verify source files under 16KB"
+	@echo "  check-complexity - Verify cyclomatic complexity under threshold (default: 15)"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
 	@echo ""
