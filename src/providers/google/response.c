@@ -15,6 +15,79 @@
  * Helper Functions
  * ================================================================ */
 
+static res_t process_function_call(TALLOC_CTX *ctx, ik_content_block_t *blocks,
+                                   yyjson_val *function_call, size_t idx)
+{
+    blocks[idx].type = IK_CONTENT_TOOL_CALL;
+
+    // Generate tool call ID (Google doesn't provide one)
+    blocks[idx].data.tool_call.id = ik_google_generate_tool_id(blocks); // LCOV_EXCL_BR_LINE (always returns valid ID, cannot fail)
+
+    // Extract function name
+    yyjson_val *name_val = yyjson_obj_get(function_call, "name");
+    if (name_val == NULL) {
+        return ERR(ctx, PARSE, "functionCall missing 'name' field");
+    }
+    const char *name = yyjson_get_str(name_val);
+    if (name == NULL) {
+        return ERR(ctx, PARSE, "functionCall 'name' is not a string");
+    }
+    blocks[idx].data.tool_call.name = talloc_strdup(blocks, name);
+    if (blocks[idx].data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Extract arguments (serialize to JSON string)
+    yyjson_val *args_val = yyjson_obj_get(function_call, "args");
+    if (args_val != NULL) {
+        // Serialize args object to JSON string
+        yyjson_write_flag flg = YYJSON_WRITE_NOFLAG;
+        size_t json_len;
+        char *args_json = yyjson_val_write_opts(args_val, flg, NULL, &json_len, NULL);
+        if (args_json == NULL) { // LCOV_EXCL_BR_LINE (only fails on extreme OOM)
+            return ERR(ctx, PARSE, "Failed to serialize functionCall args"); // LCOV_EXCL_LINE
+        }
+        blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, args_json);
+        free(args_json); // yyjson uses malloc
+        if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        // No args, use empty object
+        blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, "{}");
+        if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
+static res_t process_text_part(TALLOC_CTX *ctx, ik_content_block_t *blocks,
+                               yyjson_val *part, size_t idx)
+{
+    // Check for thought flag (thinking)
+    yyjson_val *thought_val = yyjson_obj_get(part, "thought");
+    bool is_thought = thought_val != NULL && yyjson_get_bool(thought_val); // LCOV_EXCL_BR_LINE (short-circuit evaluation, compiler artifact)
+
+    // Extract text
+    yyjson_val *text_val = yyjson_obj_get(part, "text");
+    if (text_val == NULL) {
+        // Skip parts without text
+        return OK(NULL);
+    }
+    const char *text = yyjson_get_str(text_val);
+    if (text == NULL) {
+        return ERR(ctx, PARSE, "Part 'text' is not a string");
+    }
+
+    if (is_thought) {
+        blocks[idx].type = IK_CONTENT_THINKING;
+        blocks[idx].data.thinking.text = talloc_strdup(blocks, text);
+        if (blocks[idx].data.thinking.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    } else {
+        blocks[idx].type = IK_CONTENT_TEXT;
+        blocks[idx].data.text.text = talloc_strdup(blocks, text);
+        if (blocks[idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
 /**
  * Parse content parts from candidate
  */
@@ -44,68 +117,14 @@ static res_t parse_content_parts(TALLOC_CTX *ctx, yyjson_val *parts_arr,
         // Check for functionCall (tool call)
         yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
         if (function_call != NULL) {
-            blocks[idx].type = IK_CONTENT_TOOL_CALL;
-
-            // Generate tool call ID (Google doesn't provide one)
-            blocks[idx].data.tool_call.id = ik_google_generate_tool_id(blocks); // LCOV_EXCL_BR_LINE (always returns valid ID, cannot fail)
-
-            // Extract function name
-            yyjson_val *name_val = yyjson_obj_get(function_call, "name");
-            if (name_val == NULL) {
-                return ERR(ctx, PARSE, "functionCall missing 'name' field");
-            }
-            const char *name = yyjson_get_str(name_val);
-            if (name == NULL) {
-                return ERR(ctx, PARSE, "functionCall 'name' is not a string");
-            }
-            blocks[idx].data.tool_call.name = talloc_strdup(blocks, name);
-            if (blocks[idx].data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-            // Extract arguments (serialize to JSON string)
-            yyjson_val *args_val = yyjson_obj_get(function_call, "args");
-            if (args_val != NULL) {
-                // Serialize args object to JSON string
-                yyjson_write_flag flg = YYJSON_WRITE_NOFLAG;
-                size_t json_len;
-                char *args_json = yyjson_val_write_opts(args_val, flg, NULL, &json_len, NULL);
-                if (args_json == NULL) { // LCOV_EXCL_BR_LINE (only fails on extreme OOM)
-                    return ERR(ctx, PARSE, "Failed to serialize functionCall args"); // LCOV_EXCL_LINE
-                }
-                blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, args_json);
-                free(args_json); // yyjson uses malloc
-                if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            } else {
-                // No args, use empty object
-                blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, "{}");
-                if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
+            res_t result = process_function_call(ctx, blocks, function_call, idx);
+            if (is_err(&result)) return result;
             continue;
         }
 
-        // Check for thought flag (thinking)
-        yyjson_val *thought_val = yyjson_obj_get(part, "thought");
-        bool is_thought = thought_val != NULL && yyjson_get_bool(thought_val); // LCOV_EXCL_BR_LINE (short-circuit evaluation, compiler artifact)
-
-        // Extract text
-        yyjson_val *text_val = yyjson_obj_get(part, "text");
-        if (text_val == NULL) {
-            // Skip parts without text or functionCall
-            continue;
-        }
-        const char *text = yyjson_get_str(text_val);
-        if (text == NULL) {
-            return ERR(ctx, PARSE, "Part 'text' is not a string");
-        }
-
-        if (is_thought) {
-            blocks[idx].type = IK_CONTENT_THINKING;
-            blocks[idx].data.thinking.text = talloc_strdup(blocks, text);
-            if (blocks[idx].data.thinking.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        } else {
-            blocks[idx].type = IK_CONTENT_TEXT;
-            blocks[idx].data.text.text = talloc_strdup(blocks, text);
-            if (blocks[idx].data.text.text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        }
+        // Process text or thinking
+        res_t result = process_text_part(ctx, blocks, part, idx);
+        if (is_err(&result)) return result;
     }
 
     *out_blocks = blocks;

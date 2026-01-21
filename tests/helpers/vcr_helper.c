@@ -335,6 +335,98 @@ void vcr_verify_request(const char *method, const char *url, const char *body)
 
 // Internal helper functions
 
+static const char *find_end_quote_with_escapes(const char *start)
+{
+    const char *p = start;
+    while (*p) {
+        if (*p == '"' && (p == start || *(p-1) != '\\')) {
+            return p;
+        }
+        p++;
+    }
+    return NULL;
+}
+
+static char *extract_simple_string(const char *line, const char *key)
+{
+    size_t key_len = strlen(key);
+    const char *start = strstr(line, key);
+    if (!start) return NULL;
+
+    start += key_len;
+    const char *end = strchr(start, '"');
+    if (!end) return NULL;
+
+    size_t len = (size_t)(end - start);
+    char *result = malloc(len + 1);
+    memcpy(result, start, len);
+    result[len] = '\0';
+    return result;
+}
+
+static char *extract_and_unescape_string(const char *line, const char *key)
+{
+    size_t key_len = strlen(key);
+    const char *start = strstr(line, key);
+    if (!start) return NULL;
+
+    start += key_len;
+    const char *end = find_end_quote_with_escapes(start);
+    if (!end) return NULL;
+
+    size_t len = (size_t)(end - start);
+    char *escaped = malloc(len + 1);
+    memcpy(escaped, start, len);
+    escaped[len] = '\0';
+
+    char *unescaped = json_unescape(escaped);
+    free(escaped);
+    return unescaped;
+}
+
+static void add_to_chunk_queue(vcr_state_t *state, char *chunk)
+{
+    state->chunk_queue->count++;
+    state->chunk_queue->chunks = realloc(state->chunk_queue->chunks,
+                                         state->chunk_queue->count * sizeof(char*));
+    state->chunk_queue->chunks[state->chunk_queue->count - 1] = chunk;
+}
+
+static void parse_request_line(vcr_state_t *state, const char *line)
+{
+    if (!state->recorded_request) {
+        state->recorded_request = calloc(1, sizeof(request_data_t));
+    }
+
+    state->recorded_request->method = extract_simple_string(line, "\"method\": \"");
+    state->recorded_request->url = extract_simple_string(line, "\"url\": \"");
+    state->recorded_request->body = extract_and_unescape_string(line, "\"body\": \"");
+}
+
+static void parse_response_line(vcr_state_t *state, const char *line)
+{
+    const char *status_start = strstr(line, "\"status\": ");
+    if (status_start) {
+        state->response_status = atoi(status_start + 10);
+    }
+}
+
+static void parse_chunk_line(vcr_state_t *state, const char *line)
+{
+    char *chunk = extract_and_unescape_string(line, "\"_chunk\": \"");
+    if (chunk) {
+        add_to_chunk_queue(state, chunk);
+    }
+}
+
+static void parse_body_line(vcr_state_t *state, const char *line)
+{
+    char *body = extract_and_unescape_string(line, "\"_body\": \"");
+    if (body) {
+        add_to_chunk_queue(state, body);
+    }
+}
+
 static void parse_fixture(vcr_state_t *state)
 {
     if (!state->fp) {
@@ -345,139 +437,22 @@ static void parse_fixture(vcr_state_t *state)
     size_t line_cap = 0;
     ssize_t line_len;
 
-    // Initialize chunk queue
     state->chunk_queue = calloc(1, sizeof(chunk_queue_t));
 
     while ((line_len = getline(&line, &line_cap, state->fp)) > 0) {
-        // Remove trailing newline
         if (line[line_len - 1] == '\n') {
             line[line_len - 1] = '\0';
             line_len--;
         }
 
-        // Identify line type by searching for keys
         if (strstr(line, "\"_request\"")) {
-            // Parse request data for verification
-            if (!state->recorded_request) {
-                state->recorded_request = calloc(1, sizeof(request_data_t));
-            }
-
-            // Extract method
-            const char *method_start = strstr(line, "\"method\": \"");
-            if (method_start) {
-                method_start += 11;
-                const char *method_end = strchr(method_start, '"');
-                if (method_end) {
-                    size_t method_len = (size_t)(method_end - method_start);
-                    state->recorded_request->method = malloc(method_len + 1);
-                    memcpy(state->recorded_request->method, method_start, method_len);
-                    state->recorded_request->method[method_len] = '\0';
-                }
-            }
-
-            // Extract URL
-            const char *url_start = strstr(line, "\"url\": \"");
-            if (url_start) {
-                url_start += 8;
-                const char *url_end = strchr(url_start, '"');
-                if (url_end) {
-                    size_t url_len = (size_t)(url_end - url_start);
-                    state->recorded_request->url = malloc(url_len + 1);
-                    memcpy(state->recorded_request->url, url_start, url_len);
-                    state->recorded_request->url[url_len] = '\0';
-                }
-            }
-
-            // Extract body (if present)
-            const char *body_start = strstr(line, "\"body\": \"");
-            if (body_start) {
-                body_start += 9;
-                // Find the end quote, handling escapes
-                const char *p = body_start;
-                while (*p) {
-                    if (*p == '"' && (p == body_start || *(p-1) != '\\')) {
-                        break;
-                    }
-                    p++;
-                }
-                if (*p == '"') {
-                    size_t body_len = (size_t)(p - body_start);
-                    char *escaped_body = malloc(body_len + 1);
-                    memcpy(escaped_body, body_start, body_len);
-                    escaped_body[body_len] = '\0';
-                    state->recorded_request->body = json_unescape(escaped_body);
-                    free(escaped_body);
-                }
-            }
-
+            parse_request_line(state, line);
         } else if (strstr(line, "\"_response\"")) {
-            // Parse response status
-            const char *status_start = strstr(line, "\"status\": ");
-            if (status_start) {
-                status_start += 10;
-                state->response_status = atoi(status_start);
-            }
-            continue;
-
+            parse_response_line(state, line);
         } else if (strstr(line, "\"_chunk\"")) {
-            // Extract chunk value
-            const char *chunk_start = strstr(line, "\"_chunk\": \"");
-            if (chunk_start) {
-                chunk_start += 11;
-                // Find end quote, handling escapes
-                const char *p = chunk_start;
-                while (*p) {
-                    if (*p == '"' && (p == chunk_start || *(p-1) != '\\')) {
-                        break;
-                    }
-                    p++;
-                }
-                if (*p == '"') {
-                    size_t chunk_len = (size_t)(p - chunk_start);
-                    char *escaped_chunk = malloc(chunk_len + 1);
-                    memcpy(escaped_chunk, chunk_start, chunk_len);
-                    escaped_chunk[chunk_len] = '\0';
-
-                    char *unescaped = json_unescape(escaped_chunk);
-                    free(escaped_chunk);
-
-                    // Add to chunk queue
-                    state->chunk_queue->count++;
-                    state->chunk_queue->chunks = realloc(state->chunk_queue->chunks,
-                                                         state->chunk_queue->count * sizeof(char*));
-                    state->chunk_queue->chunks[state->chunk_queue->count - 1] = unescaped;
-                }
-            }
-
+            parse_chunk_line(state, line);
         } else if (strstr(line, "\"_body\"")) {
-            // Extract body value (treat as single chunk)
-            const char *body_start = strstr(line, "\"_body\": \"");
-            if (body_start) {
-                body_start += 10;
-                // Find end quote, handling escapes
-                const char *p = body_start;
-                while (*p) {
-                    if (*p == '"' && (p == body_start || *(p-1) != '\\')) {
-                        break;
-                    }
-                    p++;
-                }
-                if (*p == '"') {
-                    size_t body_len = (size_t)(p - body_start);
-                    char *escaped_body = malloc(body_len + 1);
-                    memcpy(escaped_body, body_start, body_len);
-                    escaped_body[body_len] = '\0';
-
-                    char *unescaped = json_unescape(escaped_body);
-                    free(escaped_body);
-
-                    // Add to chunk queue as single chunk
-                    state->chunk_queue->count++;
-                    state->chunk_queue->chunks = realloc(state->chunk_queue->chunks,
-                                                         state->chunk_queue->count * sizeof(char*));
-                    state->chunk_queue->chunks[state->chunk_queue->count - 1] = unescaped;
-                }
-            }
+            parse_body_line(state, line);
         }
     }
 

@@ -11,6 +11,65 @@
 #include "wrapper_talloc.h"
 
 #include <assert.h>
+#include <stdbool.h>
+
+static ik_error_category_t map_http_status_to_category(int http_status)
+{
+    switch (http_status) {
+        case 400:
+            return IK_ERR_CAT_INVALID_ARG;
+        case 401:
+        case 403:
+            return IK_ERR_CAT_AUTH;
+        case 404:
+            return IK_ERR_CAT_NOT_FOUND;
+        case 429:
+            return IK_ERR_CAT_RATE_LIMIT;
+        case 500:
+        case 502:
+        case 503:
+            return IK_ERR_CAT_SERVER;
+        case 504:
+            return IK_ERR_CAT_TIMEOUT;
+        default:
+            return IK_ERR_CAT_UNKNOWN;
+    }
+}
+
+static bool try_extract_error_message(TALLOC_CTX *ctx, const char *json,
+                                      size_t json_len, int http_status,
+                                      char **out_message)
+{
+    if (json == NULL || json_len == 0) return false;
+
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
+    if (doc == NULL) return false;
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    if (!yyjson_is_obj(root)) {
+        yyjson_doc_free(doc);
+        return false;
+    }
+
+    yyjson_val *error_obj = yyjson_obj_get(root, "error");
+    if (error_obj == NULL) {
+        yyjson_doc_free(doc);
+        return false;
+    }
+
+    yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
+    const char *msg = yyjson_get_str(msg_val);
+    if (msg == NULL) {
+        yyjson_doc_free(doc);
+        return false;
+    }
+
+    *out_message = talloc_asprintf_(ctx, "%d: %s", http_status, msg);
+    yyjson_doc_free(doc);
+    if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    return true;
+}
 
 /**
  * Parse Google error response
@@ -23,59 +82,12 @@ res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
     assert(out_category != NULL); // LCOV_EXCL_BR_LINE
     assert(out_message != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Map HTTP status to category
-    switch (http_status) {
-        case 400:
-            *out_category = IK_ERR_CAT_INVALID_ARG;
-            break;
-        case 401:
-        case 403:
-            *out_category = IK_ERR_CAT_AUTH;
-            break;
-        case 404:
-            *out_category = IK_ERR_CAT_NOT_FOUND;
-            break;
-        case 429:
-            *out_category = IK_ERR_CAT_RATE_LIMIT;
-            break;
-        case 500:
-        case 502:
-        case 503:
-            *out_category = IK_ERR_CAT_SERVER;
-            break;
-        case 504:
-            *out_category = IK_ERR_CAT_TIMEOUT;
-            break;
-        default:
-            *out_category = IK_ERR_CAT_UNKNOWN;
-            break;
+    *out_category = map_http_status_to_category(http_status);
+
+    if (try_extract_error_message(ctx, json, json_len, http_status, out_message)) {
+        return OK(NULL);
     }
 
-    // Try to extract error message from JSON
-    if (json != NULL && json_len > 0) {
-        yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-        // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
-        yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
-        if (doc != NULL) {
-            yyjson_val *root = yyjson_doc_get_root_(doc);
-            if (yyjson_is_obj(root)) {
-                yyjson_val *error_obj = yyjson_obj_get(root, "error");
-                if (error_obj != NULL) {
-                    yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
-                    const char *msg = yyjson_get_str(msg_val);
-                    if (msg != NULL) {
-                        *out_message = talloc_asprintf_(ctx, "%d: %s", http_status, msg); // LCOV_EXCL_BR_LINE
-                        yyjson_doc_free(doc);
-                        if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                        return OK(NULL);
-                    }
-                }
-            }
-            yyjson_doc_free(doc);
-        }
-    }
-
-    // Fallback to generic message
     *out_message = talloc_asprintf_(ctx, "HTTP %d", http_status);
     if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     return OK(NULL);
