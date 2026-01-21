@@ -31,7 +31,7 @@ START_TEST(test_deliberate_race) {
 }
 END_TEST
 
-Suite *tsan_verify_suite(void) {
+static Suite *tsan_verify_suite(void) {
     Suite *s = suite_create("tsan_verify");
     TCase *tc = tcase_create("core");
     tcase_add_test(tc, test_deliberate_race);

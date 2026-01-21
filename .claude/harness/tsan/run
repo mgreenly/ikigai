@@ -3,207 +3,87 @@
 
 require 'json'
 require 'optparse'
-require 'set'
 
-# Run command and capture output, suppressing all output
-def run_cmd(cmd, env: {}, chdir: nil)
-  stdout_str = ''
-  stderr_str = ''
-  status = nil
-
-  # Merge environment variables
-  full_env = ENV.to_h.merge(env)
-
-  # Change directory if specified
-  orig_dir = Dir.pwd
-  Dir.chdir(chdir) if chdir
-
-  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
-    stdout_str = io.read
-  end
-  status = $?
-
-  Dir.chdir(orig_dir) if chdir
-
-  [status.exitstatus, stdout_str]
+# Run command and capture output
+def run_cmd(cmd)
+  output = `#{cmd} 2>&1`
+  [$?.exitstatus, output]
 end
 
-# Run make check-tsan with parallelization
-def run_make_tsan(project_root)
-  exit_code, output = run_cmd(
-    ['make', 'check-tsan'],
-    chdir: project_root
-  )
-
-  [exit_code == 0, output]
+# Convert binary path to source path
+# build-tsan/tests/unit/foo_test -> tests/unit/foo_test.c
+def binary_to_source(binary_path)
+  # Remove build-tsan/ prefix and add .c suffix
+  source = binary_path.sub(%r{^build-tsan/}, '') + '.c'
+  source
 end
 
-# Parse failing test binaries from emoji markers in make output
-def parse_failing_tests(output)
-  failing_tests = []
+# Parse failing binaries from bulk mode output
+def parse_failing_binaries(output)
+  binaries = []
   output.each_line do |line|
-    # Only process lines that start with emoji markers, ignore all other output
-    next unless line.start_with?('🔴 ', '🟢 ')
-
     line = line.strip
-    if line.start_with?('🔴 ')
-      binary_path = line[2..-1].strip
-      # Only include if it looks like a path (contains / and starts with build-)
-      if !binary_path.empty? && binary_path.include?('/') && binary_path.start_with?('build-')
-        failing_tests << binary_path
-      end
-    end
+    next unless line.start_with?('🔴 ')
+    path = line[2..].strip
+    # Only include paths that look like test binaries
+    binaries << path if path.start_with?('build-tsan/')
   end
-  failing_tests
-end
-
-# Run a single test binary to capture ThreadSanitizer output
-def run_single_test(test_binary, project_root)
-  env = {
-    'TSAN_OPTIONS' => 'suppressions=.suppressions/tsan.supp',
-    'CK_FORK' => 'no'
-  }
-  exit_code, output = run_cmd([test_binary], env: env, chdir: project_root)
-  [exit_code == 0, output]
-end
-
-# Parse ThreadSanitizer output to extract data races
-def parse_failures(output)
-  failures = []
-  seen_files = Set.new
-
-  # ThreadSanitizer data race pattern:
-  # WARNING: ThreadSanitizer: data race (pid=...)
-  #   Write of size N at ... by thread T1:
-  #     #0 function file.c:123 (binary+0x...)
-  race_pattern = /WARNING: ThreadSanitizer: (data race|race on [^\n]+)/
-  location_pattern = /#\d+\s+\S+\s+(\S+):(\d+)\s+/
-  simple_location = /(\S+\.c):(\d+)/
-
-  lines = output.lines.map(&:chomp)
-  i = 0
-  while i < lines.length
-    line = lines[i]
-
-    race_match = race_pattern.match(line)
-    if race_match
-      error_type = race_match[1]
-      stack_lines = []
-
-      # Collect stack trace (next 30 lines or until empty line)
-      ((i + 1)...[i + 30, lines.length].min).each do |j|
-        break if lines[j].strip.empty?
-        stack_lines << lines[j]
-
-        # Find first source location in our code
-        loc_match = location_pattern.match(lines[j]) || simple_location.match(lines[j])
-
-        if loc_match
-          file = loc_match[1]
-          line_num = loc_match[2]
-          if !seen_files.include?(file) && (file.start_with?('src/') || file.start_with?('tests/'))
-            seen_files.add(file)
-            failures << {
-              file: file,
-              line: line_num,
-              error_type: "TSan: #{error_type}",
-              message: error_type,
-              stack: stack_lines.take(15).join("\n")
-            }
-            break
-          end
-        end
-      end
-
-      i += 1
-      next
-    end
-
-    i += 1
-  end
-
-  failures
-end
-
-# Format a failure as a human-readable item string
-def format_error_item(failure)
-  "#{failure[:error_type]} in #{failure[:file]}:#{failure[:line]}"
-end
-
-# Main check function
-def run_check_only(target_file: nil)
-  # Get project root
-  script_dir = File.dirname(File.realpath(__FILE__))
-  project_root = File.expand_path('../../..', script_dir)
-  Dir.chdir(project_root)
-
-  # Validate target_file if provided
-  if target_file
-    unless File.exist?(target_file)
-      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
-      return 1
-    end
-  end
-
-  # Run make check-tsan with parallelization
-  success, make_output = run_make_tsan(project_root)
-
-  if success
-    puts JSON.generate(ok: true)
-    return 0
-  end
-
-  # Parse failing test binaries
-  failing_tests = parse_failing_tests(make_output)
-
-  if failing_tests.empty?
-    # Build failed but couldn't parse test failures
-    puts JSON.generate(ok: false, items: ['Build or test infrastructure failure'])
-    return 1
-  end
-
-  # Run each failing test to get ThreadSanitizer output
-  all_failures = []
-  failing_tests.each do |test_binary|
-    _, test_output = run_single_test(test_binary, project_root)
-    failures = parse_failures(test_output)
-    all_failures.concat(failures)
-  end
-
-  if all_failures.empty?
-    # Tests failed but couldn't parse ThreadSanitizer errors - report which tests failed
-    items = failing_tests.map { |test| "#{test}: test failed (no ThreadSanitizer errors detected)" }
-    puts JSON.generate(ok: false, items: items)
-    return 1
-  end
-
-  # Filter to target file if specified
-  if target_file
-    all_failures = all_failures.select { |f| f[:file] == target_file }
-    if all_failures.empty?
-      puts JSON.generate(ok: true)
-      return 0
-    end
-  end
-
-  # Format each failure as a readable item
-  items = all_failures.map { |f| format_error_item(f) }
-  puts JSON.generate(ok: false, items: items)
-  1
+  binaries
 end
 
 def main
   options = {}
-
   OptionParser.new do |opts|
-    opts.banner = 'Usage: run.rb [options]'
-    opts.on('--file FILE', 'Filter results to specific file') do |file|
+    opts.banner = 'Usage: run [options]'
+    opts.on('--file FILE', 'Run check on specific test binary') do |file|
       options[:file] = file
     end
   end.parse!
 
-  # Run check and exit with appropriate code
-  exit run_check_only(target_file: options[:file])
+  if options[:file]
+    # Single file mode
+    exit_code, output = run_cmd("make check-tsan FILE=#{options[:file]}")
+    if exit_code == 0
+      puts JSON.generate(ok: true)
+      exit 0
+    end
+    # Each 🔴 line becomes an item (strip emoji prefix)
+    items = []
+    output.each_line do |line|
+      line = line.strip
+      next unless line.start_with?('🔴 ')
+      items << line[2..].strip
+    end
+    if items.empty?
+      items = ["#{options[:file]}: check failed but no error details"]
+    end
+    puts JSON.generate(ok: false, items: items)
+    exit 1
+  end
+
+  # Bulk mode
+  exit_code, output = run_cmd('make check-tsan')
+  if exit_code == 0
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Check for pre-existing failures
+  if output.include?('Pre-existing build failures') || output.include?('Pre-existing test failures')
+    puts JSON.generate(ok: false, items: ['Pre-existing failures - fix before checking for races'])
+    exit 1
+  end
+
+  # Get list of failing binaries and convert to source paths
+  failing = parse_failing_binaries(output)
+  if failing.empty?
+    puts JSON.generate(ok: false, items: ['Infrastructure failure'])
+    exit 1
+  end
+
+  sources = failing.map { |b| binary_to_source(b) }
+  puts JSON.generate(ok: false, items: sources)
+  exit 1
 end
 
 if __FILE__ == $PROGRAM_NAME
