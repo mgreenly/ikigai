@@ -167,10 +167,11 @@ include .make/check-unit.mk
 include .make/check-integration.mk
 include .make/check-filesize.mk
 include .make/check-complexity.mk
+include .make/check-sanitize.mk
 
 # clean: Remove build artifacts
 clean:
-	@rm -rf $(BUILDDIR)
+	@rm -rf $(BUILDDIR) build-sanitize
 	@echo "✨ Cleaned"
 
 # help: Show available targets
@@ -182,6 +183,7 @@ help:
 	@echo "  check-integration - Run integration tests with XML output"
 	@echo "  check-filesize - Verify source files under 16KB"
 	@echo "  check-complexity - Verify cyclomatic complexity under threshold (default: 15)"
+	@echo "  check-sanitize - Run tests with AddressSanitizer/UBSan (uses build-sanitize/)"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
 	@echo ""

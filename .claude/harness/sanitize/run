@@ -2,341 +2,93 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'open3'
 require 'optparse'
-require 'set'
 
-# Run command and capture output, suppressing all output
-def run_cmd(cmd, env: {}, chdir: nil)
-  stdout_str = ''
-  stderr_str = ''
-  status = nil
-
-  # Merge environment variables
-  full_env = ENV.to_h.merge(env)
-
-  # Change directory if specified
-  orig_dir = Dir.pwd
-  Dir.chdir(chdir) if chdir
-
-  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
-    stdout_str = io.read
-  end
-  status = $?
-
-  Dir.chdir(orig_dir) if chdir
-
-  [status.exitstatus, stdout_str]
+# Run command and capture output
+def run_cmd(cmd)
+  output = `#{cmd} 2>&1`
+  [$?.exitstatus, output]
 end
 
-# Run make check-sanitize with parallelization
-def run_make_sanitize(project_root)
-  exit_code, output = run_cmd(
-    ['make', 'check-sanitize'],
-    chdir: project_root
-  )
-
-  [exit_code == 0, output]
+# Run make check-sanitize (bulk mode)
+def run_make_sanitize_bulk
+  run_cmd('make check-sanitize')
 end
 
-# Parse failing test binaries from emoji markers in make output
-def parse_failing_tests(output)
-  failing_tests = []
+# Run make check-sanitize FILE=<binary> (single file mode)
+def run_make_sanitize_file(binary)
+  run_cmd("make check-sanitize FILE=#{binary}")
+end
+
+# Parse failing test binaries from bulk mode output
+def parse_failing_binaries(output)
+  binaries = []
   output.each_line do |line|
-    # Only process lines that start with emoji markers, ignore all other output
-    next unless line.start_with?('🔴 ', '🟢 ')
-
-    # Extract path after emoji
     line = line.strip
-    if line.start_with?('🔴 ')
-      binary_path = line[2..-1].strip
-      # Only include if it looks like a path (contains / and starts with build-)
-      if !binary_path.empty? && binary_path.include?('/') && binary_path.start_with?('build-')
-        failing_tests << binary_path
-      end
-    end
+    next unless line.start_with?('🔴 ')
+    path = line[2..].strip
+    # Only include paths that look like test binaries
+    binaries << path if path.include?('/') && path.start_with?('build-')
   end
-  failing_tests
+  binaries
 end
 
-# Run a single test binary to capture sanitizer output
-def run_single_test(test_binary, project_root)
-  env = { 'LSAN_OPTIONS' => 'suppressions=.suppressions/lsan.supp' }
-  exit_code, output = run_cmd([test_binary], env: env, chdir: project_root)
-  [exit_code == 0, output]
-end
-
-# Check if a file path is application code (not library)
-def app_frame?(file)
-  file.start_with?('src/') || file.start_with?('tests/')
-end
-
-# Check if a frame is from a library (libc, libasan, libtalloc)
-def library_frame?(function, file)
-  libc_funcs = %w[free malloc calloc realloc aligned_alloc posix_memalign
-                  memalign pvalloc valloc __interceptor_ vsnprintf_ vsprintf_ sprintf_]
-  return true if libc_funcs.any? { |f| function.start_with?(f) || function.include?(f) }
-  return true if function.include?('__asan') || function.include?('__sanitizer')
-  return true if file.include?('talloc') || function.include?('talloc')
-  return true if file.empty? || file.start_with?('/') || file.include?('(')
-  false
-end
-
-# Find first application frame in a stack trace section
-def find_first_app_frame(lines, start, max_lines = 20)
-  frame_pattern = /#\d+\s+0x[0-9a-f]+\s+in\s+(\S+)\s+(\S+):(\d+)/
-
-  start.upto([start + max_lines - 1, lines.length - 1].min) do |i|
-    match = frame_pattern.match(lines[i])
-    next unless match
-
-    function = match[1]
-    file = match[2]
-    line = match[3]
-
-    next if library_frame?(function, file)
-    return [file, line, function] if app_frame?(file)
+# Parse error lines from FILE= mode output
+def parse_error_lines(output)
+  lines = []
+  output.each_line do |line|
+    line = line.strip
+    next unless line.start_with?('🔴 ')
+    # Strip the emoji prefix
+    content = line[2..].strip
+    # Skip separator lines (all = characters)
+    next if content.match?(/^=+$/)
+    lines << content
   end
-
-  ['', '', '']
-end
-
-# Find the start of a section matching pattern
-def find_section_start(lines, start, pattern, max_lines = 50)
-  start.upto([start + max_lines - 1, lines.length - 1].min) do |i|
-    return i if lines[i].include?(pattern)
-  end
-  -1
-end
-
-# Collect the full ASan output from error start until next error or end
-def collect_stack_trace(lines, start, max_lines = 100)
-  stack_lines = []
-  start.upto([start + max_lines - 1, lines.length - 1].min) do |i|
-    line = lines[i]
-    # Stop at next error or summary
-    break if i > start && line.include?('==ERROR:')
-    if line.include?('SUMMARY:')
-      stack_lines << line
-      break
-    end
-    stack_lines << line
-  end
-  stack_lines.join("\n")
-end
-
-# Parse sanitizer output to extract errors
-def parse_failures(output)
-  failures = []
-  seen_files = Set.new
-
-  # AddressSanitizer pattern: ==PID==ERROR: AddressSanitizer: error-type on address ...
-  asan_error = /==\d+==ERROR: AddressSanitizer: (\S+)/
-
-  # UndefinedBehaviorSanitizer pattern: file.c:123:45: runtime error: description
-  ubsan_pattern = /(\S+):(\d+):\d+:\s*runtime error:\s*(.+)/
-
-  # LeakSanitizer pattern: Direct leak of N byte(s) in M object(s) allocated from:
-  lsan_error = /(Direct|Indirect) leak of \d+ byte/
-
-  lines = output.lines.map(&:chomp)
-  i = 0
-  while i < lines.length
-    line = lines[i]
-
-    # Check for ASan error
-    asan_match = asan_error.match(line)
-    if asan_match
-      error_type = asan_match[1].strip
-      message = line.include?('AddressSanitizer:') ? line.split('AddressSanitizer:')[-1].strip : error_type
-      stack = collect_stack_trace(lines, i)
-
-      # Find crash location (first app frame after error)
-      file, line_num, _ = find_first_app_frame(lines, i + 1)
-
-      # Find "freed by thread" section
-      freed_start = find_section_start(lines, i, 'freed by thread')
-      freed_file, freed_line, freed_function = '', '', ''
-      if freed_start != -1
-        freed_file, freed_line, freed_function = find_first_app_frame(lines, freed_start + 1)
-      end
-
-      # Find "previously allocated" section
-      alloc_start = find_section_start(lines, i, 'previously allocated')
-      allocated_file, allocated_line, allocated_function = '', '', ''
-      if alloc_start != -1
-        allocated_file, allocated_line, allocated_function = find_first_app_frame(lines, alloc_start + 1)
-      end
-
-      if !file.empty? && !seen_files.include?(file)
-        seen_files.add(file)
-        failures << {
-          file: file,
-          line: line_num,
-          error_type: error_type,
-          message: message,
-          freed_file: freed_file,
-          freed_line: freed_line,
-          freed_function: freed_function,
-          allocated_file: allocated_file,
-          allocated_line: allocated_line,
-          allocated_function: allocated_function,
-          stack: stack
-        }
-      end
-      i += 1
-      next
-    end
-
-    # Check for UBSan error
-    ubsan_match = ubsan_pattern.match(line)
-    if ubsan_match
-      file = ubsan_match[1]
-      line_num = ubsan_match[2]
-      message = ubsan_match[3]
-      if !seen_files.include?(file) && app_frame?(file)
-        seen_files.add(file)
-        failures << {
-          file: file,
-          line: line_num,
-          error_type: 'undefined-behavior',
-          message: message,
-          freed_file: '',
-          freed_line: '',
-          freed_function: '',
-          allocated_file: '',
-          allocated_line: '',
-          allocated_function: '',
-          stack: ''
-        }
-      end
-      i += 1
-      next
-    end
-
-    # Check for LSan error
-    lsan_match = lsan_error.match(line)
-    if lsan_match
-      leak_type = lsan_match[1]
-      file, line_num, function = find_first_app_frame(lines, i + 1)
-      if !file.empty? && !seen_files.include?(file)
-        seen_files.add(file)
-        failures << {
-          file: file,
-          line: line_num,
-          error_type: "#{leak_type.downcase}-leak",
-          message: "#{leak_type} memory leak",
-          freed_file: '',
-          freed_line: '',
-          freed_function: '',
-          allocated_file: file,
-          allocated_line: line_num,
-          allocated_function: function,
-          stack: collect_stack_trace(lines, i)
-        }
-      end
-      i += 1
-      next
-    end
-
-    i += 1
-  end
-
-  failures
-end
-
-# Format a failure as a human-readable item string
-def format_error_item(failure)
-  error_type = failure[:error_type]
-  file = failure[:file]
-  line = failure[:line]
-
-  # Map error types to sanitizer prefixes
-  prefix = if error_type == 'undefined-behavior'
-             'UBSan'
-           elsif ['direct-leak', 'indirect-leak'].include?(error_type)
-             'LSan'
-           else
-             'ASan'
-           end
-
-  "#{prefix}: #{error_type} in #{file}:#{line}"
-end
-
-# Main check function
-def run_check_only(target_file: nil)
-  # Get project root
-  script_dir = File.dirname(File.realpath(__FILE__))
-  project_root = File.expand_path('../../..', script_dir)
-  Dir.chdir(project_root)
-
-  # Validate target_file if provided
-  if target_file
-    unless File.exist?(target_file)
-      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
-      return 1
-    end
-  end
-
-  # Run make check-sanitize with parallelization
-  success, make_output = run_make_sanitize(project_root)
-
-  if success
-    puts JSON.generate(ok: true)
-    return 0
-  end
-
-  # Parse failing test binaries
-  failing_tests = parse_failing_tests(make_output)
-
-  if failing_tests.empty?
-    # Build failed but couldn't parse test failures
-    puts JSON.generate(ok: false, items: ['Build or test infrastructure failure'])
-    return 1
-  end
-
-  # Run each failing test to get sanitizer output
-  all_failures = []
-  failing_tests.each do |test_binary|
-    _, test_output = run_single_test(test_binary, project_root)
-    failures = parse_failures(test_output)
-    all_failures.concat(failures)
-  end
-
-  if all_failures.empty?
-    # Tests failed but couldn't parse sanitizer errors - report which tests failed
-    items = failing_tests.map { |test| "#{test}: test failed (no sanitizer errors detected)" }
-    puts JSON.generate(ok: false, items: items)
-    return 1
-  end
-
-  # Filter to target file if specified
-  if target_file
-    all_failures = all_failures.select { |f| f[:file] == target_file }
-    if all_failures.empty?
-      puts JSON.generate(ok: true)
-      return 0
-    end
-  end
-
-  # Format each failure as a readable item
-  items = all_failures.map { |f| format_error_item(f) }
-  puts JSON.generate(ok: false, items: items)
-  1
+  lines
 end
 
 def main
   options = {}
-
   OptionParser.new do |opts|
-    opts.banner = 'Usage: run.rb [options]'
-    opts.on('--file FILE', 'Filter results to specific file') do |file|
+    opts.banner = 'Usage: run [options]'
+    opts.on('--file FILE', 'Run check on specific test binary') do |file|
       options[:file] = file
     end
   end.parse!
 
-  # Run check and exit with appropriate code
-  exit run_check_only(target_file: options[:file])
+  if options[:file]
+    # Single file mode - run make check-sanitize FILE=<binary>
+    exit_code, output = run_make_sanitize_file(options[:file])
+    if exit_code == 0
+      puts JSON.generate(ok: true)
+      exit 0
+    end
+    items = parse_error_lines(output)
+    if items.empty?
+      puts JSON.generate(ok: false, items: ["#{options[:file]}: check failed but no error details"])
+    else
+      puts JSON.generate(ok: false, items: items)
+    end
+    exit 1
+  end
+
+  # Bulk mode - run make check-sanitize
+  exit_code, output = run_make_sanitize_bulk
+  if exit_code == 0
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Get list of failing binaries
+  failing = parse_failing_binaries(output)
+  if failing.empty?
+    puts JSON.generate(ok: false, items: ['Build or infrastructure failure'])
+    exit 1
+  end
+
+  puts JSON.generate(ok: false, items: failing)
+  exit 1
 end
 
 if __FILE__ == $PROGRAM_NAME
