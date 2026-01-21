@@ -15,7 +15,7 @@
 #include "providers/provider.h"
 #include "wrapper_json.h"
 #include "vendor/yyjson/yyjson.h"
-#include "openai_streaming_responses_events_test_helper.c"
+#include "openai_streaming_responses_events_test_helper.h"
 
 /* Mock state */
 static bool mock_yyjson_get_str_should_return_null = false;
