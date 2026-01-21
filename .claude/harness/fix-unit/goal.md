@@ -4,13 +4,13 @@ All unit tests must pass.
 
 ## Strategy
 
-1. Run `check-unit` to identify failing tests
+1. Run `.claude/scripts/check-unit` to identify failing tests
 2. For each file with failing tests:
-   - Use `check-unit --file=<path>` to see all test failures for that file
+   - Use `.claude/scripts/check-unit --file=<path>` to see all test failures for that file
    - Read the test assertions and failure messages
    - Understand what behavior the tests expect
    - Fix the implementation to match expected behavior
-   - **Verify `check-unit` returns `{"ok": true}` after changes**
+   - **Verify `.claude/scripts/check-unit` returns `{"ok": true}` after changes**
 3. Continue until all unit tests pass
 
 ## Guidelines
@@ -36,4 +36,4 @@ All unit tests must pass.
 
 ## Acceptance
 
-DONE when `check-unit` returns `{"ok": true}`
+DONE when `.claude/scripts/check-unit` returns `{"ok": true}`

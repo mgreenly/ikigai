@@ -4,16 +4,16 @@ All binaries must link successfully.
 
 ## Check Command
 
-Run `make check-link` to check status.
+Run `.claude/scripts/check-link` to check status.
 
 ## Strategy
 
-1. Run `make check-link` to identify linking errors
+1. Run `.claude/scripts/check-link` to identify linking errors
 2. For each binary with errors:
-   - Use `make check-link FILE=<binary>` to see specific errors
+   - Use `.claude/scripts/check-link FILE=<binary>` to see specific errors
    - Identify the missing or duplicate symbols
    - Fix the root cause
-   - **Verify with `make check-link FILE=<binary>` after changes**
+   - **Verify with `.claude/scripts/check-link FILE=<binary>` after changes**
 3. Continue until all binaries link
 
 ## Common Issues
@@ -32,10 +32,9 @@ Run `make check-link` to check status.
 
 ## Hints
 
-- For Makefile structure: `/load makefile`
 - For test linking patterns: see `.make/check-link.mk`
 - Mock discovery uses `_helper.h` and `_mock.h` patterns
 
 ## Acceptance
 
-DONE when `make check-link` shows ✅ All binaries linked
+DONE when `.claude/scripts/check-link` returns `{"ok": true}`

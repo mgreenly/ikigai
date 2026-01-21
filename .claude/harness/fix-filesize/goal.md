@@ -4,9 +4,9 @@ All source files must be under the 16KB (16384 bytes) filesize limit.
 
 ## Strategy
 
-1. Run `check-filesize` to identify oversized files
+1. Run `.claude/scripts/check-filesize` to identify oversized files
 2. For each oversized file:
-   - Use `check-filesize --file=<path>` to see details for that file
+   - Use `.claude/scripts/check-filesize --file=<path>` to see details for that file
    - **Analyze the file to identify logical boundaries for splitting**
      - Group related functions by purpose/domain
      - Look for cohesive subsystems that can be extracted
@@ -25,7 +25,7 @@ All source files must be under the 16KB (16384 bytes) filesize limit.
      - Verify test still compiles and links
    - **Verify compilation after changes**
      - Run `make fmt` to format all code (validation happens on formatted code)
-     - Run `check-compile` to ensure `{"ok": true}`
+     - Run `.claude/scripts/check-compile` to ensure `{"ok": true}`
      - Fix any compilation or linking errors
    - **Maintain existing functionality and test coverage**
      - Ensure ownership (talloc) patterns remain correct
@@ -61,7 +61,6 @@ All source files must be under the 16KB (16384 bytes) filesize limit.
 - For Result type patterns: `/load errors`
 - For naming conventions: `/load style`
 - For understanding module structure: `/load source-code`
-- For Makefile targets and patterns: `/load makefile`
 
 ## Validation
 
@@ -69,8 +68,8 @@ All source files must be under the 16KB (16384 bytes) filesize limit.
 
 **Validation sequence (must run in this exact order):**
 1. **First: Format** - Run `make fmt` to format all code. Ignore the output - this is just an action to format the code. Wait for it to complete before moving to the next step.
-2. **Then: Compile check** - Run `check-compile` and verify it returns `{"ok": true}`
-3. **Finally: Filesize check** - Run `check-filesize` and verify it returns `{"ok": true}`
+2. **Then: Compile check** - Run `.claude/scripts/check-compile` and verify it returns `{"ok": true}`
+3. **Finally: Filesize check** - Run `.claude/scripts/check-filesize` and verify it returns `{"ok": true}`
 
 ## Acceptance
 

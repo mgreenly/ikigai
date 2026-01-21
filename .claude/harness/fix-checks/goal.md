@@ -6,36 +6,36 @@ Work through checks in order: compile, filesize, unit, integration, complexity, 
 
 ## Strategy
 
-1. Run `check-compile`
+1. Run `.claude/scripts/check-compile`
    - If it fails, fix using compile guidance below
-   - Re-run `check-compile` until it passes
-2. Run `check-filesize`
+   - Re-run `.claude/scripts/check-compile` until it passes
+2. Run `.claude/scripts/check-filesize`
    - If it fails, fix using filesize guidance below
-   - Re-run `check-filesize` until it passes
-3. Run `check-unit`
+   - Re-run `.claude/scripts/check-filesize` until it passes
+3. Run `.claude/scripts/check-unit`
    - If it fails, fix using unit test guidance below
-   - Re-run `check-unit` until it passes
-4. Run `check-integration`
+   - Re-run `.claude/scripts/check-unit` until it passes
+4. Run `.claude/scripts/check-integration`
    - If it fails, fix using integration test guidance below
-   - Re-run `check-integration` until it passes
-5. Run `check-complexity`
+   - Re-run `.claude/scripts/check-integration` until it passes
+5. Run `.claude/scripts/check-complexity`
    - If it fails, fix using complexity guidance below
-   - Re-run `check-complexity` until it passes
-6. Run `check-sanitize`
+   - Re-run `.claude/scripts/check-complexity` until it passes
+6. Run `.claude/scripts/check-sanitize`
    - If it fails, fix using sanitize guidance below
-   - Re-run `check-sanitize` until it passes
-7. Run `check-tsan`
+   - Re-run `.claude/scripts/check-sanitize` until it passes
+7. Run `.claude/scripts/check-tsan`
    - If it fails, fix using tsan guidance below
-   - Re-run `check-tsan` until it passes
-8. Run `check-valgrind`
+   - Re-run `.claude/scripts/check-tsan` until it passes
+8. Run `.claude/scripts/check-valgrind`
    - If it fails, fix using valgrind guidance below
-   - Re-run `check-valgrind` until it passes
-9. Run `check-helgrind`
+   - Re-run `.claude/scripts/check-valgrind` until it passes
+9. Run `.claude/scripts/check-helgrind`
    - If it fails, fix using helgrind guidance below
-   - Re-run `check-helgrind` until it passes
-10. Run `check-coverage`
+   - Re-run `.claude/scripts/check-helgrind` until it passes
+10. Run `.claude/scripts/check-coverage`
     - If it fails, fix using coverage guidance below
-    - Re-run `check-coverage` until it passes
+    - Re-run `.claude/scripts/check-coverage` until it passes
 
 **Run checks ONE AT A TIME.** Do not run in parallel. Wait for each to complete before proceeding.
 
@@ -75,7 +75,7 @@ After fixing any check, if you suspect earlier checks might have regressed, re-v
 - Check signatures match between declaration and definition
 - Ensure new .c files added to Makefile targets
 
-**Skills:** `/load errors`, `/load style`, `/load makefile`
+**Skills:** `/load errors`, `/load style`
 
 ### filesize - Split Large Files
 
@@ -95,9 +95,9 @@ After fixing any check, if you suspect earlier checks might have regressed, re-v
 **After Splitting:**
 - Add new .c files to Makefile
 - Update test includes if needed
-- Run `make fmt` then verify `check-compile`
+- Run `make fmt` then verify `.claude/scripts/check-compile`
 
-**Skills:** `/load source-code` (understand module structure), `/load makefile`, `/load style`
+**Skills:** `/load source-code` (understand module structure), `/load style`
 
 ### unit + integration - Fix Failing Tests
 
@@ -129,8 +129,8 @@ After fixing any check, if you suspect earlier checks might have regressed, re-v
 
 **Validation Sequence:**
 1. `make fmt` (format code)
-2. `check-compile` (ensure builds)
-3. `check-complexity` (verify thresholds)
+2. `.claude/scripts/check-compile` (ensure builds)
+3. `.claude/scripts/check-complexity` (verify thresholds)
 
 **Skills:** `/load style`, `/load source-code`
 
@@ -297,20 +297,19 @@ These apply across multiple checks:
 - **For test structure:** `/load tdd`
 - **For PostgreSQL/fixtures:** `/load database`
 - **For module understanding:** `/load source-code`
-- **For build system:** `/load makefile`
 
 ---
 
 ## Acceptance
 
 DONE when ALL 10 checks return `{"ok": true}`:
-1. `check-compile`
-2. `check-filesize`
-3. `check-unit`
-4. `check-integration`
-5. `check-complexity`
-6. `check-sanitize`
-7. `check-tsan`
-8. `check-valgrind`
-9. `check-helgrind`
-10. `check-coverage`
+1. `.claude/scripts/check-compile`
+2. `.claude/scripts/check-filesize`
+3. `.claude/scripts/check-unit`
+4. `.claude/scripts/check-integration`
+5. `.claude/scripts/check-complexity`
+6. `.claude/scripts/check-sanitize`
+7. `.claude/scripts/check-tsan`
+8. `.claude/scripts/check-valgrind`
+9. `.claude/scripts/check-helgrind`
+10. `.claude/scripts/check-coverage`

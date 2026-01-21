@@ -8,7 +8,6 @@ You have ONE job: fix the failing integration test. Do not refactor unrelated co
 
 Before starting, load these skills for context:
 - /load errors
-- /load makefile
 - /load memory
 - /load database
 - /load style

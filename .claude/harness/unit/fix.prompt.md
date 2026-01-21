@@ -8,7 +8,6 @@ You have ONE job: fix the failing unit test. Do not refactor unrelated code.
 
 Before starting, load these skills for context:
 - /load errors
-- /load makefile
 - /load memory
 - /load style
 - /load tdd

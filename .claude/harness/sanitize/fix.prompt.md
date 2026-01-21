@@ -86,9 +86,11 @@ Other agents have already tried to fix this error. Learn from their attempts:
 
 ## Validation
 
-Before reporting done, run:
-1. `make check` - ensure tests still pass
-2. `make check-sanitize` - ensure sanitizer errors are fixed
+Verify the fix by running in order:
+1. `.claude/scripts/check-compile`
+2. `.claude/scripts/check-link`
+3. `.claude/scripts/check-unit`
+4. `.claude/scripts/check-sanitize`
 
 ## When Done
 

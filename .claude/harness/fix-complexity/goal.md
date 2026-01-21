@@ -6,9 +6,9 @@ All functions must meet complexity thresholds:
 
 ## Strategy
 
-1. Run `check-complexity` to identify functions exceeding thresholds
+1. Run `.claude/scripts/check-complexity` to identify functions exceeding thresholds
 2. For each function with violations:
-   - Use `check-complexity --file=<path>` to see details for that file
+   - Use `.claude/scripts/check-complexity --file=<path>` to see details for that file
    - **Analyze the function to understand complexity sources**
      - Count decision points (if, while, for, switch cases, &&, ||)
      - Identify deeply nested blocks
@@ -21,7 +21,7 @@ All functions must meet complexity thresholds:
      - Break switch statements into dispatch tables or helper functions
    - **Verify compilation after changes**
      - Run `make fmt` to format all code. Ignore the output - this is just an action to format the code. Wait for it to complete before moving to the next step.
-     - Run `check-compile` to ensure `{"ok": true}`
+     - Run `.claude/scripts/check-compile` to ensure `{"ok": true}`
      - Fix any compilation or linking errors
    - **Maintain existing functionality**
      - Ensure ownership (talloc) patterns remain correct
@@ -165,8 +165,8 @@ static void process_row(int *row, size_t cols, int threshold) {
 
 **Validation sequence (must run in this exact order):**
 1. **First: Format** - Run `make fmt` to format all code. Ignore the output - this is just an action to format the code. Wait for it to complete before moving to the next step.
-2. **Then: Compile check** - Run `check-compile` and verify it returns `{"ok": true}`
-3. **Finally: Complexity check** - Run `check-complexity` and verify it returns `{"ok": true}`
+2. **Then: Compile check** - Run `.claude/scripts/check-compile` and verify it returns `{"ok": true}`
+3. **Finally: Complexity check** - Run `.claude/scripts/check-complexity` and verify it returns `{"ok": true}`
 
 ## Hints
 
