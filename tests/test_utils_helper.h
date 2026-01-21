@@ -3,6 +3,7 @@
 
 #include <talloc.h>
 #include "test_constants.h"
+#include "test_utils_db_helper.h"
 #include "config.h"
 #include "../src/db/connection.h"
 #include "../src/error.h"
