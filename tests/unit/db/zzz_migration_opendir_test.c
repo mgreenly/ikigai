@@ -113,6 +113,7 @@ int main(void)
     int number_failed;
     Suite *s = migration_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/db/zzz_migration_opendir_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

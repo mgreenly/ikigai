@@ -279,6 +279,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = completion_navigation_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/completion_advanced_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

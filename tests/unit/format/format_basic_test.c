@@ -324,6 +324,7 @@ int32_t main(void)
 
     s = format_basic_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/format/format_basic_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

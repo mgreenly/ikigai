@@ -356,6 +356,7 @@ int main(void)
 {
     Suite *s = config_history_size_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/config/history_size_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

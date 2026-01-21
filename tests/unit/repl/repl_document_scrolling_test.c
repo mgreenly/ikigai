@@ -309,6 +309,7 @@ int main(void)
 {
     Suite *s = repl_document_scrolling_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_document_scrolling_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

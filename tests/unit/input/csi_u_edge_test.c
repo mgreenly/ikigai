@@ -237,6 +237,7 @@ int main(void)
 {
     Suite *s = input_csi_u_edge_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input/csi_u_edge_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -165,6 +165,7 @@ int main(void)
 {
     Suite *s = separator_wrapped_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_wrapped_scrollback_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

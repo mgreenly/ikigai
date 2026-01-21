@@ -459,6 +459,7 @@ int main(void)
 {
     Suite *s = file_write_tool_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/tools/file_write_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

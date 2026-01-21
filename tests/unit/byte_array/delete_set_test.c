@@ -172,6 +172,7 @@ int main(void)
 
     s = byte_array_delete_set_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/byte_array/delete_set_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

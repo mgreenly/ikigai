@@ -390,6 +390,7 @@ int main(void)
 {
     Suite *s = web_fetch_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/web_fetch_direct_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

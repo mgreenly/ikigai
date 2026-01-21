@@ -315,6 +315,7 @@ int main(void)
 
     Suite *s = read_mail_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/cmd_read_mail_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int failed = srunner_ntests_failed(sr);

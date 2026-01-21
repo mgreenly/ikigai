@@ -234,6 +234,7 @@ int main(void)
 {
     Suite *s = autocomplete_viewport_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/autocomplete_viewport_scroll_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

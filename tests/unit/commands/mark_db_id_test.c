@@ -449,6 +449,7 @@ int main(void)
     int number_failed;
     Suite *s = commands_mark_db_id_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/mark_db_id_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

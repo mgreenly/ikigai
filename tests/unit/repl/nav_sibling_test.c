@@ -309,6 +309,7 @@ int main(void)
     int failed = 0;
     Suite *s = nav_sibling_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/nav_sibling_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     failed = srunner_ntests_failed(sr);
     srunner_free(sr);

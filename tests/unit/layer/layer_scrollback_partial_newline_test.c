@@ -123,6 +123,7 @@ int main(void)
     int number_failed;
     Suite *s = layer_scrollback_partial_newline_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/layer/layer_scrollback_partial_newline_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

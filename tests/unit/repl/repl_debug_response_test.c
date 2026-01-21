@@ -409,6 +409,7 @@ int main(void)
 {
     Suite *s = repl_debug_response_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_debug_response_test.xml");
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

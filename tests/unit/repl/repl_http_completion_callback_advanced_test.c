@@ -338,6 +338,7 @@ int main(void)
 {
     Suite *s = repl_http_completion_callback_advanced_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_http_completion_callback_advanced_test.xml");
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

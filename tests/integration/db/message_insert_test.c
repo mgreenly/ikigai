@@ -398,6 +398,7 @@ int main(void)
     int number_failed;
     Suite *s = message_insert_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/db/message_insert_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

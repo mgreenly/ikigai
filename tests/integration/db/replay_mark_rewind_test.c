@@ -389,6 +389,7 @@ int main(void)
     int number_failed;
     Suite *s = replay_mark_rewind_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/db/replay_mark_rewind_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

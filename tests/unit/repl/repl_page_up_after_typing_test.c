@@ -192,6 +192,7 @@ int main(void)
 {
     Suite *s = page_up_typing_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_page_up_after_typing_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

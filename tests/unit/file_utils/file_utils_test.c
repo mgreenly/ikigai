@@ -151,6 +151,7 @@ int main(void)
 {
     Suite *s = file_utils_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/file_utils/file_utils_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

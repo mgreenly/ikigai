@@ -351,6 +351,7 @@ int main(void)
 {
     Suite *s = utf8_security_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/utf8_security_integration_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

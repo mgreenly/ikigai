@@ -325,6 +325,7 @@ int main(void)
 {
     Suite *s = provider_switching_thinking_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/provider_switching_thinking_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

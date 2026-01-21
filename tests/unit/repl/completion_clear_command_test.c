@@ -129,6 +129,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = completion_clear_command_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/completion_clear_command_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

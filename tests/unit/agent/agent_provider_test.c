@@ -471,6 +471,7 @@ int main(void)
     int number_failed;
     Suite *s = agent_provider_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/agent/agent_provider_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

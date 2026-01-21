@@ -435,6 +435,7 @@ int32_t main(void)
 {
     Suite *s = request_chat_coverage_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/openai/request_chat_coverage_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

@@ -195,6 +195,7 @@ int main(void)
     int number_failed;
     Suite *s = error_handling_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/db/error_handling_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

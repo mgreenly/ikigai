@@ -144,6 +144,7 @@ int main(void)
 
     s = array_append_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/array/append_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

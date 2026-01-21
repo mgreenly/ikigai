@@ -303,6 +303,7 @@ int main(void)
 {
     Suite *s = input_nav_arrows_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input/nav_arrows_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

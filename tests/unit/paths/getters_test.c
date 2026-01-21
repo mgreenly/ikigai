@@ -190,6 +190,7 @@ int main(void)
 {
     Suite *s = paths_getters_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/paths/getters_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

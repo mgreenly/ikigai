@@ -579,6 +579,7 @@ int main(void)
 {
     Suite *s = file_edit_direct_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/file_edit_direct_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

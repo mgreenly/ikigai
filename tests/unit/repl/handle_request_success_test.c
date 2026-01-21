@@ -361,6 +361,7 @@ int main(void)
 {
     Suite *s = handle_request_success_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/handle_request_success_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

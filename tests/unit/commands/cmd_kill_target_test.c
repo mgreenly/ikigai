@@ -444,6 +444,7 @@ int main(void)
 
     Suite *s = cmd_kill_target_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/cmd_kill_target_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

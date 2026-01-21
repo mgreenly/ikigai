@@ -176,6 +176,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = request_responses_edge_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/openai/request_responses_edge_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

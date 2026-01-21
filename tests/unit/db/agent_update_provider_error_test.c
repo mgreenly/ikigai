@@ -113,6 +113,7 @@ int main(void)
 {
     Suite *s = db_agent_update_provider_errors_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/db/agent_update_provider_error_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

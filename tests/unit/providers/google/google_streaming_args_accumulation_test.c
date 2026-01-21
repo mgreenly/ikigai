@@ -305,6 +305,7 @@ int main(void)
 {
     Suite *s = google_streaming_args_accumulation_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/google/google_streaming_args_accumulation_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -203,6 +203,7 @@ int32_t main(void)
 {
     Suite *s = mouse_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/mouse_scroll_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

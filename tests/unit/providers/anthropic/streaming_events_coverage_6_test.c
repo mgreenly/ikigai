@@ -120,6 +120,7 @@ int main(void)
 {
     Suite *s = streaming_events_coverage_suite_6();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/anthropic/streaming_events_coverage_6_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

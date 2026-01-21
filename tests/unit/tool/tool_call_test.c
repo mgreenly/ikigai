@@ -104,6 +104,7 @@ int main(void)
 {
     Suite *s = tool_call_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/tool/tool_call_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

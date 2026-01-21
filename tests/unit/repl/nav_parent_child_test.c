@@ -271,6 +271,7 @@ int main(void)
     int failed = 0;
     Suite *s = nav_parent_child_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/nav_parent_child_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     failed = srunner_ntests_failed(sr);
     srunner_free(sr);

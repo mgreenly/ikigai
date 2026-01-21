@@ -134,6 +134,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = event_render_edge_cases_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/event_render/edge_cases_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
