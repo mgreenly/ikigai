@@ -10,10 +10,10 @@ Run `.claude/scripts/check-link` to check status.
 
 1. Run `.claude/scripts/check-link` to identify linking errors
 2. For each binary with errors:
-   - Use `.claude/scripts/check-link FILE=<binary>` to see specific errors
+   - Use `.claude/scripts/check-link --file=<binary>` to see specific errors
    - Identify the missing or duplicate symbols
    - Fix the root cause
-   - **Verify with `.claude/scripts/check-link FILE=<binary>` after changes**
+   - **Verify with `.claude/scripts/check-link --file=<binary>` after changes**
 3. Continue until all binaries link
 
 ## Common Issues

@@ -10,10 +10,10 @@ Run `.claude/scripts/check-compile` to check status.
 
 1. Run `.claude/scripts/check-compile` to identify compilation errors
 2. For each file with errors:
-   - Use `.claude/scripts/check-compile FILE=<path>` to see all errors in that file
+   - Use `.claude/scripts/check-compile --file=<path>` to see all errors in that file
    - Read the error messages carefully - compiler errors often cascade
    - Fix the root cause (usually the first error in a file)
-   - **Verify with `.claude/scripts/check-compile FILE=<path>` after changes**
+   - **Verify with `.claude/scripts/check-compile --file=<path>` after changes**
 3. Continue until all compilation errors are resolved
 
 ## Common Issues
