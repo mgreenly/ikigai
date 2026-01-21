@@ -16,8 +16,10 @@ ifdef FILE
 	if output=$$($(CC) $$cflags -c $(FILE) -o $$obj 2>&1); then \
 		echo "🟢 $(FILE)"; \
 	else \
-		error=$$(echo "$$output" | head -1); \
-		echo "🔴 $$error"; \
+		echo "$$output" | grep -E "^[^:]+:[0-9]+:[0-9]+:" | while read line; do \
+			echo "🔴 $$line"; \
+		done; \
+		exit 1; \
 	fi
 else
 	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS) 2>&1 | grep -E "^(🟢|🔴)" || true; \
