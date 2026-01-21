@@ -1,9 +1,7 @@
-# check-compile: Compile all source files
-# This target compiles source files to object files and reports status
+# check-compile: Compile all source files to object files
 
 .PHONY: check-compile
 
-# check-compile: Compile all source files
 check-compile:
 ifdef FILE
 	@obj=$$(echo $(FILE) | sed 's|^src/|$(BUILDDIR)/|; s|^tools/|$(BUILDDIR)/tools/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \

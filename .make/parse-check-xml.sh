@@ -18,7 +18,7 @@ NR > 1 {
     # Extract child elements
     for (i=1; i<=NF; i++) {
         if (match($i, /<id>([^<]+)</, a)) id = a[1]
-        if (match($i, /<line>([^<]+)</, a)) line = a[1]
+        if (match($i, /<fn>[^:]+:([0-9]+)</, a)) line = a[1]
         if (match($i, /<message>([^<]+)</, a)) msg = a[1]
     }
 

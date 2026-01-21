@@ -150,9 +150,9 @@ $ make check-compile
 🔴 src/agent.c
 ❌ 1 files failed to compile
 
-# Automated harness invokes check and fix
+# Automated harness invokes check (outputs JSON)
 $ .claude/scripts/check-compile
-[JSON output for harness]
+{"ok": false, "items": ["src/agent.c:42:5: error: undeclared"]}
 
 # Harness spawns fix agent
 $ .claude/harness/compile/fix
@@ -219,11 +219,7 @@ For direct `make` invocation, users will see this trailing line:
 make: *** [.make/check-compile.mk:30: check-compile] Error 1
 ```
 
-The harness wrapper scripts (`.claude/scripts/check-*`) filter this line:
-```bash
-make check-link "$@" 2>&1 | grep -v "^make: \*\*\*"
-exit ${PIPESTATUS[0]}
-```
+The harness scripts (`.claude/scripts/check-*`) parse only 🟢/🔴 lines when producing JSON output, so the `make: ***` line is ignored.
 
 **Accept this limitation.** Don't waste time trying to suppress it from the Makefile.
 
@@ -243,21 +239,26 @@ The build system integrates with the `.claude/harness/` system through a three-l
 - Used for manual developer workflow
 
 ### Level 2: `.claude/scripts/check-<name>`
-- Thin wrapper script
-- Filters make's `make: ***` error line from output
-- Preserves exit code
-- Used by harness system
+- Symlink to `.claude/harness/<name>/run`
+- Parses 🟢/🔴 output from make and translates to JSON
+- Used by harness system and sub-agents
 
-```bash
-#!/usr/bin/env bash
-# Harness wrapper - filters make's error messages for clean output
-make check-<name> "$@" 2>&1 | grep -v "^make: \*\*\*"
-exit ${PIPESTATUS[0]}
+**JSON Output Format:**
+```json
+// Success
+{"ok": true}
+
+// Failure
+{"ok": false, "items": ["file:line: error message", ...]}
 ```
+
+**Supports FILE= parameter** for single-file mode:
+- `check-unit --file build/tests/unit/foo_test`
+- `check-integration --file build/tests/integration/bar_test`
 
 ### Level 3: `.claude/harness/<name>/fix`
 - Spawns sub-agents to fix failures
-- Reads structured 🟢/🔴 output
+- Reads JSON output from Level 2 scripts
 - Escalates through sonnet:think → opus:think → opus:ultrathink
 - Maintains history.md for cross-attempt learning
 
@@ -483,11 +484,12 @@ When adding new check-* targets:
 1. Create `.make/check-<name>.mk` with the target logic
 2. Add `include .make/check-<name>.mk` to main Makefile
 3. Add `.PHONY: check-<name>` in the .mk file
-4. Create `.claude/scripts/check-<name>` wrapper
-5. Follow the 🟢/🔴 output format
-6. Support both bulk and FILE= modes
-7. Update `make help` to list the new target
-8. Document in this file
+4. Create `.claude/harness/<name>/run` script (parses 🟢/🔴, outputs JSON)
+5. Symlink `.claude/scripts/check-<name>` → `../harness/<name>/run`
+6. Follow the 🟢/🔴 output format in make target
+7. Support both bulk and FILE= modes
+8. Update `make help` to list the new target
+9. Document in this file
 
 ## References
 

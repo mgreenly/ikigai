@@ -1,0 +1,122 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/link - Link error check
+#
+# Runs make check-link, parses link errors, outputs JSON summary.
+# No fix functionality - check only.
+#
+
+require 'json'
+require 'optparse'
+require 'fileutils'
+
+# Run command and capture output, suppressing all output
+def run_cmd(cmd, env: {})
+  stdout_str = ''
+  status = nil
+
+  # Merge environment variables
+  full_env = ENV.to_h.merge(env)
+
+  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  status = $?
+
+  [status.exitstatus, stdout_str]
+end
+
+# Run make check-link
+def run_check_link(file: nil)
+  cmd = ['make', 'check-link']
+  cmd << "FILE=#{file}" if file
+
+  exit_code, output = run_cmd(cmd)
+
+  [exit_code == 0, output]
+end
+
+# Parse failed binaries from bulk mode output
+# Pattern: 🔴 path/to/binary
+def parse_failed_binaries_from_output(output)
+  failed = []
+  pattern = /^🔴\s+(\S+)$/
+
+  output.each_line do |line|
+    match = pattern.match(line)
+    if match
+      failed << match[1].strip
+    end
+  end
+
+  failed.uniq
+end
+
+# Parse detailed link errors from FILE= mode output
+# Pattern: 🔴 error message
+def parse_detailed_errors_from_output(output)
+  errors = []
+  pattern = /^🔴\s+(.+)$/
+
+  output.each_line do |line|
+    match = pattern.match(line)
+    if match
+      errors << match[1].strip
+    end
+  end
+
+  errors
+end
+
+def main
+  options = {}
+
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: run.rb [options]'
+    opts.on('--file FILE', 'Binary to link') do |f|
+      options[:file] = f
+    end
+  end.parse!
+
+  # Change to project root (3 levels up from harness/link/)
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
+
+  target_file = options[:file]
+
+  # Run check-link
+  success, output = run_check_link(file: target_file)
+
+  if success
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  if target_file
+    # FILE= mode: parse detailed link errors
+    failures = parse_detailed_errors_from_output(output)
+  else
+    # Bulk mode: parse failed binary paths
+    failures = parse_failed_binaries_from_output(output)
+  end
+
+  if failures.empty?
+    puts JSON.generate(ok: false, items: ['Link failed but no errors could be parsed'])
+    exit 1
+  end
+
+  # Return failures as items
+  puts JSON.generate(ok: false, items: failures)
+  exit 1
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

@@ -29,21 +29,21 @@ def run_cmd(cmd, env: {}, timeout: nil)
   [status.exitstatus, stdout_str]
 end
 
-# Run integration tests with parallelization
-def run_integration_tests_parallel
-  exit_code, output = run_cmd(
-    ['make', 'check-integration'],
-    timeout: 1800
-  )
+# Run integration tests
+def run_integration_tests(file: nil)
+  cmd = ['make', 'check-integration']
+  cmd << "FILE=#{file}" if file
+
+  exit_code, output = run_cmd(cmd, timeout: 1800)
 
   [exit_code == 0, output]
 end
 
-# Parse emoji markers to find failed tests
+# Parse emoji markers to find failed tests (bulk mode)
 # Pattern: 🔴 build/tests/integration/something_test
 def parse_failed_tests_from_output(output)
   failed_tests = []
-  failed_pattern = /🔴\s+(.+)/
+  failed_pattern = /^🔴\s+(build\/tests\/\S+)$/
 
   output.each_line do |line|
     match = failed_pattern.match(line)
@@ -53,51 +53,23 @@ def parse_failed_tests_from_output(output)
     end
   end
 
-  # If no emoji markers found, try generic pattern
-  if failed_tests.empty?
-    generic_fail_pattern = /(tests\/integration\/[^\s]+_test).*(?:FAIL|ERROR)/i
-    output.each_line do |line|
-      match = generic_fail_pattern.match(line)
-      failed_tests << match[1] if match
-    end
-  end
-
   failed_tests.uniq
 end
 
-# Re-run individual test to get detailed output
-def rerun_test(test_path)
-  # Extract test name from path (e.g., build/tests/integration/foo_test -> foo_test)
-  test_name = File.basename(test_path)
+# Parse detailed failures from FILE= mode output
+# Pattern: 🔴 test_name:: message
+def parse_detailed_failures_from_output(output)
+  failures = []
+  failed_pattern = /^🔴\s+(.+)$/
 
-  exit_code, output = run_cmd(
-    ['make', 'check-integration', "TEST=#{test_name}"],
-    timeout: 300
-  )
-
-  # Return the test path with failure message
-  if exit_code != 0
-    # Try to extract meaningful error from output
-    error_lines = output.lines.grep(/(?:error|fail|assertion)/i).first(3)
-    if error_lines.any?
-      detail = error_lines.first.strip
-      "#{test_path}: #{detail}"
-    else
-      "#{test_path}: integration test failed"
+  output.each_line do |line|
+    match = failed_pattern.match(line)
+    if match
+      failures << match[1].strip
     end
-  else
-    nil  # Test passed on re-run
   end
-end
 
-# Filter failures to only those related to the source file
-def filter_failures_by_file(failures, filter_file)
-  file_parts = File.basename(filter_file, '.*').split('_')
-
-  failures.select do |failure|
-    test_name = File.basename(failure.split(':').first)
-    file_parts.any? { |part| part.length > 2 && test_name.include?(part) }
-  end
+  failures
 end
 
 def main
@@ -115,9 +87,9 @@ def main
   project_root = File.expand_path('../../..', script_dir)
   Dir.chdir(project_root)
 
-  if options[:file]
-    target_file = options[:file]
+  target_file = options[:file]
 
+  if target_file
     # Check if target file exists
     unless File.exist?(target_file)
       puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
@@ -125,39 +97,20 @@ def main
     end
   end
 
-  # Run integration tests in parallel
-  success, output = run_integration_tests_parallel
+  # Run integration tests
+  success, output = run_integration_tests(file: target_file)
 
   if success
     puts JSON.generate(ok: true)
     exit 0
   end
 
-  # Parse failed tests from emoji markers
-  failed_tests = parse_failed_tests_from_output(output)
-
-  if failed_tests.empty?
-    # Tests failed but couldn't parse failures
-    puts JSON.generate(ok: false, items: ['Integration tests failed but no failures could be parsed'])
-    exit 1
-  end
-
-  # Re-run each failed test individually to get detailed errors
-  failures = []
-  failed_tests.each do |test_path|
-    failure_msg = rerun_test(test_path)
-    failures << failure_msg if failure_msg
-  end
-
-  # Filter to target file if specified
-  if options[:file]
-    failures = filter_failures_by_file(failures, options[:file])
-
-    if failures.empty?
-      # Tests failed but none are related to target file
-      puts JSON.generate(ok: true)
-      exit 0
-    end
+  if target_file
+    # FILE= mode: parse detailed assertion failures
+    failures = parse_detailed_failures_from_output(output)
+  else
+    # Bulk mode: parse test binary paths
+    failures = parse_failed_tests_from_output(output)
   end
 
   if failures.empty?

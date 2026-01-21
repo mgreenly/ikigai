@@ -30,14 +30,14 @@ Other agents have already tried to fix this error. Learn from their attempts:
 
 To see the full compiler output for this file, run:
 ```bash
-.claude/harness/compile/run --file={{file}}
+.claude/scripts/check-compile --file={{file}}
 ```
 
 This will return JSON with detailed error information.
 
 ## Instructions
 
-1. Run `.claude/harness/compile/run --file={{file}}` to see full compiler errors
+1. Run `.claude/scripts/check-compile --file={{file}}` to see full compiler errors
 2. Read the file at the error location
 3. Understand the error (missing include, undeclared symbol, type mismatch, etc.)
 4. Fix the error with minimal changes
@@ -61,7 +61,7 @@ This will return JSON with detailed error information.
 
 ## Validation
 
-Run `.claude/harness/compile/run --file={{file}}` to verify the error is fixed. The output should be `{"ok":true}`. If new errors appear, fix those too.
+Run `.claude/scripts/check-compile` to verify the error is fixed.
 
 ## When Done
 

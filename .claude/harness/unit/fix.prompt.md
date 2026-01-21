@@ -33,7 +33,10 @@ Other agents have already tried to fix this test. Learn from their attempts:
 1. Read the test file to understand what the test is checking
 2. Identify why the test is failing
 3. Fix the implementation or test with minimal changes
-4. Run `make check-unit` to verify the fix
+4. Verify the fix by running in order:
+   - `.claude/scripts/check-compile`
+   - `.claude/scripts/check-link`
+   - `.claude/scripts/check-unit`
 
 ## Constraints
 
