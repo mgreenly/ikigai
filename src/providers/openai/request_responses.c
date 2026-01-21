@@ -113,6 +113,151 @@ static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_
 }
 
 /* ================================================================
+ * Request Building Helpers
+ * ================================================================ */
+
+static char *build_string_input(const ik_message_t *msg)
+{
+    size_t total_len = 0;
+    for (size_t i = 0; i < msg->content_count; i++) {
+        if (msg->content_blocks[i].type == IK_CONTENT_TEXT) {
+            if (total_len > 0) total_len += 2;
+            total_len += strlen(msg->content_blocks[i].data.text.text);
+        }
+    }
+
+    if (total_len == 0) {
+        return NULL;
+    }
+
+    char *input_text = malloc(total_len + 1);
+    if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    input_text[0] = '\0';
+    bool first = true;
+    for (size_t i = 0; i < msg->content_count; i++) {
+        if (msg->content_blocks[i].type == IK_CONTENT_TEXT) {
+            if (!first) {
+                strcat(input_text, "\n\n"); // NOLINT - buffer sized correctly
+            }
+            strcat(input_text, msg->content_blocks[i].data.text.text); // NOLINT
+            first = false;
+        }
+    }
+
+    return input_text;
+}
+
+static bool add_string_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                             const ik_message_t *msg)
+{
+    char *input_text = build_string_input(msg);
+
+    if (input_text == NULL) {
+        if (!yyjson_mut_obj_add_str(doc, root, "input", "")) { // LCOV_EXCL_BR_LINE
+            return false;
+        }
+        return true;
+    }
+
+    bool result = yyjson_mut_obj_add_strcpy(doc, root, "input", input_text); // LCOV_EXCL_BR_LINE
+    free(input_text);
+    return result;
+}
+
+static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                            const ik_request_t *req)
+{
+    yyjson_mut_val *input_arr = yyjson_mut_arr(doc);
+    if (!input_arr) { // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    for (size_t i = 0; i < req->message_count; i++) {
+        yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
+        if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
+            return false;
+        }
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, root, "input", input_arr)) { // LCOV_EXCL_BR_LINE
+        return false;
+    }
+
+    return true;
+}
+
+static bool add_input_field(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                           const ik_request_t *req)
+{
+    bool use_string_input = (req->message_count == 1 &&
+                             req->messages[0].role == IK_ROLE_USER &&
+                             req->messages[0].content_count > 0);
+
+    if (use_string_input) {
+        return add_string_input(doc, root, &req->messages[0]);
+    }
+
+    return add_array_input(doc, root, req);
+}
+
+static bool add_reasoning_config(yyjson_mut_doc *doc, yyjson_mut_val *root, const ik_request_t *req)
+{
+    if (!ik_openai_is_reasoning_model(req->model) || req->thinking.level == IK_THINKING_NONE) {
+        return true;
+    }
+
+    const char *effort = ik_openai_reasoning_effort(req->thinking.level);
+    if (effort == NULL) {
+        return true;
+    }
+
+    yyjson_mut_val *reasoning_obj = yyjson_mut_obj(doc);
+    if (!reasoning_obj) { // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    if (!yyjson_mut_obj_add_str(doc, reasoning_obj, "effort", effort)) { // LCOV_EXCL_BR_LINE
+        return false;
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, root, "reasoning", reasoning_obj)) { // LCOV_EXCL_BR_LINE
+        return false;
+    }
+
+    return true;
+}
+
+static bool add_tools_and_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                const ik_request_t *req)
+{
+    if (req->tool_count == 0) {
+        return true;
+    }
+
+    yyjson_mut_val *tools_arr = yyjson_mut_arr(doc);
+    if (!tools_arr) { // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    for (size_t i = 0; i < req->tool_count; i++) {
+        if (!serialize_responses_tool(doc, tools_arr, &req->tools[i])) {
+            return false;
+        }
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
+        return false;
+    }
+
+    if (!add_tool_choice(doc, root, req->tool_choice_mode)) {
+        return false;
+    }
+
+    return true;
+}
+
+/* ================================================================
  * Public API Implementation
  * ================================================================ */
 
@@ -123,12 +268,10 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
     assert(out_json != NULL); // LCOV_EXCL_BR_LINE
 
-    // Validate model
     if (req->model == NULL) {
         return ERR(ctx, INVALID_ARG, "Model cannot be NULL");
     }
 
-    // Create JSON document
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (!doc) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
@@ -138,13 +281,11 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    // Add model
     if (!yyjson_mut_obj_add_str(doc, root, "model", req->model)) { // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
         return ERR(ctx, PARSE, "Failed to add model field"); // LCOV_EXCL_LINE
     }
 
-    // Add instructions field (system prompt)
     if (req->system_prompt != NULL && strlen(req->system_prompt) > 0) {
         if (!yyjson_mut_obj_add_str(doc, root, "instructions", req->system_prompt)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
@@ -152,75 +293,11 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    // Determine input format: string for single user message, array for multi-turn
-    bool use_string_input = (req->message_count == 1 &&
-                             req->messages[0].role == IK_ROLE_USER &&
-                             req->messages[0].content_count > 0);
-
-    if (use_string_input) {
-        // Single user message: concatenate text content into string input
-        // Calculate total length first
-        size_t total_len = 0;
-        for (size_t i = 0; i < req->messages[0].content_count; i++) {
-            if (req->messages[0].content_blocks[i].type == IK_CONTENT_TEXT) {
-                if (total_len > 0) total_len += 2; // "\n\n"
-                total_len += strlen(req->messages[0].content_blocks[i].data.text.text);
-            }
-        }
-
-        if (total_len == 0) {
-            // Empty input
-            if (!yyjson_mut_obj_add_str(doc, root, "input", "")) { // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
-            }
-        } else {
-            // Allocate and build input string
-            char *input_text = malloc(total_len + 1);
-            if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-            input_text[0] = '\0';
-            bool first = true;
-            for (size_t i = 0; i < req->messages[0].content_count; i++) {
-                if (req->messages[0].content_blocks[i].type == IK_CONTENT_TEXT) {
-                    if (!first) {
-                        strcat(input_text, "\n\n"); // NOLINT - buffer sized correctly
-                    }
-                    strcat(input_text, req->messages[0].content_blocks[i].data.text.text); // NOLINT
-                    first = false;
-                }
-            }
-
-            if (!yyjson_mut_obj_add_strcpy(doc, root, "input", input_text)) { // LCOV_EXCL_BR_LINE
-                free(input_text); // LCOV_EXCL_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
-            }
-            free(input_text);
-        }
-    } else {
-        // Multi-turn conversation: use array format
-        yyjson_mut_val *input_arr = yyjson_mut_arr(doc);
-        if (!input_arr) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        for (size_t i = 0; i < req->message_count; i++) {
-            yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
-            if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                return ERR(ctx, PARSE, "Failed to add message to input array"); // LCOV_EXCL_LINE
-            }
-        }
-
-        if (!yyjson_mut_obj_add_val(doc, root, "input", input_arr)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add input array"); // LCOV_EXCL_LINE
-        }
+    if (!add_input_field(doc, root, req)) {
+        yyjson_mut_doc_free(doc);
+        return ERR(ctx, PARSE, "Failed to add input field");
     }
 
-    // Add max_output_tokens if set
     if (req->max_output_tokens > 0) {
         if (!yyjson_mut_obj_add_int(doc, root, "max_output_tokens", req->max_output_tokens)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
@@ -228,7 +305,6 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    // Add streaming configuration
     if (streaming) {
         if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
@@ -236,56 +312,16 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    // Add reasoning configuration for reasoning models
-    if (ik_openai_is_reasoning_model(req->model) && req->thinking.level != IK_THINKING_NONE) {
-        const char *effort = ik_openai_reasoning_effort(req->thinking.level);
-        if (effort != NULL) {
-            yyjson_mut_val *reasoning_obj = yyjson_mut_obj(doc);
-            if (!reasoning_obj) { // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                PANIC("Out of memory"); // LCOV_EXCL_LINE
-            }
-
-            if (!yyjson_mut_obj_add_str(doc, reasoning_obj, "effort", effort)) { // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                return ERR(ctx, PARSE, "Failed to add reasoning effort"); // LCOV_EXCL_LINE
-            }
-
-            if (!yyjson_mut_obj_add_val(doc, root, "reasoning", reasoning_obj)) { // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-                return ERR(ctx, PARSE, "Failed to add reasoning object"); // LCOV_EXCL_LINE
-            }
-        }
+    if (!add_reasoning_config(doc, root, req)) {
+        yyjson_mut_doc_free(doc);
+        return ERR(ctx, PARSE, "Failed to add reasoning config");
     }
 
-    // Add tools if present
-    if (req->tool_count > 0) {
-        yyjson_mut_val *tools_arr = yyjson_mut_arr(doc);
-        if (!tools_arr) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        for (size_t i = 0; i < req->tool_count; i++) {
-            if (!serialize_responses_tool(doc, tools_arr, &req->tools[i])) {
-                yyjson_mut_doc_free(doc);
-                return ERR(ctx, PARSE, "Failed to serialize tool");
-            }
-        }
-
-        if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add tools array"); // LCOV_EXCL_LINE
-        }
-
-        // Add tool_choice
-        if (!add_tool_choice(doc, root, req->tool_choice_mode)) {
-            yyjson_mut_doc_free(doc);
-            return ERR(ctx, PARSE, "Failed to add tool_choice");
-        }
+    if (!add_tools_and_choice(doc, root, req)) {
+        yyjson_mut_doc_free(doc);
+        return ERR(ctx, PARSE, "Failed to add tools");
     }
 
-    // Set root and serialize
     yyjson_mut_doc_set_root(doc, root);
 
     char *json_str = yyjson_mut_write(doc, 0, NULL);
@@ -294,7 +330,6 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    // Copy to talloc context
     char *result = talloc_strdup(ctx, json_str);
     if (!result) { // LCOV_EXCL_BR_LINE
         free(json_str); // LCOV_EXCL_LINE
@@ -302,7 +337,6 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    // Cleanup
     free(json_str);
     yyjson_mut_doc_free(doc);
 
