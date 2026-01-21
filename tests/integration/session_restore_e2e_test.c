@@ -77,8 +77,8 @@ static int mock_easy_storage;
 static char test_dir[256];
 static char orig_dir[1024];
 static const char *DB_NAME;
-static ik_db_ctx_t *g_db;
-static TALLOC_CTX *g_test_ctx;
+static ik_db_ctx_t *db;
+static TALLOC_CTX *test_ctx;
 static int mock_perform_calls;
 static int mock_running_handles;
 static bool db_available = false;
@@ -272,7 +272,7 @@ static void reset_mock_state(void)
 }
 
 /* Helper macro to skip test if DB not available */
-#define SKIP_IF_NO_DB() do { if (!db_available || g_db == NULL) return; } while (0)
+#define SKIP_IF_NO_DB() do { if (!db_available || db == NULL) return; } while (0)
 
 /* Suite setup */
 static void suite_setup(void)
@@ -300,28 +300,45 @@ static void suite_setup(void)
         return;
     }
 
-    g_test_ctx = talloc_new(NULL);
-    res = ik_test_db_connect(g_test_ctx, DB_NAME, &g_db);
-    if (is_err(&res)) {
-        talloc_free(g_test_ctx);
-        ik_test_db_destroy(DB_NAME);
-        db_available = false;
-        return;
-    }
-
     db_available = true;
 }
 
 static void suite_teardown(void)
 {
-    talloc_free(g_test_ctx);
-    g_test_ctx = NULL;
-    g_db = NULL;
-
     if (db_available) {
         ik_test_db_destroy(DB_NAME);
     }
     ik_test_reset_terminal();
+}
+
+static void test_setup(void)
+{
+    if (!db_available) {
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+
+    test_ctx = talloc_new(NULL);
+    res_t res = ik_test_db_connect(test_ctx, DB_NAME, &db);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+}
+
+static void test_teardown(void)
+{
+    if (test_ctx != NULL) {
+        if (db != NULL) {
+            ik_test_db_rollback(db);
+        }
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+    }
 }
 
 /* ================================================================
@@ -339,7 +356,7 @@ START_TEST(test_restore_provider_setting) {
     setup_test_env();
     reset_mock_state();
 
-    res_t r = ik_test_db_begin(g_db);
+    res_t r = ik_test_db_begin(db);
     ck_assert(is_ok(&r));
 
     /*
@@ -362,8 +379,6 @@ START_TEST(test_restore_provider_setting) {
     /* Verify provider inference works */
     ck_assert_str_eq(ik_infer_provider("gpt-5"), "openai");
 
-    r = ik_test_db_rollback(g_db);
-    ck_assert(is_ok(&r));
     teardown_test_env();
 }
 END_TEST
@@ -377,7 +392,7 @@ START_TEST(test_restore_model_setting) {
     setup_test_env();
     reset_mock_state();
 
-    res_t r = ik_test_db_begin(g_db);
+    res_t r = ik_test_db_begin(db);
     ck_assert(is_ok(&r));
 
     /*
@@ -395,8 +410,6 @@ START_TEST(test_restore_model_setting) {
     ck_assert_str_eq(ik_infer_provider("o1-preview"), "openai");
     ck_assert_str_eq(ik_infer_provider("o3-mini"), "openai");
 
-    r = ik_test_db_rollback(g_db);
-    ck_assert(is_ok(&r));
     teardown_test_env();
 }
 
@@ -411,7 +424,7 @@ START_TEST(test_restore_thinking_level) {
     setup_test_env();
     reset_mock_state();
 
-    res_t r = ik_test_db_begin(g_db);
+    res_t r = ik_test_db_begin(db);
     ck_assert(is_ok(&r));
 
     /*
@@ -441,8 +454,6 @@ START_TEST(test_restore_thinking_level) {
     ik_model_supports_thinking("gpt-4o", &supports);
     ck_assert(!supports);
 
-    r = ik_test_db_rollback(g_db);
-    ck_assert(is_ok(&r));
     teardown_test_env();
 }
 
@@ -457,7 +468,7 @@ START_TEST(test_restore_conversation_history) {
     setup_test_env();
     reset_mock_state();
 
-    res_t r = ik_test_db_begin(g_db);
+    res_t r = ik_test_db_begin(db);
     ck_assert(is_ok(&r));
 
     /*
@@ -471,20 +482,20 @@ START_TEST(test_restore_conversation_history) {
 
     /* Create a session for testing */
     int64_t session_id = 0;
-    r = ik_db_session_create(g_db, &session_id);
+    r = ik_db_session_create(db, &session_id);
     ck_assert(is_ok(&r));
     ck_assert_int_gt(session_id, 0);
 
     /* Insert some messages */
-    r = ik_db_message_insert(g_db, session_id, NULL, "user", "Hello", "{}");
+    r = ik_db_message_insert(db, session_id, NULL, "user", "Hello", "{}");
     ck_assert(is_ok(&r));
 
-    r = ik_db_message_insert(g_db, session_id, NULL, "assistant", "Hi there!", "{}");
+    r = ik_db_message_insert(db, session_id, NULL, "assistant", "Hi there!", "{}");
     ck_assert(is_ok(&r));
 
     /* Load messages to verify */
-    TALLOC_CTX *replay_ctx = talloc_new(g_test_ctx);
-    r = ik_db_messages_load(replay_ctx, g_db, session_id, NULL);
+    TALLOC_CTX *replay_ctx = talloc_new(test_ctx);
+    r = ik_db_messages_load(replay_ctx, db, session_id, NULL);
     ck_assert(is_ok(&r));
 
     ik_replay_context_t *context = r.ok;
@@ -493,8 +504,6 @@ START_TEST(test_restore_conversation_history) {
     ck_assert_str_eq(context->messages[1]->content, "Hi there!");
 
     talloc_free(replay_ctx);
-    r = ik_test_db_rollback(g_db);
-    ck_assert(is_ok(&r));
     teardown_test_env();
 }
 
@@ -509,7 +518,7 @@ START_TEST(test_restore_forked_agent) {
     setup_test_env();
     reset_mock_state();
 
-    res_t r = ik_test_db_begin(g_db);
+    res_t r = ik_test_db_begin(db);
     ck_assert(is_ok(&r));
 
     /*
@@ -524,7 +533,7 @@ START_TEST(test_restore_forked_agent) {
      */
 
     /* Create test config and shared context */
-    TALLOC_CTX *ctx = talloc_new(g_test_ctx);
+    TALLOC_CTX *ctx = talloc_new(test_ctx);
     ck_assert_ptr_nonnull(ctx);
 
     ik_config_t *cfg = ik_test_create_config(ctx);
@@ -538,7 +547,7 @@ START_TEST(test_restore_forked_agent) {
     }
     r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
     ck_assert(is_ok(&r));
-    shared->db_ctx = g_db;
+    shared->db_ctx = db;
 
     /* Create parent agent */
     ik_agent_ctx_t *parent = NULL;
@@ -565,8 +574,6 @@ START_TEST(test_restore_forked_agent) {
     ck_assert_int_eq(child->thinking_level, IK_THINKING_HIGH);
 
     talloc_free(ctx);
-    r = ik_test_db_rollback(g_db);
-    ck_assert(is_ok(&r));
     teardown_test_env();
 }
 
@@ -583,6 +590,7 @@ static Suite *session_restore_e2e_suite(void)
     TCase *tc_restore = tcase_create("Session Restoration");
     tcase_set_timeout(tc_restore, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_restore, suite_setup, suite_teardown);
+    tcase_add_checked_fixture(tc_restore, test_setup, test_teardown);
     tcase_add_test(tc_restore, test_restore_provider_setting);
     tcase_add_test(tc_restore, test_restore_model_setting);
     tcase_add_test(tc_restore, test_restore_thinking_level);
