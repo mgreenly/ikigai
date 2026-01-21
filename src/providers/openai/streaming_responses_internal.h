@@ -9,6 +9,9 @@
 #include "streaming.h"
 #include "providers/common/sse_parser.h"
 
+/* Forward declarations */
+typedef struct yyjson_val yyjson_val;
+
 /**
  * OpenAI Responses API streaming context structure
  */
@@ -26,5 +29,10 @@ struct ik_openai_responses_stream_ctx {
     char *current_tool_args;           /* Accumulated tool call arguments */
     ik_sse_parser_t *sse_parser;       /* SSE parser for processing chunks */
 };
+
+/**
+ * Parse usage object from JSON into ik_usage_t structure
+ */
+void ik_openai_responses_parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage);
 
 #endif /* IK_PROVIDERS_OPENAI_STREAMING_RESPONSES_INTERNAL_H */

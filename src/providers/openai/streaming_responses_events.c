@@ -20,7 +20,6 @@
 static void emit_event(ik_openai_responses_stream_ctx_t *sctx, const ik_stream_event_t *event);
 static void maybe_emit_start(ik_openai_responses_stream_ctx_t *sctx);
 static void maybe_end_tool_call(ik_openai_responses_stream_ctx_t *sctx);
-static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage);
 
 static void handle_response_created(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
 static void handle_output_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
@@ -78,48 +77,6 @@ static void maybe_end_tool_call(ik_openai_responses_stream_ctx_t *sctx)
         };
         emit_event(sctx, &event);
         sctx->in_tool_call = false;
-    }
-}
-
-/* ================================================================
- * Usage Parsing
- * ================================================================ */
-
-/**
- * Parse usage object from JSON
- */
-static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage)
-{
-    assert(usage_val != NULL); // LCOV_EXCL_BR_LINE
-    assert(out_usage != NULL); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_is_obj(usage_val)) {
-        return;
-    }
-
-    yyjson_val *input_tokens_val = yyjson_obj_get(usage_val, "input_tokens");
-    if (input_tokens_val != NULL && yyjson_is_int(input_tokens_val)) {
-        out_usage->input_tokens = (int32_t)yyjson_get_int(input_tokens_val);
-    }
-
-    yyjson_val *output_tokens_val = yyjson_obj_get(usage_val, "output_tokens");
-    if (output_tokens_val != NULL && yyjson_is_int(output_tokens_val)) {
-        out_usage->output_tokens = (int32_t)yyjson_get_int(output_tokens_val);
-    }
-
-    yyjson_val *total_tokens_val = yyjson_obj_get(usage_val, "total_tokens");
-    if (total_tokens_val != NULL && yyjson_is_int(total_tokens_val)) {
-        out_usage->total_tokens = (int32_t)yyjson_get_int(total_tokens_val);
-    } else if (out_usage->input_tokens > 0 || out_usage->output_tokens > 0) {
-        out_usage->total_tokens = out_usage->input_tokens + out_usage->output_tokens;
-    }
-
-    yyjson_val *details_val = yyjson_obj_get(usage_val, "output_tokens_details");
-    if (details_val != NULL && yyjson_is_obj(details_val)) {
-        yyjson_val *reasoning_tokens_val = yyjson_obj_get(details_val, "reasoning_tokens");
-        if (reasoning_tokens_val != NULL && yyjson_is_int(reasoning_tokens_val)) {
-            out_usage->thinking_tokens = (int32_t)yyjson_get_int(reasoning_tokens_val);
-        }
     }
 }
 
@@ -350,7 +307,7 @@ static void handle_response_completed(ik_openai_responses_stream_ctx_t *sctx, yy
 
         yyjson_val *usage_val = yyjson_obj_get(response_val, "usage");
         if (usage_val != NULL) {
-            parse_usage(usage_val, &sctx->usage);
+            ik_openai_responses_parse_usage(usage_val, &sctx->usage);
         }
     }
 
