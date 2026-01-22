@@ -3,7 +3,6 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [rel-09] - 2026-01-22
 
@@ -88,12 +87,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tool discovery and registration patterns
   - Subprocess communication protocols
   - JSON schema definitions
-- **Task tool documentation**: SQLite-backed task orchestration system
 - **Pull-request skill**: Updated for jj repository workflow
   - Correct `gh pr create --repo` usage
   - Fixed examples for jj bookmarks
 - **Goal authoring skill**: Comprehensive guide for writing Ralph goals
-- **CDD artifacts**: Complete research, plan, and user stories for web tools
 - **New build system**: Architecture and patterns documentation for Phase 1 Makefile
 - **Debian Docker**: Documentation for Debian 13.2 container environment
 
