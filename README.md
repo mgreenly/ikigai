@@ -1,6 +1,6 @@
 [![CI](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml/badge.svg)](https://github.com/mgreenly/ikigai/actions/workflows/ci.yml)
 
-⚠️ This is an early stage experiment. Stay way, you absolutely should not try and use this, it's not ready!
+⚠️ This is an early stage experiment. Stay away, you absolutely should not try to use this, it's not ready!
 
 # ikigai
 
@@ -14,7 +14,7 @@ See [project/README.md](project/README.md) for design and implementation details
 
 ## Install
 
-**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have library dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's to early in the project's life-cycle for me to officially support those.
+**Platform**: The build system runs natively on Debian 13 (Trixie), other distributions may have library dependency issues.  If you're brave you can check out the distros/ folder for distro specific builds but it's too early in the project's life-cycle for me to officially support those.
 
 **Clone**:
 ```text
@@ -34,7 +34,7 @@ make uninstall PREFIX=$HOME/.local
 ```
 ## The Story
 
-Right or wrong Google gives this definition of **Ikigai**
+Right or wrong, Google gives this definition of **Ikigai**:
 
 > The intersection of what you love, what you are good at, what the world needs, and what you can be paid for.
 
