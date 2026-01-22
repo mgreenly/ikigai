@@ -95,14 +95,16 @@ jobs:
     - name: check-filesize
       run: make check-filesize
 
-    - name: Debug - check config directory
+    - name: Debug - check directory structure
       run: |
+        echo "=== pwd ==="
+        pwd
+        echo "=== List repo root ==="
+        ls -la
+        echo "=== Check etc/ikigai in repo ==="
+        ls -la etc/ikigai/ 2>&1 || echo "etc/ikigai not found in repo"
         echo "=== IKIGAI env vars ==="
         env | grep IKIGAI || echo "No IKIGAI vars set"
-        echo "=== Check /etc/ikigai ==="
-        ls -la /etc/ikigai 2>&1 || echo "/etc/ikigai does not exist"
-        echo "=== Check IKIGAI_CONFIG_DIR path ==="
-        ls -la $IKIGAI_CONFIG_DIR 2>&1 || echo "IKIGAI_CONFIG_DIR path does not exist"
 
     - name: check-unit
       run: |
