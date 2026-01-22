@@ -95,23 +95,36 @@ jobs:
     - name: check-filesize
       run: make check-filesize
 
-    - name: Debug - check VCR linking
+    - name: Create non-root user for tests
       run: |
-        echo "=== Check VCR symbols in test binary ==="
-        nm build/tests/unit/providers/anthropic/anthropic_streaming_basic_test | grep -E "vcr_is_active|vcr_next_chunk|vcr_init"
-        echo "=== Run test with VCR debug ==="
+        useradd -m -s /bin/bash testuser
+        chown -R testuser:testuser .
+
+    - name: Debug VCR environment
+      run: |
+        echo "=== vcr_helper.o symbols ==="
+        nm build/tests/helpers/vcr_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols in vcr_helper.o"
+        echo "=== vcr_stubs_helper.o symbols ==="
+        nm build/tests/helpers/vcr_stubs_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols in stubs"
+        echo "=== wrapper_curl.o undefined symbols ==="
+        nm build/wrapper_curl.o 2>/dev/null | grep "vcr_" || echo "No vcr refs in wrapper_curl"
+        echo "=== Test binary vcr_ symbols ==="
+        nm build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>/dev/null | grep "vcr_" || echo "No vcr symbols"
+        echo "=== Creating reports directory ==="
         mkdir -p reports/check/unit/providers/anthropic
-        ./build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 | head -50 || echo "Exit: $?"
+        chown -R testuser:testuser reports
+        echo "=== Running one VCR test with output ==="
+        sudo -E -u testuser build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || true
 
     - name: check-unit
       run: |
         rm -rf /tmp/.ikigai
-        make check-unit MAKE_JOBS=1
+        sudo -E -u testuser make check-unit MAKE_JOBS=1
 
     - name: check-integration
       run: |
         rm -rf /tmp/.ikigai
-        make check-integration
+        sudo -E -u testuser make check-integration
 
     - name: check-complexity
       run: make check-complexity
@@ -119,29 +132,29 @@ jobs:
     - name: check-sanitize
       run: |
         rm -rf /tmp/.ikigai
-        make clean
-        make check-sanitize
+        sudo -E -u testuser make clean
+        sudo -E -u testuser make check-sanitize
 
     - name: check-tsan
       run: |
         rm -rf /tmp/.ikigai
-        make clean
-        make check-tsan
+        sudo -E -u testuser make clean
+        sudo -E -u testuser make check-tsan
 
     - name: check-valgrind
       run: |
         rm -rf /tmp/.ikigai
-        make clean
-        make check-valgrind
+        sudo -E -u testuser make clean
+        sudo -E -u testuser make check-valgrind
 
     - name: check-helgrind
       run: |
         rm -rf /tmp/.ikigai
-        make clean
-        make check-helgrind
+        sudo -E -u testuser make clean
+        sudo -E -u testuser make check-helgrind
 
     - name: check-coverage
       run: |
         rm -rf /tmp/.ikigai
-        make clean
-        make check-coverage
+        sudo -E -u testuser make clean
+        sudo -E -u testuser make check-coverage
