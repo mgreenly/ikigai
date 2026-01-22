@@ -76,30 +76,54 @@ jobs:
         echo "lcov package:" && dpkg -l lcov | grep lcov
         echo "lcov binary:" && lcov --version
 
-    - name: Check file sizes
+    - name: check-compile
+      run: make check-compile
+
+    - name: check-link
+      run: make check-link
+
+    - name: check-filesize
       run: make check-filesize
 
-    - name: Check complexity
+    - name: check-unit
+      run: |
+        rm -rf /tmp/.ikigai
+        make check-unit
+
+    - name: check-integration
+      run: |
+        rm -rf /tmp/.ikigai
+        make check-integration
+
+    - name: check-complexity
       run: make check-complexity
 
-    - name: Clean test directories
-      run: rm -rf /tmp/.ikigai
-
-    - name: Run tests with coverage
-      run: make check-coverage
-
-    - name: Clean before sanitizer build
+    - name: check-sanitize
       run: |
         rm -rf /tmp/.ikigai
         make clean
+        make check-sanitize
 
-    - name: Run AddressSanitizer tests
-      run: make check-sanitize
-
-    - name: Clean before tsan build
+    - name: check-tsan
       run: |
         rm -rf /tmp/.ikigai
         make clean
+        make check-tsan
 
-    - name: Run ThreadSanitizer tests
-      run: make check-tsan
+    - name: check-valgrind
+      run: |
+        rm -rf /tmp/.ikigai
+        make clean
+        make check-valgrind
+
+    - name: check-helgrind
+      run: |
+        rm -rf /tmp/.ikigai
+        make clean
+        make check-helgrind
+
+    - name: check-coverage
+      run: |
+        rm -rf /tmp/.ikigai
+        make clean
+        make check-coverage
