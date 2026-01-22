@@ -111,7 +111,7 @@ jobs:
     - name: check-unit
       run: |
         rm -rf /tmp/.ikigai
-        make check-unit
+        make check-unit MAKE_JOBS=1
 
     - name: check-integration
       run: |
