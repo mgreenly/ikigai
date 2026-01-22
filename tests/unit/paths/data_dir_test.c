@@ -43,6 +43,7 @@ START_TEST(test_data_dir_user_install) {
     setenv("IKIGAI_CONFIG_DIR", "/home/user/.config/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/home/user/.local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/home/user/.local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/home/user/.cache/ikigai", 1);
     setenv("HOME", "/home/user", 1);
 
     ik_paths_t *paths = NULL;
@@ -60,6 +61,7 @@ START_TEST(test_data_dir_system_install) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/usr/local/cache/ikigai", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
