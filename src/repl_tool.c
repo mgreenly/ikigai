@@ -33,6 +33,7 @@ typedef struct {
 // Execute tool from registry - returns JSON result (success/failure envelope).
 static char *execute_tool_from_registry(TALLOC_CTX *ctx,
                                         ik_tool_registry_t *registry,
+                                        const char *agent_id,
                                         const char *tool_name,
                                         const char *arguments)
 {
@@ -48,7 +49,7 @@ static char *execute_tool_from_registry(TALLOC_CTX *ctx,
             if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         } else {
             char *raw_result = NULL;
-            res_t res = ik_tool_external_exec(ctx, entry->path, arguments, &raw_result);
+            res_t res = ik_tool_external_exec(ctx, entry->path, agent_id, arguments, &raw_result);
             if (is_err(&res)) {
                 result_json = ik_tool_wrap_failure(ctx, res.err->msg, "execution_failed");
                 if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -67,7 +68,7 @@ static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
-    char *result_json = execute_tool_from_registry(args->ctx, args->registry,
+    char *result_json = execute_tool_from_registry(args->ctx, args->registry, args->agent->uuid,
                                                    args->tool_name, args->arguments);
     args->agent->tool_thread_result = result_json;
     pthread_mutex_lock_(&args->agent->tool_thread_mutex);
@@ -136,7 +137,7 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
-    char *result_json = execute_tool_from_registry(repl, repl->shared->tool_registry, tc->name, tc->arguments);
+    char *result_json = execute_tool_from_registry(repl, repl->shared->tool_registry, repl->current->uuid, tc->name, tc->arguments);
     ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
     result = ik_agent_add_message(repl->current, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
