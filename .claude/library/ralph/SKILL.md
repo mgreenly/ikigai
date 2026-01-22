@@ -49,6 +49,15 @@ History provides learning without complex state management. Time budget prevents
 
 Use `/load goal-authoring` for guidance on writing effective goals.
 
+**File naming convention:**
+Goal files MUST be named: `<name>-ralph-goal.md`
+
+**Examples:**
+- `list-tool-ralph-goal.md` ✓
+- `web-fetch-ralph-goal.md` ✓
+- `list-tool-goal.md` ✗ (missing "ralph")
+- `list-tool.md` ✗ (missing "ralph-goal")
+
 **Required sections:**
 - `## Objective` - What to achieve (outcomes, not steps)
 - `## Reference` - All relevant plan/research/user-story docs
@@ -56,10 +65,10 @@ Use `/load goal-authoring` for guidance on writing effective goals.
 - `## Acceptance` - Success criteria (make check, tests, etc.)
 
 **State files** are derived from the goal file name:
-- `<base>-goal.md` → `<base>-progress.jsonl`, `<base>-summary.md`
-- Example: `rel-08/ralph-code-removal-goal.md` produces:
-  - `rel-08/ralph-code-removal-progress.jsonl`
-  - `rel-08/ralph-code-removal-summary.md`
+- `<name>-ralph-goal.md` → `<name>-ralph-progress.jsonl`, `<name>-ralph-summary.md`
+- Example: `web-fetch-ralph-goal.md` produces:
+  - `web-fetch-ralph-progress.jsonl`
+  - `web-fetch-ralph-summary.md`
 
 ## Progress File Format
 
