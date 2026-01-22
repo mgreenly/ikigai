@@ -55,7 +55,7 @@ class Ralph
     'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
   }.freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:)
     @goal_files = goal_file.split(',')
     @goal_file = @goal_files.first
     @current_goal_index = 0
@@ -69,6 +69,7 @@ class Ralph
     @no_quotes = no_quotes
     @continue_run = continue_run
     @debug = debug
+    @pull_request = pull_request
 
     @start_time = Time.now
     @iteration = 0
@@ -100,6 +101,9 @@ class Ralph
     @progress_file = "#{base}-progress.jsonl"
     @summary_file = "#{base}-summary.md"
     @summary_meta_file = "#{base}-summary-meta.json"
+
+    # Derive branch name from goal file (e.g., rel-08/feature-xyz-goal.md -> feature-xyz)
+    @branch_name = File.basename(goal_file).sub(/-goal\.md$/, '').sub(/\.md$/, '')
   end
 
   def run
@@ -326,7 +330,9 @@ class Ralph
       summary: summary_content,
       recent: recent,
       skills: load_skills,
-      advertised_skills: build_advertised_skills
+      advertised_skills: build_advertised_skills,
+      pull_request: @pull_request,
+      branch_name: @branch_name
     })
   end
 
@@ -1134,7 +1140,8 @@ options = {
   no_art: false,
   no_quotes: false,
   continue: false,
-  debug: false
+  debug: false,
+  pull_request: true
 }
 
 OptionParser.new do |opts|
@@ -1180,6 +1187,10 @@ OptionParser.new do |opts|
     options[:debug] = true
   end
 
+  opts.on('--[no-]pull-request', 'Create pull request when goal complete (default: enabled)') do |pr|
+    options[:pull_request] = pr
+  end
+
   opts.on('-h', '--help', 'Show this help') do
     puts opts
     exit
@@ -1206,7 +1217,8 @@ ralph = Ralph.new(
   no_art: options[:no_art],
   no_quotes: options[:no_quotes],
   continue_run: options[:continue],
-  debug: options[:debug]
+  debug: options[:debug],
+  pull_request: options[:pull_request]
 )
 
 begin
