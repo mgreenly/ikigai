@@ -115,3 +115,39 @@ When the goal is complete return only the message "DONE":
 ```
 
 The `summary` value is appended to the Progress section for the next iteration. Be concise but specific - future iterations will rely on this to avoid repeating work.
+<% if pull_request %>
+
+# Pull Request Instructions
+
+When the goal is complete (you would return "DONE"), instead create a pull request:
+
+1. **Commit all changes first** - Ensure working copy is clean with `jj commit -m "descriptive message"`
+
+2. **Load required skills** - Run `/load jj pull-request` to get workflow and PR template
+
+3. **Sync with main** - Run `jj git fetch` to ensure main is current
+
+4. **Create bookmark and rebase** - Create bookmark and rebase onto main (don't push yet):
+   ```bash
+   jj bookmark create <%= branch_name %>
+   jj rebase -d main
+   ```
+
+5. **Review full diff** - Verify ALL commits are included before pushing:
+   ```bash
+   jj log -r main..@ --no-graph
+   jj diff -r main..@
+   ```
+   If commits are missing, investigate and fix before proceeding. The PR must include all work from this goal.
+
+6. **Push bookmark** - Once verified, push to origin:
+   ```bash
+   jj git push --bookmark <%= branch_name %>
+   ```
+
+7. **Create pull request** - Use `gh pr create` following the pull-request skill template. Base the description on the full diff reviewed in step 5.
+
+8. **Handle failures gracefully** - If PR creation fails, report the failure in your summary but still return "DONE". The user can create the PR manually.
+
+9. **Return "DONE"** - After PR is created (or attempted), return "DONE" via StructuredOutput.
+<% end %>
