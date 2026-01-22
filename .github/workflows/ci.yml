@@ -15,10 +15,13 @@ jobs:
       env:
         PGHOST: postgres
         IKIGAI_DEV: 1
-        IKIGAI_BIN_DIR: /workspace/bin
-        IKIGAI_CONFIG_DIR: /workspace/etc/ikigai
-        IKIGAI_DATA_DIR: /workspace/share/ikigai
-        IKIGAI_LIBEXEC_DIR: /workspace/libexec/ikigai
+        IKIGAI_BIN_DIR: ${{ github.workspace }}/bin
+        IKIGAI_CONFIG_DIR: ${{ github.workspace }}/etc/ikigai
+        IKIGAI_DATA_DIR: ${{ github.workspace }}/share/ikigai
+        IKIGAI_LIBEXEC_DIR: ${{ github.workspace }}/libexec/ikigai
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
         GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
         GOOGLE_SEARCH_ENGINE_ID: ${{ secrets.GOOGLE_SEARCH_ENGINE_ID }}
@@ -75,6 +78,13 @@ jobs:
         echo "gcc:" && gcc --version | head -1
         echo "lcov package:" && dpkg -l lcov | grep lcov
         echo "lcov binary:" && lcov --version
+        echo "Working directory:" && pwd
+        echo "IKIGAI_DATA_DIR: $IKIGAI_DATA_DIR"
+        echo "IKIGAI_LIBEXEC_DIR: $IKIGAI_LIBEXEC_DIR"
+
+    - name: Verify PostgreSQL connectivity
+      run: |
+        psql "postgresql://ikigai:ikigai@postgres/ikigai" -c "SELECT 1"
 
     - name: check-compile
       run: make check-compile
