@@ -23,8 +23,11 @@ ifdef FILE
 	fi
 else
 	@# Bulk mode - run all unit tests in parallel, one line per binary
-	@# Phase 1: Ensure binaries are built (continue even if some fail)
-	@$(MAKE) -s check-link >/dev/null 2>&1 || true
+	@# Phase 1: Ensure binaries are built
+	@if ! $(MAKE) -s check-link >/dev/null 2>&1; then \
+		echo "🔴 Pre-existing build failures - fix compilation/linking before running unit tests"; \
+		exit 1; \
+	fi
 	@# Phase 2: Create output directories
 	@mkdir -p reports/check
 	@find tests/unit -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true

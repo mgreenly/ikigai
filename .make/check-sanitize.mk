@@ -21,7 +21,10 @@ ifdef FILE
 		echo "🟢 $(FILE)"; rm -f "$$stderr"; \
 	fi
 else
-	@$(MAKE) -s BUILDDIR=$(SANITIZE_BUILDDIR) BUILD=sanitize check-link >/dev/null 2>&1 || true
+	@if ! $(MAKE) -s BUILDDIR=$(SANITIZE_BUILDDIR) BUILD=sanitize check-link >/dev/null 2>&1; then \
+		echo "🔴 Pre-existing build failures - fix compilation/linking before checking for sanitizer errors"; \
+		exit 1; \
+	fi
 	@tmpdir=$$(mktemp -d); \
 	find $(SANITIZE_BUILDDIR)/tests/unit $(SANITIZE_BUILDDIR)/tests/integration \
 		-name '*_test' -type f -executable 2>/dev/null | \

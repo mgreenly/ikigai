@@ -2,38 +2,41 @@
 
 Fix all quality check failures until every check passes cleanly.
 
-Work through checks in order: compile, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage. For each failing check, use the guidance below to fix it, then re-verify before moving to the next.
+Work through checks in order: compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage. For each failing check, use the guidance below to fix it, then re-verify before moving to the next.
 
 ## Strategy
 
 1. Run `.claude/scripts/check-compile`
    - If it fails, fix using compile guidance below
    - Re-run `.claude/scripts/check-compile` until it passes
-2. Run `.claude/scripts/check-filesize`
+2. Run `.claude/scripts/check-link`
+   - If it fails, fix using link guidance below
+   - Re-run `.claude/scripts/check-link` until it passes
+3. Run `.claude/scripts/check-filesize`
    - If it fails, fix using filesize guidance below
    - Re-run `.claude/scripts/check-filesize` until it passes
-3. Run `.claude/scripts/check-unit`
+4. Run `.claude/scripts/check-unit`
    - If it fails, fix using unit test guidance below
    - Re-run `.claude/scripts/check-unit` until it passes
-4. Run `.claude/scripts/check-integration`
+5. Run `.claude/scripts/check-integration`
    - If it fails, fix using integration test guidance below
    - Re-run `.claude/scripts/check-integration` until it passes
-5. Run `.claude/scripts/check-complexity`
+6. Run `.claude/scripts/check-complexity`
    - If it fails, fix using complexity guidance below
    - Re-run `.claude/scripts/check-complexity` until it passes
-6. Run `.claude/scripts/check-sanitize`
+7. Run `.claude/scripts/check-sanitize`
    - If it fails, fix using sanitize guidance below
    - Re-run `.claude/scripts/check-sanitize` until it passes
-7. Run `.claude/scripts/check-tsan`
+8. Run `.claude/scripts/check-tsan`
    - If it fails, fix using tsan guidance below
    - Re-run `.claude/scripts/check-tsan` until it passes
-8. Run `.claude/scripts/check-valgrind`
+9. Run `.claude/scripts/check-valgrind`
    - If it fails, fix using valgrind guidance below
    - Re-run `.claude/scripts/check-valgrind` until it passes
-9. Run `.claude/scripts/check-helgrind`
-   - If it fails, fix using helgrind guidance below
-   - Re-run `.claude/scripts/check-helgrind` until it passes
-10. Run `.claude/scripts/check-coverage`
+10. Run `.claude/scripts/check-helgrind`
+    - If it fails, fix using helgrind guidance below
+    - Re-run `.claude/scripts/check-helgrind` until it passes
+11. Run `.claude/scripts/check-coverage`
     - If it fails, fix using coverage guidance below
     - Re-run `.claude/scripts/check-coverage` until it passes
 
@@ -42,7 +45,8 @@ Work through checks in order: compile, filesize, unit, integration, complexity, 
 ## Why This Order
 
 Each check builds on what comes before:
-- **compile** - Must build before anything else matters
+- **compile** - Must compile before anything else matters
+- **link** - Must link binaries before tests can run
 - **filesize** - Files must be manageable before deep analysis
 - **unit + integration** - Tests establish baseline correctness
 - **complexity** - Code must be simple enough to trust
@@ -67,7 +71,6 @@ After fixing any check, if you suspect earlier checks might have regressed, re-v
 **Common Issues:**
 - Implicit declarations (missing includes/forward declarations)
 - Type mismatches (wrong signatures)
-- Undefined references (missing implementations, linker issues)
 - Syntax errors (typos, missing semicolons)
 
 **Key Advice:**
@@ -76,6 +79,20 @@ After fixing any check, if you suspect earlier checks might have regressed, re-v
 - Ensure new .c files added to Makefile targets
 
 **Skills:** `/load errors`, `/load style`
+
+### link - Get Binaries Linked
+
+**Common Issues:**
+- Undefined references (missing implementations)
+- Multiple definitions (duplicate symbols)
+- Missing libraries (not linked)
+
+**Key Advice:**
+- Undefined reference means implementation is missing or not compiled
+- Multiple definition means same symbol defined in multiple .o files
+- Check Makefile for missing source files or library flags
+
+**Skills:** `/load errors`, `/load makefile`
 
 ### filesize - Split Large Files
 
@@ -302,14 +319,15 @@ These apply across multiple checks:
 
 ## Acceptance
 
-DONE when ALL 10 checks return `{"ok": true}`:
+DONE when ALL 11 checks return `{"ok": true}`:
 1. `.claude/scripts/check-compile`
-2. `.claude/scripts/check-filesize`
-3. `.claude/scripts/check-unit`
-4. `.claude/scripts/check-integration`
-5. `.claude/scripts/check-complexity`
-6. `.claude/scripts/check-sanitize`
-7. `.claude/scripts/check-tsan`
-8. `.claude/scripts/check-valgrind`
-9. `.claude/scripts/check-helgrind`
-10. `.claude/scripts/check-coverage`
+2. `.claude/scripts/check-link`
+3. `.claude/scripts/check-filesize`
+4. `.claude/scripts/check-unit`
+5. `.claude/scripts/check-integration`
+6. `.claude/scripts/check-complexity`
+7. `.claude/scripts/check-sanitize`
+8. `.claude/scripts/check-tsan`
+9. `.claude/scripts/check-valgrind`
+10. `.claude/scripts/check-helgrind`
+11. `.claude/scripts/check-coverage`
