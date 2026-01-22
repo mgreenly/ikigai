@@ -95,16 +95,13 @@ jobs:
     - name: check-filesize
       run: make check-filesize
 
-    - name: Debug - check directory structure
+    - name: Debug - check VCR linking
       run: |
-        echo "=== pwd ==="
-        pwd
-        echo "=== List repo root ==="
-        ls -la
-        echo "=== Check etc/ikigai in repo ==="
-        ls -la etc/ikigai/ 2>&1 || echo "etc/ikigai not found in repo"
-        echo "=== IKIGAI env vars ==="
-        env | grep IKIGAI || echo "No IKIGAI vars set"
+        echo "=== Check VCR symbols in test binary ==="
+        nm build/tests/unit/providers/anthropic/anthropic_streaming_basic_test | grep -E "vcr_is_active|vcr_next_chunk|vcr_init"
+        echo "=== Run test with VCR debug ==="
+        mkdir -p reports/check/unit/providers/anthropic
+        ./build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 | head -50 || echo "Exit: $?"
 
     - name: check-unit
       run: |
