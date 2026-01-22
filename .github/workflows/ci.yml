@@ -72,15 +72,34 @@ jobs:
           dpkg-dev \
           fakeroot
 
-    - name: Show tool versions
+    - name: Debug info - Environment
       run: |
-        echo "Debian version:" && cat /etc/debian_version
-        echo "gcc:" && gcc --version | head -1
-        echo "lcov package:" && dpkg -l lcov | grep lcov
-        echo "lcov binary:" && lcov --version
-        echo "Working directory:" && pwd
-        echo "IKIGAI_DATA_DIR: $IKIGAI_DATA_DIR"
-        echo "IKIGAI_LIBEXEC_DIR: $IKIGAI_LIBEXEC_DIR"
+        echo "=== OS Information ==="
+        cat /etc/os-release
+        echo ""
+        echo "=== Kernel ==="
+        uname -a
+        echo ""
+        echo "=== Toolchain ==="
+        echo "gcc:" && gcc --version
+        echo ""
+        echo "ld:" && ld --version
+        echo ""
+        echo "binutils:" && dpkg -l binutils | grep binutils || true
+        echo ""
+        echo "=== Build Tools ==="
+        echo "make:" && make --version | head -1
+        echo "lcov:" && lcov --version
+        echo ""
+        echo "=== Environment Variables ==="
+        env | grep -E "^(PATH|CC|CFLAGS|LDFLAGS|BUILD|IKIGAI_|PG)" | sort
+        echo ""
+        echo "=== Working Directory ==="
+        pwd
+        ls -la
+        echo ""
+        echo "=== Disk Space ==="
+        df -h .
 
     - name: Verify PostgreSQL connectivity
       run: |
@@ -100,19 +119,41 @@ jobs:
         useradd -m -s /bin/bash testuser
         chown -R testuser:testuser .
 
-    - name: Debug VCR environment
+    - name: Debug info - VCR symbols
       run: |
-        echo "=== vcr_helper.o symbols ==="
-        nm build/tests/helpers/vcr_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols in vcr_helper.o"
-        echo "=== vcr_stubs_helper.o symbols ==="
-        nm build/tests/helpers/vcr_stubs_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols in stubs"
-        echo "=== wrapper_curl.o undefined symbols ==="
-        nm build/wrapper_curl.o 2>/dev/null | grep "vcr_" || echo "No vcr refs in wrapper_curl"
-        echo "=== Test binary vcr_ symbols ==="
-        nm build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>/dev/null | grep "vcr_" || echo "No vcr symbols"
+        echo "=== Object files - VCR helper ==="
+        nm build/tests/helpers/vcr_helper.o 2>/dev/null | grep -E "vcr_|^[0-9a-f]+ [TtWwUuBb]" | head -30 || echo "No symbols"
+        echo ""
+        echo "=== Object files - VCR stubs ==="
+        nm build/tests/helpers/vcr_stubs_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols"
+        echo ""
+        echo "=== Object files - wrapper_curl.o VCR refs ==="
+        nm build/wrapper_curl.o 2>/dev/null | grep "vcr_" || echo "No vcr refs"
+        echo ""
+        echo "=== Object files - wrapper_curl.o curl_ symbols ==="
+        nm build/wrapper_curl.o 2>/dev/null | grep "curl_" | head -20 || echo "No curl symbols"
+        echo ""
+        echo "=== Object files - http_multi.o ==="
+        nm build/providers/common/http_multi.o 2>/dev/null | grep -E "curl_multi_perform_|ik_http_multi" || echo "No relevant symbols"
+        echo ""
+        echo "=== Test binary - Key symbols ==="
+        TEST_BIN="build/tests/unit/providers/anthropic/anthropic_streaming_basic_test"
+        echo "vcr_ symbols:"
+        nm $TEST_BIN 2>/dev/null | grep "vcr_" || echo "  None found"
+        echo "curl_multi_perform_:"
+        nm $TEST_BIN 2>/dev/null | grep "curl_multi_perform_" || echo "  None found"
+        echo "ik_http_multi_perform:"
+        nm $TEST_BIN 2>/dev/null | grep "ik_http_multi_perform" || echo "  None found"
+        echo "anthropic_perform:"
+        nm $TEST_BIN 2>/dev/null | grep "anthropic_perform" || echo "  None found"
+        echo ""
+        echo "=== Link flags used (from Makefile) ==="
+        make --dry-run build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 | grep -E "^\s*gcc.*-o" | tail -5 || echo "Could not extract link command"
+        echo ""
         echo "=== Creating reports directory ==="
         mkdir -p reports/check/unit/providers/anthropic
         chown -R testuser:testuser reports
+        echo ""
         echo "=== Running one VCR test with output ==="
         sudo -E -u testuser build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || true
 

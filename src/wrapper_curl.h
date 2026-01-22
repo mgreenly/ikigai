@@ -105,8 +105,8 @@ MOCKABLE const char *curl_easy_strerror_(CURLcode code);
 MOCKABLE struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string);
 MOCKABLE void curl_slist_free_all_(struct curl_slist *list);
 
-// curl_easy_setopt wrapper - const void* to preserve const-correctness
-MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val);
+// curl_easy_setopt wrapper - variadic to match curl API
+MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, ...);
 
 // curl_easy_getinfo wrapper - variadic function
 MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...);

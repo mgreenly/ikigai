@@ -136,11 +136,14 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
     curl_slist_free_all(list);
 }
 
-// Suppress cast-qual warning for setopt - curl API requires non-const void*
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
+// Variadic wrapper for curl_easy_setopt with VCR integration
+MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, ...)
 {
+    va_list args;
+    va_start(args, opt);
+    void *val = va_arg(args, void *);
+    va_end(args);
+
     // Track write callbacks in VCR mode (both record and playback)
     if (vcr_is_active()) {
         if (opt == CURLOPT_WRITEFUNCTION) {
@@ -155,7 +158,7 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
             return CURLE_OK;
         } else if (opt == CURLOPT_WRITEDATA) {
             vcr_curl_state_t *state = vcr_find_or_create_state(curl);
-            state->user_context = (void *)val;
+            state->user_context = val;
 
             // In record mode, pass our state to the wrapper
             if (vcr_is_recording()) {
@@ -168,8 +171,6 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 
     return curl_easy_setopt(curl, opt, val);
 }
-
-#pragma GCC diagnostic pop
 
 MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
 {
