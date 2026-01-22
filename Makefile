@@ -1,14 +1,48 @@
 # Ikigai - Elegant Makefile
 # Phase 1: Compilation only
 
-.PHONY: help clean
-.DEFAULT_GOAL := help
+.PHONY: all help clean install uninstall
+.DEFAULT_GOAL := all
 
 # Compiler
 CC = gcc
 
 # Build directory
 BUILDDIR ?= build
+
+# Installation paths
+PREFIX ?= /usr/local
+bindir ?= $(PREFIX)/bin
+libexecdir ?= $(PREFIX)/libexec
+datadir ?= $(PREFIX)/share
+
+# Special handling for sysconfdir and configdir based on PREFIX
+HOME_DIR := $(shell echo $$HOME)
+
+# Detect install type
+IS_OPT_INSTALL := $(if $(filter /opt%,$(PREFIX)),yes,no)
+IS_USER_INSTALL := $(if $(findstring /home/,$(PREFIX)),yes,no)
+
+ifeq ($(PREFIX),/usr)
+    # /usr uses /etc not /usr/etc
+    sysconfdir ?= /etc
+    configdir = /etc/ikigai
+else ifeq ($(IS_OPT_INSTALL),yes)
+    # PREFIX is /opt/* - use PREFIX/etc not PREFIX/etc/ikigai
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(PREFIX)/etc
+else ifeq ($(IS_USER_INSTALL),yes)
+    # PREFIX is under /home/* - use XDG variables or defaults
+    XDG_CONFIG_HOME ?= $(shell echo $${XDG_CONFIG_HOME:-$(HOME_DIR)/.config})
+    XDG_DATA_HOME ?= $(shell echo $${XDG_DATA_HOME:-$(HOME_DIR)/.local/share})
+    sysconfdir ?= $(XDG_CONFIG_HOME)
+    configdir = $(XDG_CONFIG_HOME)/ikigai
+    user_datadir = $(XDG_DATA_HOME)/ikigai
+else
+    # Default: /usr/local and others use PREFIX/etc/ikigai
+    sysconfdir ?= $(PREFIX)/etc
+    configdir = $(sysconfdir)/ikigai
+endif
 
 # Warning flags
 WARNING_FLAGS = -Wall -Wextra -Wshadow \
@@ -179,28 +213,123 @@ include .make/check-valgrind.mk
 include .make/check-helgrind.mk
 include .make/check-coverage.mk
 
+# all: Build main binary and tools
+all:
+	@# Phase 1: Compile all required objects in parallel
+	@$(MAKE) -k -j$(MAKE_JOBS) $(SRC_OBJECTS) $(VENDOR_OBJECTS) $(TOOL_OBJECTS) $(VCR_STUBS) 2>&1 | grep -E "^(🟢|🔴)" || true
+	@# Phase 2: Link binaries in parallel
+	@$(MAKE) -k -j$(MAKE_JOBS) bin/ikigai $(TOOL_BINARIES) 2>&1 | grep -E "^(🟢|🔴)" || true
+	@# Check for failures
+	@failed=0; \
+	for bin in bin/ikigai $(TOOL_BINARIES); do \
+		[ ! -f "$$bin" ] && failed=$$((failed + 1)); \
+	done; \
+	if [ $$failed -eq 0 ]; then \
+		echo "✅ Build complete"; \
+	else \
+		echo "❌ $$failed binaries failed to build"; \
+		exit 1; \
+	fi
+
 # clean: Remove build artifacts
 clean:
 	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR)
 	@find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	@echo "✨ Cleaned"
 
+# install: Install binaries to PREFIX
+install: all
+	# Create directories
+	install -d $(DESTDIR)$(bindir)
+	install -d $(DESTDIR)$(libexecdir)/ikigai
+	install -d $(DESTDIR)$(configdir)
+ifeq ($(IS_USER_INSTALL),yes)
+	install -d $(DESTDIR)$(user_datadir)
+else
+	install -d $(DESTDIR)$(datadir)/ikigai
+endif
+	# Install actual binary to libexec
+	install -m 755 bin/ikigai $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	# Install tool binaries to libexec
+	@for tool in $(TOOL_BINARIES); do \
+		install -m 755 $$tool $(DESTDIR)$(libexecdir)/ikigai/; \
+	done
+	# Generate and install wrapper script to bin
+	@printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
+	@printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'IKIGAI_CONFIG_DIR=%s\n' "$(configdir)" >> $(DESTDIR)$(bindir)/ikigai
+ifeq ($(IS_USER_INSTALL),yes)
+	@printf 'IKIGAI_DATA_DIR=%s\n' "$(user_datadir)" >> $(DESTDIR)$(bindir)/ikigai
+else
+	@printf 'IKIGAI_DATA_DIR=%s\n' "$(datadir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+endif
+	@printf 'IKIGAI_LIBEXEC_DIR=%s\n' "$(libexecdir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(DESTDIR)$(bindir)/ikigai
+	@chmod 755 $(DESTDIR)$(bindir)/ikigai
+	# Install config files
+ifeq ($(FORCE),1)
+	install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
+	install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+else
+	@test -f $(DESTDIR)$(configdir)/config.json || install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
+	@test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+endif
+	# Install database migrations
+ifeq ($(IS_USER_INSTALL),yes)
+	install -d $(DESTDIR)$(user_datadir)/migrations
+	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(user_datadir)/migrations/
+else
+	install -d $(DESTDIR)$(datadir)/ikigai/migrations
+	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(datadir)/ikigai/migrations/
+endif
+	@echo "✅ Installed to $(PREFIX)"
+
+# uninstall: Remove installed files
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/ikigai
+	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	@for tool in $(TOOL_BINARIES); do \
+		rm -f $(DESTDIR)$(libexecdir)/ikigai/$$(basename $$tool); \
+	done
+	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
+	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
+ifeq ($(PURGE),1)
+	rm -f $(DESTDIR)$(configdir)/config.json
+	rm -f $(DESTDIR)$(configdir)/credentials.json
+	rm -f $(DESTDIR)$(configdir)/credentials.example.json
+endif
+	rmdir $(DESTDIR)$(configdir) 2>/dev/null || true
+ifeq ($(IS_USER_INSTALL),yes)
+	rm -rf $(DESTDIR)$(user_datadir)/migrations
+	rmdir $(DESTDIR)$(user_datadir) 2>/dev/null || true
+else
+	rm -rf $(DESTDIR)$(datadir)/ikigai/migrations
+	rmdir $(DESTDIR)$(datadir)/ikigai 2>/dev/null || true
+endif
+	@echo "✅ Uninstalled from $(PREFIX)"
+
 # help: Show available targets
 help:
 	@echo "Available targets:"
-	@echo "  check-compile  - Compile all source files to .o files"
-	@echo "  check-link     - Link all binaries (main, tools, tests)"
-	@echo "  check-unit     - Run unit tests with XML output"
-	@echo "  check-integration - Run integration tests with XML output"
-	@echo "  check-filesize - Verify source files under 16KB"
-	@echo "  check-complexity - Verify cyclomatic complexity under threshold (default: 15)"
-	@echo "  check-sanitize - Run tests with AddressSanitizer/UBSan (uses build-sanitize/)"
-	@echo "  check-tsan     - Run tests with ThreadSanitizer (uses build-tsan/)"
-	@echo "  check-valgrind - Run tests under Valgrind Memcheck (uses build-valgrind/)"
-	@echo "  check-helgrind - Run tests under Valgrind Helgrind (uses build-helgrind/)"
-	@echo "  check-coverage - Check code coverage meets $(COVERAGE_THRESHOLD)% threshold"
+	@echo "  all            - Build main binary and tools (default)"
+	@echo "  install        - Install to PREFIX (default: /usr/local)"
+	@echo "  uninstall      - Remove installed files"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
+	@echo ""
+	@echo "Quality check targets:"
+	@echo "  check-compile     - Compile all source files to .o files"
+	@echo "  check-link        - Link all binaries (main, tools, tests)"
+	@echo "  check-unit        - Run unit tests with XML output"
+	@echo "  check-integration - Run integration tests with XML output"
+	@echo "  check-filesize    - Verify source files under 16KB"
+	@echo "  check-complexity  - Verify cyclomatic complexity under threshold (default: 15)"
+	@echo "  check-sanitize    - Run tests with AddressSanitizer/UBSan (uses build-sanitize/)"
+	@echo "  check-tsan        - Run tests with ThreadSanitizer (uses build-tsan/)"
+	@echo "  check-valgrind    - Run tests under Valgrind Memcheck (uses build-valgrind/)"
+	@echo "  check-helgrind    - Run tests under Valgrind Helgrind (uses build-helgrind/)"
+	@echo "  check-coverage    - Check code coverage meets $(COVERAGE_THRESHOLD)% threshold"
 	@echo ""
 	@echo "Build modes (BUILD=<mode>):"
 	@echo "  debug          - Debug build with symbols (default)"
@@ -209,8 +338,16 @@ help:
 	@echo "  tsan           - Debug build with thread sanitizer"
 	@echo "  valgrind       - Debug build optimized for Valgrind"
 	@echo ""
+	@echo "Installation variables:"
+	@echo "  PREFIX         - Installation prefix (default: /usr/local)"
+	@echo "  DESTDIR        - Staging directory for packagers"
+	@echo "  FORCE=1        - Overwrite existing config files"
+	@echo "  PURGE=1        - Remove config files on uninstall"
+	@echo ""
 	@echo "Examples:"
-	@echo "  make check-compile              - Compile all files"
+	@echo "  make                                - Build main binary and tools"
+	@echo "  make install                        - Install to /usr/local"
+	@echo "  make PREFIX=/opt/ikigai install     - Install to /opt/ikigai"
+	@echo "  make PREFIX=~/.local install        - Install to ~/.local (uses XDG paths)"
 	@echo "  make check-compile FILE=src/main.c  - Compile single file"
-	@echo "  make check-link                 - Link bin/ikigai"
-	@echo "  make check-compile BUILD=release    - Compile in release mode"
+	@echo "  make BUILD=release                  - Build in release mode"

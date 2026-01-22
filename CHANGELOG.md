@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [rel-09] - 2026-01-19
+## [rel-09] - 2026-01-22
 
 ### Added
 
@@ -60,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved debugging for protocol changes
 - **Improved error handling**: Enhanced retry logic for structured output
 - **Better documentation**: Updated ralph skill with complete flag documentation
+- **Quality gate enforcement**: Added quality gate requirement to Ralph prompt
+- **Environment isolation**: Clear ANTHROPIC_API_KEY when invoking claude -p (pluribus)
 
 #### Quality Infrastructure (Complete)
 - **Rubyified check scripts**: Converted all harness check scripts to Ruby
@@ -92,16 +94,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed examples for jj bookmarks
 - **Goal authoring skill**: Comprehensive guide for writing Ralph goals
 - **CDD artifacts**: Complete research, plan, and user stories for web tools
+- **New build system**: Architecture and patterns documentation for Phase 1 Makefile
+- **Debian Docker**: Documentation for Debian 13.2 container environment
 
 ### Changed
 
 #### Build System
-- **Makefile refactoring**: Major cleanup and organization
+- **Makefile rewrite**: Complete Phase 1 rewrite with elegant architecture
+  - Replaced complex Makefile with clean, maintainable version
+  - New check-compile target with parallel compilation and clean output
+  - New check-link target with race condition fixes
+  - New check-unit target with XML parsing for test results
+  - New check-complexity target for cyclomatic complexity enforcement
+  - New check-coverage target with consistency improvements
+  - New check-sanitize target for ASan/UBSan validation
   - Added web tool targets (web_search_brave_tool, web_search_google_tool, web_fetch_tool)
   - Added direct test targets for all tools
   - libxml2 integration via pkg-config
-  - Improved wrapper object dependencies
-  - Better parallel build support
+  - All tests use srunner_set_xml() for XML output
+- **CI infrastructure**: Enhanced continuous integration
+  - Switched to Debian 13.2 container for coverage check compatibility
+  - Run all 11 check-* targets in order
+  - Run tests as non-root user with VCR debug support
+  - Fixed workspace paths and API key secrets
+  - Added provider API keys to development and CI environments
 - **Test organization**: Reorganized unit tests into tools/ subdirectory
   - All tool tests moved to tests/unit/tools/
   - Clearer separation of concerns
@@ -118,14 +134,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Buffer overflows**: Fixed heap-buffer-overflow in file_edit.c
 - **Test reliability**: Improved test determinism and reliability
 - **Ralph output**: Fixed structured output handling with retry logic
+- **VCR test failures**: Removed duplicate curl wrappers from wrapper_web causing VCR failures
+- **CI coverage**: Fixed coverage checks by switching to Debian 13.2 container
+- **Makefile warnings**: Fixed duplicate target warnings
 
 ### Technical Metrics
 - **Changes**: 302 files modified, +19,294/-11,989 lines
 - **New files**: 126 files added (tools, tests, harnesses, documentation)
 - **Removed files**: 36 files deleted (obsolete CDD artifacts)
 - **Test coverage**: 90%+ lines, functions, and branches
-- **Code quality**: All 10 quality checks pass
-- **Quality gates**: compile, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage
+- **Code quality**: All 11 quality checks pass
+- **Quality gates**: compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage
 
 ## [rel-08] - 2026-01-15
 
@@ -775,6 +794,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-09]: https://github.com/mgreenly/ikigai/releases/tag/rel-09
 [rel-08]: https://github.com/mgreenly/ikigai/releases/tag/rel-08
 [rel-07]: https://github.com/mgreenly/ikigai/releases/tag/rel-07
 [rel-06]: https://github.com/mgreenly/ikigai/releases/tag/rel-06
