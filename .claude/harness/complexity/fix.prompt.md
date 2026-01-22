@@ -8,7 +8,6 @@ You have ONE job: reduce the complexity of the function described below. Do not 
 
 Before starting, load these skills for context:
 - /load errors
-- /load makefile
 - /load memory
 - /load naming
 - /load style
@@ -58,9 +57,13 @@ Other agents have already tried to fix this error. Learn from their attempts:
 
 ## Validation
 
-Before reporting done, run:
-1. `make check` - ensure tests still pass
-2. `make check-complexity` - ensure complexity is now acceptable
+Verify the fix by running in order:
+1. `.claude/scripts/check-compile`
+2. `.claude/scripts/check-link`
+3. `.claude/scripts/check-filesize`
+4. `.claude/scripts/check-unit`
+5. `.claude/scripts/check-integration`
+6. `.claude/scripts/check-complexity`
 
 ## When Done
 

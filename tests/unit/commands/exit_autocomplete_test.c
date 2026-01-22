@@ -14,7 +14,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include <string.h>
 
 /* Test: Typing /ex triggers autocomplete suggesting /exit */
@@ -98,6 +98,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = exit_autocomplete_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/exit_autocomplete_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

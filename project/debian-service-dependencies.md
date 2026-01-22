@@ -207,4 +207,4 @@ By creating a policy-rc.d that returns 101, we prevent any service from starting
 ## Related
 
 - [docker-compose.md](docker-compose.md) - Alternative deployment via containers
-- [minimal-tool-architecture.md](minimal-tool-architecture.md) - Tool philosophy
+- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture

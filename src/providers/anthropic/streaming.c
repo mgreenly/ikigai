@@ -19,7 +19,7 @@
  * ================================================================ */
 
 res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
-                                      void *stream_ctx, ik_anthropic_stream_ctx_t **out)
+                                     void *stream_ctx, ik_anthropic_stream_ctx_t **out)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(stream_cb != NULL);  // LCOV_EXCL_BR_LINE
@@ -59,7 +59,7 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
  * ================================================================ */
 
 void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
-                                        const char *event, const char *data)
+                                       const char *event, const char *data)
 {
     assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
     assert(event != NULL);      // LCOV_EXCL_BR_LINE
@@ -73,7 +73,7 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
     // Parse JSON data
     yyjson_alc allocator = ik_make_talloc_allocator(stream_ctx);
     yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)data,
-                                        strlen(data), 0, &allocator, NULL);
+                                       strlen(data), 0, &allocator, NULL);
     if (doc == NULL) {
         // Invalid JSON - emit error
         ik_stream_event_t error_event = {
@@ -123,7 +123,7 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
  * ================================================================ */
 
 ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
-                                                   ik_anthropic_stream_ctx_t *sctx)
+                                                  ik_anthropic_stream_ctx_t *sctx)
 {
     assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(sctx != NULL); // LCOV_EXCL_BR_LINE
@@ -160,7 +160,9 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
     }
 
     // Allocate content blocks array
-    resp->content_blocks = talloc_array(resp, ik_content_block_t, block_count);
+    resp->content_blocks = talloc_array(resp,
+                                        ik_content_block_t,
+                                        block_count);
     if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     resp->content_count = block_count;
 
@@ -197,7 +199,8 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
         block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
         if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
-            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+                                                        sctx->current_tool_args !=
+                                                        NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 

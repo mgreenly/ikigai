@@ -24,7 +24,8 @@
  * Content Block Builders
  * ================================================================ */
 
-ik_content_block_t *ik_content_block_text(TALLOC_CTX *ctx, const char *text) {
+ik_content_block_t *ik_content_block_text(TALLOC_CTX *ctx, const char *text)
+{
     assert(text != NULL); // LCOV_EXCL_BR_LINE
 
     ik_content_block_t *block = talloc_zero(ctx, ik_content_block_t);
@@ -38,7 +39,8 @@ ik_content_block_t *ik_content_block_text(TALLOC_CTX *ctx, const char *text) {
 }
 
 ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
-                                                const char *name, const char *arguments) {
+                                               const char *name, const char *arguments)
+{
     assert(id != NULL);        // LCOV_EXCL_BR_LINE
     assert(name != NULL);      // LCOV_EXCL_BR_LINE
     assert(arguments != NULL); // LCOV_EXCL_BR_LINE
@@ -60,7 +62,8 @@ ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
 }
 
 ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *tool_call_id,
-                                                  const char *content, bool is_error) {
+                                                 const char *content, bool is_error)
+{
     assert(tool_call_id != NULL); // LCOV_EXCL_BR_LINE
     assert(content != NULL);      // LCOV_EXCL_BR_LINE
 
@@ -83,7 +86,8 @@ ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx, const char *to
  * Request Builder Functions
  * ================================================================ */
 
-res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out) {
+res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out)
+{
     assert(model != NULL); // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
 
@@ -108,7 +112,8 @@ res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out) 
     return OK(*out);
 }
 
-res_t ik_request_set_system(ik_request_t *req, const char *text) {
+res_t ik_request_set_system(ik_request_t *req, const char *text)
+{
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
     assert(text != NULL); // LCOV_EXCL_BR_LINE
 
@@ -122,7 +127,8 @@ res_t ik_request_set_system(ik_request_t *req, const char *text) {
     return OK(NULL);
 }
 
-res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text) {
+res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text)
+{
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
     assert(text != NULL); // LCOV_EXCL_BR_LINE
 
@@ -154,7 +160,8 @@ res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text
 }
 
 res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
-                                     ik_content_block_t *blocks, size_t count) {
+                                    ik_content_block_t *blocks, size_t count)
+{
     assert(req != NULL);    // LCOV_EXCL_BR_LINE
     assert(blocks != NULL); // LCOV_EXCL_BR_LINE
     assert(count > 0);      // LCOV_EXCL_BR_LINE
@@ -185,7 +192,8 @@ res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
 }
 
 void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level,
-                              bool include_summary) {
+                             bool include_summary)
+{
     assert(req != NULL); // LCOV_EXCL_BR_LINE
 
     req->thinking.level = level;
@@ -193,7 +201,8 @@ void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level,
 }
 
 res_t ik_request_add_tool(ik_request_t *req, const char *name, const char *description,
-                           const char *parameters, bool strict) {
+                          const char *parameters, bool strict)
+{
     assert(req != NULL);         // LCOV_EXCL_BR_LINE
     assert(name != NULL);        // LCOV_EXCL_BR_LINE
     assert(description != NULL); // LCOV_EXCL_BR_LINE

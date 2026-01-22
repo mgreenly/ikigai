@@ -41,8 +41,7 @@
  * - 503 UNAVAILABLE -> IK_ERR_CAT_SERVER
  * - 504 DEADLINE_EXCEEDED -> IK_ERR_CAT_TIMEOUT
  */
-res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
-                              ik_error_category_t *out_category);
+res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category);
 
 /**
  * Extract retryDelay from response body

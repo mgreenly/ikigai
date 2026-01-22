@@ -12,7 +12,7 @@
 #include "providers/provider.h"
 #include "wrapper_json.h"
 #include "vendor/yyjson/yyjson.h"
-#include "openai_streaming_responses_events_test_helpers.c"
+#include "openai_streaming_responses_events_test_helper.h"
 
 START_TEST(test_invalid_json) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
@@ -220,6 +220,7 @@ int main(void)
 {
     Suite *s = openai_streaming_responses_events_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/openai/openai_streaming_responses_events_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

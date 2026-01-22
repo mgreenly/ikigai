@@ -11,7 +11,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Process CTRL_A action (beginning of line) */
 START_TEST(test_repl_process_action_ctrl_a) {
@@ -421,6 +421,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = repl_readline_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_readline_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

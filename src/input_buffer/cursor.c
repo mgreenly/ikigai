@@ -23,7 +23,10 @@ ik_input_buffer_cursor_t *ik_input_buffer_cursor_create(void *parent)
     return cursor;
 }
 
-void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset)
+void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor,
+                                         const char *text,
+                                         size_t text_len,
+                                         size_t byte_offset)
 {
     assert(cursor != NULL);         /* LCOV_EXCL_BR_LINE */
     assert(text != NULL);           /* LCOV_EXCL_BR_LINE */
@@ -154,7 +157,9 @@ void ik_input_buffer_cursor_move_right(ik_input_buffer_cursor_t *cursor, const c
     cursor->grapheme_offset++;
 }
 
-void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out)
+void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor,
+                                         size_t *byte_offset_out,
+                                         size_t *grapheme_offset_out)
 {
     assert(cursor != NULL);              /* LCOV_EXCL_BR_LINE */
     assert(byte_offset_out != NULL);     /* LCOV_EXCL_BR_LINE */

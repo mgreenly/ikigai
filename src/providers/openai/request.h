@@ -26,8 +26,7 @@
  * - Streaming adds stream: true and stream_options
  * - Reasoning models do not include temperature parameter
  */
-res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
-                                        bool streaming, char **out_json);
+res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req, bool streaming, char **out_json);
 
 /**
  * Build URL for OpenAI Chat Completions endpoint
@@ -73,8 +72,7 @@ res_t ik_openai_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_
  * - Reasoning effort included for reasoning models only
  * - Uses max_output_tokens instead of max_completion_tokens
  */
-res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t *req,
-                                             bool streaming, char **out_json);
+res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t *req, bool streaming, char **out_json);
 
 /**
  * Build URL for OpenAI Responses API endpoint

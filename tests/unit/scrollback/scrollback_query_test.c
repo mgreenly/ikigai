@@ -5,7 +5,7 @@
 #include <talloc.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Get line count from empty scrollback
 START_TEST(test_scrollback_get_line_count_empty) {
@@ -273,6 +273,7 @@ int main(void)
     int number_failed;
     Suite *s = scrollback_query_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scrollback/scrollback_query_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -7,7 +7,7 @@
 #include "../../../src/config.h"
 #include "../../../src/paths.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_error_code_strings) {
     // Test that new error codes have string representations
@@ -344,6 +344,7 @@ int main(void)
     int number_failed;
     Suite *s = config_validation_ranges_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/config/validation_ranges_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

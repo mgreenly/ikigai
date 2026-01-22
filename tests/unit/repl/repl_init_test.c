@@ -17,7 +17,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Mock state for controlling posix_open_ failures
@@ -559,6 +559,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_init_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_init_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

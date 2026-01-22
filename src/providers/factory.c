@@ -83,9 +83,9 @@ res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out)
     }
 
     // Get API key for the provider
-    const char *api_key = ik_credentials_get(creds, name);
+    const char *env_var = ik_provider_env_var(name);
+    const char *api_key = ik_credentials_get(creds, env_var);
     if (api_key == NULL) {
-        const char *env_var = ik_provider_env_var(name);
         talloc_free(tmp_ctx);
         return ERR(ctx, MISSING_CREDENTIALS,
                    "No credentials found for provider '%s'. "

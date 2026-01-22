@@ -20,15 +20,13 @@ Context never changes implicitly. You always know what's in the conversation and
 
 Most agents have dozens of internal tools. Every file operation, git command, and search pattern is a custom tool. Adding your own requires understanding their plugin system.
 
-Ikigai has four internal tools:
-- `bash` - Execute commands
-- `web_search` - Search the web
-- `slash_command` - App commands
-- That's it
+Ikigai has no internal tools. Everything is external tools:
+- 6 core external tools: `bash`, `file_read`, `file_write`, `file_edit`, `glob`, `grep`
+- Tools auto-discovered from directories (system, user, project)
+- JSON protocol for tool communication (stdin/stdout)
+- Self-describing via `--schema` flag
 
-Everything else happens through bash. The system prompt teaches the model to use `cat`, `grep`, `git`, `jq` - standard Unix tools. File operations, version control, builds - all through bash.
-
-**External tools** are just scripts in `.ikigai/scripts/` with a README. No protocol, no registration, no special integration. Drop in a script, document it, done.
+**User extensibility** is trivial. Drop an executable in `~/.ikigai/tools/` or `.ikigai/tools/`, implement the JSON protocol, done. No registration, no restart, no special integration required.
 
 **Skills** are markdown files that teach domain knowledge and mention relevant tools. Load the database skill, get schema docs plus references to database query tools.
 

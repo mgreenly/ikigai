@@ -16,7 +16,7 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/byte_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;
@@ -328,6 +328,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = repl_render_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_render_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

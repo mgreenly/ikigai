@@ -21,7 +21,7 @@
 #include "../../src/config.h"
 #include "../../src/shared.h"
 #include "../../src/logger.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -479,6 +479,7 @@ int main(void)
 {
     Suite *s = agent_restore_integration_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/agent_restore_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

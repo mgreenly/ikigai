@@ -140,8 +140,10 @@ struct ik_provider_vtable {
      * Returns immediately. Request progresses through perform().
      * completion_cb is invoked from info_read() when transfer completes.
      */
-    res_t (*start_request)(void *ctx, const ik_request_t *req,
-                           ik_provider_completion_cb_t completion_cb, void *completion_ctx);
+    res_t (*start_request)(void *ctx,
+                           const ik_request_t *req,
+                           ik_provider_completion_cb_t completion_cb,
+                           void *completion_ctx);
 
     /**
      * start_stream - Initiate streaming request
@@ -157,9 +159,12 @@ struct ik_provider_vtable {
      * Returns immediately. Stream events delivered via stream_cb
      * as data arrives during perform(). completion_cb invoked when done.
      */
-    res_t (*start_stream)(void *ctx, const ik_request_t *req,
-                          ik_stream_cb_t stream_cb, void *stream_ctx,
-                          ik_provider_completion_cb_t completion_cb, void *completion_ctx);
+    res_t (*start_stream)(void *ctx,
+                          const ik_request_t *req,
+                          ik_stream_cb_t stream_cb,
+                          void *stream_ctx,
+                          ik_provider_completion_cb_t completion_cb,
+                          void *completion_ctx);
 
     /* ============================================================
      * Cleanup & Cancellation

@@ -284,6 +284,7 @@ int main(void)
     int number_failed;
     Suite *s = paths_init_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/paths/paths_init_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

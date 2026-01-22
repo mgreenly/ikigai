@@ -14,7 +14,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Up arrow from empty input loads last entry */
 START_TEST(test_history_up_from_empty_input) {
@@ -440,6 +440,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = history_navigation_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/history_navigation_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

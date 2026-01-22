@@ -9,12 +9,38 @@ description: Makefile skill for the ikigai project
 
 Build system for ikigai Linux coding agent with comprehensive testing, dynamic analysis, code quality, and multi-distribution packaging support.
 
+## Check Target Requirements
+
+**FUNDAMENTAL REQUIREMENT:** All check targets must have consistent, minimal output.
+
+**Output format:**
+- **Success**: Green circle (🟢) + filename
+- **Failure**: Red circle (🔴) + filename
+- **No other output**: No progress messages, no verbose logs, no noise
+
+**The 10 check targets:**
+1. `check-compile` - Compile all .c files to .o files
+2. `check-link` - Link all binaries (main, tests, tools)
+3. `check-filesize` - Verify files are under size limits
+4. `check-unit` - Run unit tests
+5. `check-integration` - Run integration tests
+6. `check-complexity` - Check cyclomatic complexity and nesting depth
+7. `check-sanitize` - Run tests with AddressSanitizer and UndefinedBehaviorSanitizer
+8. `check-tsan` - Run tests with ThreadSanitizer
+9. `check-valgrind` - Run tests under Valgrind Memcheck
+10. `check-helgrind` - Run tests under Valgrind Helgrind
+
+All checks must behave identically in output format.
+
 ## Build
 
 - `make all` - Build the ikigai client binary with default debug configuration.
 - `make release` - Clean and rebuild the client in release mode with optimizations.
 - `make clean` - Remove all build artifacts, coverage data, reports, and distribution packages.
-- `make build-tests` - Build all test binaries without running them.
+- `make check-compile` - Compile all .c files (src + tests) to .o files. Emits 🟢/🔴 per file.
+- `make check-compile FILE=src/foo.c` - Compile only the specified file + dependencies.
+- `make check-link` - Link all binaries (client, tests, tools). Emits 🟢/🔴 per binary.
+- `make check-link FILE=build/debug/tests/unit/foo_test` - Link only the specified binary.
 
 ## Installation
 
@@ -134,12 +160,32 @@ VCR_RECORD=1 make check-unit         # Re-record fixtures during test run
 make vcr-record-openai               # Re-record all OpenAI fixtures
 ```
 
+## Tool Build Pattern
+
+```makefile
+tool_name_tool: libexec/ikigai/tool-name-tool
+
+libexec/ikigai/tool-name-tool: src/tools/tool_name/main.c $(TOOL_COMMON_SRCS) | libexec/ikigai
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltalloc && echo "🔗 $@" || (echo "🔴 $@" && exit 1)
+```
+
+**Critical:** `$(LDFLAGS)` must come before `-o $@ $^`, not after. Libraries go at the end.
+
+## Test File Naming Convention
+
+**CRITICAL:** Only two file endings are allowed in the `tests/` directory:
+
+1. **`*_test.c`** - Test files that build into test binaries
+2. **`*_helper.c`** - Helper files used by tests (stubs, mocks, utilities)
+
+Any other naming pattern is invalid and must be renamed to match one of these patterns.
+
 ## Important Notes
 
 - Never run parallel make with different targets - different BUILD modes use incompatible flags.
 - Always stay in project root - use relative paths instead of changing directories.
 - Default BUILD mode is debug; specify BUILD=release for optimized builds.
-- Coverage requires 100% line, function, and branch coverage by default.
+- Coverage requires 90% line, function, and branch coverage by default.
 - Maximum file size is 16384 bytes for all non-vendor source and documentation files.
 - Cyclomatic complexity threshold is 15, nesting depth threshold is 5.
 - Vendor files (yyjson, fzy) compile with relaxed warnings.

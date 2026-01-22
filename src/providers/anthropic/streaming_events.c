@@ -133,6 +133,81 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
     }
 }
 
+static void process_text_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj, int32_t index)
+{
+    yyjson_val *text_val = yyjson_obj_get(delta_obj, "text");
+    if (text_val == NULL) return;
+
+    const char *text = yyjson_get_str(text_val);
+    if (text == NULL) return;
+
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .index = index,
+        .data.delta.text = text
+    };
+    sctx->stream_cb(&event, sctx->stream_ctx);
+}
+
+static void process_thinking_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj, int32_t index)
+{
+    yyjson_val *thinking_val = yyjson_obj_get(delta_obj, "thinking");
+    if (thinking_val == NULL) return;
+
+    const char *thinking = yyjson_get_str(thinking_val);
+    if (thinking == NULL) return;
+
+    char *new_text = talloc_asprintf(sctx, "%s%s",
+                                     sctx->current_thinking_text ? sctx->current_thinking_text : "",
+                                     thinking);
+    if (new_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    talloc_free(sctx->current_thinking_text);
+    sctx->current_thinking_text = new_text;
+
+    ik_stream_event_t event = {
+        .type = IK_STREAM_THINKING_DELTA,
+        .index = index,
+        .data.delta.text = thinking
+    };
+    sctx->stream_cb(&event, sctx->stream_ctx);
+}
+
+static void process_signature_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj)
+{
+    yyjson_val *sig_val = yyjson_obj_get(delta_obj, "signature");
+    if (sig_val == NULL) return;
+
+    const char *signature = yyjson_get_str(sig_val);
+    if (signature == NULL) return;
+
+    talloc_free(sctx->current_thinking_signature);
+    sctx->current_thinking_signature = talloc_strdup(sctx, signature);
+    if (sctx->current_thinking_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+}
+
+static void process_input_json_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj, int32_t index)
+{
+    yyjson_val *json_val = yyjson_obj_get(delta_obj, "partial_json");
+    if (json_val == NULL) return;
+
+    const char *partial_json = yyjson_get_str(json_val);
+    if (partial_json == NULL) return;
+
+    char *new_args = talloc_asprintf(sctx, "%s%s",
+                                     sctx->current_tool_args ? sctx->current_tool_args : "",
+                                     partial_json);
+    if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    talloc_free(sctx->current_tool_args);
+    sctx->current_tool_args = new_args;
+
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TOOL_CALL_DELTA,
+        .index = index,
+        .data.tool_delta.arguments = partial_json
+    };
+    sctx->stream_cb(&event, sctx->stream_ctx);
+}
+
 /**
  * Process content_block_delta event
  */
@@ -141,20 +216,17 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
     assert(sctx != NULL); // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
 
-    // Extract index
     yyjson_val *index_val = yyjson_obj_get(root, "index");
     int32_t index = 0;
     if (index_val != NULL && yyjson_is_int(index_val)) {
         index = (int32_t)yyjson_get_int(index_val);
     }
 
-    // Extract delta object
     yyjson_val *delta_obj = yyjson_obj_get(root, "delta");
     if (delta_obj == NULL || !yyjson_is_obj(delta_obj)) {
         return;
     }
 
-    // Extract delta type
     yyjson_val *type_val = yyjson_obj_get(delta_obj, "type");
     if (type_val == NULL) {
         return;
@@ -165,81 +237,14 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
         return;
     }
 
-    // Handle different delta types
     if (strcmp(type_str, "text_delta") == 0) {
-        // Extract text
-        yyjson_val *text_val = yyjson_obj_get(delta_obj, "text");
-        if (text_val != NULL) {
-            const char *text = yyjson_get_str(text_val);
-            if (text != NULL) {
-                // Emit IK_STREAM_TEXT_DELTA
-                ik_stream_event_t event = {
-                    .type = IK_STREAM_TEXT_DELTA,
-                    .index = index,
-                    .data.delta.text = text
-                };
-                sctx->stream_cb(&event, sctx->stream_ctx);
-            }
-        }
+        process_text_delta(sctx, delta_obj, index);
     } else if (strcmp(type_str, "thinking_delta") == 0) {
-        // Extract thinking
-        yyjson_val *thinking_val = yyjson_obj_get(delta_obj, "thinking");
-        if (thinking_val != NULL) {
-            const char *thinking = yyjson_get_str(thinking_val);
-            if (thinking != NULL) {
-                // Accumulate thinking text
-                char *new_text = talloc_asprintf(sctx, "%s%s",
-                    sctx->current_thinking_text ? sctx->current_thinking_text : "",
-                    thinking);
-                if (new_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                talloc_free(sctx->current_thinking_text);
-                sctx->current_thinking_text = new_text;
-
-                // Emit IK_STREAM_THINKING_DELTA
-                ik_stream_event_t event = {
-                    .type = IK_STREAM_THINKING_DELTA,
-                    .index = index,
-                    .data.delta.text = thinking
-                };
-                sctx->stream_cb(&event, sctx->stream_ctx);
-            }
-        }
+        process_thinking_delta(sctx, delta_obj, index);
     } else if (strcmp(type_str, "signature_delta") == 0) {
-        // Extract signature
-        yyjson_val *sig_val = yyjson_obj_get(delta_obj, "signature");
-        if (sig_val != NULL) {
-            const char *signature = yyjson_get_str(sig_val);
-            if (signature != NULL) {
-                // Store signature (overwrites previous - signature comes in one piece)
-                talloc_free(sctx->current_thinking_signature);
-                sctx->current_thinking_signature = talloc_strdup(sctx, signature);
-                if (sctx->current_thinking_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-        // No event emission for signature_delta
+        process_signature_delta(sctx, delta_obj);
     } else if (strcmp(type_str, "input_json_delta") == 0) {
-        // Extract partial_json
-        yyjson_val *json_val = yyjson_obj_get(delta_obj, "partial_json");
-        if (json_val != NULL) {
-            const char *partial_json = yyjson_get_str(json_val);
-            if (partial_json != NULL) {
-                // Accumulate arguments (like OpenAI does)
-                char *new_args = talloc_asprintf(sctx, "%s%s",
-                    sctx->current_tool_args ? sctx->current_tool_args : "",
-                    partial_json);
-                if (new_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                talloc_free(sctx->current_tool_args);
-                sctx->current_tool_args = new_args;
-
-                // Emit IK_STREAM_TOOL_CALL_DELTA
-                ik_stream_event_t event = {
-                    .type = IK_STREAM_TOOL_CALL_DELTA,
-                    .index = index,
-                    .data.tool_delta.arguments = partial_json
-                };
-                sctx->stream_cb(&event, sctx->stream_ctx);
-            }
-        }
+        process_input_json_delta(sctx, delta_obj, index);
     }
 }
 

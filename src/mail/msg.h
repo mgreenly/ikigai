@@ -13,7 +13,4 @@ typedef struct ik_mail_msg {
     bool read;
 } ik_mail_msg_t;
 
-ik_mail_msg_t *ik_mail_msg_create(TALLOC_CTX *ctx,
-                                   const char *from_uuid,
-                                   const char *to_uuid,
-                                   const char *body);
+ik_mail_msg_t *ik_mail_msg_create(TALLOC_CTX *ctx, const char *from_uuid, const char *to_uuid, const char *body);

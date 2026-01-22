@@ -19,7 +19,7 @@
 #include "../../../src/marks.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *ctx;
@@ -289,6 +289,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = mark_scrollback_format_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/mark_scrollback_format_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

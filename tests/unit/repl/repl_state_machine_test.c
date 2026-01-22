@@ -13,7 +13,7 @@
 #include "../../../src/render.h"
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Forward declaration for wrapper function
 ssize_t posix_write_(int fd, const void *buf, size_t count);
@@ -300,6 +300,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_state_machine_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_state_machine_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

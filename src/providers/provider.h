@@ -79,13 +79,13 @@ typedef enum {
  * during coexistence phase. Will be uncommented after old OpenAI code is removed.
  */
 /* TEMPORARILY DISABLED - TYPE CONFLICT
-typedef enum {
+   typedef enum {
     IK_TOOL_AUTO = 0,     / * Model decides when to use tools * /
     IK_TOOL_NONE = 1,     / * No tool use allowed * /
     IK_TOOL_REQUIRED = 2, / * Must use a tool * /
     IK_TOOL_SPECIFIC = 3  / * Must use specific tool * /
-} ik_tool_choice_t;
-**/
+   } ik_tool_choice_t;
+ **/
 
 /**
  * Provider error categories for retry logic

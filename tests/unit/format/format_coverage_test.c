@@ -11,7 +11,7 @@
 #include "../../../src/format.h"
 #include "../../../src/tool.h"
 #include "../../../src/vendor/yyjson/yyjson.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *ctx;
@@ -345,6 +345,7 @@ int main(void)
     int number_failed;
     Suite *s = format_coverage_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/format/format_coverage_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

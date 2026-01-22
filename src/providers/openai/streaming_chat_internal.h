@@ -40,9 +40,7 @@ struct ik_openai_chat_stream_ctx {
  * - Tool call deltas (id, name, arguments)
  * - Finish reason updates
  */
-void ik_openai_chat_process_delta(ik_openai_chat_stream_ctx_t *sctx,
-                                   void *delta,
-                                   const char *finish_reason_str);
+void ik_openai_chat_process_delta(ik_openai_chat_stream_ctx_t *sctx, void *delta, const char *finish_reason_str);
 
 /**
  * Emit IK_STREAM_START if not yet started

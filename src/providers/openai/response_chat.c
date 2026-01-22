@@ -18,7 +18,7 @@
  * Parse tool call from JSON (including arguments string parsing)
  */
 static res_t parse_chat_tool_call(TALLOC_CTX *ctx, TALLOC_CTX *blocks_ctx, yyjson_val *tc_val,
-                                   ik_content_block_t *out_block)
+                                  ik_content_block_t *out_block)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(blocks_ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -142,7 +142,7 @@ ik_finish_reason_t ik_openai_map_chat_finish_reason(const char *finish_reason)
 }
 
 res_t ik_openai_parse_chat_response(TALLOC_CTX *ctx, const char *json,
-                                     size_t json_len, ik_response_t **out_resp)
+                                    size_t json_len, ik_response_t **out_resp)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(json != NULL);     // LCOV_EXCL_BR_LINE
@@ -309,88 +309,116 @@ res_t ik_openai_parse_chat_response(TALLOC_CTX *ctx, const char *json,
     return OK(resp);
 }
 
+static ik_error_category_t map_http_status_to_category(int http_status)
+{
+    switch (http_status) {
+        case 400:
+            return IK_ERR_CAT_INVALID_ARG;
+        case 401:
+        case 403:
+            return IK_ERR_CAT_AUTH;
+        case 404:
+            return IK_ERR_CAT_NOT_FOUND;
+        case 429:
+            return IK_ERR_CAT_RATE_LIMIT;
+        case 500:
+        case 502:
+        case 503:
+            return IK_ERR_CAT_SERVER;
+        default:
+            return IK_ERR_CAT_UNKNOWN;
+    }
+}
+
+static void extract_error_strings(yyjson_val *error_obj, const char **type_str,
+                                   const char **code_str, const char **msg_str)
+{
+    yyjson_val *type_val = yyjson_obj_get(error_obj, "type"); // LCOV_EXCL_BR_LINE
+    yyjson_val *code_val = yyjson_obj_get(error_obj, "code"); // LCOV_EXCL_BR_LINE
+    yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
+
+    *type_str = NULL;
+    *code_str = NULL;
+    *msg_str = NULL;
+
+    if (type_val != NULL) {
+        *type_str = yyjson_get_str(type_val);
+    }
+    if (code_val != NULL) {
+        *code_str = yyjson_get_str(code_val);
+    }
+    if (msg_val != NULL) {
+        *msg_str = yyjson_get_str(msg_val);
+    }
+}
+
+static char *format_error_message(TALLOC_CTX *ctx, const char *type_str, const char *code_str,
+                                   const char *msg_str, int http_status)
+{
+    char *message = NULL;
+
+    if (type_str != NULL && code_str != NULL && msg_str != NULL) {
+        message = talloc_asprintf(ctx, "%s (%s): %s", type_str, code_str, msg_str);
+    } else if (type_str != NULL && msg_str != NULL) {
+        message = talloc_asprintf(ctx, "%s: %s", type_str, msg_str);
+    } else if (msg_str != NULL) {
+        message = talloc_strdup(ctx, msg_str);
+    } else if (type_str != NULL) {
+        message = talloc_strdup(ctx, type_str);
+    } else {
+        message = talloc_asprintf(ctx, "HTTP %d", http_status);
+    }
+
+    if (message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    return message;
+}
+
+static bool try_parse_json_error(TALLOC_CTX *ctx, const char *json, size_t json_len,
+                                  int http_status, char **out_message)
+{
+    if (json == NULL || json_len == 0) {
+        return false;
+    }
+
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
+    if (doc == NULL) {
+        return false;
+    }
+
+    yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
+    if (!yyjson_is_obj(root)) {
+        return false;
+    }
+
+    yyjson_val *error_obj = yyjson_obj_get(root, "error");
+    if (error_obj == NULL) {
+        return false;
+    }
+
+    const char *type_str = NULL;
+    const char *code_str = NULL;
+    const char *msg_str = NULL;
+    extract_error_strings(error_obj, &type_str, &code_str, &msg_str);
+
+    *out_message = format_error_message(ctx, type_str, code_str, msg_str, http_status);
+    return true;
+}
+
 res_t ik_openai_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
-                             size_t json_len, ik_error_category_t *out_category,
-                             char **out_message)
+                            size_t json_len, ik_error_category_t *out_category,
+                            char **out_message)
 {
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(out_category != NULL); // LCOV_EXCL_BR_LINE
     assert(out_message != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Map HTTP status to category
-    switch (http_status) {
-        case 400:
-            *out_category = IK_ERR_CAT_INVALID_ARG;
-            break;
-        case 401:
-        case 403:
-            *out_category = IK_ERR_CAT_AUTH;
-            break;
-        case 404:
-            *out_category = IK_ERR_CAT_NOT_FOUND;
-            break;
-        case 429:
-            *out_category = IK_ERR_CAT_RATE_LIMIT;
-            break;
-        case 500:
-        case 502:
-        case 503:
-            *out_category = IK_ERR_CAT_SERVER;
-            break;
-        default:
-            *out_category = IK_ERR_CAT_UNKNOWN;
-            break;
+    *out_category = map_http_status_to_category(http_status);
+
+    if (try_parse_json_error(ctx, json, json_len, http_status, out_message)) {
+        return OK(NULL);
     }
 
-    // Try to extract error message from JSON
-    if (json != NULL && json_len > 0) {
-        yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-        // yyjson_read_opts wants non-const pointer but doesn't modify the data (same cast pattern as yyjson.h:993)
-        yyjson_doc *doc = yyjson_read_opts((char *)(void *)(size_t)(const void *)json, json_len, 0, &allocator, NULL);
-        if (doc != NULL) {
-            yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
-            if (yyjson_is_obj(root)) {
-                yyjson_val *error_obj = yyjson_obj_get(root, "error");
-                if (error_obj != NULL) {
-                    yyjson_val *type_val = yyjson_obj_get(error_obj, "type"); // LCOV_EXCL_BR_LINE
-                    yyjson_val *code_val = yyjson_obj_get(error_obj, "code"); // LCOV_EXCL_BR_LINE
-                    yyjson_val *msg_val = yyjson_obj_get(error_obj, "message");
-
-                    const char *type_str = NULL;
-                    const char *code_str = NULL;
-                    const char *msg_str = NULL;
-
-                    if (type_val != NULL) {
-                        type_str = yyjson_get_str(type_val);
-                    }
-                    if (code_val != NULL) {
-                        code_str = yyjson_get_str(code_val);
-                    }
-                    if (msg_val != NULL) {
-                        msg_str = yyjson_get_str(msg_val);
-                    }
-
-                    // Format: "{type} ({code}): {message}" or "{type}: {message}"
-                    if (type_str != NULL && code_str != NULL && msg_str != NULL) {
-                        *out_message = talloc_asprintf(ctx, "%s (%s): %s", type_str, code_str, msg_str);
-                    } else if (type_str != NULL && msg_str != NULL) {
-                        *out_message = talloc_asprintf(ctx, "%s: %s", type_str, msg_str);
-                    } else if (msg_str != NULL) {
-                        *out_message = talloc_strdup(ctx, msg_str);
-                    } else if (type_str != NULL) {
-                        *out_message = talloc_strdup(ctx, type_str);
-                    } else {
-                        *out_message = talloc_asprintf(ctx, "HTTP %d", http_status);
-                    }
-
-                    if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                    return OK(NULL);
-                }
-            }
-        }
-    }
-
-    // Fallback to HTTP status message
     *out_message = talloc_asprintf(ctx, "HTTP %d", http_status);
     if (*out_message == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 

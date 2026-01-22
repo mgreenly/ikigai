@@ -10,7 +10,7 @@
 #include <talloc.h>
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Viewport with empty scrollback (input buffer fills screen) */
 START_TEST(test_viewport_empty_scrollback) {
@@ -340,6 +340,7 @@ int main(void)
 {
     Suite *s = repl_viewport_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_viewport_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

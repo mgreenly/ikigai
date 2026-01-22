@@ -4,7 +4,7 @@
  * @brief Unit test for REPL run when provider timeout returns error
  */
 
-#include "repl_run_common.h"
+#include "repl_run_helper.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/providers/provider.h"
@@ -133,6 +133,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = repl_run_provider_timeout_error_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_run_provider_timeout_error_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

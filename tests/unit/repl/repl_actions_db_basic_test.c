@@ -21,7 +21,7 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/logger.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
 
@@ -401,6 +401,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_actions_db_error_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_actions_db_basic_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

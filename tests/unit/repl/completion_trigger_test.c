@@ -13,7 +13,7 @@
 #include "../../../src/input.h"
 #include "../../../src/completion.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Typing "/" triggers completion display with all commands */
 START_TEST(test_typing_slash_triggers_completion) {
@@ -317,6 +317,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = completion_trigger_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/completion_trigger_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

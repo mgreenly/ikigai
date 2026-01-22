@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: parse 2-byte UTF-8 character (é = U+00E9 = 0xC3 0xA9)
 START_TEST(test_input_parse_utf8_2byte) {
@@ -150,6 +150,7 @@ int main(void)
 {
     Suite *s = input_utf8_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input/utf8_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

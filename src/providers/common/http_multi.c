@@ -24,7 +24,8 @@
  *
  * Called by curl as response data arrives.
  */
-static size_t http_write_callback(const char *data, size_t size, size_t nmemb, void *userdata) {
+static size_t http_write_callback(const char *data, size_t size, size_t nmemb, void *userdata)
+{
     http_write_ctx_t *ctx = (http_write_ctx_t *)userdata;
     size_t total_size = size * nmemb;
 
@@ -67,7 +68,8 @@ static size_t http_write_callback(const char *data, size_t size, size_t nmemb, v
  *
  * Cleans up curl multi handle and any remaining active requests.
  */
-static int multi_destructor(ik_http_multi_t *multi) {
+static int multi_destructor(ik_http_multi_t *multi)
+{
     /* Clean up any remaining active requests */
     for (size_t i = 0; i < multi->active_count; i++) {
         active_request_t *req = multi->active_requests[i];
@@ -85,7 +87,8 @@ static int multi_destructor(ik_http_multi_t *multi) {
     return 0;  /* Success */
 }
 
-res_t ik_http_multi_create(void *parent) {
+res_t ik_http_multi_create(void *parent)
+{
     ik_http_multi_t *multi = talloc_zero(parent, ik_http_multi_t);
     if (multi == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate multi-handle manager");  // LCOV_EXCL_LINE
@@ -106,7 +109,8 @@ res_t ik_http_multi_create(void *parent) {
     return OK(multi);
 }
 
-res_t ik_http_multi_perform(ik_http_multi_t *multi, int *still_running) {
+res_t ik_http_multi_perform(ik_http_multi_t *multi, int *still_running)
+{
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(still_running != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -119,8 +123,9 @@ res_t ik_http_multi_perform(ik_http_multi_t *multi, int *still_running) {
 }
 
 res_t ik_http_multi_fdset(ik_http_multi_t *multi,
-                           fd_set *read_fds, fd_set *write_fds,
-                           fd_set *exc_fds, int *max_fd) {
+                          fd_set *read_fds, fd_set *write_fds,
+                          fd_set *exc_fds, int *max_fd)
+{
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);  // LCOV_EXCL_BR_LINE
     assert(write_fds != NULL);  // LCOV_EXCL_BR_LINE
@@ -135,7 +140,8 @@ res_t ik_http_multi_fdset(ik_http_multi_t *multi,
     return OK(NULL);
 }
 
-res_t ik_http_multi_timeout(ik_http_multi_t *multi, long *timeout_ms) {
+res_t ik_http_multi_timeout(ik_http_multi_t *multi, long *timeout_ms)
+{
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(timeout_ms != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -148,11 +154,12 @@ res_t ik_http_multi_timeout(ik_http_multi_t *multi, long *timeout_ms) {
 }
 
 res_t ik_http_multi_add_request(ik_http_multi_t *multi,
-                                 const ik_http_request_t *req,
-                                 ik_http_write_cb_t write_cb,
-                                 void *write_ctx,
-                                 ik_http_completion_cb_t completion_cb,
-                                 void *completion_ctx) {
+                                const ik_http_request_t *req,
+                                ik_http_write_cb_t write_cb,
+                                void *write_ctx,
+                                ik_http_completion_cb_t completion_cb,
+                                void *completion_ctx)
+{
     assert(multi != NULL);  // LCOV_EXCL_BR_LINE
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
     assert(req->url != NULL);  // LCOV_EXCL_BR_LINE
@@ -250,7 +257,7 @@ res_t ik_http_multi_add_request(ik_http_multi_t *multi,
 
     /* Add to active requests array */
     active_request_t **new_array = talloc_realloc_(multi, multi->active_requests,
-                                                    sizeof(active_request_t *) * (multi->active_count + 1));
+                                                   sizeof(active_request_t *) * (multi->active_count + 1));
     if (new_array == NULL) {  // LCOV_EXCL_BR_LINE
         curl_multi_remove_handle_(multi->multi_handle, active_req->easy_handle);  // LCOV_EXCL_LINE
         curl_easy_cleanup_(active_req->easy_handle);  // LCOV_EXCL_LINE

@@ -27,8 +27,8 @@
 #include "../../src/providers/request.h"
 #include "../../src/repl.h"
 #include "../../src/shared.h"
-#include "../test_utils.h"
-#include "../helpers/vcr.h"
+#include "../test_utils_helper.h"
+#include "../helpers/vcr_helper.h"
 
 /* Mock declarations */
 int posix_open_(const char *, int); int posix_tcgetattr_(int, struct termios *);
@@ -391,6 +391,7 @@ int main(void)
 {
     Suite *s = provider_switching_basic_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/provider_switching_basic_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

@@ -7,7 +7,7 @@
 #include "../../src/error.h"
 #include "../../src/paths.h"
 #include "../../src/wrapper.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 START_TEST(test_config_full_flow) {
 
@@ -294,6 +294,7 @@ int main(void)
     int number_failed;
     Suite *s = config_integration_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/config_integration_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

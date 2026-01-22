@@ -14,7 +14,7 @@
 #include "../../src/repl.h"
 #include "../../src/repl_actions.h"
 #include "../../src/scrollback.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 #include <check.h>
 #include <libpq-fe.h>
@@ -381,6 +381,7 @@ int main(void)
     int number_failed;
     Suite *s = message_integration_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/message_integration_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

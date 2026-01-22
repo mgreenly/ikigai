@@ -18,13 +18,14 @@
  * ================================================================ */
 
 ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
-                                                 ik_google_stream_ctx_t *sctx)
+                                               ik_google_stream_ctx_t *sctx)
 {
     assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(sctx != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate response structure
-    ik_response_t *resp = talloc_zero(ctx, ik_response_t);
+    ik_response_t *resp = talloc_zero(ctx,
+                                      ik_response_t);
     if (resp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Copy model
@@ -56,7 +57,8 @@ ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
         block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
         if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
-            sctx->current_tool_args != NULL ? sctx->current_tool_args : "{}");
+                                                        sctx->current_tool_args !=
+                                                        NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     } else {
         // No tool call - empty content
@@ -72,7 +74,7 @@ ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
  * ================================================================ */
 
 res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_ctx,
-                                    ik_google_stream_ctx_t **out_stream_ctx)
+                                  ik_google_stream_ctx_t **out_stream_ctx)
 {
     assert(ctx != NULL);             // LCOV_EXCL_BR_LINE
     assert(cb != NULL);              // LCOV_EXCL_BR_LINE

@@ -4,7 +4,7 @@
 // Unlike mock-based tests, these use actual PTY pairs to simulate terminal behavior.
 // This provides more realistic testing of the basic terminal functionality.
 
-#include "terminal_pty_helpers.h"
+#include "terminal_pty_helper.h"
 
 #include <check.h>
 #include <pthread.h>
@@ -15,7 +15,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // ============================================================================
 // Test: Basic PTY terminal initialization succeeds
@@ -207,6 +207,7 @@ int main(void)
 {
     Suite *s = terminal_pty_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/terminal/terminal_pty_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -29,5 +29,4 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
  */
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 
-
 #endif // IK_DB_SESSION_H

@@ -13,7 +13,7 @@
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <libpq-fe.h>
@@ -283,6 +283,7 @@ int main(void)
 {
     Suite *s = handle_request_success_metadata_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/handle_request_success_metadata_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

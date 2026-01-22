@@ -36,11 +36,11 @@
  * @return            OK on success, ERR on failure (invalid params or database error)
  */
 res_t ik_db_message_insert(ik_db_ctx_t *db,
-                            int64_t session_id,
-                            const char *agent_uuid,
-                            const char *kind,
-                            const char *content,
-                            const char *data_json);
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json);
 
 /**
  * Validate that a kind string is one of the allowed event kinds.
@@ -74,10 +74,10 @@ bool ik_db_message_is_valid_kind(const char *kind);
  * @return               Allocated ik_msg_t struct (owned by parent), or NULL on OOM
  */
 ik_msg_t *ik_msg_create_tool_result(void *parent,
-                                     const char *tool_call_id,
-                                     const char *name,
-                                     const char *output,
-                                     bool success,
-                                     const char *content);
+                                    const char *tool_call_id,
+                                    const char *name,
+                                    const char *output,
+                                    bool success,
+                                    const char *content);
 
 #endif // IK_DB_MESSAGE_H

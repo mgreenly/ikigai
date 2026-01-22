@@ -10,8 +10,8 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
-#include "../../helpers/test_contexts.h"
+#include "../../test_utils_helper.h"
+#include "../../helpers/test_contexts_helper.h"
 
 // Test fixture data
 static ik_repl_ctx_t *repl = NULL;
@@ -347,6 +347,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_switch_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/switch_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

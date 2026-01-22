@@ -52,7 +52,10 @@ ik_input_buffer_cursor_t *ik_input_buffer_cursor_create(void *parent);
  * @param text_len Length of text in bytes
  * @param byte_offset Byte position to set cursor to
  */
-void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor, const char *text, size_t text_len, size_t byte_offset);
+void ik_input_buffer_cursor_set_position(ik_input_buffer_cursor_t *cursor,
+                                         const char *text,
+                                         size_t text_len,
+                                         size_t byte_offset);
 
 /**
  * @brief Move cursor left by one grapheme cluster
@@ -91,7 +94,9 @@ void ik_input_buffer_cursor_move_right(ik_input_buffer_cursor_t *cursor, const c
  * @param byte_offset_out Pointer to receive byte offset
  * @param grapheme_offset_out Pointer to receive grapheme offset
  */
-void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor, size_t *byte_offset_out, size_t *grapheme_offset_out);
+void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor,
+                                         size_t *byte_offset_out,
+                                         size_t *grapheme_offset_out);
 
 /**
  * @brief Pretty-print cursor structure

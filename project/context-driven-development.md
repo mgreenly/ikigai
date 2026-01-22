@@ -87,7 +87,7 @@ The default mechanism. Any executable ikigai can access:
 
 If it's in the path, reference it in config. Extending capabilities is trivial - no special protocol, no registration, no restart.
 
-Minimal internal tools. External tools are first-class. Leverage model strengths at bash and Unix patterns.
+All tools are external tools - no internal tools. Leverage model strengths at bash and Unix patterns.
 
 ## Design Philosophy
 
@@ -105,5 +105,5 @@ Most tools treat context as an afterthought - dump messages into a window and ho
 
 - [structured-memory/](structured-memory/) - Memory layer architecture
 - [context-management.md](context-management.md) - Context commands
-- [minimal-tool-architecture.md](minimal-tool-architecture.md) - Tool philosophy
+- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture
 - [agent-process-model.md](agent-process-model.md) - Agent hierarchy

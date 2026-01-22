@@ -10,8 +10,8 @@
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
-#include "../../helpers/test_contexts.h"
+#include "../../test_utils_helper.h"
+#include "../../helpers/test_contexts_helper.h"
 
 // Test fixture data
 static ik_repl_ctx_t *repl = NULL;
@@ -271,6 +271,7 @@ int main(void)
     int failed = 0;
     Suite *s = nav_parent_child_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/nav_parent_child_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     failed = srunner_ntests_failed(sr);
     srunner_free(sr);

@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/render.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Internal function for testing cursor position calculation
 typedef struct {
@@ -344,6 +344,7 @@ int main(void)
 {
     Suite *s = cursor_position_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/render/cursor_position_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

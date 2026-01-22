@@ -3,7 +3,7 @@
 #include "../../src/repl.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 #include <check.h>
 #include <curl/curl.h>
@@ -352,6 +352,7 @@ int main(void)
 {
     Suite *s = history_edge_cases_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/history_edge_cases_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

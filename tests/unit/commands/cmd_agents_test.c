@@ -14,7 +14,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <string.h>
@@ -393,6 +393,7 @@ int main(void)
 
     Suite *s = agents_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/cmd_agents_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int failed = srunner_ntests_failed(sr);

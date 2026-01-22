@@ -8,7 +8,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 #include "../terminal/terminal_test_mocks.h"
 
@@ -106,6 +106,7 @@ int main(void)
 {
     Suite *s = repl_scrollback_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_scrollback_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

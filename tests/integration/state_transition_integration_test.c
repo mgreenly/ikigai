@@ -5,7 +5,7 @@
 #include <talloc.h>
 #include "../../src/input.h"
 #include "../../src/error.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // ========================================================================
 // State Confusion Tests
@@ -140,6 +140,7 @@ int main(void)
 {
     Suite *s = state_transition_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/state_transition_integration_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

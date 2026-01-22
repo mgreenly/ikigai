@@ -4,7 +4,7 @@
  */
 
 #include "../../../src/completion.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>
@@ -279,6 +279,7 @@ int main(void)
     int number_failed;
     Suite *s = completion_matching_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/completion/matching_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

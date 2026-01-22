@@ -16,7 +16,7 @@
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_page_up_with_4_lines) {
     void *ctx = talloc_new(NULL);
@@ -183,6 +183,7 @@ int main(void)
 {
     Suite *s = debug_page_up_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_debug_page_up_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

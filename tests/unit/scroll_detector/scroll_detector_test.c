@@ -5,7 +5,7 @@
 
 #include "../../../src/scroll_detector.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>
@@ -405,6 +405,7 @@ int main(void)
 
     s = scroll_detector_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scroll_detector/scroll_detector_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

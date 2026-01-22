@@ -18,7 +18,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Ctrl+P starts browsing with empty input */
 START_TEST(test_ctrl_p_starts_browsing_empty) {
@@ -467,6 +467,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = history_ctrl_pn_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/history_ctrl_pn_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

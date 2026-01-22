@@ -14,7 +14,7 @@
 #include "../../src/repl_actions.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include "completion_test_mocks.h"
 
 static void press_space(ik_repl_ctx_t *r)
@@ -439,6 +439,7 @@ int main(void)
 {
     Suite *s = completion_edge_cases_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/completion_edge_cases_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int nf = srunner_ntests_failed(sr);
     srunner_free(sr);

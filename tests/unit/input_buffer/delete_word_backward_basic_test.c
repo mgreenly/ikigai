@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: delete_word_backward basic operation */
 START_TEST(test_delete_word_backward_basic) {
@@ -284,6 +284,7 @@ int main(void)
     int number_failed;
     Suite *s = input_buffer_delete_word_backward_basic_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer/delete_word_backward_basic_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

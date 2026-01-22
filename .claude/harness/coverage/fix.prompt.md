@@ -48,9 +48,12 @@ Other agents have already tried to fix this error. Learn from their attempts:
 
 ## Validation
 
-Before reporting done, run:
-1. `make check` - ensure tests pass
-2. `make lint` - ensure code style is correct
+Verify the fix by running in order:
+1. `make check-compile`
+2. `make check-link`
+3. `make check-unit`
+4. `make check-integration`
+5. `make check-coverage`
 
 ## When Done
 

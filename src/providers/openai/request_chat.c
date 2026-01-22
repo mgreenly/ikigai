@@ -25,6 +25,53 @@
  * ================================================================ */
 
 /**
+ * Remove "format" fields from schema recursively.
+ * OpenAI rejects certain format validators like "uri" that are valid JSON Schema.
+ * This function recursively walks the schema and removes all "format" fields.
+ */
+static void remove_format_validators(yyjson_mut_val *schema)
+{
+    if (!schema || !yyjson_mut_is_obj(schema)) {
+        return;
+    }
+
+    // Remove format field if present
+    yyjson_mut_obj_remove_key(schema, "format");
+
+    // Recursively process properties object
+    yyjson_mut_val *properties = yyjson_mut_obj_get(schema, "properties");
+    if (properties && yyjson_mut_is_obj(properties)) {
+        yyjson_mut_obj_iter iter;
+        yyjson_mut_obj_iter_init(properties, &iter);
+        yyjson_mut_val *key;
+        while ((key = yyjson_mut_obj_iter_next(&iter)) != NULL) {
+            yyjson_mut_val *value = yyjson_mut_obj_iter_get_val(key);
+            remove_format_validators(value);
+        }
+    }
+
+    // Recursively process items (for arrays)
+    yyjson_mut_val *items = yyjson_mut_obj_get(schema, "items");
+    if (items && yyjson_mut_is_obj(items)) {
+        remove_format_validators(items);
+    }
+
+    // Recursively process oneOf/anyOf/allOf arrays
+    const char *combinators[] = {"oneOf", "anyOf", "allOf"};
+    for (size_t i = 0; i < 3; i++) {
+        yyjson_mut_val *combinator = yyjson_mut_obj_get(schema, combinators[i]);
+        if (combinator && yyjson_mut_is_arr(combinator)) {
+            yyjson_mut_arr_iter arr_iter;
+            yyjson_mut_arr_iter_init(combinator, &arr_iter);
+            yyjson_mut_val *elem;
+            while ((elem = yyjson_mut_arr_iter_next(&arr_iter)) != NULL) {
+                remove_format_validators(elem);
+            }
+        }
+    }
+}
+
+/**
  * Ensure all properties are in the required array for OpenAI strict mode.
  * OpenAI's strict mode requires every property to be listed in required[].
  */
@@ -67,7 +114,7 @@ static bool ensure_all_properties_required(yyjson_mut_doc *doc, yyjson_mut_val *
  * Serialize a single tool definition to Chat Completions format
  */
 static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
-                                  const ik_tool_def_t *tool)
+                                const ik_tool_def_t *tool)
 {
     assert(doc != NULL);       // LCOV_EXCL_BR_LINE
     assert(tools_arr != NULL); // LCOV_EXCL_BR_LINE
@@ -97,12 +144,15 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
 
     // Parse parameters JSON and add as object
     yyjson_doc *params_doc = yyjson_read(tool->parameters,
-                                          strlen(tool->parameters), 0);
+                                         strlen(tool->parameters), 0);
     if (!params_doc) return false;
 
     yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
     yyjson_doc_free(params_doc);
     if (!params_mut) return false; // LCOV_EXCL_BR_LINE
+
+    // Remove format validators that OpenAI doesn't support (e.g., "uri")
+    remove_format_validators(params_mut);
 
     // OpenAI strict mode requires ALL properties in the required array
     if (!ensure_all_properties_required(doc, params_mut)) { // LCOV_EXCL_BR_LINE
@@ -172,7 +222,7 @@ static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_
  * ================================================================ */
 
 res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
-                                        bool streaming, char **out_json)
+                                       bool streaming, char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE

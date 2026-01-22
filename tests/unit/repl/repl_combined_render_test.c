@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include "../../../src/repl.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write() implementation to avoid actual terminal writes
 static char *mock_write_buffer = NULL;
@@ -207,6 +207,7 @@ int main(void)
 {
     Suite *s = repl_combined_render_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_combined_render_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

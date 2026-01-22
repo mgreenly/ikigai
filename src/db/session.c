@@ -90,4 +90,3 @@ res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
     *session_id_out = session_id;
     return OK(NULL);
 }
-

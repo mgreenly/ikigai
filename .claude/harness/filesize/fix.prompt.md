@@ -8,7 +8,6 @@ You have ONE job: split the oversized file into smaller, well-organized modules.
 
 Before starting, load these skills for context:
 - /load errors
-- /load makefile
 - /load memory
 - /load naming
 - /load source-code
@@ -63,9 +62,10 @@ Follow existing patterns in Makefile (search for `_HELPERS_OBJ`).
 
 ## Validation
 
-Before reporting done, run:
-1. `make clean && make all build-tests` - ensure compilation succeeds
-2. `make filesize` - ensure the file is now under the limit
+Before reporting done, run in order:
+1. `.claude/scripts/check-compile` - ensure compilation succeeds
+2. `.claude/scripts/check-link` - ensure linking succeeds
+3. `.claude/scripts/check-filesize` - ensure the file is now under the limit
 
 ## When Done
 

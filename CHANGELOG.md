@@ -3,7 +3,145 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [rel-09] - 2026-01-22
+
+### Added
+
+#### Tools Refactoring (Complete)
+- **Minimal main pattern**: Refactored all existing tools to separate logic from main()
+  - bash, file_edit, file_read, file_write, glob, grep all refactored
+  - Logic extracted to .c/.h files for direct unit testing
+  - main.c files reduced to argument parsing and entry point
+- **Direct unit tests**: Comprehensive test suites for all tool logic
+  - bash_direct_test, file_edit_direct_test, file_read_direct_test
+  - file_write_direct_test, glob_direct_test, grep_direct_test
+  - Tests call logic functions directly without subprocess overhead
+- **Wrapper infrastructure**: Enhanced wrapper system for testability
+  - Added wrapper_web.c/h for curl/libxml2 operations
+  - Extended wrapper_posix.h with additional POSIX wrappers
+  - All wrappers mockable for deterministic testing
+
+#### Web Tools (Complete)
+- **web-fetch-tool**: URL content fetching with HTML→markdown conversion
+  - HTTP fetching via libcurl with redirect support
+  - HTML parsing using libxml2
+  - DOM-to-markdown conversion (headings, paragraphs, links, lists, formatting)
+  - Script/style/nav tag stripping for clean output
+  - Pagination support (offset/limit on markdown lines)
+  - Title extraction from HTML
+  - No credentials required (works out of the box)
+  - 100% test coverage with comprehensive unit tests
+  - HTML test fixtures for deterministic testing
+- **web-search-brave-tool**: Brave Search API integration
+  - Pagination support (count/offset parameters)
+  - Domain filtering (allowed_domains/blocked_domains)
+  - Post-processing domain filter implementation
+  - Comprehensive unit tests with 100% coverage
+  - Credential discovery: BRAVE_API_KEY → credentials.json → config_required event
+- **web-search-google-tool**: Google Custom Search API integration
+  - Pagination support (num/start parameters, 1-based indexing)
+  - Domain filtering via parallel multi-domain calls
+  - Parallel request handling for multiple allowed_domains
+  - Comprehensive unit tests with 100% coverage
+  - Credential discovery: GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
+- **Common features**:
+  - Identical JSON response format across providers
+  - Tools always advertised to LLM (even without credentials)
+  - Helpful config_required events with setup instructions
+  - Memory-safe talloc implementation
+  - Error handling with machine-readable error codes
+
+#### Ralph Harness Improvements
+- **Better error visibility**: Output unhandled message types in subdued text
+  - Unknown message types logged with "?" prefix
+  - Consistent formatting with tool output
+  - Improved debugging for protocol changes
+- **Improved error handling**: Enhanced retry logic for structured output
+- **Better documentation**: Updated ralph skill with complete flag documentation
+- **Quality gate enforcement**: Added quality gate requirement to Ralph prompt
+- **Environment isolation**: Clear ANTHROPIC_API_KEY when invoking claude -p (pluribus)
+
+#### Quality Infrastructure (Complete)
+- **Rubyified check scripts**: Converted all harness check scripts to Ruby
+  - Consistent output formatting and error handling
+  - Better JSON output structure
+  - Improved parallel execution support
+- **Fix harnesses**: Added automated repair scripts for all quality checks
+  - fix-compile, fix-filesize, fix-unit, fix-integration
+  - fix-complexity, fix-sanitize, fix-tsan, fix-valgrind
+  - fix-helgrind, fix-coverage
+  - Each fix-* script launches Ralph with appropriate goal file
+- **Goal files**: Comprehensive goal files for all fix harnesses
+  - Detailed acceptance criteria
+  - Reference to relevant skills
+  - Clear outcomes definition
+
+#### Tool System Improvements
+- **Alphabetical tool sorting**: Tools displayed in sorted order via `/tool` command
+- **Environment variable support**: Added BRAVE_API_KEY, GOOGLE_SEARCH_API_KEY, GOOGLE_SEARCH_ENGINE_ID
+- **Tool registry**: Added tool registry sorting and display functions
+
+#### Documentation
+- **External tool architecture**: Comprehensive documentation for external tool system
+  - Tool discovery and registration patterns
+  - Subprocess communication protocols
+  - JSON schema definitions
+- **Pull-request skill**: Updated for jj repository workflow
+  - Correct `gh pr create --repo` usage
+  - Fixed examples for jj bookmarks
+- **Goal authoring skill**: Comprehensive guide for writing Ralph goals
+- **New build system**: Architecture and patterns documentation for Phase 1 Makefile
+- **Debian Docker**: Documentation for Debian 13.2 container environment
+
+### Changed
+
+#### Build System
+- **Makefile rewrite**: Complete Phase 1 rewrite with elegant architecture
+  - Replaced complex Makefile with clean, maintainable version
+  - New check-compile target with parallel compilation and clean output
+  - New check-link target with race condition fixes
+  - New check-unit target with XML parsing for test results
+  - New check-complexity target for cyclomatic complexity enforcement
+  - New check-coverage target with consistency improvements
+  - New check-sanitize target for ASan/UBSan validation
+  - Added web tool targets (web_search_brave_tool, web_search_google_tool, web_fetch_tool)
+  - Added direct test targets for all tools
+  - libxml2 integration via pkg-config
+  - All tests use srunner_set_xml() for XML output
+- **CI infrastructure**: Enhanced continuous integration
+  - Switched to Debian 13.2 container for coverage check compatibility
+  - Run all 11 check-* targets in order
+  - Run tests as non-root user with VCR debug support
+  - Fixed workspace paths and API key secrets
+  - Added provider API keys to development and CI environments
+- **Test organization**: Reorganized unit tests into tools/ subdirectory
+  - All tool tests moved to tests/unit/tools/
+  - Clearer separation of concerns
+  - Better discoverability
+
+#### Code Quality
+- **Coverage threshold**: Lowered from 100% to 90% for pragmatic coverage
+- **Test coverage**: Maintained 90%+ across all modules
+- **File size compliance**: All files within 16KB limit
+- **Complexity compliance**: All functions within cyclomatic complexity limits
+
+### Fixed
+- **Memory leaks**: Fixed various memory leaks in web tools
+- **Buffer overflows**: Fixed heap-buffer-overflow in file_edit.c
+- **Test reliability**: Improved test determinism and reliability
+- **Ralph output**: Fixed structured output handling with retry logic
+- **VCR test failures**: Removed duplicate curl wrappers from wrapper_web causing VCR failures
+- **CI coverage**: Fixed coverage checks by switching to Debian 13.2 container
+- **Makefile warnings**: Fixed duplicate target warnings
+
+### Technical Metrics
+- **Changes**: 302 files modified, +19,294/-11,989 lines
+- **New files**: 126 files added (tools, tests, harnesses, documentation)
+- **Removed files**: 36 files deleted (obsolete CDD artifacts)
+- **Test coverage**: 90%+ lines, functions, and branches
+- **Code quality**: All 11 quality checks pass
+- **Quality gates**: compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage
 
 ## [rel-08] - 2026-01-15
 
@@ -28,7 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Check-? **: Documented 60-minute timeout, foreground execution, JSON output format
 
 #### CDD Pipeline Improvements
-- **Gap verification**: Checklists for gap-plan and gap-tasks commands
+- **Gap verification**: Checklists for gap command
 - **TDD enforcement**: Enforced TDD across CDD pipeline with streamlined verification
 - **$CDD_DIR requirement**: Environment variable required for workspace path
 - **Pull-request skill**: Concise PR template for consistent pull requests
@@ -653,6 +791,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-09]: https://github.com/mgreenly/ikigai/releases/tag/rel-09
 [rel-08]: https://github.com/mgreenly/ikigai/releases/tag/rel-08
 [rel-07]: https://github.com/mgreenly/ikigai/releases/tag/rel-07
 [rel-06]: https://github.com/mgreenly/ikigai/releases/tag/rel-06

@@ -13,7 +13,7 @@
 #include <inttypes.h>
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Separator as last line should NOT have trailing \r\n
@@ -300,6 +300,7 @@ int main(void)
 {
     Suite *s = separator_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/render/render_separator_terminal_scroll_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

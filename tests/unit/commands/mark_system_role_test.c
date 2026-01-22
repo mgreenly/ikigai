@@ -18,7 +18,7 @@
 #include "../../../src/marks.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *ctx;
@@ -230,6 +230,7 @@ int main(void)
     int number_failed;
     Suite *s = mark_system_role_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/mark_system_role_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -5,7 +5,7 @@
 #include <talloc.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: ensure_layout does nothing when width matches cached_width
 START_TEST(test_scrollback_ensure_layout_no_change) {
@@ -305,6 +305,7 @@ int32_t main(void)
 
     s = scrollback_layout_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scrollback/scrollback_layout_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

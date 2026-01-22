@@ -294,6 +294,7 @@ int main(void)
 {
     Suite *s = streaming_response_builder_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/google/streaming_response_builder_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

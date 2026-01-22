@@ -3,7 +3,7 @@
 #include "../../src/repl.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 #include <check.h>
 #include <curl/curl.h>
@@ -547,6 +547,7 @@ int32_t main(void)
 {
     Suite *s = repl_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/repl_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

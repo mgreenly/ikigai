@@ -1,7 +1,7 @@
 // Terminal module PTY-based CSI u enable edge case tests
 // Tests edge cases and boundary conditions for CSI u enable using real pseudo-terminals
 
-#include "terminal_pty_helpers.h"
+#include "terminal_pty_helper.h"
 
 #include <check.h>
 #include <pthread.h>
@@ -12,7 +12,7 @@
 #include "../../../src/error.h"
 #include "../../../src/logger.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // ============================================================================
 // Test: CSI u enable response missing ESC prefix (covers line 116 short-circuit)
@@ -408,6 +408,7 @@ int main(void)
 {
     Suite *s = terminal_pty_enable_edge_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/terminal/terminal_pty_enable_edge_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

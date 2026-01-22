@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test delete from beginning
 START_TEST(test_array_delete_from_beginning) {
@@ -267,6 +267,7 @@ int main(void)
 
     s = array_delete_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/array/delete_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

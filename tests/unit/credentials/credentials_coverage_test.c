@@ -51,7 +51,7 @@ START_TEST(test_non_tilde_path) {
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
 
-    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    const char *json = "{ \"OPENAI_API_KEY\": \"test-key\" }";
     char *path = talloc_asprintf(test_ctx, "/tmp/ikigai_creds_notilde_%d.json", getpid());
     FILE *f = fopen(path, "w");
     fprintf(f, "%s", json);
@@ -75,7 +75,7 @@ START_TEST(test_successful_json_parsing) {
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
     const char *json =
-        "{\"openai\":{\"api_key\":\"openai-key\"},\"anthropic\":{\"api_key\":\"anthropic-key\"},\"google\":{\"api_key\":\"google-key\"}}";
+        "{\"OPENAI_API_KEY\":\"openai-key\",\"ANTHROPIC_API_KEY\":\"anthropic-key\",\"GOOGLE_API_KEY\":\"google-key\"}";
     char *path = create_temp_credentials(json);
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
@@ -95,7 +95,7 @@ START_TEST(test_empty_and_missing_api_keys) {
 
     // Test 1: Empty string api_keys should not be loaded
     const char *json1 =
-        "{\"openai\": {\"api_key\": \"\"}, \"anthropic\": {\"api_key\": \"\"}, \"google\": {\"api_key\": \"\"}}";
+        "{\"OPENAI_API_KEY\": \"\", \"ANTHROPIC_API_KEY\": \"\", \"GOOGLE_API_KEY\": \"\"}";
     char *path1 = create_temp_credentials(json1);
     ik_credentials_t *creds1 = NULL;
     res_t result1 = ik_credentials_load(test_ctx, path1, &creds1);
@@ -106,7 +106,7 @@ START_TEST(test_empty_and_missing_api_keys) {
     unlink(path1);
 
     // Test 2: Missing api_key fields
-    const char *json2 = "{\"openai\": {\"other\": \"val\"}, \"anthropic\": {\"x\": \"y\"}, \"google\": {\"z\": \"w\"}}";
+    const char *json2 = "{\"other\": \"val\"}";
     char *path2 = create_temp_credentials(json2);
     ik_credentials_t *creds2 = NULL;
     res_t result2 = ik_credentials_load(test_ctx, path2, &creds2);
@@ -120,7 +120,7 @@ END_TEST
 
 START_TEST(test_file_then_env_override) {
     const char *json =
-        "{\"openai\":{\"api_key\":\"file-openai\"},\"anthropic\":{\"api_key\":\"file-anthropic\"},\"google\":{\"api_key\":\"file-google\"}}";
+        "{\"OPENAI_API_KEY\":\"file-openai\",\"ANTHROPIC_API_KEY\":\"file-anthropic\",\"GOOGLE_API_KEY\":\"file-google\"}";
     char *path = create_temp_credentials(json);
     setenv("OPENAI_API_KEY", "env-openai", 1);
     setenv("ANTHROPIC_API_KEY", "env-anthropic", 1);
@@ -139,7 +139,7 @@ START_TEST(test_file_then_env_override) {
 END_TEST
 
 START_TEST(test_insecure_permissions_warning) {
-    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    const char *json = "{ \"OPENAI_API_KEY\": \"test-key\" }";
     char *path = create_temp_credentials(json);
 
     // Set insecure permissions (world-readable)
@@ -231,7 +231,7 @@ START_TEST(test_env_var_behaviors) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
-    const char *json1 = "{\"openai\": {\"api_key\": \"file-key\"}}";
+    const char *json1 = "{\"OPENAI_API_KEY\": \"file-key\"}";
     char *path1 = create_temp_credentials(json1);
     setenv("OPENAI_API_KEY", "", 1);
     ik_credentials_t *creds1 = NULL;
@@ -284,7 +284,7 @@ START_TEST(test_corrupted_json_file) {
 END_TEST
 
 START_TEST(test_permissions_checks) {
-    const char *json = "{ \"openai\": { \"api_key\": \"test-key\" } }";
+    const char *json = "{ \"OPENAI_API_KEY\": \"test-key\" }";
 
     // Test 1: Secure permissions (0600) - should not trigger warning
     char *path = create_temp_credentials(json);
@@ -354,7 +354,7 @@ START_TEST(test_successful_tilde_expansion) {
     unsetenv("GOOGLE_API_KEY");
 
     // Create credentials file in temp location
-    const char *json = "{ \"openai\": { \"api_key\": \"tilde-test-key\" } }";
+    const char *json = "{ \"OPENAI_API_KEY\": \"tilde-test-key\" }";
     char *actual_path = talloc_asprintf(test_ctx, "/tmp/ikigai_tilde_%d.json", getpid());
     FILE *f = fopen(actual_path, "w");
     fprintf(f, "%s", json);
@@ -391,18 +391,18 @@ START_TEST(test_credentials_get_all_providers) {
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
     const char *json =
-        "{\"openai\":{\"api_key\":\"openai-test\"},\"anthropic\":{\"api_key\":\"anthropic-test\"},\"google\":{\"api_key\":\"google-test\"}}";
+        "{\"OPENAI_API_KEY\":\"openai-test\",\"ANTHROPIC_API_KEY\":\"anthropic-test\",\"GOOGLE_API_KEY\":\"google-test\"}";
     char *path = create_temp_credentials(json);
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
     ck_assert(!is_err(&result));
     ck_assert_ptr_nonnull(creds);
-    ck_assert_ptr_nonnull(ik_credentials_get(creds, "openai"));
-    ck_assert_str_eq(ik_credentials_get(creds, "openai"), "openai-test");
-    ck_assert_ptr_nonnull(ik_credentials_get(creds, "anthropic"));
-    ck_assert_str_eq(ik_credentials_get(creds, "anthropic"), "anthropic-test");
-    ck_assert_ptr_nonnull(ik_credentials_get(creds, "google"));
-    ck_assert_str_eq(ik_credentials_get(creds, "google"), "google-test");
+    ck_assert_ptr_nonnull(ik_credentials_get(creds, "OPENAI_API_KEY"));
+    ck_assert_str_eq(ik_credentials_get(creds, "OPENAI_API_KEY"), "openai-test");
+    ck_assert_ptr_nonnull(ik_credentials_get(creds, "ANTHROPIC_API_KEY"));
+    ck_assert_str_eq(ik_credentials_get(creds, "ANTHROPIC_API_KEY"), "anthropic-test");
+    ck_assert_ptr_nonnull(ik_credentials_get(creds, "GOOGLE_API_KEY"));
+    ck_assert_str_eq(ik_credentials_get(creds, "GOOGLE_API_KEY"), "google-test");
     ck_assert_ptr_null(ik_credentials_get(creds, "unknown"));
     unlink(path);
 }
@@ -410,7 +410,7 @@ END_TEST
 
 START_TEST(test_partial_env_override) {
     const char *json =
-        "{\"openai\":{\"api_key\":\"f1\"},\"anthropic\":{\"api_key\":\"f2\"},\"google\":{\"api_key\":\"f3\"}}";
+        "{\"OPENAI_API_KEY\":\"f1\",\"ANTHROPIC_API_KEY\":\"f2\",\"GOOGLE_API_KEY\":\"f3\"}";
     char *path = create_temp_credentials(json);
     unsetenv("ANTHROPIC_API_KEY");
     unsetenv("GOOGLE_API_KEY");
@@ -459,6 +459,7 @@ int main(void)
 {
     Suite *s = credentials_coverage_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/credentials/credentials_coverage_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

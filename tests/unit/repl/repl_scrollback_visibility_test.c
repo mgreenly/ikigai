@@ -19,7 +19,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: All viewport rows should show scrollback when scrolled up
@@ -264,6 +264,7 @@ int main(void)
 {
     Suite *s = scrollback_visibility_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_scrollback_visibility_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

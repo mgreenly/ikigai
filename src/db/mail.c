@@ -212,9 +212,9 @@ res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
 }
 
 res_t ik_db_mail_inbox_filtered(ik_db_ctx_t *db, TALLOC_CTX *ctx,
-                                 int64_t session_id, const char *to_uuid,
-                                 const char *from_uuid,
-                                 ik_mail_msg_t ***out, size_t *count)
+                                int64_t session_id, const char *to_uuid,
+                                const char *from_uuid,
+                                ik_mail_msg_t ***out, size_t *count)
 {
     assert(db != NULL);         // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);   // LCOV_EXCL_BR_LINE

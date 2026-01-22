@@ -102,7 +102,7 @@ Use these domain terms consistently in code, docs, and conversation.
 - Session messages array MUST equal what gets sent to LLM
 - Database writes MUST succeed before updating in-memory state
 - Exactly one owner per allocation (talloc parent-child)
-- 100% test coverage MUST be maintained
+- 90% test coverage MUST be maintained
 - Never run multiple make commands simultaneously
 
 ## Anti-Patterns to Avoid

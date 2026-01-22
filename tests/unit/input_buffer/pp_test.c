@@ -8,7 +8,7 @@
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/format.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Pretty-print empty input_buffer */
 START_TEST(test_pp_input_buffer_empty) {
@@ -332,6 +332,7 @@ int32_t main(void)
     int32_t number_failed;
     Suite *s = pp_input_buffer_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer/pp_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

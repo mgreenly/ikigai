@@ -252,6 +252,7 @@ int main(void)
 {
     Suite *s = all_agents_tool_polling_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/all_agents_tool_polling_test.xml");
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

@@ -76,7 +76,10 @@ res_t ik_db_init(TALLOC_CTX *ctx, const char *conn_str, const char *data_dir, ik
     return result;
 }
 
-res_t ik_db_init_with_migrations(TALLOC_CTX *ctx, const char *conn_str, const char *migrations_dir, ik_db_ctx_t **out_ctx)
+res_t ik_db_init_with_migrations(TALLOC_CTX *ctx,
+                                 const char *conn_str,
+                                 const char *migrations_dir,
+                                 ik_db_ctx_t **out_ctx)
 {
     // Validate input parameters
     assert(ctx != NULL);            // LCOV_EXCL_BR_LINE

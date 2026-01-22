@@ -59,8 +59,10 @@ typedef struct ik_anthropic_stream_ctx ik_anthropic_stream_ctx_t;
  * Note: Completion callback is NOT stored here. It is passed separately
  * to start_stream() and handled by the HTTP multi layer.
  */
-res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
-                                      void *stream_ctx, ik_anthropic_stream_ctx_t **out);
+res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx,
+                                     ik_stream_cb_t stream_cb,
+                                     void *stream_ctx,
+                                     ik_anthropic_stream_ctx_t **out);
 
 /**
  * Process single SSE event from Anthropic API
@@ -84,8 +86,7 @@ res_t ik_anthropic_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t stream_cb,
  *
  * This function is called by the SSE parser's event callback during curl write callbacks.
  */
-void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
-                                        const char *event, const char *data);
+void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx, const char *event, const char *data);
 
 /**
  * Build response from accumulated streaming data
@@ -103,7 +104,6 @@ void ik_anthropic_stream_process_event(ik_anthropic_stream_ctx_t *stream_ctx,
  * This allows streaming responses to be treated identically to non-streaming
  * responses by the REPL layer.
  */
-ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
-                                                   ik_anthropic_stream_ctx_t *sctx);
+ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx, ik_anthropic_stream_ctx_t *sctx);
 
 #endif /* IK_PROVIDERS_ANTHROPIC_STREAMING_H */

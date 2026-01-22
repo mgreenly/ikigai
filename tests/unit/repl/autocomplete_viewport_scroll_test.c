@@ -17,7 +17,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/completion.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Document height includes completion when active
@@ -234,6 +234,7 @@ int main(void)
 {
     Suite *s = autocomplete_viewport_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/autocomplete_viewport_scroll_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

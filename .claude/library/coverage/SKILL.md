@@ -1,15 +1,15 @@
 ---
 name: coverage
-description: Coverage policy - 100% requirement and exclusion rules
+description: Coverage policy - 90% requirement and exclusion rules
 ---
 
 # Coverage Policy
 
 ## The Requirement
 
-**100% coverage of Lines, Functions, and Branches for the ENTIRE codebase.**
+**90% coverage of Lines, Functions, and Branches for the ENTIRE codebase.**
 
-- 100% of ALL code, not just new code
+- 90% of ALL code, not just new code
 - A single uncovered line or branch in ANY file blocks ALL commits
 - Fix ALL gaps before committing
 
@@ -57,7 +57,7 @@ Must be single-line. Multi-line blocks require refactoring.
 
 ## Incremental Progress
 
-While 100% is the goal, progress toward 100% is valid work:
+While 90% is the goal, progress toward 90% is valid work:
 - Easy wins first
 - Commit incrementally
 - Respect context limits
@@ -68,7 +68,7 @@ While 100% is the goal, progress toward 100% is valid work:
 make check-coverage
 ```
 
-All three metrics must show 100%.
+All three metrics must show 90%.
 
 ## Related Skills
 

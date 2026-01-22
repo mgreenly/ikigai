@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/byte_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test appending to empty array (first allocation)
 START_TEST(test_byte_array_append_first) {
@@ -223,6 +223,7 @@ int main(void)
 
     s = byte_array_append_insert_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/byte_array/append_insert_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

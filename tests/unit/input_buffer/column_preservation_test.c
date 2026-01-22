@@ -6,7 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Column preservation when moving up and down through lines of different lengths */
 START_TEST(test_cursor_up_down_column_preservation) {
@@ -244,6 +244,7 @@ int main(void)
 {
     Suite *s = column_preservation_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer/column_preservation_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

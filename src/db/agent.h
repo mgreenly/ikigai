@@ -60,8 +60,7 @@ typedef struct {
  * @param out Output parameter for agent row (must not be NULL)
  * @return OK with agent row on success, ERR if not found or on failure
  */
-res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                      const char *uuid, ik_db_agent_row_t **out);
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 
 /**
  * List all running agents
@@ -74,8 +73,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  * @param count Output parameter for array size (must not be NULL)
  * @return OK with agent rows on success, ERR on failure
  */
-res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                               ik_db_agent_row_t ***out, size_t *count);
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, ik_db_agent_row_t ***out, size_t *count);
 
 /**
  * Get the last message ID for an agent
@@ -89,8 +87,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
  * @param out_message_id Output parameter for last message ID (must not be NULL)
  * @return OK on success, ERR on failure
  */
-res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
-                                       int64_t *out_message_id);
+res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid, int64_t *out_message_id);
 
 /**
  * Update agent provider configuration
@@ -106,8 +103,10 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
  * @param thinking_level Thinking budget/level (may be NULL)
  * @return OK on success, ERR_DB_CONNECT on database error
  */
-res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
-                                   const char *provider, const char *model,
-                                   const char *thinking_level);
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
+                                  const char *uuid,
+                                  const char *provider,
+                                  const char *model,
+                                  const char *thinking_level);
 
 #endif // IK_DB_AGENT_H

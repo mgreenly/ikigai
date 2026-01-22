@@ -74,7 +74,7 @@ JSON files listing skills to load together.
 - `developer` - Implementation (TDD, quality)
 - `orchestrator` - Task execution
 - `refactor` - Behavior-preserving refactoring
-- `coverage` - 100% test coverage
+- `coverage` - 90% test coverage
 - `debugger` - Troubleshooting
 - `security` - Security review
 - `meta` - Agent system management

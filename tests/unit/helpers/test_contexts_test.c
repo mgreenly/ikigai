@@ -1,10 +1,10 @@
-#include "../../../tests/helpers/test_contexts.h"
+#include "../../../tests/helpers/test_contexts_helper.h"
 
 #include "../../../src/error.h"
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>
@@ -231,6 +231,7 @@ int main(void)
     int number_failed;
     Suite *s = test_contexts_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/helpers/test_contexts_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

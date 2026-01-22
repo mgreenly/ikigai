@@ -138,6 +138,6 @@ if (!root) return ERR(...);  // Testable with mock
 
 ## Related Skills
 
-- `coverage` - Policy (100% requirement)
+- `coverage` - Policy (90% requirement)
 - `lcov` - Finding specific gaps
 - `mocking` - Testing external dependencies

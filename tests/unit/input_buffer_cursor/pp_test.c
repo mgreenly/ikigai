@@ -143,6 +143,7 @@ int main(void)
     int number_failed;
     Suite *s = pp_cursor_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer_cursor/pp_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

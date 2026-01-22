@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Verify all 4 directories exist after setup
 START_TEST(test_paths_setup_creates_directories) {
@@ -166,6 +166,7 @@ int main(void)
     int number_failed;
     Suite *s = test_infrastructure_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/paths/test_infrastructure_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

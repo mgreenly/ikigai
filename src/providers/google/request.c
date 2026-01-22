@@ -29,7 +29,7 @@
  * Serialize system instruction
  */
 static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                           const ik_request_t *req)
+                                         const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -71,7 +71,7 @@ static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *ro
  * Serialize messages array
  */
 static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                 const ik_request_t *req, const char *thought_sig)
+                               const ik_request_t *req, const char *thought_sig)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -121,7 +121,7 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
  * Serialize tool definitions
  */
 static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                             const ik_request_t *req)
+                            const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -194,7 +194,7 @@ static bool serialize_tools(yyjson_mut_doc *doc, yyjson_mut_val *root,
  * Serialize tool config
  */
 static bool serialize_tool_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                    const ik_request_t *req)
+                                  const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -246,7 +246,7 @@ static bool serialize_tool_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
  * Serialize generation config (max tokens and thinking)
  */
 static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                         const ik_request_t *req)
+                                        const ik_request_t *req)
 {
     assert(doc != NULL);  // LCOV_EXCL_BR_LINE
     assert(root != NULL); // LCOV_EXCL_BR_LINE
@@ -385,7 +385,7 @@ res_t ik_google_serialize_request(TALLOC_CTX *ctx, const ik_request_t *req, char
 }
 
 res_t ik_google_build_url(TALLOC_CTX *ctx, const char *base_url, const char *model,
-                           const char *api_key, bool streaming, char **out_url)
+                          const char *api_key, bool streaming, char **out_url)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(base_url != NULL); // LCOV_EXCL_BR_LINE

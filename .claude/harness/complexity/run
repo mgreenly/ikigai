@@ -1,531 +1,171 @@
-#!/usr/bin/env python3
-import sys
-sys.dont_write_bytecode = True
-"""
-harness/complexity - Automated complexity fix loop
-
-Runs make check-complexity, fixes complex functions one at a time with escalation,
-commits on success, reverts on exhaustion, continues until all pass or
-no progress is made.
-"""
-
-import argparse
-import subprocess
-import sys
-import os
-import re
-import threading
-import time
-from datetime import datetime
-from pathlib import Path
-
-# Configuration
-MAX_ATTEMPTS_PER_FILE = 3
-
-# Escalation ladder: (model, thinking_budget, display_name)
-ESCALATION_LADDER = {
-    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
-    2: ("claude-opus-4-20250514", "10000", "opus:think"),
-    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
-}
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-HISTORY_FILE = SCRIPT_DIR / "history.md"
-DEFAULT_TIMEOUT = 900
-
-# Global flags for output control
-SPINNER_ENABLED = False
-SILENT_MODE = True
-LOGGING_ENABLED = True
-
-
-class Spinner:
-    """Threaded spinner for long-running operations."""
-
-    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-
-    def __init__(self, message: str = ""):
-        self.message = message
-        self.running = False
-        self.thread: threading.Thread | None = None
-        self.start_time: float = 0
-
-    def _spin(self) -> None:
-        idx = 0
-        while self.running:
-            elapsed = int(time.time() - self.start_time)
-            mins, secs = divmod(elapsed, 60)
-            frame = self.FRAMES[idx % len(self.FRAMES)]
-            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
-            sys.stdout.flush()
-            idx += 1
-            time.sleep(0.1)
-        sys.stdout.write("\r" + " " * 60 + "\r")
-        sys.stdout.flush()
-
-    def start(self) -> None:
-        if not SPINNER_ENABLED:
-            return
-        self.running = True
-        self.start_time = time.time()
-        self.thread = threading.Thread(target=self._spin, daemon=True)
-        self.thread.start()
-
-    def stop(self) -> None:
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1)
-
-
-def log(msg: str) -> None:
-    """Print timestamped log message."""
-    if SILENT_MODE:
-        return
-    if not LOGGING_ENABLED:
-        return
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{timestamp} | {'complexity':10} | {msg}", flush=True)
-
-
-def format_elapsed(seconds: float) -> str:
-    """Format elapsed seconds as human-readable string."""
-    hours, remainder = divmod(int(seconds), 3600)
-    mins, secs = divmod(remainder, 60)
-    if hours > 0:
-        return f"{hours}h {mins}m {secs}s"
-    elif mins > 0:
-        return f"{mins}m {secs}s"
-    else:
-        return f"{secs}s"
-
-
-def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None) -> tuple[int, str, str]:
-    """Run a command and return (returncode, stdout, stderr)."""
-    result = subprocess.run(
-        cmd,
-        capture_output=capture,
-        text=True,
-        cwd=cwd or PROJECT_ROOT,
-    )
-    return result.returncode, result.stdout or "", result.stderr or ""
-
-
-def run_make_complexity() -> tuple[bool, str]:
-    """Run make check-complexity and return (success, output)."""
-    log("Running make check-complexity...")
-    spinner = Spinner("Running make check-complexity")
-    spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-complexity"])
-    spinner.stop()
-    output = stdout + stderr
-    return code == 0, output
-
-
-def parse_failures(output: str) -> list[dict]:
-    """
-    Parse make check-complexity output to extract complex functions.
-    Returns list of {file, line, function, score, issue_type} dicts.
-    """
-    failures = []
-    seen = set()
-
-    # Pattern for complexity scores:
-    # Score | ln-ct | nc-lns| file-name(line): proc-name
-    #    15      42      35   src/foo.c(123): some_function
-    score_pattern = re.compile(
-        r'^\s*(\d+)\s+\d+\s+\d+\s+(\S+)\((\d+)\):\s+(\S+)',
-        re.MULTILINE
-    )
-
-    # Pattern for nesting depth:
-    # complexity: /path/to/file.c:123: nesting depth reached level 6 in function_name
-    nesting_pattern = re.compile(
-        r'complexity:\s*(\S+):(\d+):\s*nesting depth reached level (\d+)\s+in\s+(\S+)',
-        re.MULTILINE
-    )
-
-    for match in score_pattern.finditer(output):
-        score = int(match.group(1))
-        file = match.group(2)
-        line = match.group(3)
-        function = match.group(4)
-        key = (file, function)
-        if key not in seen:
-            seen.add(key)
-            failures.append({
-                "file": file,
-                "line": line,
-                "function": function,
-                "score": score,
-                "issue_type": "complexity",
-            })
-
-    for match in nesting_pattern.finditer(output):
-        file = match.group(1)
-        line = match.group(2)
-        depth = int(match.group(3))
-        function = match.group(4)
-        key = (file, function)
-        if key not in seen:
-            seen.add(key)
-            failures.append({
-                "file": file,
-                "line": line,
-                "function": function,
-                "score": depth,
-                "issue_type": "nesting",
-            })
-
-    return failures
-
-
-def load_prompt_template() -> str:
-    """Load the fix prompt template."""
-    if not FIX_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
-        sys.exit(1)
-    return FIX_PROMPT_TEMPLATE.read_text()
-
-
-def process_conditionals(template: str, variables: dict) -> str:
-    """
-    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
-    Includes block content if variable is truthy, removes it otherwise.
-    """
-    # Pattern: {{#if var_name}}...content...{{/if}}
-    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
-
-    def replacer(match: re.Match) -> str:
-        var_name = match.group(1)
-        content = match.group(2)
-        if variables.get(var_name):
-            return content
-        return ""
-
-    return pattern.sub(replacer, template)
-
-
-def build_prompt(failure: dict, make_output: str) -> str:
-    """Build the fix prompt from template."""
-    template = load_prompt_template()
-
-    # Build variables dict for conditional processing
-    variables = {
-        "file": failure["file"],
-        "line": failure["line"],
-        "function": failure["function"],
-        "score": str(failure["score"]),
-        "issue_type": failure["issue_type"],
-        "make_output": make_output[-4000:],
-        "history": load_history(),
-    }
-
-    # Process conditionals first
-    prompt = process_conditionals(template, variables)
-
-    # Then substitute variables
-    for key, value in variables.items():
-        prompt = prompt.replace("{{" + key + "}}", value)
-
-    return prompt
-
-
-def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
-    """
-    Invoke Claude CLI with the prompt via stdin.
-    Returns (success, response).
-    """
-    import json
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-        f.write(prompt)
-        prompt_file = f.name
-
-    spinner = Spinner(f"Waiting for {model_name}")
-    try:
-        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
-        env = os.environ.copy()
-        env["MAX_THINKING_TOKENS"] = thinking_budget
-        spinner.start()
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=timeout,
-            env=env,
-        )
-        spinner.stop()
-        code = result.returncode
-        stdout = result.stdout or ""
-        stderr = result.stderr or ""
-    except subprocess.TimeoutExpired:
-        spinner.stop()
-        return False, f"Timeout after {timeout} seconds"
-    finally:
-        Path(prompt_file).unlink(missing_ok=True)
-
-    if code != 0:
-        return False, stderr
-
-    try:
-        result = json.loads(stdout)
-        return True, result.get("result", "")
-    except json.JSONDecodeError:
-        return True, stdout
-
-
-def jj_get_modified_files() -> set[str]:
-    """Get set of currently modified files."""
-    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
-    files = set()
-    for line in stdout.strip().split('\n'):
-        if line.strip():
-            parts = line.split(None, 1)
-            if len(parts) == 2:
-                files.add(parts[1])
-    return files
-
-
-def jj_commit(failure: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
-    """Commit only files that changed during fix attempt."""
-    files_after = jj_get_modified_files()
-    new_changes = files_after - files_before
-
-    if not new_changes:
-        return False
-
-    function = failure["function"]
-    msg = f"refactor: reduce complexity in {function}\n\nharness/complexity | {model_name} | attempt {attempt}"
-
-    code, _, _ = run_cmd(["jj", "commit", "-m", msg])
-    return code == 0
-
-
-def jj_revert(files_before: set[str] | None = None) -> None:
-    """Revert changes made during fix attempt."""
-    if files_before is not None:
-        files_after = jj_get_modified_files()
-        new_changes = files_after - files_before
-        if new_changes:
-            log("Reverting uncommitted changes...")
-            for f in new_changes:
-                run_cmd(["jj", "restore", f])
-    else:
-        if jj_get_modified_files():
-            log("Reverting uncommitted changes...")
-            run_cmd(["jj", "restore"])
-
-
-def truncate_history() -> None:
-    """Truncate history file at start of new file's fix attempts."""
-    HISTORY_FILE.write_text("")
-
-
-def load_history() -> str:
-    """Load history content, returning empty string if file doesn't exist."""
-    if HISTORY_FILE.exists():
-        return HISTORY_FILE.read_text()
-    return ""
-
-
-def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
-    """
-    Attempt to fix a complex function.
-    Returns True if fixed, False if exhausted attempts.
-    """
-    function = failure["function"]
-
-    truncate_history()
-    files_before = jj_get_modified_files()
-
-    for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
-        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
-
-        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
-
-        prompt = build_prompt(failure, make_output)
-        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-
-        if not success:
-            log(f"{model_name} invocation FAILED: {response[:200]}")
-            continue
-
-        # Verify the fix
-        check_passed, _ = run_make_complexity()
-
-        if check_passed:
-            log(f"{model_name} SUCCESS")
-            jj_commit(failure, model_name, attempt, files_before)
-            return True
-        else:
-            log(f"{model_name} FAILED (complexity still too high)")
-
-    # Exhausted all attempts
-    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
-    jj_revert(files_before)
-    return False
-
-
-def format_json_result(ok: bool, failures: list[dict] | None = None) -> str:
-    """Format the check result as JSON."""
-    import json
-    if ok:
-        return json.dumps({"ok": True})
-    else:
-        items = []
-        for f in failures or []:
-            if f["issue_type"] == "nesting":
-                items.append(f"{f['file']}:{f['function']} nesting={f['score']}")
-            else:
-                items.append(f"{f['file']}:{f['function']} complexity={f['score']}")
-        return json.dumps({"ok": False, "items": items})
-
-
-def main() -> int:
-    """Main entry point."""
-    start_time = time.time()
-
-    parser = argparse.ArgumentParser(description="Automated complexity fix loop")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Enable progress output and spinner")
-    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
-                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
-    parser.add_argument("--file", type=str, default=None,
-                        help="Filter results to a specific file")
-    args = parser.parse_args()
-
-    global SPINNER_ENABLED, LOGGING_ENABLED, SILENT_MODE
-    if args.verbose:
-        SPINNER_ENABLED = True
-        SILENT_MODE = False
-    args.fix = False
-
-    os.chdir(PROJECT_ROOT)
-
-    # Check file existence early if --file is specified
-    if args.file:
-        import json
-        target_file = args.file
-        if not Path(target_file).exists():
-            print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-            return 1
-
-    # Run complexity check
-    success, output = run_make_complexity()
-
-    if success:
-        if args.fix:
-            log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-        else:
-            print(format_json_result(ok=True))
-        return 0
-
-    failures = parse_failures(output)
-
-    if not failures:
-        if args.fix:
-            log("make check-complexity failed but couldn't parse failures")
-            log("Output tail:")
-            for line in output.split('\n')[-20:]:
-                log(f"  {line}")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-        else:
-            # Treat unparseable failure as failure with no items
-            print(format_json_result(ok=False, failures=[]))
-        return 1
-
-    # Default mode: print JSON result and exit
-    if not args.fix:
-        # Filter failures to target file if --file is specified
-        if args.file:
-            import json
-            target_file = args.file
-            # Filter failures to target file
-            failures = [f for f in failures if f["file"] == target_file]
-            if not failures:
-                # File exists, no complexity issues
-                print(format_json_result(ok=True))
-                return 0
-        print(format_json_result(ok=False, failures=failures))
-        return 1
-
-    # Fix mode: run the full fix loop
-    log("Starting fix loop")
-    log(f"Found {len(failures)} complex functions")
-
-    pass_num = 0
-
-    while True:
-        pass_num += 1
-        log(f"=== Pass {pass_num} ===")
-
-        if pass_num > 1:
-            # Re-run check for subsequent passes
-            success, output = run_make_complexity()
-
-            if success:
-                log(f"All complexity checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 0
-
-            failures = parse_failures(output)
-
-            if not failures:
-                log("make check-complexity failed but couldn't parse failures")
-                log("Output tail:")
-                for line in output.split('\n')[-20:]:
-                    log(f"  {line}")
-                log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-                return 1
-
-            log(f"Found {len(failures)} complex functions")
-
-        fixed_count = 0
-        skipped = []
-        file_times: list[float] = []
-
-        for i, failure in enumerate(failures, 1):
-            file = failure["file"]
-            func = failure["function"]
-            issue = failure["issue_type"]
-            score = failure["score"]
-            log(f"[file {i}/{len(failures)}] {file}:{func} - {issue} score {score}")
-
-            file_start = time.time()
-            if try_fix_file(failure, output, args.time_out):
-                fixed_count += 1
-            else:
-                skipped.append(f"{file}:{func}")
-
-            file_elapsed = time.time() - file_start
-            file_times.append(file_elapsed)
-            avg_time = sum(file_times) / len(file_times)
-            remaining = len(failures) - i
-            eta = avg_time * remaining
-            log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
-
-        log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
-
-        if fixed_count > 0 and len(skipped) == 0:
-            log(f"All failures fixed! (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
-
-        if fixed_count == 0:
-            log("No progress made. Stopping.")
-            if skipped:
-                log("Skipped functions:")
-                for f in skipped:
-                    log(f"  - {f}")
-            log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit(130)
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/complexity - Complexity check
+#
+# Runs make check-complexity, parses 🟢/🔴 output, outputs JSON summary.
+# No fix functionality - check only.
+#
+
+require 'json'
+require 'optparse'
+require 'fileutils'
+require 'set'
+
+# Run command and capture output, suppressing all output
+def run_cmd(cmd, env: {})
+  stdout_str = ''
+  status = nil
+
+  # Merge environment variables
+  full_env = ENV.to_h.merge(env)
+
+  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  status = $?
+
+  [status.exitstatus, stdout_str]
+end
+
+# Run make check-complexity
+def run_make_complexity(file: nil)
+  cmd = ['make', 'check-complexity']
+  cmd << "FILE=#{file}" if file
+
+  exit_code, output = run_cmd(cmd)
+
+  [exit_code == 0, output]
+end
+
+# Parse make check-complexity output to extract failures
+def parse_failures(output)
+  failures = []
+  seen = Set.new
+
+  # Two output formats:
+  # 1. With FILE=: 🔴 file.c:123: function (complexity N)
+  #                🔴 file.c: nesting depth N (max M)
+  # 2. Without FILE=: 🔴 file.c (summary only)
+
+  complexity_pattern = /^🔴 ([^:]+):(\d+): (.+) \(complexity (\d+)\)$/
+  nesting_pattern = /^🔴 ([^:]+): nesting depth (\d+) \(max \d+\)$/
+  summary_pattern = /^🔴 ([^\s]+\.c)$/
+
+  output.each_line do |line|
+    line = line.strip
+
+    if line =~ complexity_pattern
+      file, line_num, function, score = $1, $2, $3, $4
+      key = "#{file}:#{function}"
+
+      unless seen.include?(key)
+        seen.add(key)
+        failures << {
+          file: file,
+          line: line_num,
+          function: function,
+          score: score.to_i,
+          issue_type: 'complexity'
+        }
+      end
+    elsif line =~ nesting_pattern
+      file, depth = $1, $2
+      key = "#{file}:nesting"
+
+      unless seen.include?(key)
+        seen.add(key)
+        failures << {
+          file: file,
+          line: '1',
+          function: nil,
+          score: depth.to_i,
+          issue_type: 'nesting'
+        }
+      end
+    elsif line =~ summary_pattern
+      file = $1
+
+      unless seen.include?(file)
+        seen.add(file)
+        failures << {
+          file: file,
+          line: '1',
+          function: nil,
+          score: nil,
+          issue_type: 'summary'
+        }
+      end
+    end
+  end
+
+  failures
+end
+
+# Format failure item based on issue type
+def format_failure_item(failure)
+  case failure[:issue_type]
+  when 'complexity'
+    "#{failure[:file]}:#{failure[:line]}: #{failure[:function]} (complexity #{failure[:score]})"
+  when 'nesting'
+    "#{failure[:file]}: nesting depth #{failure[:score]}"
+  else
+    "#{failure[:file]}: complexity/nesting threshold exceeded"
+  end
+end
+
+def main
+  options = {}
+
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: check-complexity [options]'
+    opts.on('--file FILE', 'Check specific file') do |f|
+      options[:file] = f
+    end
+  end.parse!
+
+  # Change to project root (3 levels up from harness/complexity/)
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
+
+  # Check file existence early if --file is specified
+  if options[:file]
+    target_file = options[:file]
+    unless File.exist?(target_file)
+      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
+      exit 1
+    end
+  end
+
+  # Run complexity check
+  success, output = run_make_complexity(file: options[:file])
+
+  if success
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Parse failures
+  failures = parse_failures(output)
+
+  if failures.empty?
+    # Check failed but couldn't parse failures - shouldn't happen
+    puts JSON.generate(ok: false, items: ['complexity check failed (unknown error)'])
+    exit 1
+  end
+
+  # Format and output failures
+  items = failures.map { |f| format_failure_item(f) }
+  puts JSON.generate(ok: false, items: items)
+  exit 1
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

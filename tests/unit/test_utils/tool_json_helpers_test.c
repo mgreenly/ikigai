@@ -3,7 +3,7 @@
 #include <talloc.h>
 
 #include "../../../src/vendor/yyjson/yyjson.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixtures
 static TALLOC_CTX *ctx = NULL;
@@ -112,6 +112,7 @@ int main(void)
 {
     Suite *s = tool_json_helpers_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/test_utils/tool_json_helpers_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -17,7 +17,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Check if buffer contains ANSI cursor positioning escape sequence.
@@ -357,6 +357,7 @@ int main(void)
 {
     Suite *s = initial_state_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_initial_state_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

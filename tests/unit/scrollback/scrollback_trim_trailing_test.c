@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/scrollback_utils.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: NULL input returns empty string */
 START_TEST(test_trim_trailing_null_returns_empty) {
@@ -111,6 +111,7 @@ int main(void)
     int number_failed;
     Suite *s = scrollback_trim_trailing_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scrollback/scrollback_trim_trailing_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

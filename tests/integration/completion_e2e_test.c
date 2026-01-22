@@ -14,7 +14,7 @@
 #include "../../src/completion.h"
 #include "../../src/history.h"
 #include "../../src/input_buffer/core.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 #include "completion_test_mocks.h"
 
 /* Test: No matches produces no layer */
@@ -205,6 +205,7 @@ int main(void)
 {
     Suite *s = completion_e2e_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/completion_e2e_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int nf = srunner_ntests_failed(sr);
     srunner_free(sr);

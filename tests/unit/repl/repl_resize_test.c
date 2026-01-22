@@ -15,7 +15,7 @@
 #include "../../../src/paths.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
 // Forward declaration for suite function
@@ -315,6 +315,7 @@ int main(void)
 {
     Suite *s = repl_resize_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_resize_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

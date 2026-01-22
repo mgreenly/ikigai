@@ -9,7 +9,7 @@
 #include "../../../src/db/replay.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include <check.h>
 #include <stdlib.h>
 #include <string.h>
@@ -333,6 +333,7 @@ int main(void)
     int number_failed;
     Suite *s = replay_basic_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/db/replay_basic_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

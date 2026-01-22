@@ -66,7 +66,6 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
  * The Responses API performs 3% better with reasoning models (o1/o3).
  * Non-reasoning models should use Chat Completions API.
  */
-res_t ik_openai_create_with_options(TALLOC_CTX *ctx, const char *api_key,
-                                     bool use_responses_api, ik_provider_t **out);
+res_t ik_openai_create_with_options(TALLOC_CTX *ctx, const char *api_key, bool use_responses_api, ik_provider_t **out);
 
 #endif /* IK_PROVIDERS_OPENAI_H */

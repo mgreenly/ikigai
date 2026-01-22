@@ -5,7 +5,7 @@ Load a skillset (composite skill set) from `.claude/skillsets/`.
 
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
-- `coverage` - For achieving and maintaining 100% test coverage
+- `coverage` - For achieving and maintaining 90% test coverage
 - `debugger` - For debugging and troubleshooting issues
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
 - `implementor` - Base skillset for task execution (minimal: jj, errors, style, tdd)
@@ -42,7 +42,7 @@ For `advertise`: Skills you can load with `/load <skill>` when you determine you
 {{else}}
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
-- `coverage` - For achieving and maintaining 100% test coverage
+- `coverage` - For achieving and maintaining 90% test coverage
 - `debugger` - For debugging and troubleshooting issues
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
 - `implementor` - Base skillset for task execution (minimal: jj, errors, style, tdd)

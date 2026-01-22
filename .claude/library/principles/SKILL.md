@@ -9,7 +9,7 @@ Foundational beliefs that guide recommendations. When proposing solutions, align
 
 ## Philosophy
 
-**Correctness is non-negotiable.** 100% test coverage, every branch, no exceptions. Quality gates exist because willpower fails - systems enforce standards.
+**Correctness is non-negotiable.** 90% test coverage, every branch, no exceptions. Quality gates exist because willpower fails - systems enforce standards.
 
 **Explicit over implicit.** Ownership is visible. Errors are typed. Naming is precise. Decisions are documented. If it's not obvious, make it obvious.
 

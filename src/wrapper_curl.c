@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "../tests/helpers/vcr.h"
+#include "../tests/helpers/vcr_helper.h"
 
 // ============================================================================
 // libcurl wrappers - debug/test builds only
@@ -136,11 +136,14 @@ MOCKABLE void curl_slist_free_all_(struct curl_slist *list)
     curl_slist_free_all(list);
 }
 
-// Suppress cast-qual warning for setopt - curl API requires non-const void*
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
+// Variadic wrapper for curl_easy_setopt with VCR integration
+MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, ...)
 {
+    va_list args;
+    va_start(args, opt);
+    void *val = va_arg(args, void *);
+    va_end(args);
+
     // Track write callbacks in VCR mode (both record and playback)
     if (vcr_is_active()) {
         if (opt == CURLOPT_WRITEFUNCTION) {
@@ -155,7 +158,7 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
             return CURLE_OK;
         } else if (opt == CURLOPT_WRITEDATA) {
             vcr_curl_state_t *state = vcr_find_or_create_state(curl);
-            state->user_context = (void *)val;
+            state->user_context = val;
 
             // In record mode, pass our state to the wrapper
             if (vcr_is_recording()) {
@@ -168,8 +171,6 @@ MOCKABLE CURLcode curl_easy_setopt_(CURL *curl, CURLoption opt, const void *val)
 
     return curl_easy_setopt(curl, opt, val);
 }
-
-#pragma GCC diagnostic pop
 
 MOCKABLE CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
 {
@@ -301,6 +302,20 @@ MOCKABLE CURLMsg *curl_multi_info_read_(CURLM *multi, int *msgs_in_queue)
 MOCKABLE const char *curl_multi_strerror_(CURLMcode code)
 {
     return curl_multi_strerror(code);
+}
+
+MOCKABLE CURLMcode curl_multi_wait_(CURLM *multi, struct curl_waitfd *extra_fds,
+                                    unsigned int extra_nfds, int timeout_ms, int *numfds)
+{
+    // VCR playback mode: immediate return (no actual network I/O)
+    if (vcr_is_active() && !vcr_is_recording()) {
+        if (numfds) {
+            *numfds = 1;  // Simulate activity
+        }
+        return CURLM_OK;
+    }
+
+    return curl_multi_wait(multi, extra_fds, extra_nfds, timeout_ms, numfds);
 }
 
 // LCOV_EXCL_STOP

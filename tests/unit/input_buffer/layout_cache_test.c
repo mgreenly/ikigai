@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Initial state - no layout cached */
 START_TEST(test_initial_state) {
@@ -458,6 +458,7 @@ int main(void)
     int number_failed;
     Suite *s = input_buffer_layout_cache_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer/layout_cache_test.xml");
 
     /* Disable forking with ASAN/SKIP_SIGNAL_TESTS for compatibility */
 #if defined(SKIP_SIGNAL_TESTS)

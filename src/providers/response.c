@@ -16,7 +16,8 @@
  * Response Builder Functions
  * ================================================================ */
 
-res_t ik_response_create(TALLOC_CTX *ctx, ik_response_t **out) {
+res_t ik_response_create(TALLOC_CTX *ctx, ik_response_t **out)
+{
     assert(out != NULL); // LCOV_EXCL_BR_LINE
 
     ik_response_t *resp = talloc_zero(ctx, ik_response_t);
@@ -37,7 +38,8 @@ res_t ik_response_create(TALLOC_CTX *ctx, ik_response_t **out) {
     return OK(*out);
 }
 
-res_t ik_response_add_content(ik_response_t *resp, ik_content_block_t *block) {
+res_t ik_response_add_content(ik_response_t *resp, ik_content_block_t *block)
+{
     assert(resp != NULL);  // LCOV_EXCL_BR_LINE
     assert(block != NULL); // LCOV_EXCL_BR_LINE
 

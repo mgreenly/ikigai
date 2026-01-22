@@ -1,642 +1,217 @@
-#!/usr/bin/env python3
-import sys
-sys.dont_write_bytecode = True
-"""
-harness/helgrind - Valgrind Helgrind thread error checker and fixer
-
-Default: Run check-helgrind and output JSON result to stdout.
-With --fix: Run automated fix loop with escalation.
-"""
-
-import argparse
-import json
-import subprocess
-import sys
-import os
-import re
-import threading
-import time
-from datetime import datetime
-from pathlib import Path
-
-# Configuration
-MAX_ATTEMPTS_PER_FILE = 3
-
-# Escalation ladder: (model, thinking_budget, display_name)
-ESCALATION_LADDER = {
-    1: ("claude-sonnet-4-20250514", "10000", "sonnet:think"),
-    2: ("claude-opus-4-20250514", "10000", "opus:think"),
-    3: ("claude-opus-4-20250514", "128000", "opus:ultrathink"),
-}
-
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-FIX_PROMPT_TEMPLATE = SCRIPT_DIR / "fix.prompt.md"
-HISTORY_FILE = SCRIPT_DIR / "history.md"
-DEFAULT_TIMEOUT = 900
-
-# Global flag to disable spinner (set by --verbose)
-SPINNER_ENABLED = False
-SILENT_MODE = True
-
-
-class Spinner:
-    """Threaded spinner for long-running operations."""
-
-    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-
-    def __init__(self, message: str = ""):
-        self.message = message
-        self.running = False
-        self.thread: threading.Thread | None = None
-        self.start_time: float = 0
-
-    def _spin(self) -> None:
-        idx = 0
-        while self.running:
-            elapsed = int(time.time() - self.start_time)
-            mins, secs = divmod(elapsed, 60)
-            frame = self.FRAMES[idx % len(self.FRAMES)]
-            sys.stdout.write(f"\r{frame} {self.message} [{mins:02d}:{secs:02d}]")
-            sys.stdout.flush()
-            idx += 1
-            time.sleep(0.1)
-        sys.stdout.write("\r" + " " * 60 + "\r")
-        sys.stdout.flush()
-
-    def start(self) -> None:
-        if not SPINNER_ENABLED:
-            return
-        self.running = True
-        self.start_time = time.time()
-        self.thread = threading.Thread(target=self._spin, daemon=True)
-        self.thread.start()
-
-    def stop(self) -> None:
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1)
-
-
-def log(msg: str) -> None:
-    """Print timestamped log message."""
-    if SILENT_MODE:
-        return
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{timestamp} | {'helgrind':10} | {msg}", flush=True)
-
-
-def format_elapsed(seconds: float) -> str:
-    """Format elapsed seconds as human-readable string."""
-    hours, remainder = divmod(int(seconds), 3600)
-    mins, secs = divmod(remainder, 60)
-    if hours > 0:
-        return f"{hours}h {mins}m {secs}s"
-    elif mins > 0:
-        return f"{mins}m {secs}s"
-    else:
-        return f"{secs}s"
-
-
-def run_cmd(cmd: list[str], capture: bool = True, cwd: Path | None = None, timeout: int | None = None) -> tuple[int, str, str]:
-    """Run a command and return (returncode, stdout, stderr)."""
-    result = subprocess.run(
-        cmd,
-        capture_output=capture,
-        text=True,
-        cwd=cwd or PROJECT_ROOT,
-        timeout=timeout,
-    )
-    return result.returncode, result.stdout or "", result.stderr or ""
-
-
-def drop_test_databases() -> None:
-    """Drop all ikigai_test_* databases before running tests."""
-    log("Cleaning up test databases...")
-
-    # Get list of test databases
-    cmd = [
-        "psql",
-        "postgresql://ikigai:ikigai@localhost/postgres",
-        "-t",
-        "-c",
-        "SELECT datname FROM pg_database WHERE datname LIKE 'ikigai_test_%';"
-    ]
-
-    code, stdout, stderr = run_cmd(cmd)
-    if code != 0:
-        log(f"Warning: Failed to list test databases: {stderr}")
-        return
-
-    # Parse database names from output
-    db_names = [line.strip() for line in stdout.strip().split('\n') if line.strip()]
-
-    if not db_names:
-        log("No test databases to clean up")
-        return
-
-    log(f"Found {len(db_names)} test database(s) to drop")
-
-    # Drop each database
-    for db_name in db_names:
-        log(f"Dropping database: {db_name}")
-        drop_cmd = [
-            "psql",
-            "postgresql://ikigai:ikigai@localhost/postgres",
-            "-c",
-            f"DROP DATABASE IF EXISTS {db_name};"
-        ]
-        code, _, stderr = run_cmd(drop_cmd)
-        if code != 0:
-            log(f"Warning: Failed to drop {db_name}: {stderr}")
-
-
-def run_make_helgrind() -> tuple[bool, str]:
-    """Run make check-helgrind and return (success, output)."""
-    log("Running make check-helgrind...")
-    spinner = Spinner("Running make check-helgrind")
-    spinner.start()
-    code, stdout, stderr = run_cmd(["make", "check-helgrind", "MAKE_JOBS=1"], timeout=3600)
-    spinner.stop()
-    output = stdout + stderr
-    return code == 0, output
-
-
-def parse_failing_tests(output: str) -> list[str]:
-    """
-    Parse make output for 🔴 lines to extract failing test binary paths.
-    Returns list of binary paths like 'build-helgrind/tests/unit/foo_test'.
-    """
-    failing_tests = []
-    for line in output.split('\n'):
-        line = line.strip()
-        if line.startswith('🔴 '):
-            binary_path = line[2:].strip()
-            if binary_path:
-                failing_tests.append(binary_path)
-    return failing_tests
-
-
-def run_single_test(test_binary: str) -> tuple[bool, str]:
-    """
-    Run a single test binary under helgrind to capture thread error output.
-    Returns (success, output).
-    """
-    test_name = Path(test_binary).name
-    spinner = Spinner(f"Running {test_name}")
-    spinner.start()
-
-    env = os.environ.copy()
-    env["CK_FORK"] = "no"
-    env["CK_TIMEOUT_MULTIPLIER"] = "10"
-
-    result = subprocess.run(
-        ["valgrind", "--tool=helgrind", "--error-exitcode=1", test_binary],
-        capture_output=True,
-        text=True,
-        cwd=PROJECT_ROOT,
-        timeout=600,
-        env=env,
-    )
-    spinner.stop()
-
-    output = (result.stdout or "") + (result.stderr or "")
-    return result.returncode == 0, output
-
-
-def parse_failures(output: str) -> list[dict]:
-    """
-    Parse Helgrind output to extract thread errors.
-    Returns list of {file, line, error_type, message, stack} dicts.
-    """
-    failures = []
-    seen_files = set()
-
-    # Helgrind error patterns:
-    # ==PID== Possible data race during read/write of size N at 0x...
-    # ==PID== Lock order violation
-    # ==PID== Thread #N was created
-    error_patterns = [
-        (re.compile(r'==\d+==\s+(Possible data race during (?:read|write) of size \d+)'), 'data race'),
-        (re.compile(r'==\d+==\s+(Lock order violation)'), 'lock order'),
-        (re.compile(r'==\d+==\s+(Locks? held by more than one thread)'), 'lock error'),
-    ]
-
-    # Location pattern: ==PID==    at/by 0x...: function (file.c:123)
-    location_pattern = re.compile(r'==\d+==\s+(?:at|by)\s+0x[0-9A-Fa-f]+:\s+\S+\s+\((\S+):(\d+)\)')
-
-    lines = output.split('\n')
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-
-        for pattern, error_category in error_patterns:
-            match = pattern.search(line)
-            if match:
-                error_type = match.group(1)
-                stack_lines = []
-
-                # Collect stack trace (next 20 lines)
-                for j in range(i + 1, min(i + 25, len(lines))):
-                    stack_lines.append(lines[j])
-
-                    loc_match = location_pattern.search(lines[j])
-                    if loc_match:
-                        file = loc_match.group(1)
-                        line_num = loc_match.group(2)
-                        if file not in seen_files and (file.startswith('src/') or file.startswith('tests/')):
-                            seen_files.add(file)
-                            failures.append({
-                                "file": file,
-                                "line": line_num,
-                                "error_type": f"Helgrind: {error_category}",
-                                "message": error_type,
-                                "stack": '\n'.join(stack_lines[:15]),
-                            })
-                            break
-                break
-
-        i += 1
-
-    return failures
-
-
-def load_prompt_template() -> str:
-    """Load the fix prompt template."""
-    if not FIX_PROMPT_TEMPLATE.exists():
-        log(f"ERROR: Missing {FIX_PROMPT_TEMPLATE}")
-        sys.exit(1)
-    return FIX_PROMPT_TEMPLATE.read_text()
-
-
-def process_conditionals(template: str, variables: dict) -> str:
-    """
-    Process Handlebars-style {{#if var}}...{{/if}} conditionals.
-    Includes block content if variable is truthy, removes it otherwise.
-    """
-    # Pattern: {{#if var_name}}...content...{{/if}}
-    pattern = re.compile(r'\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}', re.DOTALL)
-
-    def replacer(match: re.Match) -> str:
-        var_name = match.group(1)
-        content = match.group(2)
-        if variables.get(var_name):
-            return content
-        return ""
-
-    return pattern.sub(replacer, template)
-
-
-def build_prompt(failure: dict, make_output: str) -> str:
-    """Build the fix prompt from template."""
-    template = load_prompt_template()
-
-    # Build variables dict for conditional processing
-    variables = {
-        "file": failure["file"],
-        "line": failure["line"],
-        "error_type": failure["error_type"],
-        "message": failure["message"],
-        "stack": failure["stack"],
-        "make_output": make_output[-6000:],
-        "history": load_history(),
-    }
-
-    # Process conditionals first
-    prompt = process_conditionals(template, variables)
-
-    # Then substitute variables
-    for key, value in variables.items():
-        prompt = prompt.replace("{{" + key + "}}", value)
-
-    return prompt
-
-
-def invoke_claude(prompt: str, model: str, thinking_budget: str, model_name: str, timeout: int) -> tuple[bool, str]:
-    """
-    Invoke Claude CLI with the prompt via stdin.
-    Returns (success, response).
-    """
-    import json
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-        f.write(prompt)
-        prompt_file = f.name
-
-    spinner = Spinner(f"Waiting for {model_name}")
-    try:
-        cmd = f'cat "{prompt_file}" | claude -p - --model {model} --allowedTools "Read,Edit,Write,Bash,Glob,Grep" --output-format json --max-turns 30'
-        env = os.environ.copy()
-        env["MAX_THINKING_TOKENS"] = thinking_budget
-        spinner.start()
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-            timeout=timeout,
-            env=env,
-        )
-        spinner.stop()
-        code = result.returncode
-        stdout = result.stdout or ""
-        stderr = result.stderr or ""
-    except subprocess.TimeoutExpired:
-        spinner.stop()
-        return False, f"Timeout after {timeout} seconds"
-    finally:
-        Path(prompt_file).unlink(missing_ok=True)
-
-    if code != 0:
-        return False, stderr
-
-    try:
-        result = json.loads(stdout)
-        return True, result.get("result", "")
-    except json.JSONDecodeError:
-        return True, stdout
-
-
-def jj_get_modified_files() -> set[str]:
-    """Get set of currently modified files."""
-    code, stdout, _ = run_cmd(["jj", "diff", "--summary"])
-    files = set()
-    for line in stdout.strip().split('\n'):
-        if line.strip():
-            parts = line.split(None, 1)
-            if len(parts) == 2:
-                files.add(parts[1])
-    return files
-
-
-def jj_commit(failure: dict, model_name: str, attempt: int, files_before: set[str]) -> bool:
-    """Commit only files that changed during fix attempt."""
-    files_after = jj_get_modified_files()
-    new_changes = files_after - files_before
-
-    if not new_changes:
-        return False
-
-    file_name = Path(failure["file"]).name
-    msg = f"fix: thread error in {file_name}\n\nharness/helgrind | {model_name} | attempt {attempt}"
-
-    code, _, _ = run_cmd(["jj", "commit", "-m", msg])
-    return code == 0
-
-
-def jj_revert(files_before: set[str] | None = None) -> None:
-    """Revert changes made during fix attempt."""
-    if files_before is not None:
-        files_after = jj_get_modified_files()
-        new_changes = files_after - files_before
-        if new_changes:
-            log("Reverting uncommitted changes...")
-            for f in new_changes:
-                run_cmd(["jj", "restore", f])
-    else:
-        if jj_get_modified_files():
-            log("Reverting uncommitted changes...")
-            run_cmd(["jj", "restore"])
-
-
-def truncate_history() -> None:
-    """Truncate history file at start of new file's fix attempts."""
-    HISTORY_FILE.write_text("")
-
-
-def load_history() -> str:
-    """Load history content, returning empty string if file doesn't exist."""
-    if HISTORY_FILE.exists():
-        return HISTORY_FILE.read_text()
-    return ""
-
-
-def try_fix_file(failure: dict, make_output: str, timeout: int) -> bool:
-    """
-    Attempt to fix a thread error.
-    Returns True if fixed, False if exhausted attempts.
-    """
-    file = failure["file"]
-
-    truncate_history()
-    files_before = jj_get_modified_files()
-
-    for attempt in range(1, MAX_ATTEMPTS_PER_FILE + 1):
-        model, thinking_budget, model_name = ESCALATION_LADDER[attempt]
-
-        log(f"Trying {model_name} (attempt {attempt}/{MAX_ATTEMPTS_PER_FILE})")
-
-        prompt = build_prompt(failure, make_output)
-        success, response = invoke_claude(prompt, model, thinking_budget, model_name, timeout)
-
-        if not success:
-            log(f"{model_name} invocation FAILED: {response[:200]}")
-            continue
-
-        # Verify the fix
-        check_passed, _ = run_make_helgrind()
-
-        if check_passed:
-            log(f"{model_name} SUCCESS")
-            jj_commit(failure, model_name, attempt, files_before)
-            return True
-        else:
-            log(f"{model_name} FAILED (thread errors remain)")
-
-    # Exhausted all attempts
-    log(f"SKIPPED - exhausted {MAX_ATTEMPTS_PER_FILE} attempts")
-    jj_revert(files_before)
-    return False
-
-
-def format_json_items(failures: list[dict]) -> list[str]:
-    """Format failures as human-readable item strings for JSON output."""
-    items = []
-    for f in failures:
-        # Format: "Error type at file:line"
-        error_type = f.get("message", f.get("error_type", "Thread error"))
-        location = f"{f['file']}:{f['line']}"
-        items.append(f"{error_type} at {location}")
-    return items
-
-
-def run_check_only(target_file: str | None = None) -> int:
-    """
-    Run helgrind check and output JSON result to stdout.
-    If target_file is specified, only report errors for that file.
-    Returns 0 for success, 1 for failures found.
-    """
-    os.chdir(PROJECT_ROOT)
-
-    # Validate target_file if provided
-    if target_file:
-        target_path = Path(target_file)
-        if not target_path.exists():
-            print(json.dumps({"ok": False, "items": [f"{target_file}: file not found"]}))
-            return 1
-
-    # Clean up test databases from previous runs
-    drop_test_databases()
-
-    # Run make check-helgrind
-    success, make_output = run_make_helgrind()
-
-    if success:
-        print(json.dumps({"ok": True}))
-        return 0
-
-    # Parse failing test binaries
-    failing_tests = parse_failing_tests(make_output)
-
-    if not failing_tests:
-        # make failed but no specific test failures found
-        print(json.dumps({"ok": False, "items": ["make check-helgrind failed (no specific errors parsed)"]}))
-        return 1
-
-    # For each failing test, run it under helgrind to get detailed output
-    all_failures = []
-    for test_binary in failing_tests:
-        _, test_output = run_single_test(test_binary)
-        failures = parse_failures(test_output)
-        all_failures.extend(failures)
-
-    if not all_failures:
-        # Tests failed but couldn't parse specific errors
-        print(json.dumps({"ok": False, "items": ["Helgrind errors detected (could not parse details)"]}))
-        return 1
-
-    # Filter to target file if specified
-    if target_file:
-        all_failures = [f for f in all_failures if f["file"] == target_file]
-        if not all_failures:
-            print(json.dumps({"ok": True}))
-            return 0
-
-    # Format and output JSON
-    items = format_json_items(all_failures)
-    print(json.dumps({"ok": False, "items": items}))
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'optparse'
+require 'set'
+
+# Run command and capture output, suppressing all output
+def run_cmd(cmd, env: {}, chdir: nil)
+  stdout_str = ''
+  stderr_str = ''
+  status = nil
+
+  # Merge environment variables
+  full_env = ENV.to_h.merge(env)
+
+  # Change directory if specified
+  orig_dir = Dir.pwd
+  Dir.chdir(chdir) if chdir
+
+  IO.popen(full_env, cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  status = $?
+
+  Dir.chdir(orig_dir) if chdir
+
+  [status.exitstatus, stdout_str]
+end
+
+# Run make check-helgrind with parallelization
+def run_make_helgrind(project_root)
+  exit_code, output = run_cmd(
+    ['make', 'check-helgrind'],
+    chdir: project_root
+  )
+
+  [exit_code == 0, output]
+end
+
+# Parse failing test binaries from emoji markers in make output
+def parse_failing_tests(output)
+  failing_tests = []
+  output.each_line do |line|
+    # Only process lines that start with emoji markers, ignore all other output
+    next unless line.start_with?('🔴 ', '🟢 ')
+
+    line = line.strip
+    if line.start_with?('🔴 ')
+      binary_path = line[2..-1].strip
+      # Only include if it looks like a path (contains / and starts with build-)
+      if !binary_path.empty? && binary_path.include?('/') && binary_path.start_with?('build-')
+        failing_tests << binary_path
+      end
+    end
+  end
+  failing_tests
+end
+
+# Run a single test binary to capture Helgrind output
+def run_single_test(test_binary, project_root)
+  env = {
+    'HELGRIND_OPTIONS' => '--history-level=full',
+    'CK_FORK' => 'no'
+  }
+  exit_code, output = run_cmd([test_binary], env: env, chdir: project_root)
+  [exit_code == 0, output]
+end
+
+# Parse Helgrind output to extract thread errors
+def parse_failures(output)
+  failures = []
+  seen_files = Set.new
+
+  # Helgrind error patterns:
+  # ==PID== Possible data race during read/write of size N at 0x...
+  # ==PID== Lock order violation
+  # ==PID== Locks held by more than one thread
+  error_patterns = [
+    [/==\d+==\s+(Possible data race during (?:read|write) of size \d+)/, 'data race'],
+    [/==\d+==\s+(Lock order violation)/, 'lock order'],
+    [/==\d+==\s+(Locks? held by more than one thread)/, 'lock error']
+  ]
+
+  # Location pattern: ==PID==    at/by 0x...: function (file.c:123)
+  location_pattern = /==\d+==\s+(?:at|by)\s+0x[0-9A-Fa-f]+:\s+\S+\s+\((\S+):(\d+)\)/
+
+  lines = output.lines.map(&:chomp)
+  i = 0
+  while i < lines.length
+    line = lines[i]
+
+    error_patterns.each do |pattern, error_category|
+      match = pattern.match(line)
+      if match
+        error_type = match[1]
+        stack_lines = []
+
+        # Collect stack trace (next 25 lines)
+        ((i + 1)...[i + 25, lines.length].min).each do |j|
+          stack_lines << lines[j]
+
+          loc_match = location_pattern.match(lines[j])
+          if loc_match
+            file = loc_match[1]
+            line_num = loc_match[2]
+            if !seen_files.include?(file) && (file.start_with?('src/') || file.start_with?('tests/'))
+              seen_files.add(file)
+              failures << {
+                file: file,
+                line: line_num,
+                error_type: "Helgrind: #{error_category}",
+                message: error_type,
+                stack: stack_lines.take(15).join("\n")
+              }
+              break
+            end
+          end
+        end
+        break
+      end
+    end
+
+    i += 1
+  end
+
+  failures
+end
+
+# Format a failure as a human-readable item string
+def format_error_item(failure)
+  "#{failure[:error_type]} in #{failure[:file]}:#{failure[:line]}"
+end
+
+# Main check function
+def run_check_only(target_file: nil)
+  # Get project root
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
+
+  # Validate target_file if provided
+  if target_file
+    unless File.exist?(target_file)
+      puts JSON.generate(ok: false, items: ["#{target_file}: file not found"])
+      return 1
+    end
+  end
+
+  # Run make check-helgrind with parallelization
+  success, make_output = run_make_helgrind(project_root)
+
+  if success
+    puts JSON.generate(ok: true)
+    return 0
+  end
+
+  # Parse failing test binaries
+  failing_tests = parse_failing_tests(make_output)
+
+  if failing_tests.empty?
+    # Build failed but couldn't parse test failures
+    puts JSON.generate(ok: false, items: ['Build or test infrastructure failure'])
     return 1
+  end
 
+  # Run each failing test to get Helgrind output
+  all_failures = []
+  failing_tests.each do |test_binary|
+    _, test_output = run_single_test(test_binary, project_root)
+    failures = parse_failures(test_output)
+    all_failures.concat(failures)
+  end
 
-def main() -> int:
-    """Main entry point."""
-    start_time = time.time()
-    parser = argparse.ArgumentParser(description="Valgrind Helgrind thread error checker and fixer")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Enable progress output and spinner")
-    parser.add_argument("--time-out", type=int, default=DEFAULT_TIMEOUT,
-                        help=f"Timeout in seconds for each LLM invocation (default: {DEFAULT_TIMEOUT})")
-    parser.add_argument("--file", type=str, help="Filter results to specific file")
-    args = parser.parse_args()
+  if all_failures.empty?
+    # Tests failed but couldn't parse Helgrind errors - report which tests failed
+    items = failing_tests.map { |test| "#{test}: test failed (no Helgrind errors detected)" }
+    puts JSON.generate(ok: false, items: items)
+    return 1
+  end
 
-    global SPINNER_ENABLED, SILENT_MODE
-    if args.verbose:
-        SPINNER_ENABLED = True
-        SILENT_MODE = False
-    args.fix = False
+  # Filter to target file if specified
+  if target_file
+    all_failures = all_failures.select { |f| f[:file] == target_file }
+    if all_failures.empty?
+      puts JSON.generate(ok: true)
+      return 0
+    end
+  end
 
-    # Default behavior: run check and output JSON
-    if not args.fix:
-        return run_check_only(target_file=args.file)
+  # Format each failure as a readable item
+  items = all_failures.map { |f| format_error_item(f) }
+  puts JSON.generate(ok: false, items: items)
+  1
+end
 
-    # --fix mode: run the full fix loop
-    opts = []
-    if args.time_out != DEFAULT_TIMEOUT:
-        opts.append(f"timeout={args.time_out}s")
-    log("Starting fix loop" + (f" ({', '.join(opts)})" if opts else ""))
-    os.chdir(PROJECT_ROOT)
+def main
+  options = {}
 
-    # Clean up test databases from previous runs
-    drop_test_databases()
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: run.rb [options]'
+    opts.on('--file FILE', 'Filter results to specific file') do |file|
+      options[:file] = file
+    end
+  end.parse!
 
-    pass_num = 0
+  # Run check and exit with appropriate code
+  exit run_check_only(target_file: options[:file])
+end
 
-    while True:
-        pass_num += 1
-        log(f"=== Pass {pass_num} ===")
-
-        # Step 1: Run make check-helgrind to get list of failing test binaries
-        success, make_output = run_make_helgrind()
-
-        if success:
-            log(f"All Helgrind checks passed! (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
-
-        # Step 2: Parse failing test binaries from 🔴 lines
-        failing_tests = parse_failing_tests(make_output)
-
-        if not failing_tests:
-            log("make check-helgrind failed but couldn't find failing tests")
-            log("Output tail:")
-            for line in make_output.split('\n')[-30:]:
-                log(f"  {line}")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-        log(f"Found {len(failing_tests)} failing test binaries")
-
-        # Step 3: For each failing test, run it under helgrind to get output
-        all_failures = []
-        for test_binary in failing_tests:
-            test_name = Path(test_binary).name
-            log(f"Analyzing {test_name}...")
-            _, test_output = run_single_test(test_binary)
-            failures = parse_failures(test_output)
-            for f in failures:
-                f["test_binary"] = test_binary
-                f["test_output"] = test_output
-            all_failures.extend(failures)
-
-        if not all_failures:
-            log("Tests failed but couldn't parse Helgrind errors from output")
-            log(f"Completed with errors (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-        log(f"Found {len(all_failures)} thread errors across {len(failing_tests)} test(s)")
-
-        # Step 4: Fix each failure
-        fixed_count = 0
-        skipped = []
-        file_times: list[float] = []
-
-        for i, failure in enumerate(all_failures, 1):
-            file = failure["file"]
-            error = failure["error_type"]
-            log(f"[{i}/{len(all_failures)}] {file}:{failure['line']} - {error}")
-
-            file_start = time.time()
-            if try_fix_file(failure, failure["test_output"], args.time_out):
-                fixed_count += 1
-            else:
-                skipped.append(f"{file}:{failure['line']}")
-
-            file_elapsed = time.time() - file_start
-            file_times.append(file_elapsed)
-            avg_time = sum(file_times) / len(file_times)
-            remaining = len(all_failures) - i
-            eta = avg_time * remaining
-            log(f"elapsed: {format_elapsed(file_elapsed)} | ETA: {format_elapsed(eta)}")
-
-        log(f"Pass {pass_num} complete: {fixed_count} fixed, {len(skipped)} skipped")
-
-        if fixed_count > 0 and len(skipped) == 0:
-            log(f"All failures fixed! (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 0
-
-        if fixed_count == 0:
-            log("No progress made. Stopping.")
-            if skipped:
-                log("Skipped errors:")
-                for f in skipped:
-                    log(f"  - {f}")
-            log(f"Completed with failures (elapsed: {format_elapsed(time.time() - start_time)})")
-            return 1
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit(130)
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "../../helpers/vcr.h"
+#include "../../helpers/vcr_helper.h"
 
 // Test fixture paths
 #define TEST_FIXTURE_DIR "tests/fixtures/vcr/test"
@@ -415,6 +415,7 @@ int main(void)
     int number_failed;
     Suite *s = vcr_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/helpers/vcr_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

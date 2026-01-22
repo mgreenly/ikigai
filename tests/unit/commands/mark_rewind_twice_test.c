@@ -193,6 +193,7 @@ int main(void)
 
     s = mark_rewind_twice_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/mark_rewind_twice_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

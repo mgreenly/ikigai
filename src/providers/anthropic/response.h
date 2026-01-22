@@ -40,8 +40,6 @@ ik_finish_reason_t ik_anthropic_map_finish_reason(const char *stop_reason);
  *
  * Returns immediately. Callback invoked from info_read() when complete.
  */
-res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req,
-                                  ik_provider_completion_cb_t cb, void *cb_ctx);
-
+res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx);
 
 #endif /* IK_PROVIDERS_ANTHROPIC_RESPONSE_H */

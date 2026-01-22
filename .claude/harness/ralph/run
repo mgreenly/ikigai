@@ -20,7 +20,7 @@ class Ralph
 
   SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
-  PROGRESS_SCHEMA = '{"type":"object","properties":{"progress":{"type":"string"}},"required":["progress"]}'
+  PROGRESS_SCHEMA = '{"type":"object","properties":{"summary":{"type":"string"}},"required":["summary"]}'
 
   MAX_THINKING_BUDGET = {
     'haiku' => 16_384,
@@ -273,7 +273,7 @@ class Ralph
       return nil
     end
 
-    progress = parsed[:progress]
+    progress = parsed[:summary]
     display_progress(progress)
     record_progress(progress)
     commit_iteration(progress)
@@ -459,7 +459,7 @@ class Ralph
 
   def invoke_claude(prompt:, model:, thinking_budget:, tools:, schema:, iteration_start: nil)
     env = thinking_budget.positive? ? "MAX_THINKING_TOKENS=#{thinking_budget} " : ''
-    cmd = "#{env}claude -p --model #{model} --tools \"#{tools}\" --verbose --input-format stream-json --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
+    cmd = "#{env}ANTHROPIC_API_KEY= claude -p --model #{model} --tools \"#{tools}\" --verbose --input-format stream-json --output-format stream-json --json-schema '#{schema}' 2>/dev/null"
 
     result = nil
     tool_names = {}  # track tool_use_id -> tool_name for result lookup
@@ -513,7 +513,7 @@ class Ralph
           # Retries exhausted - create error result
           result = {
             'structured_output' => {
-              'progress' => "ERROR: Failed to parse structured output after #{max_retries} retries. Last error: #{last_error}"
+              'summary' => "ERROR: Failed to parse structured output after #{max_retries} retries. Last error: #{last_error}"
             }
           }
         end
@@ -562,6 +562,12 @@ class Ralph
       when 'result'
         result = event
         break
+      else
+        # Unknown message type - output in subdued style
+        reset_waiting_timer
+        suffix = format_timing_suffix
+        puts "\e[90m? #{event['type']} #{suffix}\e[0m"
+        puts
       end
     end
 
@@ -576,22 +582,22 @@ class Ralph
       return { error: 'no structured_output' }
     end
 
-    progress = structured['progress']
-    if progress.nil?
-      return { error: 'no progress field' }
+    summary = structured['summary']
+    if summary.nil?
+      return { error: 'no summary field' }
     end
 
-    { progress: progress }
+    { summary: summary }
   end
 
   def build_correction_message(error_type)
     correction_text = case error_type
     when 'no structured_output'
-      'You must use the StructuredOutput tool. Return: {"progress": "what you accomplished"}'
-    when 'no progress field'
-      'Missing "progress" field. Return: {"progress": "what you accomplished"}'
+      'You must use the StructuredOutput tool. Return: {"summary": "what you accomplished"}'
+    when 'no summary field'
+      'Missing "summary" field. Return: {"summary": "what you accomplished"}'
     else
-      'Invalid output. Use StructuredOutput tool: {"progress": "what you accomplished"}'
+      'Invalid output. Use StructuredOutput tool: {"summary": "what you accomplished"}'
     end
 
     {
@@ -746,12 +752,12 @@ class Ralph
       return { error: 'no structured_output', raw: result[0, 500] }
     end
 
-    progress = structured[:progress]
-    if progress.nil?
-      return { error: 'no progress field', raw: result[0, 500] }
+    summary = structured[:summary]
+    if summary.nil?
+      return { error: 'no summary field', raw: result[0, 500] }
     end
 
-    { progress: progress }
+    { summary: summary }
   rescue JSON::ParserError => e
     { error: "JSON parse error: #{e.message}", raw: result&.[](0, 500) }
   end
@@ -1123,7 +1129,7 @@ end
 
 options = {
   model: 'sonnet',
-  reasoning: 'low',
+  reasoning: 'med',
   no_spinner: true,
   no_art: false,
   no_quotes: false,
@@ -1150,7 +1156,7 @@ OptionParser.new do |opts|
     options[:model] = m
   end
 
-  opts.on('--reasoning=LEVEL', %w[none low med high], 'Reasoning: none, low, med, high (default: low)') do |r|
+  opts.on('--reasoning=LEVEL', %w[none low med high], 'Reasoning: none, low, med, high (default: med)') do |r|
     options[:reasoning] = r
   end
 

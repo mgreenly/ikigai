@@ -4,7 +4,7 @@
 #include <talloc.h>
 #include "../../../src/input.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: IK_INPUT_SCROLL_UP enum value exists and is distinct
 START_TEST(test_scroll_up_enum_exists) {
@@ -59,6 +59,7 @@ int main(void)
 {
     Suite *s = input_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input/scroll_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

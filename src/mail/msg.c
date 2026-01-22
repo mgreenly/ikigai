@@ -6,9 +6,9 @@
 #include <time.h>
 
 ik_mail_msg_t *ik_mail_msg_create(TALLOC_CTX *ctx,
-                                   const char *from_uuid,
-                                   const char *to_uuid,
-                                   const char *body)
+                                  const char *from_uuid,
+                                  const char *to_uuid,
+                                  const char *body)
 {
     ik_mail_msg_t *msg = talloc_zero_(ctx, sizeof(ik_mail_msg_t));
     if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE

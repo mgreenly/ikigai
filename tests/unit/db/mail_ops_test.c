@@ -3,7 +3,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/mail/msg.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <libpq-fe.h>
@@ -301,6 +301,7 @@ int main(void)
     int number_failed;
     Suite *s = mail_ops_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/db/mail_ops_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

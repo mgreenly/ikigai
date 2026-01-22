@@ -348,6 +348,7 @@ int main(void)
 {
     Suite *s = streaming_chat_delta_edge_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/openai/streaming_chat_delta_edge_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

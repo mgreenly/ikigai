@@ -34,26 +34,29 @@ Read `.claude/library/<name>/SKILL.md` when needed:
 
 # Scripts
 
-Use these instead of raw make commands. They return terse JSON summaries - no output parsing required, minimal context consumed.
+These scripts return terse JSON summaries - no output parsing required, minimal context consumed.
 
-| Script                           | Purpose                       |
-|----------------------------------|-------------------------------|
-| `.claude/harness/compile/run`    | Compile and link              |
-| `.claude/harness/filesize/run`   | Check file size limits        |
-| `.claude/harness/unit/run`       | Run unit tests                |
-| `.claude/harness/integration/run`| Run integration tests         |
-| `.claude/harness/complexity/run` | Check cyclomatic complexity   |
-| `.claude/harness/sanitize/run`   | Run sanitizers (ASan, UBSan)  |
-| `.claude/harness/tsan/run`       | Run ThreadSanitizer           |
-| `.claude/harness/valgrind/run`   | Run memory checks             |
-| `.claude/harness/helgrind/run`   | Run thread error detection    |
-| `.claude/harness/coverage/run`   | Check test coverage           |
+| Script                              | Purpose                       |
+|-------------------------------------|-------------------------------|
+| `.claude/scripts/check-compile`     | Compile all source files      |
+| `.claude/scripts/check-link`        | Link all binaries             |
+| `.claude/scripts/check-filesize`    | Check file size limits        |
+| `.claude/scripts/check-unit`        | Run unit tests                |
+| `.claude/scripts/check-integration` | Run integration tests         |
+| `.claude/scripts/check-complexity`  | Check cyclomatic complexity   |
+| `.claude/scripts/check-sanitize`    | Run sanitizers (ASan, UBSan)  |
+| `.claude/scripts/check-tsan`        | Run ThreadSanitizer           |
+| `.claude/scripts/check-valgrind`    | Run memory checks             |
+| `.claude/scripts/check-helgrind`    | Run thread error detection    |
+| `.claude/scripts/check-coverage`    | Check test coverage           |
 
 **Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) using the Bash tool. Do NOT background or tail logs, run them one at a time and just wait.
 
+**Quality gate requirement:** When goal acceptance criteria require all checks to pass, run them in the order listed above (compile → link → filesize → unit → integration → complexity → sanitize → tsan → valgrind → helgrind → coverage). All 11 must pass without file changes between runs. If any check fails, fix it and restart from the beginning of the sequence.
+
 **Single-file mode:** Use `--file=PATH` to get results for one file only. Same 60 minute timeout applies.
 ```bash
-.claude/harness/unit/run --file=src/config.c
+.claude/scripts/check-unit --file=src/config.c
 ```
 
 **Output format:** All scripts return the same JSON structure:
@@ -102,13 +105,13 @@ You have limited context. Running out crashes the iteration and loses all progre
 End each iteration with StructuredOutput:
 
 ```json
-{"progress": "What you accomplished or attempted this step"}
+{"summary": "What you accomplished or attempted this step"}
 ```
 
-When the goal is complete return only the progress message "DONE":
+When the goal is complete return only the message "DONE":
 
 ```json
-{"progress": "DONE"}
+{"summary": "DONE"}
 ```
 
-The `progress` value is appended to the Progress section for the next iteration. Be concise but specific - future iterations will rely on this to avoid repeating work.
+The `summary` value is appended to the Progress section for the next iteration. Be concise but specific - future iterations will rely on this to avoid repeating work.

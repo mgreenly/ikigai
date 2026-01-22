@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scripts Test</title>
+    <script>alert('This should be stripped');</script>
+    <style>body { color: red; }</style>
+</head>
+<body>
+    <p>Visible content</p>
+    <script>console.log('More script');</script>
+    <p>More visible content</p>
+    <style>.hidden { display: none; }</style>
+</body>
+</html>

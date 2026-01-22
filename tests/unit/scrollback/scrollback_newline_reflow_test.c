@@ -8,7 +8,7 @@
 #include <talloc.h>
 
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Line with embedded newlines counts correctly
@@ -190,6 +190,7 @@ int32_t main(void)
 
     s = scrollback_newline_reflow_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scrollback/scrollback_newline_reflow_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

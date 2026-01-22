@@ -22,7 +22,7 @@ typedef struct {
  */
 static const ik_anthropic_budget_t BUDGET_TABLE[] = {
     {"claude-sonnet-4-5", 1024, 64000},
-    {"claude-haiku-4-5",  1024, 32000},
+    {"claude-haiku-4-5", 1024, 32000},
     {NULL, 0, 0} // Sentinel
 };
 
@@ -82,4 +82,3 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
             PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
     }
 }
-

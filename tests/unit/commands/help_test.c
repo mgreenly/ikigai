@@ -10,7 +10,7 @@
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 #include <check.h>
 #include <stdio.h>
@@ -268,6 +268,7 @@ int main(void)
     int number_failed;
     Suite *s = commands_help_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/commands/help_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

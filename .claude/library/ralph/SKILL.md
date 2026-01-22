@@ -34,7 +34,7 @@ History provides learning without complex state management. Time budget prevents
 - `--goal` - Path to goal markdown file (required)
 - `--duration` - Time budget (e.g., `4h`, `200m`); unlimited if omitted
 - `--model` - `haiku`, `sonnet`, `opus` (default: `sonnet`)
-- `--reasoning` - `none`, `low`, `med`, `high` (default: `low`)
+- `--reasoning` - `none`, `low`, `med`, `high` (default: `med`)
 - `--spinner` - Enable progress spinner (off by default)
 - `--continue` - Continue from existing progress
 - `--no-art` - Suppress ASCII art in header
@@ -47,27 +47,13 @@ History provides learning without complex state management. Time budget prevents
 
 ## Goal File Format
 
-Markdown file with required `## Objective` section:
+Use `/load goal-authoring` for guidance on writing effective goals.
 
-```markdown
-## Objective
-
-Brief description of what needs to be accomplished.
-
-## Reference
-
-Optional pointers to specs, plans, or other context.
-
-## Outcomes
-
-Optional list of specific outcomes that indicate completion.
-
-## Acceptance
-
-Optional acceptance criteria (e.g., `check-build` passes).
-```
-
-**Required:** `## Objective` section must exist.
+**Required sections:**
+- `## Objective` - What to achieve (outcomes, not steps)
+- `## Reference` - All relevant plan/research/user-story docs
+- `## Outcomes` - Measurable, verifiable outcomes
+- `## Acceptance` - Success criteria (make check, tests, etc.)
 
 **State files** are derived from the goal file name:
 - `<base>-goal.md` → `<base>-progress.jsonl`, `<base>-summary.md`
@@ -110,23 +96,9 @@ Auto-generated markdown summarizing progress. Updated every 10 iterations by a s
 - Time budget expires
 - Manual interrupt (Ctrl+C)
 
-## Writing Goals
+## Writing Effective Goals
 
-**State the objective clearly:**
-- Good: "Remove all internal tool implementation code. After completion, tool calls return stub responses."
-- Bad: "Clean up the tool system"
-
-**Include acceptance criteria:**
-- Good: "`check-build` → `{\"ok\": true}`"
-- Bad: "Tests should pass"
-
-**Reference detailed specs:**
-- Good: "`rel-08/plan/removal-specification.md` - detailed spec with exact changes"
-- Bad: Inline the entire spec in the goal file
-
-**List concrete outcomes:**
-- Good: "`src/repl_tool.c` - tool dispatch returns stub error JSON"
-- Bad: "Tool dispatch should be stubbed out"
+See `/load goal-authoring` for comprehensive guidance. Key insight: Ralph has unlimited context through iteration - write complete objectives with all relevant references, specify outcomes (not steps), and trust Ralph to discover the implementation path.
 
 ## Tips
 

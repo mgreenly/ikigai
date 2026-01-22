@@ -13,20 +13,17 @@
 /**
  * Serialize a single content block to Anthropic JSON format
  */
-bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                          const ik_content_block_t *block);
+bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr, const ik_content_block_t *block);
 
 /**
  * Serialize message content (handles both string and array formats)
  */
-bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                            const ik_message_t *message);
+bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj, const ik_message_t *message);
 
 /**
  * Serialize messages array
  */
-bool ik_anthropic_serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                     const ik_request_t *req);
+bool ik_anthropic_serialize_messages(yyjson_mut_doc *doc, yyjson_mut_val *root, const ik_request_t *req);
 
 /**
  * Map internal role to Anthropic role string

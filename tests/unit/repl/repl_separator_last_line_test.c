@@ -18,7 +18,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /**
  * Test: Separator is last visible line
@@ -284,6 +284,7 @@ int main(void)
 {
     Suite *s = separator_separator_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_separator_last_line_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

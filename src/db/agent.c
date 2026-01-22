@@ -62,7 +62,7 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 8, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -100,7 +100,7 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 2, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -137,7 +137,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -184,7 +184,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 0, NULL,
-                                                   NULL, NULL, NULL, 0));
+                                                  NULL, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -223,7 +223,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 }
 
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
-                                       int64_t *out_message_id)
+                                      int64_t *out_message_id)
 {
     assert(db_ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(agent_uuid != NULL);      // LCOV_EXCL_BR_LINE
@@ -240,7 +240,7 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status
@@ -262,8 +262,8 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
 }
 
 res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
-                                   const char *provider, const char *model,
-                                   const char *thinking_level)
+                                  const char *provider, const char *model,
+                                  const char *thinking_level)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
@@ -284,7 +284,7 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 4, NULL,
-                                                   param_values, NULL, NULL, 0));
+                                                  param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     // Check query execution status

@@ -16,7 +16,7 @@
 #include "providers/provider.h"
 #include "providers/request.h"
 #include "logger.h"
-#include "../../../helpers/vcr.h"
+#include "../../../helpers/vcr_helper.h"
 
 static TALLOC_CTX *test_ctx;
 static ik_provider_t *provider;
@@ -412,6 +412,7 @@ int main(void)
 {
     Suite *s = google_streaming_content_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/google/google_streaming_content_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

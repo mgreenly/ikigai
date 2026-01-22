@@ -21,9 +21,9 @@ typedef struct {
  * Budget table for known Gemini 2.5 models
  */
 static const ik_google_budget_t BUDGET_TABLE[] = {
-    {"gemini-2.5-pro",        128,  32768},
-    {"gemini-2.5-flash-lite", 512,  24576},
-    {"gemini-2.5-flash",      0,    24576},
+    {"gemini-2.5-pro", 128, 32768},
+    {"gemini-2.5-flash-lite", 512, 24576},
+    {"gemini-2.5-flash", 0, 24576},
     {NULL, 0, 0} // Sentinel
 };
 

@@ -354,6 +354,7 @@ int main(void)
 {
     Suite *s = request_serialize_coverage_suite_2();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/providers/anthropic/request_serialize_coverage_2_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

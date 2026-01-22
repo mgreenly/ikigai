@@ -5,7 +5,7 @@
  * @brief Unit tests for REPL I/O error handling (read/select errors)
  */
 
-#include "repl_run_common.h"
+#include "repl_run_helper.h"
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
@@ -266,6 +266,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = repl_run_io_error_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_run_io_error_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -402,6 +402,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_event_handlers_current_not_in_array_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_event_handlers_current_not_in_array_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

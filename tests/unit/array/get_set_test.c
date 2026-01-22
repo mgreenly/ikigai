@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <signal.h>
 #include "../../../src/array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test set element
 START_TEST(test_array_set) {
@@ -155,6 +155,7 @@ int main(void)
 
     s = array_get_set_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/array/get_set_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -14,7 +14,7 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Helper to create minimal REPL context for testing
 static ik_repl_ctx_t *create_test_repl(void *ctx)
@@ -276,6 +276,7 @@ int main(void)
 {
     Suite *s = cursor_after_multiline_submit_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_cursor_after_multiline_submit_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

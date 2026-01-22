@@ -3,7 +3,7 @@
  * @brief Tests for database test utilities
  */
 
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
 #include <check.h>
@@ -202,6 +202,7 @@ int main(void)
 {
     Suite *s = test_utils_db_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/test_utils/db_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

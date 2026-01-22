@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include "../../src/repl.h"
 #include "../../src/logger.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // Mock terminal file descriptor
 static int mock_tty_fd = 100;
@@ -563,6 +563,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_logger_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/repl_logger_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

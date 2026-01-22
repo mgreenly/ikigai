@@ -8,7 +8,7 @@
 #include <string.h>
 #include "../../../src/repl.h"
 #include "../../../src/agent.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test fixture data
 static TALLOC_CTX *test_ctx = NULL;
@@ -219,6 +219,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_nav_edge_cases_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_nav_edge_cases_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

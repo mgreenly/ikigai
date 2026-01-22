@@ -111,11 +111,11 @@ res_t ik_http_multi_create(void *parent);
  * @return               OK(NULL) or ERR(...)
  */
 res_t ik_http_multi_add_request(ik_http_multi_t *multi,
-                                 const ik_http_request_t *req,
-                                 ik_http_write_cb_t write_cb,
-                                 void *write_ctx,
-                                 ik_http_completion_cb_t completion_cb,
-                                 void *completion_ctx);
+                                const ik_http_request_t *req,
+                                ik_http_write_cb_t write_cb,
+                                void *write_ctx,
+                                ik_http_completion_cb_t completion_cb,
+                                void *completion_ctx);
 
 /**
  * Perform non-blocking I/O operations
@@ -140,9 +140,7 @@ res_t ik_http_multi_perform(ik_http_multi_t *multi, int *still_running);
  * @param max_fd     Output: highest FD number + 1
  * @return           OK(NULL) or ERR(...)
  */
-res_t ik_http_multi_fdset(ik_http_multi_t *multi,
-                           fd_set *read_fds, fd_set *write_fds,
-                           fd_set *exc_fds, int *max_fd);
+res_t ik_http_multi_fdset(ik_http_multi_t *multi, fd_set *read_fds, fd_set *write_fds, fd_set *exc_fds, int *max_fd);
 
 /**
  * Get timeout for select()

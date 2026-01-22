@@ -40,8 +40,7 @@
  * - Response has error object
  * - Response has promptFeedback.blockReason
  */
-res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len,
-                                 ik_response_t **out_resp);
+res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len, ik_response_t **out_resp);
 
 /**
  * Parse Google error response
@@ -66,9 +65,12 @@ res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_le
  * Extracts error.message from JSON if available.
  * Falls back to "HTTP <status>" if JSON unavailable or invalid.
  */
-res_t ik_google_parse_error(TALLOC_CTX *ctx, int http_status, const char *json,
-                              size_t json_len, ik_error_category_t *out_category,
-                              char **out_message);
+res_t ik_google_parse_error(TALLOC_CTX *ctx,
+                            int http_status,
+                            const char *json,
+                            size_t json_len,
+                            ik_error_category_t *out_category,
+                            char **out_message);
 
 /**
  * Map Google finishReason to internal finish reason
@@ -107,8 +109,7 @@ char *ik_google_generate_tool_id(TALLOC_CTX *ctx);
  *
  * Returns immediately. Callback invoked from info_read() when complete.
  */
-res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req,
-                                ik_provider_completion_cb_t cb, void *cb_ctx);
+res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx);
 
 /**
  * Start streaming request (async vtable implementation)
@@ -123,9 +124,11 @@ res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req,
  *
  * Returns immediately. Callbacks invoked as events arrive.
  */
-res_t ik_google_start_stream(void *impl_ctx, const ik_request_t *req,
-                               ik_stream_cb_t stream_cb, void *stream_ctx,
-                               ik_provider_completion_cb_t completion_cb,
-                               void *completion_ctx);
+res_t ik_google_start_stream(void *impl_ctx,
+                             const ik_request_t *req,
+                             ik_stream_cb_t stream_cb,
+                             void *stream_ctx,
+                             ik_provider_completion_cb_t completion_cb,
+                             void *completion_ctx);
 
 #endif /* IK_PROVIDERS_GOOGLE_RESPONSE_H */

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include "../../../src/line_array.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test successful line array creation
 START_TEST(test_line_array_create_success) {
@@ -144,6 +144,7 @@ int main(void)
 
     s = line_array_basic_suite();
     sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/line_array/basic_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

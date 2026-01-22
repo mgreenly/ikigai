@@ -12,7 +12,7 @@
 #include "../../../src/repl_actions.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/input.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Test: Scroll up increases viewport_offset by 3
 START_TEST(test_scroll_up_increases_offset) {
@@ -406,6 +406,7 @@ int main(void)
 {
     Suite *s = repl_scroll_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_scroll_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

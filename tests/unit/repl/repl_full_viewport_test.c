@@ -20,7 +20,7 @@
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
 #include "../../../src/render.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write wrapper for testing (required by render system)
 ssize_t posix_write_(int fd, const void *buf, size_t count);
@@ -348,6 +348,7 @@ int main(void)
 {
     Suite *s = repl_full_viewport_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_full_viewport_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

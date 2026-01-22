@@ -12,7 +12,7 @@
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
 #include "../../../src/msg.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include <check.h>
 #include <string.h>
 #include <time.h>
@@ -272,6 +272,7 @@ int main(void)
 {
     Suite *s = agent_replay_query_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/db/agent_replay_query_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

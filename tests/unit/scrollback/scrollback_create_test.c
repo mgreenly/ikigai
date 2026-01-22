@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Create scrollback buffer */
 START_TEST(test_scrollback_create) {
@@ -78,6 +78,7 @@ int main(void)
     int number_failed;
     Suite *s = scrollback_create_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/scrollback/scrollback_create_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

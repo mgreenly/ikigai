@@ -26,7 +26,7 @@
 #include "../../src/error.h"
 #include "../../src/msg.h"
 #include "../../src/tool.h"
-#include "../test_utils.h"
+#include "../test_utils_helper.h"
 
 // ========== Test Database Setup ==========
 
@@ -338,6 +338,7 @@ int main(void)
 {
     Suite *s = file_read_error_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/file_read_error_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

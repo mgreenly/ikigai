@@ -7,7 +7,7 @@
 #include <signal.h>
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Input buffer cursor initialized to 0,0 */
 START_TEST(test_cursor_initialized) {
@@ -273,6 +273,7 @@ int main(void)
     int number_failed;
     Suite *s = input_buffer_cursor_sync_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/input_buffer/cursor_sync_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

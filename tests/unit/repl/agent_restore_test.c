@@ -20,9 +20,8 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/layer.h"
 #include "../../../src/layer_wrappers.h"
-#include "../../test_utils.h"
-#include "agent_restore_test_helpers.h"
-#include "agent_restore_core_tests.h"
+#include "../../test_utils_helper.h"
+#include "agent_restore_test_helper.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
@@ -241,6 +240,7 @@ int main(void)
 {
     Suite *s = agent_restore_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/agent_restore_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

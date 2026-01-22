@@ -183,6 +183,6 @@ You can fork child agents to work in parallel.
 
 ## Related
 
-- [minimal-tool-architecture.md](minimal-tool-architecture.md) - Tool philosophy
+- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture
 
 **Note:** The `opus/` folder contains earlier design explorations that have been superseded by ongoing work in the development branch.

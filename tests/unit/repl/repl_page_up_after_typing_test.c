@@ -21,7 +21,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_page_up_after_typing_in_input_buffer) {
     void *ctx = talloc_new(NULL);
@@ -192,6 +192,7 @@ int main(void)
 {
     Suite *s = page_up_typing_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_page_up_after_typing_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

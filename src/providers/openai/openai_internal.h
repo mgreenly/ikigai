@@ -19,42 +19,34 @@
  * Wrapper for ik_openai_serialize_chat_request
  * Enables mocking for error injection in tests
  */
-MOCKABLE res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx,
-                                                  const ik_request_t *req,
-                                                  bool stream,
-                                                  char **out_json);
+MOCKABLE res_t ik_openai_serialize_chat_request_(TALLOC_CTX *ctx, const ik_request_t *req, bool stream,
+                                                 char **out_json);
 
 /**
  * Wrapper for ik_openai_serialize_responses_request
  * Enables mocking for error injection in tests
  */
 MOCKABLE res_t ik_openai_serialize_responses_request_(TALLOC_CTX *ctx,
-                                                       const ik_request_t *req,
-                                                       bool stream,
-                                                       char **out_json);
+                                                      const ik_request_t *req,
+                                                      bool stream,
+                                                      char **out_json);
 
 /**
  * Wrapper for ik_openai_build_chat_url
  * Enables mocking for error injection in tests
  */
-MOCKABLE res_t ik_openai_build_chat_url_(TALLOC_CTX *ctx,
-                                          const char *base_url,
-                                          char **out_url);
+MOCKABLE res_t ik_openai_build_chat_url_(TALLOC_CTX *ctx, const char *base_url, char **out_url);
 
 /**
  * Wrapper for ik_openai_build_responses_url
  * Enables mocking for error injection in tests
  */
-MOCKABLE res_t ik_openai_build_responses_url_(TALLOC_CTX *ctx,
-                                               const char *base_url,
-                                               char **out_url);
+MOCKABLE res_t ik_openai_build_responses_url_(TALLOC_CTX *ctx, const char *base_url, char **out_url);
 
 /**
  * Wrapper for ik_openai_build_headers
  * Enables mocking for error injection in tests
  */
-MOCKABLE res_t ik_openai_build_headers_(TALLOC_CTX *ctx,
-                                         const char *api_key,
-                                         char ***out_headers);
+MOCKABLE res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out_headers);
 
 #endif /* IK_PROVIDERS_OPENAI_INTERNAL_H */

@@ -8,7 +8,7 @@
 #include <string.h>
 #include "../../../src/render.h"
 #include "../../../src/scrollback.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write tracking
 static int32_t mock_write_calls = 0;
@@ -324,6 +324,7 @@ int main(void)
 {
     Suite *s = render_scrollback_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/render/render_scrollback_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

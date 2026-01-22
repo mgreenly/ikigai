@@ -13,7 +13,7 @@
 #include "../../../src/config.h"
 #include "../../../src/paths.h"
 #include "../../../src/error.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock state for controlling posix_stat_
 static bool mock_stat_should_fail = false;
@@ -148,6 +148,7 @@ int main(void)
     int number_failed;
     Suite *s = config_filesystem_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/config/filesystem_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

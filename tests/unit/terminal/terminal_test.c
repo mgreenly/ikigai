@@ -5,7 +5,7 @@
 
 #include "../../../src/error.h"
 #include "../../../src/terminal.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 #include "terminal_test_mocks.h"
 
 // Test: successful terminal initialization
@@ -346,6 +346,7 @@ int main(void)
 {
     Suite *s = terminal_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/terminal/terminal_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

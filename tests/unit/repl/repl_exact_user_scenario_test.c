@@ -15,7 +15,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/render.h"
 #include "../../../src/input_buffer/core.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 // Mock write() to capture output
 static char mock_output[16384];
@@ -160,6 +160,7 @@ int main(void)
 {
     Suite *s = exact_scenario_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_exact_user_scenario_test.xml");
 
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);

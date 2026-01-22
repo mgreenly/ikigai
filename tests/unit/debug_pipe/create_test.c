@@ -13,7 +13,7 @@
 #include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
-#include "../../test_utils.h"
+#include "../../test_utils_helper.h"
 
 /* Test: Create debug pipe with prefix */
 START_TEST(test_debug_pipe_create_with_prefix) {
@@ -243,6 +243,7 @@ int main(void)
     int number_failed;
     Suite *s = debug_pipe_create_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/debug_pipe/create_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
