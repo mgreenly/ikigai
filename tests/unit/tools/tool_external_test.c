@@ -220,6 +220,55 @@ START_TEST(test_tool_very_large_output) {
 
 END_TEST
 
+// Test: Tool fails with stderr message
+START_TEST(test_tool_fails_with_stderr) {
+    // Create a script that writes to stderr and exits with error
+    const char *script_path = "/tmp/test_stderr_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\necho 'Error: something went wrong' >&2\nexit 1\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    const char *input_json = "{}";
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+    ck_assert_uint_eq(res.err->code, ERR_IO);
+    ck_assert(strstr(res.err->msg, "Error: something went wrong") != NULL);
+
+    unlink(script_path);
+}
+
+END_TEST
+
+// Test: Tool with large stderr output
+START_TEST(test_tool_large_stderr) {
+    // Create a script that writes large stderr output (10KB to trigger multiple reads)
+    const char *script_path = "/tmp/test_large_stderr_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\ndd if=/dev/zero bs=10000 count=1 2>/dev/null | tr '\\0' 'E' >&2\nexit 1\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    const char *input_json = "{}";
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+
+    ck_assert(is_err(&res));
+    ck_assert_ptr_nonnull(res.err);
+    ck_assert_uint_eq(res.err->code, ERR_IO);
+    // Error message should contain stderr output
+    ck_assert(strlen(res.err->msg) > 0);
+
+    unlink(script_path);
+}
+
+END_TEST
+
 static Suite *tool_external_suite(void)
 {
     Suite *s = suite_create("ToolExternal");
@@ -237,6 +286,8 @@ static Suite *tool_external_suite(void)
     tcase_add_test(tc_core, test_tool_reads_stdin);
     tcase_add_test(tc_core, test_tool_large_output);
     tcase_add_test(tc_core, test_tool_very_large_output);
+    tcase_add_test(tc_core, test_tool_fails_with_stderr);
+    tcase_add_test(tc_core, test_tool_large_stderr);
 
     suite_add_tcase(s, tc_core);
 
