@@ -95,6 +95,19 @@ jobs:
     - name: check-filesize
       run: make check-filesize
 
+    - name: Debug failing tests
+      run: |
+        rm -rf /tmp/.ikigai
+        echo "=== Working directory and paths ==="
+        pwd
+        ls -la libexec/ikigai/ || echo "libexec/ikigai not found"
+        echo "=== Running file_read_test with output ==="
+        ./build/tests/unit/tools/file_read_test 2>&1 || echo "Exit code: $?"
+        echo "=== Running zzz_migration_errors_test with output ==="
+        ./build/tests/unit/db/zzz_migration_errors_test 2>&1 || echo "Exit code: $?"
+        echo "=== Running anthropic_streaming_basic_test with output ==="
+        ./build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || echo "Exit code: $?"
+
     - name: check-unit
       run: |
         rm -rf /tmp/.ikigai
