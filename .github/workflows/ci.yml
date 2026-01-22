@@ -95,16 +95,14 @@ jobs:
     - name: check-filesize
       run: make check-filesize
 
-    - name: Debug - run one VCR test with output
+    - name: Debug - check config directory
       run: |
-        rm -rf /tmp/.ikigai
-        mkdir -p reports/check/unit/providers/anthropic
-        echo "=== pwd ==="
-        pwd
-        echo "=== Checking fixture file ==="
-        ls -la tests/fixtures/vcr/anthropic/stream_basic.jsonl
-        echo "=== Running anthropic_streaming_basic_test with full output ==="
-        ./build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || echo "Exit code: $?"
+        echo "=== IKIGAI env vars ==="
+        env | grep IKIGAI || echo "No IKIGAI vars set"
+        echo "=== Check /etc/ikigai ==="
+        ls -la /etc/ikigai 2>&1 || echo "/etc/ikigai does not exist"
+        echo "=== Check IKIGAI_CONFIG_DIR path ==="
+        ls -la $IKIGAI_CONFIG_DIR 2>&1 || echo "IKIGAI_CONFIG_DIR path does not exist"
 
     - name: check-unit
       run: |
