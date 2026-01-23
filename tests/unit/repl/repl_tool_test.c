@@ -18,6 +18,7 @@
 #include "tool.h"
 #include "tool_registry.h"
 #include "wrapper.h"
+#include "vendor/yyjson/yyjson.h"
 
 /* Test fixtures */
 static TALLOC_CTX *ctx = NULL;
@@ -223,6 +224,21 @@ START_TEST(test_execute_pending_tool_db_persistence) {
     ck_assert_uint_eq(repl->current->message_count, 2);
 }
 
+END_TEST
+
+START_TEST(test_execute_pending_tool_db_data_json_structure) {
+    repl->shared->db_ctx = (ik_db_ctx_t *)talloc_zero(repl, char);
+    repl->shared->session_id = 42;
+    ik_repl_execute_pending_tool(repl);
+    ck_assert_int_eq(db_insert_call_count, 2);
+    yyjson_doc *doc = yyjson_read(last_insert_data_json, strlen(last_insert_data_json), 0);
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    ck_assert_str_eq(yyjson_get_str_(yyjson_obj_get_(root, "tool_call_id")), "call_test123");
+    ck_assert_str_eq(yyjson_get_str_(yyjson_obj_get_(root, "name")), "glob");
+    ck_assert(yyjson_is_str(yyjson_obj_get_(root, "output")));
+    ck_assert(yyjson_is_bool(yyjson_obj_get_(root, "success")));
+    yyjson_doc_free(doc);
+}
 END_TEST
 
 START_TEST(test_execute_pending_tool_no_db_ctx) {
@@ -436,6 +452,7 @@ static Suite *repl_tool_suite(void)
     tcase_add_test(tc_core, test_execute_pending_tool_conversation_messages);
     tcase_add_test(tc_core, test_execute_pending_tool_file_read);
     tcase_add_test(tc_core, test_execute_pending_tool_db_persistence);
+    tcase_add_test(tc_core, test_execute_pending_tool_db_data_json_structure);
     tcase_add_test(tc_core, test_execute_pending_tool_no_db_ctx);
     tcase_add_test(tc_core, test_execute_pending_tool_no_session_id);
     tcase_add_test(tc_core, test_execute_pending_tool_registry_null);
