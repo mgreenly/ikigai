@@ -233,7 +233,7 @@ all:
 
 # clean: Remove build artifacts
 clean:
-	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR)
+	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR) IKIGAI_DEBUG.LOG reports/
 	@find . -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" -delete 2>/dev/null || true
 	@echo "✨ Cleaned"
 
