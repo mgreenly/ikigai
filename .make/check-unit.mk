@@ -21,6 +21,13 @@ ifdef FILE
 	if grep -q 'result="failure"' "$$xml_path"; then \
 		exit 1; \
 	fi
+else ifdef RAW
+	@# RAW mode - run tests with full output visible
+	$(MAKE) check-link
+	@for bin in $(UNIT_TEST_BINARIES); do \
+		echo "=== $$bin ==="; \
+		$$bin || exit 1; \
+	done
 else
 	@# Bulk mode - run all unit tests in parallel, one line per binary
 	@# Phase 1: Ensure binaries are built

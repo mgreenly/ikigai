@@ -36,6 +36,15 @@ ifdef FILE
 	else \
 		echo "🟢 $(FILE)"; rm -f "$$output"; \
 	fi
+else ifdef RAW
+	@# RAW mode - run tests with full Valgrind output visible
+	$(MAKE) BUILDDIR=$(VALGRIND_BUILDDIR) BUILD=valgrind check-link
+	@for bin in $$(find $(VALGRIND_BUILDDIR)/tests/unit $(VALGRIND_BUILDDIR)/tests/integration \
+		-name '*_test' -type f -executable 2>/dev/null); do \
+		echo "=== $$bin ==="; \
+		valgrind --leak-check=full --errors-for-leak-kinds=definite --suppressions=$(VALGRIND_SUPP) \
+			"$$bin" || exit 1; \
+	done
 else
 	@if ! $(MAKE) -s BUILDDIR=$(VALGRIND_BUILDDIR) BUILD=valgrind check-link >/dev/null 2>&1; then \
 		echo "🔴 Pre-existing build failures - fix compilation/linking before checking for memory errors"; \

@@ -19,6 +19,8 @@ ifdef FILE
 		done; \
 		exit 1; \
 	fi
+else ifdef RAW
+	$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS)
 else
 	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS) 2>&1 | grep -E "^(🟢|🔴)" || true; \
 	failed=0; \

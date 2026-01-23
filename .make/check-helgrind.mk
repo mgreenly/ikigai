@@ -36,6 +36,15 @@ ifdef FILE
 	else \
 		echo "🟢 $(FILE)"; rm -f "$$output"; \
 	fi
+else ifdef RAW
+	@# RAW mode - run tests with full Helgrind output visible
+	$(MAKE) BUILDDIR=$(HELGRIND_BUILDDIR) BUILD=valgrind check-link
+	@for bin in $$(find $(HELGRIND_BUILDDIR)/tests/unit $(HELGRIND_BUILDDIR)/tests/integration \
+		-name '*_test' -type f -executable 2>/dev/null); do \
+		echo "=== $$bin ==="; \
+		valgrind --tool=helgrind --suppressions=$(HELGRIND_SUPP) \
+			"$$bin" || exit 1; \
+	done
 else
 	@if ! $(MAKE) -s BUILDDIR=$(HELGRIND_BUILDDIR) BUILD=valgrind check-link >/dev/null 2>&1; then \
 		echo "🔴 Pre-existing build failures - fix compilation/linking before checking for thread errors"; \

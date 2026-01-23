@@ -118,13 +118,13 @@ jobs:
         psql "postgresql://ikigai:ikigai@postgres/ikigai" -c "SELECT 1"
 
     - name: check-compile
-      run: make check-compile
+      run: make RAW=1 check-compile
 
     - name: check-link
-      run: make check-link
+      run: make RAW=1 check-link
 
     - name: check-filesize
-      run: make check-filesize
+      run: make RAW=1 check-filesize
 
     - name: Create non-root user for tests
       run: |
@@ -172,42 +172,42 @@ jobs:
     - name: check-unit
       run: |
         rm -rf /tmp/.ikigai
-        sudo -E -u testuser make check-unit MAKE_JOBS=1
+        sudo -E -u testuser make RAW=1 check-unit MAKE_JOBS=1
 
     - name: check-integration
       run: |
         rm -rf /tmp/.ikigai
-        sudo -E -u testuser make check-integration
+        sudo -E -u testuser make RAW=1 check-integration
 
     - name: check-complexity
-      run: make check-complexity
+      run: make RAW=1 check-complexity
 
     - name: check-sanitize
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
-        sudo -E -u testuser make check-sanitize
+        sudo -E -u testuser make RAW=1 check-sanitize
 
     - name: check-tsan
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
-        sudo -E -u testuser make check-tsan
+        sudo -E -u testuser make RAW=1 check-tsan
 
     - name: check-valgrind
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
-        sudo -E -u testuser make check-valgrind
+        sudo -E -u testuser make RAW=1 check-valgrind
 
     - name: check-helgrind
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
-        sudo -E -u testuser make check-helgrind
+        sudo -E -u testuser make RAW=1 check-helgrind
 
     - name: check-coverage
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
-        sudo -E -u testuser make check-coverage
+        sudo -E -u testuser make RAW=1 check-coverage

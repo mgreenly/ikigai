@@ -99,6 +99,9 @@ ifdef FILE
 		done; \
 	fi; \
 	exit $$status
+else ifdef RAW
+	$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS)
+	$(MAKE) -k -j$(MAKE_JOBS) $(ALL_BINARIES)
 else
 	@# Phase 1: Compile all objects in parallel
 	@$(MAKE) -k -j$(MAKE_JOBS) $(ALL_OBJECTS) 2>&1 | grep -E "^(🟢|🔴)" || true

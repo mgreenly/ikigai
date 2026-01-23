@@ -20,6 +20,14 @@ ifdef FILE
 	else \
 		echo "🟢 $(FILE)"; rm -f "$$stderr"; \
 	fi
+else ifdef RAW
+	@# RAW mode - run tests with full sanitizer output visible
+	$(MAKE) BUILDDIR=$(SANITIZE_BUILDDIR) BUILD=sanitize check-link
+	@for bin in $$(find $(SANITIZE_BUILDDIR)/tests/unit $(SANITIZE_BUILDDIR)/tests/integration \
+		-name '*_test' -type f -executable 2>/dev/null); do \
+		echo "=== $$bin ==="; \
+		LSAN_OPTIONS="suppressions=$(LSAN_SUPP)" "$$bin" || exit 1; \
+	done
 else
 	@if ! $(MAKE) -s BUILDDIR=$(SANITIZE_BUILDDIR) BUILD=sanitize check-link >/dev/null 2>&1; then \
 		echo "🔴 Pre-existing build failures - fix compilation/linking before checking for sanitizer errors"; \
