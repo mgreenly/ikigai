@@ -24,6 +24,8 @@ ifdef FILE
 else ifdef RAW
 	@# RAW mode - run tests with full output visible
 	$(MAKE) check-link
+	@mkdir -p reports/check
+	@find tests/integration -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
 	@for bin in $(INTEGRATION_TEST_BINARIES); do \
 		echo "=== $$bin ==="; \
 		$$bin || exit 1; \
