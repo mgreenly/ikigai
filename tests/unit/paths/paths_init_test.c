@@ -23,6 +23,8 @@ START_TEST(test_paths_init_success) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -42,6 +44,7 @@ START_TEST(test_paths_init_success) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -158,6 +161,7 @@ START_TEST(test_paths_init_empty_bin_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -182,6 +186,7 @@ START_TEST(test_paths_init_empty_config_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -206,6 +211,7 @@ START_TEST(test_paths_init_empty_data_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -230,6 +236,7 @@ START_TEST(test_paths_init_empty_libexec_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -239,6 +246,7 @@ START_TEST(test_paths_init_no_home) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
     unsetenv("HOME");
 
     // Execute
@@ -255,6 +263,7 @@ START_TEST(test_paths_init_no_home) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 

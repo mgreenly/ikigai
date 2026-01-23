@@ -23,6 +23,7 @@ START_TEST(test_paths_get_bin_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -39,6 +40,7 @@ START_TEST(test_paths_get_bin_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -48,6 +50,7 @@ START_TEST(test_paths_get_config_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -64,6 +67,7 @@ START_TEST(test_paths_get_config_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -73,6 +77,7 @@ START_TEST(test_paths_get_data_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -89,6 +94,7 @@ START_TEST(test_paths_get_data_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -98,6 +104,7 @@ START_TEST(test_paths_get_libexec_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -114,6 +121,7 @@ START_TEST(test_paths_get_libexec_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -123,6 +131,7 @@ START_TEST(test_paths_get_tools_system_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -140,6 +149,7 @@ START_TEST(test_paths_get_tools_system_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -149,6 +159,7 @@ START_TEST(test_paths_get_tools_user_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -165,6 +176,7 @@ START_TEST(test_paths_get_tools_user_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 
@@ -174,6 +186,7 @@ START_TEST(test_paths_get_tools_project_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
     setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
+    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("HOME", "/home/testuser", 1);
 
     ik_paths_t *paths = NULL;
@@ -190,6 +203,7 @@ START_TEST(test_paths_get_tools_project_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
 }
 END_TEST
 

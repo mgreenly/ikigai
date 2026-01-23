@@ -7,6 +7,16 @@ description: Writing effective Ralph goal files for CDD execution
 
 Writing effective goal files for Ralph loop execution in `$CDD_DIR/goals/`.
 
+## File Naming Convention
+
+Goal files MUST be named: `<name>-ralph-goal.md`
+
+**Examples:**
+- `list-tool-ralph-goal.md` ✓
+- `web-fetch-ralph-goal.md` ✓
+- `list-tool-goal.md` ✗ (missing "ralph")
+- `list-tool.md` ✗ (missing "ralph-goal")
+
 ## Core Principle
 
 **Ralph has unlimited context through iteration.** Don't artificially limit goals or references - Ralph can read all plan documents, iterate through failures, and persist until outcomes are achieved.
