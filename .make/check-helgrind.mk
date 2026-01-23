@@ -39,6 +39,8 @@ ifdef FILE
 else ifdef RAW
 	@# RAW mode - run tests with full Helgrind output visible
 	$(MAKE) BUILDDIR=$(HELGRIND_BUILDDIR) BUILD=valgrind check-link
+	@mkdir -p reports/check
+	@find tests/unit tests/integration -type d 2>/dev/null | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
 	@for bin in $$(find $(HELGRIND_BUILDDIR)/tests/unit $(HELGRIND_BUILDDIR)/tests/integration \
 		-name '*_test' -type f -executable 2>/dev/null); do \
 		echo "=== $$bin ==="; \
