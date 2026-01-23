@@ -118,6 +118,43 @@ static char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
     return data_json;
 }
 
+// Build tool_result data_json for database.
+static char *ik_build_tool_result_data_json(TALLOC_CTX *ctx,
+                                            const char *tool_call_id,
+                                            const char *tool_name,
+                                            const char *result_json)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    yyjson_mut_doc_set_root(doc, root);
+    if (!yyjson_mut_obj_add_str(doc, root, "tool_call_id", tool_call_id)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, root, "name", tool_name)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, root, "output", result_json)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    bool success = false;
+    yyjson_doc *result_doc = yyjson_read(result_json, strlen(result_json), 0);
+    if (result_doc != NULL) {
+        yyjson_val *result_root = yyjson_doc_get_root_(result_doc);
+        yyjson_val *success_val = yyjson_obj_get_(result_root, "tool_success");
+        if (success_val != NULL) {
+            success = yyjson_get_bool(success_val);
+        }
+        yyjson_doc_free(result_doc);
+    }
+
+    if (!yyjson_mut_obj_add_bool(doc, root, "success", success)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    char *json = yyjson_mut_write(doc, 0, NULL);
+    char *data_json = talloc_strdup(ctx, json);
+    free(json);
+    yyjson_mut_doc_free(doc);
+    if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    return data_json;
+}
+
 // Execute pending tool call and add messages to conversation (synchronous).
 void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
 {
@@ -153,10 +190,14 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
     ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}");
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL);
+        char *tool_result_data_json = ik_build_tool_result_data_json(repl, tc->id, tc->name, result_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_call", formatted_call, "{}");
+                              repl->current->uuid, "tool_call", formatted_call, tool_call_data_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_result", formatted_result, "{}");
+                              repl->current->uuid, "tool_result", formatted_result, tool_result_data_json);
+        talloc_free(tool_call_data_json);
+        talloc_free(tool_result_data_json);
     }
     talloc_free(summary);
     talloc_free(repl->current->pending_tool_call);
@@ -221,14 +262,16 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     const char *formatted_call = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
     if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
-        char *data_json = ik_build_tool_call_data_json(agent, tc, agent->pending_thinking_text,
-                                                       agent->pending_thinking_signature,
-                                                       agent->pending_redacted_data);
+        char *tool_call_data_json = ik_build_tool_call_data_json(agent, tc, agent->pending_thinking_text,
+                                                                 agent->pending_thinking_signature,
+                                                                 agent->pending_redacted_data);
+        char *tool_result_data_json = ik_build_tool_result_data_json(agent, tc->id, tc->name, result_json);
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_call", formatted_call, data_json);
+                              agent->uuid, "tool_call", formatted_call, tool_call_data_json);
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
-                              agent->uuid, "tool_result", formatted_result, "{}");
-        talloc_free(data_json);
+                              agent->uuid, "tool_result", formatted_result, tool_result_data_json);
+        talloc_free(tool_call_data_json);
+        talloc_free(tool_result_data_json);
     }
     if (agent->pending_thinking_text != NULL) {
         talloc_free(agent->pending_thinking_text);
