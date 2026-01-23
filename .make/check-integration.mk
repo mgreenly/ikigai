@@ -21,6 +21,15 @@ ifdef FILE
 	if grep -q 'result="failure"' "$$xml_path"; then \
 		exit 1; \
 	fi
+else ifdef RAW
+	@# RAW mode - run tests with full output visible
+	$(MAKE) check-link
+	@mkdir -p reports/check
+	@find tests/integration -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
+	@for bin in $(INTEGRATION_TEST_BINARIES); do \
+		echo "=== $$bin ==="; \
+		$$bin || exit 1; \
+	done
 else
 	@# Bulk mode - run all integration tests in parallel, one line per binary
 	@# Phase 1: Ensure binaries are built

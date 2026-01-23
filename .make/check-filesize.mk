@@ -19,6 +19,18 @@ ifdef FILE
 	else \
 		echo "🟢 $(FILE)"; \
 	fi
+else ifdef RAW
+	@failed=0; \
+	for file in $(SRC_FILES) $(TEST_FILES); do \
+		size=$$(wc -c < "$$file"); \
+		if [ $$size -gt $(FILESIZE_LIMIT) ]; then \
+			echo "FAIL $$file: $$size bytes (exceeds $(FILESIZE_LIMIT))"; \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	if [ $$failed -gt 0 ]; then \
+		exit 1; \
+	fi
 else
 	@# Bulk mode - check all source files
 	@passed=0; failed=0; \

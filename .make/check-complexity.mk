@@ -28,6 +28,22 @@ ifdef FILE
 		fi; \
 		exit 1; \
 	fi
+else ifdef RAW
+	@# RAW mode - show full complexity output for failures
+	@failed=0; \
+	for file in $(SRC_FILES) $(TEST_FILES); do \
+		output=$$(complexity --threshold=$(COMPLEXITY_THRESHOLD) --no-header --scores "$$file" 2>&1); \
+		has_complexity=$$(echo "$$output" | grep -E "^\s+[0-9]+" | grep -v "No procedures" || true); \
+		has_nesting=$$(echo "$$output" | grep -E "nesting depth reached level [6-9]" || true); \
+		if [ -n "$$has_complexity" ] || [ -n "$$has_nesting" ]; then \
+			echo "=== $$file ==="; \
+			echo "$$output"; \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	if [ $$failed -gt 0 ]; then \
+		exit 1; \
+	fi
 else
 	@# Bulk mode - check all source files
 	@passed=0; failed=0; \
