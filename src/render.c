@@ -158,8 +158,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Calculate total buffer size needed
-    // Clear screen (4 bytes) + home (3 bytes) + For each line: text + \r\n (for newline conversion)
-    size_t total_size = 7;  // Clear screen + home cursor escapes
+    // Clear screen (4 bytes) + hide cursor (6 bytes) + home (3 bytes) + For each line: text + \r\n (for newline conversion)
+    size_t total_size = 13;  // Clear screen + hide cursor + home cursor escapes
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
@@ -380,15 +380,15 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         offset += ik_render_copy_text_with_crlf(&framebuffer[offset], input_text, input_text_len);
     }
 
-    // Show cursor only if input buffer is visible: \x1b[?25h
-    if (render_input_buffer) {
-        framebuffer[offset++] = '\x1b';
-        framebuffer[offset++] = '[';
-        framebuffer[offset++] = '?';
-        framebuffer[offset++] = '2';
-        framebuffer[offset++] = '5';
-        framebuffer[offset++] = 'h';
-    }
+    // Always write cursor visibility at end
+    // When input buffer visible: show cursor (\x1b[?25h)
+    // When input buffer NOT visible: keep cursor hidden (\x1b[?25l)
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = render_input_buffer ? 'h' : 'l';
 
     // Position cursor when input buffer visible
     if (render_input_buffer) {

@@ -87,7 +87,7 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
 
     // Find the separator (80 consecutive dashes)
     const char *separator_start = NULL;
-    for (ssize_t i = 0; i < bytes_read - 80; i++) {
+    for (ssize_t i = 0; i <= bytes_read - 80; i++) {
         if (output[i] == '-') {
             bool found = true;
             for (int32_t j = 1; j < 80; j++) {
@@ -182,7 +182,7 @@ START_TEST(test_separator_has_trailing_newline_when_input_buffer_visible) {
 
     // Find the separator
     const char *separator_start = NULL;
-    for (ssize_t i = 0; i < bytes_read - 80; i++) {
+    for (ssize_t i = 0; i <= bytes_read - 80; i++) {
         if (output[i] == '-') {
             bool found = true;
             for (int32_t j = 1; j < 80; j++) {
@@ -270,7 +270,7 @@ START_TEST(test_input_buffer_without_separator) {
 
     // Should NOT contain separator (80 consecutive dashes)
     bool found_separator = false;
-    for (ssize_t i = 0; i < bytes_read - 80; i++) {
+    for (ssize_t i = 0; i <= bytes_read - 80; i++) {
         if (output[i] == '-') {
             bool all_dashes = true;
             for (int32_t j = 1; j < 80; j++) {
