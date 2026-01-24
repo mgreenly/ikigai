@@ -24,7 +24,7 @@ START_TEST(test_paths_init_success) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
-    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -38,6 +38,8 @@ START_TEST(test_paths_init_success) {
     ck_assert_str_eq(ik_paths_get_config_dir(paths), "/test/config");
     ck_assert_str_eq(ik_paths_get_data_dir(paths), "/test/data");
     ck_assert_str_eq(ik_paths_get_libexec_dir(paths), "/test/libexec");
+    ck_assert_str_eq(ik_paths_get_cache_dir(paths), "/test/cache");
+    ck_assert_str_eq(ik_paths_get_state_dir(paths), "/test/state");
 
     // Cleanup
     unsetenv("IKIGAI_BIN_DIR");
@@ -45,6 +47,7 @@ START_TEST(test_paths_init_success) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -54,6 +57,8 @@ START_TEST(test_paths_init_missing_bin_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -68,6 +73,8 @@ START_TEST(test_paths_init_missing_bin_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -77,6 +84,8 @@ START_TEST(test_paths_init_missing_config_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -91,6 +100,8 @@ START_TEST(test_paths_init_missing_config_dir) {
     unsetenv("IKIGAI_BIN_DIR");
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -100,6 +111,8 @@ START_TEST(test_paths_init_missing_data_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     unsetenv("IKIGAI_DATA_DIR");
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -114,6 +127,8 @@ START_TEST(test_paths_init_missing_data_dir) {
     unsetenv("IKIGAI_BIN_DIR");
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -123,6 +138,8 @@ START_TEST(test_paths_init_missing_libexec_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     unsetenv("IKIGAI_LIBEXEC_DIR");
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -137,6 +154,8 @@ START_TEST(test_paths_init_missing_libexec_dir) {
     unsetenv("IKIGAI_BIN_DIR");
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -146,6 +165,8 @@ START_TEST(test_paths_init_empty_bin_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -162,6 +183,7 @@ START_TEST(test_paths_init_empty_bin_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -171,6 +193,8 @@ START_TEST(test_paths_init_empty_config_dir) {
     setenv("IKIGAI_CONFIG_DIR", "", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -187,6 +211,7 @@ START_TEST(test_paths_init_empty_config_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -196,6 +221,91 @@ START_TEST(test_paths_init_empty_data_dir) {
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_empty_libexec_dir) {
+    // Setup environment (empty IKIGAI_LIBEXEC_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_missing_cache_dir) {
+    // Setup environment (missing IKIGAI_CACHE_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    unsetenv("IKIGAI_CACHE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_missing_state_dir) {
+    // Setup environment (missing IKIGAI_STATE_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    unsetenv("IKIGAI_STATE_DIR");
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -215,12 +325,14 @@ START_TEST(test_paths_init_empty_data_dir) {
 }
 END_TEST
 
-START_TEST(test_paths_init_empty_libexec_dir) {
-    // Setup environment (empty IKIGAI_LIBEXEC_DIR)
+START_TEST(test_paths_init_empty_cache_dir) {
+    // Setup environment (empty IKIGAI_CACHE_DIR)
     setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
-    setenv("IKIGAI_LIBEXEC_DIR", "", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -237,6 +349,35 @@ START_TEST(test_paths_init_empty_libexec_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+}
+END_TEST
+
+START_TEST(test_paths_init_empty_state_dir) {
+    // Setup environment (empty IKIGAI_STATE_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "", 1);
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -247,6 +388,7 @@ START_TEST(test_paths_init_no_home) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/test/state", 1);
     unsetenv("HOME");
 
     // Execute
@@ -264,6 +406,7 @@ START_TEST(test_paths_init_no_home) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 END_TEST
 
@@ -278,10 +421,14 @@ static Suite *paths_init_suite(void)
     tcase_add_test(tc_init, test_paths_init_missing_config_dir);
     tcase_add_test(tc_init, test_paths_init_missing_data_dir);
     tcase_add_test(tc_init, test_paths_init_missing_libexec_dir);
+    tcase_add_test(tc_init, test_paths_init_missing_cache_dir);
+    tcase_add_test(tc_init, test_paths_init_missing_state_dir);
     tcase_add_test(tc_init, test_paths_init_empty_bin_dir);
     tcase_add_test(tc_init, test_paths_init_empty_config_dir);
     tcase_add_test(tc_init, test_paths_init_empty_data_dir);
     tcase_add_test(tc_init, test_paths_init_empty_libexec_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_cache_dir);
+    tcase_add_test(tc_init, test_paths_init_empty_state_dir);
     tcase_add_test(tc_init, test_paths_init_no_home);
     suite_add_tcase(s, tc_init);
 

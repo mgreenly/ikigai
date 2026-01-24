@@ -25,6 +25,7 @@ START_TEST(test_env_all_vars_set) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -41,6 +42,8 @@ START_TEST(test_env_all_vars_set) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -51,6 +54,7 @@ START_TEST(test_env_missing_bin_dir) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -66,6 +70,8 @@ START_TEST(test_env_missing_bin_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -76,6 +82,7 @@ START_TEST(test_env_missing_config_dir) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -91,6 +98,8 @@ START_TEST(test_env_missing_config_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -101,6 +110,7 @@ START_TEST(test_env_missing_data_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -116,6 +126,8 @@ START_TEST(test_env_missing_data_dir) {
     unsetenv("IKIGAI_CONFIG_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -126,6 +138,8 @@ START_TEST(test_env_missing_libexec_dir) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -150,6 +164,7 @@ START_TEST(test_env_empty_string) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 
     // Execute
     ik_paths_t *paths = NULL;
@@ -165,6 +180,8 @@ START_TEST(test_env_empty_string) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -175,6 +192,7 @@ START_TEST(test_env_with_spaces) {
     setenv("IKIGAI_DATA_DIR", "/test/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -192,6 +210,8 @@ START_TEST(test_env_with_spaces) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -202,6 +222,7 @@ START_TEST(test_env_with_trailing_slash) {
     setenv("IKIGAI_DATA_DIR", "/test/data/", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec/", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache/", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -220,6 +241,8 @@ START_TEST(test_env_with_trailing_slash) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
