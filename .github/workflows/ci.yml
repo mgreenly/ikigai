@@ -3,20 +3,8 @@ name: CI
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'tools/**'
-      - 'Makefile'
-      - '!**/*.md'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'tools/**'
-      - 'Makefile'
-      - '!**/*.md'
 
 jobs:
   build-and-test:
@@ -56,7 +44,19 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check if code changed
+      id: filter
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          code:
+            - 'src/**'
+            - 'tests/**'
+            - 'tools/**'
+            - 'Makefile'
+
     - name: Install build dependencies
+      if: steps.filter.outputs.code == 'true'
       run: |
         apt-get update
         apt-get upgrade -y
@@ -85,6 +85,7 @@ jobs:
           fakeroot
 
     - name: Debug info - Environment
+      if: steps.filter.outputs.code == 'true'
       run: |
         echo "=== OS Information ==="
         cat /etc/os-release
@@ -114,24 +115,30 @@ jobs:
         df -h .
 
     - name: Verify PostgreSQL connectivity
+      if: steps.filter.outputs.code == 'true'
       run: |
         psql "postgresql://ikigai:ikigai@postgres/ikigai" -c "SELECT 1"
 
     - name: check-compile
+      if: steps.filter.outputs.code == 'true'
       run: make RAW=1 check-compile
 
     - name: check-link
+      if: steps.filter.outputs.code == 'true'
       run: make RAW=1 check-link
 
     - name: check-filesize
+      if: steps.filter.outputs.code == 'true'
       run: make RAW=1 check-filesize
 
     - name: Create non-root user for tests
+      if: steps.filter.outputs.code == 'true'
       run: |
         useradd -m -s /bin/bash testuser
         chown -R testuser:testuser .
 
     - name: Debug info - VCR symbols
+      if: steps.filter.outputs.code == 'true'
       run: |
         echo "=== Object files - VCR helper ==="
         nm build/tests/helpers/vcr_helper.o 2>/dev/null | grep -E "vcr_|^[0-9a-f]+ [TtWwUuBb]" | head -30 || echo "No symbols"
@@ -170,43 +177,51 @@ jobs:
         sudo -E -u testuser build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || true
 
     - name: check-unit
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make RAW=1 check-unit MAKE_JOBS=1
 
     - name: check-integration
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make RAW=1 check-integration
 
     - name: check-complexity
+      if: steps.filter.outputs.code == 'true'
       run: make RAW=1 check-complexity
 
     - name: check-sanitize
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
         sudo -E -u testuser make RAW=1 check-sanitize
 
     - name: check-tsan
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
         sudo -E -u testuser make RAW=1 check-tsan
 
     - name: check-valgrind
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
         sudo -E -u testuser make RAW=1 check-valgrind
 
     - name: check-helgrind
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
         sudo -E -u testuser make RAW=1 check-helgrind
 
     - name: check-coverage
+      if: steps.filter.outputs.code == 'true'
       run: |
         rm -rf /tmp/.ikigai
         sudo -E -u testuser make clean
