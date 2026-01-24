@@ -47,7 +47,7 @@ ik_layer_t *ik_input_layer_create(TALLOC_CTX *ctx,
 
 // Spinner state structure
 typedef struct {
-    size_t frame_index;  // Current animation frame (0-3)
+    size_t frame_index;  // Current animation frame (0-9)
     bool visible;        // Whether spinner is visible
 } ik_spinner_state_t;
 
@@ -55,8 +55,8 @@ typedef struct {
 // The layer shows an animated spinner with a message while waiting for LLM
 ik_layer_t *ik_spinner_layer_create(TALLOC_CTX *ctx, const char *name, ik_spinner_state_t *state);
 
-// Get current spinner frame character
-char ik_spinner_get_frame(const ik_spinner_state_t *state);
+// Get current spinner frame string
+const char *ik_spinner_get_frame(const ik_spinner_state_t *state);
 
 // Advance to next spinner frame (cycles through animation)
 void ik_spinner_advance(ik_spinner_state_t *state);

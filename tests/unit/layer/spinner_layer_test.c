@@ -43,18 +43,30 @@ END_TEST
 START_TEST(test_spinner_get_frame_cycles) {
     ik_spinner_state_t state = {.frame_index = 0, .visible = true};
 
-    // Test cycling through all 4 frames
-    ck_assert_int_eq(ik_spinner_get_frame(&state), '|');
+    // Test cycling through all 10 frames
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠋");
     state.frame_index = 1;
-    ck_assert_int_eq(ik_spinner_get_frame(&state), '/');
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠙");
     state.frame_index = 2;
-    ck_assert_int_eq(ik_spinner_get_frame(&state), '-');
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠹");
     state.frame_index = 3;
-    ck_assert_int_eq(ik_spinner_get_frame(&state), '\\');
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠸");
+    state.frame_index = 4;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠼");
+    state.frame_index = 5;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠴");
+    state.frame_index = 6;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠦");
+    state.frame_index = 7;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠧");
+    state.frame_index = 8;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠇");
+    state.frame_index = 9;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠏");
 
     // Test wrapping (frame_index beyond array should wrap)
-    state.frame_index = 4;
-    ck_assert_int_eq(ik_spinner_get_frame(&state), '|');
+    state.frame_index = 10;
+    ck_assert_str_eq(ik_spinner_get_frame(&state), "⠋");
 }
 
 END_TEST
@@ -70,6 +82,18 @@ START_TEST(test_spinner_advance) {
     ck_assert_uint_eq(state.frame_index, 2);
     ik_spinner_advance(&state);
     ck_assert_uint_eq(state.frame_index, 3);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 4);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 5);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 6);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 7);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 8);
+    ik_spinner_advance(&state);
+    ck_assert_uint_eq(state.frame_index, 9);
 
     // Test wrapping
     ik_spinner_advance(&state);
@@ -89,8 +113,8 @@ START_TEST(test_spinner_layer_render_frame0) {
     // Render spinner
     layer->render(layer, output, 80, 0, 1);
 
-    // Should be "[|] Waiting for response...\r\n"
-    const char *expected = "[|] Waiting for response...\r\n";
+    // Should be "⠋ Waiting for response...\r\n"
+    const char *expected = "⠋ Waiting for response...\r\n";
     ck_assert_uint_eq(output->size, strlen(expected));
     ck_assert_int_eq(memcmp(output->data, expected, strlen(expected)), 0);
 
@@ -106,13 +130,19 @@ START_TEST(test_spinner_layer_render_all_frames) {
     ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     const char *expected_frames[] = {
-        "[|] Waiting for response...\r\n",
-        "[/] Waiting for response...\r\n",
-        "[-] Waiting for response...\r\n",
-        "[\\] Waiting for response...\r\n"
+        "⠋ Waiting for response...\r\n",
+        "⠙ Waiting for response...\r\n",
+        "⠹ Waiting for response...\r\n",
+        "⠸ Waiting for response...\r\n",
+        "⠼ Waiting for response...\r\n",
+        "⠴ Waiting for response...\r\n",
+        "⠦ Waiting for response...\r\n",
+        "⠧ Waiting for response...\r\n",
+        "⠇ Waiting for response...\r\n",
+        "⠏ Waiting for response...\r\n"
     };
 
-    for (size_t i = 0; i < 4; i++) {
+    for (size_t i = 0; i < 10; i++) {
         state.frame_index = i;
 
         ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
@@ -135,22 +165,21 @@ START_TEST(test_spinner_animation_sequence) {
     ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     // Simulate animation: advance and render multiple times
-    for (size_t i = 0; i < 8; i++) {  // Two full cycles
+    const char *braille_frames[] = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
+
+    for (size_t i = 0; i < 20; i++) {  // Two full cycles
         ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
         layer->render(layer, output, 80, 0, 1);
 
-        // Verify frame is cycling correctly
-        char expected_frame = (i % 4 == 0) ? '|' :
-                              (i % 4 == 1) ? '/' :
-                              (i % 4 == 2) ? '-' : '\\';
-
-        ck_assert_int_eq(output->data[1], expected_frame);
+        // Verify frame is cycling correctly (braille characters are 3 bytes UTF-8)
+        const char *expected_frame = braille_frames[i % 10];
+        ck_assert_int_eq(memcmp(output->data, expected_frame, strlen(expected_frame)), 0);
 
         ik_spinner_advance(&state);
     }
 
-    // After 8 advances, should be back to frame 0
+    // After 20 advances, should be back to frame 0
     ck_assert_uint_eq(state.frame_index, 0);
 
     talloc_free(ctx);
