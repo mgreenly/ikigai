@@ -2,13 +2,14 @@
 #include "layer_wrappers.h"
 #include "panic.h"
 #include <assert.h>
+#include <string.h>
 
 // Spinner animation frames
-static const char SPINNER_FRAMES[] = {'|', '/', '-', '\\'};
-static const size_t SPINNER_FRAME_COUNT = 4;
+static const char *SPINNER_FRAMES[] = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
+static const size_t SPINNER_FRAME_COUNT = 10;
 
-// Get current spinner frame character
-char ik_spinner_get_frame(const ik_spinner_state_t *state)
+// Get current spinner frame string
+const char *ik_spinner_get_frame(const ik_spinner_state_t *state)
 {
     assert(state != NULL);  // LCOV_EXCL_BR_LINE
     return SPINNER_FRAMES[state->frame_index % SPINNER_FRAME_COUNT];
@@ -58,12 +59,11 @@ static void spinner_render(const ik_layer_t *layer,
     (void)row_count; // Always render the full spinner
 
     ik_spinner_layer_data_t *data = (ik_spinner_layer_data_t *)layer->data;
-    char frame = ik_spinner_get_frame(data->state);
+    const char *frame = ik_spinner_get_frame(data->state);
 
-    // Render spinner: "[<frame>] Waiting for response..."
-    ik_output_buffer_append(output, "[", 1);
-    ik_output_buffer_append(output, &frame, 1);
-    ik_output_buffer_append(output, "] Waiting for response...", 25);
+    // Render spinner: "<frame> Waiting for response..."
+    ik_output_buffer_append(output, frame, strlen(frame));
+    ik_output_buffer_append(output, " Waiting for response...", 24);
 
     // Add \r\n at end of line
     ik_output_buffer_append(output, "\r\n", 2);
