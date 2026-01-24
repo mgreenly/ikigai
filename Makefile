@@ -257,14 +257,16 @@ endif
 	# Generate and install wrapper script to bin
 	@printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
 	@printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_CONFIG_DIR=%s\n' "$(configdir)" >> $(DESTDIR)$(bindir)/ikigai
 ifeq ($(IS_USER_INSTALL),yes)
 	@printf 'IKIGAI_DATA_DIR=%s\n' "$(user_datadir)" >> $(DESTDIR)$(bindir)/ikigai
 else
 	@printf 'IKIGAI_DATA_DIR=%s\n' "$(datadir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
 endif
 	@printf 'IKIGAI_LIBEXEC_DIR=%s\n' "$(libexecdir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'IKIGAI_CONFIG_DIR=$${XDG_CONFIG_HOME:-$$HOME/.config}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'IKIGAI_CACHE_DIR=$${XDG_CACHE_HOME:-$$HOME/.cache}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'IKIGAI_STATE_DIR=$${XDG_STATE_HOME:-$$HOME/.local/state}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
+	@printf 'export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
 	@printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(DESTDIR)$(bindir)/ikigai
 	@chmod 755 $(DESTDIR)$(bindir)/ikigai
 	# Install config files

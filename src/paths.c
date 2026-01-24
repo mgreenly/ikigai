@@ -12,6 +12,7 @@ struct ik_paths_t {
     char *data_dir;
     char *libexec_dir;
     char *cache_dir;
+    char *state_dir;
     char *tools_user_dir;
     char *tools_project_dir;
 };
@@ -63,19 +64,22 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
     const char *data_dir = getenv("IKIGAI_DATA_DIR");
     const char *libexec_dir = getenv("IKIGAI_LIBEXEC_DIR");
     const char *cache_dir = getenv("IKIGAI_CACHE_DIR");
+    const char *state_dir = getenv("IKIGAI_STATE_DIR");
 
     DEBUG_LOG("ik_paths_init: IKIGAI_BIN_DIR=%s", bin_dir ? bin_dir : "NULL");
     DEBUG_LOG("ik_paths_init: IKIGAI_CONFIG_DIR=%s", config_dir ? config_dir : "NULL");
     DEBUG_LOG("ik_paths_init: IKIGAI_DATA_DIR=%s", data_dir ? data_dir : "NULL");
     DEBUG_LOG("ik_paths_init: IKIGAI_LIBEXEC_DIR=%s", libexec_dir ? libexec_dir : "NULL");
     DEBUG_LOG("ik_paths_init: IKIGAI_CACHE_DIR=%s", cache_dir ? cache_dir : "NULL");
+    DEBUG_LOG("ik_paths_init: IKIGAI_STATE_DIR=%s", state_dir ? state_dir : "NULL");
 
     // Check if all required environment variables are set and non-empty
     if (bin_dir == NULL || bin_dir[0] == '\0' ||
         config_dir == NULL || config_dir[0] == '\0' ||
         data_dir == NULL || data_dir[0] == '\0' ||
         libexec_dir == NULL || libexec_dir[0] == '\0' ||
-        cache_dir == NULL || cache_dir[0] == '\0') {
+        cache_dir == NULL || cache_dir[0] == '\0' ||
+        state_dir == NULL || state_dir[0] == '\0') {
         DEBUG_LOG("ik_paths_init: ERROR - Missing required environment variable");
         return ERR(ctx, INVALID_ARG, "Missing required environment variable IKIGAI_*_DIR");
     }
@@ -99,6 +103,9 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
 
     paths->cache_dir = talloc_strdup(paths, cache_dir);
     if (paths->cache_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    paths->state_dir = talloc_strdup(paths, state_dir);
+    if (paths->state_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Expand tilde for user tools directory
     char *expanded_user_dir = NULL;
@@ -144,6 +151,12 @@ const char *ik_paths_get_cache_dir(ik_paths_t *paths)
 {
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
     return paths->cache_dir;
+}
+
+const char *ik_paths_get_state_dir(ik_paths_t *paths)
+{
+    assert(paths != NULL);  // LCOV_EXCL_BR_LINE
+    return paths->state_dir;
 }
 
 const char *ik_paths_get_tools_system_dir(ik_paths_t *paths)

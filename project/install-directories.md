@@ -29,7 +29,7 @@ $PREFIX/libexec/ikigai/file-read
 ### How It Works
 
 1. **Install time:** Makefile generates wrapper script with correct paths for the PREFIX
-2. **Runtime:** Wrapper sets 4 environment variables and execs actual binary
+2. **Runtime:** Wrapper sets 6 environment variables (3 install-time, 3 XDG-aware) and execs actual binary
 3. **C code:** Reads environment variables, no detection logic needed
 
 ## Directory Layouts by PREFIX
@@ -53,12 +53,14 @@ $PREFIX/libexec/ikigai/file-read
 
 **Wrapper script:**
 ```bash
-#!/bin/sh
+#!/bin/bash
 IKIGAI_BIN_DIR=/usr/local/bin
-IKIGAI_CONFIG_DIR=/usr/local/etc/ikigai
 IKIGAI_DATA_DIR=/usr/local/share/ikigai
 IKIGAI_LIBEXEC_DIR=/usr/local/libexec/ikigai
-export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR
+IKIGAI_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/ikigai
+IKIGAI_CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/ikigai
+IKIGAI_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/ikigai
+export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR
 exec /usr/local/libexec/ikigai/ikigai "$@"
 ```
 
@@ -77,16 +79,18 @@ exec /usr/local/libexec/ikigai/ikigai "$@"
 
 **Wrapper script:**
 ```bash
-#!/bin/sh
+#!/bin/bash
 IKIGAI_BIN_DIR=/usr/bin
-IKIGAI_CONFIG_DIR=/etc/ikigai
 IKIGAI_DATA_DIR=/usr/share/ikigai
 IKIGAI_LIBEXEC_DIR=/usr/libexec/ikigai
-export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR
+IKIGAI_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/ikigai
+IKIGAI_CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/ikigai
+IKIGAI_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/ikigai
+export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR
 exec /usr/libexec/ikigai/ikigai "$@"
 ```
 
-**Note:** Config goes to `/etc/ikigai/` per FHS convention.
+**Note:** Config, cache, and state are user-specific using XDG directories.
 
 ### PREFIX=/opt/ikigai (Optional Software)
 
@@ -102,16 +106,18 @@ exec /usr/libexec/ikigai/ikigai "$@"
 
 **Wrapper script:**
 ```bash
-#!/bin/sh
+#!/bin/bash
 IKIGAI_BIN_DIR=/opt/ikigai/bin
-IKIGAI_CONFIG_DIR=/opt/ikigai/etc
 IKIGAI_DATA_DIR=/opt/ikigai/share
 IKIGAI_LIBEXEC_DIR=/opt/ikigai/libexec
-export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR
+IKIGAI_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/ikigai
+IKIGAI_CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/ikigai
+IKIGAI_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/ikigai
+export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR
 exec /opt/ikigai/libexec/ikigai/ikigai "$@"
 ```
 
-**Note:** No double directory name - PREFIX already contains "ikigai".
+**Note:** No double directory name - PREFIX already contains "ikigai". Config, cache, and state are user-specific using XDG directories.
 
 ### PREFIX=$HOME/.local (User Install)
 
@@ -128,16 +134,18 @@ $HOME/.config/ikigai/config.json    # config (XDG location, not .local/etc)
 
 **Wrapper script:**
 ```bash
-#!/bin/sh
+#!/bin/bash
 IKIGAI_BIN_DIR=$HOME/.local/bin
-IKIGAI_CONFIG_DIR=$HOME/.config/ikigai
 IKIGAI_DATA_DIR=$HOME/.local/share/ikigai
 IKIGAI_LIBEXEC_DIR=$HOME/.local/libexec/ikigai
-export IKIGAI_BIN_DIR IKIGAI_CONFIG_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR
+IKIGAI_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/ikigai
+IKIGAI_CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/ikigai
+IKIGAI_STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/ikigai
+export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR
 exec $HOME/.local/libexec/ikigai/ikigai "$@"
 ```
 
-**Note:** Config uses XDG location `~/.config/ikigai/` (respects `$XDG_CONFIG_HOME` at install time).
+**Note:** Config, cache, and state use XDG locations (respect `$XDG_*_HOME` at runtime).
 
 ## Development Mode
 
@@ -146,9 +154,11 @@ For development (running from source tree), use `.envrc`:
 ```bash
 # .envrc in project root
 export IKIGAI_BIN_DIR=$PWD/bin
-export IKIGAI_CONFIG_DIR=$PWD/etc/ikigai
 export IKIGAI_DATA_DIR=$PWD/share/ikigai
 export IKIGAI_LIBEXEC_DIR=$PWD/libexec/ikigai
+export IKIGAI_CONFIG_DIR=$PWD/etc/ikigai
+export IKIGAI_CACHE_DIR=$PWD/cache
+export IKIGAI_STATE_DIR=$PWD/state
 ```
 
 Then:
@@ -161,14 +171,19 @@ direnv allow
 
 ## Environment Variables
 
-The wrapper script sets these 4 variables:
+The wrapper script sets these 6 variables:
 
-| Variable | Purpose | Example Value |
-|----------|---------|---------------|
-| `IKIGAI_BIN_DIR` | Binary directory | `/usr/local/bin` |
-| `IKIGAI_CONFIG_DIR` | Configuration files | `/usr/local/etc/ikigai` |
-| `IKIGAI_DATA_DIR` | Documentation, examples | `/usr/local/share/ikigai` |
-| `IKIGAI_LIBEXEC_DIR` | Helper executables (tools) | `/usr/local/libexec/ikigai` |
+| Variable | Type | Purpose | Example Value |
+|----------|------|---------|---------------|
+| `IKIGAI_BIN_DIR` | Install-time | Binary directory | `/usr/local/bin` |
+| `IKIGAI_DATA_DIR` | Install-time | Documentation, examples | `/usr/local/share/ikigai` |
+| `IKIGAI_LIBEXEC_DIR` | Install-time | Helper executables (tools) | `/usr/local/libexec/ikigai` |
+| `IKIGAI_CONFIG_DIR` | Runtime (XDG) | Configuration files | `$HOME/.config/ikigai` |
+| `IKIGAI_CACHE_DIR` | Runtime (XDG) | Cache files | `$HOME/.cache/ikigai` |
+| `IKIGAI_STATE_DIR` | Runtime (XDG) | State files | `$HOME/.local/state/ikigai` |
+
+**Install-time variables:** Set to PREFIX-dependent paths at install time
+**Runtime (XDG) variables:** Resolved at runtime using XDG Base Directory specification
 
 ## Tool Discovery Paths
 
@@ -216,9 +231,11 @@ When the same tool name exists in multiple directories:
 // src/paths.c
 struct ik_paths_t {
     char *bin_dir;              // From IKIGAI_BIN_DIR
-    char *config_dir;           // From IKIGAI_CONFIG_DIR
+    char *config_dir;           // From IKIGAI_CONFIG_DIR (XDG-aware)
     char *data_dir;             // From IKIGAI_DATA_DIR
-    char *tools_system_dir;     // From IKIGAI_LIBEXEC_DIR
+    char *libexec_dir;          // From IKIGAI_LIBEXEC_DIR
+    char *cache_dir;            // From IKIGAI_CACHE_DIR (XDG-aware)
+    char *state_dir;            // From IKIGAI_STATE_DIR (XDG-aware)
     char *tools_user_dir;       // Always ~/.ikigai/tools/
     char *tools_project_dir;    // Always .ikigai/tools/
 };
@@ -231,8 +248,10 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out) {
     const char *config = getenv("IKIGAI_CONFIG_DIR");
     const char *data = getenv("IKIGAI_DATA_DIR");
     const char *libexec = getenv("IKIGAI_LIBEXEC_DIR");
+    const char *cache = getenv("IKIGAI_CACHE_DIR");
+    const char *state = getenv("IKIGAI_STATE_DIR");
 
-    if (!bin || !config || !data || !libexec) {
+    if (!bin || !config || !data || !libexec || !cache || !state) {
         return ERR(ERR_INVALID_STATE, "Missing IKIGAI_*_DIR environment variables");
     }
 
@@ -240,7 +259,9 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out) {
     paths->bin_dir = talloc_strdup(paths, bin);
     paths->config_dir = talloc_strdup(paths, config);
     paths->data_dir = talloc_strdup(paths, data);
-    paths->tools_system_dir = talloc_strdup(paths, libexec);
+    paths->libexec_dir = talloc_strdup(paths, libexec);
+    paths->cache_dir = talloc_strdup(paths, cache);
+    paths->state_dir = talloc_strdup(paths, state);
 
     // These are always the same regardless of install
     paths->tools_user_dir = expand_tilde(paths, "~/.ikigai/tools");
@@ -251,7 +272,7 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out) {
 }
 ```
 
-**Key point:** No install type detection, no PREFIX extraction, no complex logic. Just read environment variables.
+**Key point:** No install type detection, no PREFIX extraction, no complex logic. Just read environment variables. XDG resolution happens in wrapper script.
 
 ## Makefile Install/Uninstall
 
@@ -339,12 +360,17 @@ IKIGAI_DATA_DIR=$HOME/.local/share/ikigai
 
 ## Summary Table
 
-| PREFIX | Binary Wrapper | Actual Binary | Config | Data | Libexec |
-|--------|----------------|---------------|--------|------|---------|
-| `/usr` | `/usr/bin/ikigai` | `/usr/libexec/ikigai/ikigai` | `/etc/ikigai/` | `/usr/share/ikigai/` | `/usr/libexec/ikigai/` |
-| `/usr/local` | `/usr/local/bin/ikigai` | `/usr/local/libexec/ikigai/ikigai` | `/usr/local/etc/ikigai/` | `/usr/local/share/ikigai/` | `/usr/local/libexec/ikigai/` |
-| `/opt/ikigai` | `/opt/ikigai/bin/ikigai` | `/opt/ikigai/libexec/ikigai` | `/opt/ikigai/etc/` | `/opt/ikigai/share/` | `/opt/ikigai/libexec/` |
-| `$HOME/.local` | `$HOME/.local/bin/ikigai` | `$HOME/.local/libexec/ikigai/ikigai` | `$HOME/.config/ikigai/` | `$HOME/.local/share/ikigai/` | `$HOME/.local/libexec/ikigai/` |
+| PREFIX | Binary Wrapper | Actual Binary | Data (install-time) | Libexec (install-time) |
+|--------|----------------|---------------|---------------------|------------------------|
+| `/usr` | `/usr/bin/ikigai` | `/usr/libexec/ikigai/ikigai` | `/usr/share/ikigai/` | `/usr/libexec/ikigai/` |
+| `/usr/local` | `/usr/local/bin/ikigai` | `/usr/local/libexec/ikigai/ikigai` | `/usr/local/share/ikigai/` | `/usr/local/libexec/ikigai/` |
+| `/opt/ikigai` | `/opt/ikigai/bin/ikigai` | `/opt/ikigai/libexec/ikigai` | `/opt/ikigai/share/` | `/opt/ikigai/libexec/` |
+| `$HOME/.local` | `$HOME/.local/bin/ikigai` | `$HOME/.local/libexec/ikigai/ikigai` | `$HOME/.local/share/ikigai/` | `$HOME/.local/libexec/ikigai/` |
+
+**Runtime (XDG) directories:** (all PREFIX values, resolved at runtime)
+- **Config:** `${XDG_CONFIG_HOME:-$HOME/.config}/ikigai`
+- **Cache:** `${XDG_CACHE_HOME:-$HOME/.cache}/ikigai`
+- **State:** `${XDG_STATE_HOME:-$HOME/.local/state}/ikigai`
 
 **User tools:** Always `~/.ikigai/tools/` (all PREFIX values)
 **Project tools:** Always `.ikigai/tools/` (all PREFIX values)
@@ -411,13 +437,19 @@ IS_USER_INSTALL := $(if $(findstring /home/,$(PREFIX)),yes,no)
 4. **Development-friendly** - Works with .envrc (direnv)
 5. **Test-friendly** - Tests override env vars easily
 
-### Why Four Environment Variables?
+### Why Six Environment Variables?
 
-Each directory serves a distinct purpose and may have different paths:
+Each directory serves a distinct purpose:
+
+**Install-time (PREFIX-dependent):**
 - `IKIGAI_BIN_DIR` - Where wrapper script lives
-- `IKIGAI_CONFIG_DIR` - Config files (varies by PREFIX)
-- `IKIGAI_DATA_DIR` - Documentation, examples
+- `IKIGAI_DATA_DIR` - Documentation, examples, migrations
 - `IKIGAI_LIBEXEC_DIR` - System tools (executables not in PATH)
+
+**Runtime (XDG-aware, user-specific):**
+- `IKIGAI_CONFIG_DIR` - User configuration files
+- `IKIGAI_CACHE_DIR` - Cached data (safe to delete)
+- `IKIGAI_STATE_DIR` - Persistent state (should not be deleted)
 
 ### Why `~/.ikigai/tools/` Not XDG?
 
@@ -445,18 +477,23 @@ setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
 setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
 setenv("IKIGAI_DATA_DIR", "/test/data", 1);
 setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+setenv("IKIGAI_STATE_DIR", "/test/state", 1);
 
 ik_paths_t *paths = NULL;
 res_t result = ik_paths_init(test_ctx, &paths);
 
 assert(result.ok);
 assert_string_equal(ik_paths_get_config_dir(paths), "/test/config");
+assert_string_equal(ik_paths_get_state_dir(paths), "/test/state");
 
 // Clean up
 unsetenv("IKIGAI_BIN_DIR");
 unsetenv("IKIGAI_CONFIG_DIR");
 unsetenv("IKIGAI_DATA_DIR");
 unsetenv("IKIGAI_LIBEXEC_DIR");
+unsetenv("IKIGAI_CACHE_DIR");
+unsetenv("IKIGAI_STATE_DIR");
 ```
 
 **Test helper for most tests:**
@@ -466,7 +503,9 @@ ik_paths_t *ik_paths_create_test(TALLOC_CTX *ctx) {
     paths->bin_dir = talloc_strdup(paths, "tests/bin");
     paths->config_dir = talloc_strdup(paths, "tests/config");
     paths->data_dir = talloc_strdup(paths, "tests/data");
-    paths->tools_system_dir = talloc_strdup(paths, "tests/tools/system");
+    paths->libexec_dir = talloc_strdup(paths, "tests/libexec");
+    paths->cache_dir = talloc_strdup(paths, "tests/cache");
+    paths->state_dir = talloc_strdup(paths, "tests/state");
     paths->tools_user_dir = talloc_strdup(paths, "tests/tools/user");
     paths->tools_project_dir = talloc_strdup(paths, "tests/tools/project");
     return paths;

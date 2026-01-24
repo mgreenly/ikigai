@@ -390,6 +390,11 @@ const char *test_paths_setup_env(void)
     mkdir(buf, 0755);
     setenv("IKIGAI_CACHE_DIR", buf, 1);
 
+    // state directory
+    snprintf(buf, sizeof(buf), "%s/state", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_STATE_DIR", buf, 1);
+
     return test_path_prefix;
 }
 
@@ -401,6 +406,7 @@ void test_paths_cleanup_env(void)
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 
     // Remove test directory tree if it exists
     if (test_path_prefix[0] != '\0') {

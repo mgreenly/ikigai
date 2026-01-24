@@ -8,6 +8,7 @@ dist/
 /coverage/
 tags
 /cache/
+/state/
 
 **/*.py
 __pycache__/

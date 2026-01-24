@@ -25,6 +25,7 @@ START_TEST(test_get_bin_dir) {
     setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/custom/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -43,6 +44,8 @@ START_TEST(test_get_bin_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -53,6 +56,7 @@ START_TEST(test_get_config_dir) {
     setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/custom/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -71,6 +75,8 @@ START_TEST(test_get_config_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -81,6 +87,7 @@ START_TEST(test_get_data_dir) {
     setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/custom/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -99,6 +106,8 @@ START_TEST(test_get_data_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 
@@ -109,6 +118,7 @@ START_TEST(test_get_libexec_dir) {
     setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
     setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/custom/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -127,6 +137,8 @@ START_TEST(test_get_libexec_dir) {
     unsetenv("IKIGAI_DATA_DIR");
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
 }
 END_TEST
 

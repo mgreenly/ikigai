@@ -1,4 +1,5 @@
 #include "config.h"
+#include "config_defaults.h"
 #include "json_allocator.h"
 #include "logger.h"
 #include "panic.h"
@@ -14,56 +15,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-// Create default config file with default values
-static res_t create_default_config(TALLOC_CTX *ctx, const char *path)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(path != NULL); // LCOV_EXCL_BR_LINE
-
-    // Extract directory from path
-    char *path_copy = talloc_strdup(ctx, path);
-    if (path_copy == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // Create directory if it doesn't exist
-    char *dir = dirname(path_copy);
-    struct stat st;
-    if (posix_stat_(dir, &st) != 0) {
-        if (posix_mkdir_(dir, 0755) != 0) {
-            return ERR(ctx, IO, "Failed to create directory %s: %s", dir, strerror(errno));
-        }
-    }
-
-    // create the json document with talloc allocator
-    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(&allocator);
-    if (doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // create a mutable root document
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    yyjson_mut_doc_set_root(doc, root);
-
-    // add the objects
-    yyjson_mut_obj_add_str(doc, root, "openai_model", "gpt-5-mini");
-    yyjson_mut_obj_add_real(doc, root, "openai_temperature", 1.0);
-    yyjson_mut_obj_add_int(doc, root, "openai_max_completion_tokens", 4096);
-    yyjson_mut_obj_add_null(doc, root, "openai_system_message");
-    yyjson_mut_obj_add_str(doc, root, "listen_address", "127.0.0.1");
-    yyjson_mut_obj_add_int(doc, root, "listen_port", 1984);
-    yyjson_mut_obj_add_int(doc, root, "max_tool_turns", 50);
-    yyjson_mut_obj_add_int(doc, root, "max_output_size", 1048576);
-    yyjson_mut_obj_add_int(doc, root, "history_size", 10000);
-
-    // Write to file with pretty printing
-    yyjson_write_err write_err;
-    if (!yyjson_mut_write_file_(path, doc, YYJSON_WRITE_PRETTY, &allocator, &write_err)) {
-        return ERR(ctx, IO, "Failed to write config file %s: %s", path, write_err.msg);
-    }
-
-    // no cleanup required talloc frees everything when ctx is freed
-    return OK(NULL);
-}
-
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -77,14 +28,32 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
     if (!config_path) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
+    // Allocate config structure
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
     // check if file exists
     struct stat st;
     if (posix_stat_(config_path, &st) != 0) {
-        // File doesn't exist, create default config
-        res_t create_result = create_default_config(ctx, config_path);
-        if (create_result.is_err) {
-            return create_result;
+        // File doesn't exist, use compiled defaults
+        cfg->openai_model = talloc_strdup(cfg, IK_DEFAULT_OPENAI_MODEL);
+        cfg->openai_temperature = IK_DEFAULT_OPENAI_TEMPERATURE;
+        cfg->openai_max_completion_tokens = IK_DEFAULT_OPENAI_MAX_COMPLETION_TOKENS;
+        cfg->openai_system_message = NULL;
+        cfg->listen_address = talloc_strdup(cfg, IK_DEFAULT_LISTEN_ADDRESS);
+        cfg->listen_port = IK_DEFAULT_LISTEN_PORT;
+        cfg->db_connection_string = NULL;
+        cfg->max_tool_turns = IK_DEFAULT_MAX_TOOL_TURNS;
+        cfg->max_output_size = IK_DEFAULT_MAX_OUTPUT_SIZE;
+        cfg->history_size = IK_DEFAULT_HISTORY_SIZE;
+        cfg->default_provider = NULL;
+
+        if (cfg->openai_model == NULL || cfg->listen_address == NULL) {
+            PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
+
+        *out = cfg;
+        return OK(NULL);
     }
 
     // load and parse config file using yyjson with talloc allocator
@@ -99,10 +68,6 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     if (!root || !yyjson_is_obj(root)) {
         return ERR(ctx, PARSE, "JSON root is not an object");
     }
-
-    // Allocate config structure
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Extract fields
     yyjson_val *model = yyjson_obj_get_(root, "openai_model");
@@ -215,8 +180,8 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
                    (long long)max_output_size_value);
     }
 
-    // validate history_size (optional - defaults to 10000)
-    int32_t history_size_value = 10000;
+    // validate history_size (optional - defaults from config_defaults.h)
+    int32_t history_size_value = IK_DEFAULT_HISTORY_SIZE;
     if (history_size) {
         if (!yyjson_is_int(history_size)) {
             return ERR(ctx, PARSE, "Invalid type for history_size");
@@ -294,6 +259,6 @@ const char *ik_config_get_default_provider(ik_config_t *config)
         return config->default_provider;
     }
 
-    // Fall back to hardcoded default
-    return "openai";
+    // Fall back to compiled default
+    return IK_DEFAULT_PROVIDER;
 }
