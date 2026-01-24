@@ -55,7 +55,7 @@ START_TEST(test_config_load_function_exists) {
 
 END_TEST
 
-START_TEST(test_config_auto_create_directory) {
+START_TEST(test_config_load_without_directory) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -71,26 +71,24 @@ START_TEST(test_config_auto_create_directory) {
     const char *config_dir = ik_paths_get_config_dir(paths);
     char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
-    // Delete config dir to force recreation
+    // Delete config dir to ensure no config file exists
     unlink(config_path);
     rmdir(config_dir);
 
-    // Call ik_config_load - should create directory and file
+    // Call ik_config_load - should succeed with defaults, NOT create files
     ik_config_t *config = NULL;
     res_t result = ik_config_load(ctx, paths, &config);
 
-    // Should succeed
+    // Should succeed with defaults
     ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(config);
 
-    // Verify directory was created
+    // Verify NO directory was created
     struct stat st;
-    ck_assert_int_eq(stat(config_dir, &st), 0);
-    ck_assert(S_ISDIR(st.st_mode));
-    ck_assert_int_eq(st.st_mode & 0777, 0755);
+    ck_assert_int_eq(stat(config_dir, &st), -1);
 
-    // Verify config file was created
-    ck_assert_int_eq(stat(config_path, &st), 0);
-    ck_assert(S_ISREG(st.st_mode));
+    // Verify NO config file was created
+    ck_assert_int_eq(stat(config_path, &st), -1);
 
     test_paths_cleanup_env();
     talloc_free(ctx);
@@ -98,7 +96,7 @@ START_TEST(test_config_auto_create_directory) {
 
 END_TEST
 
-START_TEST(test_config_auto_create_with_existing_directory) {
+START_TEST(test_config_load_without_file) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
@@ -122,16 +120,16 @@ START_TEST(test_config_auto_create_with_existing_directory) {
     ck_assert_int_eq(stat(config_dir, &st), 0);
     ck_assert(S_ISDIR(st.st_mode));
 
-    // Call ik_config_load - should create config in existing directory
+    // Call ik_config_load - should succeed with defaults, NOT create file
     ik_config_t *config = NULL;
     res_t result = ik_config_load(ctx, paths, &config);
 
-    // Should succeed
+    // Should succeed with defaults
     ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(config);
 
-    // Verify config file was created
-    ck_assert_int_eq(stat(config_path, &st), 0);
-    ck_assert(S_ISREG(st.st_mode));
+    // Verify NO config file was created
+    ck_assert_int_eq(stat(config_path, &st), -1);
 
     test_paths_cleanup_env();
     talloc_free(ctx);
@@ -257,8 +255,8 @@ END_TEST static Suite *config_basic_suite(void)
 
     tcase_add_test(tc_core, test_config_types_exist);
     tcase_add_test(tc_core, test_config_load_function_exists);
-    tcase_add_test(tc_core, test_config_auto_create_directory);
-    tcase_add_test(tc_core, test_config_auto_create_with_existing_directory);
+    tcase_add_test(tc_core, test_config_load_without_directory);
+    tcase_add_test(tc_core, test_config_load_without_file);
     tcase_add_test(tc_core, test_config_auto_create_defaults);
     tcase_add_test(tc_core, test_config_load_invalid_json);
     tcase_add_test(tc_core, test_config_memory_cleanup);

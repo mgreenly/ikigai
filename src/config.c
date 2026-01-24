@@ -15,60 +15,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
+static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config_t *cfg)
 {
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(paths != NULL); // LCOV_EXCL_BR_LINE
-    assert(out != NULL); // LCOV_EXCL_BR_LINE
-
-    // Get config directory from paths module
-    const char *config_dir = ik_paths_get_config_dir(paths);
-
-    // Build config file path
-    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
-    if (!config_path) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // Allocate config structure
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    // check if file exists
-    struct stat st;
-    if (posix_stat_(config_path, &st) != 0) {
-        // File doesn't exist, use compiled defaults
-        cfg->openai_model = talloc_strdup(cfg, IK_DEFAULT_OPENAI_MODEL);
-        cfg->openai_temperature = IK_DEFAULT_OPENAI_TEMPERATURE;
-        cfg->openai_max_completion_tokens = IK_DEFAULT_OPENAI_MAX_COMPLETION_TOKENS;
-        cfg->openai_system_message = NULL;
-        cfg->listen_address = talloc_strdup(cfg, IK_DEFAULT_LISTEN_ADDRESS);
-        cfg->listen_port = IK_DEFAULT_LISTEN_PORT;
-        cfg->db_connection_string = NULL;
-        cfg->max_tool_turns = IK_DEFAULT_MAX_TOOL_TURNS;
-        cfg->max_output_size = IK_DEFAULT_MAX_OUTPUT_SIZE;
-        cfg->history_size = IK_DEFAULT_HISTORY_SIZE;
-        cfg->default_provider = NULL;
-
-        if (cfg->openai_model == NULL || cfg->listen_address == NULL) {
-            PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        }
-
-        *out = cfg;
-        return OK(NULL);
-    }
-
-    // load and parse config file using yyjson with talloc allocator
-    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-    yyjson_read_err read_err;
-    yyjson_doc *doc = yyjson_read_file_(config_path, 0, &allocator, &read_err);
-    if (!doc) {
-        return ERR(ctx, PARSE, "Failed to parse JSON: %s", read_err.msg);
-    }
-
-    yyjson_val *root = yyjson_doc_get_root_(doc);
-    if (!root || !yyjson_is_obj(root)) {
-        return ERR(ctx, PARSE, "JSON root is not an object");
-    }
-
     // Extract fields
     yyjson_val *model = yyjson_obj_get_(root, "openai_model");
     yyjson_val *temperature = yyjson_obj_get_(root, "openai_temperature");
@@ -239,7 +187,69 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
         cfg->default_provider = NULL;
     }
 
-    // no cleanup required talloc frees everything when ctx is freed
+    return OK(NULL);
+}
+
+res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
+{
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(paths != NULL); // LCOV_EXCL_BR_LINE
+    assert(out != NULL); // LCOV_EXCL_BR_LINE
+
+    // Get config directory from paths module
+    const char *config_dir = ik_paths_get_config_dir(paths);
+
+    // Build config file path
+    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    if (!config_path) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Allocate config structure
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // check if file exists
+    struct stat st;
+    if (posix_stat_(config_path, &st) != 0) {
+        // File doesn't exist, use compiled defaults
+        cfg->openai_model = talloc_strdup(cfg, IK_DEFAULT_OPENAI_MODEL);
+        cfg->openai_temperature = IK_DEFAULT_OPENAI_TEMPERATURE;
+        cfg->openai_max_completion_tokens = IK_DEFAULT_OPENAI_MAX_COMPLETION_TOKENS;
+        cfg->openai_system_message = NULL;
+        cfg->listen_address = talloc_strdup(cfg, IK_DEFAULT_LISTEN_ADDRESS);
+        cfg->listen_port = IK_DEFAULT_LISTEN_PORT;
+        cfg->db_connection_string = NULL;
+        cfg->max_tool_turns = IK_DEFAULT_MAX_TOOL_TURNS;
+        cfg->max_output_size = IK_DEFAULT_MAX_OUTPUT_SIZE;
+        cfg->history_size = IK_DEFAULT_HISTORY_SIZE;
+        cfg->default_provider = NULL;
+
+        if (cfg->openai_model == NULL || cfg->listen_address == NULL) {
+            PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+
+        *out = cfg;
+        return OK(NULL);
+    }
+
+    // load and parse config file using yyjson with talloc allocator
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_read_err read_err;
+    yyjson_doc *doc = yyjson_read_file_(config_path, 0, &allocator, &read_err);
+    if (!doc) {
+        return ERR(ctx, PARSE, "Failed to parse JSON: %s", read_err.msg);
+    }
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    if (!root || !yyjson_is_obj(root)) {
+        return ERR(ctx, PARSE, "JSON root is not an object");
+    }
+
+    // Parse and validate JSON into config structure
+    res_t result = parse_config_from_json(ctx, root, cfg);
+    if (is_err(&result)) {
+        return result;
+    }
+
     *out = cfg;
     return OK(NULL);
 }

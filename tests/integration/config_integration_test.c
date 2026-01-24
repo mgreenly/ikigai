@@ -26,7 +26,7 @@ START_TEST(test_config_full_flow) {
     const char *config_dir = ik_paths_get_config_dir(paths);
     char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
 
-    // First call: config doesn't exist, should create defaults
+    // First call: config doesn't exist, should return defaults (no file creation)
     ik_config_t *cfg1 = NULL;
     res_t result1 = ik_config_load(ctx, paths, &cfg1);
     ck_assert(!result1.is_err);
@@ -38,12 +38,11 @@ START_TEST(test_config_full_flow) {
     ck_assert_str_eq(cfg1->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg1->listen_port, 1984);
 
-    // Verify file was created
+    // Verify NO file was created
     struct stat st;
-    ck_assert_int_eq(stat(test_config, &st), 0);
-    ck_assert(S_ISREG(st.st_mode));
+    ck_assert_int_eq(stat(test_config, &st), -1);
 
-    // Second call: config exists, should load the same defaults
+    // Second call: still no file, should return same defaults
     ik_config_t *cfg2 = NULL;
     res_t result2 = ik_config_load(ctx, paths, &cfg2);
     ck_assert(!result2.is_err);
@@ -88,53 +87,6 @@ START_TEST(test_config_full_flow) {
 }
 END_TEST
 
-// Mock for yyjson_mut_write_file failure
-static bool mock_write_failure = false;
-bool yyjson_mut_write_file_(const char *path, const yyjson_mut_doc *doc,
-                            yyjson_write_flag flg, const yyjson_alc *alc,
-                            yyjson_write_err *err)
-{
-    if (mock_write_failure) {
-        if (err) {
-            err->msg = "Mock write error";
-            err->code = YYJSON_WRITE_ERROR_FILE_OPEN;
-        }
-        return false;
-    }
-    return yyjson_mut_write_file(path, doc, flg, alc, err);
-}
-
-START_TEST(test_config_write_failure) {
-
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Enable mock write failure
-    mock_write_failure = true;
-
-    // Try to load config - should fail to create default config
-    ik_config_t *config = NULL;
-
-    res_t result = ik_config_load(ctx, paths, &config);
-    ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, ERR_IO);
-
-    // Disable mock write failure
-    mock_write_failure = false;
-
-    // Clean up
-    test_paths_cleanup_env();
-    talloc_free(ctx);
-}
-END_TEST
 
 // Mock for yyjson_read_file failure
 static bool mock_read_failure = false;
@@ -164,10 +116,13 @@ START_TEST(test_config_read_failure) {
     res_t paths_result = ik_paths_init(ctx, &paths);
     ck_assert(is_ok(&paths_result));
 
-    // First create a valid config file
-    ik_config_t *config1 = NULL;
-    res_t result1 = ik_config_load(ctx, paths, &config1);
-    ck_assert(!result1.is_err);
+    // Manually create a config file
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"openai_model\":\"gpt-4\"}");
+    fclose(f);
 
     // Now enable mock read failure
     mock_read_failure = true;
@@ -250,10 +205,13 @@ START_TEST(test_config_doc_get_root_null) {
     res_t paths_result = ik_paths_init(ctx, &paths);
     ck_assert(is_ok(&paths_result));
 
-    // First create a valid config file
-    ik_config_t *config1 = NULL;
-    res_t result1 = ik_config_load(ctx, paths, &config1);
-    ck_assert(!result1.is_err);
+    // Manually create a config file
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\"openai_model\":\"gpt-4\"}");
+    fclose(f);
 
     // Now enable mock to return NULL from doc_get_root
     mock_doc_get_root_null = true;
@@ -280,7 +238,6 @@ static Suite *config_integration_suite(void)
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_config_full_flow);
-    tcase_add_test(tc_core, test_config_write_failure);
     tcase_add_test(tc_core, test_config_read_failure);
     tcase_add_test(tc_core, test_config_invalid_json_root);
     tcase_add_test(tc_core, test_config_doc_get_root_null);
