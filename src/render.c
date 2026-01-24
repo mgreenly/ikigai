@@ -85,6 +85,14 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Add home cursor escape: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -192,6 +200,14 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '[';
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
+
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
 
     // Add home cursor escape: \x1b[H
     framebuffer[offset++] = '\x1b';
@@ -336,6 +352,14 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Home cursor: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -398,13 +422,15 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         }
     }
 
-    // Cursor visibility: show (\x1b[?25h) when input buffer visible, hide (\x1b[?25l) when off-screen
-    framebuffer[offset++] = '\x1b';
-    framebuffer[offset++] = '[';
-    framebuffer[offset++] = '?';
-    framebuffer[offset++] = '2';
-    framebuffer[offset++] = '5';
-    framebuffer[offset++] = render_input_buffer ? 'h' : 'l';
+    // Show cursor only if input buffer is visible: \x1b[?25h
+    if (render_input_buffer) {
+        framebuffer[offset++] = '\x1b';
+        framebuffer[offset++] = '[';
+        framebuffer[offset++] = '?';
+        framebuffer[offset++] = '2';
+        framebuffer[offset++] = '5';
+        framebuffer[offset++] = 'h';
+    }
 
     // Position cursor when input buffer visible
     if (render_input_buffer) {

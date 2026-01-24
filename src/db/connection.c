@@ -1,10 +1,27 @@
 #include "connection.h"
 #include "migration.h"
+#include "../debug_log.h"
 #include "../error.h"
 #include "../panic.h"
 #include <libpq-fe.h>
 #include <string.h>
 #include <talloc.h>
+
+/**
+ * Notice processor for PostgreSQL to suppress stderr output
+ *
+ * PostgreSQL sends NOTICE/WARNING/INFO messages to stderr by default.
+ * This processor intercepts them and logs to debug log instead,
+ * preventing output to stderr which would bypass alternate screen buffer.
+ *
+ * @param arg User context (unused)
+ * @param message Notice message from PostgreSQL
+ */
+static void pq_notice_processor(void *arg, const char *message)
+{
+    (void)arg; // Unused
+    DEBUG_LOG("PostgreSQL notice: %s", message);
+}
 
 /**
  * Talloc destructor for database context
@@ -122,6 +139,10 @@ res_t ik_db_init_with_migrations(TALLOC_CTX *ctx,
 
         return result;
     }
+
+    // Set notice processor to prevent PostgreSQL from writing to stderr
+    // This is critical when running in alternate screen mode
+    PQsetNoticeProcessor(db_ctx->conn, pq_notice_processor, NULL);
 
     // Success - database connected
     // Now run pending migrations from specified migrations directory

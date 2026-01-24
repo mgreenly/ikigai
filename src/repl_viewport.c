@@ -263,7 +263,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Build framebuffer with terminal control sequences
-    size_t framebuffer_size = 7 + output->size + 6 + 20;  // clear + home + content + cursor visibility + position
+    size_t framebuffer_size = 7 + 6 + output->size + 6 + 20;  // clear + hide cursor + home + content + cursor visibility + position
     char *framebuffer = talloc_array_(repl, sizeof(char), framebuffer_size);
     if (framebuffer == NULL) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
 
@@ -275,6 +275,14 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Home cursor: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -285,13 +293,15 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     offset += output->size;
     talloc_free(output);
 
-    // Cursor visibility: show (\x1b[?25h) when input visible, hide (\x1b[?25l) otherwise
-    framebuffer[offset++] = '\x1b';
-    framebuffer[offset++] = '[';
-    framebuffer[offset++] = '?';
-    framebuffer[offset++] = '2';
-    framebuffer[offset++] = '5';
-    framebuffer[offset++] = input_buffer_visible ? 'h' : 'l';
+    // Show cursor only if input buffer is visible: \x1b[?25h
+    if (input_buffer_visible) {
+        framebuffer[offset++] = '\x1b';
+        framebuffer[offset++] = '[';
+        framebuffer[offset++] = '?';
+        framebuffer[offset++] = '2';
+        framebuffer[offset++] = '5';
+        framebuffer[offset++] = 'h';
+    }
 
     // Position cursor when input buffer visible
     if (input_buffer_visible) {

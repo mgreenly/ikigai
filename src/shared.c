@@ -14,6 +14,9 @@
 #include "tool_registry.h"
 #include "wrapper.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <assert.h>
 
 // Destructor for shared context - handles cleanup
@@ -59,6 +62,20 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         return result;
     }
     DEBUG_LOG("=== ik_term_init succeeded ===");
+
+    // Redirect stdout and stderr to /dev/null to prevent any library output
+    // from bypassing the alternate screen buffer and causing screen flicker.
+    // We use /dev/tty for all rendering, and logs go to files.
+    DEBUG_LOG("=== Redirecting stdout/stderr to /dev/null ===");
+    int null_fd = open("/dev/null", O_WRONLY);
+    if (null_fd >= 0) {
+        dup2(null_fd, STDOUT_FILENO);  // Redirect stdout (fd 1)
+        dup2(null_fd, STDERR_FILENO);  // Redirect stderr (fd 2)
+        close(null_fd);
+        DEBUG_LOG("=== stdout/stderr redirected successfully ===");
+    } else {
+        DEBUG_LOG("=== WARNING: Failed to open /dev/null, stdout/stderr not redirected ===");
+    }
 
     // Initialize render
     DEBUG_LOG("=== About to call ik_render_create ===");
