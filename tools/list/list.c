@@ -142,20 +142,20 @@ int32_t list_execute(void *ctx, const char *operation, const char *item)
 {
     // Get environment variables
     const char *agent_id = getenv("IKIGAI_AGENT_ID");
-    const char *cache_dir = getenv("IKIGAI_CACHE_DIR");
+    const char *state_dir = getenv("IKIGAI_STATE_DIR");
 
     if (agent_id == NULL || agent_id[0] == '\0') {
         fprintf(stderr, "list: IKIGAI_AGENT_ID not set\n");
         return 1;
     }
 
-    if (cache_dir == NULL || cache_dir[0] == '\0') {
-        fprintf(stderr, "list: IKIGAI_CACHE_DIR not set\n");
+    if (state_dir == NULL || state_dir[0] == '\0') {
+        fprintf(stderr, "list: IKIGAI_STATE_DIR not set\n");
         return 1;
     }
 
-    // Build file path: $IKIGAI_CACHE_DIR/agents/<AGENT_ID>/list.json
-    char *agent_dir = talloc_asprintf(ctx, "%s/agents/%s", cache_dir, agent_id);
+    // Build file path: $IKIGAI_STATE_DIR/agents/<AGENT_ID>/list.json
+    char *agent_dir = talloc_asprintf(ctx, "%s/agents/%s", state_dir, agent_id);
     if (agent_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     char *file_path = talloc_asprintf(ctx, "%s/list.json", agent_dir);
