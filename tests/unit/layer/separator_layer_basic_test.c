@@ -51,13 +51,13 @@ START_TEST(test_separator_layer_render) {
     // Render separator at width 10
     layer->render(layer, output, 10, 0, 1);
 
-    // Should be 10 box-drawing chars (3 bytes each) + \r\n = 32 bytes
-    ck_assert_uint_eq(output->size, 32);
-    // Expected: 10 * (0xE2 0x94 0x80) + \r\n
+    // Should be 10 box-drawing chars (3 bytes each) + \x1b[K\r\n = 35 bytes
+    ck_assert_uint_eq(output->size, 35);
+    // Expected: 10 * (0xE2 0x94 0x80) + \x1b[K\r\n
     const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
                                 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
-                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
-    ck_assert_int_eq(memcmp(output->data, expected, 32), 0);
+                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\x1b', '[', 'K', '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 35), 0);
 
     talloc_free(ctx);
 }
@@ -73,12 +73,12 @@ START_TEST(test_separator_layer_render_various_widths) {
     // Test width 5
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
     layer->render(layer, output, 5, 0, 1);
-    // Should be 5 box-drawing chars (3 bytes each) + \r\n = 17 bytes
-    ck_assert_uint_eq(output->size, 17); // 5 * 3 + 2
-    // Expected: 5 * (0xE2 0x94 0x80) + \r\n
+    // Should be 5 box-drawing chars (3 bytes each) + \x1b[K\r\n = 20 bytes
+    ck_assert_uint_eq(output->size, 20); // 5 * 3 + 5
+    // Expected: 5 * (0xE2 0x94 0x80) + \x1b[K\r\n
     const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80,
-                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
-    ck_assert_int_eq(memcmp(output->data, expected, 17), 0);
+                                0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\x1b', '[', 'K', '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 20), 0);
 
     talloc_free(ctx);
 }
@@ -94,13 +94,13 @@ START_TEST(test_separator_layer_render_unicode_box_drawing) {
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     // Render separator at width 3
-    // Each box-drawing character is 3 bytes (0xE2 0x94 0x80), so 3 chars = 9 bytes + 2 for \r\n = 11 bytes total
+    // Each box-drawing character is 3 bytes (0xE2 0x94 0x80), so 3 chars = 9 bytes + 5 for \x1b[K\r\n = 14 bytes total
     layer->render(layer, output, 3, 0, 1);
 
-    ck_assert_uint_eq(output->size, 11);
-    // Expected: 3 box-drawing characters (3 bytes each) + \r\n = 11 bytes
-    const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\r', '\n'};
-    ck_assert_int_eq(memcmp(output->data, expected, 11), 0);
+    ck_assert_uint_eq(output->size, 14);
+    // Expected: 3 box-drawing characters (3 bytes each) + \x1b[K\r\n = 14 bytes
+    const uint8_t expected[] = {0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, 0xE2, 0x94, 0x80, '\x1b', '[', 'K', '\r', '\n'};
+    ck_assert_int_eq(memcmp(output->data, expected, 14), 0);
 
     talloc_free(ctx);
 }

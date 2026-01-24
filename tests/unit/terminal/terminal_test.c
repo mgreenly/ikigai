@@ -23,8 +23,8 @@ START_TEST(test_term_init_success) {
     ck_assert_int_eq(term->screen_cols, 80);
 
     // Verify write was called for alternate screen (and CSI u query)
-    // CSI u query (4 bytes) + alt screen enter (8 bytes) = 2 writes
-    ck_assert_int_eq(mock_write_count, 2);
+    // CSI u query (4 bytes) + alt screen enter (8 bytes) + screen clear (6 bytes) = 3 writes
+    ck_assert_int_eq(mock_write_count, 3);
 
     // Cleanup
     ik_term_cleanup(term);
@@ -32,7 +32,7 @@ START_TEST(test_term_init_success) {
 
     // Verify cleanup operations
     // Note: CSI u was not enabled in mocks (select times out), so no disable write
-    ck_assert_int_eq(mock_write_count, 3); // query + alt screen enter + alt screen exit
+    ck_assert_int_eq(mock_write_count, 4); // query + alt screen enter + screen clear + alt screen exit
     ck_assert_int_eq(mock_tcsetattr_count, 2); // restore termios
     ck_assert_int_eq(mock_tcflush_count, 2); // flush after set raw + cleanup
     ck_assert_int_eq(mock_close_count, 1);
@@ -164,7 +164,7 @@ START_TEST(test_term_init_ioctl_fails) {
     ck_assert_ptr_null(term);
 
     // Full cleanup should have been called
-    ck_assert_int_eq(mock_write_count, 3); // CSI u query + enter alt screen + exit alt screen
+    ck_assert_int_eq(mock_write_count, 4); // CSI u query + enter alt screen + screen clear + exit alt screen
     ck_assert_int_eq(mock_tcsetattr_count, 2); // raw mode + restore
     ck_assert_int_eq(mock_tcflush_count, 1); // flush after set raw
     ck_assert_int_eq(mock_close_count, 1);

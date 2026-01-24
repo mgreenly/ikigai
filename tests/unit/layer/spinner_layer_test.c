@@ -113,8 +113,8 @@ START_TEST(test_spinner_layer_render_frame0) {
     // Render spinner
     layer->render(layer, output, 80, 0, 1);
 
-    // Should be "⠋ Waiting for response...\r\n"
-    const char *expected = "⠋ Waiting for response...\r\n";
+    // Should be "⠋ Waiting for response...\x1b[K\r\n"
+    const char *expected = "⠋ Waiting for response...\x1b[K\r\n";
     ck_assert_uint_eq(output->size, strlen(expected));
     ck_assert_int_eq(memcmp(output->data, expected, strlen(expected)), 0);
 
@@ -130,16 +130,16 @@ START_TEST(test_spinner_layer_render_all_frames) {
     ik_layer_t *layer = ik_spinner_layer_create(ctx, "spinner", &state);
 
     const char *expected_frames[] = {
-        "⠋ Waiting for response...\r\n",
-        "⠙ Waiting for response...\r\n",
-        "⠹ Waiting for response...\r\n",
-        "⠸ Waiting for response...\r\n",
-        "⠼ Waiting for response...\r\n",
-        "⠴ Waiting for response...\r\n",
-        "⠦ Waiting for response...\r\n",
-        "⠧ Waiting for response...\r\n",
-        "⠇ Waiting for response...\r\n",
-        "⠏ Waiting for response...\r\n"
+        "⠋ Waiting for response...\x1b[K\r\n",
+        "⠙ Waiting for response...\x1b[K\r\n",
+        "⠹ Waiting for response...\x1b[K\r\n",
+        "⠸ Waiting for response...\x1b[K\r\n",
+        "⠼ Waiting for response...\x1b[K\r\n",
+        "⠴ Waiting for response...\x1b[K\r\n",
+        "⠦ Waiting for response...\x1b[K\r\n",
+        "⠧ Waiting for response...\x1b[K\r\n",
+        "⠇ Waiting for response...\x1b[K\r\n",
+        "⠏ Waiting for response...\x1b[K\r\n"
     };
 
     for (size_t i = 0; i < 10; i++) {

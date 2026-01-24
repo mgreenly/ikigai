@@ -76,23 +76,23 @@ static void input_render(const ik_layer_t *layer,
 
     // Empty input: output blank line to reserve cursor space
     if (text_len == 0) {
-        ik_output_buffer_append(output, "\r\n", 2);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
         return;
     }
 
-    // Render input text with \n to \r\n conversion
+    // Render input text with \n to \x1b[K\r\n conversion (clear to end of line before newline)
     for (size_t i = 0; i < text_len; i++) {
         if (text[i] == '\n') {
-            ik_output_buffer_append(output, "\r\n", 2);
+            ik_output_buffer_append(output, "\x1b[K\r\n", 5);
         } else {
             ik_output_buffer_append(output, &text[i], 1);
         }
     }
 
-    // Add trailing \r\n if text doesn't end with newline
-    // (text ending with \n already converted to \r\n above)
+    // Add trailing \x1b[K\r\n if text doesn't end with newline
+    // (text ending with \n already converted to \x1b[K\r\n above)
     if (text[text_len - 1] != '\n') {
-        ik_output_buffer_append(output, "\r\n", 2);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
     }
 }
 

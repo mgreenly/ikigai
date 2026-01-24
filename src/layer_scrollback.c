@@ -99,18 +99,18 @@ static void scrollback_render(const ik_layer_t *layer,
                                                line_start_row, line_row_count,
                                                &render_start, &render_end, &is_line_end);
 
-        // Copy line text from render_start to render_end, converting \n to \r\n
+        // Copy line text from render_start to render_end, converting \n to \x1b[K\r\n
         for (size_t j = render_start; j < render_end; j++) {
             if (line_text[j] == '\n') {
-                ik_output_buffer_append(output, "\r\n", 2);
+                ik_output_buffer_append(output, "\x1b[K\r\n", 5);
             } else {
                 ik_output_buffer_append(output, &line_text[j], 1);
             }
         }
 
-        // Add \r\n only if we rendered to end of logical line
+        // Add \x1b[K\r\n only if we rendered to end of logical line
         if (is_line_end) {
-            ik_output_buffer_append(output, "\r\n", 2);
+            ik_output_buffer_append(output, "\x1b[K\r\n", 5);
         }
     }
 }

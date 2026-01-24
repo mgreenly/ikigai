@@ -30,8 +30,8 @@ END_TEST
 // Test: CSI u probe write failure
 START_TEST(test_csi_u_probe_write_fails) {
     reset_mocks();
-    // Fail on second write (CSI u query) - first write is alt screen enter
-    mock_write_fail_on_call = 2;
+    // Fail on third write (CSI u query) - first write is alt screen enter, second is screen clear
+    mock_write_fail_on_call = 3;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
