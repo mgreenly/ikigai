@@ -380,9 +380,8 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         offset += ik_render_copy_text_with_crlf(&framebuffer[offset], input_text, input_text_len);
     }
 
-    // Always write cursor visibility at end
-    // When input buffer visible: show cursor (\x1b[?25h)
-    // When input buffer NOT visible: keep cursor hidden (\x1b[?25l)
+    // Set final cursor visibility state
+    // Show cursor if input buffer visible, hide if not
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
     framebuffer[offset++] = '?';
