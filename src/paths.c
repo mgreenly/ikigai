@@ -176,3 +176,168 @@ const char *ik_paths_get_tools_project_dir(ik_paths_t *paths)
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
     return paths->tools_project_dir;
 }
+
+res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
+                                         const char *input, char **out)
+{
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(out != NULL);    // LCOV_EXCL_BR_LINE
+
+    if (paths == NULL) {
+        return ERR(ctx, INVALID_ARG, "paths is NULL");
+    }
+    if (input == NULL) {
+        return ERR(ctx, INVALID_ARG, "input is NULL");
+    }
+
+    const char *state_dir = ik_paths_get_state_dir(paths);
+    const char *uri_prefix = "ik://";
+    const size_t uri_prefix_len = 5;  // strlen("ik://")
+    const size_t state_dir_len = strlen(state_dir);
+
+    // Count occurrences to estimate output size
+    size_t count = 0;
+    const char *pos = input;
+    while ((pos = strstr(pos, uri_prefix)) != NULL) {
+        // Check that it's not a false positive (e.g., "myik://")
+        if (pos == input || !((pos[-1] >= 'a' && pos[-1] <= 'z') ||
+                              (pos[-1] >= 'A' && pos[-1] <= 'Z') ||
+                              (pos[-1] >= '0' && pos[-1] <= '9') ||
+                              pos[-1] == '_')) {
+            count++;
+        }
+        pos += uri_prefix_len;
+    }
+
+    // If no replacements needed, return copy
+    if (count == 0) {
+        *out = talloc_strdup(ctx, input);
+        if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return OK(NULL);
+    }
+
+    // Allocate output buffer (input + (state_dir_len - uri_prefix_len) * count)
+    size_t output_size = strlen(input) + (state_dir_len - uri_prefix_len) * count + 1;
+    char *result = talloc_array(ctx, char, (unsigned int)output_size);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Build output with replacements
+    char *dest = result;
+    const char *src = input;
+    while (*src != '\0') {
+        const char *next = strstr(src, uri_prefix);
+        if (next == NULL) {
+            // Copy remainder
+            strcpy(dest, src);
+            break;
+        }
+
+        // Check for false positive
+        if (next != input && ((next[-1] >= 'a' && next[-1] <= 'z') ||
+                              (next[-1] >= 'A' && next[-1] <= 'Z') ||
+                              (next[-1] >= '0' && next[-1] <= '9') ||
+                              next[-1] == '_')) {
+            // False positive - copy including "ik://"
+            size_t copy_len = (size_t)(next - src) + uri_prefix_len;
+            memcpy(dest, src, copy_len);
+            dest += copy_len;
+            src = next + uri_prefix_len;
+            continue;
+        }
+
+        // Copy text before ik://
+        if (next > src) {
+            size_t copy_len = (size_t)(next - src);
+            memcpy(dest, src, copy_len);
+            dest += copy_len;
+        }
+
+        // Replace ik:// with state_dir
+        memcpy(dest, state_dir, state_dir_len);
+        dest += state_dir_len;
+
+        // Add trailing slash if not present after ik://
+        const char *after_uri = next + uri_prefix_len;
+        if (*after_uri != '\0' && *after_uri != '/' && state_dir[state_dir_len - 1] != '/') {
+            *dest++ = '/';
+        }
+
+        src = after_uri;
+    }
+
+    *out = result;
+    return OK(NULL);
+}
+
+res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
+                                         const char *input, char **out)
+{
+    assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
+    assert(out != NULL);    // LCOV_EXCL_BR_LINE
+
+    if (paths == NULL) {
+        return ERR(ctx, INVALID_ARG, "paths is NULL");
+    }
+    if (input == NULL) {
+        return ERR(ctx, INVALID_ARG, "input is NULL");
+    }
+
+    const char *state_dir = ik_paths_get_state_dir(paths);
+    const char *uri_prefix = "ik://";
+    const size_t uri_prefix_len = 5;  // strlen("ik://")
+    size_t state_dir_len = strlen(state_dir);
+
+    // Count occurrences
+    size_t count = 0;
+    const char *pos = input;
+    while ((pos = strstr(pos, state_dir)) != NULL) {
+        count++;
+        pos += state_dir_len;
+    }
+
+    // If no replacements needed, return copy
+    if (count == 0) {
+        *out = talloc_strdup(ctx, input);
+        if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return OK(NULL);
+    }
+
+    // Allocate output buffer
+    size_t output_size = strlen(input) + (uri_prefix_len - state_dir_len) * count + count + 1;
+    char *result = talloc_array(ctx, char, (unsigned int)output_size);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Build output with replacements
+    char *dest = result;
+    const char *src = input;
+    while (*src != '\0') {
+        const char *next = strstr(src, state_dir);
+        if (next == NULL) {
+            // Copy remainder
+            strcpy(dest, src);
+            break;
+        }
+
+        // Copy text before state_dir
+        if (next > src) {
+            size_t copy_len = (size_t)(next - src);
+            memcpy(dest, src, copy_len);
+            dest += copy_len;
+        }
+
+        // Replace state_dir with ik://
+        memcpy(dest, uri_prefix, uri_prefix_len);
+        dest += uri_prefix_len;
+
+        src = next + state_dir_len;
+
+        // Skip leading slash after state_dir if present
+        // (state_dir without trailing slash leaves /path, we want path after ik://)
+        if (*src == '/') {
+            src++;
+        }
+    }
+
+    *out = result;
+    return OK(NULL);
+}
