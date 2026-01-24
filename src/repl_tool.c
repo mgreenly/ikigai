@@ -10,9 +10,8 @@
 #include "panic.h"
 #include "shared.h"
 #include "tool.h"
-#include "tool_external.h"
+#include "tool_executor.h"
 #include "tool_registry.h"
-#include "tool_wrapper.h"
 #include "wrapper.h"
 
 #include <assert.h>
@@ -28,48 +27,16 @@ typedef struct {
     const char *arguments;
     ik_agent_ctx_t *agent;
     ik_tool_registry_t *registry;
+    ik_paths_t *paths;
 } tool_thread_args_t;
-
-// Execute tool from registry - returns JSON result (success/failure envelope).
-static char *execute_tool_from_registry(TALLOC_CTX *ctx,
-                                        ik_tool_registry_t *registry,
-                                        const char *agent_id,
-                                        const char *tool_name,
-                                        const char *arguments)
-{
-    char *result_json = NULL;
-
-    if (registry == NULL) {
-        result_json = ik_tool_wrap_failure(ctx, "Tool registry not initialized", "registry_unavailable");
-        if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    } else {
-        ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, tool_name);
-        if (entry == NULL) {
-            result_json = ik_tool_wrap_failure(ctx, "Tool not found in registry", "tool_not_found");
-            if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        } else {
-            char *raw_result = NULL;
-            res_t res = ik_tool_external_exec(ctx, entry->path, agent_id, arguments, &raw_result);
-            if (is_err(&res)) {
-                result_json = ik_tool_wrap_failure(ctx, res.err->msg, "execution_failed");
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            } else {
-                result_json = ik_tool_wrap_success(ctx, raw_result);
-                if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-    }
-
-    return result_json;
-}
 
 // Worker thread - executes tool and signals completion via mutex.
 static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
-    char *result_json = execute_tool_from_registry(args->ctx, args->registry, args->agent->uuid,
-                                                   args->tool_name, args->arguments);
+    char *result_json = ik_tool_execute_from_registry(args->ctx, args->registry, args->paths,
+                                                      args->agent->uuid, args->tool_name, args->arguments);
     args->agent->tool_thread_result = result_json;
     pthread_mutex_lock_(&args->agent->tool_thread_mutex);
     args->agent->tool_thread_complete = true;
@@ -174,7 +141,8 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
-    char *result_json = execute_tool_from_registry(repl, repl->shared->tool_registry, repl->current->uuid, tc->name, tc->arguments);
+    char *result_json = ik_tool_execute_from_registry(repl, repl->shared->tool_registry, repl->shared->paths,
+                                                      repl->current->uuid, tc->name, tc->arguments);
     ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
     result = ik_agent_add_message(repl->current, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
@@ -221,6 +189,7 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
     args->arguments = talloc_strdup(agent->tool_thread_ctx, tc->arguments);
     args->agent = agent;
     args->registry = agent->shared->tool_registry;
+    args->paths = agent->shared->paths;
     if (args->tool_name == NULL || args->arguments == NULL) { // LCOV_EXCL_BR_LINE
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
