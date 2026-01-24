@@ -74,6 +74,17 @@ START_TEST(test_separator_no_trailing_newline_when_last_line) {
     close(pipefd[0]);
     close(saved_stdout);
 
+    // DEBUG: Dump output to file
+    FILE *debug_fp = fopen("/tmp/render_debug.txt", "w");
+    if (debug_fp) {
+        fprintf(debug_fp, "bytes_read=%zd\n", bytes_read);
+        for (ssize_t i = 0; i < bytes_read; i++) {
+            fprintf(debug_fp, "[%03zd] 0x%02x %c\n", i, (unsigned char)output[i],
+                    (output[i] >= 32 && output[i] < 127) ? output[i] : '.');
+        }
+        fclose(debug_fp);
+    }
+
     // Find the separator (80 consecutive dashes)
     const char *separator_start = NULL;
     for (ssize_t i = 0; i < bytes_read - 80; i++) {
