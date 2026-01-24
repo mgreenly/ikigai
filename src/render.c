@@ -1,8 +1,10 @@
 // Direct ANSI terminal rendering
 #include "render.h"
-#include "render_cursor.h"
+
 #include "error.h"
 #include "panic.h"
+#include "render_cursor.h"
+#include "render_text.h"
 #include "wrapper.h"
 #include <assert.h>
 #include <inttypes.h>
@@ -59,12 +61,7 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     }
 
     // Count newlines to calculate buffer size (each \n becomes \r\n, adding 1 byte per newline)
-    size_t newline_count = 0;
-    for (size_t i = 0; i < text_len; i++) {
-        if (text[i] == '\n') {
-            newline_count++;
-        }
-    }
+    size_t newline_count = ik_render_count_newlines(text, text_len);
 
     // Allocate framebuffer (~64KB should be enough for typical terminal content)
     // Clear screen (4 bytes) + home escape (3 bytes) + text + newlines + cursor position escape (~15 bytes) + safety margin
@@ -85,6 +82,14 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Add home cursor escape: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -92,14 +97,7 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
 
     // Copy text, converting \n to \r\n for proper terminal display
     if (text_len > 0) {
-        for (size_t i = 0; i < text_len; i++) {
-            if (text[i] == '\n') {
-                framebuffer[offset++] = '\r';
-                framebuffer[offset++] = '\n';
-            } else {
-                framebuffer[offset++] = text[i];
-            }
-        }
+        offset += ik_render_copy_text_with_crlf(&framebuffer[offset], text, text_len);
     }
 
     // Add cursor positioning escape: \x1b[<row+1>;<col+1>H
@@ -160,8 +158,8 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     }
 
     // Calculate total buffer size needed
-    // Clear screen (4 bytes) + home (3 bytes) + For each line: text + \r\n (for newline conversion)
-    size_t total_size = 7;  // Clear screen + home cursor escapes
+    // Clear screen (4 bytes) + hide cursor (6 bytes) + home (3 bytes) + For each line: text + \r\n (for newline conversion)
+    size_t total_size = 13;  // Clear screen + hide cursor + home cursor escapes
     for (size_t i = start_line; i < end_line; i++) {
         const char *line_text = NULL;
         size_t line_len = 0;
@@ -169,12 +167,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
         if (is_err(&result)) return result; /* LCOV_EXCL_LINE */
 
         // Count newlines in this line
-        size_t newline_count = 0;
-        for (size_t j = 0; j < line_len; j++) {
-            if (line_text[j] == '\n') {
-                newline_count++;
-            }
-        }
+        size_t newline_count = ik_render_count_newlines(line_text, line_len);
 
         total_size += line_len + newline_count + 2;  // +2 for final \r\n
     }
@@ -193,6 +186,14 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Add home cursor escape: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -207,14 +208,7 @@ res_t ik_render_scrollback(ik_render_ctx_t *ctx,
         }
 
         // Copy line text, converting \n to \r\n
-        for (size_t j = 0; j < line_len; j++) {
-            if (line_text[j] == '\n') {
-                framebuffer[offset++] = '\r';
-                framebuffer[offset++] = '\n';
-            } else {
-                framebuffer[offset++] = line_text[j];
-            }
-        }
+        offset += ik_render_copy_text_with_crlf(&framebuffer[offset], line_text, line_len);
 
         // Add \r\n at end of each line
         framebuffer[offset++] = '\r';
@@ -307,20 +301,14 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         if (is_err(&result)) return result;  // LCOV_EXCL_LINE
 
         // Count newlines
-        size_t newline_count = 0;
-        for (size_t j = 0; j < line_len; j++) {
-            if (line_text[j] == '\n') newline_count++;
-        }
+        size_t newline_count = ik_render_count_newlines(line_text, line_len);
 
         buffer_size += line_len + newline_count + 2;  // +2 for final \r\n
     }
 
     // Add input buffer size if visible
     if (render_input_buffer && input_text_len > 0) {
-        size_t ib_newline_count = 0;
-        for (size_t i = 0; i < input_text_len; i++) {
-            if (input_text[i] == '\n') ib_newline_count++;
-        }
+        size_t ib_newline_count = ik_render_count_newlines(input_text, input_text_len);
         buffer_size += input_text_len + ib_newline_count;
     }
 
@@ -336,6 +324,14 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     framebuffer[offset++] = '2';
     framebuffer[offset++] = 'J';
 
+    // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = 'l';
+
     // Home cursor: \x1b[H
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
@@ -349,14 +345,7 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
         if (is_err(&result)) return result;  // LCOV_EXCL_LINE - defensive: loop bounds validated
 
         // Copy line text, converting \n to \r\n
-        for (size_t j = 0; j < line_len; j++) {
-            if (line_text[j] == '\n') {
-                framebuffer[offset++] = '\r';
-                framebuffer[offset++] = '\n';
-            } else {
-                framebuffer[offset++] = line_text[j];
-            }
-        }
+        offset += ik_render_copy_text_with_crlf(&framebuffer[offset], line_text, line_len);
 
         // Add \r\n at end of each scrollback line
         // UNLESS it's the last line AND separator/input_buffer are both off-screen
@@ -388,17 +377,12 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
 
     // Write input buffer text (if visible)
     if (render_input_buffer && input_text_len > 0) {
-        for (size_t i = 0; i < input_text_len; i++) {
-            if (input_text[i] == '\n') {
-                framebuffer[offset++] = '\r';
-                framebuffer[offset++] = '\n';
-            } else {
-                framebuffer[offset++] = input_text[i];
-            }
-        }
+        offset += ik_render_copy_text_with_crlf(&framebuffer[offset], input_text, input_text_len);
     }
 
-    // Cursor visibility: show (\x1b[?25h) when input buffer visible, hide (\x1b[?25l) when off-screen
+    // Always write cursor visibility at end
+    // When input buffer visible: show cursor (\x1b[?25h)
+    // When input buffer NOT visible: keep cursor hidden (\x1b[?25l)
     framebuffer[offset++] = '\x1b';
     framebuffer[offset++] = '[';
     framebuffer[offset++] = '?';

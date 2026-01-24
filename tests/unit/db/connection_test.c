@@ -3,6 +3,7 @@
 #include "../../test_utils_helper.h"
 
 #include <check.h>
+#include <libpq-fe.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -328,6 +329,24 @@ START_TEST(test_db_transaction_success) {
 
 END_TEST
 
+START_TEST(test_notice_processor) {
+    SKIP_IF_NO_DB();
+
+    ik_db_ctx_t *db_ctx = NULL;
+    char *conn_str = get_test_conn_str(test_ctx);
+
+    res_t res = ik_db_init(test_ctx, conn_str, "share/ikigai", &db_ctx);
+    ck_assert(is_ok(&res));
+
+    // Execute SQL that raises a notice - this will trigger pq_notice_processor callback
+    PGresult *result = PQexec(db_ctx->conn, "DO $$ BEGIN RAISE NOTICE 'test notice'; END $$;");
+    ck_assert(result != NULL);
+    ck_assert_int_eq(PQresultStatus(result), PGRES_COMMAND_OK);
+    PQclear(result);
+}
+
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *connection_suite(void)
@@ -380,6 +399,7 @@ static Suite *connection_suite(void)
     tcase_add_unchecked_fixture(tc_transactions, suite_setup, suite_teardown);
     tcase_add_checked_fixture(tc_transactions, test_setup, test_teardown);
     tcase_add_test(tc_transactions, test_db_transaction_success);
+    tcase_add_test(tc_transactions, test_notice_processor);
     suite_add_tcase(s, tc_transactions);
 
     return s;

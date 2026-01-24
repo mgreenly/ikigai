@@ -1,5 +1,6 @@
 #include "credentials.h"
 
+#include "debug_log.h"
 #include "json_allocator.h"
 #include "panic.h"
 #include "wrapper_json.h"
@@ -140,14 +141,14 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
 
     // Check for insecure permissions and warn
     if (ik_credentials_insecure_permissions(expanded_path)) {
-        fprintf(stderr, "Warning: credentials file %s has insecure permissions (should be 0600)\n", expanded_path);
+        DEBUG_LOG("Warning: credentials file %s has insecure permissions (should be 0600)", expanded_path);
     }
 
     // Load from file first (errors are warnings, env vars take priority)
     res_t load_result = load_from_file(ctx, expanded_path, creds);
     if (is_err(&load_result)) {
         // Warn but continue - env vars can still provide credentials
-        fprintf(stderr, "Warning: %s\n", load_result.err->msg);
+        DEBUG_LOG("Warning: %s", load_result.err->msg);
     }
 
     // Override with environment variables (higher precedence)
