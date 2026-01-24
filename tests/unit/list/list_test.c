@@ -19,7 +19,7 @@ static void setup(void)
 
     // Set test environment variables
     setenv("IKIGAI_AGENT_ID", "test-agent", 1);
-    setenv("IKIGAI_CACHE_DIR", "/tmp/ikigai-list-test", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/ikigai-list-test", 1);
 
     // Clean up any existing test data
     system("rm -rf /tmp/ikigai-list-test");
@@ -34,7 +34,7 @@ static void teardown(void)
 
     // Clear environment variables
     unsetenv("IKIGAI_AGENT_ID");
-    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
 }
 
 START_TEST(test_list_rpush)
@@ -435,10 +435,10 @@ START_TEST(test_list_missing_agent_id)
 
 END_TEST
 
-START_TEST(test_list_missing_cache_dir)
+START_TEST(test_list_missing_state_dir)
 {
-    // Clear IKIGAI_CACHE_DIR
-    unsetenv("IKIGAI_CACHE_DIR");
+    // Clear IKIGAI_STATE_DIR
+    unsetenv("IKIGAI_STATE_DIR");
 
     // Capture stderr
     int32_t stderr_fd = dup(STDERR_FILENO);
@@ -461,10 +461,10 @@ START_TEST(test_list_missing_cache_dir)
     fclose(capture);
 
     ck_assert_int_eq(result, 1);
-    ck_assert_ptr_nonnull(strstr(output, "IKIGAI_CACHE_DIR"));
+    ck_assert_ptr_nonnull(strstr(output, "IKIGAI_STATE_DIR"));
 
     // Restore for teardown
-    setenv("IKIGAI_CACHE_DIR", "/tmp/ikigai-list-test", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/ikigai-list-test", 1);
 }
 
 END_TEST
@@ -545,7 +545,7 @@ static Suite *list_suite(void)
     tcase_add_test(tc, test_list_rpeek);
     tcase_add_test(tc, test_list_rpeek_empty);
     tcase_add_test(tc, test_list_missing_agent_id);
-    tcase_add_test(tc, test_list_missing_cache_dir);
+    tcase_add_test(tc, test_list_missing_state_dir);
     tcase_add_test(tc, test_list_unknown_operation);
     tcase_add_test(tc, test_list_push_missing_item);
 
