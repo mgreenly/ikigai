@@ -12,12 +12,29 @@
 #include "db/connection.h"
 #include "db/message.h"
 #include "config.h"
+#include "paths.h"
 #include "providers/request.h"
 #include "providers/common/http_multi.h"
 #include "scrollback.h"
 #include "msg.h"
 #include "repl.h"
 #include "logger.h"
+#include "tool_external.h"
+
+MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out)
+{
+    return ik_paths_translate_ik_uri_to_path(ctx, (ik_paths_t *)paths, input, out);
+}
+
+MOCKABLE res_t ik_paths_translate_path_to_ik_uri_(TALLOC_CTX *ctx, void *paths, const char *input, char **out)
+{
+    return ik_paths_translate_path_to_ik_uri(ctx, (ik_paths_t *)paths, input, out);
+}
+
+MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, char **out_result)
+{
+    return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, out_result);
+}
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
@@ -98,6 +115,9 @@ MOCKABLE void ik_agent_transition_to_idle_(void *agent)
 // not be included when wrapper.h is processed
 #include "error.h"
 
+MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out);
+MOCKABLE res_t ik_paths_translate_path_to_ik_uri_(TALLOC_CTX *ctx, void *paths, const char *input, char **out);
+MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, char **out_result);
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
 MOCKABLE res_t ik_db_message_insert_(void *db,
                                      int64_t session_id,

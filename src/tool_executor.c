@@ -6,6 +6,7 @@
 #include "tool_external.h"
 #include "tool_registry.h"
 #include "tool_wrapper.h"
+#include "wrapper.h"
 
 #include <talloc.h>
 
@@ -30,7 +31,7 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
     }
 
     char *translated_args = NULL;
-    res_t translate_res = ik_paths_translate_ik_uri_to_path(ctx, paths, arguments, &translated_args);
+    res_t translate_res = ik_paths_translate_ik_uri_to_path_(ctx, paths, arguments, &translated_args);
     if (is_err(&translate_res)) {
         char *result = ik_tool_wrap_failure(ctx, translate_res.err->msg, "translation_failed");
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -38,7 +39,7 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
     }
 
     char *raw_result = NULL;
-    res_t res = ik_tool_external_exec(ctx, entry->path, agent_id, translated_args, &raw_result);
+    res_t res = ik_tool_external_exec_(ctx, entry->path, agent_id, translated_args, &raw_result);
     if (is_err(&res)) {
         char *result = ik_tool_wrap_failure(ctx, res.err->msg, "execution_failed");
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -46,7 +47,7 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
     }
 
     char *translated_result = NULL;
-    res_t translate_back_res = ik_paths_translate_path_to_ik_uri(ctx, paths, raw_result, &translated_result);
+    res_t translate_back_res = ik_paths_translate_path_to_ik_uri_(ctx, paths, raw_result, &translated_result);
     if (is_err(&translate_back_res)) {
         char *result = ik_tool_wrap_failure(ctx, translate_back_res.err->msg, "translation_failed");
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
