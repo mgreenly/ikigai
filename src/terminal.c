@@ -228,6 +228,13 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
         return ERR(ctx, IO, "Failed to enter alternate screen");
     }
 
+    // Clear screen once on initialization (subsequent renders use cursor positioning)
+    if (posix_write_(tty_fd, "\x1b[2J\x1b[H", 6) < 0) {
+        posix_tcsetattr_(tty_fd, TCSANOW, &term_ctx->orig_termios);
+        posix_close_(tty_fd);
+        return ERR(ctx, IO, "Failed to clear screen");
+    }
+
     // Probe for CSI u support and enable if available
     DEBUG_LOG("CSI_u: Starting detection");
     term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);

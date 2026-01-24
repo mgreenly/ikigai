@@ -263,17 +263,11 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Build framebuffer with terminal control sequences
-    size_t framebuffer_size = 7 + 6 + output->size + 6 + 20;  // clear + hide cursor + home + content + cursor visibility + position
+    size_t framebuffer_size = 6 + 3 + output->size + 3 + 6 + 20;  // hide cursor + home + content + clear-to-end + cursor visibility + position
     char *framebuffer = talloc_array_(repl, sizeof(char), framebuffer_size);
     if (framebuffer == NULL) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
 
     size_t offset = 0;
-
-    // Clear screen: \x1b[2J
-    framebuffer[offset++] = '\x1b';
-    framebuffer[offset++] = '[';
-    framebuffer[offset++] = '2';
-    framebuffer[offset++] = 'J';
 
     // Hide cursor FIRST to prevent flicker during rendering: \x1b[?25l
     framebuffer[offset++] = '\x1b';
@@ -292,6 +286,11 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     memcpy(framebuffer + offset, output->data, output->size);
     offset += output->size;
     talloc_free(output);
+
+    // Clear from cursor to end of screen to remove old content: \x1b[J
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = 'J';
 
     // Show cursor only if input buffer is visible: \x1b[?25h
     if (input_buffer_visible) {

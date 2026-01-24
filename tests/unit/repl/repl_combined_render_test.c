@@ -171,13 +171,16 @@ START_TEST(test_render_frame_with_scrollback) {
     ck_assert_msg(line1_pos < hi_pos,
                   "Scrollback should appear before input buffer");
 
-    // Verify only ONE screen clear (should be "\x1b[2J" only once)
-    const char *clear_seq = "\x1b[2J";
-    char *first_clear = strstr(mock_write_buffer, clear_seq);
-    ck_assert_msg(first_clear != NULL, "Expected screen clear");
-    char *second_clear = strstr(first_clear + strlen(clear_seq), clear_seq);
-    ck_assert_msg(second_clear == NULL,
-                  "Should only have ONE screen clear, not two");
+    // Verify clear-to-end is present (not full screen clear)
+    // Screen clear (\x1b[2J) should NOT be in render output (only in terminal init)
+    const char *screen_clear = "\x1b[2J";
+    ck_assert_msg(strstr(mock_write_buffer, screen_clear) == NULL,
+                  "Screen clear should not appear in render output");
+
+    // Clear-to-end (\x1b[J) should be present to clean up old content
+    const char *clear_to_end = "\x1b[J";
+    ck_assert_msg(strstr(mock_write_buffer, clear_to_end) != NULL,
+                  "Expected clear-to-end sequence");
 
     talloc_free(ctx);
     mock_write_reset();
