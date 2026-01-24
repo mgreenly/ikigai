@@ -10,7 +10,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <talloc.h>
-#include <unistd.h>
 #include "../../../src/vendor/yyjson/yyjson.h"
 
 // Test fixture
@@ -22,6 +21,11 @@ static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     registry = ik_tool_registry_create(test_ctx);
+
+    // Create test directories
+    mkdir("/tmp/bin", 0755);
+    mkdir("/tmp/state", 0755);
+    mkdir("/tmp/cache", 0755);
 
     setenv("IKIGAI_BIN_DIR", "/tmp/bin", 1);
     setenv("IKIGAI_CONFIG_DIR", "/tmp/etc/ikigai", 1);
@@ -87,6 +91,7 @@ int main(void)
     int number_failed;
     Suite *s = tool_executor_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/tools/tool_executor_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

@@ -2,6 +2,7 @@
 #include "debug_log.h"
 #include "panic.h"
 #include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -177,6 +178,13 @@ const char *ik_paths_get_tools_project_dir(ik_paths_t *paths)
     return paths->tools_project_dir;
 }
 
+// Helper: Check if character is alphanumeric or underscore
+static inline bool is_alnum_or_underscore(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9') || c == '_';
+}
+
 res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
                                          const char *input, char **out)
 {
@@ -200,10 +208,7 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
     const char *pos = input;
     while ((pos = strstr(pos, uri_prefix)) != NULL) {
         // Check that it's not a false positive (e.g., "myik://")
-        if (pos == input || !((pos[-1] >= 'a' && pos[-1] <= 'z') ||
-                              (pos[-1] >= 'A' && pos[-1] <= 'Z') ||
-                              (pos[-1] >= '0' && pos[-1] <= '9') ||
-                              pos[-1] == '_')) {
+        if (pos == input || !is_alnum_or_underscore(pos[-1])) {
             count++;
         }
         pos += uri_prefix_len;
@@ -216,8 +221,9 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
         return OK(NULL);
     }
 
-    // Allocate output buffer (input + (state_dir_len - uri_prefix_len) * count)
-    size_t output_size = strlen(input) + (state_dir_len - uri_prefix_len) * count + 1;
+    // Allocate output buffer (input + (state_dir_len - uri_prefix_len + 1) * count)
+    // +1 per replacement accounts for potential '/' separator
+    size_t output_size = strlen(input) + (state_dir_len - uri_prefix_len + 1) * count + 1;
     char *result = talloc_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -228,15 +234,14 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
         const char *next = strstr(src, uri_prefix);
         if (next == NULL) {
             // Copy remainder
-            strcpy(dest, src);
+            size_t remainder_len = strlen(src);
+            memcpy(dest, src, remainder_len);
+            dest += remainder_len;
             break;
         }
 
         // Check for false positive
-        if (next != input && ((next[-1] >= 'a' && next[-1] <= 'z') ||
-                              (next[-1] >= 'A' && next[-1] <= 'Z') ||
-                              (next[-1] >= '0' && next[-1] <= '9') ||
-                              next[-1] == '_')) {
+        if (next != input && is_alnum_or_underscore(next[-1])) {
             // False positive - copy including "ik://"
             size_t copy_len = (size_t)(next - src) + uri_prefix_len;
             memcpy(dest, src, copy_len);
@@ -264,6 +269,9 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
 
         src = after_uri;
     }
+
+    // Add null terminator
+    *dest = '\0';
 
     *out = result;
     return OK(NULL);

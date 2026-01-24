@@ -238,6 +238,48 @@ START_TEST(test_round_trip_translation) {
 }
 END_TEST
 
+START_TEST(test_translate_false_positive_with_real) {
+    char *output = NULL;
+    res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
+                                                      "prefix_ik://fake and ik://real/path.txt", &output);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(output);
+    ck_assert_str_eq(output, "prefix_ik://fake and /home/user/projects/ikigai/state/real/path.txt");
+}
+END_TEST
+
+START_TEST(test_translate_uri_with_leading_slash) {
+    char *output = NULL;
+    res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths, "ik:///path.txt", &output);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(output);
+    ck_assert_str_eq(output, "/home/user/projects/ikigai/state/path.txt");
+}
+END_TEST
+
+START_TEST(test_translate_uri_empty_after) {
+    char *output = NULL;
+    res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths, "ik://", &output);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(output);
+    ck_assert_str_eq(output, "/home/user/projects/ikigai/state");
+}
+END_TEST
+
+START_TEST(test_translate_path_with_leading_slash) {
+    char *output = NULL;
+    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
+                                                      "/home/user/projects/ikigai/state/path.txt", &output);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(output);
+    ck_assert_str_eq(output, "ik://path.txt");
+}
+END_TEST
+
 static Suite *paths_translate_suite(void)
 {
     Suite *s = suite_create("paths_translate");
@@ -253,6 +295,9 @@ static Suite *paths_translate_suite(void)
     tcase_add_test(tc_uri_to_path, test_translate_ik_uri_to_path_no_match);
     tcase_add_test(tc_uri_to_path, test_translate_ik_uri_to_path_null_paths);
     tcase_add_test(tc_uri_to_path, test_translate_ik_uri_to_path_null_input);
+    tcase_add_test(tc_uri_to_path, test_translate_false_positive_with_real);
+    tcase_add_test(tc_uri_to_path, test_translate_uri_with_leading_slash);
+    tcase_add_test(tc_uri_to_path, test_translate_uri_empty_after);
     suite_add_tcase(s, tc_uri_to_path);
 
     TCase *tc_path_to_uri = tcase_create("path_to_ik_uri");
@@ -265,6 +310,7 @@ static Suite *paths_translate_suite(void)
     tcase_add_test(tc_path_to_uri, test_translate_path_to_ik_uri_no_match);
     tcase_add_test(tc_path_to_uri, test_translate_path_to_ik_uri_null_paths);
     tcase_add_test(tc_path_to_uri, test_translate_path_to_ik_uri_null_input);
+    tcase_add_test(tc_path_to_uri, test_translate_path_with_leading_slash);
     suite_add_tcase(s, tc_path_to_uri);
 
     TCase *tc_round_trip = tcase_create("round_trip");
