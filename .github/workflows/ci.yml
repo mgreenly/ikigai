@@ -19,6 +19,8 @@ jobs:
         IKIGAI_CONFIG_DIR: ${{ github.workspace }}/etc/ikigai
         IKIGAI_DATA_DIR: ${{ github.workspace }}/share/ikigai
         IKIGAI_LIBEXEC_DIR: ${{ github.workspace }}/libexec/ikigai
+        IKIGAI_CACHE_DIR: ${{ github.workspace }}/cache
+        IKIGAI_STATE_DIR: ${{ github.workspace }}/state
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

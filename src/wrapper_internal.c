@@ -16,16 +16,33 @@
 #include "logger.h"
 #include "message.h"
 #include "msg.h"
+#include "paths.h"
 #include "providers/common/http_multi.h"
 #include "providers/request.h"
 #include "repl.h"
 #include "repl_tool_completion.h"
 #include "scrollback.h"
+#include "tool_external.h"
 #include "tool_registry.h"
 
 // ============================================================================
 // Internal ikigai function wrappers for testing - debug/test builds only
 // ============================================================================
+
+MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out)
+{
+    return ik_paths_translate_ik_uri_to_path(ctx, (ik_paths_t *)paths, input, out);
+}
+
+MOCKABLE res_t ik_paths_translate_path_to_ik_uri_(TALLOC_CTX *ctx, void *paths, const char *input, char **out)
+{
+    return ik_paths_translate_path_to_ik_uri(ctx, (ik_paths_t *)paths, input, out);
+}
+
+MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, char **out_result)
+{
+    return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, out_result);
+}
 
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
