@@ -214,9 +214,9 @@ START_TEST(test_scrollback_layer_render_partial_start) {
     // Render starting at physical row 2 (second row of line 1: "BBBBBBBBBB")
     layer->render(layer, output, 10, 2, 1);
 
-    // Should render "BBBBBBBBBB" + \r\n (because it's end of logical line)
-    ck_assert_uint_eq(output->size, 12);  // 10 chars + \r\n
-    ck_assert(memcmp(output->data, "BBBBBBBBBB\r\n", 12) == 0);
+    // Should render "BBBBBBBBBB" + \x1b[K\r\n (because it's end of logical line)
+    ck_assert_uint_eq(output->size, 15);  // 10 chars + \x1b[K\r\n
+    ck_assert(memcmp(output->data, "BBBBBBBBBB\x1b[K\r\n", 15) == 0);
 
     talloc_free(ctx);
 }
@@ -285,9 +285,9 @@ START_TEST(test_scrollback_layer_render_partial_utf8) {
     // Render second row only ("monde")
     layer->render(layer, output, 5, 1, 1);
 
-    // Should render "monde\r\n" (end of logical line)
-    ck_assert_uint_eq(output->size, 7);  // 5 + \r\n
-    ck_assert(memcmp(output->data, "monde\r\n", 7) == 0);
+    // Should render "monde\x1b[K\r\n" (end of logical line)
+    ck_assert_uint_eq(output->size, 10);  // 5 + \x1b[K\r\n
+    ck_assert(memcmp(output->data, "monde\x1b[K\r\n", 10) == 0);
 
     talloc_free(ctx);
 }
@@ -332,9 +332,9 @@ START_TEST(test_scrollback_layer_render_single_row_line) {
     // Render the single row
     layer->render(layer, output, 80, 0, 1);
 
-    // Should render "Short line\r\n"
-    ck_assert_uint_eq(output->size, 12);
-    ck_assert(memcmp(output->data, "Short line\r\n", 12) == 0);
+    // Should render "Short line\x1b[K\r\n"
+    ck_assert_uint_eq(output->size, 15);
+    ck_assert(memcmp(output->data, "Short line\x1b[K\r\n", 15) == 0);
 
     talloc_free(ctx);
 }
@@ -361,11 +361,11 @@ START_TEST(test_scrollback_layer_render_multiple_lines_partial) {
     // Render rows 1-3 (BBBB + CCCC + DDDD)
     layer->render(layer, output, 10, 1, 3);
 
-    // BBBB\r\n (end of line 0) + CCCC\r\n (complete line 1) + DDDD (partial line 2)
-    // = 10+2 + 10+2 + 10 = 34 bytes
-    const char *expected = "BBBBBBBBBB\r\nCCCCCCCCCC\r\nDDDDDDDDDD";
-    ck_assert_uint_eq(output->size, 34);
-    ck_assert(memcmp(output->data, expected, 34) == 0);
+    // BBBB\x1b[K\r\n (end of line 0) + CCCC\x1b[K\r\n (complete line 1) + DDDD (partial line 2)
+    // = 10+5 + 10+5 + 10 = 40 bytes
+    const char *expected = "BBBBBBBBBB\x1b[K\r\nCCCCCCCCCC\x1b[K\r\nDDDDDDDDDD";
+    ck_assert_uint_eq(output->size, 40);
+    ck_assert(memcmp(output->data, expected, 40) == 0);
 
     talloc_free(ctx);
 }

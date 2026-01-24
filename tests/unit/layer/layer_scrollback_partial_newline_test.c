@@ -25,11 +25,11 @@ START_TEST(test_partial_render_with_newlines) {
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     // Render with start_row=1, row_count=2 (skip first segment "Line1")
-    // Should render "Line2\r\nLine3\r\n"
+    // Should render "Line2\x1b[K\r\nLine3\x1b[K\r\n"
     layer->render(layer, output, 80, 1, 2);
 
-    // Verify output contains "Line2\r\nLine3\r\n"
-    const char *expected = "Line2\r\nLine3\r\n";
+    // Verify output contains "Line2\x1b[K\r\nLine3\x1b[K\r\n"
+    const char *expected = "Line2\x1b[K\r\nLine3\x1b[K\r\n";
     ck_assert_uint_eq(output->size, strlen(expected));
     ck_assert_mem_eq(output->data, expected, output->size);
 
@@ -58,13 +58,13 @@ START_TEST(test_wrapped_segment_with_newline) {
 
     // Render with start_row=1, row_count=2
     // Skip first wrapped row (first 80 A's)
-    // Should render: remaining 20 A's + "\r\n" + "Short" + "\r\n"
+    // Should render: remaining 20 A's + "\x1b[K\r\n" + "Short" + "\x1b[K\r\n"
     layer->render(layer, output, 80, 1, 2);
 
     // Verify output contains the last 20 A's followed by "Short"
-    char expected[30];
+    char expected[40];
     memset(expected, 'A', 20);
-    strcpy(expected + 20, "\r\nShort\r\n");
+    strcpy(expected + 20, "\x1b[K\r\nShort\x1b[K\r\n");
     ck_assert_uint_eq(output->size, strlen(expected));
     ck_assert_mem_eq(output->data, expected, output->size);
 
@@ -91,11 +91,11 @@ START_TEST(test_skip_multiple_newline_segments) {
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 1000);
 
     // Render with start_row=2, row_count=2 (skip A and B)
-    // Should render "C\r\nD\r\n"
+    // Should render "C\x1b[K\r\nD\x1b[K\r\n"
     layer->render(layer, output, 80, 2, 2);
 
-    // Verify output contains "C\r\nD\r\n"
-    const char *expected = "C\r\nD\r\n";
+    // Verify output contains "C\x1b[K\r\nD\x1b[K\r\n"
+    const char *expected = "C\x1b[K\r\nD\x1b[K\r\n";
     ck_assert_uint_eq(output->size, strlen(expected));
     ck_assert_mem_eq(output->data, expected, output->size);
 

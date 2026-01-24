@@ -115,8 +115,8 @@ START_TEST(test_input_layer_render_empty) {
 
     layer->render(layer, output, 80, 0, 1);
     // Empty input produces a blank line to reserve cursor space
-    ck_assert_uint_eq(output->size, 2);
-    ck_assert_int_eq(memcmp(output->data, "\r\n", 2), 0);
+    ck_assert_uint_eq(output->size, 5);
+    ck_assert_int_eq(memcmp(output->data, "\x1b[K\r\n", 5), 0);
 
     talloc_free(ctx);
 }
@@ -136,9 +136,9 @@ START_TEST(test_input_layer_render_simple_text) {
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
-    // Non-empty input should have trailing \r\n
-    ck_assert_uint_eq(output->size, 7);
-    ck_assert_int_eq(memcmp(output->data, "Hello\r\n", 7), 0);
+    // Non-empty input should have trailing \x1b[K\r\n
+    ck_assert_uint_eq(output->size, 10);
+    ck_assert_int_eq(memcmp(output->data, "Hello\x1b[K\r\n", 10), 0);
 
     talloc_free(ctx);
 }
@@ -158,8 +158,8 @@ START_TEST(test_input_layer_render_simple_text_has_trailing_newline) {
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 100);
 
     layer->render(layer, output, 80, 0, 1);
-    ck_assert_uint_eq(output->size, 7);
-    ck_assert_int_eq(memcmp(output->data, "Hello\r\n", 7), 0);
+    ck_assert_uint_eq(output->size, 10);
+    ck_assert_int_eq(memcmp(output->data, "Hello\x1b[K\r\n", 10), 0);
 
     talloc_free(ctx);
 }
@@ -180,9 +180,9 @@ START_TEST(test_input_layer_render_with_newline) {
 
     layer->render(layer, output, 80, 0, 2);
 
-    // Newline should be converted to \r\n and trailing \r\n added
-    ck_assert_uint_eq(output->size, 14); // "Line1\r\nLine2\r\n"
-    ck_assert_int_eq(memcmp(output->data, "Line1\r\nLine2\r\n", 14), 0);
+    // Newline should be converted to \x1b[K\r\n and trailing \x1b[K\r\n added
+    ck_assert_uint_eq(output->size, 20); // "Line1\x1b[K\r\nLine2\x1b[K\r\n"
+    ck_assert_int_eq(memcmp(output->data, "Line1\x1b[K\r\nLine2\x1b[K\r\n", 20), 0);
 
     talloc_free(ctx);
 }
@@ -203,9 +203,9 @@ START_TEST(test_input_layer_render_text_ending_with_newline_no_double) {
 
     layer->render(layer, output, 80, 0, 2);
 
-    // Text ending with \n should convert to \r\n, but NOT add another \r\n
-    ck_assert_uint_eq(output->size, 7); // "Line1\r\n"
-    ck_assert_int_eq(memcmp(output->data, "Line1\r\n", 7), 0);
+    // Text ending with \n should convert to \x1b[K\r\n, but NOT add another \x1b[K\r\n
+    ck_assert_uint_eq(output->size, 10); // "Line1\x1b[K\r\n"
+    ck_assert_int_eq(memcmp(output->data, "Line1\x1b[K\r\n", 10), 0);
 
     talloc_free(ctx);
 }

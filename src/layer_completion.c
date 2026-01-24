@@ -100,8 +100,8 @@ static void completion_render(const ik_layer_t *layer,
             visible_len++;
         }
 
-        // Add \r\n at end of line
-        ik_output_buffer_append(output, "\r\n", 2);
+        // Add \x1b[K\r\n at end of line (clear to end of line before newline)
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
     }
 }
 

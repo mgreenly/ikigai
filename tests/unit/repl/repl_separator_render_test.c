@@ -111,14 +111,14 @@ START_TEST(test_separator_renders_on_empty_scrollback) {
     ck_assert_int_gt(mock_write_calls, 0);
 
     // Check that separator (line of box-drawing chars) appears in output
-    // Separator should be a line of 40 box-drawing characters (3 bytes each) followed by \r\n = 122 bytes
+    // Separator should be a line of 40 box-drawing characters (3 bytes each) followed by \x1b[K\r\n = 125 bytes
     // Box-drawing character U+2500 is 0xE2 0x94 0x80 in UTF-8
     bool separator_found = false;
-    for (size_t i = 0; i + 122 <= mock_write_buffer_len; i++) {
+    for (size_t i = 0; i + 125 <= mock_write_buffer_len; i++) {
         if ((unsigned char)mock_write_buffer[i] == 0xE2 &&
             (unsigned char)mock_write_buffer[i + 1] == 0x94 &&
             (unsigned char)mock_write_buffer[i + 2] == 0x80) {
-            // Check if the full line matches 40 box-drawing chars + \r\n
+            // Check if the full line matches 40 box-drawing chars + \x1b[K\r\n
             bool match = true;
             for (size_t j = 0; j < 40; j++) {
                 if ((unsigned char)mock_write_buffer[i + j * 3] != 0xE2 ||
@@ -128,7 +128,7 @@ START_TEST(test_separator_renders_on_empty_scrollback) {
                     break;
                 }
             }
-            if (match && mock_write_buffer[i + 120] == '\r' && mock_write_buffer[i + 121] == '\n') {
+            if (match && memcmp(mock_write_buffer + i + 120, "\x1b[K\r\n", 5) == 0) {
                 separator_found = true;
                 break;
             }
@@ -213,14 +213,14 @@ START_TEST(test_separator_renders_with_scrollback) {
     ck_assert_int_gt(mock_write_calls, 0);
 
     // Check that separator (line of box-drawing chars) appears in output
-    // Separator should be a line of 40 box-drawing characters (3 bytes each) followed by \r\n = 122 bytes
+    // Separator should be a line of 40 box-drawing characters (3 bytes each) followed by \x1b[K\r\n = 125 bytes
     // Box-drawing character U+2500 is 0xE2 0x94 0x80 in UTF-8
     bool separator_found = false;
-    for (size_t i = 0; i + 122 <= mock_write_buffer_len; i++) {
+    for (size_t i = 0; i + 125 <= mock_write_buffer_len; i++) {
         if ((unsigned char)mock_write_buffer[i] == 0xE2 &&
             (unsigned char)mock_write_buffer[i + 1] == 0x94 &&
             (unsigned char)mock_write_buffer[i + 2] == 0x80) {
-            // Check if the full line matches 40 box-drawing chars + \r\n
+            // Check if the full line matches 40 box-drawing chars + \x1b[K\r\n
             bool match = true;
             for (size_t j = 0; j < 40; j++) {
                 if ((unsigned char)mock_write_buffer[i + j * 3] != 0xE2 ||
@@ -230,7 +230,7 @@ START_TEST(test_separator_renders_with_scrollback) {
                     break;
                 }
             }
-            if (match && mock_write_buffer[i + 120] == '\r' && mock_write_buffer[i + 121] == '\n') {
+            if (match && memcmp(mock_write_buffer + i + 120, "\x1b[K\r\n", 5) == 0) {
                 separator_found = true;
                 break;
             }
