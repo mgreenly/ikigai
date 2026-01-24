@@ -7,6 +7,7 @@
 #define IK_DEFAULT_OPENAI_MODEL "gpt-5-mini"
 #define IK_DEFAULT_OPENAI_TEMPERATURE 1.0
 #define IK_DEFAULT_OPENAI_MAX_COMPLETION_TOKENS 4096
+#define IK_DEFAULT_OPENAI_SYSTEM_MESSAGE "You are a personal agent and are operating inside the Ikigai orchestration platform."
 #define IK_DEFAULT_LISTEN_ADDRESS "127.0.0.1"
 #define IK_DEFAULT_LISTEN_PORT 1984
 #define IK_DEFAULT_MAX_TOOL_TURNS 50

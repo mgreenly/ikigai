@@ -159,7 +159,7 @@ START_TEST(test_config_auto_create_defaults) {
     ck_assert_str_eq(cfg->openai_model, "gpt-5-mini");
     ck_assert(cfg->openai_temperature >= 0.99 && cfg->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg->openai_max_completion_tokens, 4096);
-    ck_assert_ptr_null(cfg->openai_system_message);
+    ck_assert_str_eq(cfg->openai_system_message, "You are a personal agent and are operating inside the Ikigai orchestration platform.");
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg->listen_port, 1984);
 

@@ -34,7 +34,7 @@ START_TEST(test_config_full_flow) {
     ck_assert_str_eq(cfg1->openai_model, "gpt-5-mini");
     ck_assert(cfg1->openai_temperature >= 0.99 && cfg1->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg1->openai_max_completion_tokens, 4096);
-    ck_assert_ptr_null(cfg1->openai_system_message);
+    ck_assert_str_eq(cfg1->openai_system_message, "You are a personal agent and are operating inside the Ikigai orchestration platform.");
     ck_assert_str_eq(cfg1->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg1->listen_port, 1984);
 
@@ -50,7 +50,7 @@ START_TEST(test_config_full_flow) {
     ck_assert_str_eq(cfg2->openai_model, "gpt-5-mini");
     ck_assert(cfg2->openai_temperature >= 0.99 && cfg2->openai_temperature <= 1.01);
     ck_assert_int_eq(cfg2->openai_max_completion_tokens, 4096);
-    ck_assert_ptr_null(cfg2->openai_system_message);
+    ck_assert_str_eq(cfg2->openai_system_message, "You are a personal agent and are operating inside the Ikigai orchestration platform.");
     ck_assert_str_eq(cfg2->listen_address, "127.0.0.1");
     ck_assert_int_eq(cfg2->listen_port, 1984);
 
