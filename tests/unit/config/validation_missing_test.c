@@ -208,7 +208,7 @@ START_TEST(test_config_missing_openai_system_message) {
 
     res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
-    ck_assert_ptr_null(cfg->openai_system_message);
+    ck_assert_str_eq(cfg->openai_system_message, "You are a personal agent and are operating inside the Ikigai orchestration platform.");
     test_paths_cleanup_env();
     talloc_free(ctx);
 }

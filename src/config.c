@@ -149,10 +149,14 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
     cfg->openai_model = talloc_strdup(cfg, yyjson_get_str_(model));
     cfg->openai_temperature = temperature_value;
     cfg->openai_max_completion_tokens = (int32_t)max_completion_tokens_value;
-    if (system_message && !yyjson_is_null(system_message)) {
-        cfg->openai_system_message = talloc_strdup(cfg, yyjson_get_str_(system_message));
-    } else {
-        cfg->openai_system_message = NULL;
+    // Only override system message from config if not already set from file
+    if (!cfg->openai_system_message) {
+        if (system_message && !yyjson_is_null(system_message)) {
+            cfg->openai_system_message = talloc_strdup(cfg, yyjson_get_str_(system_message));
+        } else {
+            cfg->openai_system_message = talloc_strdup(cfg, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+            if (!cfg->openai_system_message) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     }
     cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
@@ -207,6 +211,43 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     if (cfg == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
+    // Try loading system prompt from file first (priority: file > config > default)
+    const char *data_dir = ik_paths_get_data_dir(paths);
+    char *system_prompt_path = talloc_asprintf(ctx, "%s/prompts/system.md", data_dir);
+    if (!system_prompt_path) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    struct stat system_prompt_st;
+    if (posix_stat_(system_prompt_path, &system_prompt_st) == 0) {
+        // File exists - validate size
+        if (system_prompt_st.st_size == 0) {
+            return ERR(ctx, IO, "System prompt file is empty: %s", system_prompt_path);
+        }
+        if (system_prompt_st.st_size > 1024) {
+            return ERR(ctx, IO, "System prompt file exceeds 1KB limit: %s (%lld bytes)",
+                      system_prompt_path, (long long)system_prompt_st.st_size);
+        }
+
+        // Read file contents
+        FILE *fp = fopen_(system_prompt_path, "r");
+        if (!fp) {
+            return ERR(ctx, IO, "Failed to open system prompt file: %s (%s)",
+                      system_prompt_path, strerror(errno));
+        }
+
+        char *buffer = talloc_size(cfg, (size_t)system_prompt_st.st_size + 1);
+        if (!buffer) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        size_t bytes_read = fread_(buffer, 1, (size_t)system_prompt_st.st_size, fp);
+        fclose_(fp);
+
+        if (bytes_read != (size_t)system_prompt_st.st_size) {
+            return ERR(ctx, IO, "Failed to read system prompt file: %s", system_prompt_path);
+        }
+
+        buffer[bytes_read] = '\0';
+        cfg->openai_system_message = buffer;
+    }
+
     // check if file exists
     struct stat st;
     if (posix_stat_(config_path, &st) != 0) {
@@ -214,7 +255,11 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
         cfg->openai_model = talloc_strdup(cfg, IK_DEFAULT_OPENAI_MODEL);
         cfg->openai_temperature = IK_DEFAULT_OPENAI_TEMPERATURE;
         cfg->openai_max_completion_tokens = IK_DEFAULT_OPENAI_MAX_COMPLETION_TOKENS;
-        cfg->openai_system_message = NULL;
+        // Use default system message if not loaded from file
+        if (!cfg->openai_system_message) {
+            cfg->openai_system_message = talloc_strdup(cfg, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+            if (!cfg->openai_system_message) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
         cfg->listen_address = talloc_strdup(cfg, IK_DEFAULT_LISTEN_ADDRESS);
         cfg->listen_port = IK_DEFAULT_LISTEN_PORT;
         cfg->db_connection_string = NULL;
