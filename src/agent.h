@@ -135,6 +135,7 @@ typedef struct ik_agent_ctx {
     // Pinned documents for system prompt (per-agent)
     char **pinned_paths;      // Ordered list of paths (FIFO)
     size_t pinned_count;      // Number of pinned paths
+    struct ik_doc_cache *doc_cache;  // Document content cache
 } ik_agent_ctx_t;
 
 // Create agent context

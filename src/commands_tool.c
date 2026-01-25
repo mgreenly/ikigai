@@ -5,6 +5,7 @@
 
 #include "commands_tool.h"
 
+#include "doc_cache.h"
 #include "panic.h"
 #include "paths.h"
 #include "repl.h"
@@ -127,6 +128,9 @@ res_t ik_cmd_refresh(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Clear existing registry
     ik_tool_registry_clear(registry);
+
+    // Clear document cache
+    ik_doc_cache_clear(repl->current->doc_cache);
 
     // Get tool directories from paths
     ik_paths_t *paths = repl->shared->paths;
