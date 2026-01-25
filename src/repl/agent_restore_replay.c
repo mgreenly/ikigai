@@ -189,5 +189,69 @@ static void replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logg
         talloc_free(model_copy);
     }
 
+    // Handle /pin command
+    if (strcmp(cmd_name, "pin") == 0 && args != NULL) {
+        // Check if already pinned
+        bool already_pinned = false;
+        for (size_t i = 0; i < agent->pinned_count; i++) {
+            if (strcmp(agent->pinned_paths[i], args) == 0) {
+                already_pinned = true;
+                break;
+            }
+        }
+
+        if (!already_pinned) {
+            // Grow pinned_paths array
+            char **new_paths = talloc_realloc(agent, agent->pinned_paths,
+                                               char *, (unsigned int)(agent->pinned_count + 1));
+            if (new_paths == NULL) {  // LCOV_EXCL_BR_LINE
+                yyjson_doc_free(doc);  // LCOV_EXCL_LINE
+                return;  // LCOV_EXCL_LINE
+            }
+            agent->pinned_paths = new_paths;
+
+            // Add path to end (FIFO order)
+            agent->pinned_paths[agent->pinned_count] = talloc_strdup(agent, args);
+            if (agent->pinned_paths[agent->pinned_count] == NULL) {  // LCOV_EXCL_BR_LINE
+                yyjson_doc_free(doc);  // LCOV_EXCL_LINE
+                return;  // LCOV_EXCL_LINE
+            }
+            agent->pinned_count++;
+        }
+    }
+
+    // Handle /unpin command
+    if (strcmp(cmd_name, "unpin") == 0 && args != NULL) {
+        // Find path in pinned list
+        int64_t found_index = -1;
+        for (size_t i = 0; i < agent->pinned_count; i++) {
+            if (strcmp(agent->pinned_paths[i], args) == 0) {
+                found_index = (int64_t)i;
+                break;
+            }
+        }
+
+        if (found_index >= 0) {
+            // Remove from array by shifting remaining elements
+            talloc_free(agent->pinned_paths[found_index]);
+            for (size_t i = (size_t)found_index; i < agent->pinned_count - 1; i++) {
+                agent->pinned_paths[i] = agent->pinned_paths[i + 1];
+            }
+            agent->pinned_count--;
+
+            // Shrink array
+            if (agent->pinned_count == 0) {
+                talloc_free(agent->pinned_paths);
+                agent->pinned_paths = NULL;
+            } else {
+                char **new_paths = talloc_realloc(agent, agent->pinned_paths,
+                                                   char *, (unsigned int)agent->pinned_count);
+                if (new_paths != NULL) {  // LCOV_EXCL_BR_LINE
+                    agent->pinned_paths = new_paths;
+                }
+            }
+        }
+    }
+
     yyjson_doc_free(doc);
 }
