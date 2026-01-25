@@ -107,6 +107,74 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
  * Request Building from Agent Conversation
  * ================================================================ */
 
+static res_t build_system_prompt_from_pins(ik_request_t *req, ik_agent_ctx_t *agent)
+{
+    assert(req != NULL);   // LCOV_EXCL_BR_LINE
+    assert(agent != NULL); // LCOV_EXCL_BR_LINE
+
+    if (agent->pinned_count == 0 || agent->doc_cache == NULL) {
+        return OK(NULL);
+    }
+
+    char *system_prompt = talloc_strdup(req, "");
+    if (system_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < agent->pinned_count; i++) {
+        const char *path = agent->pinned_paths[i];
+        char *content = NULL;
+        res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
+
+        if (is_ok(&doc_res) && content != NULL) {
+            char *new_prompt = talloc_asprintf(req, "%s%s", system_prompt, content);
+            if (new_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            talloc_free(system_prompt);
+            system_prompt = new_prompt;
+        }
+    }
+
+    if (strlen(system_prompt) > 0) {
+        res_t res = ik_request_set_system(req, system_prompt);
+        if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
+static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *registry)
+{
+    assert(req != NULL); // LCOV_EXCL_BR_LINE
+
+    if (registry == NULL || registry->count == 0) {
+        return OK(NULL);
+    }
+
+    for (size_t i = 0; i < registry->count; i++) {
+        ik_tool_registry_entry_t *entry = &registry->entries[i];
+
+        const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));  // LCOV_EXCL_BR_LINE
+        if (description == NULL) description = "";
+
+        yyjson_val *parameters = yyjson_obj_get(entry->schema_root, "parameters");  // LCOV_EXCL_BR_LINE
+
+        char *params_json = NULL;
+        if (parameters != NULL) {
+            params_json = yyjson_val_write(parameters, YYJSON_WRITE_NOFLAG, NULL);
+            if (params_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        }
+
+        res_t res = ik_request_add_tool(req, entry->name, description,
+                                        params_json ? params_json : "{}", false);
+
+        if (params_json != NULL) {
+            free(params_json);
+        }
+
+        if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
+    }
+
+    return OK(NULL);
+}
+
 res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
                                          void *agent_ptr,
                                          ik_tool_registry_t *registry,
@@ -127,32 +195,10 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
 
     ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
 
-    // Build system prompt from pinned documents
-    if (agent->pinned_count > 0 && agent->doc_cache != NULL) {
-        char *system_prompt = talloc_strdup(req, "");
-        if (system_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-        for (size_t i = 0; i < agent->pinned_count; i++) {
-            const char *path = agent->pinned_paths[i];
-            char *content = NULL;
-            res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
-
-            if (is_ok(&doc_res) && content != NULL) {
-                // Concatenate document content (documents concatenated in FIFO order)
-                char *new_prompt = talloc_asprintf(req, "%s%s", system_prompt, content);
-                if (new_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-                talloc_free(system_prompt);
-                system_prompt = new_prompt;
-            }
-        }
-
-        if (strlen(system_prompt) > 0) {
-            res = ik_request_set_system(req, system_prompt);
-            if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-                talloc_free(req);  // LCOV_EXCL_LINE
-                return res;        // LCOV_EXCL_LINE
-            }
-        }
+    res = build_system_prompt_from_pins(req, agent);
+    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+        talloc_free(req);  // LCOV_EXCL_LINE
+        return res;        // LCOV_EXCL_LINE
     }
 
     if (agent->messages != NULL) {
@@ -168,38 +214,10 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
         }
     }
 
-    // Add tools from registry
-    if (registry != NULL && registry->count > 0) {
-        for (size_t i = 0; i < registry->count; i++) {
-            ik_tool_registry_entry_t *entry = &registry->entries[i];
-
-            // Extract description from schema
-            const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));  // LCOV_EXCL_BR_LINE
-            if (description == NULL) description = "";
-
-            // Extract parameters schema
-            yyjson_val *parameters = yyjson_obj_get(entry->schema_root, "parameters");  // LCOV_EXCL_BR_LINE
-
-            // Serialize parameters to JSON string for ik_request_add_tool
-            char *params_json = NULL;
-            if (parameters != NULL) {
-                params_json = yyjson_val_write(parameters, YYJSON_WRITE_NOFLAG, NULL);
-                if (params_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            }
-
-            // Add tool to request
-            res = ik_request_add_tool(req, entry->name, description,
-                                      params_json ? params_json : "{}", false);
-
-            if (params_json != NULL) {
-                free(params_json);  // yyjson allocates with malloc, not talloc
-            }
-
-            if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-                talloc_free(req);  // LCOV_EXCL_LINE
-                return res;        // LCOV_EXCL_LINE
-            }
-        }
+    res = add_tools_from_registry(req, registry);
+    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+        talloc_free(req);  // LCOV_EXCL_LINE
+        return res;        // LCOV_EXCL_LINE
     }
 
     *out = req;
