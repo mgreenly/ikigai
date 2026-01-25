@@ -6,9 +6,14 @@
 #include "commands_pin.h"
 
 #include "agent.h"
+#include "db/message.h"
+#include "logger.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "shared.h"
+
+#include "vendor/yyjson/yyjson.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -90,7 +95,32 @@ res_t ik_cmd_pin(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
     res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     talloc_free(msg);
-    return result;
+    if (is_err(&result)) {
+        return result;
+    }
+
+    // Persist pin event to database
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *data_json = talloc_asprintf(ctx, "{\"command\":\"pin\",\"args\":\"%s\"}", path);
+        if (!data_json) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                            repl->current->uuid, "command", NULL, data_json);
+        if (is_err(&db_res)) {
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_pin");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+        talloc_free(data_json);
+    }
+
+    return OK(NULL);
 }
 
 res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
@@ -158,5 +188,30 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
     res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
     talloc_free(msg);
-    return result;
+    if (is_err(&result)) {
+        return result;
+    }
+
+    // Persist unpin event to database
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *data_json = talloc_asprintf(ctx, "{\"command\":\"unpin\",\"args\":\"%s\"}", path);
+        if (!data_json) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                            repl->current->uuid, "command", NULL, data_json);
+        if (is_err(&db_res)) {
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_unpin");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+        talloc_free(data_json);
+    }
+
+    return OK(NULL);
 }

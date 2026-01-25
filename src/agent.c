@@ -143,6 +143,10 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->tool_thread_result = NULL;
     agent->tool_iteration_count = 0;
 
+    // Initialize pinned documents state
+    agent->pinned_paths = NULL;
+    agent->pinned_count = 0;
+
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
         // Free agent without calling destructor (mutex not initialized yet)
@@ -267,6 +271,10 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->tool_thread_ctx = NULL;
     agent->tool_thread_result = NULL;
     agent->tool_iteration_count = 0;
+
+    // Initialize pinned documents state
+    agent->pinned_paths = NULL;
+    agent->pinned_count = 0;
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
