@@ -6,7 +6,9 @@
 #include "providers/request.h"
 
 #include "agent.h"
+#include "doc_cache.h"
 #include "error.h"
+#include "panic.h"
 #include "shared.h"
 #include "tool_registry.h"
 #include "vendor/yyjson/yyjson.h"
@@ -125,11 +127,31 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
 
     ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
 
-    if (agent->shared && agent->shared->cfg && agent->shared->cfg->openai_system_message) {
-        res = ik_request_set_system(req, agent->shared->cfg->openai_system_message);
-        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-            talloc_free(req);  // LCOV_EXCL_LINE
-            return res;        // LCOV_EXCL_LINE
+    // Build system prompt from pinned documents
+    if (agent->pinned_count > 0 && agent->doc_cache != NULL) {
+        char *system_prompt = talloc_strdup(req, "");
+        if (system_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        for (size_t i = 0; i < agent->pinned_count; i++) {
+            const char *path = agent->pinned_paths[i];
+            char *content = NULL;
+            res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
+
+            if (is_ok(&doc_res) && content != NULL) {
+                // Concatenate document content (documents concatenated in FIFO order)
+                char *new_prompt = talloc_asprintf(req, "%s%s", system_prompt, content);
+                if (new_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                talloc_free(system_prompt);
+                system_prompt = new_prompt;
+            }
+        }
+
+        if (strlen(system_prompt) > 0) {
+            res = ik_request_set_system(req, system_prompt);
+            if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+                talloc_free(req);  // LCOV_EXCL_LINE
+                return res;        // LCOV_EXCL_LINE
+            }
         }
     }
 

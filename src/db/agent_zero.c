@@ -1,9 +1,11 @@
 #include "agent_zero.h"
 
+#include "message.h"
 #include "pg_result.h"
 
 #include "../error.h"
 #include "../panic.h"
+#include "../paths.h"
 #include "../tmp_ctx.h"
 #include "../uuid.h"
 #include "../wrapper.h"

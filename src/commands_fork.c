@@ -31,8 +31,26 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <talloc.h>
 #include <time.h>
 #include <unistd.h>
+
+// Helper: Copy parent's pinned_paths to child
+static void copy_pinned_paths(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+{
+    if (parent->pinned_count == 0) {
+        return;
+    }
+
+    child->pinned_paths = talloc_array(child, char *, (unsigned int)parent->pinned_count);
+    if (child->pinned_paths == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < parent->pinned_count; i++) {
+        child->pinned_paths[i] = talloc_strdup(child, parent->pinned_paths[i]);
+        if (child->pinned_paths[i] == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
+    child->pinned_count = parent->pinned_count;
+}
 
 // Handle prompt-triggered LLM call after fork
 static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *prompt)
@@ -248,6 +266,9 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
+
+    // Copy parent's pinned_paths to child (in-memory optimization)
+    copy_pinned_paths(child, parent);
 
     // Insert into registry
     res = ik_db_agent_insert(repl->shared->db_ctx, child);

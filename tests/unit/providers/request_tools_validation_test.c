@@ -85,7 +85,7 @@ START_TEST(test_valid_model_success) {
 END_TEST
 
 /**
- * Test with system message (line 249 true branch)
+ * Test with system message (now uses pinned documents instead of cfg)
  */
 START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -95,14 +95,17 @@ START_TEST(test_with_system_message) {
     agent->messages = NULL;
     agent->message_count = 0;
 
-    agent->shared->cfg->openai_system_message = talloc_strdup(agent->shared->cfg, "Be helpful");
+    // Pinned documents system - no pinned paths means no system prompt
+    agent->pinned_paths = NULL;
+    agent->pinned_count = 0;
+    agent->doc_cache = NULL;
 
     ik_request_t *req = NULL;
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_str_eq(req->system_prompt, "Be helpful");
+    // With no pinned documents, system_prompt should be NULL
+    ck_assert_ptr_null(req->system_prompt);
 }
 END_TEST
 

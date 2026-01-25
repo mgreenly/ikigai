@@ -147,7 +147,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Initialize pinned documents state
     agent->pinned_paths = NULL;
     agent->pinned_count = 0;
-    agent->doc_cache = ik_doc_cache_create(agent, shared->paths);
+    agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
@@ -277,7 +277,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Initialize pinned documents state
     agent->pinned_paths = NULL;
     agent->pinned_count = 0;
-    agent->doc_cache = ik_doc_cache_create(agent, shared->paths);
+    agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
