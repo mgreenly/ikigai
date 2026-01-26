@@ -197,7 +197,7 @@ START_TEST(test_debug_invalid_arg) {
     size_t last_line_len = 0;
     res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
-    ck_assert_ptr_ne(strstr(last_line, "Error"), NULL);
+    ck_assert_ptr_ne(strstr(last_line, "⚠"), NULL);
     ck_assert_ptr_ne(strstr(last_line, "invalid"), NULL);
 
     talloc_free(ctx);
