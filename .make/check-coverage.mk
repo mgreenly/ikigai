@@ -6,7 +6,7 @@
 # Internal target: build and run tests with coverage instrumentation
 # Note: FILE= clears any FILE variable to ensure bulk mode for sub-makes
 coverage-build:
-	@find . -name "*.gcda" -delete 2>/dev/null || true
+	@find build-coverage -name "*.gcda" -delete 2>/dev/null || true
 	@mkdir -p build-coverage/tests/unit build-coverage/tests/integration
 	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p 2>/dev/null || true
 	@find tests/integration -type d | sed 's|tests/integration|build-coverage/tests/integration|' | xargs mkdir -p 2>/dev/null || true
