@@ -68,7 +68,7 @@ START_TEST(test_pin_no_args_empty) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/pin");
     ck_assert(is_ok(&res));
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
@@ -86,7 +86,7 @@ START_TEST(test_pin_add_path) {
     ck_assert_ptr_nonnull(repl->current->pinned_paths);
     ck_assert_str_eq(repl->current->pinned_paths[0], "/path/to/doc.md");
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
@@ -112,7 +112,7 @@ START_TEST(test_pin_add_multiple_paths) {
     ck_assert_str_eq(repl->current->pinned_paths[1], "/second.md");
     ck_assert_str_eq(repl->current->pinned_paths[2], "/third.md");
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 9);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 END_TEST
 
@@ -125,10 +125,10 @@ START_TEST(test_pin_duplicate_path) {
 
     ck_assert_uint_eq(repl->current->pinned_count, 1);
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 6);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 8);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 5, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 6, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "Already pinned:") != NULL);
@@ -144,14 +144,14 @@ START_TEST(test_pin_no_args_with_paths) {
     res = ik_cmd_dispatch(ctx, repl, "/pin");
     ck_assert(is_ok(&res));
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 10);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 13);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 8, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 10, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "- /first.md") != NULL);
 
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 9, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 11, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "- /second.md") != NULL);
 }
@@ -175,7 +175,7 @@ START_TEST(test_unpin_not_pinned) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unpin /not-pinned.md");
     ck_assert(is_ok(&res));
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
@@ -196,10 +196,10 @@ START_TEST(test_unpin_removes_path) {
     ck_assert_uint_eq(repl->current->pinned_count, 0);
     ck_assert_ptr_null(repl->current->pinned_paths);
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 6);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 8);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 5, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 6, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Unpinned:") != NULL);
 }
@@ -265,7 +265,7 @@ START_TEST(test_pin_file_not_found_with_cache) {
 
     ck_assert_uint_eq(repl->current->pinned_count, 0);
 
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);

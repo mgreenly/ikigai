@@ -18,14 +18,14 @@ START_TEST(test_event_render_user_adds_blank_line) {
     res_t res = ik_event_render(sb, "user", "hello", "{}");
     ck_assert(!is_err(&res));
 
-    // Should have 2 lines: "hello" and ""
+    // Should have 2 lines: "❯ hello" and ""
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 2);
 
     const char *text1;
     size_t len1;
     ik_scrollback_get_line_text(sb, 0, &text1, &len1);
-    ck_assert_uint_eq(len1, 5);
-    ck_assert_mem_eq(text1, "hello", 5);
+    ck_assert_uint_eq(len1, 9);
+    ck_assert_mem_eq(text1, "❯ hello", 9);
 
     const char *text2;
     size_t len2;
@@ -45,14 +45,14 @@ START_TEST(test_event_render_trims_trailing_newlines) {
     res_t res = ik_event_render(sb, "user", "hello\n\n\n", "{}");
     ck_assert(!is_err(&res));
 
-    // Should have 2 lines: "hello" (trimmed) and ""
+    // Should have 2 lines: "❯ hello" (trimmed with prefix) and ""
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 2);
 
     const char *text1;
     size_t len1;
     ik_scrollback_get_line_text(sb, 0, &text1, &len1);
-    ck_assert_uint_eq(len1, 5);
-    ck_assert_mem_eq(text1, "hello", 5);
+    ck_assert_uint_eq(len1, 9);
+    ck_assert_mem_eq(text1, "❯ hello", 9);
 
     const char *text2;
     size_t len2;
@@ -143,8 +143,8 @@ START_TEST(test_event_render_multiline_content) {
     const char *text1;
     size_t len1;
     ik_scrollback_get_line_text(sb, 0, &text1, &len1);
-    ck_assert_uint_eq(len1, 17);
-    ck_assert_mem_eq(text1, "line1\nline2\nline3", 17);
+    ck_assert_uint_eq(len1, 21);
+    ck_assert_mem_eq(text1, "❯ line1\nline2\nline3", 21);
 
     const char *text2;
     size_t len2;
