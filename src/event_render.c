@@ -112,6 +112,80 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     return result;
 }
 
+// Helper: render command event
+static res_t render_command_event(ik_scrollback_t *scrollback, const char *content, const char *data_json)
+{
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Extract echo from data_json
+    char *echo = NULL;
+    if (data_json != NULL) {
+        yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
+        if (doc != NULL) {
+            yyjson_val *root = yyjson_doc_get_root_(doc);
+            yyjson_val *echo_val = yyjson_obj_get_(root, "echo");
+            if (echo_val != NULL && yyjson_is_str(echo_val)) {
+                const char *echo_str = yyjson_get_str_(echo_val);
+                if (echo_str != NULL && echo_str[0] != '\0') {
+                    echo = talloc_strdup(tmp, echo_str);
+                    if (echo == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                }
+            }
+            yyjson_doc_free(doc);
+        }
+    }
+
+    // Render echo in gray if present
+    if (echo != NULL) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_CMD);
+        uint8_t color = (color_code >= 0) ? (uint8_t)color_code : 0;
+        char *styled_echo = apply_style(tmp, echo, color);
+        if (styled_echo == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        res_t result = ik_scrollback_append_line_(scrollback, styled_echo, strlen(styled_echo));
+        if (is_err(&result)) {
+            talloc_free(tmp);
+            return result;
+        }
+
+        // Append blank line after echo
+        result = ik_scrollback_append_line_(scrollback, "", 0);
+        if (is_err(&result)) {
+            talloc_free(tmp);
+            return result;
+        }
+    }
+
+    // Render output in subdued yellow if present
+    if (content != NULL && content[0] != '\0') {
+        // Trim trailing whitespace
+        char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
+
+        if (trimmed[0] != '\0') {
+            int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
+            uint8_t color = (color_code >= 0) ? (uint8_t)color_code : 0;
+            char *styled_output = apply_style(tmp, trimmed, color);
+            if (styled_output == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+            res_t result = ik_scrollback_append_line_(scrollback, styled_output, strlen(styled_output));
+            if (is_err(&result)) {
+                talloc_free(tmp);
+                return result;
+            }
+
+            // Append blank line after output
+            result = ik_scrollback_append_line_(scrollback, "", 0);
+            if (is_err(&result)) {
+                talloc_free(tmp);
+                return result;
+            }
+        }
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
 // Helper: render token usage line from data_json
 static res_t render_token_usage(ik_scrollback_t *scrollback, const char *data_json)
 {
@@ -235,12 +309,11 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;
     } else if (strcmp(kind, "system") == 0 ||
-               strcmp(kind, "command") == 0 ||
                strcmp(kind, "fork") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;
     }
-    // mark, rewind, clear: color = 0 (no color)
+    // mark, rewind, clear, command: handled separately
 
     // Handle each event kind
     if (strcmp(kind, "assistant") == 0 ||
@@ -248,9 +321,12 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "system") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
         strcmp(kind, "tool_result") == 0 ||
-        strcmp(kind, "command") == 0 ||
         strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color, prefix);
+    }
+
+    if (strcmp(kind, "command") == 0) {
+        return render_command_event(scrollback, content, data_json);
     }
 
     if (strcmp(kind, "mark") == 0) {

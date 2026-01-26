@@ -211,35 +211,42 @@ void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
         return;
     }
 
-    // Build command content: input + output
+    // Build command output (content only, not echo)
     size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
 
-    // Allocate buffer for content
-    char *content = talloc_asprintf(ctx, "%s\n", input);
-    if (!content) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
-    }
-
-    // Append command output from scrollback
-    for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
-        const char *line_text = NULL;
-        size_t line_len = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
-        assert(is_ok(&line_res));  // LCOV_EXCL_BR_LINE
-        char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
-        if (!new_content) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
+    // Build content from command output lines
+    char *content = NULL;
+    if (lines_after > lines_before) {
+        // Append command output from scrollback
+        for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
+            const char *line_text = NULL;
+            size_t line_len = 0;
+            res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
+            assert(is_ok(&line_res));  // LCOV_EXCL_BR_LINE
+            if (content == NULL) {
+                content = talloc_asprintf(ctx, "%s\n", line_text);
+            } else {
+                char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
+                if (!new_content) {     // LCOV_EXCL_BR_LINE
+                    PANIC("OOM");   // LCOV_EXCL_LINE
+                }
+                talloc_free(content);
+                content = new_content;
+            }
+            if (!content) {     // LCOV_EXCL_BR_LINE
+                PANIC("OOM");   // LCOV_EXCL_LINE
+            }
         }
-        talloc_free(content);
-        content = new_content;
     }
 
-    // Build data_json with command metadata
+    // Build data_json with command metadata and echo
     char *data_json = NULL;
     if (args != NULL) {
-        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\"}", cmd_name, args);
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\",\"echo\":\"%s\"}",
+                                    cmd_name, args, input);
     } else {
-        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null}", cmd_name);
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null,\"echo\":\"%s\"}",
+                                    cmd_name, input);
     }
     if (!data_json) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
