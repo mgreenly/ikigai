@@ -13,6 +13,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 #include "wrapper.h"
 
@@ -209,11 +210,14 @@ res_t ik_cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     } else {
         // Invalid argument
-        msg = talloc_asprintf(ctx, "Error: Invalid argument '%s' (usage: /debug [on|off])", args);
-        if (!msg) {     // LCOV_EXCL_BR_LINE
+        char *err_text = talloc_asprintf(ctx, "Invalid argument '%s' (usage: /debug [on|off])", args);
+        if (!err_text) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
+        msg = ik_scrollback_format_warning(ctx, err_text);
+        talloc_free(err_text);
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return ERR(ctx, INVALID_ARG, "Invalid argument '%s'", args);
     }
 

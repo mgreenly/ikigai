@@ -17,6 +17,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 
 #include <assert.h>
@@ -100,11 +101,9 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
 
     // Empty command (just "/")
     if (*cmd_start == '\0') {     // LCOV_EXCL_BR_LINE
-        char *msg = talloc_strdup(ctx, "Error: Empty command");
-        if (!msg) {         // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
+        char *msg = ik_scrollback_format_warning(ctx, "Empty command");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return ERR(ctx, INVALID_ARG, "Empty command");
     }
 
@@ -189,11 +188,14 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     }
 
     // Unknown command
-    char *msg = talloc_asprintf(ctx, "Error: Unknown command '%s'", cmd_name);
-    if (!msg) {     // LCOV_EXCL_BR_LINE
+    char *err_text = talloc_asprintf(ctx, "Unknown command '%s'", cmd_name);
+    if (!err_text) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
+    char *msg = ik_scrollback_format_warning(ctx, err_text);
+    talloc_free(err_text);
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    talloc_free(msg);
     return ERR(ctx, INVALID_ARG, "Unknown command '%s'", cmd_name);
 }
 

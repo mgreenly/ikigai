@@ -11,6 +11,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 #include "wrapper.h"
 
@@ -82,21 +83,17 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Check if model name provided
     if (args == NULL) {     // LCOV_EXCL_BR_LINE
-        char *msg = talloc_strdup(ctx, "Error: Model name required (usage: /model <name>[/thinking_level])");
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
+        char *msg = ik_scrollback_format_warning(ctx, "Model name required (usage: /model <name>[/thinking_level])");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return ERR(ctx, INVALID_ARG, "Model name required");
     }
 
     // Check if an LLM request is currently active
     if (repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-        char *msg = talloc_strdup(ctx, "Error: Cannot switch models during active request");
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
+        char *msg = ik_scrollback_format_warning(ctx, "Cannot switch models during active request");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return ERR(ctx, INVALID_ARG, "Cannot switch models during active request");
     }
 
