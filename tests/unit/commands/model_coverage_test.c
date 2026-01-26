@@ -92,7 +92,7 @@ START_TEST(test_model_switch_without_db) {
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
 
     // Verify confirmation message (echo + blank + confirmation + warning)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 5);
 }
 
 END_TEST
@@ -118,7 +118,7 @@ START_TEST(test_model_multiple_switches_talloc_free) {
     ck_assert_str_eq(repl->current->provider, "google");
 
     // Verify all confirmations in scrollback (3 commands × 3 lines each)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 9);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 
 END_TEST

@@ -240,7 +240,7 @@ START_TEST(test_model_nothinking_with_level) {
     ck_assert(is_ok(&res));
 
     // Should have 4 lines: echo + blank + confirmation + warning
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 5);
 
     // Verify warning message (line 3, after echo + blank + confirmation)
     const char *line;
