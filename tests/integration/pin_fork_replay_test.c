@@ -5,13 +5,16 @@
 
 #include "../../src/agent.h"
 #include "../../src/commands.h"
+#include "../../src/commands_pin.h"
 #include "../../src/config.h"
 #include "../../src/db/agent.h"
+#include "../../src/db/agent_replay.h"
 #include "../../src/db/connection.h"
 #include "../../src/db/session.h"
 #include "../../src/error.h"
 #include "../../src/repl.h"
 #include "../../src/repl/agent_restore.h"
+#include "../../src/repl/agent_restore_replay.h"
 #include "../../src/scrollback.h"
 #include "../../src/shared.h"
 #include "../test_utils_helper.h"
@@ -153,11 +156,80 @@ START_TEST(test_fork_with_pins_replay) {
     ck_assert(is_ok(&restore_res));
     ck_assert_ptr_nonnull(restored_child);
 
-    // 3. Verify pins were replayed correctly
+    // 3. Replay history to rebuild pins
+    ik_replay_context_t *replay_ctx = NULL;
+    res_t replay_res = ik_agent_replay_history(db, test_ctx, child_uuid, &replay_ctx);
+    ck_assert(is_ok(&replay_res));
+    ck_assert_ptr_nonnull(replay_ctx);
+
+    // 4. Populate scrollback (this triggers pin replay)
+    ik_agent_restore_populate_scrollback(restored_child, replay_ctx, repl->shared->logger);
+
+    // 5. Verify pins were replayed correctly
     ck_assert(restored_child->pinned_count == 2);
     ck_assert_ptr_nonnull(restored_child->pinned_paths);
     ck_assert_str_eq(restored_child->pinned_paths[0], "/path/to/doc1.md");
     ck_assert_str_eq(restored_child->pinned_paths[1], "/path/to/doc2.md");
+}
+END_TEST
+
+// Test: Pin and unpin operations, then restore and verify replay
+START_TEST(test_pin_unpin_replay) {
+    // Create a session
+    int64_t session_id = 0;
+    res_t session_res = ik_db_session_create(db, &session_id);
+    ck_assert(is_ok(&session_res));
+    repl->shared->session_id = session_id;
+
+    ik_agent_ctx_t *agent = repl->current;
+    const char *agent_uuid = talloc_strdup(test_ctx, agent->uuid);
+
+    // Pin three documents
+    res_t pin_res1 = ik_cmd_pin(test_ctx, repl, "/path/to/doc1.md");
+    ck_assert(is_ok(&pin_res1));
+    res_t pin_res2 = ik_cmd_pin(test_ctx, repl, "/path/to/doc2.md");
+    ck_assert(is_ok(&pin_res2));
+    res_t pin_res3 = ik_cmd_pin(test_ctx, repl, "/path/to/doc3.md");
+    ck_assert(is_ok(&pin_res3));
+
+    // Verify agent has 3 pins
+    ck_assert(agent->pinned_count == 3);
+
+    // Unpin the middle document
+    res_t unpin_res = ik_cmd_unpin(test_ctx, repl, "/path/to/doc2.md");
+    ck_assert(is_ok(&unpin_res));
+
+    // Verify agent now has 2 pins (doc1 and doc3)
+    ck_assert(agent->pinned_count == 2);
+    ck_assert_str_eq(agent->pinned_paths[0], "/path/to/doc1.md");
+    ck_assert_str_eq(agent->pinned_paths[1], "/path/to/doc3.md");
+
+    // Get agent row from database
+    ik_db_agent_row_t *agent_row = NULL;
+    res_t get_res = ik_db_agent_get(db, test_ctx, agent_uuid, &agent_row);
+    ck_assert(is_ok(&get_res));
+    ck_assert_ptr_nonnull(agent_row);
+
+    // Restore agent from row
+    ik_agent_ctx_t *restored_agent = NULL;
+    res_t restore_res = ik_agent_restore(test_ctx, repl->shared, agent_row, &restored_agent);
+    ck_assert(is_ok(&restore_res));
+    ck_assert_ptr_nonnull(restored_agent);
+
+    // Replay history to rebuild pins
+    ik_replay_context_t *replay_ctx = NULL;
+    res_t replay_res = ik_agent_replay_history(db, test_ctx, agent_uuid, &replay_ctx);
+    ck_assert(is_ok(&replay_res));
+    ck_assert_ptr_nonnull(replay_ctx);
+
+    // Populate scrollback (this triggers pin/unpin replay)
+    ik_agent_restore_populate_scrollback(restored_agent, replay_ctx, repl->shared->logger);
+
+    // Verify pins were replayed correctly (should have doc1 and doc3, not doc2)
+    ck_assert(restored_agent->pinned_count == 2);
+    ck_assert_ptr_nonnull(restored_agent->pinned_paths);
+    ck_assert_str_eq(restored_agent->pinned_paths[0], "/path/to/doc1.md");
+    ck_assert_str_eq(restored_agent->pinned_paths[1], "/path/to/doc3.md");
 }
 END_TEST
 
@@ -169,6 +241,7 @@ static Suite *pin_fork_replay_suite(void)
 
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_fork_with_pins_replay);
+    tcase_add_test(tc, test_pin_unpin_replay);
 
     suite_add_tcase(s, tc);
     return s;
