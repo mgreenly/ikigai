@@ -290,6 +290,81 @@ START_TEST(test_fork_events_linked_by_fork_message_id) {
 
 END_TEST
 
+// Test: Fork with pinned paths includes snapshot in child fork event
+START_TEST(test_fork_with_pins_includes_snapshot) {
+    // Create a session
+    int64_t session_id = 0;
+    res_t session_res = ik_db_session_create(db, &session_id);
+    ck_assert(is_ok(&session_res));
+    repl->shared->session_id = session_id;
+
+    ik_agent_ctx_t *parent = repl->current;
+
+    // Pin two documents to the parent
+    parent->pinned_paths = talloc_array(parent, char *, 2);
+    ck_assert_ptr_nonnull(parent->pinned_paths);
+    parent->pinned_paths[0] = talloc_strdup(parent, "/path/to/doc1.md");
+    parent->pinned_paths[1] = talloc_strdup(parent, "/path/to/doc2.md");
+    parent->pinned_count = 2;
+
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    ik_agent_ctx_t *child = repl->current;
+    const char *child_uuid = child->uuid;
+
+    // Query child's fork event
+    const char *query =
+        "SELECT data FROM messages WHERE session_id=$1 AND agent_uuid=$2 AND kind='fork' ORDER BY id LIMIT 1";
+    char session_id_str[32];
+    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
+    const char *params[2] = {session_id_str, child_uuid};
+    PGresult *pg_res = PQexecParams(db->conn, query, 2, NULL, params, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(pg_res), PGRES_TUPLES_OK);
+    ck_assert_int_ge(PQntuples(pg_res), 1);
+
+    const char *data = PQgetvalue(pg_res, 0, 0);
+    ck_assert_ptr_nonnull(data);
+
+    // Verify pinned_paths array is in data_json
+    ck_assert(strstr(data, "\"pinned_paths\"") != NULL);
+    ck_assert(strstr(data, "\"/path/to/doc1.md\"") != NULL);
+    ck_assert(strstr(data, "\"/path/to/doc2.md\"") != NULL);
+
+    PQclear(pg_res);
+}
+END_TEST
+
+// Test: Child agent inherits pins in memory
+START_TEST(test_fork_child_inherits_pins_in_memory) {
+    // Create a session
+    int64_t session_id = 0;
+    res_t session_res = ik_db_session_create(db, &session_id);
+    ck_assert(is_ok(&session_res));
+    repl->shared->session_id = session_id;
+
+    ik_agent_ctx_t *parent = repl->current;
+
+    // Pin two documents to the parent
+    parent->pinned_paths = talloc_array(parent, char *, 2);
+    ck_assert_ptr_nonnull(parent->pinned_paths);
+    parent->pinned_paths[0] = talloc_strdup(parent, "/path/to/doc1.md");
+    parent->pinned_paths[1] = talloc_strdup(parent, "/path/to/doc2.md");
+    parent->pinned_count = 2;
+
+    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    ik_agent_ctx_t *child = repl->current;
+
+    // Verify child has inherited pins
+    ck_assert(child->pinned_count == 2);
+    ck_assert_ptr_nonnull(child->pinned_paths);
+    ck_assert_str_eq(child->pinned_paths[0], "/path/to/doc1.md");
+    ck_assert_str_eq(child->pinned_paths[1], "/path/to/doc2.md");
+}
+END_TEST
+
 static Suite *cmd_fork_suite(void)
 {
     Suite *s = suite_create("Fork Command Events");
@@ -301,6 +376,8 @@ static Suite *cmd_fork_suite(void)
     tcase_add_test(tc, test_fork_persists_parent_side_event);
     tcase_add_test(tc, test_fork_persists_child_side_event);
     tcase_add_test(tc, test_fork_events_linked_by_fork_message_id);
+    tcase_add_test(tc, test_fork_with_pins_includes_snapshot);
+    tcase_add_test(tc, test_fork_child_inherits_pins_in_memory);
 
     suite_add_tcase(s, tc);
     return s;
