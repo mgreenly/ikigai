@@ -6,9 +6,11 @@
 #include "commands_pin.h"
 
 #include "agent.h"
+#include "ansi.h"
 #include "db/message.h"
 #include "doc_cache.h"
 #include "logger.h"
+#include "output_style.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
@@ -81,7 +83,22 @@ res_t ik_cmd_pin_add(void *ctx, ik_repl_ctx_t *repl, const char *path)
         char *content = NULL;
         res_t doc_res = ik_doc_cache_get(repl->current->doc_cache, path, &content);
         if (is_err(&doc_res)) {
-            char *msg = talloc_asprintf(ctx, "File not found: %s", path);
+            const char *prefix = ik_output_prefix(IK_OUTPUT_WARNING);
+            int32_t color_code = ik_output_color(IK_OUTPUT_WARNING);
+
+            char color_seq[16] = {0};
+            if (ik_ansi_colors_enabled() && color_code >= 0) {
+                ik_ansi_fg_256(color_seq, sizeof(color_seq), (uint8_t)color_code);
+            }
+
+            char *msg = NULL;
+            if (color_seq[0] != '\0') {
+                msg = talloc_asprintf(ctx, "%s%s File not found: %s%s",
+                                     color_seq, prefix, path, IK_ANSI_RESET);
+            } else {
+                msg = talloc_asprintf(ctx, "%s File not found: %s", prefix, path);
+            }
+
             if (!msg) {     // LCOV_EXCL_BR_LINE
                 PANIC("OOM");   // LCOV_EXCL_LINE
             }
