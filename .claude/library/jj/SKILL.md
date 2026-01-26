@@ -25,7 +25,17 @@ Run `make check` periodically to catch issues early.
 
 ## Commit Policy
 
-Use `jj commit -m "msg"` to create permanent commits. NOT `jj describe` (only updates description without creating commit).
+**Always use selective commits.** Specify exactly which paths to include:
+
+```bash
+jj commit path/to/file1 path/to/dir -m "msg"
+```
+
+Only commit all files (`jj commit -m "msg"` without paths) when the user explicitly says "commit all" or "commit everything".
+
+**Never use `jj restore` to "clean up" files you didn't change.** This destroys other agents' work. If uncommitted changes outside your scope block you, stop and ask.
+
+NOT `jj describe` (only updates description without creating commit).
 
 ## Prohibited Operations
 
@@ -33,6 +43,7 @@ This skill does NOT permit:
 - Modifying the `main` bookmark locally
 - Merging into main locally
 - Force pushing to main
+- Restoring/reverting files you didn't change (destroys other agents' work)
 
 **Merges to main only happen via GitHub PRs.** All work is done on feature bookmarks, pushed to origin, and merged through pull requests on GitHub. Never merge locally.
 
@@ -80,7 +91,8 @@ This skill does NOT permit:
 | Check status | `jj status` |
 | View changes | `jj diff` |
 | View log | `jj log` |
-| **Commit all files** | **`jj commit -m "msg"`** |
+| **Commit specific files** | **`jj commit <paths> -m "msg"`** |
+| Commit all files | `jj commit -m "msg"` |
 | Squash into parent | `jj squash -m "msg"` |
 | Edit a commit | `jj edit <revision>` |
 | Create bookmark | `jj bookmark create <name>` |
