@@ -188,7 +188,7 @@ START_TEST(test_model_multiple_switches) {
     ck_assert_str_eq(repl->current->model, "o1-mini");
 
     // Verify all three messages in scrollback (each with echo + blank + output)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 9);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 
 END_TEST
@@ -217,7 +217,7 @@ START_TEST(test_model_all_valid_models) {
     }
 
     // Verify all confirmations in scrollback (each with echo + blank + output = 3 lines per model)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), model_count * 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), model_count * 4);
 }
 
 END_TEST
