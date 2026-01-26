@@ -4,6 +4,7 @@
  */
 
 #include "../../../src/agent.h"
+#include "../../../src/ansi.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
 #include "../../../src/error.h"
@@ -14,6 +15,7 @@
 #include "../../test_utils_helper.h"
 
 #include <check.h>
+#include <stdlib.h>
 #include <talloc.h>
 
 // Mock posix_rename_ (logger rotation) to prevent PANIC during tests
@@ -149,10 +151,10 @@ START_TEST(test_dispatch_help_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received help header
+    // Verify scrollback received help header (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");
@@ -173,10 +175,10 @@ START_TEST(test_dispatch_mark_with_args) {
     ck_assert_ptr_nonnull(repl->current->marks);
     ck_assert_str_eq(repl->current->marks[0]->label, "checkpoint1");
 
-    // Verify scrollback received the mark indicator
+    // Verify scrollback received the mark indicator (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "/mark checkpoint1");
@@ -188,10 +190,10 @@ START_TEST(test_dispatch_unknown_command) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/unknown");
     ck_assert(is_err(&res));
 
-    // Verify error message in scrollback
+    // Verify error message in scrollback (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Unknown command 'unknown'");
@@ -253,10 +255,10 @@ START_TEST(test_dispatch_model_with_arg) {
     ck_assert_str_eq(repl->current->model, "gpt-4-turbo");
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify scrollback received confirmation message
+    // Verify scrollback received confirmation message (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "Switched to") != NULL);
@@ -269,10 +271,10 @@ START_TEST(test_dispatch_rewind_with_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/rewind checkpoint1");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received error message (no marks exist)
+    // Verify scrollback received error message (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: No marks found");
@@ -285,13 +287,29 @@ START_TEST(test_dispatch_system_with_multiword_arg) {
         ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback received the confirmation message
+    // Verify scrollback received the confirmation message (line 2, after echo and blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "System message set to: You are a helpful assistant");
+}
+
+END_TEST
+// Test: Dispatch command with ANSI colors disabled
+START_TEST(test_dispatch_command_no_colors) {
+    // Disable ANSI colors
+    setenv("NO_COLOR", "1", 1);
+    ik_ansi_init();
+
+    // Dispatch a command - should echo without color codes
+    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
+    ck_assert(is_ok(&res));
+
+    // Clean up
+    unsetenv("NO_COLOR");
+    ik_ansi_init();  // Re-enable colors for other tests
 }
 
 END_TEST
@@ -315,6 +333,7 @@ static Suite *commands_dispatch_suite(void)
     tcase_add_test(tc, test_dispatch_slash_whitespace);
     tcase_add_test(tc, test_dispatch_model_with_arg);
     tcase_add_test(tc, test_dispatch_system_with_multiword_arg);
+    tcase_add_test(tc, test_dispatch_command_no_colors);
 
     suite_add_tcase(s, tc);
     return s;
