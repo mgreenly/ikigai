@@ -177,12 +177,6 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     talloc_free(indices);
 
-    // Append trailing blank line
-    result = ik_scrollback_append_line(repl->current->scrollback, "", 0);
-    if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
-        return result;  // LCOV_EXCL_LINE
-    }
-
     return OK(NULL);
 }
 

@@ -82,7 +82,7 @@ START_TEST(test_system_set_message) {
     ck_assert_str_eq(repl->shared->cfg->openai_system_message, "You are a helpful assistant");
 
     // Verify confirmation message in scrollback (line 2, after echo and blank)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
@@ -105,7 +105,7 @@ START_TEST(test_system_clear_message) {
     ck_assert_ptr_null(repl->shared->cfg->openai_system_message);
 
     // Verify confirmation message in scrollback (line 2, after echo and blank)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
@@ -181,7 +181,7 @@ START_TEST(test_system_multiple_cycles) {
     ck_assert_str_eq(repl->shared->cfg->openai_system_message, "Second");
 
     // Verify scrollback has all 3 messages (3 commands × 3 lines each)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 9);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 
 END_TEST

@@ -25,7 +25,7 @@ START_TEST(test_user_message_no_color) {
 
     // Verify no ANSI escape sequences in user messages
     ck_assert_ptr_null(strstr(text, "\x1b["));
-    ck_assert_mem_eq(text, "Hello", 5);
+    ck_assert_mem_eq(text, "❯ Hello", 8);
 
     talloc_free(ctx);
 }
