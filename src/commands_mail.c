@@ -30,7 +30,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Parse: <uuid> "message"
     if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -38,7 +38,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Extract UUID
     char uuid[256];
     if (!ik_mail_parse_uuid(args, uuid)) {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -57,7 +57,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Extract quoted message
     if (*p != '"') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -69,7 +69,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     if (*p != '"') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -200,7 +200,7 @@ res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     int64_t index;
     if (!ik_mail_parse_index(args, &index)) {     // LCOV_EXCL_BR_LINE
         const char *msg = args == NULL || args[0] == '\0'
-            ? "Error: Missing message ID (usage: /read-mail <id>)"
+            ? "Error: Missing message ID (usage: /mail-read <id>)"
             : "Error: Invalid message ID";
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return OK(NULL);
@@ -268,7 +268,7 @@ res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     int64_t index;
     if (!ik_mail_parse_index(args, &index)) {     // LCOV_EXCL_BR_LINE
         const char *msg = args == NULL || args[0] == '\0'
-            ? "Error: Missing message ID (usage: /delete-mail <id>)"
+            ? "Error: Missing message ID (usage: /mail-delete <id>)"
             : "Error: Invalid message ID";
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return OK(NULL);
@@ -322,7 +322,7 @@ res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Parse --from <uuid>
     if (args == NULL || strncmp(args, "--from ", 7) != 0) {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Usage: /filter-mail --from <uuid>";
+        const char *msg = "Error: Usage: /mail-filter --from <uuid>";
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return OK(NULL);
     }
@@ -334,7 +334,7 @@ res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     if (*uuid_arg == '\0') {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Usage: /filter-mail --from <uuid>";
+        const char *msg = "Error: Usage: /mail-filter --from <uuid>";
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         return OK(NULL);
     }
