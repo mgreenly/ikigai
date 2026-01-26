@@ -225,6 +225,7 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     const char *prefix = NULL;
     if (strcmp(kind, "assistant") == 0) {
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
+        prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
     } else if (strcmp(kind, "user") == 0) {
         prefix = ik_output_prefix(IK_OUTPUT_USER_INPUT);
     } else if (strcmp(kind, "tool_call") == 0) {
