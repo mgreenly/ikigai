@@ -1,5 +1,5 @@
-#ifndef WEB_SEARCH_BRAVE_H
-#define WEB_SEARCH_BRAVE_H
+#ifndef WEB_SEARCH_H
+#define WEB_SEARCH_H
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -12,10 +12,10 @@ typedef struct {
     int32_t offset;
     yyjson_val *allowed_domains;
     yyjson_val *blocked_domains;
-} web_search_brave_params_t;
+} web_search_params_t;
 
 // Execute web search and output result to stdout
 // Returns 0 on success (including errors reported as JSON)
-int32_t web_search_brave_execute(void *ctx, const web_search_brave_params_t *params);
+int32_t web_search_execute(void *ctx, const web_search_params_t *params);
 
 #endif

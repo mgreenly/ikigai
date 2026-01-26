@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/web-search-brave-tool";
+static const char *tool_path = "libexec/ikigai/web-search-tool";
 
 static void setup(void)
 {
@@ -98,7 +98,7 @@ START_TEST(test_schema_flag) {
     ck_assert_int_eq(exit_code, 0);
     ck_assert_ptr_nonnull(output);
 
-    ck_assert(strstr(output, "\"name\": \"web_search_brave\"") != NULL);
+    ck_assert(strstr(output, "\"name\": \"web_search\"") != NULL);
     ck_assert(strstr(output, "\"description\"") != NULL);
     ck_assert(strstr(output, "\"parameters\"") != NULL);
     ck_assert(strstr(output, "\"query\"") != NULL);
@@ -151,7 +151,7 @@ START_TEST(test_missing_credentials) {
     ck_assert(strstr(output, "\"error_code\": \"AUTH_MISSING\"") != NULL);
     ck_assert(strstr(output, "\"_event\"") != NULL);
     ck_assert(strstr(output, "\"kind\": \"config_required\"") != NULL);
-    ck_assert(strstr(output, "\"tool\": \"web_search_brave\"") != NULL);
+    ck_assert(strstr(output, "\"tool\": \"web_search\"") != NULL);
     ck_assert(strstr(output, "\"credential\": \"api_key\"") != NULL);
     ck_assert(strstr(output, "\"signup_url\"") != NULL);
 }
@@ -292,7 +292,7 @@ START_TEST(test_special_characters_in_query) {
 
 END_TEST
 
-static Suite *web_search_brave_suite(void)
+static Suite *web_search_suite(void)
 {
     Suite *s = suite_create("WebSearchBrave");
 
@@ -323,9 +323,9 @@ static Suite *web_search_brave_suite(void)
 int main(void)
 {
     int32_t number_failed;
-    Suite *s = web_search_brave_suite();
+    Suite *s = web_search_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/web_search_brave_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/tools/web_search_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

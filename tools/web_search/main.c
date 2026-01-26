@@ -1,4 +1,4 @@
-#include "web_search_brave.h"
+#include "web_search.h"
 
 #include "json_allocator.h"
 #include "panic.h"
@@ -12,7 +12,7 @@
 #include "vendor/yyjson/yyjson.h"
 
 static const char *SCHEMA_JSON =
-    "{\"name\": \"web_search_brave\","
+    "{\"name\": \"web_search\","
     "\"description\": \"Search the web using Brave Search API and use the results to inform responses. Provides up-to-date information for current events and recent data. Returns search result information formatted as search result blocks, including links as markdown hyperlinks.\","
     "\"parameters\": {\"type\": \"object\",\"properties\": {"
     "\"query\": {\"type\": \"string\",\"description\": \"The search query to use\",\"minLength\": 2},"
@@ -96,7 +96,7 @@ int32_t main(int32_t argc, char **argv)
     yyjson_val *allowed_domains = yyjson_obj_get(root, "allowed_domains");
     yyjson_val *blocked_domains = yyjson_obj_get(root, "blocked_domains");
 
-    web_search_brave_params_t params = {
+    web_search_params_t params = {
         .query = query_str,
         .count = count,
         .offset = offset,
@@ -104,7 +104,7 @@ int32_t main(int32_t argc, char **argv)
         .blocked_domains = blocked_domains
     };
 
-    web_search_brave_execute(ctx, &params);
+    web_search_execute(ctx, &params);
 
     talloc_free(ctx);
     return 0;
