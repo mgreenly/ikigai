@@ -23,49 +23,64 @@
 #include <string.h>
 #include <talloc.h>
 
-res_t ik_cmd_pin(void *ctx, ik_repl_ctx_t *repl, const char *args)
+void ik_persist_pin_command(void *ctx, ik_repl_ctx_t *repl, const char *command, const char *path)
 {
-    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-
-    // No arguments: list pinned paths
-    if (args == NULL) {
-        if (repl->current->pinned_count == 0) {
-            char *msg = talloc_strdup(ctx, "No pinned documents.");
-            if (!msg) {     // LCOV_EXCL_BR_LINE
-                PANIC("OOM");   // LCOV_EXCL_LINE
-            }
-            res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
-            talloc_free(msg);
-            return result;
-        }
-
-        // List pinned paths in FIFO order
-        for (size_t i = 0; i < repl->current->pinned_count; i++) {
-            char *line = talloc_asprintf(ctx, "  - %s", repl->current->pinned_paths[i]);
-            if (!line) {     // LCOV_EXCL_BR_LINE
-                PANIC("OOM");   // LCOV_EXCL_LINE
-            }
-            res_t result = ik_scrollback_append_line(repl->current->scrollback, line, strlen(line));
-            talloc_free(line);
-            if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
-                return result;     // LCOV_EXCL_LINE
-            }
-        }
-
-        return OK(NULL);
+    if (repl->shared->db_ctx == NULL || repl->shared->session_id == 0) {     // LCOV_EXCL_BR_LINE
+        return;     // LCOV_EXCL_LINE
     }
 
-    // With arguments: add path to pinned list
-    const char *path = args;
+    char *data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\"}", command, path);
+    if (!data_json) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
 
-    // Check if file exists (only if doc_cache is available)
-    // If doc_cache is NULL (tests), skip validation
+    res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                        repl->current->uuid, "command", NULL, data_json);
+    if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "operation", command);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+        ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+        talloc_free(db_res.err);  // LCOV_EXCL_LINE
+    }
+    talloc_free(data_json);
+}
+
+res_t ik_cmd_pin_list(void *ctx, ik_repl_ctx_t *repl)
+{
+    if (repl->current->pinned_count == 0) {
+        char *msg = talloc_strdup(ctx, "No pinned documents.");
+        if (!msg) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
+        return result;
+    }
+
+    for (size_t i = 0; i < repl->current->pinned_count; i++) {
+        char *line = talloc_asprintf(ctx, "  - %s", repl->current->pinned_paths[i]);
+        if (!line) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        res_t result = ik_scrollback_append_line(repl->current->scrollback, line, strlen(line));
+        talloc_free(line);
+        if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+            return result;     // LCOV_EXCL_LINE
+        }
+    }
+
+    return OK(NULL);
+}
+
+res_t ik_cmd_pin_add(void *ctx, ik_repl_ctx_t *repl, const char *path)
+{
     if (repl->current->doc_cache != NULL) {
         char *content = NULL;
         res_t doc_res = ik_doc_cache_get(repl->current->doc_cache, path, &content);
         if (is_err(&doc_res)) {
-            // File doesn't exist: warn, don't add to list, don't record event
             char *msg = talloc_asprintf(ctx, "File not found: %s", path);
             if (!msg) {     // LCOV_EXCL_BR_LINE
                 PANIC("OOM");   // LCOV_EXCL_LINE
@@ -73,67 +88,32 @@ res_t ik_cmd_pin(void *ctx, ik_repl_ctx_t *repl, const char *args)
             res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
             talloc_free(msg);
             talloc_free(doc_res.err);
+            return result;
+        }
+    }
+
+    for (size_t i = 0; i < repl->current->pinned_count; i++) {
+        if (strcmp(repl->current->pinned_paths[i], path) == 0) {
+            char *msg = talloc_asprintf(ctx, "Already pinned: %s", path);
+            if (!msg) {     // LCOV_EXCL_BR_LINE
+                PANIC("OOM");   // LCOV_EXCL_LINE
+            }
+            res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+            talloc_free(msg);
             if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
                 return result;     // LCOV_EXCL_LINE
             }
+            ik_persist_pin_command(ctx, repl, "pin", path);
             return OK(NULL);
         }
     }
 
-    // Check if already pinned
-    bool already_pinned = false;
-    for (size_t i = 0; i < repl->current->pinned_count; i++) {
-        if (strcmp(repl->current->pinned_paths[i], path) == 0) {
-            already_pinned = true;
-            break;
-        }
-    }
-
-    // If already pinned: warn, don't modify state, but still record event
-    if (already_pinned) {
-        char *msg = talloc_asprintf(ctx, "Already pinned: %s", path);
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-        res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
-        talloc_free(msg);
-        if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
-            return result;     // LCOV_EXCL_LINE
-        }
-
-        // Still persist event to database (replay needs it for consistency)
-        if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {     // LCOV_EXCL_BR_LINE
-            char *data_json = talloc_asprintf(ctx, "{\"command\":\"pin\",\"args\":\"%s\"}", path);
-            if (!data_json) {     // LCOV_EXCL_BR_LINE
-                PANIC("OOM");   // LCOV_EXCL_LINE
-            }
-
-            res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                                repl->current->uuid, "command", NULL, data_json);
-            if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-                yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_pin");  // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
-                ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
-                talloc_free(db_res.err);  // LCOV_EXCL_LINE
-            }
-            talloc_free(data_json);
-        }
-
-        return OK(NULL);
-    }
-
-    // Grow pinned_paths array
     char **new_paths = talloc_realloc(repl->current, repl->current->pinned_paths,
                                        char *, (unsigned int)(repl->current->pinned_count + 1));
     if (!new_paths) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
     repl->current->pinned_paths = new_paths;
-
-    // Add path to end (FIFO order)
     repl->current->pinned_paths[repl->current->pinned_count] = talloc_strdup(repl->current, path);
     if (!repl->current->pinned_paths[repl->current->pinned_count]) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
@@ -150,28 +130,20 @@ res_t ik_cmd_pin(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return result;     // LCOV_EXCL_LINE
     }
 
-    // Persist pin event to database
-    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {     // LCOV_EXCL_BR_LINE
-        char *data_json = talloc_asprintf(ctx, "{\"command\":\"pin\",\"args\":\"%s\"}", path);
-        if (!data_json) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
+    ik_persist_pin_command(ctx, repl, "pin", path);
+    return OK(NULL);
+}
 
-        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            repl->current->uuid, "command", NULL, data_json);
-        if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_pin");  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
-            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
-            talloc_free(db_res.err);  // LCOV_EXCL_LINE
-        }
-        talloc_free(data_json);
+res_t ik_cmd_pin(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+
+    if (args == NULL) {
+        return ik_cmd_pin_list(ctx, repl);
     }
 
-    return OK(NULL);
+    return ik_cmd_pin_add(ctx, repl, args);
 }
 
 res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
@@ -189,8 +161,6 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     const char *path = args;
-
-    // Find path in pinned list
     int64_t found_index = -1;
     for (size_t i = 0; i < repl->current->pinned_count; i++) {
         if (strcmp(repl->current->pinned_paths[i], path) == 0) {
@@ -199,7 +169,6 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     }
 
-    // Not found: warn but don't fail
     if (found_index < 0) {
         char *msg = talloc_asprintf(ctx, "Not pinned: %s", path);
         if (!msg) {     // LCOV_EXCL_BR_LINE
@@ -207,20 +176,15 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
         res_t result = ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         talloc_free(msg);
-        if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
-            return result;     // LCOV_EXCL_LINE
-        }
-        return OK(NULL);
+        return result;
     }
 
-    // Remove from array by shifting remaining elements
     talloc_free(repl->current->pinned_paths[found_index]);
     for (size_t i = (size_t)found_index; i < repl->current->pinned_count - 1; i++) {
         repl->current->pinned_paths[i] = repl->current->pinned_paths[i + 1];
     }
     repl->current->pinned_count--;
 
-    // Shrink array
     if (repl->current->pinned_count == 0) {
         talloc_free(repl->current->pinned_paths);
         repl->current->pinned_paths = NULL;
@@ -243,26 +207,6 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return result;     // LCOV_EXCL_LINE
     }
 
-    // Persist unpin event to database
-    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {     // LCOV_EXCL_BR_LINE
-        char *data_json = talloc_asprintf(ctx, "{\"command\":\"unpin\",\"args\":\"%s\"}", path);
-        if (!data_json) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-
-        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
-                                            repl->current->uuid, "command", NULL, data_json);
-        if (is_err(&db_res)) {     // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_unpin");  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
-            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
-            talloc_free(db_res.err);  // LCOV_EXCL_LINE
-        }
-        talloc_free(data_json);
-    }
-
+    ik_persist_pin_command(ctx, repl, "unpin", path);
     return OK(NULL);
 }
