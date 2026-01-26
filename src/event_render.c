@@ -6,6 +6,7 @@
 #include "event_render.h"
 
 #include "ansi.h"
+#include "output_style.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "scrollback_utils.h"
@@ -211,16 +212,21 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return ERR(scrollback, INVALID_ARG, "kind parameter cannot be NULL");
     } // LCOV_EXCL_STOP
 
-    // Determine color based on kind
+    // Determine color based on kind using centralized output style system
     uint8_t color = 0;
     if (strcmp(kind, "assistant") == 0) {
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
-    } else if (strcmp(kind, "tool_call") == 0 ||
-               strcmp(kind, "tool_result") == 0 ||
-               strcmp(kind, "system") == 0 ||
+    } else if (strcmp(kind, "tool_call") == 0) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_REQUEST);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;
+    } else if (strcmp(kind, "tool_result") == 0) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;
+    } else if (strcmp(kind, "system") == 0 ||
                strcmp(kind, "command") == 0 ||
                strcmp(kind, "fork") == 0) {
-        color = IK_ANSI_GRAY_SUBDUED;  // 242 - very subdued
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;
     }
     // user, mark, rewind, clear: color = 0 (no color)
 
