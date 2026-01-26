@@ -6,9 +6,12 @@
 #include "scrollback_utils.h"
 
 #include "ansi.h"
+#include "output_style.h"
 #include "panic.h"
 
 #include <assert.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <talloc.h>
 #include <utf8proc.h>
 
@@ -109,6 +112,31 @@ char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length)
     }
 
     char *result = talloc_strndup(parent, text, end);
+    if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    return result;
+}
+
+char *ik_scrollback_format_warning(void *parent, const char *text)
+{
+    assert(parent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(text != NULL);  // LCOV_EXCL_BR_LINE
+
+    const char *prefix = ik_output_prefix(IK_OUTPUT_WARNING);
+    int32_t color_code = ik_output_color(IK_OUTPUT_WARNING);
+
+    // If colors are disabled or color is default, return text with prefix only
+    if (!ik_ansi_colors_enabled() || color_code < 0) {
+        char *result = talloc_asprintf(parent, "%s %s", prefix, text);
+        if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return result;
+    }
+
+    // Format with color: prefix + color + text + reset
+    uint8_t color = (uint8_t)color_code;
+    char color_seq[16];
+    ik_ansi_fg_256(color_seq, sizeof(color_seq), color);
+
+    char *result = talloc_asprintf(parent, "%s%s %s%s", color_seq, prefix, text, IK_ANSI_RESET);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     return result;
 }

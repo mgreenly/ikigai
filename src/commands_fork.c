@@ -22,6 +22,7 @@
 #include "repl_callbacks.h"
 #include "repl_event_handlers.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 #include "wrapper.h"
 #include "wrapper_internal.h"
@@ -175,17 +176,15 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res_t parse_res = cmd_fork_parse_args(ctx, args, &model_spec, &prompt);
     if (is_err(&parse_res)) {
         const char *err_msg = error_message(parse_res.err);
-        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        char *styled_msg = ik_scrollback_format_warning(ctx, err_msg);
+        ik_scrollback_append_line(repl->current->scrollback, styled_msg, strlen(styled_msg));
         talloc_free(parse_res.err);
         return OK(NULL);  // Error shown to user
     }
 
     // Concurrency check (Q9)
     if (atomic_load(&repl->shared->fork_pending)) {
-        char *err_msg = talloc_strdup(ctx, "Fork already in progress");
-        if (err_msg == NULL) {  // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");  // LCOV_EXCL_LINE
-        }
+        char *err_msg = ik_scrollback_format_warning(ctx, "Fork already in progress");
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         return OK(NULL);
     }
