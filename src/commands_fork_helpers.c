@@ -35,15 +35,11 @@ const char *thinking_level_to_string(ik_thinking_level_t level)
 char *build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
                           bool is_override)
 {
+    (void)is_override;  // No longer needed - format is the same regardless
     const char *thinking_level_str = thinking_level_to_string(child->thinking_level);
 
-    if (is_override) {
-        return talloc_asprintf(ctx, "Forked child with %s/%s/%s",
-                               child->provider, child->model, thinking_level_str);
-    } else {
-        return talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
-                               child->provider, child->model, thinking_level_str);
-    }
+    return talloc_asprintf(ctx, "Forked child %s (%s/%s/%s)",
+                           child->uuid, child->provider, child->model, thinking_level_str);
 }
 
 /**
