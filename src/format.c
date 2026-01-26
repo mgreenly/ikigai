@@ -4,6 +4,7 @@
 #include "byte_array.h"
 #include "error.h"
 #include "json_allocator.h"
+#include "output_style.h"
 #include "panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
@@ -153,8 +154,9 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     ik_format_buffer_t *buf = ik_format_buffer_create(parent);
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Start with arrow and tool name
-    res_t res = ik_format_appendf(buf, "→ %s", call->name);
+    // Start with prefix and tool name
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_REQUEST);
+    res_t res = ik_format_appendf(buf, "%s %s", prefix, call->name);
     if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
 
     // Handle missing or empty arguments
@@ -321,8 +323,9 @@ const char *ik_format_tool_result(void *parent, const char *tool_name, const cha
     ik_format_buffer_t *buf = ik_format_buffer_create(parent);
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Start with arrow and tool name
-    res_t res = ik_format_appendf(buf, "← %s: ", tool_name);
+    // Start with prefix and tool name
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    res_t res = ik_format_appendf(buf, "%s %s: ", prefix, tool_name);
     if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
 
     // Handle null result

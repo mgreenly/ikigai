@@ -80,10 +80,10 @@ START_TEST(test_help_shows_header) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // First line should be header
+    // Line 0: command echo, Line 1: blank, Line 2: header
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");
@@ -98,9 +98,10 @@ START_TEST(test_help_includes_all_commands) {
     size_t cmd_count;
     ik_cmd_get_all(&cmd_count);
 
-    // Should have header + one line per command
+    // Should have: echo + blank + header + commands + trailing blank
+    // = 2 + 1 + cmd_count + 1 = cmd_count + 4
     size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    ck_assert_uint_eq(line_count, cmd_count + 1);
+    ck_assert_uint_eq(line_count, cmd_count + 4);
 }
 
 END_TEST
@@ -109,10 +110,10 @@ START_TEST(test_help_lists_clear) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 1 should be /clear (line 0 is header)
+    // Line 4 should be /clear (alphabetically: agents, clear, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 1, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 4, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -126,10 +127,10 @@ START_TEST(test_help_lists_mark) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 2 should be /mark
+    // Line 15 should be /mark (alphabetically: ..., mail-send, mark, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 15, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -143,10 +144,10 @@ START_TEST(test_help_lists_rewind) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 3 should be /rewind
+    // Line 19 should be /rewind (alphabetically: ..., refresh, rewind, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 3, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 19, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -160,10 +161,10 @@ START_TEST(test_help_lists_help) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 12 should be /help (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
+    // Line 8 should be /help (alphabetically: ..., fork, help, kill, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 12, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 8, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -177,10 +178,10 @@ START_TEST(test_help_lists_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 13 should be /model (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
+    // Line 16 should be /model (alphabetically: ..., mark, model, pin, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 13, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 16, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -194,10 +195,10 @@ START_TEST(test_help_lists_system) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 14 should be /system (shifted due to /fork, /kill, /send, /check-mail, /read-mail, /delete-mail, /filter-mail, /agents)
+    // Line 20 should be /system (alphabetically: ..., rewind, system, tool, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 14, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 20, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -212,10 +213,10 @@ START_TEST(test_help_lists_exit) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 20 should be /exit (after clear, mark, rewind, fork, kill, send, check-mail, read-mail, delete-mail, filter-mail, agents, help, model, system, debug, tool, refresh, pin, unpin)
+    // Line 6 should be /exit (alphabetically: ..., debug, exit, fork, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 20, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 6, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -229,10 +230,10 @@ START_TEST(test_help_with_arguments) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help foo bar");
     ck_assert(is_ok(&res));
 
-    // Should still show normal help output
+    // Should still show normal help output at line 2 (after echo + blank)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Available commands:");

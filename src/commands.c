@@ -5,6 +5,7 @@
 
 #include "commands.h"
 
+#include "ansi.h"
 #include "commands_basic.h"
 #include "commands_mark.h"
 #include "commands_model.h"
@@ -12,6 +13,7 @@
 #include "commands_tool.h"
 #include "db/message.h"
 #include "logger.h"
+#include "output_style.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
@@ -126,6 +128,38 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
 
     // Args is NULL if no arguments, otherwise points to remaining text
     const char *args = (*args_start == '\0') ? NULL : args_start;     // LCOV_EXCL_BR_LINE
+
+    // Echo command to scrollback before execution
+    {
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_CMD);
+        char color_seq[16] = {0};
+        if (ik_ansi_colors_enabled() && color_code >= 0) {
+            ik_ansi_fg_256(color_seq, sizeof(color_seq), (uint8_t)color_code);
+        }
+
+        char *echo_line = NULL;
+        if (color_seq[0] != '\0') {
+            echo_line = talloc_asprintf(ctx, "%s%s%s", color_seq, input, IK_ANSI_RESET);
+        } else {
+            echo_line = talloc_strdup(ctx, input);
+        }
+
+        if (!echo_line) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");    // LCOV_EXCL_LINE
+        }
+
+        res_t echo_res = ik_scrollback_append_line(repl->current->scrollback, echo_line, strlen(echo_line));
+        talloc_free(echo_line);
+        if (is_err(&echo_res)) {     // LCOV_EXCL_BR_LINE
+            return echo_res;     // LCOV_EXCL_LINE
+        }
+
+        // Append blank line after command echo
+        echo_res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+        if (is_err(&echo_res)) {     // LCOV_EXCL_BR_LINE
+            return echo_res;     // LCOV_EXCL_LINE
+        }
+    }
 
     // Capture scrollback line count before command execution
     size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
