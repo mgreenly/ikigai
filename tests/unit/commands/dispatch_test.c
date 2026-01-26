@@ -196,7 +196,7 @@ START_TEST(test_dispatch_unknown_command) {
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Error: Unknown command 'unknown'");
+    ck_assert_str_eq(line, "\x1b[38;5;179m⚠ Unknown command 'unknown'\x1b[0m");
 }
 
 END_TEST
@@ -211,7 +211,7 @@ START_TEST(test_dispatch_empty_command) {
     res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Error: Empty command");
+    ck_assert_str_eq(line, "\x1b[38;5;179m⚠ Empty command\x1b[0m");
 }
 
 END_TEST
@@ -242,7 +242,7 @@ START_TEST(test_dispatch_slash_whitespace) {
     res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Error: Empty command");
+    ck_assert_str_eq(line, "\x1b[38;5;179m⚠ Empty command\x1b[0m");
 }
 
 END_TEST
@@ -277,7 +277,7 @@ START_TEST(test_dispatch_rewind_with_arg) {
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "Error: No marks found");
+    ck_assert_str_eq(line, "\x1b[38;5;179m⚠ No marks found\x1b[0m");
 }
 
 END_TEST
