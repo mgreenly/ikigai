@@ -139,18 +139,48 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     size_t count;
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
-    // Append each command with description
+    // Create sorted array of command indices
+    size_t *indices = talloc_array_(ctx, sizeof(size_t), count);
+    if (!indices) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+    for (size_t i = 0; i < count; i++) {
+        indices[i] = i;
+    }
+
+    // Bubble sort indices by command name (alphabetically)
+    for (size_t i = 0; i < count - 1; i++) {
+        for (size_t j = 0; j < count - i - 1; j++) {
+            if (strcmp(cmds[indices[j]].name, cmds[indices[j + 1]].name) > 0) {
+                size_t temp = indices[j];
+                indices[j] = indices[j + 1];
+                indices[j + 1] = temp;
+            }
+        }
+    }
+
+    // Append each command with description in alphabetical order
     for (size_t i = 0; i < count; i++) {     // LCOV_EXCL_BR_LINE
+        size_t idx = indices[i];
         char *cmd_line = talloc_asprintf(ctx, "  /%s - %s",
-                                         cmds[i].name, cmds[i].description);
+                                         cmds[idx].name, cmds[idx].description);
         if (!cmd_line) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
         result = ik_scrollback_append_line(repl->current->scrollback, cmd_line, strlen(cmd_line));
         talloc_free(cmd_line);
         if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
+            talloc_free(indices);  // LCOV_EXCL_LINE
             return result;  // LCOV_EXCL_LINE
         }
+    }
+
+    talloc_free(indices);
+
+    // Append trailing blank line
+    result = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+    if (is_err(&result)) {  /* LCOV_EXCL_BR_LINE */
+        return result;  // LCOV_EXCL_LINE
     }
 
     return OK(NULL);
