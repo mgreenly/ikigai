@@ -42,6 +42,18 @@ void ik_agent_restore_populate_scrollback(ik_agent_ctx_t *agent, ik_replay_conte
 void ik_agent_restore_marks(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx);
 
 /**
+ * Replay command side effects for agent restoration
+ *
+ * Some commands (like /model, /pin) have side effects that need to be re-applied
+ * when replaying history to restore agent state.
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param msg Message containing command (must not be NULL)
+ * @param logger Logger for info messages (may be NULL)
+ */
+void ik_agent_restore_replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logger_t *logger);
+
+/**
  * Replay all pin/unpin commands for an agent (independent of clear boundaries)
  *
  * Queries the agent's fork event to extract initial pinned_paths snapshot,
