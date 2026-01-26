@@ -1,6 +1,6 @@
 #include "../../../test_constants.h"
 
-#include "tools/web_search_brave/auth_error.h"
+#include "tools/web_search/auth_error.h"
 
 #include <check.h>
 #include <stdio.h>
@@ -45,7 +45,7 @@ START_TEST(test_write_auth_error_json) {
     ck_assert(strstr(buffer, "\"error_code\": \"AUTH_MISSING\"") != NULL);
     ck_assert(strstr(buffer, "\"_event\"") != NULL);
     ck_assert(strstr(buffer, "\"kind\": \"config_required\"") != NULL);
-    ck_assert(strstr(buffer, "\"tool\": \"web_search_brave\"") != NULL);
+    ck_assert(strstr(buffer, "\"tool\": \"web_search\"") != NULL);
     ck_assert(strstr(buffer, "\"credential\": \"api_key\"") != NULL);
     ck_assert(strstr(buffer, "\"signup_url\": \"https://brave.com/search/api/\"") != NULL);
     ck_assert(strstr(buffer, "Brave Search offers 2,000 free searches/month") != NULL);
@@ -73,7 +73,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = auth_error_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/web_search_brave/auth_error_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/tools/web_search/auth_error_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

@@ -1,4 +1,4 @@
-#include "tools/web_search_brave/domain_utils.h"
+#include "tools/web_search/domain_utils.h"
 
 #include <check.h>
 #include <inttypes.h>
@@ -82,7 +82,7 @@ int32_t main(void)
 {
     Suite *s = domain_utils_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/web_search_brave/domain_utils_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/tools/web_search/domain_utils_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

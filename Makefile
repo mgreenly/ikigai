@@ -233,7 +233,7 @@ all:
 
 # clean: Remove build artifacts
 clean:
-	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR) IKIGAI_DEBUG.LOG reports/
+	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR) IKIGAI_DEBUG.LOG reports/ bin/ libexec/
 	@echo "✨ Cleaned"
 
 # install: Install binaries to PREFIX

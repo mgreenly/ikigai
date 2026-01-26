@@ -1,4 +1,4 @@
-#include "web_search_brave.h"
+#include "web_search.h"
 
 #include "auth_error.h"
 #include "credentials.h"
@@ -41,7 +41,7 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, void *us
     return realsize;
 }
 
-int32_t web_search_brave_execute(void *ctx, const web_search_brave_params_t *params)
+int32_t web_search_execute(void *ctx, const web_search_params_t *params)
 {
     ik_credentials_t *creds = NULL;
     res_t load_res = ik_credentials_load(ctx, NULL, &creds);
@@ -176,7 +176,8 @@ int32_t web_search_brave_execute(void *ctx, const web_search_brave_params_t *par
 
         const char *url_str = yyjson_get_str(url_val);
 
-        if (params->allowed_domains != NULL && yyjson_is_arr(params->allowed_domains)) {  // LCOV_EXCL_BR_LINE
+        if (params->allowed_domains != NULL && yyjson_is_arr(params->allowed_domains) &&
+            yyjson_arr_size(params->allowed_domains) > 0) {  // LCOV_EXCL_BR_LINE
             int32_t matches = 0;
             size_t aidx, amax;
             yyjson_val *domain;

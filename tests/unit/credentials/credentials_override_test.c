@@ -193,16 +193,12 @@ START_TEST(test_env_var_overrides_file_brave_google_search_ntfy) {
     FILE *f = fopen(tmpfile, "w");
     ck_assert_ptr_nonnull(f);
     fprintf(f, "{\"BRAVE_API_KEY\":\"file-key-brave\","
-            "\"GOOGLE_SEARCH_API_KEY\":\"file-key-google-search\","
-            "\"GOOGLE_SEARCH_ENGINE_ID\":\"file-id-google-engine\","
             "\"NTFY_API_KEY\":\"file-key-ntfy\","
             "\"NTFY_TOPIC\":\"file-topic-ntfy\"}");
     fclose(f);
     chmod(tmpfile, 0600);
 
     setenv("BRAVE_API_KEY", "env-key-brave", 1);
-    setenv("GOOGLE_SEARCH_API_KEY", "env-key-google-search", 1);
-    setenv("GOOGLE_SEARCH_ENGINE_ID", "env-id-google-engine", 1);
     setenv("NTFY_API_KEY", "env-key-ntfy", 1);
     setenv("NTFY_TOPIC", "env-topic-ntfy", 1);
 
@@ -215,14 +211,6 @@ START_TEST(test_env_var_overrides_file_brave_google_search_ntfy) {
     ck_assert_ptr_nonnull(brave_key);
     ck_assert_str_eq(brave_key, "env-key-brave");
 
-    const char *google_search_key = ik_credentials_get(creds, "GOOGLE_SEARCH_API_KEY");
-    ck_assert_ptr_nonnull(google_search_key);
-    ck_assert_str_eq(google_search_key, "env-key-google-search");
-
-    const char *google_engine_id = ik_credentials_get(creds, "GOOGLE_SEARCH_ENGINE_ID");
-    ck_assert_ptr_nonnull(google_engine_id);
-    ck_assert_str_eq(google_engine_id, "env-id-google-engine");
-
     const char *ntfy_key = ik_credentials_get(creds, "NTFY_API_KEY");
     ck_assert_ptr_nonnull(ntfy_key);
     ck_assert_str_eq(ntfy_key, "env-key-ntfy");
@@ -232,8 +220,6 @@ START_TEST(test_env_var_overrides_file_brave_google_search_ntfy) {
     ck_assert_str_eq(ntfy_topic, "env-topic-ntfy");
 
     unsetenv("BRAVE_API_KEY");
-    unsetenv("GOOGLE_SEARCH_API_KEY");
-    unsetenv("GOOGLE_SEARCH_ENGINE_ID");
     unsetenv("NTFY_API_KEY");
     unsetenv("NTFY_TOPIC");
     unlink(tmpfile);
