@@ -153,8 +153,8 @@ START_TEST(test_rewind_no_role_prefixes) {
     // Verify system message is first (with color styling)
     ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
 
-    // Verify user message has no "You:" prefix
-    ck_assert_str_eq(line2, "what is 2 + 2");
+    // Verify user message has "❯" prefix
+    ck_assert_str_eq(line2, "❯ what is 2 + 2");
 
     // Verify assistant message has no "Assistant:" prefix (but has color styling)
     ck_assert_ptr_nonnull(strstr(line4, "2 + 2 = 4"));
@@ -225,9 +225,9 @@ START_TEST(test_rewind_without_system_message) {
     res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
     ck_assert(is_ok(&rewind_res));
 
-    // First line should be user message (no system message)
+    // First line should be user message with prefix (no system message)
     const char *line0 = get_line_text(repl->current->scrollback, 0);
-    ck_assert_str_eq(line0, "Hello");
+    ck_assert_str_eq(line0, "❯ Hello");
 }
 
 END_TEST
@@ -260,9 +260,9 @@ START_TEST(test_rewind_with_null_config) {
     res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
     ck_assert(is_ok(&rewind_res));
 
-    // First line should be user message (no system message since no config)
+    // First line should be user message with prefix (no system message since no config)
     const char *line0 = get_line_text(repl->current->scrollback, 0);
-    ck_assert_str_eq(line0, "Test message");
+    ck_assert_str_eq(line0, "❯ Test message");
 }
 
 END_TEST
