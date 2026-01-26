@@ -101,7 +101,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Ensure Agent 0 exists in registry if database is configured
     if (shared->db_ctx != NULL) {
         char *agent_zero_uuid = NULL;
-        result = ik_db_ensure_agent_zero(shared->db_ctx, &agent_zero_uuid);
+        result = ik_db_ensure_agent_zero(shared->db_ctx, shared->paths, &agent_zero_uuid);
         if (is_err(&result)) {
             talloc_free(repl);
             return result;
