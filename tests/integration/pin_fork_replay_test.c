@@ -222,8 +222,12 @@ START_TEST(test_pin_unpin_replay) {
     ck_assert(is_ok(&replay_res));
     ck_assert_ptr_nonnull(replay_ctx);
 
-    // Populate scrollback (this triggers pin/unpin replay)
+    // Populate scrollback
     ik_agent_restore_populate_scrollback(restored_agent, replay_ctx, repl->shared->logger);
+
+    // Replay pins (independent of clear boundaries)
+    res_t pin_replay_res = ik_agent_replay_pins(db, restored_agent);
+    ck_assert(is_ok(&pin_replay_res));
 
     // Verify pins were replayed correctly (should have doc1 and doc3, not doc2)
     ck_assert(restored_agent->pinned_count == 2);

@@ -41,4 +41,18 @@ void ik_agent_restore_populate_scrollback(ik_agent_ctx_t *agent, ik_replay_conte
  */
 void ik_agent_restore_marks(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx);
 
+/**
+ * Replay all pin/unpin commands for an agent (independent of clear boundaries)
+ *
+ * Queries the agent's fork event to extract initial pinned_paths snapshot,
+ * then replays ALL pin/unpin commands chronologically to rebuild pin state.
+ * This operates independently of clear boundaries, ensuring pins persist
+ * across /clear and restart.
+ *
+ * @param db Database context (must not be NULL)
+ * @param agent Agent context (must not be NULL)
+ * @return OK(NULL) on success, ERR on database failure
+ */
+res_t ik_agent_replay_pins(ik_db_ctx_t *db, ik_agent_ctx_t *agent);
+
 #endif // IK_REPL_AGENT_RESTORE_REPLAY_H

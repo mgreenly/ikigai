@@ -1,15 +1,20 @@
 // Agent restoration replay helpers
 #include "agent_restore_replay.h"
 
+#include "../db/connection.h"
+#include "../db/pg_result.h"
 #include "../error.h"
 #include "../event_render.h"
 #include "../logger.h"
 #include "../message.h"
 #include "../msg.h"
 #include "../providers/provider.h"
+#include "../tmp_ctx.h"
+#include "../wrapper.h"
 #include "../wrapper_json.h"
 
 #include <assert.h>
+#include <libpq-fe.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -298,15 +303,100 @@ static void replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logg
         replay_model_command(agent, args, logger);
     }
 
-    // Handle /pin command
-    if (strcmp(cmd_name, "pin") == 0 && args != NULL) {
-        replay_pin_command(agent, args);
-    }
-
-    // Handle /unpin command
-    if (strcmp(cmd_name, "unpin") == 0 && args != NULL) {
-        replay_unpin_command(agent, args);
-    }
-
     yyjson_doc_free(doc);
+}
+
+// Replay all pin/unpin commands for an agent (independent of clear boundaries)
+res_t ik_agent_replay_pins(ik_db_ctx_t *db, ik_agent_ctx_t *agent)
+{
+    assert(db != NULL);     // LCOV_EXCL_BR_LINE
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // 1. Query the fork event for this agent to get initial pinned_paths snapshot
+    const char *fork_query =
+        "SELECT data FROM messages WHERE agent_uuid = $1 AND kind = 'fork' ORDER BY id LIMIT 1";
+    const char *fork_params[1] = {agent->uuid};
+
+    ik_pg_result_wrapper_t *fork_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, fork_query, 1, NULL,
+                                                  fork_params, NULL, NULL, 0));
+    PGresult *fork_res = fork_wrapper->pg_result;
+
+    if (PQresultStatus(fork_res) != PGRES_TUPLES_OK) {     // LCOV_EXCL_BR_LINE
+        const char *pq_err = PQerrorMessage(db->conn);     // LCOV_EXCL_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return ERR(db, IO, "Failed to query fork event: %s", pq_err);     // LCOV_EXCL_LINE
+    }
+
+    // 2. Extract pinned_paths from fork event data_json (if exists)
+    int fork_rows = PQntuples(fork_res);
+    if (fork_rows > 0) {     // LCOV_EXCL_BR_LINE - Fork event path tested in integration
+        const char *fork_json = PQgetvalue_(fork_res, 0, 0);     // LCOV_EXCL_LINE
+        if (fork_json != NULL) {     // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+            yyjson_doc *fork_doc = yyjson_read(fork_json, strlen(fork_json), 0);     // LCOV_EXCL_LINE
+            if (fork_doc != NULL) {     // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+                yyjson_val *fork_root = yyjson_doc_get_root_(fork_doc);     // LCOV_EXCL_LINE
+                if (fork_root != NULL) {     // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+                    replay_fork_event(agent, fork_root);     // LCOV_EXCL_LINE
+                }
+                yyjson_doc_free(fork_doc);     // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    // 3. Query ALL command events with pin or unpin (no clear boundary)
+    const char *cmd_query =
+        "SELECT data FROM messages "
+        "WHERE agent_uuid = $1 AND kind = 'command' "
+        "AND (data->>'command' = 'pin' OR data->>'command' = 'unpin') "
+        "ORDER BY id";
+    const char *cmd_params[1] = {agent->uuid};
+
+    ik_pg_result_wrapper_t *cmd_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, cmd_query, 1, NULL,
+                                                  cmd_params, NULL, NULL, 0));
+    PGresult *cmd_res = cmd_wrapper->pg_result;
+
+    if (PQresultStatus(cmd_res) != PGRES_TUPLES_OK) {     // LCOV_EXCL_BR_LINE
+        const char *pq_err = PQerrorMessage(db->conn);     // LCOV_EXCL_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return ERR(db, IO, "Failed to query pin/unpin commands: %s", pq_err);     // LCOV_EXCL_LINE
+    }
+
+    // 4. Apply pin/unpin commands chronologically
+    int cmd_rows = PQntuples(cmd_res);
+    for (int i = 0; i < cmd_rows; i++) {     // LCOV_EXCL_BR_LINE
+        const char *data_json = PQgetvalue_(cmd_res, i, 0);
+        if (data_json == NULL) continue;     // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+
+        yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
+        if (doc == NULL) continue;     // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
+
+        yyjson_val *root = yyjson_doc_get_root_(doc);
+        if (root == NULL) {     // LCOV_EXCL_BR_LINE
+            yyjson_doc_free(doc);     // LCOV_EXCL_LINE
+            continue;     // LCOV_EXCL_LINE
+        }
+
+        yyjson_val *cmd_val = yyjson_obj_get_(root, "command");
+        yyjson_val *args_val = yyjson_obj_get_(root, "args");
+
+        const char *cmd_name = yyjson_get_str(cmd_val);     // LCOV_EXCL_BR_LINE
+        const char *args = yyjson_get_str(args_val);
+
+        if (cmd_name != NULL && args != NULL) {     // LCOV_EXCL_BR_LINE
+            if (strcmp(cmd_name, "pin") == 0) {
+                replay_pin_command(agent, args);
+            } else if (strcmp(cmd_name, "unpin") == 0) {     // LCOV_EXCL_BR_LINE
+                replay_unpin_command(agent, args);
+            }
+        }
+
+        yyjson_doc_free(doc);
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
 }

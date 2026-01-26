@@ -328,7 +328,7 @@ START_TEST(test_ensure_agent_zero_with_session_creates_fork_event) {
 
     const char *fork_data = PQgetvalue(fork_res, 0, 0);
     ck_assert(strstr(fork_data, "pinned_paths") != NULL);
-    ck_assert(strstr(fork_data, "system.md") != NULL);
+    ck_assert(strstr(fork_data, "prompt.md") != NULL);
     PQclear(fork_res);
 }
 

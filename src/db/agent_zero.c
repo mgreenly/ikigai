@@ -144,7 +144,7 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uui
     if (has_session) {
         // Build path to system.md
         const char *data_dir = ik_paths_get_data_dir(paths);
-        char *system_md_path = talloc_asprintf(tmp, "%s/prompts/system.md", data_dir);
+        char *system_md_path = talloc_asprintf(tmp, "%s/system/prompt.md", data_dir);
         if (system_md_path == NULL) {     // LCOV_EXCL_BR_LINE
             talloc_free(tmp);     // LCOV_EXCL_LINE
             return ERR(db, OUT_OF_MEMORY, "Failed to allocate system.md path");     // LCOV_EXCL_LINE
