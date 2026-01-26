@@ -74,12 +74,12 @@ START_TEST(test_empty_prefix_all_commands) {
     // "/" should match all commands
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 15);  // clear, debug, fork, help, kill, mark, model, rewind, send, check-mail, read-mail, delete-mail, filter-mail, agents, system
+    ck_assert_uint_eq(comp->count, 15);  // clear, debug, fork, help, kill, mark, model, rewind, mail-send, mail-check, mail-read, mail-delete, mail-filter, agents, system
 
     // Verify all commands are present (order determined by fzy score, not alphabetical)
     bool found[15] = {false};
-    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "send", "check-mail",
-                              "read-mail", "delete-mail", "filter-mail", "agents", "system"};
+    const char *expected[] = {"clear", "debug", "fork", "help", "kill", "mark", "model", "rewind", "mail-send", "mail-check",
+                              "mail-read", "mail-delete", "mail-filter", "agents", "system"};
 
     for (size_t i = 0; i < comp->count; i++) {
         for (size_t j = 0; j < 15; j++) {
@@ -195,13 +195,11 @@ START_TEST(test_get_current) {
 END_TEST
 // Test: Single character prefix
 START_TEST(test_single_char_prefix) {
-    // "/c" should match "clear" and "check-mail"
+    // "/c" should match only "clear" (mail commands now start with "mail-")
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/c");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 2);
-    // Both commands start with 'c'
-    ck_assert(strcmp(comp->candidates[0], "clear") == 0 || strcmp(comp->candidates[0], "check-mail") == 0);
-    ck_assert(strcmp(comp->candidates[1], "clear") == 0 || strcmp(comp->candidates[1], "check-mail") == 0);
+    ck_assert_uint_eq(comp->count, 1);
+    ck_assert_str_eq(comp->candidates[0], "clear");
 }
 
 END_TEST
