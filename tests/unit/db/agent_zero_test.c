@@ -11,6 +11,7 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/session.h"
 #include "../../../src/error.h"
+#include "../../../src/paths.h"
 #include "../../test_utils_helper.h"
 #include <check.h>
 #include <libpq-fe.h>
@@ -26,6 +27,7 @@ static bool db_available = false;
 // Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
+static ik_paths_t *paths;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -68,15 +70,28 @@ static void test_setup(void)
     if (!db_available) {
         test_ctx = NULL;
         db = NULL;
+        paths = NULL;
         return;
     }
 
     test_ctx = talloc_new(NULL);
-    res_t res = ik_test_db_connect(test_ctx, DB_NAME, &db);
+
+    // Initialize paths (uses environment variables set by test wrapper)
+    res_t res = ik_paths_init(test_ctx, &paths);
     if (is_err(&res)) {
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        paths = NULL;
+        return;
+    }
+
+    res = ik_test_db_connect(test_ctx, DB_NAME, &db);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        paths = NULL;
         return;
     }
 
@@ -85,6 +100,7 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        paths = NULL;
     }
 }
 
@@ -111,7 +127,7 @@ START_TEST(test_ensure_agent_zero_creates_on_empty) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
     if (is_err(&res)) {
         fprintf(stderr, "ERROR in test_ensure_agent_zero_creates_on_empty: %s\n", res.err->msg);
     }
@@ -126,13 +142,13 @@ START_TEST(test_ensure_agent_zero_returns_existing) {
 
     // First call creates Agent 0
     char *uuid1 = NULL;
-    res_t res1 = ik_db_ensure_agent_zero(db, &uuid1);
+    res_t res1 = ik_db_ensure_agent_zero(db, paths, &uuid1);
     ck_assert(is_ok(&res1));
     ck_assert(uuid1 != NULL);
 
     // Second call returns same UUID
     char *uuid2 = NULL;
-    res_t res2 = ik_db_ensure_agent_zero(db, &uuid2);
+    res_t res2 = ik_db_ensure_agent_zero(db, paths, &uuid2);
     ck_assert(is_ok(&res2));
     ck_assert(uuid2 != NULL);
     ck_assert_str_eq(uuid1, uuid2);
@@ -144,7 +160,7 @@ START_TEST(test_agent_zero_has_null_parent) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
     ck_assert(is_ok(&res));
 
     // Query to verify parent_uuid is NULL
@@ -165,7 +181,7 @@ START_TEST(test_agent_zero_status_running) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
     ck_assert(is_ok(&res));
 
     // Query to verify status
@@ -221,7 +237,7 @@ START_TEST(test_ensure_agent_zero_adopts_orphans) {
 
     // Ensure Agent 0 (should adopt orphans)
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
     ck_assert(is_ok(&res));
     ck_assert(uuid != NULL);
 
@@ -242,7 +258,7 @@ START_TEST(test_ensure_agent_zero_adopts_orphans) {
     ck_assert_int_eq(PQresultStatus(agent_res), PGRES_TUPLES_OK);
 
     const char *agent_count = PQgetvalue(agent_res, 0, 0);
-    ck_assert_str_eq(agent_count, "2");  // Agent 0 owns both messages
+    ck_assert_str_eq(agent_count, "3");  // Agent 0 owns: 2 adopted orphans + 1 initial fork event
     PQclear(agent_res);
 }
 
@@ -253,15 +269,15 @@ START_TEST(test_ensure_agent_zero_idempotent) {
 
     // Call three times
     char *uuid1 = NULL;
-    res_t res1 = ik_db_ensure_agent_zero(db, &uuid1);
+    res_t res1 = ik_db_ensure_agent_zero(db, paths, &uuid1);
     ck_assert(is_ok(&res1));
 
     char *uuid2 = NULL;
-    res_t res2 = ik_db_ensure_agent_zero(db, &uuid2);
+    res_t res2 = ik_db_ensure_agent_zero(db, paths, &uuid2);
     ck_assert(is_ok(&res2));
 
     char *uuid3 = NULL;
-    res_t res3 = ik_db_ensure_agent_zero(db, &uuid3);
+    res_t res3 = ik_db_ensure_agent_zero(db, paths, &uuid3);
     ck_assert(is_ok(&res3));
 
     // All should return same UUID
@@ -276,6 +292,44 @@ START_TEST(test_ensure_agent_zero_idempotent) {
     const char *count = PQgetvalue(result, 0, 0);
     ck_assert_str_eq(count, "1");  // Only one root agent
     PQclear(result);
+}
+
+END_TEST
+
+// Test: Creates fork event with pinned_paths when session exists
+START_TEST(test_ensure_agent_zero_with_session_creates_fork_event) {
+    SKIP_IF_NO_DB();
+
+    // Create session with id=1 by inserting directly with OVERRIDING SYSTEM VALUE
+    const char *insert_session = "INSERT INTO sessions (id, started_at) OVERRIDING SYSTEM VALUE VALUES (1, NOW())";
+    PGresult *sess_res = PQexecParams(db->conn, insert_session, 0, NULL, NULL, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(sess_res), PGRES_COMMAND_OK);
+    PQclear(sess_res);
+
+    // Verify session was created and is visible
+    const char *check_session = "SELECT 1 FROM sessions WHERE id = 1";
+    PGresult *check_res = PQexecParams(db->conn, check_session, 0, NULL, NULL, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(check_res), PGRES_TUPLES_OK);
+    ck_assert_int_gt(PQntuples(check_res), 0);  // Session should exist
+    PQclear(check_res);
+
+    // Ensure Agent 0 (should create fork event with pinned_paths)
+    char *uuid = NULL;
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    ck_assert(is_ok(&res));
+    ck_assert(uuid != NULL);
+
+    // Verify fork event was created with pinned_paths
+    const char *check_fork = "SELECT data FROM messages WHERE agent_uuid = $1 AND kind = 'fork'";
+    const char *params[1] = {uuid};
+    PGresult *fork_res = PQexecParams(db->conn, check_fork, 1, NULL, params, NULL, NULL, 0);
+    ck_assert_int_eq(PQresultStatus(fork_res), PGRES_TUPLES_OK);
+    ck_assert_int_eq(PQntuples(fork_res), 1);
+
+    const char *fork_data = PQgetvalue(fork_res, 0, 0);
+    ck_assert(strstr(fork_data, "pinned_paths") != NULL);
+    ck_assert(strstr(fork_data, "prompt.md") != NULL);
+    PQclear(fork_res);
 }
 
 END_TEST
@@ -301,6 +355,7 @@ static Suite *agent_zero_suite(void)
     tcase_add_test(tc_core, test_agent_zero_status_running);
     tcase_add_test(tc_core, test_ensure_agent_zero_adopts_orphans);
     tcase_add_test(tc_core, test_ensure_agent_zero_idempotent);
+    tcase_add_test(tc_core, test_ensure_agent_zero_with_session_creates_fork_event);
 
     suite_add_tcase(s, tc_core);
     return s;

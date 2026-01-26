@@ -19,32 +19,17 @@ Ikigai provides explicit control over every dimension of LLM context:
 | **Capabilities** | Tool Sets | What actions the agent can take |
 | **Communication** | Agent hierarchy | What other agents it can interact with |
 
-### Memory Partitioning
+### Pinned Documents
 
-Context is explicitly partitioned into layers with defined budgets:
+The system prompt is assembled from pinned documents. User-controlled via `/pin` and `/unpin`:
 
-| Layer | Budget | Purpose |
-|-------|--------|---------|
-| **Pinned Blocks** | 100k tokens | Curated persistent knowledge |
-| **Auto-Summary** | 10k tokens | Compressed history index |
-| **Sliding Window** | 90k tokens | Recent conversation |
-| **Archival** | unlimited | Everything forever |
+- `/pin PATH` - Add a document to the system prompt
+- `/unpin PATH` - Remove a document from the system prompt
+- `/pin` (no args) - List currently pinned documents
 
-**Sliding Window**: FIFO eviction when full. Everything preserved in archival first.
+Documents are concatenated in FIFO order. Both filesystem paths and `ik://` URIs are supported.
 
-**Auto-Summary**: Background agents compress evicted history by recency (this session → yesterday → this week). Headlines only - triggers `/recall` for full content.
-
-**Pinned Blocks**: Knowledge that compounds across sessions. User-controlled via `/pin` and `/unpin`.
-
-**Archival**: Zero context cost. PostgreSQL storage. Searchable via `/recall`.
-
-**Agent Self-Management**: Agents can manage their own context via slash commands:
-- `/mark` - Create checkpoint before risky operations
-- `/rewind` - Rollback to checkpoint if approach fails
-- `/forget` - Remove irrelevant content to free space
-- `/remember` - Extract valuable knowledge to pinned blocks
-
-Agents don't just receive context - they actively shape it.
+Forked agents inherit their parent's pinned documents at fork time.
 
 ### Skill Sets
 
@@ -103,7 +88,6 @@ Most tools treat context as an afterthought - dump messages into a window and ho
 
 ## See Also
 
-- [structured-memory/](structured-memory/) - Memory layer architecture
 - [context-management.md](context-management.md) - Context commands
 - [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture
 - [agent-process-model.md](agent-process-model.md) - Agent hierarchy

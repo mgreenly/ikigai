@@ -4,6 +4,7 @@
 #include "../../../src/db/agent_zero.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/error.h"
+#include "../../../src/paths.h"
 #include "../../../src/wrapper.h"
 
 #include <check.h>
@@ -274,11 +275,14 @@ START_TEST(test_ensure_agent_zero_root_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
+    // Mock paths object (needed for assertion)
+    ik_paths_t *paths = (ik_paths_t *)0xCAFEBABE; // Non-NULL placeholder
+
     mock_query_fail = true;
     mock_parse_fail = false;
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);

@@ -5,14 +5,20 @@
 
 #include "../../../src/providers/request.h"
 #include "../../../src/agent.h"
+#include "../../../src/doc_cache.h"
 #include "../../../src/error.h"
+#include "../../../src/paths.h"
 #include "../../../src/shared.h"
 #include "../../test_utils_helper.h"
 
 #include <check.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <talloc.h>
+#include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
 static ik_shared_ctx_t *shared_ctx;
@@ -85,7 +91,7 @@ START_TEST(test_valid_model_success) {
 END_TEST
 
 /**
- * Test with system message (line 249 true branch)
+ * Test with system message (now uses pinned documents instead of cfg)
  */
 START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -95,14 +101,17 @@ START_TEST(test_with_system_message) {
     agent->messages = NULL;
     agent->message_count = 0;
 
-    agent->shared->cfg->openai_system_message = talloc_strdup(agent->shared->cfg, "Be helpful");
+    // Pinned documents system - no pinned paths means no system prompt
+    agent->pinned_paths = NULL;
+    agent->pinned_count = 0;
+    agent->doc_cache = NULL;
 
     ik_request_t *req = NULL;
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_str_eq(req->system_prompt, "Be helpful");
+    // With no pinned documents, system_prompt should be NULL
+    ck_assert_ptr_null(req->system_prompt);
 }
 END_TEST
 
@@ -214,6 +223,53 @@ START_TEST(test_skip_null_message) {
 }
 END_TEST
 
+/**
+ * Test with pinned documents - system prompt built from doc_cache
+ */
+START_TEST(test_with_pinned_documents) {
+    // Create temp file with content
+    char tmpfile[] = "/tmp/iktest_pinned_XXXXXX";
+    int32_t fd = mkstemp(tmpfile);
+    ck_assert_int_ge(fd, 0);
+    const char *doc_content = "System prompt from pinned doc\n";
+    ssize_t written = write(fd, doc_content, strlen(doc_content));
+    ck_assert_int_eq(written, (ssize_t)strlen(doc_content));
+    close(fd);
+
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+
+    // Set up paths for doc_cache
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    res_t paths_res = ik_paths_init(agent, &paths);
+    ck_assert(is_ok(&paths_res));
+    ck_assert_ptr_nonnull(paths);
+
+    // Set up doc_cache
+    agent->doc_cache = ik_doc_cache_create(agent, paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    // Pin the temp file
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, tmpfile);
+    agent->pinned_count = 1;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(req->system_prompt);
+    ck_assert(strstr(req->system_prompt, doc_content) != NULL);
+
+    unlink(tmpfile);
+}
+END_TEST
+
 static Suite *request_tools_validation_suite(void)
 {
     Suite *s = suite_create("Request Tools Validation");
@@ -241,6 +297,12 @@ static Suite *request_tools_validation_suite(void)
     tcase_add_test(tc_messages, test_different_thinking_levels);
     tcase_add_test(tc_messages, test_skip_null_message);
     suite_add_tcase(s, tc_messages);
+
+    TCase *tc_pinned = tcase_create("Pinned Documents");
+    tcase_set_timeout(tc_pinned, IK_TEST_TIMEOUT);
+    tcase_add_checked_fixture(tc_pinned, setup, teardown);
+    tcase_add_test(tc_pinned, test_with_pinned_documents);
+    suite_add_tcase(s, tc_pinned);
 
     return s;
 }

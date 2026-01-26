@@ -8,6 +8,7 @@
 #include "commands_basic.h"
 #include "commands_mark.h"
 #include "commands_model.h"
+#include "commands_pin.h"
 #include "commands_tool.h"
 #include "db/message.h"
 #include "logger.h"
@@ -65,6 +66,8 @@ static const ik_command_t commands[] = {
     {"debug", "Toggle debug output (usage: /debug [on|off])", ik_cmd_debug},
     {"tool", "List tools or show schema (usage: /tool [name])", ik_cmd_tool},
     {"refresh", "Reload tool registry", ik_cmd_refresh},
+    {"pin", "Manage pinned documents (usage: /pin [path])", ik_cmd_pin},
+    {"unpin", "Remove pinned document (usage: /unpin <path>)", ik_cmd_unpin},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

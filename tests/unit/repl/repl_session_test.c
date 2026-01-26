@@ -44,7 +44,8 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
+typedef struct ik_paths_t ik_paths_t;
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
                                   const char *uuid,
@@ -84,8 +85,10 @@ res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_di
 }
 
 // Mock ik_db_ensure_agent_zero - always succeeds in session tests
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
 {
+    (void)paths;  // Unused in mock
+
     *out_uuid = talloc_strdup(db, "agent-zero-uuid");
     if (*out_uuid == NULL) {  // LCOV_EXCL_BR_LINE
         return ERR(db, OUT_OF_MEMORY, "Out of memory");  // LCOV_EXCL_LINE

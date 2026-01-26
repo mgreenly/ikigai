@@ -43,7 +43,8 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid);
+typedef struct ik_paths_t ik_paths_t;
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
@@ -84,8 +85,10 @@ res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_di
 }
 
 // Mock ik_db_ensure_agent_zero (needed because repl_init calls it)
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, char **out_uuid)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
 {
+    (void)paths;  // Unused in mock
+
     if (mock_ensure_agent_zero_should_fail) {
         return ERR(db, IO, "Mock agent zero query failure");
     }

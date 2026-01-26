@@ -131,6 +131,11 @@ typedef struct ik_agent_ctx {
     TALLOC_CTX *tool_thread_ctx;
     char *tool_thread_result;
     int32_t tool_iteration_count;
+
+    // Pinned documents for system prompt (per-agent)
+    char **pinned_paths;      // Ordered list of paths (FIFO)
+    size_t pinned_count;      // Number of pinned paths
+    struct ik_doc_cache *doc_cache;  // Document content cache
 } ik_agent_ctx_t;
 
 // Create agent context

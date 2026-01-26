@@ -10,6 +10,8 @@
 #include "../event_render.h"
 #include "../logger.h"
 #include "../msg.h"
+#include "../panic.h"
+#include "../paths.h"
 #include "../repl.h"
 #include "../shared.h"
 
@@ -46,32 +48,29 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         ik_logger_warn_json(repl->shared->logger, clear_log);     // LCOV_EXCL_LINE
     }
 
-    // Write system message if configured
-    ik_config_t *cfg = repl->shared->cfg;
-    if (cfg != NULL && cfg->openai_system_message != NULL) {     // LCOV_EXCL_BR_LINE
-        res_t system_res = ik_db_message_insert(
-            db_ctx, repl->shared->session_id, repl->current->uuid,
-            "system", cfg->openai_system_message, "{}"
-            );
-        if (is_err(&system_res)) {     // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc *sys_log = ik_log_create();     // LCOV_EXCL_LINE
-            yyjson_mut_val *sys_root = yyjson_mut_doc_get_root(sys_log);     // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(sys_log, sys_root, "event", "fresh_install_system_failed");     // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(sys_log, sys_root, "error", error_message(system_res.err));     // LCOV_EXCL_LINE
-            ik_logger_warn_json(repl->shared->logger, sys_log);     // LCOV_EXCL_LINE
-        } else {
-            res_t render_res = ik_event_render(
-                repl->current->scrollback, "system", cfg->openai_system_message, "{}"
-                );
-            if (is_err(&render_res)) {     // LCOV_EXCL_BR_LINE
-                yyjson_mut_doc *render_log = ik_log_create();     // LCOV_EXCL_LINE
-                yyjson_mut_val *render_root = yyjson_mut_doc_get_root(render_log);     // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(render_log, render_root, "event", "fresh_install_render_failed");     // LCOV_EXCL_LINE
-                yyjson_mut_obj_add_str(render_log, render_root, "error", error_message(render_res.err));     // LCOV_EXCL_LINE
-                ik_logger_warn_json(repl->shared->logger, render_log);     // LCOV_EXCL_LINE
-            }
+    // Write synthetic pin command for default system prompt
+    if (repl->shared->paths != NULL) {     // LCOV_EXCL_BR_LINE
+        const char *data_dir = ik_paths_get_data_dir(repl->shared->paths);
+        char *system_prompt_path = talloc_asprintf(repl, "%s/system/prompt.md", data_dir);
+        if (system_prompt_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-            // System message is NOT added to conversation - it's handled via request->system_prompt
+        char *pin_data = talloc_asprintf(
+            repl, "{\"command\":\"pin\",\"args\":\"%s\"}", system_prompt_path
+            );
+        if (pin_data == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        res_t pin_res = ik_db_message_insert(
+            db_ctx, repl->shared->session_id, repl->current->uuid,
+            "command", NULL, pin_data
+            );
+        talloc_free(system_prompt_path);
+        talloc_free(pin_data);
+        if (is_err(&pin_res)) {     // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc *pin_log = ik_log_create();     // LCOV_EXCL_LINE
+            yyjson_mut_val *pin_root = yyjson_mut_doc_get_root(pin_log);     // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(pin_log, pin_root, "event", "fresh_install_pin_failed");     // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(pin_log, pin_root, "error", error_message(pin_res.err));     // LCOV_EXCL_LINE
+            ik_logger_warn_json(repl->shared->logger, pin_log);     // LCOV_EXCL_LINE
         }
     }
 
@@ -115,6 +114,16 @@ static void restore_agent_zero(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
+
+    // Replay pins (independent of clear boundaries)
+    res = ik_agent_replay_pins(db_ctx, agent);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *pin_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *pin_root = yyjson_mut_doc_get_root(pin_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(pin_log, pin_root, "event", "agent0_pin_replay_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(pin_log, pin_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, pin_log);     // LCOV_EXCL_LINE
+    }
 
     yyjson_mut_doc *log_doc = ik_log_create();
     yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_BR_LINE
@@ -183,6 +192,17 @@ static void restore_child_agent(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
+
+    // Replay pins (independent of clear boundaries)
+    res = ik_agent_replay_pins(db_ctx, agent);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *pin_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *pin_root = yyjson_mut_doc_get_root(pin_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(pin_log, pin_root, "event", "agent_pin_replay_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(pin_log, pin_root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(pin_log, pin_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, pin_log);     // LCOV_EXCL_LINE
+    }
 
     // Add to repl->agents[] array
     res = ik_repl_add_agent(repl, agent);

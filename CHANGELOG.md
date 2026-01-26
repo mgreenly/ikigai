@@ -4,6 +4,64 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [rel-10] - 2026-01-25
+
+### Added
+
+#### Pin/Unpin Commands (Complete)
+- **/pin and /unpin commands**: Manage pinned documents that form the system prompt
+  - `/pin` (no args) lists pinned paths in FIFO order
+  - `/pin PATH` adds document to pinned list with event persistence
+  - `/unpin PATH` removes document from pinned list with event persistence
+  - Both filesystem paths and `ik://` URIs supported
+  - Missing file at pin time: warn in subdued text, do not add to list
+  - Already pinned/not pinned: warn in subdued text, record event anyway
+- **Agent struct extension**: Added `pinned_paths` (char**) and `pinned_count` (size_t) to `ik_agent_ctx_t`
+- **Document cache module**: Global talloc-based cache for pinned document content
+  - `doc_cache_get(path)` - returns content, loads and caches if not present
+  - `doc_cache_invalidate(path)` - invalidates specific path
+  - `doc_cache_clear()` - invalidates entire cache
+  - Handles both filesystem and `ik://` paths via `ik_paths_translate_ik_uri_to_path()`
+- **Pin replay mechanism**: Rebuild pinned_paths from events during agent restoration
+  - Replay walks back to agent's fork/creation event only
+  - Fork events include `pinned_paths` snapshot of parent's pins
+  - `replay_command_effects()` extended for pin/unpin commands
+- **Root agent bootstrap**: Synthetic event with default `$IKIGAI_DATA_DIR/prompts/system.md` pin
+- **System prompt assembly**: Build system prompt by iterating pinned documents in FIFO order
+- **/refresh integration**: Invalidates document cache when refresh command executed
+- **Fork behavior**: Child agents inherit parent's pinned_paths via snapshot in fork event
+
+#### ik:// URI Translation (Complete)
+- **Bidirectional path translation**: Clean ik:// URIs for models, filesystem paths for tools
+  - Model requests: ik:// → filesystem path ($IKIGAI_STATE_DIR/path)
+  - Tool results: filesystem path → ik://
+  - Transparent translation at tool execution boundaries
+- **Edge case handling**: Multiple paths, trailing slashes, false positive avoidance
+
+#### UI Improvements
+- **Braille spinner**: Replaced ASCII spinner (|/-\\) with braille animation (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏)
+- **Flicker elimination**: Screen clear moved from render path to terminal initialization
+- **Cursor visibility fix**: Explicit cursor state at end of each render frame
+
+### Changed
+
+#### Documentation
+- **Removed structured-memory**: Superseded by simpler pin implementation
+- **Updated CDD docs**: context-driven-development.md and what-is-ikigai.md reflect actual /pin implementation
+- **jj skill**: Added selective commit requirement, prohibition on restoring others' work
+- **make-as-query-engine**: Documentation for using `make -n` to query file dependencies
+
+### Fixed
+- **Render test loops**: Fixed off-by-one error in search loops
+- **Buffer overflow**: Fixed ik_render_scrollback (13 bytes needed, not 7)
+- **Cursor visibility**: Added escape sequence at end of render_combined
+- **XML output**: Added to render_text_test
+- **PostgreSQL callback**: Added test for notice processor callback
+
+### Technical Metrics
+- **Quality gates**: All 11 checks pass (compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage)
+- **Test coverage**: 90%+ lines, functions, and branches
+
 ## [rel-09] - 2026-01-22
 
 ### Added

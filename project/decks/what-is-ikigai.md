@@ -117,9 +117,9 @@ Using `/send`, `/list` and `/read`
 
 ---
 
-# Database File Store
+# Pinned Documents
 
-Using `/pin` and `/unpin`
+Using `/pin` and `/unpin` to build the system prompt from documents
 
 ---
 

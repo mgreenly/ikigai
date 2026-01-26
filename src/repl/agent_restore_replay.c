@@ -6,15 +6,12 @@
 #include "../logger.h"
 #include "../message.h"
 #include "../msg.h"
-#include "../providers/provider.h"
 #include "../wrapper_json.h"
 
 #include <assert.h>
 #include <string.h>
 #include <talloc.h>
 
-// Forward declaration
-static void replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logger_t *logger);
 
 void ik_agent_restore_populate_conversation(
     ik_agent_ctx_t *agent,
@@ -66,7 +63,12 @@ void ik_agent_restore_populate_scrollback(
 
         // Replay command side effects (e.g., /model sets agent->provider)
         if (msg->kind != NULL && strcmp(msg->kind, "command") == 0) {
-            replay_command_effects(agent, msg, logger);
+            ik_agent_restore_replay_command_effects(agent, msg, logger);
+        }
+
+        // Replay fork event side effects (extract pinned_paths from child fork event)
+        if (msg->kind != NULL && strcmp(msg->kind, "fork") == 0) {
+            ik_agent_restore_replay_command_effects(agent, msg, logger);
         }
 
         res_t res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json);
@@ -104,90 +106,4 @@ void ik_agent_restore_marks(ik_agent_ctx_t *agent, ik_replay_context_t *replay_c
             }
         }
     }
-}
-
-// Replay command side effects
-// Some commands (like /model) have side effects that need to be re-applied
-// when replaying history to restore agent state.
-static void replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logger_t *logger)
-{
-    assert(agent != NULL);      // LCOV_EXCL_BR_LINE
-    assert(msg != NULL);        // LCOV_EXCL_BR_LINE
-
-    if (msg->data_json == NULL) {
-        return;
-    }
-
-    // Parse data_json to get command name and args
-    yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
-    if (doc == NULL) {
-        return;
-    }
-
-    yyjson_val *root = yyjson_doc_get_root_(doc);
-    if (root == NULL) {
-        yyjson_doc_free(doc);
-        return;
-    }
-
-    yyjson_val *cmd_val = yyjson_obj_get_(root, "command");
-    yyjson_val *args_val = yyjson_obj_get_(root, "args");
-
-    const char *cmd_name = yyjson_get_str(cmd_val);
-    const char *args = yyjson_get_str(args_val);  // May be NULL
-
-    if (cmd_name == NULL) {
-        yyjson_doc_free(doc);
-        return;
-    }
-
-    // Handle /model command
-    if (strcmp(cmd_name, "model") == 0 && args != NULL) {
-        // Parse MODEL/THINKING syntax (e.g., "gpt-5" or "gpt-5/high")
-        char *model_copy = talloc_strdup(agent, args);
-        if (model_copy == NULL) {  // LCOV_EXCL_BR_LINE
-            yyjson_doc_free(doc);  // LCOV_EXCL_LINE
-            return;  // LCOV_EXCL_LINE
-        }
-
-        char *slash = strchr(model_copy, '/');
-        if (slash != NULL) {
-            *slash = '\0';  // Split at slash
-        }
-
-        // Detect provider from model name
-        const char *provider = ik_infer_provider(model_copy);
-
-        // Free old values if present
-        if (agent->provider != NULL) {
-            talloc_free(agent->provider);
-        }
-        if (agent->model != NULL) {
-            talloc_free(agent->model);
-        }
-
-        // Set new provider and model
-        agent->provider = talloc_strdup(agent, provider ? provider : "openai");  // LCOV_EXCL_BR_LINE
-        agent->model = talloc_strdup(agent, model_copy);  // LCOV_EXCL_BR_LINE
-
-        // Invalidate cached provider instance
-        if (agent->provider_instance != NULL) {
-            talloc_free(agent->provider_instance);
-            agent->provider_instance = NULL;
-        }
-
-        // Log the replay
-        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_BR_LINE
-        if (log_doc != NULL) {  // LCOV_EXCL_BR_LINE
-            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "event", "replay_model_command");  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "provider", agent->provider);  // LCOV_EXCL_LINE
-            yyjson_mut_obj_add_str(log_doc, log_root, "model", agent->model);  // LCOV_EXCL_LINE
-            ik_logger_info_json(logger, log_doc);  // LCOV_EXCL_LINE
-        }  // LCOV_EXCL_LINE
-
-        talloc_free(model_copy);
-    }
-
-    yyjson_doc_free(doc);
 }
