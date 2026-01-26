@@ -69,7 +69,7 @@ static inline int32_t ik_output_color(ik_output_category_t category)
     case IK_OUTPUT_SLASH_CMD:
         return 242;  // gray
     case IK_OUTPUT_SLASH_OUTPUT:
-        return 242;  // gray
+        return 179;  // subdued yellow
     case IK_OUTPUT_COUNT:
         return -1;
     }

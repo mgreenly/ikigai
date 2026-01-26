@@ -170,6 +170,15 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
             // Found matching command, invoke handler
             res_t handler_res = commands[i].handler(ctx, repl, args);
 
+            // Add blank line after command output if handler produced output
+            size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
+            if (is_ok(&handler_res) && lines_after > lines_before) {
+                res_t blank_res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+                if (is_err(&blank_res)) {     // LCOV_EXCL_BR_LINE
+                    return blank_res;     // LCOV_EXCL_LINE
+                }
+            }
+
             // Persist command output to database if handler succeeded
             if (is_ok(&handler_res)) {
                 ik_cmd_persist_to_db(ctx, repl, input, cmd_name, args, lines_before);

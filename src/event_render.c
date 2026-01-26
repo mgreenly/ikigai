@@ -163,7 +163,7 @@ static res_t render_token_usage(ik_scrollback_t *scrollback, const char *data_js
 }
 
 // Helper: render content event (user, assistant, system, tool_call, tool_result)
-static res_t render_content_event(ik_scrollback_t *scrollback, const char *content, uint8_t color)
+static res_t render_content_event(ik_scrollback_t *scrollback, const char *content, uint8_t color, const char *prefix)
 {
     // Content can be NULL (e.g., empty system message)
     if (content == NULL || content[0] == '\0') {
@@ -171,6 +171,14 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
     }
 
     TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Prepend prefix if provided
+    char *with_prefix = NULL;
+    if (prefix != NULL) {
+        with_prefix = talloc_asprintf(tmp, "%s %s", prefix, content);
+        if (with_prefix == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        content = with_prefix;
+    }
 
     // Trim trailing whitespace
     char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
@@ -212,10 +220,13 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return ERR(scrollback, INVALID_ARG, "kind parameter cannot be NULL");
     } // LCOV_EXCL_STOP
 
-    // Determine color based on kind using centralized output style system
+    // Determine color and prefix based on kind using centralized output style system
     uint8_t color = 0;
+    const char *prefix = NULL;
     if (strcmp(kind, "assistant") == 0) {
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
+    } else if (strcmp(kind, "user") == 0) {
+        prefix = ik_output_prefix(IK_OUTPUT_USER_INPUT);
     } else if (strcmp(kind, "tool_call") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_REQUEST);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;
@@ -228,7 +239,7 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;
     }
-    // user, mark, rewind, clear: color = 0 (no color)
+    // mark, rewind, clear: color = 0 (no color)
 
     // Handle each event kind
     if (strcmp(kind, "assistant") == 0 ||
@@ -238,7 +249,7 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "tool_result") == 0 ||
         strcmp(kind, "command") == 0 ||
         strcmp(kind, "fork") == 0) {
-        return render_content_event(scrollback, content, color);
+        return render_content_event(scrollback, content, color, prefix);
     }
 
     if (strcmp(kind, "mark") == 0) {
