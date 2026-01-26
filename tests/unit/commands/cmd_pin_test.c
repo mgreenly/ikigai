@@ -6,7 +6,9 @@
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/doc_cache.h"
 #include "../../../src/error.h"
+#include "../../../src/paths.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
@@ -247,6 +249,33 @@ START_TEST(test_pin_ik_uri) {
 }
 END_TEST
 
+START_TEST(test_pin_file_not_found_with_cache) {
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    res_t paths_res = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_res));
+    ck_assert_ptr_nonnull(paths);
+
+    ik_doc_cache_t *cache = ik_doc_cache_create(ctx, paths);
+    ck_assert_ptr_nonnull(cache);
+    repl->current->doc_cache = cache;
+
+    res_t res = ik_cmd_dispatch(ctx, repl, "/pin /nonexistent/file.md");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->pinned_count, 0);
+
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(line);
+    ck_assert(strstr(line, "File not found:") != NULL);
+    ck_assert(strstr(line, "/nonexistent/file.md") != NULL);
+}
+END_TEST
+
 static Suite *commands_pin_suite(void)
 {
     Suite *s = suite_create("commands_pin");
@@ -266,6 +295,7 @@ static Suite *commands_pin_suite(void)
     tcase_add_test(tc_core, test_unpin_removes_middle_path);
     tcase_add_test(tc_core, test_pin_unpin_cycle);
     tcase_add_test(tc_core, test_pin_ik_uri);
+    tcase_add_test(tc_core, test_pin_file_not_found_with_cache);
 
     suite_add_tcase(s, tc_core);
 
