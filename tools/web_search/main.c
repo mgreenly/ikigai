@@ -58,7 +58,7 @@ int32_t main(int32_t argc, char **argv)
     }
 
     if (total_read == 0) {
-        fprintf(stderr, "web-search-brave: empty input\n");
+        fprintf(stderr, "web-search: empty input\n");
         talloc_free(ctx);
         return 1;
     }
@@ -66,7 +66,7 @@ int32_t main(int32_t argc, char **argv)
     yyjson_alc allocator = ik_make_talloc_allocator(ctx);
     yyjson_doc *doc = yyjson_read_opts(input, total_read, 0, &allocator, NULL);
     if (doc == NULL) {
-        fprintf(stderr, "web-search-brave: invalid JSON\n");
+        fprintf(stderr, "web-search: invalid JSON\n");
         talloc_free(ctx);
         return 1;
     }
@@ -74,7 +74,7 @@ int32_t main(int32_t argc, char **argv)
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *query = yyjson_obj_get(root, "query");
     if (query == NULL || !yyjson_is_str(query)) {
-        fprintf(stderr, "web-search-brave: missing or invalid query\n");
+        fprintf(stderr, "web-search: missing or invalid query\n");
         talloc_free(ctx);
         return 1;
     }
