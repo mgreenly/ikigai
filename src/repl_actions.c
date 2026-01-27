@@ -6,12 +6,17 @@
 #include "input_buffer/core.h"
 #include "logger.h"
 #include "panic.h"
+#include "providers/provider_vtable.h"
 #include "repl.h"
 #include "agent.h"
 #include "scrollback.h"
 #include "shared.h"
+#include "wrapper.h"
 
 #include <assert.h>
+#include <pthread.h>
+#include <signal.h>
+#include <string.h>
 #include <time.h>
 
 /**
@@ -136,6 +141,56 @@ res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_act
     return OK(NULL);
 }
 
+/**
+ * @brief Handle user-initiated interrupt (ESC key)
+ *
+ * Sets interrupt flag and cancels in-flight operations:
+ * - WAITING_FOR_LLM: Cancel HTTP stream via provider->cancel()
+ * - EXECUTING_TOOL: Terminate child process group
+ * - IDLE: No-op (nothing to interrupt)
+ *
+ * @param repl REPL context
+ */
+void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
+    assert(repl->current != NULL);  /* LCOV_EXCL_BR_LINE */
+
+    ik_agent_ctx_t *agent = repl->current;
+
+    // Check current state (thread-safe read)
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    ik_agent_state_t state = agent->state;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    // IDLE state: nothing to interrupt
+    if (state == IK_AGENT_STATE_IDLE) {
+        return;
+    }
+
+    // Set interrupt flag
+    agent->interrupt_requested = true;
+
+    // Cancel based on state
+    if (state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+        // Cancel HTTP stream
+        if (agent->provider_instance != NULL && agent->provider_instance->vt->cancel != NULL) {
+            agent->provider_instance->vt->cancel(agent->provider_instance->ctx);
+        }
+    } else if (state == IK_AGENT_STATE_EXECUTING_TOOL) {
+        // Terminate child process group
+        if (agent->tool_child_pid > 0) {
+            // Send SIGTERM to process group (negative PID)
+            kill(-agent->tool_child_pid, SIGTERM);
+
+            // TODO: Escalate to SIGKILL if process doesn't terminate within timeout
+            // For now, just send SIGKILL immediately as fallback
+            // sleep(1);  // Give process time to clean up
+            // kill(-agent->tool_child_pid, SIGKILL);
+        }
+    }
+}
+
 res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *action)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -239,11 +294,26 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             repl->current->viewport_offset = 0;
             return ik_input_buffer_delete_word_backward(repl->current->input_buffer);
         case IK_INPUT_CTRL_C:
+            // Interrupt any in-flight operations first
+            ik_repl_handle_interrupt_request(repl);
+            // Then set quit flag to exit after cleanup
             repl->quit = true;
             return OK(NULL);
         case IK_INPUT_TAB:
             return ik_repl_handle_tab_action(repl);
         case IK_INPUT_ESCAPE: {
+            // Check if there's an in-flight operation to interrupt
+            pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+            ik_agent_state_t state = repl->current->state;
+            pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+
+            // If agent is waiting or executing, interrupt it
+            if (state == IK_AGENT_STATE_WAITING_FOR_LLM || state == IK_AGENT_STATE_EXECUTING_TOOL) {
+                ik_repl_handle_interrupt_request(repl);
+                return OK(NULL);
+            }
+
+            // Otherwise, handle ESC in IDLE mode (dismiss completion)
             // If completion is active, revert to original input before ESC dismisses
             if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
                 // Revert to original input

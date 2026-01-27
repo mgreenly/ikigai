@@ -86,7 +86,32 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
             bool complete = agent->tool_thread_complete;
             pthread_mutex_unlock_(&agent->tool_thread_mutex);
             if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-                ik_repl_handle_agent_tool_completion(repl, agent);
+                // Check interrupt flag before processing completion
+                if (agent->interrupt_requested) {
+                    // TODO: Handle interruption (add interrupted message, clear state, return to idle)
+                    agent->interrupt_requested = false;
+                    pthread_join_(agent->tool_thread, NULL);
+                    if (agent->tool_thread_ctx != NULL) {
+                        talloc_free(agent->tool_thread_ctx);
+                        agent->tool_thread_ctx = NULL;
+                    }
+                    if (agent->pending_tool_call != NULL) {
+                        talloc_free(agent->pending_tool_call);
+                        agent->pending_tool_call = NULL;
+                    }
+                    pthread_mutex_lock_(&agent->tool_thread_mutex);
+                    agent->tool_thread_running = false;
+                    agent->tool_thread_complete = false;
+                    agent->tool_thread_result = NULL;
+                    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+                    ik_agent_transition_to_idle_(agent);
+                    if (agent == repl->current) {
+                        res_t result = ik_repl_render_frame_(repl);
+                        if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+                    }
+                } else {
+                    ik_repl_handle_agent_tool_completion(repl, agent);
+                }
             }
         }
     } else if (repl->current != NULL) {
@@ -95,7 +120,30 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
         bool complete = repl->current->tool_thread_complete;
         pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-            ik_repl_handle_agent_tool_completion(repl, repl->current);
+            // Check interrupt flag before processing completion
+            if (repl->current->interrupt_requested) {
+                // TODO: Handle interruption (add interrupted message, clear state, return to idle)
+                repl->current->interrupt_requested = false;
+                pthread_join_(repl->current->tool_thread, NULL);
+                if (repl->current->tool_thread_ctx != NULL) {
+                    talloc_free(repl->current->tool_thread_ctx);
+                    repl->current->tool_thread_ctx = NULL;
+                }
+                if (repl->current->pending_tool_call != NULL) {
+                    talloc_free(repl->current->pending_tool_call);
+                    repl->current->pending_tool_call = NULL;
+                }
+                pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+                repl->current->tool_thread_running = false;
+                repl->current->tool_thread_complete = false;
+                repl->current->tool_thread_result = NULL;
+                pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+                ik_agent_transition_to_idle_(repl->current);
+                res_t result = ik_repl_render_frame_(repl);
+                if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+            } else {
+                ik_repl_handle_agent_tool_completion(repl, repl->current);
+            }
         }
     }
     return OK(NULL);
