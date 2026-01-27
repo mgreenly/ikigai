@@ -1,7 +1,9 @@
 #include "agent.h"
+#include "input_buffer/core.h"
 #include "message.h"
 #include "providers/provider.h"
 #include "providers/provider_vtable.h"
+#include "render.h"
 #include "repl.h"
 #include "repl_actions_internal.h"
 #include "repl_tool_completion.h"
@@ -74,6 +76,18 @@ static void setup(void)
     repl->shared->session_id = 1;
     repl->shared->db_ctx = (void *)1; // Non-NULL to enable db insert
 
+    // Create terminal context (required for viewport calculations)
+    ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+    repl->shared->term = term;
+
+    // Create render context (required for ik_repl_render_frame)
+    ik_render_ctx_t *render = NULL;
+    res_t res = ik_render_create(ctx, 24, 80, 1, &render);
+    ck_assert(is_ok(&res));
+    repl->shared->render = render;
+
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     agent->shared = repl->shared;
     agent->repl = repl;
@@ -82,6 +96,9 @@ static void setup(void)
 
     agent->scrollback = ik_scrollback_create(agent, 10);
     ck_assert_ptr_nonnull(agent->scrollback);
+
+    agent->input_buffer = ik_input_buffer_create(agent);
+    ck_assert_ptr_nonnull(agent->input_buffer);
 
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->tool_thread_running = false;
@@ -453,6 +470,7 @@ int32_t main(void)
 {
     Suite *s = repl_interrupt_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_interrupt_test.xml");
     srunner_run_all(sr, CK_VERBOSE);
     int32_t number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
