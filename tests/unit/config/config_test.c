@@ -342,6 +342,355 @@ START_TEST(test_config_with_explicit_null_db_fields) {
 
 END_TEST
 
+START_TEST(test_config_with_invalid_db_host_type) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with invalid db_host type (number instead of string)
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config with db_host as a number
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_host\": 12345\n"
+            "}\n");
+    fclose(f);
+
+    // Load config - should fail with invalid type error
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, paths, &config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(error_code(result.err), ERR_PARSE);
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_invalid_db_name_type) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with invalid db_name type (boolean instead of string)
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config with db_name as a boolean
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_name\": true\n"
+            "}\n");
+    fclose(f);
+
+    // Load config - should fail with invalid type error
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, paths, &config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(error_code(result.err), ERR_PARSE);
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_invalid_db_user_type) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with invalid db_user type (array instead of string)
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config with db_user as an array
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_user\": [\"user1\", \"user2\"]\n"
+            "}\n");
+    fclose(f);
+
+    // Load config - should fail with invalid type error
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, paths, &config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(error_code(result.err), ERR_PARSE);
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_out_of_range_db_port_low) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with db_port too low (< 1)
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config with db_port = 0
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_port\": 0\n"
+            "}\n");
+    fclose(f);
+
+    // Load config - should fail with out of range error
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, paths, &config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_out_of_range_db_port_high) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with db_port too high (> 65535)
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config with db_port = 70000
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_port\": 70000\n"
+            "}\n");
+    fclose(f);
+
+    // Load config - should fail with out of range error
+    ik_config_t *config = NULL;
+    res_t result = ik_config_load(ctx, paths, &config);
+    ck_assert(result.is_err);
+    ck_assert_int_eq(error_code(result.err), ERR_OUT_OF_RANGE);
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_env_var_overrides) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Set environment variables
+    setenv("IKIGAI_DB_HOST", "envhost", 1);
+    setenv("IKIGAI_DB_PORT", "9876", 1);
+    setenv("IKIGAI_DB_NAME", "envdb", 1);
+    setenv("IKIGAI_DB_USER", "envuser", 1);
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Create a test config file with different database fields
+    const char *config_dir = ik_paths_get_config_dir(paths);
+    char *test_config = talloc_asprintf(ctx, "%s/config.json", config_dir);
+
+    // Write config - env vars should override these
+    FILE *f = fopen(test_config, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "{\n"
+            "  \"openai_model\": \"gpt-5-mini\",\n"
+            "  \"openai_temperature\": 1.0,\n"
+            "  \"openai_max_completion_tokens\": 4096,\n"
+            "  \"openai_system_message\": null,\n"
+            "  \"listen_address\": \"127.0.0.1\",\n"
+            "  \"listen_port\": 1984,\n"
+            "  \"max_tool_turns\": 50,\n"
+            "  \"max_output_size\": 1048576,\n"
+            "  \"db_host\": \"confighost\",\n"
+            "  \"db_port\": 5433,\n"
+            "  \"db_name\": \"configdb\",\n"
+            "  \"db_user\": \"configuser\"\n"
+            "}\n");
+    fclose(f);
+
+    // Load config
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Environment variables should override config file
+    ck_assert_ptr_nonnull(cfg->db_host);
+    ck_assert_str_eq(cfg->db_host, "envhost");
+    ck_assert_int_eq(cfg->db_port, 9876);
+    ck_assert_ptr_nonnull(cfg->db_name);
+    ck_assert_str_eq(cfg->db_name, "envdb");
+    ck_assert_ptr_nonnull(cfg->db_user);
+    ck_assert_str_eq(cfg->db_user, "envuser");
+
+    // Clean up environment variables
+    unsetenv("IKIGAI_DB_HOST");
+    unsetenv("IKIGAI_DB_PORT");
+    unsetenv("IKIGAI_DB_NAME");
+    unsetenv("IKIGAI_DB_USER");
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_env_var_overrides_no_file) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Setup test environment
+    test_paths_setup_env();
+
+    // Set environment variables BEFORE creating paths
+    setenv("IKIGAI_DB_HOST", "envhost", 1);
+    setenv("IKIGAI_DB_PORT", "9876", 1);
+    setenv("IKIGAI_DB_NAME", "envdb", 1);
+    setenv("IKIGAI_DB_USER", "envuser", 1);
+
+    // Create paths instance
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    // Do NOT create config file - will use defaults + env var overrides
+
+    // Load config
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Environment variables should override defaults
+    ck_assert_ptr_nonnull(cfg->db_host);
+    ck_assert_str_eq(cfg->db_host, "envhost");
+    ck_assert_int_eq(cfg->db_port, 9876);
+    ck_assert_ptr_nonnull(cfg->db_name);
+    ck_assert_str_eq(cfg->db_name, "envdb");
+    ck_assert_ptr_nonnull(cfg->db_user);
+    ck_assert_str_eq(cfg->db_user, "envuser");
+
+    // Clean up environment variables
+    unsetenv("IKIGAI_DB_HOST");
+    unsetenv("IKIGAI_DB_PORT");
+    unsetenv("IKIGAI_DB_NAME");
+    unsetenv("IKIGAI_DB_USER");
+
+    // Clean up
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
 START_TEST(test_config_structure_has_db_fields) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -387,6 +736,13 @@ static Suite *config_suite(void)
     tcase_add_test(tc_core, test_config_with_empty_db_fields);
     tcase_add_test(tc_core, test_config_with_invalid_db_port_type);
     tcase_add_test(tc_core, test_config_with_explicit_null_db_fields);
+    tcase_add_test(tc_core, test_config_with_invalid_db_host_type);
+    tcase_add_test(tc_core, test_config_with_invalid_db_name_type);
+    tcase_add_test(tc_core, test_config_with_invalid_db_user_type);
+    tcase_add_test(tc_core, test_config_with_out_of_range_db_port_low);
+    tcase_add_test(tc_core, test_config_with_out_of_range_db_port_high);
+    tcase_add_test(tc_core, test_config_with_env_var_overrides);
+    tcase_add_test(tc_core, test_config_with_env_var_overrides_no_file);
     tcase_add_test(tc_core, test_config_structure_has_db_fields);
 
     suite_add_tcase(s, tc_core);

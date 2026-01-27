@@ -431,6 +431,91 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
 
 END_TEST
 
+// Test database configuration with credentials
+START_TEST(test_shared_ctx_database_configured) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create config with database fields
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    cfg->db_host = talloc_strdup(cfg, "testhost");
+    cfg->db_port = 5433;
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+
+    // Create credentials with db_pass
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+    creds->db_pass = talloc_strdup(creds, "testpass");
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    // Database connection will fail since testhost doesn't exist
+    // This test exercises the connection string building code path
+    // The init fails because database can't connect, but that's expected
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test database configuration with empty password
+START_TEST(test_shared_ctx_database_no_password) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create config with database fields
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "nonexistent_test_db_12345");
+    cfg->db_user = talloc_strdup(cfg, "ikigai");
+
+    // Create credentials without db_pass
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+    // db_pass is NULL
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    // Database connection will fail since nonexistent_test_db_12345 doesn't exist
+    // This test exercises the empty password code path
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -442,6 +527,8 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_config);
     tcase_add_test(tc_core, test_shared_ctx_terminal_and_render);
     tcase_add_test(tc_core, test_shared_ctx_database_unconfigured);
+    tcase_add_test(tc_core, test_shared_ctx_database_configured);
+    tcase_add_test(tc_core, test_shared_ctx_database_no_password);
     tcase_add_test(tc_core, test_shared_ctx_history);
     tcase_add_test(tc_core, test_shared_ctx_debug);
     tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);

@@ -21,6 +21,11 @@ jobs:
         IKIGAI_LIBEXEC_DIR: ${{ github.workspace }}/libexec/ikigai
         IKIGAI_CACHE_DIR: ${{ github.workspace }}/cache
         IKIGAI_STATE_DIR: ${{ github.workspace }}/state
+        IKIGAI_DB_HOST: postgres
+        IKIGAI_DB_PORT: 5432
+        IKIGAI_DB_NAME: ikigai
+        IKIGAI_DB_USER: ikigai
+        IKIGAI_DB_PASS: ikigai
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
