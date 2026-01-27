@@ -191,6 +191,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         // When waiting for LLM: hide input, show spinner
         repl->current->spinner_state.visible = true;
         repl->current->input_buffer_visible = false;
+        input_buffer_visible = false;  // Update local variable for cursor control
     } else {
         // When idle: show input (if in viewport), hide spinner
         repl->current->spinner_state.visible = false;
@@ -292,15 +293,13 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     framebuffer[offset++] = '[';
     framebuffer[offset++] = 'J';
 
-    // Show cursor only if input buffer is visible: \x1b[?25h
-    if (input_buffer_visible) {
-        framebuffer[offset++] = '\x1b';
-        framebuffer[offset++] = '[';
-        framebuffer[offset++] = '?';
-        framebuffer[offset++] = '2';
-        framebuffer[offset++] = '5';
-        framebuffer[offset++] = 'h';
-    }
+    // Set cursor visibility: show if input buffer visible, hide if not
+    framebuffer[offset++] = '\x1b';
+    framebuffer[offset++] = '[';
+    framebuffer[offset++] = '?';
+    framebuffer[offset++] = '2';
+    framebuffer[offset++] = '5';
+    framebuffer[offset++] = input_buffer_visible ? 'h' : 'l';
 
     // Position cursor when input buffer visible
     if (input_buffer_visible) {
