@@ -293,14 +293,14 @@ START_TEST(test_child_pid_out_parameter) {
 
 END_TEST
 
-// Test: Very large stderr output (buffer overflow case - 70KB stderr)
+// Test: Very large stderr output (buffer overflow case)
 START_TEST(test_tool_very_large_stderr) {
     // Create a script that produces > 65535 bytes of stderr (exceeds buffer size)
     const char *script_path = "/tmp/test_stderr_overflow_tool.sh";
     FILE *f = fopen(script_path, "w");
     ck_assert_ptr_nonnull(f);
-    // Generate exactly 70000 bytes of stderr, then exit successfully
-    fprintf(f, "#!/bin/sh\ndd if=/dev/zero bs=70000 count=1 2>/dev/null | tr '\\0' 'E' >&2\necho '{\"result\":\"ok\"}'\nexit 0\n");
+    // Use head to generate exactly 65536 bytes to stderr (triggers buffer overflow break)
+    fprintf(f, "#!/bin/sh\nyes E | head -c 65536 >&2\necho '{\"result\":\"ok\"}'\nexit 0\n");
     fclose(f);
     chmod(script_path, 0755);
 
