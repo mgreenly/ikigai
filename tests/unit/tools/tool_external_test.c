@@ -269,6 +269,54 @@ START_TEST(test_tool_large_stderr) {
 
 END_TEST
 
+// Test: child_pid_out parameter stores child PID
+START_TEST(test_child_pid_out_parameter) {
+    // Create a simple tool that succeeds
+    const char *script_path = "/tmp/test_pid_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\necho '{\"result\":\"ok\"}'\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    const char *input_json = "{}";
+    pid_t child_pid = 0;
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &child_pid, &result);
+
+    ck_assert(!is_err(&res));
+    ck_assert_ptr_nonnull(result);
+    ck_assert(child_pid > 0);  // PID should be stored
+
+    unlink(script_path);
+}
+
+END_TEST
+
+// Test: Very large stderr output (buffer overflow case - 70KB stderr)
+START_TEST(test_tool_very_large_stderr) {
+    // Create a script that produces > 65535 bytes of stderr (exceeds buffer size)
+    const char *script_path = "/tmp/test_stderr_overflow_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    // Generate exactly 70000 bytes of stderr, then exit successfully
+    fprintf(f, "#!/bin/sh\ndd if=/dev/zero bs=70000 count=1 2>/dev/null | tr '\\0' 'E' >&2\necho '{\"result\":\"ok\"}'\nexit 0\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    const char *input_json = "{}";
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
+
+    // Tool should succeed despite large stderr
+    ck_assert(!is_err(&res));
+    ck_assert_ptr_nonnull(result);
+
+    unlink(script_path);
+}
+
+END_TEST
+
 static Suite *tool_external_suite(void)
 {
     Suite *s = suite_create("ToolExternal");
@@ -288,6 +336,8 @@ static Suite *tool_external_suite(void)
     tcase_add_test(tc_core, test_tool_very_large_output);
     tcase_add_test(tc_core, test_tool_fails_with_stderr);
     tcase_add_test(tc_core, test_tool_large_stderr);
+    tcase_add_test(tc_core, test_child_pid_out_parameter);
+    tcase_add_test(tc_core, test_tool_very_large_stderr);
 
     suite_add_tcase(s, tc_core);
 
