@@ -4,7 +4,20 @@
 
 set -e
 
+# Use environment variables with defaults
+DB_HOST="${IKIGAI_DB_HOST:-localhost}"
+DB_PORT="${IKIGAI_DB_PORT:-5432}"
+DB_NAME="${IKIGAI_DB_NAME:-ikigai}"
+DB_USER="${IKIGAI_DB_USER:-ikigai}"
+DB_PASS="${IKIGAI_DB_PASS:-ikigai}"
+
 echo "=== Ikigai Database Setup ==="
+echo
+echo "Configuration:"
+echo "  Host: $DB_HOST"
+echo "  Port: $DB_PORT"
+echo "  Database: $DB_NAME"
+echo "  User: $DB_USER"
 echo
 
 # Check if PostgreSQL is installed
@@ -39,33 +52,37 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 <<EOF
 -- Create user if not exists
 DO \$\$
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'ikigai') THEN
-        CREATE USER ikigai WITH PASSWORD 'ikigai';
+    IF NOT EXISTS (SELECT FROM pg_user WHERE usename = '$DB_USER') THEN
+        CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';
     END IF;
 END
 \$\$;
 
 -- Create database if not exists
-SELECT 'CREATE DATABASE ikigai OWNER ikigai'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'ikigai')\gexec
+SELECT 'CREATE DATABASE $DB_NAME OWNER $DB_USER'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\gexec
 
 -- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE ikigai TO ikigai;
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
 
 -- Grant schema privileges (required for PostgreSQL 15+)
-\c ikigai
-GRANT ALL ON SCHEMA public TO ikigai;
+\c $DB_NAME
+GRANT ALL ON SCHEMA public TO $DB_USER;
 EOF
 
 echo
-echo "✓ Database 'ikigai' created"
-echo "✓ User 'ikigai' created with password 'ikigai'"
+echo "✓ Database '$DB_NAME' created"
+echo "✓ User '$DB_USER' created with password '$DB_PASS'"
 echo
 echo "=== Setup Complete ==="
 echo
-echo "Add this to your config.json:"
+echo "Set these environment variables (or add to .envrc):"
 echo
-echo '  "db_connection_string": "postgresql://ikigai:ikigai@localhost/ikigai"'
+echo "  export IKIGAI_DB_HOST=$DB_HOST"
+echo "  export IKIGAI_DB_PORT=$DB_PORT"
+echo "  export IKIGAI_DB_NAME=$DB_NAME"
+echo "  export IKIGAI_DB_USER=$DB_USER"
+echo "  export IKIGAI_DB_PASS=$DB_PASS"
 echo
 echo "Migrations will run automatically when you start ikigai."
 echo
