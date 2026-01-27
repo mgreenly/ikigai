@@ -6,7 +6,7 @@
 #include "input_buffer/core.h"
 #include "logger.h"
 #include "panic.h"
-#include "providers/provider_vtable.h"
+#include "providers/provider.h"
 #include "repl.h"
 #include "agent.h"
 #include "scrollback.h"

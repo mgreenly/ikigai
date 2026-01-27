@@ -286,6 +286,7 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     agent->tool_thread_complete = false;
     agent->tool_thread_result = NULL;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    agent->tool_child_pid = 0;
     ik_agent_transition_from_executing_tool(agent);
 }
 
