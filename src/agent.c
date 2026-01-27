@@ -143,6 +143,8 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->tool_thread_ctx = NULL;
     agent->tool_thread_result = NULL;
     agent->tool_iteration_count = 0;
+    agent->tool_child_pid = 0;
+    agent->interrupt_requested = false;
 
     // Initialize pinned documents state
     agent->pinned_paths = NULL;
@@ -273,6 +275,8 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->tool_thread_ctx = NULL;
     agent->tool_thread_result = NULL;
     agent->tool_iteration_count = 0;
+    agent->tool_child_pid = 0;
+    agent->interrupt_requested = false;
 
     // Initialize pinned documents state
     agent->pinned_paths = NULL;

@@ -88,7 +88,6 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
             if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
                 // Check interrupt flag before processing completion
                 if (agent->interrupt_requested) {
-                    // TODO: Handle interruption (add interrupted message, clear state, return to idle)
                     agent->interrupt_requested = false;
                     pthread_join_(agent->tool_thread, NULL);
                     if (agent->tool_thread_ctx != NULL) {
@@ -104,6 +103,16 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
                     agent->tool_thread_complete = false;
                     agent->tool_thread_result = NULL;
                     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+                    agent->tool_child_pid = 0;
+                    const char *msg = "Interrupted";
+                    ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+                    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+                        res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                                             agent->uuid, "interrupted", NULL, NULL);
+                        if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+                            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+                        }
+                    }
                     ik_agent_transition_to_idle_(agent);
                     if (agent == repl->current) {
                         res_t result = ik_repl_render_frame_(repl);
@@ -122,7 +131,6 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
             // Check interrupt flag before processing completion
             if (repl->current->interrupt_requested) {
-                // TODO: Handle interruption (add interrupted message, clear state, return to idle)
                 repl->current->interrupt_requested = false;
                 pthread_join_(repl->current->tool_thread, NULL);
                 if (repl->current->tool_thread_ctx != NULL) {
@@ -138,6 +146,16 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
                 repl->current->tool_thread_complete = false;
                 repl->current->tool_thread_result = NULL;
                 pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+                repl->current->tool_child_pid = 0;
+                const char *msg = "Interrupted";
+                ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+                if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+                    res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                                         repl->current->uuid, "interrupted", NULL, NULL);
+                    if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+                        talloc_free(db_res.err);  // LCOV_EXCL_LINE
+                    }
+                }
                 ik_agent_transition_to_idle_(repl->current);
                 res_t result = ik_repl_render_frame_(repl);
                 if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
