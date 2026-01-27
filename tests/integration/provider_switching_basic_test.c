@@ -22,6 +22,7 @@
 #include "../../src/db/message.h"
 #include "../../src/error.h"
 #include "../../src/paths.h"
+#include "../../src/credentials.h"
 #include "../../src/providers/factory.h"
 #include "../../src/providers/provider.h"
 #include "../../src/providers/request.h"
@@ -251,7 +252,9 @@ START_TEST(test_agent_provider_fields_on_switch) {
     res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -281,7 +284,9 @@ START_TEST(test_provider_invalidation_on_switch) {
     res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -305,7 +310,9 @@ START_TEST(test_system_prompt_preserved_on_switch) {
     res_t r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -331,7 +338,9 @@ START_TEST(test_database_update_on_switch) {
     r = ik_paths_init(ctx, &paths); ck_assert(is_ok(&r));
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
     ik_agent_ctx_t *agent = NULL;

@@ -20,6 +20,7 @@
 #include "../../../src/scrollback.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
+#include "../../../src/credentials.h"
 #include "../../../src/input.h"
 #include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
@@ -103,7 +104,10 @@ static void setup_repl_scrolled(void *ctx, ik_repl_ctx_t **repl_out, size_t offs
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

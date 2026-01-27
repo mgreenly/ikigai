@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+#include "credentials.h"
 #include "db/connection.h"
 #include "debug_pipe.h"
 #include "error.h"
@@ -52,11 +53,13 @@ typedef struct ik_shared_ctx {
 // Create shared context (facade that will create infrastructure)
 // ctx: talloc parent (root_ctx)
 // cfg: configuration pointer (borrowed)
+// creds: credentials pointer (borrowed)
 // paths: paths instance (borrowed)
 // logger: pre-created logger instance (ownership transferred)
 // out: receives allocated shared context
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
+                         ik_credentials_t *creds,
                          ik_paths_t *paths,
                          ik_logger_t *logger,
                          ik_shared_ctx_t **out);

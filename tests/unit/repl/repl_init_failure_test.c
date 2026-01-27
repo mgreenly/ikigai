@@ -1,6 +1,6 @@
 /**
- * @file repl_init_test.c
- * @brief Unit tests for REPL initialization error handling
+ * @file repl_init_failure_test.c
+ * @brief Unit tests for REPL initialization failure scenarios
  */
 
 #include <check.h>
@@ -17,6 +17,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
+#include "../../../src/credentials.h"
 #include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
@@ -46,7 +47,7 @@ int posix_stat_(const char *pathname, struct stat *statbuf);
 int posix_mkdir_(const char *pathname, mode_t mode);
 
 // Forward declaration for suite function
-static Suite *repl_init_suite(void);
+static Suite *repl_init_failure_suite(void);
 
 // Suite-level setup: Set log directory
 static void suite_setup(void)
@@ -187,6 +188,8 @@ START_TEST(test_repl_init_terminal_open_failure) {
 
     // Attempt to initialize shared context - should fail during terminal init
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -198,7 +201,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
@@ -210,6 +213,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
     talloc_free(ctx);
 }
 END_TEST
+
 /* Test: Render creation failure (invalid terminal dimensions) */
 START_TEST(test_repl_init_render_invalid_dimensions) {
     void *ctx = talloc_new(NULL);
@@ -219,6 +223,8 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
 
     // Attempt to initialize shared context - should fail when creating render
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -230,7 +236,7 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (render init failed)
     ck_assert(is_err(&res));
@@ -243,6 +249,7 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
 }
 
 END_TEST
+
 /* Test: Signal handler setup failure */
 START_TEST(test_repl_init_signal_handler_failure) {
     void *ctx = talloc_new(NULL);
@@ -253,6 +260,8 @@ START_TEST(test_repl_init_signal_handler_failure) {
 
     // Attempt to initialize REPL - should fail when setting up signal handler
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -265,7 +274,7 @@ START_TEST(test_repl_init_signal_handler_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -282,6 +291,7 @@ START_TEST(test_repl_init_signal_handler_failure) {
 }
 
 END_TEST
+
 /* Test: History load failure (graceful degradation) */
 START_TEST(test_repl_init_history_load_failure) {
     void *ctx = talloc_new(NULL);
@@ -289,6 +299,8 @@ START_TEST(test_repl_init_history_load_failure) {
 
     // Initialize REPL - should succeed even with history failure
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context (logger needs to initialize first)
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -301,7 +313,7 @@ START_TEST(test_repl_init_history_load_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Enable mock failure for stat/mkdir (history directory creation)
@@ -327,229 +339,19 @@ START_TEST(test_repl_init_history_load_failure) {
 }
 
 END_TEST
-/* Test: Successful initialization verifies debug manager creation */
-START_TEST(test_repl_init_success_debug_manager) {
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
 
-    // Initialize REPL - should succeed
-    ik_config_t *cfg = ik_test_create_config(ctx);
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&res));
-
-    // Create REPL context
-    res = ik_repl_init(ctx, shared, &repl);
-
-    // Verify success
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(repl);
-
-    // Verify debug manager is created
-    ck_assert_ptr_nonnull(repl->shared->debug_mgr);
-
-    // Verify debug is disabled by default
-    ck_assert(!repl->shared->debug_enabled);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-}
-
-END_TEST
-/* Test: Agent creation at REPL initialization */
-START_TEST(test_repl_init_creates_agent) {
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Initialize REPL - should create an agent
-    ik_config_t *cfg = ik_test_create_config(ctx);
-    // Create shared context
-    ik_shared_ctx_t *shared = NULL;
-    // Create logger before calling init
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&res));
-
-    // Create REPL context
-    res = ik_repl_init(ctx, shared, &repl);
-
-    // Verify success
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(repl);
-
-    // Verify agent was created
-    ck_assert_ptr_nonnull(repl->current);
-
-    // Verify agent UUID is valid (non-NULL and non-empty)
-    ck_assert_ptr_nonnull(repl->current->uuid);
-    ck_assert(strlen(repl->current->uuid) > 0);
-
-    // Verify agent is root agent (no parent)
-    ck_assert_ptr_null(repl->current->parent_uuid);
-
-    // Verify agent has reference to shared context
-    ck_assert_ptr_eq(repl->current->shared, repl->shared);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-}
-
-END_TEST
-/* Test: Initial agent is added to agents array */
-START_TEST(test_repl_init_agent_in_array) {
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Initialize REPL
-    ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_shared_ctx_t *shared = NULL;
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&res));
-
-    res = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&res));
-
-    // Verify agent array is initialized
-    ck_assert_ptr_nonnull(repl->agents);
-    ck_assert_uint_eq(repl->agent_count, 1);
-    ck_assert(repl->agent_capacity >= 1);
-
-    // Verify initial agent is in array
-    ck_assert_ptr_eq(repl->agents[0], repl->current);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-}
-
-END_TEST
-/* Test: ik_repl_find_agent returns correct agent */
-START_TEST(test_repl_find_agent_found) {
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Initialize REPL
-    ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_shared_ctx_t *shared = NULL;
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&res));
-
-    res = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&res));
-
-    // Find the initial agent by UUID
-    const char *uuid = repl->current->uuid;
-    ik_agent_ctx_t *found = ik_repl_find_agent(repl, uuid);
-
-    // Verify found agent matches current
-    ck_assert_ptr_eq(found, repl->current);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-}
-
-END_TEST
-/* Test: ik_repl_find_agent returns NULL for unknown UUID */
-START_TEST(test_repl_find_agent_not_found) {
-    void *ctx = talloc_new(NULL);
-    ik_repl_ctx_t *repl = NULL;
-
-    // Initialize REPL
-    ik_config_t *cfg = ik_test_create_config(ctx);
-    ik_shared_ctx_t *shared = NULL;
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-    ck_assert(is_ok(&res));
-
-    res = ik_repl_init(ctx, shared, &repl);
-    ck_assert(is_ok(&res));
-
-    // Try to find a non-existent agent
-    ik_agent_ctx_t *found = ik_repl_find_agent(repl, "nonexistent-uuid");
-
-    // Verify NULL is returned
-    ck_assert_ptr_null(found);
-
-    ik_repl_cleanup(repl);
-    talloc_free(ctx);
-}
-
-END_TEST
-
-static Suite *repl_init_suite(void)
+static Suite *repl_init_failure_suite(void)
 {
-    Suite *s = suite_create("REPL Initialization");
+    Suite *s = suite_create("REPL Init Failures");
 
-    TCase *tc_term = tcase_create("Terminal Init Failures");
-    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
-    tcase_add_unchecked_fixture(tc_term, suite_setup, NULL);
-    tcase_set_timeout(tc_term, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_term, test_repl_init_terminal_open_failure);
-    tcase_add_test(tc_term, test_repl_init_render_invalid_dimensions);
-    tcase_add_test(tc_term, test_repl_init_signal_handler_failure);
-    tcase_add_test(tc_term, test_repl_init_history_load_failure);
-    suite_add_tcase(s, tc_term);
-
-    TCase *tc_success = tcase_create("Successful Init");
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_add_unchecked_fixture(tc_success, suite_setup, NULL);
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_success, test_repl_init_success_debug_manager);
-    tcase_add_test(tc_success, test_repl_init_creates_agent);
-    tcase_add_test(tc_success, test_repl_init_agent_in_array);
-    tcase_add_test(tc_success, test_repl_find_agent_found);
-    tcase_add_test(tc_success, test_repl_find_agent_not_found);
-    suite_add_tcase(s, tc_success);
+    TCase *tc_failures = tcase_create("Initialization Failures");
+    tcase_set_timeout(tc_failures, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_failures, suite_setup, NULL);
+    tcase_add_test(tc_failures, test_repl_init_terminal_open_failure);
+    tcase_add_test(tc_failures, test_repl_init_render_invalid_dimensions);
+    tcase_add_test(tc_failures, test_repl_init_signal_handler_failure);
+    tcase_add_test(tc_failures, test_repl_init_history_load_failure);
+    suite_add_tcase(s, tc_failures);
 
     return s;
 }
@@ -557,9 +359,9 @@ static Suite *repl_init_suite(void)
 int main(void)
 {
     int number_failed;
-    Suite *s = repl_init_suite();
+    Suite *s = repl_init_failure_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/repl_init_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/repl/repl_init_failure_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

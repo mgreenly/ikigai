@@ -1,6 +1,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
 
+#include "../../../src/credentials.h"
 #include "../../../src/error.h"
 #include "../../../src/config.h"
 #include "../../../src/terminal.h"
@@ -17,15 +18,13 @@
 #include <termios.h>
 #include <unistd.h>
 
-// Mock control state for terminal
+// Mock control state
 static int mock_open_fail = 0;
 static int mock_tcgetattr_fail = 0;
 static int mock_tcsetattr_fail = 0;
 static int mock_tcflush_fail = 0;
 static int mock_write_fail = 0;
 static int mock_ioctl_fail = 0;
-static const char *mock_mkdir_fail_path = NULL;
-static const char *mock_stat_fail_path = NULL;
 
 // Mock function prototypes
 int posix_open_(const char *pathname, int flags);
@@ -35,10 +34,8 @@ int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios
 int posix_tcflush_(int fd, int queue_selector);
 int posix_ioctl_(int fd, unsigned long request, void *argp);
 ssize_t posix_write_(int fd, const void *buf, size_t count);
-int posix_mkdir_(const char *pathname, mode_t mode);
-int posix_stat_(const char *pathname, struct stat *statbuf);
 
-// Mock implementations for POSIX functions
+// Mock implementations
 int posix_open_(const char *pathname, int flags)
 {
     (void)pathname;
@@ -46,7 +43,7 @@ int posix_open_(const char *pathname, int flags)
     if (mock_open_fail) {
         return -1;
     }
-    return 42; // Mock fd
+    return 42;
 }
 
 int posix_close_(int fd)
@@ -109,27 +106,7 @@ ssize_t posix_write_(int fd, const void *buf, size_t count)
     return (ssize_t)count;
 }
 
-// Mock mkdir to fail for specific path
-int posix_mkdir_(const char *pathname, mode_t mode)
-{
-    if (mock_mkdir_fail_path != NULL && strstr(pathname, mock_mkdir_fail_path) != NULL) {
-        errno = EACCES;  // Permission denied
-        return -1;
-    }
-    return mkdir(pathname, mode);
-}
-
-// Mock stat to fail for specific path
-int posix_stat_(const char *pathname, struct stat *statbuf)
-{
-    if (mock_stat_fail_path != NULL && strstr(pathname, mock_stat_fail_path) != NULL) {
-        errno = ENOENT;  // File not found
-        return -1;
-    }
-    return stat(pathname, statbuf);
-}
-
-// Suite-level setup: Set log directory
+// Suite-level setup
 static void suite_setup(void)
 {
     ik_test_set_log_dir(__FILE__);
@@ -143,118 +120,8 @@ static void reset_mocks(void)
     mock_tcflush_fail = 0;
     mock_write_fail = 0;
     mock_ioctl_fail = 0;
-    mock_mkdir_fail_path = NULL;
-    mock_stat_fail_path = NULL;
 }
 
-// Test basic shared context initialization and memory management
-START_TEST(test_shared_ctx_init_and_memory) {
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;
-
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-
-    // Test init success
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-
-    // Test parent allocation
-    TALLOC_CTX *actual_parent = talloc_parent(shared);
-    ck_assert_ptr_eq(actual_parent, ctx);
-
-    // Test can be freed
-    int result = talloc_free(shared);
-    ck_assert_int_eq(result, 0);
-
-    talloc_free(ctx);
-}
-END_TEST
-// Test that shared context stores and provides access to config
-START_TEST(test_shared_ctx_config) {
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->openai_model = talloc_strdup(cfg, "test-model");
-    cfg->history_size = 100;
-
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    // Test cfg pointer stored
-    ck_assert_ptr_eq(shared->cfg, cfg);
-    // Test cfg accessible
-    ck_assert_ptr_nonnull(shared->cfg);
-    ck_assert_str_eq(shared->cfg->openai_model, "test-model");
-
-    talloc_free(ctx);
-}
-
-END_TEST
-// Test terminal and render initialization
-START_TEST(test_shared_ctx_terminal_and_render) {
-    reset_mocks();
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 100;
-
-    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-    ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
-    test_paths_setup_env();
-    ik_paths_t *paths = NULL;
-    {
-        res_t paths_res = ik_paths_init(ctx, &paths);
-        ck_assert(is_ok(&paths_res));
-    }
-
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
-
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    // Test term initialized
-    ck_assert_ptr_nonnull(shared->term);
-    // Test render initialized
-    ck_assert_ptr_nonnull(shared->render);
-    // Test dimensions match
-    ck_assert_int_eq(shared->render->rows, shared->term->screen_rows);
-    ck_assert_int_eq(shared->render->cols, shared->term->screen_cols);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test database context when not configured
 START_TEST(test_shared_ctx_database_unconfigured) {
     reset_mocks();
@@ -265,6 +132,9 @@ START_TEST(test_shared_ctx_database_unconfigured) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -275,7 +145,7 @@ START_TEST(test_shared_ctx_database_unconfigured) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -288,15 +158,26 @@ START_TEST(test_shared_ctx_database_unconfigured) {
 }
 
 END_TEST
-// Test history initialization
-START_TEST(test_shared_ctx_history) {
+
+// Test database configuration with credentials
+START_TEST(test_shared_ctx_database_configured) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
+    // Create config with database fields
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
-    cfg->history_size = 250;
+    cfg->history_size = 100;
+    cfg->db_host = talloc_strdup(cfg, "testhost");
+    cfg->db_port = 5433;
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+
+    // Create credentials with db_pass
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+    creds->db_pass = talloc_strdup(creds, "testpass");
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
@@ -308,21 +189,62 @@ START_TEST(test_shared_ctx_history) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(shared);
-    // Test history initialized
-    ck_assert_ptr_nonnull(shared->history);
-    // Test capacity matches config
-    ck_assert_uint_eq(shared->history->capacity, 250);
+    // Database connection will fail since testhost doesn't exist
+    // This test exercises the connection string building code path
+    // The init fails because database can't connect, but that's expected
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
 
     talloc_free(ctx);
 }
 
 END_TEST
-// Test debug manager and pipes initialization
-START_TEST(test_shared_ctx_debug) {
+
+// Test database configuration with empty password
+START_TEST(test_shared_ctx_database_no_password) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    // Create config with database fields
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "nonexistent_test_db_12345");
+    cfg->db_user = talloc_strdup(cfg, "ikigai");
+
+    // Create credentials without db_pass
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+    // db_pass is NULL
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    // Database connection will fail since nonexistent_test_db_12345 doesn't exist
+    // This test exercises the empty password code path
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_shared_ctx_database_partial_null_host) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -330,10 +252,16 @@ START_TEST(test_shared_ctx_debug) {
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
+    // Set db_name and db_user but leave db_host NULL
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+    cfg->db_port = 5432;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
 
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
-    // Setup test paths
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
     {
@@ -341,50 +269,37 @@ START_TEST(test_shared_ctx_debug) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
-    // Test debug_mgr initialized
-    ck_assert_ptr_nonnull(shared->debug_mgr);
-    ck_assert(!shared->debug_enabled);
-    // Test debug pipes created
-    ck_assert_ptr_nonnull(shared->openai_debug_pipe);
-    ck_assert_ptr_nonnull(shared->db_debug_pipe);
+    // DB should not be initialized when db_host is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
 
     talloc_free(ctx);
 }
 
 END_TEST
-// Test that history load failure is gracefully handled
-START_TEST(test_shared_ctx_history_load_failure_graceful) {
+
+START_TEST(test_shared_ctx_database_partial_null_name) {
     reset_mocks();
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
 
-    // Create minimal cfg for test
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
+    // Set db_host and db_user but leave db_name NULL
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+    cfg->db_port = 5432;
 
-    // Use a unique temporary directory that doesn't exist yet
-    char unique_dir[256];
-    snprintf(unique_dir, sizeof(unique_dir), "/tmp/ikigai_shared_test_history_%d", getpid());
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
 
-    // Create logger before calling init (using /tmp to avoid mock interference)
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
-
-    // Mock stat to return ENOENT for .ikigai, forcing mkdir attempt
-    // Then mock mkdir to fail for .ikigai directory creation
-    // This will cause history directory creation to fail
-    // Key: Create logger BEFORE setting mocks.
-    // This allows logger's .ikigai creation to succeed,
-    // but history's .ikigai creation to fail.
-    // Tests graceful degradation when history load fails.
-    mock_stat_fail_path = ".ikigai";
-    mock_mkdir_fail_path = ".ikigai";
-
-    // Setup test paths
+    ik_shared_ctx_t *shared = NULL;
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
     {
@@ -392,38 +307,71 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
         ck_assert(is_ok(&paths_res));
     }
 
-    ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
-    // Should still succeed despite history load failure (graceful degradation)
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
-    ck_assert_ptr_nonnull(shared->history);
-
-    // Reset mocks after test
-    mock_stat_fail_path = NULL;
-    mock_mkdir_fail_path = NULL;
+    // DB should not be initialized when db_name is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
 
     talloc_free(ctx);
 }
 
 END_TEST
 
-static Suite *shared_suite(void)
+START_TEST(test_shared_ctx_database_partial_null_user) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    // Set db_host and db_name but leave db_user NULL
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_port = 5432;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    // DB should not be initialized when db_user is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+static Suite *shared_database_suite(void)
 {
-    Suite *s = suite_create("Shared Context");
+    Suite *s = suite_create("Shared Context Database");
 
-    TCase *tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_add_unchecked_fixture(tc_core, suite_setup, NULL);
-    tcase_add_test(tc_core, test_shared_ctx_init_and_memory);
-    tcase_add_test(tc_core, test_shared_ctx_config);
-    tcase_add_test(tc_core, test_shared_ctx_terminal_and_render);
-    tcase_add_test(tc_core, test_shared_ctx_database_unconfigured);
-    tcase_add_test(tc_core, test_shared_ctx_history);
-    tcase_add_test(tc_core, test_shared_ctx_debug);
-    tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);
-    suite_add_tcase(s, tc_core);
+    TCase *tc_db = tcase_create("Database");
+    tcase_set_timeout(tc_db, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_db, suite_setup, NULL);
+    tcase_add_test(tc_db, test_shared_ctx_database_unconfigured);
+    tcase_add_test(tc_db, test_shared_ctx_database_configured);
+    tcase_add_test(tc_db, test_shared_ctx_database_no_password);
+    tcase_add_test(tc_db, test_shared_ctx_database_partial_null_host);
+    tcase_add_test(tc_db, test_shared_ctx_database_partial_null_name);
+    tcase_add_test(tc_db, test_shared_ctx_database_partial_null_user);
+    suite_add_tcase(s, tc_db);
 
     return s;
 }
@@ -431,9 +379,9 @@ static Suite *shared_suite(void)
 int main(void)
 {
     int number_failed;
-    Suite *s = shared_suite();
+    Suite *s = shared_database_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/shared/shared_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/shared/shared_database_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

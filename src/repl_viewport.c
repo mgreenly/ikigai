@@ -1,13 +1,10 @@
 #include "repl.h"
-
 #include "agent.h"
-#include "dev_dump.h"
-#include "logger.h"
-#include "panic.h"
-#include "render_cursor.h"
 #include "shared.h"
+#include "panic.h"
 #include "wrapper.h"
-
+#include "render_cursor.h"
+#include "logger.h"
 #include <assert.h>
 #include <talloc.h>
 #include <string.h>
@@ -318,19 +315,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     // Single atomic write
     ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
-
-    // Dump framebuffer for development debugging (compile-time conditional)
-    char *dump_header = talloc_asprintf_(repl,
-                                         "# rows=%" PRId32 " cols=%" PRId32 " cursor=%" PRId32 ",%" PRId32 " len=%zu\n",
-                                         repl->shared->term->screen_rows,
-                                         repl->shared->term->screen_cols,
-                                         final_cursor_row,
-                                         final_cursor_col,
-                                         offset);
-    if (dump_header == NULL) PANIC("Out of memory"); /* LCOV_EXCL_BR_LINE */
-    DEV_DUMP_BUFFER(".ikigai/debug/repl_viewport.framebuffer", dump_header, framebuffer, offset);
-    talloc_free(dump_header);
-
     talloc_free(framebuffer);
 
     if (bytes_written < 0) {

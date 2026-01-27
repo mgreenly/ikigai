@@ -31,12 +31,14 @@ static int shared_destructor(ik_shared_ctx_t *shared)
 
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
+                         ik_credentials_t *creds,
                          ik_paths_t *paths,
                          ik_logger_t *logger,
                          ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE
+    assert(creds != NULL);   // LCOV_EXCL_BR_LINE
     assert(paths != NULL);   // LCOV_EXCL_BR_LINE
     assert(logger != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
@@ -93,12 +95,27 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     DEBUG_LOG("=== ik_render_create succeeded ===");
 
     // Initialize database connection if configured
-    DEBUG_LOG("=== About to check db_connection_string ===");
-    if (cfg->db_connection_string != NULL) {
+    DEBUG_LOG("=== About to build database connection string ===");
+    char *db_connection_string = NULL;
+    if (cfg->db_host && cfg->db_name && cfg->db_user) {
+        // Build PostgreSQL connection string: postgresql://user:pass@host:port/dbname
+        const char *db_pass = creds->db_pass ? creds->db_pass : "";
+        db_connection_string = talloc_asprintf(shared,
+                                               "postgresql://%s:%s@%s:%" PRId32 "/%s",
+                                               cfg->db_user,
+                                               db_pass,
+                                               cfg->db_host,
+                                               cfg->db_port,
+                                               cfg->db_name);
+        if (!db_connection_string) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        DEBUG_LOG("=== Built connection string (password hidden) ===");
+    }
+
+    if (db_connection_string != NULL) {
         DEBUG_LOG("=== About to call ik_db_init_ ===");
         const char *data_dir = ik_paths_get_data_dir(paths);
         DEBUG_LOG("=== Using data_dir: %s ===", data_dir);
-        result = ik_db_init_(shared, cfg->db_connection_string, data_dir, (void **)&shared->db_ctx);
+        result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->db_ctx);
         if (is_err(&result)) {
             DEBUG_LOG("=== ik_db_init_ failed: %s ===", error_message(result.err));
             // Cleanup already-initialized resources
@@ -108,6 +125,8 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
             talloc_free(shared);
             return result;
         }
+        // Steal db_ctx to shared for proper ownership
+        talloc_steal(shared, shared->db_ctx);
     } else {
         shared->db_ctx = NULL;
     }

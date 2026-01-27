@@ -1,4 +1,5 @@
 #include "config.h"
+#include "credentials.h"
 #include "debug_log.h"
 #include "error.h"
 #include "logger.h"
@@ -15,6 +16,33 @@
 #include <talloc.h>
 #include <time.h>
 #include <unistd.h>
+
+static void log_error_and_cleanup(ik_logger_t *logger,
+                                   const char *event,
+                                   err_t *err,
+                                   void *root_ctx,
+                                   void *logger_ctx)
+{
+    yyjson_mut_doc *doc = ik_log_create();
+    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
+    yyjson_mut_obj_add_str(doc, root, "event", event);
+    yyjson_mut_obj_add_str(doc, root, "message", error_message(err));
+    yyjson_mut_obj_add_int(doc, root, "code", err->code);
+    yyjson_mut_obj_add_str(doc, root, "file", err->file);
+    yyjson_mut_obj_add_int(doc, root, "line", err->line);
+    ik_logger_error_json(logger, doc);
+
+    doc = ik_log_create();
+    root = yyjson_mut_doc_get_root(doc);
+    yyjson_mut_obj_add_str(doc, root, "event", "session_end");
+    yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
+    ik_logger_info_json(logger, doc);
+
+    DEBUG_LOG("=== Session ending: %s ===", event);
+    g_panic_logger = NULL;
+    talloc_free(root_ctx);
+    talloc_free(logger_ctx);
+}
 
 /* LCOV_EXCL_START */
 int main(void)
@@ -66,26 +94,7 @@ int main(void)
         fprintf(stderr, "\nIf using direnv, run: direnv allow .\n");
         fprintf(stderr, "Otherwise, source .envrc: source .envrc\n");
 
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "paths_init_error");
-        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
-        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
-        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
-        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
-        ik_logger_error_json(logger, doc);
-
-        // Log session end before cleanup
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "session_end");
-        yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
-        ik_logger_info_json(logger, doc);
-
-        DEBUG_LOG("=== Session ending: paths_init_error ===");
-        g_panic_logger = NULL;   // Disable panic logging
-        talloc_free(root_ctx);
-        talloc_free(logger_ctx); // Logger last
+        log_error_and_cleanup(logger, "paths_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
 
@@ -95,55 +104,30 @@ int main(void)
     res_t cfg_result = ik_config_load(root_ctx, paths, &cfg);
     DEBUG_LOG("=== config_load returned, is_err=%d ===", cfg_result.is_err);
     if (is_err(&cfg_result)) {
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "config_load_error");
-        yyjson_mut_obj_add_str(doc, root, "message", error_message(cfg_result.err));
-        yyjson_mut_obj_add_int(doc, root, "code", cfg_result.err->code);
-        yyjson_mut_obj_add_str(doc, root, "file", cfg_result.err->file);
-        yyjson_mut_obj_add_int(doc, root, "line", cfg_result.err->line);
-        ik_logger_error_json(logger, doc);
+        log_error_and_cleanup(logger, "config_load_error", cfg_result.err, root_ctx, logger_ctx);
+        return EXIT_FAILURE;
+    }
 
-        // Log session end before cleanup
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "session_end");
-        yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
-        ik_logger_info_json(logger, doc);
-
-        DEBUG_LOG("=== Session ending: config_load_error ===");
-        g_panic_logger = NULL;   // Disable panic logging
-        talloc_free(root_ctx);
-        talloc_free(logger_ctx); // Logger last
+    // Load credentials
+    DEBUG_LOG("=== Loading credentials ===");
+    ik_credentials_t *creds = NULL;
+    res_t creds_result = ik_credentials_load(root_ctx, NULL, &creds);
+    if (is_err(&creds_result)) {
+        log_error_and_cleanup(logger,
+                               "credentials_load_error",
+                               creds_result.err,
+                               root_ctx,
+                               logger_ctx);
         return EXIT_FAILURE;
     }
 
     // Create shared context
     DEBUG_LOG("=== Calling shared_ctx_init ===");
     ik_shared_ctx_t *shared = NULL;
-    result = ik_shared_ctx_init(root_ctx, cfg, paths, logger, &shared);
+    result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, &shared);
     DEBUG_LOG("=== shared_ctx_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "shared_ctx_init_error");
-        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
-        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
-        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
-        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
-        ik_logger_error_json(logger, doc);
-
-        // Log session end before cleanup
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "session_end");
-        yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
-        ik_logger_info_json(logger, doc);
-
-        DEBUG_LOG("=== Session ending: shared_ctx_init_error ===");
-        g_panic_logger = NULL;   // Disable panic logging
-        talloc_free(root_ctx);
-        talloc_free(logger_ctx); // Logger last
+        log_error_and_cleanup(logger, "shared_ctx_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
 
@@ -157,26 +141,7 @@ int main(void)
         ik_term_cleanup(shared->term);
         shared->term = NULL;  // Prevent double cleanup
 
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "repl_init_error");
-        yyjson_mut_obj_add_str(doc, root, "message", error_message(result.err));
-        yyjson_mut_obj_add_int(doc, root, "code", result.err->code);
-        yyjson_mut_obj_add_str(doc, root, "file", result.err->file);
-        yyjson_mut_obj_add_int(doc, root, "line", result.err->line);
-        ik_logger_error_json(logger, doc);
-
-        // Log session end before cleanup
-        doc = ik_log_create();
-        root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "session_end");
-        yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
-        ik_logger_info_json(logger, doc);
-
-        DEBUG_LOG("=== Session ending: repl_init_error ===");
-        g_panic_logger = NULL;   // Disable panic logging
-        talloc_free(root_ctx);
-        talloc_free(logger_ctx); // Logger last
+        log_error_and_cleanup(logger, "repl_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
 
