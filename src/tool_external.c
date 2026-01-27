@@ -18,6 +18,7 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
                             const char *tool_path,
                             const char *agent_id,
                             const char *arguments_json,
+                            pid_t *child_pid_out,
                             char **out_result)
 {
     int32_t stdin_pipe[2];
@@ -54,7 +55,9 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     }
 
     if (pid == 0) {  // LCOV_EXCL_START
-        // Child process
+        // Child process - create new process group for interrupt handling
+        setpgid(0, 0);
+
         close(stdin_pipe[1]);
         close(stdout_pipe[0]);
         close(stderr_pipe[0]);
@@ -76,7 +79,11 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
         _exit(1);
     }  // LCOV_EXCL_STOP
 
-    // Parent process
+    // Parent process - store child PID for interrupt handling
+    if (child_pid_out != NULL) {
+        *child_pid_out = pid;
+    }
+
     close(stdin_pipe[0]);
     close(stdout_pipe[1]);
     close(stderr_pipe[1]);

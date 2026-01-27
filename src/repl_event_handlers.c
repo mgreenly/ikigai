@@ -252,19 +252,37 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         ik_agent_state_t current_state = agent->state;
         pthread_mutex_unlock_(&agent->tool_thread_mutex);
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
-            if (agent->http_error_message != NULL) {
-                handle_agent_request_error(repl, agent);
-            } else {
-                ik_repl_handle_agent_request_success(repl, agent);
-            }
-            pthread_mutex_lock_(&agent->tool_thread_mutex);
-            current_state = agent->state;
-            pthread_mutex_unlock_(&agent->tool_thread_mutex);
-            if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+            // Check interrupt flag before processing completion
+            if (agent->interrupt_requested) {
+                // TODO: Handle interruption (add interrupted message, clear state, return to idle)
+                agent->interrupt_requested = false;
+                if (agent->http_error_message != NULL) {
+                    talloc_free(agent->http_error_message);
+                    agent->http_error_message = NULL;
+                }
+                if (agent->assistant_response != NULL) {
+                    talloc_free(agent->assistant_response);
+                    agent->assistant_response = NULL;
+                }
                 ik_agent_transition_to_idle_(agent);
-            }
-            if (agent == repl->current) {
-                CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
+                if (agent == repl->current) {
+                    CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE
+                }
+            } else {
+                if (agent->http_error_message != NULL) {
+                    handle_agent_request_error(repl, agent);
+                } else {
+                    ik_repl_handle_agent_request_success(repl, agent);
+                }
+                pthread_mutex_lock_(&agent->tool_thread_mutex);
+                current_state = agent->state;
+                pthread_mutex_unlock_(&agent->tool_thread_mutex);
+                if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+                    ik_agent_transition_to_idle_(agent);
+                }
+                if (agent == repl->current) {
+                    CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
+                }
             }
         }
     }
