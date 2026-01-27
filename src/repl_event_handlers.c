@@ -254,7 +254,6 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check interrupt flag before processing completion
             if (agent->interrupt_requested) {
-                // TODO: Handle interruption (add interrupted message, clear state, return to idle)
                 agent->interrupt_requested = false;
                 if (agent->http_error_message != NULL) {
                     talloc_free(agent->http_error_message);
@@ -263,6 +262,15 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
                 if (agent->assistant_response != NULL) {
                     talloc_free(agent->assistant_response);
                     agent->assistant_response = NULL;
+                }
+                const char *msg = "Interrupted";
+                ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+                if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+                    res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                                         agent->uuid, "interrupted", NULL, NULL);
+                    if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+                        talloc_free(db_res.err);  // LCOV_EXCL_LINE
+                    }
                 }
                 ik_agent_transition_to_idle_(agent);
                 if (agent == repl->current) {
