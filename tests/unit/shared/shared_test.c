@@ -516,6 +516,120 @@ START_TEST(test_shared_ctx_database_no_password) {
 
 END_TEST
 
+START_TEST(test_shared_ctx_database_partial_null_host) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    // Set db_name and db_user but leave db_host NULL
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+    cfg->db_port = 5432;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    // DB should not be initialized when db_host is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_shared_ctx_database_partial_null_name) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    // Set db_host and db_user but leave db_name NULL
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_user = talloc_strdup(cfg, "testuser");
+    cfg->db_port = 5432;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    // DB should not be initialized when db_name is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_shared_ctx_database_partial_null_user) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+    // Set db_host and db_name but leave db_user NULL
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_name = talloc_strdup(cfg, "testdb");
+    cfg->db_port = 5432;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    // DB should not be initialized when db_user is NULL
+    ck_assert_ptr_null(shared->db_ctx);
+    ck_assert_int_eq(shared->session_id, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *shared_suite(void)
 {
     Suite *s = suite_create("Shared Context");
@@ -529,6 +643,9 @@ static Suite *shared_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_database_unconfigured);
     tcase_add_test(tc_core, test_shared_ctx_database_configured);
     tcase_add_test(tc_core, test_shared_ctx_database_no_password);
+    tcase_add_test(tc_core, test_shared_ctx_database_partial_null_host);
+    tcase_add_test(tc_core, test_shared_ctx_database_partial_null_name);
+    tcase_add_test(tc_core, test_shared_ctx_database_partial_null_user);
     tcase_add_test(tc_core, test_shared_ctx_history);
     tcase_add_test(tc_core, test_shared_ctx_debug);
     tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);
