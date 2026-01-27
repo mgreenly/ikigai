@@ -103,7 +103,7 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
 
     // validate db_port (optional)
     int32_t db_port_value = IK_DEFAULT_DB_PORT;
-    if (db_port) {
+    if (db_port && !yyjson_is_null(db_port)) {
         if (!yyjson_is_int(db_port)) {
             return ERR(ctx, PARSE, "Invalid type for db_port");
         }
@@ -189,7 +189,14 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
 
     // Copy database config fields (all optional)
     if (db_host && !yyjson_is_null(db_host)) {
-        cfg->db_host = talloc_strdup(cfg, yyjson_get_str_(db_host));
+        const char *db_host_str = yyjson_get_str_(db_host);
+        if (db_host_str && db_host_str[0] != '\0') {
+            cfg->db_host = talloc_strdup(cfg, db_host_str);
+            if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            cfg->db_host = talloc_strdup(cfg, IK_DEFAULT_DB_HOST);
+            if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     } else {
         cfg->db_host = talloc_strdup(cfg, IK_DEFAULT_DB_HOST);
         if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -198,14 +205,28 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
     cfg->db_port = db_port_value;
 
     if (db_name && !yyjson_is_null(db_name)) {
-        cfg->db_name = talloc_strdup(cfg, yyjson_get_str_(db_name));
+        const char *db_name_str = yyjson_get_str_(db_name);
+        if (db_name_str && db_name_str[0] != '\0') {
+            cfg->db_name = talloc_strdup(cfg, db_name_str);
+            if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            cfg->db_name = talloc_strdup(cfg, IK_DEFAULT_DB_NAME);
+            if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     } else {
         cfg->db_name = talloc_strdup(cfg, IK_DEFAULT_DB_NAME);
         if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
     if (db_user && !yyjson_is_null(db_user)) {
-        cfg->db_user = talloc_strdup(cfg, yyjson_get_str_(db_user));
+        const char *db_user_str = yyjson_get_str_(db_user);
+        if (db_user_str && db_user_str[0] != '\0') {
+            cfg->db_user = talloc_strdup(cfg, db_user_str);
+            if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        } else {
+            cfg->db_user = talloc_strdup(cfg, IK_DEFAULT_DB_USER);
+            if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     } else {
         cfg->db_user = talloc_strdup(cfg, IK_DEFAULT_DB_USER);
         if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

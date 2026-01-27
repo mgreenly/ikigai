@@ -120,7 +120,13 @@ START_TEST(test_cfg_create_returns_valid_config) {
 
     ck_assert_ptr_nonnull(cfg);
     ck_assert_int_eq(cfg->history_size, 100);
-    ck_assert_ptr_null(cfg->db_connection_string);
+    ck_assert_ptr_nonnull(cfg->db_host);
+    ck_assert_str_eq(cfg->db_host, "localhost");
+    ck_assert_int_eq(cfg->db_port, 5432);
+    ck_assert_ptr_nonnull(cfg->db_name);
+    ck_assert_str_eq(cfg->db_name, "ikigai");
+    ck_assert_ptr_nonnull(cfg->db_user);
+    ck_assert_str_eq(cfg->db_user, "ikigai");
 
     talloc_free(ctx);
 }
