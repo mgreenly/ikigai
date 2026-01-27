@@ -24,7 +24,10 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
     yyjson_val *system_message = yyjson_obj_get_(root, "openai_system_message");
     yyjson_val *address = yyjson_obj_get_(root, "listen_address");
     yyjson_val *port = yyjson_obj_get_(root, "listen_port");
-    yyjson_val *db_conn_str = yyjson_obj_get_(root, "db_connection_string");
+    yyjson_val *db_host = yyjson_obj_get_(root, "db_host");
+    yyjson_val *db_port = yyjson_obj_get_(root, "db_port");
+    yyjson_val *db_name = yyjson_obj_get_(root, "db_name");
+    yyjson_val *db_user = yyjson_obj_get_(root, "db_user");
     yyjson_val *max_tool_turns = yyjson_obj_get_(root, "max_tool_turns");
     yyjson_val *max_output_size = yyjson_obj_get_(root, "max_output_size");
     yyjson_val *history_size = yyjson_obj_get_(root, "history_size");
@@ -93,9 +96,32 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
     }
     uint16_t port_value = (uint16_t)port_raw;
 
-    // validate db_connection_string (optional)
-    if (db_conn_str && !yyjson_is_null(db_conn_str) && !yyjson_is_str(db_conn_str)) {
-        return ERR(ctx, PARSE, "Invalid type for db_connection_string");
+    // validate db_host (optional)
+    if (db_host && !yyjson_is_null(db_host) && !yyjson_is_str(db_host)) {
+        return ERR(ctx, PARSE, "Invalid type for db_host");
+    }
+
+    // validate db_port (optional)
+    int32_t db_port_value = IK_DEFAULT_DB_PORT;
+    if (db_port) {
+        if (!yyjson_is_int(db_port)) {
+            return ERR(ctx, PARSE, "Invalid type for db_port");
+        }
+        int64_t db_port_raw = yyjson_get_sint_(db_port);
+        if (db_port_raw < 1 || db_port_raw > 65535) {
+            return ERR(ctx, OUT_OF_RANGE, "db_port must be 1-65535, got %lld", (long long)db_port_raw);
+        }
+        db_port_value = (int32_t)db_port_raw;
+    }
+
+    // validate db_name (optional)
+    if (db_name && !yyjson_is_null(db_name) && !yyjson_is_str(db_name)) {
+        return ERR(ctx, PARSE, "Invalid type for db_name");
+    }
+
+    // validate db_user (optional)
+    if (db_user && !yyjson_is_null(db_user) && !yyjson_is_str(db_user)) {
+        return ERR(ctx, PARSE, "Invalid type for db_user");
     }
 
     // validate max_tool_turns
@@ -160,17 +186,31 @@ static res_t parse_config_from_json(TALLOC_CTX *ctx, yyjson_val *root, ik_config
     }
     cfg->listen_address = talloc_strdup(cfg, yyjson_get_str_(address));
     cfg->listen_port = port_value;
-    if (db_conn_str) {
-        const char *db_conn_str_value = yyjson_get_str_(db_conn_str);
-        // Treat empty string as NULL (memory-only mode)
-        if (db_conn_str_value && db_conn_str_value[0] != '\0') {
-            cfg->db_connection_string = talloc_strdup(cfg, db_conn_str_value);
-        } else {
-            cfg->db_connection_string = NULL;
-        }
+
+    // Copy database config fields (all optional)
+    if (db_host && !yyjson_is_null(db_host)) {
+        cfg->db_host = talloc_strdup(cfg, yyjson_get_str_(db_host));
     } else {
-        cfg->db_connection_string = NULL;
+        cfg->db_host = talloc_strdup(cfg, IK_DEFAULT_DB_HOST);
+        if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
+
+    cfg->db_port = db_port_value;
+
+    if (db_name && !yyjson_is_null(db_name)) {
+        cfg->db_name = talloc_strdup(cfg, yyjson_get_str_(db_name));
+    } else {
+        cfg->db_name = talloc_strdup(cfg, IK_DEFAULT_DB_NAME);
+        if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    if (db_user && !yyjson_is_null(db_user)) {
+        cfg->db_user = talloc_strdup(cfg, yyjson_get_str_(db_user));
+    } else {
+        cfg->db_user = talloc_strdup(cfg, IK_DEFAULT_DB_USER);
+        if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
     cfg->max_tool_turns = (int32_t)max_tool_turns_value;
     cfg->max_output_size = max_output_size_value;
     cfg->history_size = history_size_value;
@@ -262,14 +302,49 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
         }
         cfg->listen_address = talloc_strdup(cfg, IK_DEFAULT_LISTEN_ADDRESS);
         cfg->listen_port = IK_DEFAULT_LISTEN_PORT;
-        cfg->db_connection_string = NULL;
+        cfg->db_host = talloc_strdup(cfg, IK_DEFAULT_DB_HOST);
+        cfg->db_port = IK_DEFAULT_DB_PORT;
+        cfg->db_name = talloc_strdup(cfg, IK_DEFAULT_DB_NAME);
+        cfg->db_user = talloc_strdup(cfg, IK_DEFAULT_DB_USER);
         cfg->max_tool_turns = IK_DEFAULT_MAX_TOOL_TURNS;
         cfg->max_output_size = IK_DEFAULT_MAX_OUTPUT_SIZE;
         cfg->history_size = IK_DEFAULT_HISTORY_SIZE;
         cfg->default_provider = NULL;
 
-        if (cfg->openai_model == NULL || cfg->listen_address == NULL) {
+        if (cfg->openai_model == NULL || cfg->listen_address == NULL || cfg->db_host == NULL ||
+            cfg->db_name == NULL || cfg->db_user == NULL) {
             PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+
+        // Apply environment variable overrides for database config
+        const char *env_db_host = getenv("IKIGAI_DB_HOST");
+        if (env_db_host && env_db_host[0] != '\0') {
+            talloc_free(cfg->db_host);
+            cfg->db_host = talloc_strdup(cfg, env_db_host);
+            if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+
+        const char *env_db_port = getenv("IKIGAI_DB_PORT");
+        if (env_db_port && env_db_port[0] != '\0') {
+            char *endptr = NULL;
+            long port_val = strtol(env_db_port, &endptr, 10);
+            if (endptr != env_db_port && *endptr == '\0' && port_val >= 1 && port_val <= 65535) {
+                cfg->db_port = (int32_t)port_val;
+            }
+        }
+
+        const char *env_db_name = getenv("IKIGAI_DB_NAME");
+        if (env_db_name && env_db_name[0] != '\0') {
+            talloc_free(cfg->db_name);
+            cfg->db_name = talloc_strdup(cfg, env_db_name);
+            if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+
+        const char *env_db_user = getenv("IKIGAI_DB_USER");
+        if (env_db_user && env_db_user[0] != '\0') {
+            talloc_free(cfg->db_user);
+            cfg->db_user = talloc_strdup(cfg, env_db_user);
+            if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
 
         *out = cfg;
@@ -293,6 +368,37 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     res_t result = parse_config_from_json(ctx, root, cfg);
     if (is_err(&result)) {
         return result;
+    }
+
+    // Apply environment variable overrides for database config
+    const char *env_db_host = getenv("IKIGAI_DB_HOST");
+    if (env_db_host && env_db_host[0] != '\0') {
+        talloc_free(cfg->db_host);
+        cfg->db_host = talloc_strdup(cfg, env_db_host);
+        if (!cfg->db_host) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_db_port = getenv("IKIGAI_DB_PORT");
+    if (env_db_port && env_db_port[0] != '\0') {
+        char *endptr = NULL;
+        long port_val = strtol(env_db_port, &endptr, 10);
+        if (endptr != env_db_port && *endptr == '\0' && port_val >= 1 && port_val <= 65535) {
+            cfg->db_port = (int32_t)port_val;
+        }
+    }
+
+    const char *env_db_name = getenv("IKIGAI_DB_NAME");
+    if (env_db_name && env_db_name[0] != '\0') {
+        talloc_free(cfg->db_name);
+        cfg->db_name = talloc_strdup(cfg, env_db_name);
+        if (!cfg->db_name) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    const char *env_db_user = getenv("IKIGAI_DB_USER");
+    if (env_db_user && env_db_user[0] != '\0') {
+        talloc_free(cfg->db_user);
+        cfg->db_user = talloc_strdup(cfg, env_db_user);
+        if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
     *out = cfg;

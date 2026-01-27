@@ -29,6 +29,7 @@ typedef struct {
     char *google_search_engine_id;
     char *ntfy_api_key;
     char *ntfy_topic;
+    char *db_pass;
 } ik_credentials_t;
 
 /**

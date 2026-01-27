@@ -1,4 +1,5 @@
 #include "config.h"
+#include "credentials.h"
 #include "debug_log.h"
 #include "error.h"
 #include "logger.h"
@@ -118,10 +119,37 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    // Load credentials
+    DEBUG_LOG("=== Loading credentials ===");
+    ik_credentials_t *creds = NULL;
+    res_t creds_result = ik_credentials_load(root_ctx, NULL, &creds);
+    if (is_err(&creds_result)) {
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "credentials_load_error");
+        yyjson_mut_obj_add_str(doc, root, "message", error_message(creds_result.err));
+        yyjson_mut_obj_add_int(doc, root, "code", creds_result.err->code);
+        yyjson_mut_obj_add_str(doc, root, "file", creds_result.err->file);
+        yyjson_mut_obj_add_int(doc, root, "line", creds_result.err->line);
+        ik_logger_error_json(logger, doc);
+
+        doc = ik_log_create();
+        root = yyjson_mut_doc_get_root(doc);
+        yyjson_mut_obj_add_str(doc, root, "event", "session_end");
+        yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
+        ik_logger_info_json(logger, doc);
+
+        DEBUG_LOG("=== Session ending: credentials_load_error ===");
+        g_panic_logger = NULL;
+        talloc_free(root_ctx);
+        talloc_free(logger_ctx);
+        return EXIT_FAILURE;
+    }
+
     // Create shared context
     DEBUG_LOG("=== Calling shared_ctx_init ===");
     ik_shared_ctx_t *shared = NULL;
-    result = ik_shared_ctx_init(root_ctx, cfg, paths, logger, &shared);
+    result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, &shared);
     DEBUG_LOG("=== shared_ctx_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
         doc = ik_log_create();

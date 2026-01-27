@@ -14,5 +14,9 @@
 #define IK_DEFAULT_MAX_OUTPUT_SIZE 1048576
 #define IK_DEFAULT_HISTORY_SIZE 10000
 #define IK_DEFAULT_PROVIDER "openai"
+#define IK_DEFAULT_DB_HOST "localhost"
+#define IK_DEFAULT_DB_PORT 5432
+#define IK_DEFAULT_DB_NAME "ikigai"
+#define IK_DEFAULT_DB_USER "ikigai"
 
 #endif // IK_CONFIG_DEFAULTS_H
