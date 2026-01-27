@@ -17,7 +17,9 @@
 #include <pthread.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 /**
  * @brief Append multi-line output to scrollback (splits by newlines)
@@ -142,6 +144,45 @@ res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_act
 }
 
 /**
+ * @brief Handle ESC key press
+ *
+ * If agent is busy (WAITING_FOR_LLM or EXECUTING_TOOL), interrupts the operation.
+ * Otherwise, dismisses completion if active (reverting to original input first).
+ *
+ * @param repl REPL context
+ * @return OK with NULL on success, or propagates error
+ */
+res_t ik_repl_handle_escape_action(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
+
+    // Check if there's an in-flight operation to interrupt
+    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
+    ik_agent_state_t state = repl->current->state;
+    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+
+    // If agent is waiting or executing, interrupt it
+    if (state == IK_AGENT_STATE_WAITING_FOR_LLM || state == IK_AGENT_STATE_EXECUTING_TOOL) {
+        ik_repl_handle_interrupt_request(repl);
+        return OK(NULL);
+    }
+
+    // Otherwise, handle ESC in IDLE mode (dismiss completion)
+    // If completion is active, revert to original input before ESC dismisses
+    if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
+        // Revert to original input
+        const char *original = repl->current->completion->original_input;
+        res_t res = ik_input_buffer_set_text(repl->current->input_buffer,
+                                             original, strlen(original));
+        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+            return res;  // LCOV_EXCL_LINE
+        }
+    }
+    ik_repl_dismiss_completion(repl);
+    return OK(NULL);
+}
+
+/**
  * @brief Handle user-initiated interrupt (ESC key)
  *
  * Sets interrupt flag and cancels in-flight operations:
@@ -180,13 +221,36 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
     } else if (state == IK_AGENT_STATE_EXECUTING_TOOL) {
         // Terminate child process group
         if (agent->tool_child_pid > 0) {
-            // Send SIGTERM to process group (negative PID)
-            kill(-agent->tool_child_pid, SIGTERM);
+            pid_t child_pid = agent->tool_child_pid;
 
-            // TODO: Escalate to SIGKILL if process doesn't terminate within timeout
-            // For now, just send SIGKILL immediately as fallback
-            // sleep(1);  // Give process time to clean up
-            // kill(-agent->tool_child_pid, SIGKILL);
+            // Send SIGTERM to process group (negative PID)
+            kill(-child_pid, SIGTERM);
+
+            // Wait up to 2 seconds for process to terminate
+            const int32_t timeout_ms = 2000;
+            const int32_t check_interval_ms = 100;
+            int32_t elapsed_ms = 0;
+            bool terminated = false;
+
+            while (elapsed_ms < timeout_ms) {
+                // Check if process has terminated (WNOHANG = non-blocking)
+                int32_t status;
+                pid_t result = waitpid(child_pid, &status, WNOHANG);
+                if (result == child_pid || result == -1) {
+                    // Process terminated or doesn't exist
+                    terminated = true;
+                    break;
+                }
+
+                // Sleep for check interval
+                usleep((useconds_t)(check_interval_ms * 1000));
+                elapsed_ms += check_interval_ms;
+            }
+
+            // Escalate to SIGKILL if process didn't terminate
+            if (!terminated) {
+                kill(-child_pid, SIGKILL);
+            }
         }
     }
 }
@@ -301,32 +365,8 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return OK(NULL);
         case IK_INPUT_TAB:
             return ik_repl_handle_tab_action(repl);
-        case IK_INPUT_ESCAPE: {
-            // Check if there's an in-flight operation to interrupt
-            pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-            ik_agent_state_t state = repl->current->state;
-            pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-
-            // If agent is waiting or executing, interrupt it
-            if (state == IK_AGENT_STATE_WAITING_FOR_LLM || state == IK_AGENT_STATE_EXECUTING_TOOL) {
-                ik_repl_handle_interrupt_request(repl);
-                return OK(NULL);
-            }
-
-            // Otherwise, handle ESC in IDLE mode (dismiss completion)
-            // If completion is active, revert to original input before ESC dismisses
-            if (repl->current->completion != NULL && repl->current->completion->original_input != NULL) {
-                // Revert to original input
-                const char *original = repl->current->completion->original_input;
-                res_t res = ik_input_buffer_set_text(repl->current->input_buffer,
-                                                     original, strlen(original));
-                if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
-                    return res;  // LCOV_EXCL_LINE
-                }
-            }
-            ik_repl_dismiss_completion(repl);
-            return OK(NULL);
-        }
+        case IK_INPUT_ESCAPE:
+            return ik_repl_handle_escape_action(repl);
         case IK_INPUT_NAV_PREV_SIBLING:
             return ik_repl_nav_prev_sibling(repl);
         case IK_INPUT_NAV_NEXT_SIBLING:
