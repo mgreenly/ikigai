@@ -126,6 +126,11 @@ size_t ik_anthropic_stream_write_cb(const char *data, size_t len, void *ctx)
         return len; // Accept data but do nothing
     }
 
+    // Check if cancelled - return 0 to abort curl transfer
+    if (stream->completed) {
+        return 0;
+    }
+
     // Feed data to SSE parser
     ik_sse_parser_feed(stream->sse_parser, data, len);
 
