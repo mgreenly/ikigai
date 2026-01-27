@@ -106,6 +106,14 @@ START_TEST(test_valid_fork) {
 }
 
 END_TEST
+
+START_TEST(test_valid_interrupted) {
+    bool result = ik_db_message_is_valid_kind("interrupted");
+    ck_assert(result);
+}
+
+END_TEST
+
 // Test: Case sensitivity
 START_TEST(test_kind_case_sensitive) {
     // Uppercase should be invalid
@@ -142,6 +150,7 @@ static Suite *message_kind_validation_suite(void)
     tcase_add_test(tc_valid, test_valid_agent_killed);
     tcase_add_test(tc_valid, test_valid_command);
     tcase_add_test(tc_valid, test_valid_fork);
+    tcase_add_test(tc_valid, test_valid_interrupted);
     suite_add_tcase(s, tc_valid);
 
     return s;
