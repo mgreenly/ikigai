@@ -104,6 +104,7 @@ typedef struct ik_agent_ctx {
     ik_agent_state_t state;
     char *assistant_response;
     char *streaming_line_buffer;
+    bool streaming_first_line;      // True when next output needs "● " prefix
     char *http_error_message;
     char *response_model;
     char *response_finish_reason;
