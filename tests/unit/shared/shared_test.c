@@ -1,6 +1,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
 
+#include "../../../src/credentials.h"
 #include "../../../src/error.h"
 #include "../../../src/config.h"
 #include "../../../src/terminal.h"
@@ -157,6 +158,9 @@ START_TEST(test_shared_ctx_init_and_memory) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -167,7 +171,7 @@ START_TEST(test_shared_ctx_init_and_memory) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Test init success
     ck_assert(is_ok(&res));
@@ -195,6 +199,9 @@ START_TEST(test_shared_ctx_config) {
     cfg->openai_model = talloc_strdup(cfg, "test-model");
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -205,7 +212,7 @@ START_TEST(test_shared_ctx_config) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -229,6 +236,9 @@ START_TEST(test_shared_ctx_terminal_and_render) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -239,7 +249,7 @@ START_TEST(test_shared_ctx_terminal_and_render) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -265,6 +275,9 @@ START_TEST(test_shared_ctx_database_unconfigured) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -275,7 +288,7 @@ START_TEST(test_shared_ctx_database_unconfigured) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -298,6 +311,9 @@ START_TEST(test_shared_ctx_history) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 250;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -308,7 +324,7 @@ START_TEST(test_shared_ctx_history) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -331,6 +347,9 @@ START_TEST(test_shared_ctx_debug) {
     ck_assert_ptr_nonnull(cfg);
     cfg->history_size = 100;
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -341,7 +360,7 @@ START_TEST(test_shared_ctx_debug) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -392,8 +411,11 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
         ck_assert(is_ok(&paths_res));
     }
 
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Should still succeed despite history load failure (graceful degradation)
     ck_assert(is_ok(&res));

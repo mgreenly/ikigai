@@ -3,6 +3,7 @@
 
 #include "test_contexts_helper.h"
 
+#include "credentials.h"
 #include "logger.h"
 #include "panic.h"
 #include "paths.h"
@@ -16,7 +17,10 @@ ik_config_t *test_cfg_create(TALLOC_CTX *ctx)
 
     // Minimal defaults for testing
     cfg->history_size = 100;
-    cfg->db_connection_string = NULL;  // No database in tests by default
+    cfg->db_host = NULL;  // No database in tests by default
+    cfg->db_port = 0;
+    cfg->db_name = NULL;
+    cfg->db_user = NULL;
     cfg->openai_model = NULL;
     cfg->openai_temperature = 0.7;
     cfg->openai_max_completion_tokens = 4096;
@@ -39,12 +43,13 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
     res_t result = ik_paths_init(ctx, &paths);
     if (is_err(&result)) return result;
 
-    // Create config and logger
+    // Create config, credentials, and logger
     ik_config_t *cfg = test_cfg_create(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
 
-    // New signature: paths replaces working_dir + ikigai_subdir
-    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
+    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, out);
 }
 
 res_t test_repl_create(TALLOC_CTX *ctx,
@@ -79,9 +84,10 @@ res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
     res_t result = ik_paths_init(ctx, &paths);
     if (is_err(&result)) return result;
 
-    // Create logger
+    // Create credentials and logger
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
 
-    // New signature: paths replaces working_dir + ikigai_subdir
-    return ik_shared_ctx_init(ctx, cfg, paths, logger, out);
+    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, out);
 }
