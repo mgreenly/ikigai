@@ -36,7 +36,8 @@ static void *tool_thread_worker(void *arg)
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
     char *result_json = ik_tool_execute_from_registry(args->ctx, args->registry, args->paths,
-                                                      args->agent->uuid, args->tool_name, args->arguments);
+                                                      args->agent->uuid, args->tool_name, args->arguments,
+                                                      &args->agent->tool_child_pid);
     args->agent->tool_thread_result = result_json;
     pthread_mutex_lock_(&args->agent->tool_thread_mutex);
     args->agent->tool_thread_complete = true;
@@ -142,7 +143,7 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
     char *result_json = ik_tool_execute_from_registry(repl, repl->shared->tool_registry, repl->shared->paths,
-                                                      repl->current->uuid, tc->name, tc->arguments);
+                                                      repl->current->uuid, tc->name, tc->arguments, NULL);
     ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
     result = ik_agent_add_message(repl->current, result_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE

@@ -35,3 +35,6 @@ res_t ik_repl_process_scroll_detection(ik_repl_ctx_t *repl, const ik_input_actio
 
 // Flush pending arrow from scroll detector (rel-05)
 res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_action_t *action);
+
+// Interrupt handling
+void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl);
