@@ -4,6 +4,7 @@
 #include "agent.h"
 #include "ansi.h"
 #include "event_render.h"
+#include "output_style.h"
 #include "repl_actions.h"
 #include "shared.h"
 #include "panic.h"
@@ -15,31 +16,68 @@
 
 /**
  * Helper to flush a complete line to scrollback
+ *
+ * On the first line of streaming output, prepends the "● " prefix.
  */
 static void flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
-                                     size_t start, size_t prefix_len)
+                                     size_t start, size_t chunk_len)
 {
+    const char *model_prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
+    size_t prefix_bytes = agent->streaming_first_line && model_prefix ? strlen(model_prefix) + 1 : 0;
+
     if (agent->streaming_line_buffer != NULL) {
-        // Append prefix to buffer
+        // Append chunk segment to buffer
         size_t buffer_len = strlen(agent->streaming_line_buffer);
-        size_t total_len = buffer_len + prefix_len;
+        size_t total_len = prefix_bytes + buffer_len + chunk_len;
         char *line = talloc_size(agent, total_len + 1);
         if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        memcpy(line, agent->streaming_line_buffer, buffer_len);
-        memcpy(line + buffer_len, chunk + start, prefix_len);
+
+        size_t pos = 0;
+        if (prefix_bytes > 0) {
+            memcpy(line, model_prefix, prefix_bytes - 1);
+            line[prefix_bytes - 1] = ' ';
+            pos = prefix_bytes;
+        }
+        memcpy(line + pos, agent->streaming_line_buffer, buffer_len);
+        memcpy(line + pos + buffer_len, chunk + start, chunk_len);
         line[total_len] = '\0';
 
         ik_scrollback_append_line(agent->scrollback, line, total_len);
         talloc_free(line);
         talloc_free(agent->streaming_line_buffer);
         agent->streaming_line_buffer = NULL;
-    } else if (prefix_len > 0) {
-        // No buffer, just flush the prefix
-        ik_scrollback_append_line(agent->scrollback, chunk + start, prefix_len);
+    } else if (chunk_len > 0) {
+        // No buffer, just flush the chunk segment
+        if (prefix_bytes > 0) {
+            size_t total_len = prefix_bytes + chunk_len;
+            char *line = talloc_size(agent, total_len + 1);
+            if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            memcpy(line, model_prefix, prefix_bytes - 1);
+            line[prefix_bytes - 1] = ' ';
+            memcpy(line + prefix_bytes, chunk + start, chunk_len);
+            line[total_len] = '\0';
+            ik_scrollback_append_line(agent->scrollback, line, total_len);
+            talloc_free(line);
+        } else {
+            ik_scrollback_append_line(agent->scrollback, chunk + start, chunk_len);
+        }
     } else {
         // Empty line (just a newline)
-        ik_scrollback_append_line(agent->scrollback, "", 0);
+        if (prefix_bytes > 0) {
+            size_t total_len = prefix_bytes;
+            char *line = talloc_size(agent, total_len + 1);
+            if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            memcpy(line, model_prefix, prefix_bytes - 1);
+            line[prefix_bytes - 1] = ' ';
+            line[total_len] = '\0';
+            ik_scrollback_append_line(agent->scrollback, line, total_len);
+            talloc_free(line);
+        } else {
+            ik_scrollback_append_line(agent->scrollback, "", 0);
+        }
     }
+
+    agent->streaming_first_line = false;
 }
 
 /**
@@ -102,6 +140,7 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
                 talloc_free(agent->assistant_response);
                 agent->assistant_response = NULL;
             }
+            agent->streaming_first_line = true;
             break;
 
         case IK_STREAM_TEXT_DELTA:
@@ -292,12 +331,33 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         ik_logger_debug_json(agent->shared->logger, doc);  // LCOV_EXCL_LINE
     }
 
-    // Flush any remaining buffered line content
+    // Flush any remaining buffered line content (with prefix if first line)
+    bool had_response_content = (agent->assistant_response != NULL);
     if (agent->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(agent->streaming_line_buffer);
-        ik_scrollback_append_line(agent->scrollback, agent->streaming_line_buffer, buffer_len);
+        const char *model_prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
+        if (agent->streaming_first_line && model_prefix) {
+            size_t prefix_len = strlen(model_prefix);
+            size_t total_len = prefix_len + 1 + buffer_len;
+            char *line = talloc_size(agent, total_len + 1);
+            if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            memcpy(line, model_prefix, prefix_len);
+            line[prefix_len] = ' ';
+            memcpy(line + prefix_len + 1, agent->streaming_line_buffer, buffer_len);
+            line[total_len] = '\0';
+            ik_scrollback_append_line(agent->scrollback, line, total_len);
+            talloc_free(line);
+        } else {
+            ik_scrollback_append_line(agent->scrollback, agent->streaming_line_buffer, buffer_len);
+        }
         talloc_free(agent->streaming_line_buffer);
         agent->streaming_line_buffer = NULL;
+        agent->streaming_first_line = false;
+    }
+
+    // Add blank line after response content (before usage line)
+    if (had_response_content) {
+        ik_scrollback_append_line(agent->scrollback, "", 0);
     }
 
     // Clear any previous error

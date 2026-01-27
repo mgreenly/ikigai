@@ -127,10 +127,9 @@ When the goal is complete (you would return "DONE"), instead create a pull reque
 
 3. **Sync with main** - Run `jj git fetch` to ensure main is current
 
-4. **Create bookmark and rebase** - Create bookmark and rebase onto main (don't push yet):
+4. **Rebase onto main** - Rebase this branch onto main (don't push yet):
    ```bash
-   jj bookmark create <%= branch_name %>
-   jj rebase -d main
+   jj rebase -b <%= branch_name %> -d main
    ```
 
 5. **Review full diff** - Verify ALL commits are included before pushing:

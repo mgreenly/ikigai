@@ -170,14 +170,14 @@ START_TEST(test_help_persisted) {
     ck_assert_ptr_nonnull(last_kind);
     ck_assert_str_eq(last_kind, "command");
 
-    // Verify content starts with "/help" and contains output
+    // Verify content contains output only (not echo)
     ck_assert_ptr_nonnull(last_content);
-    ck_assert(strncmp(last_content, "/help\n", 6) == 0);
     ck_assert(strstr(last_content, "Available commands:") != NULL);
 
-    // Verify data_json contains command metadata
+    // Verify data_json contains command metadata and echo
     ck_assert_ptr_nonnull(last_data_json);
     ck_assert(strstr(last_data_json, "\"command\":\"help\"") != NULL);
+    ck_assert(strstr(last_data_json, "\"echo\":\"/help\"") != NULL);
 }
 END_TEST
 // Test: /model command output is persisted
@@ -192,15 +192,15 @@ START_TEST(test_model_persisted) {
     ck_assert_ptr_nonnull(last_kind);
     ck_assert_str_eq(last_kind, "command");
 
-    // Verify content contains command and output
+    // Verify content contains output only (not echo)
     ck_assert_ptr_nonnull(last_content);
-    ck_assert(strncmp(last_content, "/model gpt-4\n", 13) == 0);
     ck_assert(strstr(last_content, "Switched to") != NULL);
 
-    // Verify data_json contains command metadata
+    // Verify data_json contains command metadata and echo
     ck_assert_ptr_nonnull(last_data_json);
     ck_assert(strstr(last_data_json, "\"command\":\"model\"") != NULL);
     ck_assert(strstr(last_data_json, "\"args\":\"gpt-4\"") != NULL);
+    ck_assert(strstr(last_data_json, "\"echo\":\"/model gpt-4\"") != NULL);
 }
 
 END_TEST
@@ -216,10 +216,15 @@ START_TEST(test_debug_persisted) {
     ck_assert_ptr_nonnull(last_kind);
     ck_assert_str_eq(last_kind, "command");
 
-    // Verify content contains command and output
+    // Verify content contains output only (not echo)
     ck_assert_ptr_nonnull(last_content);
-    ck_assert(strncmp(last_content, "/debug on\n", 10) == 0);
     ck_assert(strstr(last_content, "Debug output enabled") != NULL);
+
+    // Verify data_json contains command metadata and echo
+    ck_assert_ptr_nonnull(last_data_json);
+    ck_assert(strstr(last_data_json, "\"command\":\"debug\"") != NULL);
+    ck_assert(strstr(last_data_json, "\"args\":\"on\"") != NULL);
+    ck_assert(strstr(last_data_json, "\"echo\":\"/debug on\"") != NULL);
 }
 
 END_TEST

@@ -81,7 +81,7 @@ START_TEST(test_debug_on) {
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 2, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "Debug"), NULL);
 
@@ -113,7 +113,7 @@ START_TEST(test_debug_off) {
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 2, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "Debug"), NULL);
 
@@ -140,7 +140,7 @@ START_TEST(test_debug_status) {
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 2, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "OFF"), NULL);
 
@@ -168,7 +168,7 @@ START_TEST(test_debug_status_on) {
 
     const char *last_line = NULL;
     size_t last_line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 2, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
     ck_assert_ptr_ne(strstr(last_line, "ON"), NULL);
 
@@ -189,7 +189,7 @@ START_TEST(test_debug_invalid_arg) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/debug invalid");
     ck_assert(is_err(&res));
 
-    // Verify error message in scrollback
+    // Verify error message in scrollback (no trailing blank for errors)
     size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
     ck_assert_uint_ge(line_count, 1);
 
@@ -197,7 +197,7 @@ START_TEST(test_debug_invalid_arg) {
     size_t last_line_len = 0;
     res = ik_scrollback_get_line_text(repl->current->scrollback, line_count - 1, &last_line, &last_line_len);
     ck_assert(is_ok(&res));
-    ck_assert_ptr_ne(strstr(last_line, "Error"), NULL);
+    ck_assert_ptr_ne(strstr(last_line, "⚠"), NULL);
     ck_assert_ptr_ne(strstr(last_line, "invalid"), NULL);
 
     talloc_free(ctx);

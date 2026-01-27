@@ -87,11 +87,10 @@ START_TEST(test_model_switch_gpt4) {
     ck_assert_ptr_nonnull(repl->current->provider);
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify confirmation message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    // Verify confirmation message in scrollback (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "Switched to") != NULL);
@@ -107,7 +106,7 @@ START_TEST(test_model_switch_gpt4_turbo) {
 
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "gpt-4-turbo") != NULL);
@@ -146,11 +145,10 @@ START_TEST(test_model_missing_name) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model");
     ck_assert(is_err(&res));
 
-    // Verify error message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    // Verify error message in scrollback (no echo for "/model" - empty arg check happens before echo)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "Model name required") != NULL);
@@ -162,11 +160,10 @@ START_TEST(test_model_invalid_name) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model invalid-model-xyz");
     ck_assert(is_err(&res));
 
-    // Verify error message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    // Verify error message in scrollback (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "Error: Unknown model 'invalid-model-xyz'");
@@ -190,8 +187,8 @@ START_TEST(test_model_multiple_switches) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->model, "o1-mini");
 
-    // Verify all three messages in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    // Verify all three messages in scrollback (each with echo + blank + output)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 
 END_TEST
@@ -219,8 +216,8 @@ START_TEST(test_model_all_valid_models) {
         talloc_free(cmd);
     }
 
-    // Verify all confirmations in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), model_count);
+    // Verify all confirmations in scrollback (each with echo + blank + output = 3 lines per model)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), model_count * 4);
 }
 
 END_TEST

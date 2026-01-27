@@ -143,6 +143,86 @@ START_TEST(test_text_delta_newline_flushes) {
 }
 
 END_TEST
+/* Test: First line gets prefix (streaming_first_line flow with buffer) */
+START_TEST(test_text_delta_first_line_prefix_with_buffer) {
+    /* Simulate STREAM_START which sets streaming_first_line = true */
+    ik_stream_event_t start_event = {
+        .type = IK_STREAM_START,
+        .data.start.model = "test-model"
+    };
+    ik_repl_stream_callback(&start_event, agent);
+
+    /* Set up existing buffer (partial line) */
+    agent->streaming_line_buffer = talloc_strdup(agent, "Hello");
+
+    /* Send text that completes the line with newline */
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .data.delta.text = " world\n"
+    };
+
+    res_t result = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&result));
+
+    /* Verify line was flushed with prefix */
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
+    ck_assert_ptr_null(agent->streaming_line_buffer);
+    /* streaming_first_line should be false now */
+    ck_assert(!agent->streaming_first_line);
+}
+
+END_TEST
+/* Test: First line gets prefix (no buffer, direct flush with content) */
+START_TEST(test_text_delta_first_line_prefix_no_buffer) {
+    /* Simulate STREAM_START which sets streaming_first_line = true */
+    ik_stream_event_t start_event = {
+        .type = IK_STREAM_START,
+        .data.start.model = "test-model"
+    };
+    ik_repl_stream_callback(&start_event, agent);
+
+    /* Send complete line directly */
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .data.delta.text = "Complete line\n"
+    };
+
+    res_t result = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&result));
+
+    /* Verify line was flushed */
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
+    ck_assert_ptr_null(agent->streaming_line_buffer);
+    /* streaming_first_line should be false now */
+    ck_assert(!agent->streaming_first_line);
+}
+
+END_TEST
+/* Test: First line gets prefix (empty line - just newline) */
+START_TEST(test_text_delta_first_line_prefix_empty_line) {
+    /* Simulate STREAM_START which sets streaming_first_line = true */
+    ik_stream_event_t start_event = {
+        .type = IK_STREAM_START,
+        .data.start.model = "test-model"
+    };
+    ik_repl_stream_callback(&start_event, agent);
+
+    /* Send just a newline as first line */
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TEXT_DELTA,
+        .data.delta.text = "\n"
+    };
+
+    res_t result = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&result));
+
+    /* Verify line was flushed (empty line with prefix) */
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
+    /* streaming_first_line should be false now */
+    ck_assert(!agent->streaming_first_line);
+}
+
+END_TEST
 /* Test: IK_STREAM_TEXT_DELTA without newline buffers text */
 START_TEST(test_text_delta_no_newline_buffers) {
     ik_stream_event_t event = {
@@ -379,6 +459,9 @@ static Suite *repl_stream_callback_suite(void)
     tcase_add_test(tc_stream, test_text_delta_appends_to_response);
     tcase_add_test(tc_stream, test_text_delta_null_text);
     tcase_add_test(tc_stream, test_text_delta_newline_flushes);
+    tcase_add_test(tc_stream, test_text_delta_first_line_prefix_with_buffer);
+    tcase_add_test(tc_stream, test_text_delta_first_line_prefix_no_buffer);
+    tcase_add_test(tc_stream, test_text_delta_first_line_prefix_empty_line);
     tcase_add_test(tc_stream, test_text_delta_no_newline_buffers);
     tcase_add_test(tc_stream, test_text_delta_appends_to_buffer);
     tcase_add_test(tc_stream, test_text_delta_buffer_and_newline);

@@ -35,15 +35,11 @@ const char *thinking_level_to_string(ik_thinking_level_t level)
 char *build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
                           bool is_override)
 {
+    (void)is_override;  // No longer needed - format is the same regardless
     const char *thinking_level_str = thinking_level_to_string(child->thinking_level);
 
-    if (is_override) {
-        return talloc_asprintf(ctx, "Forked child with %s/%s/%s",
-                               child->provider, child->model, thinking_level_str);
-    } else {
-        return talloc_asprintf(ctx, "Forked child with parent's model (%s/%s/%s)",
-                               child->provider, child->model, thinking_level_str);
-    }
+    return talloc_asprintf(ctx, "Forked child %s (%s/%s/%s)",
+                           child->uuid, child->provider, child->model, thinking_level_str);
 }
 
 /**
@@ -57,8 +53,11 @@ res_t insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
         return OK(NULL);
     }
 
-    // Insert parent-side fork event
-    char *parent_content = talloc_asprintf(ctx, "Forked child %.22s", child->uuid);
+    // Insert parent-side fork event with full model information
+    const char *thinking_level_str = thinking_level_to_string(child->thinking_level);
+    char *parent_content = talloc_asprintf(ctx, "Forked child %s (%s/%s/%s)",
+                                           child->uuid, child->provider, child->model,
+                                           thinking_level_str);
     if (parent_content == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }

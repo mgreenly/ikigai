@@ -279,6 +279,54 @@ START_TEST(test_completion_error_null_message) {
 
 END_TEST
 
+/* Test: Completion flushes buffer with prefix on first line */
+START_TEST(test_completion_flushes_buffer_with_prefix) {
+    /* Simulate first line scenario: streaming_first_line = true */
+    repl->current->streaming_first_line = true;
+    repl->current->streaming_line_buffer = talloc_strdup(repl, "First line content");
+
+    /* Create successful completion without response (edge case) */
+    ik_provider_completion_t completion = make_success_completion();
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify buffer was flushed with prefix and cleared */
+    ck_assert_ptr_null(repl->current->streaming_line_buffer);
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    /* streaming_first_line should be false now */
+    ck_assert(!repl->current->streaming_first_line);
+}
+
+END_TEST
+/* Test: Completion adds blank line after response content */
+START_TEST(test_completion_blank_line_after_response) {
+    /* Simulate response with content (assistant_response != NULL) */
+    repl->current->assistant_response = talloc_strdup(repl, "Some response");
+
+    /* Create response with metadata for usage rendering */
+    ik_response_t *response = talloc_zero(ctx, ik_response_t);
+    response->model = talloc_strdup(response, "test-model");
+    response->finish_reason = IK_FINISH_STOP;
+    response->usage.output_tokens = 10;
+    response->content_blocks = NULL;
+    response->content_count = 0;
+
+    ik_provider_completion_t completion = make_success_completion();
+    completion.response = response;
+
+    /* Call callback */
+    res_t result = ik_repl_completion_callback(&completion, repl->current);
+    ck_assert(is_ok(&result));
+
+    /* Verify blank line was added (before usage line) */
+    /* Scrollback should have: blank line + usage event line */
+    ck_assert_uint_ge((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 1);
+}
+
+END_TEST
+
 /* Test: Completion with text content (not tool_call) */
 START_TEST(test_completion_text_content_no_tool_call) {
     /* Create response with text content block */
@@ -330,6 +378,8 @@ static Suite *repl_http_completion_callback_basic_suite(void)
     tcase_add_test(tc_core, test_completion_client_error);
     tcase_add_test(tc_core, test_completion_flushes_buffer_and_stores_error);
     tcase_add_test(tc_core, test_completion_error_null_message);
+    tcase_add_test(tc_core, test_completion_flushes_buffer_with_prefix);
+    tcase_add_test(tc_core, test_completion_blank_line_after_response);
     tcase_add_test(tc_core, test_completion_text_content_no_tool_call);
     suite_add_tcase(s, tc_core);
 

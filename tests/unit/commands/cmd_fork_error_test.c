@@ -200,13 +200,14 @@ END_TEST
 START_TEST(test_build_fork_feedback_override) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
+    agent->uuid = talloc_strdup(agent, "test-uuid-12345");
     agent->provider = talloc_strdup(agent, "openai");
     agent->model = talloc_strdup(agent, "gpt-4o");
     agent->thinking_level = IK_THINKING_MED;
 
     char *feedback = build_fork_feedback(test_ctx, agent, true);
     ck_assert_ptr_nonnull(feedback);
-    ck_assert(strstr(feedback, "Forked child with openai/gpt-4o/medium") != NULL);
+    ck_assert(strstr(feedback, "Forked child test-uuid-12345 (openai/gpt-4o/medium)") != NULL);
 }
 
 END_TEST
@@ -214,14 +215,14 @@ END_TEST
 START_TEST(test_build_fork_feedback_inherit) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
+    agent->uuid = talloc_strdup(agent, "test-uuid-67890");
     agent->provider = talloc_strdup(agent, "anthropic");
     agent->model = talloc_strdup(agent, "claude-3-5-sonnet-20241022");
     agent->thinking_level = IK_THINKING_LOW;
 
     char *feedback = build_fork_feedback(test_ctx, agent, false);
     ck_assert_ptr_nonnull(feedback);
-    ck_assert(strstr(feedback, "parent's model") != NULL);
-    ck_assert(strstr(feedback, "anthropic/claude-3-5-sonnet-20241022/low") != NULL);
+    ck_assert(strstr(feedback, "Forked child test-uuid-67890 (anthropic/claude-3-5-sonnet-20241022/low)") != NULL);
 }
 
 END_TEST

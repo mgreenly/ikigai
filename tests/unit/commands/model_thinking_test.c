@@ -83,10 +83,10 @@ START_TEST(test_model_thinking_none) {
     ck_assert_str_eq(repl->current->provider, "anthropic");
     ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
 
-    // Verify feedback shows "disabled"
+    // Verify feedback shows "disabled" (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "disabled") != NULL);
 }
@@ -98,10 +98,10 @@ START_TEST(test_model_thinking_low) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
 
-    // Verify feedback shows thinking budget with tokens for Anthropic
+    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "low") != NULL);
     ck_assert(strstr(line, "tokens") != NULL);
@@ -114,10 +114,10 @@ START_TEST(test_model_thinking_med) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
 
-    // Verify feedback shows thinking budget with tokens for Anthropic
+    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "medium") != NULL);
     ck_assert(strstr(line, "tokens") != NULL);
@@ -130,10 +130,10 @@ START_TEST(test_model_thinking_high) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
 
-    // Verify feedback shows thinking budget with tokens for Anthropic
+    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
     ck_assert(strstr(line, "tokens") != NULL);
@@ -145,10 +145,10 @@ START_TEST(test_model_thinking_invalid) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/invalid");
     ck_assert(is_err(&res));
 
-    // Verify error message in scrollback
+    // Verify error message in scrollback (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Invalid thinking level") != NULL);
 }
@@ -160,10 +160,10 @@ START_TEST(test_model_google_thinking) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "google");
 
-    // Verify feedback shows thinking budget with tokens for Gemini 2.5
+    // Verify feedback shows thinking budget with tokens for Gemini 2.5 (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
     ck_assert(strstr(line, "tokens") != NULL);
@@ -176,10 +176,10 @@ START_TEST(test_model_openai_thinking) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify feedback shows thinking effort for GPT-5
+    // Verify feedback shows thinking effort for GPT-5 (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
     ck_assert(strstr(line, "effort") != NULL);
@@ -192,10 +192,10 @@ START_TEST(test_model_openai_thinking_low) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify feedback shows low effort for GPT-5
+    // Verify feedback shows low effort for GPT-5 (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "low") != NULL);
     ck_assert(strstr(line, "effort") != NULL);
@@ -208,10 +208,10 @@ START_TEST(test_model_openai_thinking_med) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify feedback shows medium effort for GPT-5
+    // Verify feedback shows medium effort for GPT-5 (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "medium") != NULL);
     ck_assert(strstr(line, "effort") != NULL);
@@ -225,10 +225,10 @@ START_TEST(test_model_openai_thinking_none) {
     ck_assert_str_eq(repl->current->provider, "openai");
     ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
 
-    // Verify feedback shows "disabled" (not "none effort")
+    // Verify feedback shows "disabled" (not "none effort") (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "disabled") != NULL);
 }
@@ -239,13 +239,13 @@ START_TEST(test_model_nothinking_with_level) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/high");
     ck_assert(is_ok(&res));
 
-    // Should have 2 lines: confirmation + warning
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Should have 4 lines: echo + blank + confirmation + warning
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 5);
 
-    // Verify warning message
+    // Verify warning message (line 3, after echo + blank + confirmation)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 1, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 3, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Warning") != NULL);
     ck_assert(strstr(line, "does not support thinking") != NULL);
@@ -260,10 +260,10 @@ START_TEST(test_model_switch_during_request) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_err(&res));
 
-    // Verify error message
+    // Verify error message (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Cannot switch models during active request") != NULL);
 
@@ -277,10 +277,10 @@ START_TEST(test_model_parse_trailing_slash) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/");
     ck_assert(is_err(&res));
 
-    // Verify error message
+    // Verify error message (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Malformed") != NULL);
     ck_assert(strstr(line, "trailing '/'") != NULL);
@@ -292,10 +292,10 @@ START_TEST(test_model_parse_empty_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model /high");
     ck_assert(is_err(&res));
 
-    // Verify error message
+    // Verify error message (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Malformed") != NULL);
     ck_assert(strstr(line, "empty model name") != NULL);
@@ -308,10 +308,10 @@ START_TEST(test_model_google_level_based) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "google");
 
-    // Verify feedback shows "level" instead of tokens for Gemini 3.x
+    // Verify feedback shows "level" instead of tokens for Gemini 3.x (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
     ck_assert(strstr(line, "level") != NULL);
@@ -325,10 +325,10 @@ START_TEST(test_model_anthropic_no_budget) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "anthropic");
 
-    // Verify feedback shows "level" instead of tokens when budget=0
+    // Verify feedback shows "level" instead of tokens when budget=0 (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
     ck_assert(strstr(line, "level") != NULL);

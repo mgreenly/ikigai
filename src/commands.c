@@ -5,6 +5,7 @@
 
 #include "commands.h"
 
+#include "ansi.h"
 #include "commands_basic.h"
 #include "commands_mark.h"
 #include "commands_model.h"
@@ -12,9 +13,11 @@
 #include "commands_tool.h"
 #include "db/message.h"
 #include "logger.h"
+#include "output_style.h"
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 
 #include <assert.h>
@@ -54,11 +57,11 @@ static const ik_command_t commands[] = {
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"fork", "Create a child agent (usage: /fork)", ik_cmd_fork},
     {"kill", "Terminate agent (usage: /kill [uuid])", ik_cmd_kill},
-    {"send", "Send mail to agent (usage: /send <uuid> \"message\")", ik_cmd_send},
-    {"check-mail", "Check inbox for messages", ik_cmd_check_mail},
-    {"read-mail", "Read a message (usage: /read-mail <id>)", ik_cmd_read_mail},
-    {"delete-mail", "Delete a message (usage: /delete-mail <id>)", ik_cmd_delete_mail},
-    {"filter-mail", "Filter inbox by sender (usage: /filter-mail --from <uuid>)", ik_cmd_filter_mail},
+    {"mail-send", "Send mail to agent (usage: /mail-send <uuid> \"message\")", ik_cmd_send},
+    {"mail-check", "Check inbox for messages", ik_cmd_check_mail},
+    {"mail-read", "Read a message (usage: /mail-read <id>)", ik_cmd_read_mail},
+    {"mail-delete", "Delete a message (usage: /mail-delete <id>)", ik_cmd_delete_mail},
+    {"mail-filter", "Filter inbox by sender (usage: /mail-filter --from <uuid>)", ik_cmd_filter_mail},
     {"agents", "Display agent hierarchy tree", ik_cmd_agents},
     {"help", "Show available commands", ik_cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", ik_cmd_model},
@@ -98,11 +101,9 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
 
     // Empty command (just "/")
     if (*cmd_start == '\0') {     // LCOV_EXCL_BR_LINE
-        char *msg = talloc_strdup(ctx, "Error: Empty command");
-        if (!msg) {         // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
+        char *msg = ik_scrollback_format_warning(ctx, "Empty command");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return ERR(ctx, INVALID_ARG, "Empty command");
     }
 
@@ -127,6 +128,38 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     // Args is NULL if no arguments, otherwise points to remaining text
     const char *args = (*args_start == '\0') ? NULL : args_start;     // LCOV_EXCL_BR_LINE
 
+    // Echo command to scrollback before execution
+    {
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_CMD);
+        char color_seq[16] = {0};
+        if (ik_ansi_colors_enabled() && color_code >= 0) {
+            ik_ansi_fg_256(color_seq, sizeof(color_seq), (uint8_t)color_code);
+        }
+
+        char *echo_line = NULL;
+        if (color_seq[0] != '\0') {
+            echo_line = talloc_asprintf(ctx, "%s%s%s", color_seq, input, IK_ANSI_RESET);
+        } else {
+            echo_line = talloc_strdup(ctx, input);
+        }
+
+        if (!echo_line) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");    // LCOV_EXCL_LINE
+        }
+
+        res_t echo_res = ik_scrollback_append_line(repl->current->scrollback, echo_line, strlen(echo_line));
+        talloc_free(echo_line);
+        if (is_err(&echo_res)) {     // LCOV_EXCL_BR_LINE
+            return echo_res;     // LCOV_EXCL_LINE
+        }
+
+        // Append blank line after command echo
+        echo_res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+        if (is_err(&echo_res)) {     // LCOV_EXCL_BR_LINE
+            return echo_res;     // LCOV_EXCL_LINE
+        }
+    }
+
     // Capture scrollback line count before command execution
     size_t lines_before = ik_scrollback_get_line_count(repl->current->scrollback);
 
@@ -135,6 +168,15 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
         if (strcmp(cmd_name, commands[i].name) == 0) {         // LCOV_EXCL_BR_LINE
             // Found matching command, invoke handler
             res_t handler_res = commands[i].handler(ctx, repl, args);
+
+            // Add blank line after command output if handler produced output
+            size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
+            if (is_ok(&handler_res) && lines_after > lines_before) {
+                res_t blank_res = ik_scrollback_append_line(repl->current->scrollback, "", 0);
+                if (is_err(&blank_res)) {     // LCOV_EXCL_BR_LINE
+                    return blank_res;     // LCOV_EXCL_LINE
+                }
+            }
 
             // Persist command output to database if handler succeeded
             if (is_ok(&handler_res)) {
@@ -146,11 +188,14 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     }
 
     // Unknown command
-    char *msg = talloc_asprintf(ctx, "Error: Unknown command '%s'", cmd_name);
-    if (!msg) {     // LCOV_EXCL_BR_LINE
+    char *err_text = talloc_asprintf(ctx, "Unknown command '%s'", cmd_name);
+    if (!err_text) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
+    char *msg = ik_scrollback_format_warning(ctx, err_text);
+    talloc_free(err_text);
     ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    talloc_free(msg);
     return ERR(ctx, INVALID_ARG, "Unknown command '%s'", cmd_name);
 }
 
@@ -168,35 +213,42 @@ void ik_cmd_persist_to_db(void *ctx, ik_repl_ctx_t *repl, const char *input,
         return;
     }
 
-    // Build command content: input + output
+    // Build command output (content only, not echo)
     size_t lines_after = ik_scrollback_get_line_count(repl->current->scrollback);
 
-    // Allocate buffer for content
-    char *content = talloc_asprintf(ctx, "%s\n", input);
-    if (!content) {     // LCOV_EXCL_BR_LINE
-        PANIC("OOM");   // LCOV_EXCL_LINE
-    }
-
-    // Append command output from scrollback
-    for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
-        const char *line_text = NULL;
-        size_t line_len = 0;
-        res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
-        assert(is_ok(&line_res));  // LCOV_EXCL_BR_LINE
-        char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
-        if (!new_content) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
+    // Build content from command output lines
+    char *content = NULL;
+    if (lines_after > lines_before) {
+        // Append command output from scrollback
+        for (size_t line_idx = lines_before; line_idx < lines_after; line_idx++) {
+            const char *line_text = NULL;
+            size_t line_len = 0;
+            res_t line_res = ik_scrollback_get_line_text(repl->current->scrollback, line_idx, &line_text, &line_len);
+            assert(is_ok(&line_res));  // LCOV_EXCL_BR_LINE
+            if (content == NULL) {
+                content = talloc_asprintf(ctx, "%s\n", line_text);
+            } else {
+                char *new_content = talloc_asprintf(ctx, "%s%s\n", content, line_text);
+                if (!new_content) {     // LCOV_EXCL_BR_LINE
+                    PANIC("OOM");   // LCOV_EXCL_LINE
+                }
+                talloc_free(content);
+                content = new_content;
+            }
+            if (!content) {     // LCOV_EXCL_BR_LINE
+                PANIC("OOM");   // LCOV_EXCL_LINE
+            }
         }
-        talloc_free(content);
-        content = new_content;
     }
 
-    // Build data_json with command metadata
+    // Build data_json with command metadata and echo
     char *data_json = NULL;
     if (args != NULL) {
-        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\"}", cmd_name, args);
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":\"%s\",\"echo\":\"%s\"}",
+                                    cmd_name, args, input);
     } else {
-        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null}", cmd_name);
+        data_json = talloc_asprintf(ctx, "{\"command\":\"%s\",\"args\":null,\"echo\":\"%s\"}",
+                                    cmd_name, input);
     }
     if (!data_json) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE

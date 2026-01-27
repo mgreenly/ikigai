@@ -5,14 +5,15 @@
 
 #include "commands_mark.h"
 
+#include "agent.h"
 #include "db/message.h"
 #include "db/pg_result.h"
 #include "logger.h"
 #include "marks.h"
 #include "panic.h"
 #include "repl.h"
-#include "agent.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 #include "wrapper.h"
 
@@ -124,8 +125,7 @@ res_t ik_cmd_rewind(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res_t find_result = ik_mark_find(repl, label, &target_mark);
     if (is_err(&find_result)) {
         // Show error message in scrollback
-        char *err_msg = talloc_asprintf(ctx, "Error: %s", find_result.err->msg);
-        if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        char *err_msg = ik_scrollback_format_warning(ctx, find_result.err->msg);
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
         talloc_free(err_msg);
         talloc_free(find_result.err);

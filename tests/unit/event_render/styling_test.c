@@ -25,7 +25,7 @@ START_TEST(test_user_message_no_color) {
 
     // Verify no ANSI escape sequences in user messages
     ck_assert_ptr_null(strstr(text, "\x1b["));
-    ck_assert_mem_eq(text, "Hello", 5);
+    ck_assert_mem_eq(text, "❯ Hello", 8);
 
     talloc_free(ctx);
 }
@@ -42,10 +42,10 @@ START_TEST(test_assistant_message_gray_249) {
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
 
-    // Should contain ANSI color sequence for gray 249
+    // Should contain ANSI color sequence for gray 249 and "●" prefix
     ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;249m"));
     ck_assert_ptr_nonnull(strstr(text, "\x1b[0m"));
-    ck_assert_ptr_nonnull(strstr(text, "I am here"));
+    ck_assert_ptr_nonnull(strstr(text, "\xe2\x97\x8f I am here"));  // ● = UTF-8 \xe2\x97\x8f
 
     talloc_free(ctx);
 }
@@ -105,8 +105,8 @@ START_TEST(test_system_message_gray_242) {
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
 
-    // Should contain ANSI color sequence for gray 242
-    ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;242m"));
+    // Should contain ANSI color sequence for subdued yellow 179
+    ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;179m"));
     ck_assert_ptr_nonnull(strstr(text, "\x1b[0m"));
     ck_assert_ptr_nonnull(strstr(text, "System prompt"));
 
@@ -178,7 +178,8 @@ START_TEST(test_colors_disabled) {
 
     // Verify no ANSI escape sequences when colors are disabled
     ck_assert_ptr_null(strstr(text, "\x1b["));
-    ck_assert_mem_eq(text, "Response text", 13);
+    // Assistant messages now include "● " prefix
+    ck_assert_ptr_nonnull(strstr(text, "\xe2\x97\x8f Response text"));  // ● = UTF-8 \xe2\x97\x8f
 
     // Clean up
     unsetenv("NO_COLOR");

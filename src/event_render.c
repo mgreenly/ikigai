@@ -6,6 +6,7 @@
 #include "event_render.h"
 
 #include "ansi.h"
+#include "output_style.h"
 #include "panic.h"
 #include "scrollback.h"
 #include "scrollback_utils.h"
@@ -111,6 +112,80 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     return result;
 }
 
+// Helper: render command event
+static res_t render_command_event(ik_scrollback_t *scrollback, const char *content, const char *data_json)
+{
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Extract echo from data_json
+    char *echo = NULL;
+    if (data_json != NULL) {
+        yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
+        if (doc != NULL) {
+            yyjson_val *root = yyjson_doc_get_root_(doc);
+            yyjson_val *echo_val = yyjson_obj_get_(root, "echo");
+            if (echo_val != NULL && yyjson_is_str(echo_val)) {
+                const char *echo_str = yyjson_get_str_(echo_val);
+                if (echo_str != NULL && echo_str[0] != '\0') {
+                    echo = talloc_strdup(tmp, echo_str);
+                    if (echo == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+                }
+            }
+            yyjson_doc_free(doc);
+        }
+    }
+
+    // Render echo in gray if present
+    if (echo != NULL) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_CMD);
+        uint8_t color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+        char *styled_echo = apply_style(tmp, echo, color);
+        if (styled_echo == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        res_t result = ik_scrollback_append_line_(scrollback, styled_echo, strlen(styled_echo));
+        if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+            talloc_free(tmp);     // LCOV_EXCL_LINE
+            return result;     // LCOV_EXCL_LINE
+        }
+
+        // Append blank line after echo
+        result = ik_scrollback_append_line_(scrollback, "", 0);
+        if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+            talloc_free(tmp);     // LCOV_EXCL_LINE
+            return result;     // LCOV_EXCL_LINE
+        }
+    }
+
+    // Render output in subdued yellow if present
+    if (content != NULL && content[0] != '\0') {
+        // Trim trailing whitespace
+        char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
+
+        if (trimmed[0] != '\0') {
+            int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
+            uint8_t color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+            char *styled_output = apply_style(tmp, trimmed, color);
+            if (styled_output == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+            res_t result = ik_scrollback_append_line_(scrollback, styled_output, strlen(styled_output));
+            if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+                talloc_free(tmp);     // LCOV_EXCL_LINE
+                return result;     // LCOV_EXCL_LINE
+            }
+
+            // Append blank line after output
+            result = ik_scrollback_append_line_(scrollback, "", 0);
+            if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+                talloc_free(tmp);     // LCOV_EXCL_LINE
+                return result;     // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
 // Helper: render token usage line from data_json
 static res_t render_token_usage(ik_scrollback_t *scrollback, const char *data_json)
 {
@@ -162,7 +237,7 @@ static res_t render_token_usage(ik_scrollback_t *scrollback, const char *data_js
 }
 
 // Helper: render content event (user, assistant, system, tool_call, tool_result)
-static res_t render_content_event(ik_scrollback_t *scrollback, const char *content, uint8_t color)
+static res_t render_content_event(ik_scrollback_t *scrollback, const char *content, uint8_t color, const char *prefix)
 {
     // Content can be NULL (e.g., empty system message)
     if (content == NULL || content[0] == '\0') {
@@ -171,13 +246,21 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
 
     TALLOC_CTX *tmp = tmp_ctx_create();
 
+    // Prepend prefix if provided
+    char *with_prefix = NULL;
+    if (prefix != NULL) {
+        with_prefix = talloc_asprintf(tmp, "%s %s", prefix, content);
+        if (with_prefix == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        content = with_prefix;
+    }
+
     // Trim trailing whitespace
     char *trimmed = ik_scrollback_trim_trailing(tmp, content, strlen(content));
 
     // Skip if empty after trimming
-    if (trimmed[0] == '\0') {
-        talloc_free(tmp);
-        return OK(NULL);
+    if (trimmed[0] == '\0') {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return OK(NULL);     // LCOV_EXCL_LINE
     }
 
     // Apply color styling
@@ -186,9 +269,9 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
 
     // Append content
     res_t result = ik_scrollback_append_line_(scrollback, styled, strlen(styled));
-    if (is_err(&result)) {
-        talloc_free(tmp);
-        return result;
+    if (is_err(&result)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return result;     // LCOV_EXCL_LINE
     }
 
     // Append blank line for spacing
@@ -211,18 +294,26 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return ERR(scrollback, INVALID_ARG, "kind parameter cannot be NULL");
     } // LCOV_EXCL_STOP
 
-    // Determine color based on kind
+    // Determine color and prefix based on kind using centralized output style system
     uint8_t color = 0;
+    const char *prefix = NULL;
     if (strcmp(kind, "assistant") == 0) {
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
-    } else if (strcmp(kind, "tool_call") == 0 ||
-               strcmp(kind, "tool_result") == 0 ||
-               strcmp(kind, "system") == 0 ||
-               strcmp(kind, "command") == 0 ||
+        prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
+    } else if (strcmp(kind, "user") == 0) {
+        prefix = ik_output_prefix(IK_OUTPUT_USER_INPUT);
+    } else if (strcmp(kind, "tool_call") == 0) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_REQUEST);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+    } else if (strcmp(kind, "tool_result") == 0) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+    } else if (strcmp(kind, "system") == 0 ||
                strcmp(kind, "fork") == 0) {
-        color = IK_ANSI_GRAY_SUBDUED;  // 242 - very subdued
+        int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
     }
-    // user, mark, rewind, clear: color = 0 (no color)
+    // mark, rewind, clear, command: handled separately
 
     // Handle each event kind
     if (strcmp(kind, "assistant") == 0 ||
@@ -230,9 +321,12 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "system") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
         strcmp(kind, "tool_result") == 0 ||
-        strcmp(kind, "command") == 0 ||
         strcmp(kind, "fork") == 0) {
-        return render_content_event(scrollback, content, color);
+        return render_content_event(scrollback, content, color, prefix);
+    }
+
+    if (strcmp(kind, "command") == 0) {
+        return render_command_event(scrollback, content, data_json);
     }
 
     if (strcmp(kind, "mark") == 0) {

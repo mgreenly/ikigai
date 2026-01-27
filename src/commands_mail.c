@@ -14,6 +14,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 
 #include <assert.h>
@@ -30,7 +31,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Parse: <uuid> "message"
     if (args == NULL || args[0] == '\0') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -38,7 +39,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Extract UUID
     char uuid[256];
     if (!ik_mail_parse_uuid(args, uuid)) {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -57,7 +58,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Extract quoted message
     if (*p != '"') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -69,7 +70,7 @@ res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     if (*p != '"') {     // LCOV_EXCL_BR_LINE
-        const char *err = "Usage: /send <uuid> \"message\"";
+        const char *err = "Usage: /mail-send <uuid> \"message\"";
         ik_scrollback_append_line(repl->current->scrollback, err, strlen(err));
         return OK(NULL);
     }
@@ -199,10 +200,12 @@ res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse message index (1-based)
     int64_t index;
     if (!ik_mail_parse_index(args, &index)) {     // LCOV_EXCL_BR_LINE
-        const char *msg = args == NULL || args[0] == '\0'
-            ? "Error: Missing message ID (usage: /read-mail <id>)"
-            : "Error: Invalid message ID";
+        const char *msg_text = args == NULL || args[0] == '\0'
+            ? "Missing message ID (usage: /mail-read <id>)"
+            : "Invalid message ID";
+        char *msg = ik_scrollback_format_warning(ctx, msg_text);
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
@@ -219,8 +222,9 @@ res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Validate index is within range
     if ((size_t)index > count) {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Message not found";
+        char *msg = ik_scrollback_format_warning(ctx, "Message not found");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
@@ -267,10 +271,12 @@ res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse message index (1-based position)
     int64_t index;
     if (!ik_mail_parse_index(args, &index)) {     // LCOV_EXCL_BR_LINE
-        const char *msg = args == NULL || args[0] == '\0'
-            ? "Error: Missing message ID (usage: /delete-mail <id>)"
-            : "Error: Invalid message ID";
+        const char *msg_text = args == NULL || args[0] == '\0'
+            ? "Missing message ID (usage: /mail-delete <id>)"
+            : "Invalid message ID";
+        char *msg = ik_scrollback_format_warning(ctx, msg_text);
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
@@ -287,8 +293,9 @@ res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Validate index is within range
     if ((size_t)index > count) {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Message not found";
+        char *msg = ik_scrollback_format_warning(ctx, "Message not found");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
@@ -299,8 +306,9 @@ res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     res = ik_db_mail_delete(repl->shared->db_ctx, msg->id, repl->current->uuid);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         if (res.err->code == ERR_IO && strstr(res.err->msg, "not found")) {     // LCOV_EXCL_BR_LINE
-            const char *msg_text = "Error: Mail not found or not yours";
+            char *msg_text = ik_scrollback_format_warning(ctx, "Mail not found or not yours");
             ik_scrollback_append_line(repl->current->scrollback, msg_text, strlen(msg_text));
+            talloc_free(msg_text);
             talloc_free(res.err);
         } else {
             return res;     // LCOV_EXCL_LINE
@@ -322,8 +330,9 @@ res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Parse --from <uuid>
     if (args == NULL || strncmp(args, "--from ", 7) != 0) {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Usage: /filter-mail --from <uuid>";
+        char *msg = ik_scrollback_format_warning(ctx, "Usage: /mail-filter --from <uuid>");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
@@ -334,21 +343,23 @@ res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     if (*uuid_arg == '\0') {     // LCOV_EXCL_BR_LINE
-        const char *msg = "Error: Usage: /filter-mail --from <uuid>";
+        char *msg = ik_scrollback_format_warning(ctx, "Usage: /mail-filter --from <uuid>");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 
     // Find the sender agent by UUID (partial match allowed)
     ik_agent_ctx_t *sender = ik_repl_find_agent(repl, uuid_arg);
     if (sender == NULL) {     // LCOV_EXCL_BR_LINE
+        char *msg;
         if (ik_repl_uuid_ambiguous(repl, uuid_arg)) {     // LCOV_EXCL_BR_LINE
-            const char *msg = "Error: Ambiguous UUID prefix";
-            ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+            msg = ik_scrollback_format_warning(ctx, "Ambiguous UUID prefix");
         } else {
-            const char *msg = "Error: Agent not found";
-            ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+            msg = ik_scrollback_format_warning(ctx, "Agent not found");
         }
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        talloc_free(msg);
         return OK(NULL);
     }
 

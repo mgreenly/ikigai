@@ -8,6 +8,7 @@
 // Color constants (256-color palette indices)
 #define IK_ANSI_GRAY_SUBDUED 242
 #define IK_ANSI_GRAY_LIGHT   249
+#define IK_ANSI_YELLOW_SUBDUED 179
 
 // SGR sequence literals
 #define IK_ANSI_RESET "\x1b[0m"

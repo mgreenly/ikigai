@@ -71,8 +71,8 @@ START_TEST(test_render_user_event) {
     const char *text;
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
-    ck_assert_uint_eq(length, 11);
-    ck_assert_mem_eq(text, "Hello world", 11);
+    ck_assert_uint_eq(length, 15);
+    ck_assert_mem_eq(text, "❯ Hello world", 15);
 
     // Second line should be blank
     ik_scrollback_get_line_text(scrollback, 1, &text, &length);

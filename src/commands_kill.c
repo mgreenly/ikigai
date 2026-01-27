@@ -12,6 +12,7 @@
 #include "panic.h"
 #include "repl.h"
 #include "scrollback.h"
+#include "scrollback_utils.h"
 #include "shared.h"
 #include "wrapper.h"
 
@@ -148,8 +149,9 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // No args = kill self
     if (args == NULL || args[0] == '\0') {
         if (repl->current->parent_uuid == NULL) {
-            const char *err_msg = "Error: Cannot kill root agent";
+            char *err_msg = ik_scrollback_format_warning(ctx, "Cannot kill root agent");
             ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+            talloc_free(err_msg);
             return OK(NULL);
         }
 
@@ -236,20 +238,22 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Find target agent by UUID (partial match allowed)
     ik_agent_ctx_t *target = ik_repl_find_agent(repl, uuid_arg);
     if (target == NULL) {
+        char *err_msg;
         if (ik_repl_uuid_ambiguous(repl, uuid_arg)) {     // LCOV_EXCL_BR_LINE
-            const char *err_msg = "Error: Ambiguous UUID prefix";     // LCOV_EXCL_LINE
-            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));     // LCOV_EXCL_LINE
+            err_msg = ik_scrollback_format_warning(ctx, "Ambiguous UUID prefix");     // LCOV_EXCL_LINE
         } else {     // LCOV_EXCL_LINE
-            const char *err_msg = "Error: Agent not found";
-            ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+            err_msg = ik_scrollback_format_warning(ctx, "Agent not found");
         }
+        ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        talloc_free(err_msg);
         return OK(NULL);
     }
 
     // Check if root
     if (target->parent_uuid == NULL) {
-        const char *err_msg = "Error: Cannot kill root agent";
+        char *err_msg = ik_scrollback_format_warning(ctx, "Cannot kill root agent");
         ik_scrollback_append_line(repl->current->scrollback, err_msg, strlen(err_msg));
+        talloc_free(err_msg);
         return OK(NULL);
     }
 

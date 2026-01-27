@@ -81,11 +81,11 @@ START_TEST(test_system_set_message) {
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
     ck_assert_str_eq(repl->shared->cfg->openai_system_message, "You are a helpful assistant");
 
-    // Verify confirmation message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    // Verify confirmation message in scrollback (line 2, after echo and blank)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "System message set to: You are a helpful assistant");
@@ -104,11 +104,11 @@ START_TEST(test_system_clear_message) {
     // Verify system message was cleared
     ck_assert_ptr_null(repl->shared->cfg->openai_system_message);
 
-    // Verify confirmation message in scrollback
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 1);
+    // Verify confirmation message in scrollback (line 2, after echo and blank)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "System message cleared");
@@ -129,10 +129,10 @@ START_TEST(test_system_replace_message) {
     ck_assert_ptr_nonnull(repl->shared->cfg->openai_system_message);
     ck_assert_str_eq(repl->shared->cfg->openai_system_message, "New message");
 
-    // Verify confirmation message in scrollback
+    // Verify confirmation message in scrollback (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert_str_eq(line, "System message set to: New message");
@@ -180,8 +180,8 @@ START_TEST(test_system_multiple_cycles) {
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->shared->cfg->openai_system_message, "Second");
 
-    // Verify scrollback has all 3 messages
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 3);
+    // Verify scrollback has all 3 messages (3 commands × 3 lines each)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 12);
 }
 
 END_TEST
