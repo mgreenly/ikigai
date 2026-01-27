@@ -47,7 +47,7 @@ static void teardown(void)
 
 // Test: NULL registry
 START_TEST(test_null_registry) {
-    char *result = ik_tool_execute_from_registry(test_ctx, NULL, paths, "agent1", "test_tool", "{}");
+    char *result = ik_tool_execute_from_registry(test_ctx, NULL, paths, "agent1", "test_tool", "{}", NULL);
     ck_assert_ptr_nonnull(result);
 
     yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
@@ -62,7 +62,7 @@ END_TEST
 
 // Test: Tool not found
 START_TEST(test_tool_not_found) {
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "nonexistent", "{}");
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "nonexistent", "{}", NULL);
     ck_assert_ptr_nonnull(result);
 
     yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
@@ -88,7 +88,7 @@ START_TEST(test_translate_args_error) {
     ck_assert(!is_err(&add_res));
 
     // Call with NULL paths to trigger translation error
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, NULL, "agent1", "test_tool", "{}");
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, NULL, "agent1", "test_tool", "{}", NULL);
     ck_assert_ptr_nonnull(result);
 
     yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
@@ -124,7 +124,7 @@ START_TEST(test_successful_execution) {
     ck_assert(!is_err(&add_res));
 
     // Execute the tool
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{\"test\":\"data\"}");
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{\"test\":\"data\"}", NULL);
     ck_assert_ptr_nonnull(result);
 
     // Verify success
@@ -142,16 +142,17 @@ END_TEST
 
 // Mock for tool execution failure
 static int mock_tool_exec_fail = 0;
-res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, char **out_result)
+res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, pid_t *child_pid_out, char **out_result)
 {
     (void)tool_path;
     (void)agent_id;
     (void)arguments_json;
+    (void)child_pid_out;
     (void)out_result;
     if (mock_tool_exec_fail) {
         return ERR(ctx, IO, "Tool execution failed");
     }
-    return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, out_result);
+    return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, child_pid_out, out_result);
 }
 
 // Test: Tool execution failure
@@ -165,7 +166,7 @@ START_TEST(test_tool_execution_failure) {
     ck_assert(!is_err(&add_res));
 
     mock_tool_exec_fail = 1;
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{}");
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{}", NULL);
     mock_tool_exec_fail = 0;
 
     ck_assert_ptr_nonnull(result);
@@ -210,7 +211,7 @@ START_TEST(test_translate_back_failure) {
     ck_assert(!is_err(&add_res));
 
     mock_translate_back_fail = 1;
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{}");
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{}", NULL);
     mock_translate_back_fail = 0;
 
     ck_assert_ptr_nonnull(result);
