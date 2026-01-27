@@ -65,6 +65,14 @@ typedef struct ik_repl_ctx_t {
     uint64_t render_start_us;         // Timestamp when input received (0 = not set)
     uint64_t render_elapsed_us;       // Elapsed time from previous render (computed at end of render)
 
+#ifdef IKIGAI_DEV
+    // Dev-mode framebuffer dump (compile with IKIGAI_DEV=1)
+    char *dev_framebuffer;            // Last rendered framebuffer
+    size_t dev_framebuffer_len;       // Length of framebuffer
+    int32_t dev_cursor_row;           // Final cursor row (0-indexed)
+    int32_t dev_cursor_col;           // Final cursor col (0-indexed)
+#endif
+
     // Note: completion removed - now in agent context (repl->current->completion)
     // Note: history removed - now in shared context (repl->shared->history)
     // Note: tool state removed - now in agent context (repl->current->pending_tool_call, etc.)
@@ -140,3 +148,10 @@ res_t ik_repl_nav_child(ik_repl_ctx_t *repl);
 // Called automatically after agent switch, fork, and kill
 // Can be called manually to refresh navigation indicators
 void ik_repl_update_nav_context(ik_repl_ctx_t *repl);
+
+#ifdef IKIGAI_DEV
+// Dump framebuffer to .ikigai/debug/repl_viewport.framebuffer
+// Only available when compiled with IKIGAI_DEV=1
+// Writes only if .ikigai/debug/ directory exists (runtime opt-in)
+void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl);
+#endif
