@@ -38,3 +38,6 @@ res_t ik_repl_flush_pending_scroll_arrow(ik_repl_ctx_t *repl, const ik_input_act
 
 // Interrupt handling
 void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl);
+
+// ESC key handling
+res_t ik_repl_handle_escape_action(ik_repl_ctx_t *repl);

@@ -242,6 +242,33 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
+void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+{
+    agent->interrupt_requested = false;
+    if (agent->http_error_message != NULL) {
+        talloc_free(agent->http_error_message);
+        agent->http_error_message = NULL;
+    }
+    if (agent->assistant_response != NULL) {
+        talloc_free(agent->assistant_response);
+        agent->assistant_response = NULL;
+    }
+    const char *msg = "Interrupted";
+    ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                             agent->uuid, "interrupted", NULL, NULL);
+        if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+    }
+    ik_agent_transition_to_idle_(agent);
+    if (agent == repl->current) {
+        res_t result = ik_repl_render_frame_(repl);
+        if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+    }
+}
+
 static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (agent->curl_still_running > 0 && agent->provider_instance != NULL) {
@@ -254,28 +281,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check interrupt flag before processing completion
             if (agent->interrupt_requested) {
-                agent->interrupt_requested = false;
-                if (agent->http_error_message != NULL) {
-                    talloc_free(agent->http_error_message);
-                    agent->http_error_message = NULL;
-                }
-                if (agent->assistant_response != NULL) {
-                    talloc_free(agent->assistant_response);
-                    agent->assistant_response = NULL;
-                }
-                const char *msg = "Interrupted";
-                ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
-                if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-                    res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                                         agent->uuid, "interrupted", NULL, NULL);
-                    if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
-                        talloc_free(db_res.err);  // LCOV_EXCL_LINE
-                    }
-                }
-                ik_agent_transition_to_idle_(agent);
-                if (agent == repl->current) {
-                    CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE
-                }
+                ik_repl_handle_interrupted_llm_completion(repl, agent);
             } else {
                 if (agent->http_error_message != NULL) {
                     handle_agent_request_error(repl, agent);
