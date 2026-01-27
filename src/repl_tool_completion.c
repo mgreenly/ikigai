@@ -58,7 +58,8 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
             talloc_free(db_res.err);  // LCOV_EXCL_LINE
         }
     }
-    ik_agent_transition_to_idle_(agent);
+    ik_agent_transition_from_executing_tool(agent);
+    ik_agent_transition_to_idle(agent);
     if (agent == repl->current) {
         res_t result = ik_repl_render_frame_(repl);
         if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
