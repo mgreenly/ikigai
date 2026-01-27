@@ -350,6 +350,12 @@ static __thread char test_path_prefix[256] = {0};
 
 const char *test_paths_setup_env(void)
 {
+    // Unset database environment variables to avoid interference from .envrc
+    unsetenv("IKIGAI_DB_HOST");
+    unsetenv("IKIGAI_DB_PORT");
+    unsetenv("IKIGAI_DB_NAME");
+    unsetenv("IKIGAI_DB_USER");
+
     // Generate PID-based unique prefix
     snprintf(test_path_prefix, sizeof(test_path_prefix),
              "/tmp/ikigai_test_%d", getpid());
@@ -407,6 +413,10 @@ void test_paths_cleanup_env(void)
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
     unsetenv("IKIGAI_STATE_DIR");
+    unsetenv("IKIGAI_DB_HOST");
+    unsetenv("IKIGAI_DB_PORT");
+    unsetenv("IKIGAI_DB_NAME");
+    unsetenv("IKIGAI_DB_USER");
 
     // Remove test directory tree if it exists
     if (test_path_prefix[0] != '\0') {

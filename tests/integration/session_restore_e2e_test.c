@@ -545,7 +545,9 @@ START_TEST(test_restore_forked_agent) {
         res_t paths_res = ik_paths_init(ctx, &paths);
         ck_assert(is_ok(&paths_res));
     }
-    r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = db;
 

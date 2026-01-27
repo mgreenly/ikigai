@@ -3,6 +3,7 @@
 #include "../../src/repl.h"
 #include "../../src/shared.h"
 #include "../../src/paths.h"
+#include "../../src/credentials.h"
 #include "../test_utils_helper.h"
 
 #include <check.h>
@@ -230,7 +231,10 @@ START_TEST(test_history_loads_on_init) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -262,7 +266,10 @@ START_TEST(test_history_saves_on_submit) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -306,7 +313,10 @@ START_TEST(test_history_survives_repl_restart) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t r = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared1);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared1);
     ck_assert(is_ok(&r));
     res_t result = ik_repl_init(ctx, shared1, &repl1);
     ck_assert(is_ok(&result));
@@ -328,7 +338,9 @@ START_TEST(test_history_survives_repl_restart) {
         ck_assert(is_ok(&paths_res));
     }
 
-    r = ik_shared_ctx_init(ctx, cfg, paths2, logger2, &shared2);
+    ik_credentials_t *creds2 = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds2 == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    r = ik_shared_ctx_init(ctx, cfg, creds2, paths2, logger2, &shared2);
     ck_assert(is_ok(&r));
     result = ik_repl_init(ctx, shared2, &repl2);
     ck_assert(is_ok(&result));

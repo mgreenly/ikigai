@@ -13,7 +13,10 @@ typedef struct {
     char *openai_system_message;
     char *listen_address;
     uint16_t listen_port;
-    char *db_connection_string;
+    char *db_host;
+    int32_t db_port;
+    char *db_name;
+    char *db_user;
     int32_t max_tool_turns;
     int64_t max_output_size;
     int32_t history_size;

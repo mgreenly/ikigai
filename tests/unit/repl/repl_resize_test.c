@@ -13,6 +13,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
+#include "../../../src/credentials.h"
 #include "../../../src/terminal.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils_helper.h"
@@ -128,7 +129,10 @@ START_TEST(test_resize_updates_terminal_dimensions) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -175,7 +179,10 @@ START_TEST(test_resize_invalidates_scrollback_layout) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -229,7 +236,10 @@ START_TEST(test_resize_handles_ioctl_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -270,7 +280,10 @@ START_TEST(test_sigwinch_handler_installed) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context

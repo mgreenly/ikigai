@@ -106,6 +106,7 @@ static res_t load_from_file(TALLOC_CTX *ctx, const char *path, ik_credentials_t 
     load_credential_field(root, "GOOGLE_SEARCH_ENGINE_ID", creds, &creds->google_search_engine_id);
     load_credential_field(root, "NTFY_API_KEY", creds, &creds->ntfy_api_key);
     load_credential_field(root, "NTFY_TOPIC", creds, &creds->ntfy_topic);
+    load_credential_field(root, "IKIGAI_DB_PASS", creds, &creds->db_pass);
 
     return OK(NULL);
 }
@@ -224,6 +225,15 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
         if (creds->ntfy_topic == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
 
+    const char *env_db_pass = get_env_nonempty("IKIGAI_DB_PASS");
+    if (env_db_pass) {
+        if (creds->db_pass) {
+            talloc_free(creds->db_pass);
+        }
+        creds->db_pass = talloc_strdup(creds, env_db_pass);
+        if (creds->db_pass == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
     *out_creds = creds;
     return OK(creds);
 }
@@ -249,6 +259,8 @@ const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_va
         return creds->ntfy_api_key;
     } else if (strcmp(env_var_name, "NTFY_TOPIC") == 0) {
         return creds->ntfy_topic;
+    } else if (strcmp(env_var_name, "IKIGAI_DB_PASS") == 0) {
+        return creds->db_pass;
     }
 
     return NULL;
