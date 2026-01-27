@@ -220,73 +220,58 @@ START_TEST(test_interrupt_request_waiting_for_llm)
 }
 END_TEST
 
-// Test: ik_repl_handle_interrupt_request with EXECUTING_TOOL (child terminates quickly)
+// Test: interrupt request EXECUTING_TOOL (quick termination)
 START_TEST(test_interrupt_request_executing_tool_quick_termination)
 {
-    // Setup: Create a child process that exits immediately on SIGTERM
+    // Create child that sleeps briefly
     pid_t child_pid = fork();
     if (child_pid == 0) {
-        // Child process: create new process group and sleep briefly
         setpgid(0, 0);
-        usleep(100000); // 100ms
+        usleep(100000);
         _exit(0);
     }
-
-    // Parent process
     ck_assert(child_pid > 0);
 
-    // Setup: Set state to EXECUTING_TOOL with the child PID
+    // Set state to EXECUTING_TOOL
     pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
     repl->current->tool_child_pid = child_pid;
 
-    // Action: Call interrupt handler (will send SIGTERM)
     ik_repl_handle_interrupt_request(repl);
-
-    // Assert: interrupt_requested flag set
     ck_assert(repl->current->interrupt_requested);
 
-    // Clean up: wait for child
     int32_t status;
     waitpid(child_pid, &status, 0);
 }
 END_TEST
 
-// Test: ik_repl_handle_interrupt_request with EXECUTING_TOOL (child requires SIGKILL)
+// Test: interrupt request EXECUTING_TOOL (requires SIGKILL)
 START_TEST(test_interrupt_request_executing_tool_requires_sigkill)
 {
-    // Setup: Create a child process that ignores SIGTERM
+    // Create child that ignores SIGTERM
     pid_t child_pid = fork();
     if (child_pid == 0) {
-        // Child process: create new process group, ignore SIGTERM, sleep forever
         setpgid(0, 0);
         signal(SIGTERM, SIG_IGN);
         sleep(10);
         _exit(0);
     }
-
-    // Parent process
     ck_assert(child_pid > 0);
 
-    // Setup: Set state to EXECUTING_TOOL with the child PID
+    // Set state to EXECUTING_TOOL
     pthread_mutex_lock_(&repl->current->tool_thread_mutex);
     repl->current->state = IK_AGENT_STATE_EXECUTING_TOOL;
     pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
     repl->current->tool_child_pid = child_pid;
 
-    // Action: Call interrupt handler (will send SIGTERM, then SIGKILL after timeout)
     ik_repl_handle_interrupt_request(repl);
-
-    // Assert: interrupt_requested flag set
     ck_assert(repl->current->interrupt_requested);
 
-    // Assert: Child should be dead now (killed by SIGKILL)
+    // Child should be dead (killed by SIGKILL)
     int32_t status;
     pid_t wait_result = waitpid(child_pid, &status, WNOHANG);
-    // Child might already be reaped, or still in zombie state
     if (wait_result == 0) {
-        // Still running, wait for it
         wait_result = waitpid(child_pid, &status, 0);
     }
     ck_assert_int_eq(wait_result, child_pid);
@@ -443,12 +428,14 @@ static Suite *repl_interrupt_suite(void)
     Suite *s = suite_create("repl_interrupt");
 
     TCase *tc_escape = tcase_create("escape_key");
+    tcase_set_timeout(tc_escape, 30);  // Helgrind slow
     tcase_add_checked_fixture(tc_escape, setup, teardown);
     tcase_add_test(tc_escape, test_escape_key_waiting_for_llm);
     tcase_add_test(tc_escape, test_escape_key_executing_tool);
     suite_add_tcase(s, tc_escape);
 
     TCase *tc_interrupt = tcase_create("interrupt_request");
+    tcase_set_timeout(tc_interrupt, 30);  // Helgrind slow
     tcase_add_checked_fixture(tc_interrupt, setup, teardown);
     tcase_add_test(tc_interrupt, test_interrupt_request_idle_state);
     tcase_add_test(tc_interrupt, test_interrupt_request_waiting_for_llm);

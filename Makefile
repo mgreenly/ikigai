@@ -63,7 +63,7 @@ DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
 RELEASE_FLAGS = -O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2
 SANITIZE_FLAGS = -fsanitize=address,undefined
 TSAN_FLAGS = -fsanitize=thread
-VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG
+VALGRIND_FLAGS = -O0 -g3 -fno-omit-frame-pointer -DDEBUG -DVALGRIND_BUILD
 COVERAGE_FLAGS = -O0 -g3 -fprofile-arcs -ftest-coverage
 
 # Coverage settings
