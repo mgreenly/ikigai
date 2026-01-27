@@ -12,6 +12,7 @@
     {"skill": "debug-log", "description": "Adding DEBUG_LOG trace output during development"},
     {"skill": "errors", "description": "Result types with OK()/ERR() patterns"},
     {"skill": "security/memory-safety", "description": "Memory safety patterns and checks"},
-    {"skill": "mocking", "description": "Wrapper functions for test mocking"}
+    {"skill": "mocking", "description": "Wrapper functions for test mocking"},
+    {"skill": "dev-dump", "description": "Debug buffer dumps for inspecting terminal rendering state"}
   ]
 }
