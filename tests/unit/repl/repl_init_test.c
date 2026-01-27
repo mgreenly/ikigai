@@ -17,6 +17,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
+#include "../../../src/credentials.h"
 #include "../../test_utils_helper.h"
 #include "../../../src/logger.h"
 
@@ -187,6 +188,8 @@ START_TEST(test_repl_init_terminal_open_failure) {
 
     // Attempt to initialize shared context - should fail during terminal init
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -198,7 +201,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
@@ -219,6 +222,8 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
 
     // Attempt to initialize shared context - should fail when creating render
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
@@ -230,7 +235,7 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (render init failed)
     ck_assert(is_err(&res));
@@ -253,6 +258,8 @@ START_TEST(test_repl_init_signal_handler_failure) {
 
     // Attempt to initialize REPL - should fail when setting up signal handler
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -265,7 +272,7 @@ START_TEST(test_repl_init_signal_handler_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -289,6 +296,8 @@ START_TEST(test_repl_init_history_load_failure) {
 
     // Initialize REPL - should succeed even with history failure
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context (logger needs to initialize first)
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -301,7 +310,7 @@ START_TEST(test_repl_init_history_load_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Enable mock failure for stat/mkdir (history directory creation)
@@ -334,6 +343,8 @@ START_TEST(test_repl_init_success_debug_manager) {
 
     // Initialize REPL - should succeed
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -346,7 +357,7 @@ START_TEST(test_repl_init_success_debug_manager) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -374,6 +385,8 @@ START_TEST(test_repl_init_creates_agent) {
 
     // Initialize REPL - should create an agent
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
     // Create logger before calling init
@@ -386,7 +399,7 @@ START_TEST(test_repl_init_creates_agent) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -421,6 +434,8 @@ START_TEST(test_repl_init_agent_in_array) {
 
     // Initialize REPL
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Setup test paths
@@ -431,7 +446,7 @@ START_TEST(test_repl_init_agent_in_array) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);
@@ -457,6 +472,8 @@ START_TEST(test_repl_find_agent_found) {
 
     // Initialize REPL
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Setup test paths
@@ -467,7 +484,7 @@ START_TEST(test_repl_find_agent_found) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);
@@ -492,6 +509,8 @@ START_TEST(test_repl_find_agent_not_found) {
 
     // Initialize REPL
     ik_config_t *cfg = ik_test_create_config(ctx);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_shared_ctx_t *shared = NULL;
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     // Setup test paths
@@ -502,7 +521,7 @@ START_TEST(test_repl_find_agent_not_found) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);

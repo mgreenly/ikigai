@@ -13,6 +13,7 @@
 #include "../../../src/repl.h"
 #include "../../../src/shared.h"
 #include "../../../src/paths.h"
+#include "../../../src/credentials.h"
 #include "../../../src/db/connection.h"
 #include "../../../src/db/agent.h"
 #include "../../test_utils_helper.h"
@@ -301,7 +302,10 @@ START_TEST(test_repl_init_session_get_active_failure) {
 
     // Create config with database
     ik_config_t *cfg = ik_test_create_config(ctx);
-    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -312,7 +316,10 @@ START_TEST(test_repl_init_session_get_active_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_get_active
@@ -338,7 +345,10 @@ START_TEST(test_repl_init_session_create_failure) {
 
     // Create config with database
     ik_config_t *cfg = ik_test_create_config(ctx);
-    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -349,7 +359,10 @@ START_TEST(test_repl_init_session_create_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_create
@@ -376,7 +389,10 @@ START_TEST(test_repl_init_restore_agents_failure) {
 
     // Create config with database
     ik_config_t *cfg = ik_test_create_config(ctx);
-    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -387,7 +403,10 @@ START_TEST(test_repl_init_restore_agents_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on restore_agents
@@ -414,7 +433,10 @@ START_TEST(test_repl_init_existing_session) {
 
     // Create config with database
     ik_config_t *cfg = ik_test_create_config(ctx);
-    cfg->db_connection_string = talloc_strdup(cfg, "postgresql://localhost/test");
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_shared_ctx_t *shared = NULL;
     // Setup test paths
@@ -425,7 +447,10 @@ START_TEST(test_repl_init_existing_session) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, paths, logger, &shared);
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Initialize REPL - should use existing session
