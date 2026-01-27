@@ -9,6 +9,10 @@
 #include <talloc.h>
 #include <string.h>
 #include <inttypes.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 
 /**
  * Calculate total document height including all components.
@@ -312,6 +316,15 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         talloc_free(cursor_escape);
     }
 
+#ifdef IKIGAI_DEV
+    // Save framebuffer for dev dump (before freeing)
+    talloc_free(repl->dev_framebuffer);
+    repl->dev_framebuffer = talloc_memdup(repl, framebuffer, offset);
+    repl->dev_framebuffer_len = offset;
+    repl->dev_cursor_row = final_cursor_row;
+    repl->dev_cursor_col = final_cursor_col;
+#endif
+
     // Single atomic write
     ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
@@ -333,3 +346,47 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     return OK(repl);
 }
+
+#ifdef IKIGAI_DEV
+void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
+{
+    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
+
+    // Skip if no framebuffer saved
+    if (repl->dev_framebuffer == NULL || repl->dev_framebuffer_len == 0) {
+        return;
+    }
+
+    // Check if debug directory exists (runtime opt-in)
+    struct stat st;
+    if (stat(".ikigai/debug", &st) != 0 || !S_ISDIR(st.st_mode)) {
+        return;
+    }
+
+    // Open file for writing
+    int fd = open(".ikigai/debug/repl_viewport.framebuffer",
+                  O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        return;  // Silently fail - debug feature shouldn't break normal operation
+    }
+
+    // Write header line
+    char header[128];
+    int header_len = snprintf(header, sizeof(header),
+                              "# rows=%d cols=%d cursor=%d,%d len=%zu\n",
+                              repl->shared->term->screen_rows,
+                              repl->shared->term->screen_cols,
+                              repl->dev_cursor_row,
+                              repl->dev_cursor_col,
+                              repl->dev_framebuffer_len);
+
+    ssize_t written = write(fd, header, (size_t)header_len);
+    (void)written;  // Ignore write errors for debug feature
+
+    // Write raw framebuffer bytes
+    written = write(fd, repl->dev_framebuffer, repl->dev_framebuffer_len);
+    (void)written;
+
+    close(fd);
+}
+#endif
