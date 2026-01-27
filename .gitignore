@@ -27,6 +27,7 @@ coverage_html/
 .agents/logs/
 .ikigai/logs/
 .ikigai/history
+.ikigai/debug/
 .agents/db/
 .agents/deno/
 .ikigai/deno/
