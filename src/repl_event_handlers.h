@@ -23,6 +23,9 @@ res_t ik_repl_handle_curl_events(ik_repl_ctx_t *repl, int ready);
 // Handle request success (LLM response complete)
 void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
+// Handle interrupted LLM completion for specific agent
+void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+
 // Calculate minimum curl timeout across all agents
 res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out);
 
