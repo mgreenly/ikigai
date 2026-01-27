@@ -89,6 +89,11 @@ else
   MODE_FLAGS = $(DEBUG_FLAGS)
 endif
 
+# Dev mode flags (enabled via IKIGAI_DEV environment variable)
+ifdef IKIGAI_DEV
+  MODE_FLAGS += -DIKIGAI_DEV
+endif
+
 # Diagnostic flags for cleaner error output
 DIAG_FLAGS = -fmax-errors=1 -fno-diagnostics-show-caret
 
