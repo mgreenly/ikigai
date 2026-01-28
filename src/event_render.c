@@ -42,6 +42,7 @@ bool ik_event_renders_visible(const char *kind)
 }
 
 // Helper: apply color styling to content based on color code
+// Applies color per-line so each line is self-contained for scrollback
 static char *apply_style(TALLOC_CTX *ctx, const char *content, uint8_t color)
 {
     if (!ik_ansi_colors_enabled() || color == 0) {
@@ -50,7 +51,44 @@ static char *apply_style(TALLOC_CTX *ctx, const char *content, uint8_t color)
 
     char color_seq[16];
     ik_ansi_fg_256(color_seq, sizeof(color_seq), color);
-    return talloc_asprintf(ctx, "%s%s%s", color_seq, content, IK_ANSI_RESET);
+
+    // Check if content has newlines - if not, use simple approach
+    if (strchr(content, '\n') == NULL) {
+        return talloc_asprintf(ctx, "%s%s%s", color_seq, content, IK_ANSI_RESET);
+    }
+
+    // Multi-line: apply color to each line individually
+    char *result = talloc_strdup(ctx, "");
+    if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    const char *line_start = content;
+    const char *newline;
+
+    while ((newline = strchr(line_start, '\n')) != NULL) {
+        size_t line_len = (size_t)(newline - line_start);
+        char *line = talloc_strndup(ctx, line_start, line_len);
+        if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        char *new_result = talloc_asprintf(ctx, "%s%s%s%s\n",
+                                           result, color_seq, line, IK_ANSI_RESET);
+        if (new_result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        talloc_free(result);
+        talloc_free(line);
+        result = new_result;
+        line_start = newline + 1;
+    }
+
+    // Handle final line (after last newline, if any content remains)
+    if (*line_start != '\0') {
+        char *new_result = talloc_asprintf(ctx, "%s%s%s%s",
+                                           result, color_seq, line_start, IK_ANSI_RESET);
+        if (new_result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        talloc_free(result);
+        result = new_result;
+    }
+
+    return result;
 }
 
 // Helper: extract label from data_json
@@ -309,7 +347,7 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
     } else if (strcmp(kind, "system") == 0) {
-        int32_t color_code = ik_output_color(IK_OUTPUT_WARNING);
+        int32_t color_code = ik_output_color(IK_OUTPUT_SYSTEM_PROMPT);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
     } else if (strcmp(kind, "fork") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
@@ -318,9 +356,23 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     // mark, rewind, clear, command: handled separately
 
     // Handle each event kind
+    // System messages: truncate to 256 chars for display
+    if (strcmp(kind, "system") == 0) {
+        #define SYSTEM_PROMPT_DISPLAY_LIMIT 256
+        if (content != NULL && strlen(content) > SYSTEM_PROMPT_DISPLAY_LIMIT) {
+            TALLOC_CTX *tmp = tmp_ctx_create();
+            char *truncated = talloc_asprintf(tmp, "%.*s...",
+                                              SYSTEM_PROMPT_DISPLAY_LIMIT, content);
+            if (truncated == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            res_t result = render_content_event(scrollback, truncated, color, prefix);
+            talloc_free(tmp);
+            return result;
+        }
+        return render_content_event(scrollback, content, color, prefix);
+    }
+
     if (strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "user") == 0 ||
-        strcmp(kind, "system") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
         strcmp(kind, "tool_result") == 0 ||
         strcmp(kind, "fork") == 0) {

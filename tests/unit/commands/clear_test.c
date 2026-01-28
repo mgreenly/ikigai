@@ -344,14 +344,11 @@ START_TEST(test_clear_without_config_shows_default_message) {
 }
 
 END_TEST
-// Test: Clear with system message when append fails (OOM during scrollback append)
-START_TEST(test_clear_with_system_message_append_failure) {
-    // Reset mock state (uses global mocking variables from test_utils)
-    ik_test_talloc_realloc_fail_on_call = -1;
-    ik_test_talloc_realloc_call_count = 0;
-
-    // Create a very long system message that will exceed buffer capacity
-    // Initial buffer capacity is 1024 bytes
+// Test: Clear with system message completes successfully even with long config message
+// Note: System messages are truncated to 256 chars for display, so the original
+// long message content doesn't affect scrollback capacity requirements
+START_TEST(test_clear_with_long_system_message_truncates) {
+    // Create a very long system message
     char long_message[2000];
     memset(long_message, 'A', sizeof(long_message) - 1);
     long_message[sizeof(long_message) - 1] = '\0';
@@ -363,39 +360,24 @@ START_TEST(test_clear_with_system_message_append_failure) {
     ck_assert_ptr_nonnull(cfg->openai_system_message);
 
     // Attach config to REPL and agent
-    // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
     repl->current->shared = shared;
 
-    // Add some content to scrollback first
-    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Initial content", 15);
+    // Execute /clear
+    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Try failing at different realloc call indices to find one that triggers an error
-    // The exact index depends on internal allocation patterns
-    bool found_error = false;
-    for (int fail_idx = 0; fail_idx < 10 && !found_error; fail_idx++) {
-        // Reset counter before each attempt
-        ik_test_talloc_realloc_call_count = 0;
-        ik_test_talloc_realloc_fail_on_call = fail_idx;
+    // Verify scrollback has content (system message was rendered)
+    ck_assert_uint_gt(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
-        // Execute /clear
-        res = ik_cmd_dispatch(ctx, repl, "/clear");
-
-        if (is_err(&res)) {
-            found_error = true;
-            talloc_free(res.err);
-        }
-    }
-
-    // At least one attempt should trigger an error (memory failure is handled)
-    ck_assert_msg(found_error, "Expected at least one realloc failure to propagate error");
-
-    // Disable mock
-    ik_test_talloc_realloc_fail_on_call = -1;
+    // Get the rendered content and verify it's truncated (ends with "...")
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(repl->current->scrollback, 0, &text, &length);
+    ck_assert_ptr_nonnull(strstr(text, "..."));
 }
 
 END_TEST
@@ -418,7 +400,7 @@ static Suite *commands_clear_suite(void)
     tcase_add_test(tc, test_clear_with_marks);
     tcase_add_test(tc, test_clear_with_system_message_displays_in_scrollback);
     tcase_add_test(tc, test_clear_without_config_shows_default_message);
-    tcase_add_test(tc, test_clear_with_system_message_append_failure);
+    tcase_add_test(tc, test_clear_with_long_system_message_truncates);
 
     suite_add_tcase(s, tc);
     return s;
