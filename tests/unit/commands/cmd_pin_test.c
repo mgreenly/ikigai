@@ -315,6 +315,68 @@ START_TEST(test_pin_file_not_found_no_color) {
 }
 END_TEST
 
+START_TEST(test_pin_list_no_color) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/pin /first.md");
+    ck_assert(is_ok(&res));
+    res = ik_cmd_dispatch(ctx, repl, "/pin /second.md");
+    ck_assert(is_ok(&res));
+
+    // Disable colors
+    setenv("NO_COLOR", "1", 1);
+    ik_ansi_init();
+
+    res = ik_cmd_dispatch(ctx, repl, "/pin");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 13);
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 10, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "  - /first.md") != NULL);
+    // Verify no ANSI escape sequences when colors are disabled
+    ck_assert_ptr_null(strstr(line, "\x1b["));
+
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 11, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "  - /second.md") != NULL);
+    ck_assert_ptr_null(strstr(line, "\x1b["));
+
+    // Re-enable colors for other tests
+    unsetenv("NO_COLOR");
+    ik_ansi_init();
+}
+END_TEST
+
+START_TEST(test_pin_file_exists_in_cache) {
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    res_t paths_res = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_res));
+    ck_assert_ptr_nonnull(paths);
+
+    ik_doc_cache_t *cache = ik_doc_cache_create(ctx, paths);
+    ck_assert_ptr_nonnull(cache);
+    repl->current->doc_cache = cache;
+
+    // Pin the CLAUDE.md file which exists
+    res_t res = ik_cmd_dispatch(ctx, repl, "/pin CLAUDE.md");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->pinned_count, 1);
+    ck_assert_str_eq(repl->current->pinned_paths[0], "CLAUDE.md");
+
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(line);
+    ck_assert(strstr(line, "Pinned:") != NULL);
+    ck_assert(strstr(line, "CLAUDE.md") != NULL);
+}
+END_TEST
+
 static Suite *commands_pin_suite(void)
 {
     Suite *s = suite_create("commands_pin");
@@ -336,6 +398,8 @@ static Suite *commands_pin_suite(void)
     tcase_add_test(tc_core, test_pin_ik_uri);
     tcase_add_test(tc_core, test_pin_file_not_found_with_cache);
     tcase_add_test(tc_core, test_pin_file_not_found_no_color);
+    tcase_add_test(tc_core, test_pin_list_no_color);
+    tcase_add_test(tc_core, test_pin_file_exists_in_cache);
 
     suite_add_tcase(s, tc_core);
 

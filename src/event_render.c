@@ -308,8 +308,10 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     } else if (strcmp(kind, "tool_result") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
-    } else if (strcmp(kind, "system") == 0 ||
-               strcmp(kind, "fork") == 0) {
+    } else if (strcmp(kind, "system") == 0) {
+        int32_t color_code = ik_output_color(IK_OUTPUT_WARNING);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+    } else if (strcmp(kind, "fork") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
     }

@@ -62,8 +62,21 @@ res_t ik_cmd_pin_list(void *ctx, ik_repl_ctx_t *repl)
         return result;
     }
 
+    // Get color for slash command output (matches replay styling in event_render.c)
+    int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
+    char color_seq[16] = {0};
+    if (ik_ansi_colors_enabled() && color_code >= 0) {
+        ik_ansi_fg_256(color_seq, sizeof(color_seq), (uint8_t)color_code);
+    }
+
     for (size_t i = 0; i < repl->current->pinned_count; i++) {
-        char *line = talloc_asprintf(ctx, "  - %s", repl->current->pinned_paths[i]);
+        char *line = NULL;
+        if (color_seq[0] != '\0') {
+            line = talloc_asprintf(ctx, "%s  - %s%s",
+                                   color_seq, repl->current->pinned_paths[i], IK_ANSI_RESET);
+        } else {
+            line = talloc_asprintf(ctx, "  - %s", repl->current->pinned_paths[i]);
+        }
         if (!line) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }
