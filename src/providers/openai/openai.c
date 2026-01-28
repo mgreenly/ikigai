@@ -418,8 +418,8 @@ static void openai_cancel(void *ctx)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
 
-    (void)ctx;
+    ik_openai_ctx_t *impl_ctx = (ik_openai_ctx_t *)ctx;
 
-    // Stub: Will be implemented in openai-request.md
-    // Must be async-signal-safe (no malloc, no mutex)
+    // Remove all active requests from curl multi handle
+    ik_http_multi_cancel_all(impl_ctx->http_multi);
 }

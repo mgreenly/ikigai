@@ -31,6 +31,41 @@ void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
+void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+{
+    agent->interrupt_requested = false;
+    pthread_join_(agent->tool_thread, NULL);
+    if (agent->tool_thread_ctx != NULL) {
+        talloc_free(agent->tool_thread_ctx);
+        agent->tool_thread_ctx = NULL;
+    }
+    if (agent->pending_tool_call != NULL) {
+        talloc_free(agent->pending_tool_call);
+        agent->pending_tool_call = NULL;
+    }
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->tool_thread_running = false;
+    agent->tool_thread_complete = false;
+    agent->tool_thread_result = NULL;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    agent->tool_child_pid = 0;
+    ik_agent_transition_from_executing_tool(agent);
+    const char *msg = "Interrupted";
+    ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                             agent->uuid, "interrupted", NULL, NULL);
+        if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+    }
+    ik_agent_transition_to_idle_(agent);
+    if (agent == repl->current) {
+        res_t result = ik_repl_render_frame_(repl);
+        if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+    }
+}
+
 void ik_repl_handle_tool_completion(ik_repl_ctx_t *repl)
 {
     ik_repl_handle_agent_tool_completion(repl, repl->current);
@@ -86,7 +121,12 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
             bool complete = agent->tool_thread_complete;
             pthread_mutex_unlock_(&agent->tool_thread_mutex);
             if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-                ik_repl_handle_agent_tool_completion(repl, agent);
+                // Check interrupt flag before processing completion
+                if (agent->interrupt_requested) {
+                    ik_repl_handle_interrupted_tool_completion(repl, agent);
+                } else {
+                    ik_repl_handle_agent_tool_completion(repl, agent);
+                }
             }
         }
     } else if (repl->current != NULL) {
@@ -95,7 +135,12 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
         bool complete = repl->current->tool_thread_complete;
         pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
-            ik_repl_handle_agent_tool_completion(repl, repl->current);
+            // Check interrupt flag before processing completion
+            if (repl->current->interrupt_requested) {
+                ik_repl_handle_interrupted_tool_completion(repl, repl->current);
+            } else {
+                ik_repl_handle_agent_tool_completion(repl, repl->current);
+            }
         }
     }
     return OK(NULL);

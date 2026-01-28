@@ -242,6 +242,58 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
     }
 }
 
+void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+{
+    agent->interrupt_requested = false;
+    if (agent->http_error_message != NULL) {
+        talloc_free(agent->http_error_message);
+        agent->http_error_message = NULL;
+    }
+    if (agent->assistant_response != NULL) {
+        talloc_free(agent->assistant_response);
+        agent->assistant_response = NULL;
+    }
+
+    // Find the most recent user message (start of the interrupted turn)
+    size_t turn_start = 0;
+    bool found_user = false;
+    for (size_t i = agent->message_count; i > 0; i--) {
+        ik_message_t *m = agent->messages[i - 1];
+        if (m != NULL && m->role == IK_ROLE_USER) {
+            turn_start = i - 1;
+            found_user = true;
+            break;
+        }
+    }
+
+    // Remove all messages from the interrupted turn (in-memory)
+    if (found_user && turn_start < agent->message_count) {
+        for (size_t i = turn_start; i < agent->message_count; i++) {
+            if (agent->messages[i] != NULL) {
+                talloc_free(agent->messages[i]);
+                agent->messages[i] = NULL;
+            }
+        }
+        agent->message_count = turn_start;
+    }
+
+    const char *msg = "Interrupted";
+    ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(agent->scrollback, "", 0);
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                                             agent->uuid, "interrupted", NULL, NULL);
+        if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+    }
+    ik_agent_transition_to_idle_(agent);
+    if (agent == repl->current) {
+        res_t result = ik_repl_render_frame_(repl);
+        if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+    }
+}
+
 static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (agent->curl_still_running > 0 && agent->provider_instance != NULL) {
@@ -252,19 +304,24 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         ik_agent_state_t current_state = agent->state;
         pthread_mutex_unlock_(&agent->tool_thread_mutex);
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
-            if (agent->http_error_message != NULL) {
-                handle_agent_request_error(repl, agent);
+            // Check interrupt flag before processing completion
+            if (agent->interrupt_requested) {
+                ik_repl_handle_interrupted_llm_completion(repl, agent);
             } else {
-                ik_repl_handle_agent_request_success(repl, agent);
-            }
-            pthread_mutex_lock_(&agent->tool_thread_mutex);
-            current_state = agent->state;
-            pthread_mutex_unlock_(&agent->tool_thread_mutex);
-            if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-                ik_agent_transition_to_idle_(agent);
-            }
-            if (agent == repl->current) {
-                CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
+                if (agent->http_error_message != NULL) {
+                    handle_agent_request_error(repl, agent);
+                } else {
+                    ik_repl_handle_agent_request_success(repl, agent);
+                }
+                pthread_mutex_lock_(&agent->tool_thread_mutex);
+                current_state = agent->state;
+                pthread_mutex_unlock_(&agent->tool_thread_mutex);
+                if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+                    ik_agent_transition_to_idle_(agent);
+                }
+                if (agent == repl->current) {
+                    CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
+                }
             }
         }
     }

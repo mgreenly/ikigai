@@ -33,7 +33,7 @@ START_TEST(test_execute_echo_tool) {
 
     char *result = NULL;
     const char *input_json = "{\"test\":\"value\"}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -56,7 +56,7 @@ START_TEST(test_execute_tool_with_output) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -79,7 +79,7 @@ START_TEST(test_tool_nonzero_exit) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
@@ -102,7 +102,7 @@ START_TEST(test_tool_no_output) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
@@ -117,7 +117,7 @@ END_TEST
 START_TEST(test_tool_not_found) {
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, "/nonexistent/tool", NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, "/nonexistent/tool", NULL, input_json, NULL, &result);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
@@ -138,7 +138,7 @@ START_TEST(test_tool_multiline_output) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -161,7 +161,7 @@ START_TEST(test_tool_reads_stdin) {
 
     char *result = NULL;
     const char *input_json = "{\"key\":\"value\"}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -184,7 +184,7 @@ START_TEST(test_tool_large_output) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -208,7 +208,7 @@ START_TEST(test_tool_very_large_output) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(!is_err(&res));
     ck_assert_ptr_nonnull(result);
@@ -232,7 +232,7 @@ START_TEST(test_tool_fails_with_stderr) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
@@ -256,7 +256,7 @@ START_TEST(test_tool_large_stderr) {
 
     char *result = NULL;
     const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &result);
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
@@ -268,6 +268,31 @@ START_TEST(test_tool_large_stderr) {
 }
 
 END_TEST
+
+// Test: child_pid_out parameter receives PID
+START_TEST(test_tool_with_child_pid_out) {
+    // Create a simple shell script
+    const char *script_path = "/tmp/test_child_pid.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\necho 'done'\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char *result = NULL;
+    pid_t child_pid = 0;
+    const char *input_json = "{}";
+    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, &child_pid, &result);
+
+    ck_assert(!is_err(&res));
+    ck_assert_ptr_nonnull(result);
+    ck_assert(child_pid > 0);  // PID should be set
+
+    unlink(script_path);
+}
+
+END_TEST
+
 
 static Suite *tool_external_suite(void)
 {
@@ -288,6 +313,7 @@ static Suite *tool_external_suite(void)
     tcase_add_test(tc_core, test_tool_very_large_output);
     tcase_add_test(tc_core, test_tool_fails_with_stderr);
     tcase_add_test(tc_core, test_tool_large_stderr);
+    tcase_add_test(tc_core, test_tool_with_child_pid_out);
 
     suite_add_tcase(s, tc_core);
 

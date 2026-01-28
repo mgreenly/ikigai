@@ -15,7 +15,8 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
                                     ik_paths_t *paths,
                                     const char *agent_id,
                                     const char *tool_name,
-                                    const char *arguments)
+                                    const char *arguments,
+                                    pid_t *child_pid_out)
 {
     if (registry == NULL) {
         char *result = ik_tool_wrap_failure(ctx, "Tool registry not initialized", "registry_unavailable");
@@ -39,7 +40,7 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
     }
 
     char *raw_result = NULL;
-    res_t res = ik_tool_external_exec_(ctx, entry->path, agent_id, translated_args, &raw_result);
+    res_t res = ik_tool_external_exec_(ctx, entry->path, agent_id, translated_args, child_pid_out, &raw_result);
     if (is_err(&res)) {
         char *result = ik_tool_wrap_failure(ctx, res.err->msg, "execution_failed");
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

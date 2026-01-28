@@ -132,6 +132,10 @@ typedef struct ik_agent_ctx {
     TALLOC_CTX *tool_thread_ctx;
     char *tool_thread_result;
     int32_t tool_iteration_count;
+    pid_t tool_child_pid;               // Child process PID (for interrupt)
+
+    // Interrupt state
+    bool interrupt_requested;           // Set by ESC/Ctrl+C, checked before completion processing
 
     // Pinned documents for system prompt (per-agent)
     char **pinned_paths;      // Ordered list of paths (FIFO)
