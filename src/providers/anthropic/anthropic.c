@@ -366,7 +366,10 @@ static void anthropic_cancel(void *ctx)
 
     ik_anthropic_ctx_t *impl_ctx = (ik_anthropic_ctx_t *)ctx;
 
-    // Clear active stream (no malloc in signal handler)
+    // Remove all active requests from curl multi handle
+    ik_http_multi_cancel_all(impl_ctx->http_multi);
+
+    // Mark stream as completed so info_read handles cleanup
     if (impl_ctx->active_stream != NULL) {
         impl_ctx->active_stream->completed = true;
     }

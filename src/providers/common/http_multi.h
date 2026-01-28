@@ -164,4 +164,14 @@ res_t ik_http_multi_timeout(ik_http_multi_t *multi, long *timeout_ms);
  */
 void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger);
 
+/**
+ * Cancel all active requests
+ *
+ * Immediately removes all in-flight requests from the curl multi handle.
+ * Does NOT invoke completion callbacks - caller is responsible for cleanup.
+ *
+ * @param multi  Multi-handle manager
+ */
+void ik_http_multi_cancel_all(ik_http_multi_t *multi);
+
 #endif /* IK_PROVIDERS_COMMON_HTTP_MULTI_H */
