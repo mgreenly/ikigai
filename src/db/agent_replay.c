@@ -272,6 +272,96 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     return OK(NULL);
 }
 
+void ik_agent_replay_append_messages(ik_replay_context_t *replay_ctx,
+                                     ik_msg_t **src_msgs,
+                                     size_t count)
+{
+    assert(replay_ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    if (count == 0) return;
+    assert(src_msgs != NULL);    // LCOV_EXCL_BR_LINE
+
+    for (size_t j = 0; j < count; j++) {
+        // Ensure capacity
+        if (replay_ctx->count >= replay_ctx->capacity) {
+            size_t new_capacity = replay_ctx->capacity == 0 ? 16 : replay_ctx->capacity * 2;
+            ik_msg_t **new_messages = talloc_realloc(replay_ctx, replay_ctx->messages, ik_msg_t *,
+                                                     (unsigned int)new_capacity);
+            if (new_messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            replay_ctx->messages = new_messages;
+            replay_ctx->capacity = new_capacity;
+        }
+
+        // Copy message to context
+        ik_msg_t *src_msg = src_msgs[j];
+        ik_msg_t *msg = talloc_zero(replay_ctx, ik_msg_t);
+        if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        msg->id = src_msg->id;
+
+        msg->kind = talloc_strdup(msg, src_msg->kind);
+        if (msg->kind == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        if (src_msg->content != NULL) {
+            msg->content = talloc_strdup(msg, src_msg->content);
+            if (msg->content == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        } else {
+            msg->content = NULL;
+        }
+
+        if (src_msg->data_json != NULL) {
+            msg->data_json = talloc_strdup(msg, src_msg->data_json);
+            if (msg->data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        } else {
+            msg->data_json = NULL;
+        }
+
+        replay_ctx->messages[replay_ctx->count] = msg;
+        replay_ctx->count++;
+    }
+}
+
+void ik_agent_replay_filter_interrupted(ik_replay_context_t *replay_ctx)
+{
+    assert(replay_ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    size_t last_user_idx = 0;
+
+    // First pass: identify interrupted turns and mark messages for removal
+    for (size_t i = 0; i < replay_ctx->count; i++) {
+        ik_msg_t *msg = replay_ctx->messages[i];
+        if (msg == NULL) continue; // LCOV_EXCL_BR_LINE
+
+        bool is_interrupted = (strcmp(msg->kind, "interrupted") == 0);
+        bool is_user = (strcmp(msg->kind, "user") == 0);
+
+        if (is_interrupted) {
+            // Mark all messages from last_user_idx to i (inclusive) for removal
+            for (size_t j = last_user_idx; j <= i; j++) {
+                ik_msg_t *to_free = replay_ctx->messages[j];
+                if (to_free == NULL) continue; // LCOV_EXCL_BR_LINE
+                talloc_free(to_free);
+                replay_ctx->messages[j] = NULL;
+            }
+            continue;
+        }
+
+        if (is_user) {
+            last_user_idx = i;
+        }
+    }
+
+    // Second pass: compact the array by removing NULL entries
+    size_t write_idx = 0;
+    for (size_t i = 0; i < replay_ctx->count; i++) {
+        ik_msg_t *msg = replay_ctx->messages[i];
+        if (msg == NULL) continue; // LCOV_EXCL_BR_LINE
+        replay_ctx->messages[write_idx] = msg;
+        write_idx++;
+    }
+    replay_ctx->count = write_idx;
+}
+
 res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                               const char *agent_uuid,
                               ik_replay_context_t **ctx_out)
@@ -318,80 +408,11 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
             return res; // LCOV_EXCL_LINE
         }
 
-        // Append messages to context
-        for (size_t j = 0; j < range_msg_count; j++) {
-            // Ensure capacity
-            if (replay_ctx->count >= replay_ctx->capacity) {
-                size_t new_capacity = replay_ctx->capacity == 0 ? 16 : replay_ctx->capacity * 2;
-                ik_msg_t **new_messages = talloc_realloc(replay_ctx, replay_ctx->messages, ik_msg_t *,
-                                                         (unsigned int)new_capacity);
-                if (new_messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-                replay_ctx->messages = new_messages;
-                replay_ctx->capacity = new_capacity;
-            }
-
-            // Copy message to context
-            ik_msg_t *src_msg = range_msgs[j];
-            ik_msg_t *msg = talloc_zero(replay_ctx, ik_msg_t);
-            if (msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-            msg->id = src_msg->id;
-
-            msg->kind = talloc_strdup(msg, src_msg->kind);
-            if (msg->kind == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-            if (src_msg->content != NULL) {
-                msg->content = talloc_strdup(msg, src_msg->content);
-                if (msg->content == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            } else {
-                msg->content = NULL;
-            }
-
-            if (src_msg->data_json != NULL) {
-                msg->data_json = talloc_strdup(msg, src_msg->data_json);
-                if (msg->data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            } else {
-                msg->data_json = NULL;
-            }
-
-            replay_ctx->messages[replay_ctx->count] = msg;
-            replay_ctx->count++;
-        }
+        ik_agent_replay_append_messages(replay_ctx, range_msgs, range_msg_count);
     }
 
     // Filter out interrupted turns
-    // When we see an "interrupted" message, remove all messages from the last "user" message
-    // up to and including the "interrupted" message
-    size_t write_idx = 0;
-    size_t last_user_idx = 0;
-
-    // First pass: identify interrupted turns by finding "interrupted" markers
-    // and marking all messages between the preceding "user" and the "interrupted" as removed
-    for (size_t i = 0; i < replay_ctx->count; i++) {
-        ik_msg_t *msg = replay_ctx->messages[i];
-        if (msg == NULL) continue;
-
-        if (strcmp(msg->kind, "interrupted") == 0) {
-            // Mark all messages from last_user_idx to i (inclusive) for removal
-            for (size_t j = last_user_idx; j <= i; j++) {
-                if (replay_ctx->messages[j] != NULL) {
-                    talloc_free(replay_ctx->messages[j]);
-                    replay_ctx->messages[j] = NULL;
-                }
-            }
-        } else if (strcmp(msg->kind, "user") == 0) {
-            last_user_idx = i;
-        }
-    }
-
-    // Second pass: compact the array by removing NULL entries
-    for (size_t i = 0; i < replay_ctx->count; i++) {
-        if (replay_ctx->messages[i] != NULL) {
-            replay_ctx->messages[write_idx] = replay_ctx->messages[i];
-            write_idx++;
-        }
-    }
-    replay_ctx->count = write_idx;
+    ik_agent_replay_filter_interrupted(replay_ctx);
 
     *ctx_out = replay_ctx;
     talloc_free(tmp);
