@@ -62,6 +62,11 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         timeout.tv_sec = effective_timeout_ms / 1000;
         timeout.tv_usec = (effective_timeout_ms % 1000) * 1000;
 
+#ifdef IKIGAI_DEV
+        // Dump framebuffer before waiting for input (dev mode only)
+        ik_repl_dev_dump_framebuffer(repl);
+#endif
+
         // Call select()
         int ready = posix_select_(max_fd + 1, &read_fds, &write_fds, &exc_fds, &timeout);
 

@@ -5,110 +5,118 @@ description: Jujutsu (jj) skill for the ikigai project
 
 # Jujutsu (jj)
 
-## Description
-Standard jj operations for day-to-day development work.
+## Dedicated Checkout Workflow
 
-## CRITICAL: Commits Are Permanent
+**This checkout is yours alone.** No other work happens here. The workflow is:
 
-**When user says "commit": IMMEDIATELY use `jj commit -m "msg"`**
+1. **Start fresh**: `jj git fetch` then `jj new main@origin`
+2. **Do work**: Create commits as needed
+3. **Push PR**: Create ONE bookmark on HEAD, push ALL commits (main..HEAD)
+4. **Iterate**: If PR needs updates, commit more, push same bookmark
+5. **Done**: PR merges via GitHub, return to step 1
 
-- Committed changes are **permanent** and stored forever in operation log
-- Uncommitted changes **can be lost** during rebases/restores
-- Every commit is **recoverable** via `jj op restore`
+## CRITICAL Rules
 
-Run `make check` periodically to catch issues early.
+- **ONE bookmark only** - Never create multiple bookmarks
+- **Push ALL commits** - Always push the entire stack from main to HEAD
+- **Never partial pushes** - Don't push just one commit when there are more
+- **Bookmark on HEAD** - The bookmark always points to the top of your stack
 
-## Configuration
-
-- **Remote**: origin (github.com:mgreenly/ikigai.git)
-- **Primary branch**: main (bookmark)
-
-## Commit Policy
-
-**Always use selective commits.** Specify exactly which paths to include:
+## Starting Work
 
 ```bash
-jj commit path/to/file1 path/to/dir -m "msg"
+jj git fetch
+jj new main@origin
 ```
 
-Only commit all files (`jj commit -m "msg"` without paths) when the user explicitly says "commit all" or "commit everything".
+This puts you on a fresh commit with main as parent. All your work builds from here.
 
-**Never use `jj restore` to "clean up" files you didn't change.** This destroys other agents' work. If uncommitted changes outside your scope block you, stop and ask.
+## Committing
 
-NOT `jj describe` (only updates description without creating commit).
+When user says "commit", use `jj commit -m "msg"`:
+
+```bash
+jj commit -m "Add feature X"
+```
+
+Commits stack automatically. After 3 commits you have: `main → A → B → C (@)`
+
+## Creating a PR
+
+When ready to push:
+
+```bash
+# Create bookmark on current commit (HEAD of your stack)
+jj bookmark create feature-name
+
+# Push the bookmark (pushes ALL commits from main to HEAD)
+jj git push --bookmark feature-name --allow-new
+```
+
+## Updating a PR
+
+If PR needs changes:
+
+```bash
+# Make changes, commit
+jj commit -m "Fix review feedback"
+
+# Move bookmark to new HEAD
+jj bookmark set feature-name
+
+# Push updated bookmark
+jj git push --bookmark feature-name
+```
 
 ## Prohibited Operations
 
-This skill does NOT permit:
-- Modifying the `main` bookmark locally
-- Merging into main locally
+- Modifying `main` bookmark locally
+- Merging into main locally (PRs only)
 - Force pushing to main
-- Restoring/reverting files you didn't change (destroys other agents' work)
-
-**Merges to main only happen via GitHub PRs.** All work is done on feature bookmarks, pushed to origin, and merged through pull requests on GitHub. Never merge locally.
-
-## Permitted Operations
-
-- Commit to feature/fix bookmarks
-- Push feature/fix bookmarks to remote
-- Create new bookmarks
-- Create and push tags
-- Fetch from remote
-- Rebase commits
-- Create new commits on any mutable revision
+- Creating multiple bookmarks
+- Pushing partial commit stacks
 
 ## Squashing (Permission Required)
 
-**NEVER squash without explicit user permission.** Only when user says "squash" or "squash commits".
+**NEVER squash without explicit user permission.**
 
-**Squashing workflow:**
-1. `jj edit <revision>` - Move to commit to squash
-2. `jj squash -m "message"` - Squash into parent (MUST use `-m` flag in CLI)
-3. Repeat for additional commits
+```bash
+jj edit <revision>
+jj squash -m "Combined message"
+```
 
-**Flag limitations:**
-- ✗ `jj squash -r <rev> --into <dest>` - INVALID (flags cannot combine)
-- ✓ `jj edit <rev>` then `jj squash -m "msg"` - VALID
+After squashing, update and push bookmark:
+```bash
+jj bookmark set feature-name
+jj git push --bookmark feature-name
+```
 
-**Recovery:** `jj op log` then `jj op restore <id>` (all operations are logged)
+## Recovery
 
-## Common Flags
-
-| Flag | Why Use It |
-|------|------------|
-| `-m "message"` | Provide commit/squash message inline (required in non-interactive environments) |
-| `-r <revision>` | Specify which revision to operate on (alternative to `jj edit` first) |
-| `--into <dest>` | Squash into specific destination (cannot combine with `-r`) |
-| `--no-graph` | Show log output without tree visualization (cleaner for parsing) |
-| `--stat` | Show file change statistics in diff (lines added/removed per file) |
-| `--bookmark <name>` | Push specific bookmark to remote |
-| `-d <dest>` | Set destination for rebase operation |
+All operations are logged:
+```bash
+jj op log
+jj op restore <operation-id>
+```
 
 ## Common Commands
 
 | Task | Command |
 |------|---------|
+| Fetch remote | `jj git fetch` |
+| Start fresh on main | `jj new main@origin` |
 | Check status | `jj status` |
 | View changes | `jj diff` |
 | View log | `jj log` |
-| **Commit specific files** | **`jj commit <paths> -m "msg"`** |
-| Commit all files | `jj commit -m "msg"` |
-| Squash into parent | `jj squash -m "msg"` |
-| Edit a commit | `jj edit <revision>` |
+| Commit | `jj commit -m "msg"` |
 | Create bookmark | `jj bookmark create <name>` |
-| Update bookmark to @ | `jj bookmark set <name>` |
+| Move bookmark to HEAD | `jj bookmark set <name>` |
 | Push bookmark | `jj git push --bookmark <name>` |
-| Fetch from remote | `jj git fetch` |
-| Restore working copy | `jj restore` |
-| Create commit on revision | `jj new <revision>` |
-| Rebase | `jj rebase -d <destination>` |
-| Create tag | `jj tag set <name> -r <revision>` |
-| Push tag | `git push origin <tag>` |
-| List tags | `jj tag list` |
+| Push new bookmark | `jj git push --bookmark <name> --allow-new` |
 
 ## Key Concepts
 
-- **Working copy** (`@`): Always a commit being edited (no staging area)
-- **Bookmarks**: Equivalent to git branches (named pointers to commits)
-- **Immutability**: `◆` = permanent, `○` = mutable, `@` = mutable (lost if not committed)
-- **Update bookmark**: Find recent bookmark in ancestry, use `jj bookmark set <name>`
+- **Working copy** (`@`): Always a commit being edited
+- **Bookmarks**: Named pointers to commits (like git branches)
+- **main@origin**: The remote main branch
+- **Commit stack**: Your commits from main to HEAD, all pushed together
