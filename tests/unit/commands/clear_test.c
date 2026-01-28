@@ -6,6 +6,7 @@
 #include "../../../src/agent.h"
 #include "../../../src/commands.h"
 #include "../../../src/config.h"
+#include "../../../src/config_defaults.h"
 #include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/error.h"
@@ -59,6 +60,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->shared = shared;  // Agent needs shared for system prompt fallback
 
     r->current = agent;
 
@@ -82,6 +84,7 @@ static void teardown(void)
 }
 
 // Test: Clear empty scrollback and conversation
+// After clear, the default system message is displayed (fallback chain priority 4)
 START_TEST(test_clear_empty) {
     // Verify initially empty
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
@@ -91,12 +94,20 @@ START_TEST(test_clear_empty) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify still empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // After clear, default system message is shown (2 lines: message + blank)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
+
+    // Verify the content is the default system message
+    const char *line = NULL;
+    size_t line_len = 0;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(strstr(line, "Ikigai"));
 }
 END_TEST
 // Test: Clear scrollback with content
+// After clear, previous content is replaced with default system message
 START_TEST(test_clear_scrollback_with_content) {
     // Add some lines to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
@@ -113,8 +124,8 @@ START_TEST(test_clear_scrollback_with_content) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback is empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify scrollback has default system message (2 lines: message + blank)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 
 END_TEST
@@ -167,8 +178,8 @@ START_TEST(test_clear_both_scrollback_and_conversation) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify both are empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify conversation is empty, scrollback has default system message
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -190,8 +201,8 @@ START_TEST(test_clear_with_null_conversation) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback is cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify scrollback has default system message (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 
 END_TEST
@@ -205,8 +216,8 @@ START_TEST(test_clear_with_ignored_arguments) {
     res = ik_cmd_dispatch(ctx, repl, "/clear extra args");
     ck_assert(is_ok(&res));
 
-    // Verify still cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify old content cleared, default system message shown
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 
 END_TEST
@@ -238,8 +249,8 @@ START_TEST(test_clear_with_marks) {
     ck_assert_uint_eq(repl->current->mark_count, 0);
     ck_assert_ptr_null(repl->current->marks);
 
-    // Verify scrollback and conversation also cleared
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify conversation cleared, scrollback has default system message
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -252,12 +263,13 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback) {
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant.");
     ck_assert_ptr_nonnull(cfg->openai_system_message);
 
-    // Attach config to REPL
+    // Attach config to REPL and agent
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
+    repl->current->shared = shared;
 
     // Add some content to scrollback first
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
@@ -292,19 +304,21 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback) {
 }
 
 END_TEST
-// Test: Clear without system message should have empty scrollback
-START_TEST(test_clear_without_system_message_empty_scrollback) {
+// Test: Clear without config system message shows default message
+// When no config message is set, the hardcoded default is shown (priority 4 in fallback)
+START_TEST(test_clear_without_config_shows_default_message) {
     // Create a config WITHOUT system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
-    // Attach config to REPL
+    // Attach config to REPL and agent
     // Create shared context
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
+    repl->current->shared = shared;
 
     // Add some content to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "User message", 12);
@@ -317,19 +331,24 @@ START_TEST(test_clear_without_system_message_empty_scrollback) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Without system message, scrollback should be empty
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+
+    // Verify the content is the default system message
+    const char *line = NULL;
+    size_t line_len = 0;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(line);
+    ck_assert_ptr_nonnull(strstr(line, "Ikigai"));
 }
 
 END_TEST
-// Test: Clear with system message when append fails (OOM during scrollback append)
-START_TEST(test_clear_with_system_message_append_failure) {
-    // Reset mock state (uses global mocking variables from test_utils)
-    ik_test_talloc_realloc_fail_on_call = -1;
-    ik_test_talloc_realloc_call_count = 0;
-
-    // Create a very long system message that will exceed buffer capacity
-    // Initial buffer capacity is 1024 bytes
+// Test: Clear with system message completes successfully even with long config message
+// Note: System messages are truncated to 256 chars for display, so the original
+// long message content doesn't affect scrollback capacity requirements
+START_TEST(test_clear_with_long_system_message_truncates) {
+    // Create a very long system message
     char long_message[2000];
     memset(long_message, 'A', sizeof(long_message) - 1);
     long_message[sizeof(long_message) - 1] = '\0';
@@ -340,35 +359,25 @@ START_TEST(test_clear_with_system_message_append_failure) {
     cfg->openai_system_message = talloc_strdup(cfg, long_message);
     ck_assert_ptr_nonnull(cfg->openai_system_message);
 
-    // Attach config to REPL
-    // Create shared context
+    // Attach config to REPL and agent
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
     shared->cfg = cfg;
     shared->logger = ik_logger_create(ctx, ".");
     repl->shared = shared;
+    repl->current->shared = shared;
 
-    // Add some content to scrollback first
-    res_t res = ik_scrollback_append_line(repl->current->scrollback, "Initial content", 15);
+    // Execute /clear
+    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Reset counter after setup, so we can count reallocs during /clear
-    ik_test_talloc_realloc_call_count = 0;
+    // Verify scrollback has content (system message was rendered)
+    ck_assert_uint_gt(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 
-    // Set mock to fail on the first realloc during /clear
-    // This will be the buffer reallocation when appending the long system message
-    ik_test_talloc_realloc_fail_on_call = 0;
-
-    // Execute /clear - should fail when trying to append system message
-    res = ik_cmd_dispatch(ctx, repl, "/clear");
-
-    // Should return error (not crash)
-    ck_assert(is_err(&res));
-
-    // Cleanup error
-    talloc_free(res.err);
-
-    // Disable mock
-    ik_test_talloc_realloc_fail_on_call = -1;
+    // Get the rendered content and verify it's truncated (ends with "...")
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(repl->current->scrollback, 0, &text, &length);
+    ck_assert_ptr_nonnull(strstr(text, "..."));
 }
 
 END_TEST
@@ -390,8 +399,8 @@ static Suite *commands_clear_suite(void)
     tcase_add_test(tc, test_clear_with_ignored_arguments);
     tcase_add_test(tc, test_clear_with_marks);
     tcase_add_test(tc, test_clear_with_system_message_displays_in_scrollback);
-    tcase_add_test(tc, test_clear_without_system_message_empty_scrollback);
-    tcase_add_test(tc, test_clear_with_system_message_append_failure);
+    tcase_add_test(tc, test_clear_without_config_shows_default_message);
+    tcase_add_test(tc, test_clear_with_long_system_message_truncates);
 
     suite_add_tcase(s, tc);
     return s;

@@ -80,15 +80,19 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         // Write system message if configured (matching new session creation pattern)
-        if (repl->shared->cfg->openai_system_message != NULL) {
+        // Use effective system prompt with fallback chain
+        char *db_prompt = NULL;
+        res_t db_prompt_res = ik_agent_get_effective_system_prompt(repl->current, &db_prompt);
+        if (is_ok(&db_prompt_res) && db_prompt != NULL) {  // LCOV_EXCL_BR_LINE
             res_t system_res = ik_db_message_insert(
                 repl->shared->db_ctx,
                 repl->shared->session_id,
                 repl->current->uuid,
                 "system",
-                repl->shared->cfg->openai_system_message,
+                db_prompt,
                 "{}"
                 );
+            talloc_free(db_prompt);
             if (is_err(&system_res)) {
                 // Log error but don't crash - memory state is authoritative
                 yyjson_mut_doc *log_doc = ik_log_create();
@@ -104,15 +108,25 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Add system message to scrollback using event renderer (consistent with replay)
-    if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: cfg always set during init
+    // Use effective system prompt with fallback chain:
+    // 1. Pinned files (if any)
+    // 2. $IKIGAI_DATA_DIR/system/prompt.md (if exists)
+    // 3. cfg->openai_system_message (config fallback)
+    char *effective_prompt = NULL;
+    res_t prompt_res = ik_agent_get_effective_system_prompt(repl->current, &effective_prompt);
+    if (is_err(&prompt_res)) {  // LCOV_EXCL_BR_LINE
+        return prompt_res;  // LCOV_EXCL_LINE
+    }
+    if (effective_prompt != NULL) {  // LCOV_EXCL_BR_LINE
         res_t render_res = ik_event_render(
             repl->current->scrollback,
             "system",
-            repl->shared->cfg->openai_system_message,
+            effective_prompt,
             "{}"
             );
-        if (is_err(&render_res)) {
-            return render_res;
+        talloc_free(effective_prompt);
+        if (is_err(&render_res)) {  // LCOV_EXCL_BR_LINE
+            return render_res;  // LCOV_EXCL_LINE
         }
     }
 

@@ -1,13 +1,16 @@
 #include "agent.h"
 
 #include "config.h"
+#include "config_defaults.h"
 #include "db/agent.h"
 #include "db/agent_row.h"
 #include "doc_cache.h"
+#include "file_utils.h"
 #include "input_buffer/core.h"
 #include "layer.h"
 #include "layer_wrappers.h"
 #include "panic.h"
+#include "paths.h"
 #include "providers/provider.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -304,3 +307,68 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
 // State transition functions moved to agent_state.c
 // Provider and configuration functions moved to agent_provider.c
 // Message management functions moved to agent_messages.c
+
+res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(out != NULL);    // LCOV_EXCL_BR_LINE
+
+    *out = NULL;
+
+    // Priority 1: Pinned files (if any)
+    if (agent->pinned_count > 0 && agent->doc_cache != NULL) {
+        char *assembled = talloc_strdup(agent, "");
+        if (assembled == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        for (size_t i = 0; i < agent->pinned_count; i++) {
+            const char *path = agent->pinned_paths[i];
+            char *content = NULL;
+            res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
+
+            if (is_ok(&doc_res) && content != NULL) {
+                char *new_assembled = talloc_asprintf(agent, "%s%s", assembled, content);
+                if (new_assembled == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+                talloc_free(assembled);
+                assembled = new_assembled;
+            }
+        }
+
+        if (strlen(assembled) > 0) {
+            *out = assembled;
+            return OK(*out);
+        }
+        talloc_free(assembled);
+    }
+
+    // Priority 2: $IKIGAI_DATA_DIR/system/prompt.md
+    if (agent->shared != NULL && agent->shared->paths != NULL) {
+        const char *data_dir = ik_paths_get_data_dir(agent->shared->paths);
+        char *prompt_path = talloc_asprintf(agent, "%s/system/prompt.md", data_dir);
+        if (prompt_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        char *content = NULL;
+        res_t read_res = ik_file_read_all(agent, prompt_path, &content, NULL);
+        talloc_free(prompt_path);
+
+        if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
+            *out = content;
+            return OK(*out);
+        }
+        if (content != NULL) {
+            talloc_free(content);
+        }
+    }
+
+    // Priority 3: Config fallback
+    if (agent->shared != NULL && agent->shared->cfg != NULL &&
+        agent->shared->cfg->openai_system_message != NULL) {
+        *out = talloc_strdup(agent, agent->shared->cfg->openai_system_message);
+        if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return OK(*out);
+    }
+
+    // Priority 4: Hardcoded default
+    *out = talloc_strdup(agent, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    return OK(*out);
+}

@@ -93,8 +93,8 @@ START_TEST(test_tool_result_message_gray_242) {
 }
 
 END_TEST
-// Test: system message wrapped with gray 242
-START_TEST(test_system_message_gray_242) {
+// Test: system message wrapped with soft blue 153
+START_TEST(test_system_message_soft_blue_153) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
@@ -105,8 +105,8 @@ START_TEST(test_system_message_gray_242) {
     size_t length;
     ik_scrollback_get_line_text(scrollback, 0, &text, &length);
 
-    // Should contain ANSI color sequence for subdued yellow 179
-    ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;179m"));
+    // Should contain ANSI color sequence for soft blue 153
+    ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;153m"));
     ck_assert_ptr_nonnull(strstr(text, "\x1b[0m"));
     ck_assert_ptr_nonnull(strstr(text, "System prompt"));
 
@@ -218,6 +218,46 @@ START_TEST(test_scrollback_contains_escapes) {
 }
 
 END_TEST
+// Test: multiline content has color applied per-line
+START_TEST(test_multiline_color_per_line) {
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    // System messages use color 153 (soft blue)
+    res_t result = ik_event_render(scrollback, "system", "line1\nline2\nline3", NULL);
+    ck_assert(!is_err(&result));
+
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
+
+    // Each line should have its own color sequence and reset
+    // Format: <color>line1<reset>\n<color>line2<reset>\n<color>line3<reset>
+    const char *color_seq = "\x1b[38;5;153m";
+    const char *reset_seq = "\x1b[0m";
+
+    // Count color sequences - should be 3 (one per line)
+    int color_count = 0;
+    const char *p = text;
+    while ((p = strstr(p, color_seq)) != NULL) {
+        color_count++;
+        p += strlen(color_seq);
+    }
+    ck_assert_int_eq(color_count, 3);
+
+    // Count reset sequences - should be 3 (one per line)
+    int reset_count = 0;
+    p = text;
+    while ((p = strstr(p, reset_seq)) != NULL) {
+        reset_count++;
+        p += strlen(reset_seq);
+    }
+    ck_assert_int_eq(reset_count, 3);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *event_render_styling_suite(void)
 {
@@ -229,12 +269,13 @@ static Suite *event_render_styling_suite(void)
     tcase_add_test(tc_colors, test_assistant_message_gray_249);
     tcase_add_test(tc_colors, test_tool_call_message_gray_242);
     tcase_add_test(tc_colors, test_tool_result_message_gray_242);
-    tcase_add_test(tc_colors, test_system_message_gray_242);
+    tcase_add_test(tc_colors, test_system_message_soft_blue_153);
     tcase_add_test(tc_colors, test_mark_no_color);
     tcase_add_test(tc_colors, test_rewind_no_color);
     tcase_add_test(tc_colors, test_clear_no_color);
     tcase_add_test(tc_colors, test_colors_disabled);
     tcase_add_test(tc_colors, test_scrollback_contains_escapes);
+    tcase_add_test(tc_colors, test_multiline_color_per_line);
     suite_add_tcase(s, tc_colors);
 
     return s;

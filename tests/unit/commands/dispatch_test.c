@@ -55,16 +55,17 @@ static ik_repl_ctx_t *create_test_repl_for_commands(void *parent)
     ik_repl_ctx_t *r = talloc_zero(parent, ik_repl_ctx_t);
     ck_assert_ptr_nonnull(r);
 
+    // Create shared context (before agent so agent can reference it)
+    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
+    shared->cfg = cfg;
+
     // Create agent context
     ik_agent_ctx_t *agent = talloc_zero(r, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
+    agent->shared = shared;  // Agent needs shared for system prompt fallback
 
     r->current = agent;
-
-    // Create shared context
-    ik_shared_ctx_t *shared = talloc_zero(parent, ik_shared_ctx_t);
-    shared->cfg = cfg;
     r->shared = shared;
 
     r->current->marks = NULL;
@@ -141,8 +142,8 @@ START_TEST(test_dispatch_clear_command) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback is now empty (clear was executed)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify old content cleared, default system message shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 
 END_TEST
@@ -226,8 +227,8 @@ START_TEST(test_dispatch_command_with_whitespace) {
     res = ik_cmd_dispatch(ctx, repl, "/  clear  ");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback is cleared (whitespace was handled correctly)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // Verify old content cleared, default system message shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
 }
 
 END_TEST
