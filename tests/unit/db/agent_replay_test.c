@@ -235,6 +235,43 @@ START_TEST(test_replay_deep_ancestry) {
 
 END_TEST
 
+// Test: interrupted turns are filtered out during replay
+START_TEST(test_replay_filters_interrupted_turns) {
+    SKIP_IF_NO_DB();
+
+    // Insert root agent
+    insert_agent("interrupted-root", NULL, 1000, 0);
+
+    // Insert a complete turn
+    insert_message("interrupted-root", "user", "First question");
+    insert_message("interrupted-root", "assistant", "First answer");
+
+    // Insert an interrupted turn (user -> partial assistant -> interrupted)
+    insert_message("interrupted-root", "user", "Second question");
+    insert_message("interrupted-root", "assistant", "Partial ans");
+    insert_message("interrupted-root", "interrupted", NULL);
+
+    // Insert another complete turn after interruption
+    insert_message("interrupted-root", "user", "Third question");
+    insert_message("interrupted-root", "assistant", "Third answer");
+
+    // Replay history
+    ik_replay_context_t *ctx = NULL;
+    res_t res = ik_agent_replay_history(db, test_ctx, "interrupted-root", &ctx);
+    ck_assert(is_ok(&res));
+    ck_assert(ctx != NULL);
+
+    // Should have 4 messages: first complete turn + third complete turn
+    // The interrupted turn (Second question + Partial ans + interrupted) should be gone
+    ck_assert_int_eq((int)ctx->count, 4);
+    ck_assert_str_eq(ctx->messages[0]->content, "First question");
+    ck_assert_str_eq(ctx->messages[1]->content, "First answer");
+    ck_assert_str_eq(ctx->messages[2]->content, "Third question");
+    ck_assert_str_eq(ctx->messages[3]->content, "Third answer");
+}
+
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *agent_replay_suite(void)
@@ -254,6 +291,7 @@ static Suite *agent_replay_suite(void)
     tcase_add_test(tc_core, test_replay_chronological_order);
     tcase_add_test(tc_core, test_replay_empty_history);
     tcase_add_test(tc_core, test_replay_deep_ancestry);
+    tcase_add_test(tc_core, test_replay_filters_interrupted_turns);
 
     suite_add_tcase(s, tc_core);
     return s;

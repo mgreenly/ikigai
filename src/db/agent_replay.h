@@ -67,6 +67,31 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx,
                            size_t *count_out);
 
 /**
+ * Append messages from a range to replay context
+ *
+ * Copies messages from the range query results into the replay context,
+ * expanding capacity as needed.
+ *
+ * @param replay_ctx Replay context to append to (must not be NULL)
+ * @param range_msgs Array of message pointers from query (must not be NULL)
+ * @param range_msg_count Number of messages in array
+ * @return OK on success, ERR on allocation failure
+ */
+res_t ik_agent_append_range_messages(ik_replay_context_t *replay_ctx,
+                                     ik_msg_t **range_msgs,
+                                     size_t range_msg_count);
+
+/**
+ * Filter interrupted turns from replay context
+ *
+ * Removes all messages from the last "user" message up to and including
+ * any "interrupted" message, compacting the array.
+ *
+ * @param replay_ctx Replay context to filter (must not be NULL)
+ */
+void ik_agent_filter_interrupted_turns(ik_replay_context_t *replay_ctx);
+
+/**
  * Replay history for an agent using range-based algorithm
  *
  * High-level function that combines build_replay_ranges and query_range

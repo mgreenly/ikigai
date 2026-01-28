@@ -6,6 +6,7 @@
 #include "render.h"
 #include "repl.h"
 #include "repl_actions_internal.h"
+#include "repl_event_handlers.h"
 #include "repl_tool_completion.h"
 #include "scrollback.h"
 #include "shared.h"
@@ -281,79 +282,40 @@ START_TEST(test_interrupt_request_executing_tool_requires_sigkill)
 }
 END_TEST
 
-// Test: ik_repl_handle_interrupted_tool_completion
 START_TEST(test_interrupted_tool_completion)
 {
-    // Create a second agent so we can test without triggering render
     ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
     agent->shared = repl->shared;
     agent->repl = repl;
     agent->uuid = talloc_strdup(agent, "test-uuid-2");
     agent->scrollback = ik_scrollback_create(agent, 10);
-    ck_assert_ptr_nonnull(agent->scrollback);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->tool_thread_running = false;
-    agent->tool_thread_complete = false;
-    agent->tool_thread_result = NULL;
-    agent->tool_thread_ctx = NULL;
-    agent->interrupt_requested = false;
-    agent->tool_child_pid = 0;
-    agent->state = IK_AGENT_STATE_IDLE;
-
-    // Setup: Simulate interrupted tool execution
     agent->interrupt_requested = true;
-    agent->tool_child_pid = 12345; // Fake PID
-
-    // Create tool thread context and pending tool call
+    agent->tool_child_pid = 12345;
     agent->tool_thread_ctx = talloc_zero(agent, int32_t);
-    agent->pending_tool_call = ik_tool_call_create(agent,
-                                                   "call_123",
-                                                   "glob",
-                                                   "{\"pattern\": \"*.c\"}");
-
-    // Setup thread state
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_123", "glob", "{\"pattern\": \"*.c\"}");
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     agent->tool_thread_running = true;
     agent->tool_thread_complete = true;
     agent->tool_thread_result = talloc_strdup(agent, "result");
     agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    // Create a dummy thread to join (otherwise pthread_join would fail)
-    // The thread completes immediately so pthread_join_ will succeed
     pthread_create_(&agent->tool_thread, NULL, dummy_thread_fn, NULL);
 
-    // Action: Handle interrupted tool completion (agent is NOT current, so no render)
     ik_repl_handle_interrupted_tool_completion(repl, agent);
 
-    // Assert: interrupt_requested cleared
     ck_assert(!agent->interrupt_requested);
-
-    // Assert: tool_thread_ctx freed
-    // (Can't directly verify, but should be NULL after the call...
-    // Actually, the function should have freed it but we can't easily verify talloc_free)
-
-    // Assert: pending_tool_call freed (set to NULL)
-    // (Same issue - can't directly verify talloc_free)
-
-    // Assert: Thread state cleared
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     bool running = agent->tool_thread_running;
     bool complete = agent->tool_thread_complete;
     void *result = agent->tool_thread_result;
     ik_agent_state_t state = agent->state;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
     ck_assert(!running);
     ck_assert(!complete);
     ck_assert_ptr_null(result);
     ck_assert_int_eq(state, IK_AGENT_STATE_IDLE);
-
-    // Assert: tool_child_pid cleared
     ck_assert_int_eq(agent->tool_child_pid, 0);
-
-    // Assert: "Interrupted" message added to scrollback
-    // (Can verify by checking scrollback has content, though not easy to inspect exact message)
 }
 END_TEST
 
@@ -426,6 +388,37 @@ START_TEST(test_poll_tool_completions_interrupted_single_agent)
 }
 END_TEST
 
+// Test: ik_repl_handle_interrupted_llm_completion clears state
+START_TEST(test_interrupted_llm_completion)
+{
+    ik_agent_ctx_t *agent = repl->current;
+    agent->interrupt_requested = true;
+    agent->http_error_message = talloc_strdup(agent, "err");
+    agent->assistant_response = talloc_strdup(agent, "resp");
+    agent->messages = talloc_array(agent, ik_message_t *, 4);
+    agent->message_capacity = 4;
+    agent->message_count = 3;
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_USER;
+    agent->messages[1] = talloc_zero(agent, ik_message_t);
+    agent->messages[1]->role = IK_ROLE_ASSISTANT;
+    agent->messages[2] = talloc_zero(agent, ik_message_t);
+    agent->messages[2]->role = IK_ROLE_USER;
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    ik_repl_handle_interrupted_llm_completion(repl, agent);
+
+    ck_assert(!agent->interrupt_requested);
+    ck_assert_int_eq((int)agent->message_count, 2);
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    ik_agent_state_t state = agent->state;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    ck_assert_int_eq(state, IK_AGENT_STATE_IDLE);
+}
+END_TEST
+
 static Suite *repl_interrupt_suite(void)
 {
     Suite *s = suite_create("repl_interrupt");
@@ -453,6 +446,7 @@ static Suite *repl_interrupt_suite(void)
     tcase_add_test(tc_completion, test_interrupted_tool_completion);
     tcase_add_test(tc_completion, test_poll_tool_completions_interrupted_multi_agent);
     tcase_add_test(tc_completion, test_poll_tool_completions_interrupted_single_agent);
+    tcase_add_test(tc_completion, test_interrupted_llm_completion);
     suite_add_tcase(s, tc_completion);
 
     return s;
