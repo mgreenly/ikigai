@@ -138,3 +138,18 @@ void ik_http_multi_info_read(ik_http_multi_t *multi, ik_logger_t *logger)
         find_and_process_completed_request(multi, easy_handle, curl_result);
     }
 }
+
+void ik_http_multi_cancel_all(ik_http_multi_t *multi)
+{
+    assert(multi != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Remove and cleanup all active requests without invoking callbacks
+    while (multi->active_count > 0) {
+        active_request_t *req = multi->active_requests[0];
+        curl_multi_remove_handle_(multi->multi_handle, req->easy_handle);
+        curl_easy_cleanup_(req->easy_handle);
+        curl_slist_free_all_(req->headers);
+        talloc_free(req);
+        remove_from_active_array(multi, 0);
+    }
+}

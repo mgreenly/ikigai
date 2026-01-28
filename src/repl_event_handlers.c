@@ -253,8 +253,33 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         talloc_free(agent->assistant_response);
         agent->assistant_response = NULL;
     }
+
+    // Find the most recent user message (start of the interrupted turn)
+    size_t turn_start = 0;
+    bool found_user = false;
+    for (size_t i = agent->message_count; i > 0; i--) {
+        ik_message_t *m = agent->messages[i - 1];
+        if (m != NULL && m->role == IK_ROLE_USER) {
+            turn_start = i - 1;
+            found_user = true;
+            break;
+        }
+    }
+
+    // Remove all messages from the interrupted turn (in-memory)
+    if (found_user && turn_start < agent->message_count) {
+        for (size_t i = turn_start; i < agent->message_count; i++) {
+            if (agent->messages[i] != NULL) {
+                talloc_free(agent->messages[i]);
+                agent->messages[i] = NULL;
+            }
+        }
+        agent->message_count = turn_start;
+    }
+
     const char *msg = "Interrupted";
     ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+    ik_scrollback_append_line(agent->scrollback, "", 0);
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                                              agent->uuid, "interrupted", NULL, NULL);

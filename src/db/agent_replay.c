@@ -359,6 +359,40 @@ res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
         }
     }
 
+    // Filter out interrupted turns
+    // When we see an "interrupted" message, remove all messages from the last "user" message
+    // up to and including the "interrupted" message
+    size_t write_idx = 0;
+    size_t last_user_idx = 0;
+
+    // First pass: identify interrupted turns by finding "interrupted" markers
+    // and marking all messages between the preceding "user" and the "interrupted" as removed
+    for (size_t i = 0; i < replay_ctx->count; i++) {
+        ik_msg_t *msg = replay_ctx->messages[i];
+        if (msg == NULL) continue;
+
+        if (strcmp(msg->kind, "interrupted") == 0) {
+            // Mark all messages from last_user_idx to i (inclusive) for removal
+            for (size_t j = last_user_idx; j <= i; j++) {
+                if (replay_ctx->messages[j] != NULL) {
+                    talloc_free(replay_ctx->messages[j]);
+                    replay_ctx->messages[j] = NULL;
+                }
+            }
+        } else if (strcmp(msg->kind, "user") == 0) {
+            last_user_idx = i;
+        }
+    }
+
+    // Second pass: compact the array by removing NULL entries
+    for (size_t i = 0; i < replay_ctx->count; i++) {
+        if (replay_ctx->messages[i] != NULL) {
+            replay_ctx->messages[write_idx] = replay_ctx->messages[i];
+            write_idx++;
+        }
+    }
+    replay_ctx->count = write_idx;
+
     *ctx_out = replay_ctx;
     talloc_free(tmp);
     return OK(NULL);
