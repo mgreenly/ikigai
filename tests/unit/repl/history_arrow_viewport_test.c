@@ -152,8 +152,8 @@ START_TEST(test_arrow_down_with_viewport_offset_scrolls) {
 }
 
 END_TEST
-/* Test: Arrow up with viewport_offset == 0 navigates history normally */
-START_TEST(test_arrow_up_with_zero_offset_navigates_history) {
+/* Test: Arrow up with viewport_offset == 0 moves cursor (no history) */
+START_TEST(test_arrow_up_with_zero_offset_moves_cursor) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -188,19 +188,18 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history) {
     repl->shared->history = history;
     repl->current->viewport_offset = 0;  // At bottom
 
-    // Press Arrow Up - should navigate history
+    // Press Arrow Up - should just move cursor (no-op in empty buffer)
     ik_input_action_t action = {.type = IK_INPUT_ARROW_UP};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Verify: Input buffer contains history entry
+    // Verify: Input buffer still empty
     size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(input_buf, &text_len);
-    ck_assert_uint_eq(text_len, 13);
-    ck_assert_mem_eq(text, "history entry", 13);
+    ik_input_buffer_get_text(input_buf, &text_len);
+    ck_assert_uint_eq(text_len, 0);
 
-    // Verify: Browsing history
-    ck_assert(ik_history_is_browsing(history));
+    // Verify: Not browsing history
+    ck_assert(!ik_history_is_browsing(history));
 
     // Verify: viewport_offset still 0
     ck_assert_uint_eq(repl->current->viewport_offset, 0);
@@ -209,8 +208,8 @@ START_TEST(test_arrow_up_with_zero_offset_navigates_history) {
 }
 
 END_TEST
-/* Test: Arrow down when scrolled to bottom then returns to offset 0, next arrow down triggers history */
-START_TEST(test_arrow_down_to_bottom_then_history) {
+/* Test: Arrow down when scrolled to bottom returns to offset 0, then moves cursor */
+START_TEST(test_arrow_down_to_bottom_then_cursor) {
     void *ctx = talloc_new(NULL);
     res_t res;
 
@@ -239,7 +238,7 @@ START_TEST(test_arrow_down_to_bottom_then_history) {
     res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
 
-    // Start with history browsing and viewport offset
+    // Start with viewport offset
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     repl->current = talloc_zero(repl, ik_agent_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -270,11 +269,7 @@ START_TEST(test_arrow_down_to_bottom_then_history) {
     ck_assert_uint_eq(text_len, 1);
     ck_assert_mem_eq(text, "h", 1);
 
-    // Now move cursor to position 0 to enable history navigation
-    input_buf->cursor_byte_offset = 0;
-    ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 0);
-
-    // Press Arrow Down again - now should do nothing (not browsing history)
+    // Press Arrow Down again - should just move cursor (no-op in single line)
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
@@ -282,6 +277,9 @@ START_TEST(test_arrow_down_to_bottom_then_history) {
     text = ik_input_buffer_get_text(input_buf, &text_len);
     ck_assert_uint_eq(text_len, 1);
     ck_assert_mem_eq(text, "h", 1);
+
+    // Verify: Not browsing history
+    ck_assert(!ik_history_is_browsing(history));
 
     talloc_free(ctx);
 }
@@ -300,8 +298,8 @@ static Suite *history_arrow_viewport_suite(void)
 
     tcase_add_test(tc_core, test_arrow_up_with_viewport_offset_scrolls);
     tcase_add_test(tc_core, test_arrow_down_with_viewport_offset_scrolls);
-    tcase_add_test(tc_core, test_arrow_up_with_zero_offset_navigates_history);
-    tcase_add_test(tc_core, test_arrow_down_to_bottom_then_history);
+    tcase_add_test(tc_core, test_arrow_up_with_zero_offset_moves_cursor);
+    tcase_add_test(tc_core, test_arrow_down_to_bottom_then_cursor);
 
     suite_add_tcase(s, tc_core);
 
