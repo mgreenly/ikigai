@@ -38,6 +38,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Transparent translation at tool execution boundaries
 - **Edge case handling**: Multiple paths, trailing slashes, false positive avoidance
 
+#### List Tool (Complete)
+- **`list` external tool**: Redis-style deque operations for per-agent task management
+  - Operations: lpush, rpush, lpop, rpop, lpeek, rpeek, list, count
+  - Per-agent scope via `IKIGAI_AGENT_ID` environment variable
+  - Stores data in `$IKIGAI_STATE_DIR/agents/<agent_id>/list.json`
+  - O(1) token cost per operation (vs TodoWrite's O(n))
+
 #### UI Improvements
 - **Braille spinner**: Replaced ASCII spinner (|/-\\) with braille animation (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏)
 - **Flicker elimination**: Screen clear moved from render path to terminal initialization

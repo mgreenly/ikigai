@@ -53,23 +53,6 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ## Roadmap to MVP
 
-### Tool Coverage by Release
-
-| Release | ikigai | Claude Code Equivalent |
-|---------|--------|------------------------|
-| **rel-08: External Tools** |||
-|| `bash`, `file_read`, `file_write`, `file_edit`, `glob`, `grep` | `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep` |
-| **rel-09: Web Tools** |||
-|| `web-fetch`, `web-search-brave`, `web-search-google` | `WebFetch`, `WebSearch` |
-| **rel-12: Task Tool** |||
-|| `task` | — (ikigai-specific) |
-| **rel-14: Agent State Documents** |||
-|| Structured agent state files | — |
-| **rel-16: System prompts, skills, tools** |||
-|| `/mode`, `!` prefix commands | `EnterPlanMode`, `ExitPlanMode`, `Skill` |
-| **Far Future** |||
-|| `bash_interactive`, `LSP`, `Notebook` | —, `LSP`, `NotebookEdit` |
-
 ### rel-01: REPL Terminal Foundation (complete)
 
 **Objective**: Terminal interface with direct rendering and UTF-8 support
@@ -176,42 +159,50 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - 100% test coverage maintained
 
 
-### rel-09: Web Tools (future)
+### rel-09: Web Tools (complete)
 
 **Objective**: Web access as external tools following rel-08 architecture
 
 **Features**:
-- `web-fetch` - Fetch URL content, convert HTML to markdown
-- `web-search-brave` - Brave Search API (2,000 free queries/month)
-- `web-search-google` - Google Custom Search (100 free/day)
+- `web_fetch` - Fetch URL content, convert HTML to markdown
+- `web_search` - Brave Search API (2,000 free queries/month)
 - Each tool manages its own credentials
 
 
-### rel-11: Shared Files (future)
+### rel-10: Pinned Documents, URI Mapping & List Tool (in progress)
 
-**Objective**: Shared filesystem for agent-accessible knowledge and templates
-
-**Features**:
-- Shared file space at `$IKIGAI_DATA_DIR/files/` with automatic versioning
-- inotify background thread protects against agent corruption
-- Environment variable expansion in all file tools (Read, Write, Edit, Glob)
-- System files in `files/system/` (system prompt, default content)
-- See [shared-files.md](shared-files.md) for design details
-
-
-### rel-12: Task Tool (future)
-
-**Objective**: External tool for per-agent task queue management
-
-**Dependencies**: Requires rel-11 (Shared Files) for `ik://` URI scheme
+**Objective**: System prompt assembly, internal URI scheme, and per-agent list management
 
 **Features**:
-- `task` external tool with Redis-style deque operations
-- Takes `agent_id` parameter for per-agent scope
-- Stores data in `ik://system/agents/{agent_id}/tasks.json`
-- Operations: lpush, rpush, lpop, rpop, lpeek, rpeek, list, count
-- Constant O(1) token cost per operation (vs TodoWrite's O(n))
-- See [task-tool.md](task-tool.md) for design details
+- `/pin` and `/unpin` commands for managing pinned documents
+- Document cache with `ik://` URI support
+- Bidirectional `ik://` to filesystem path translation
+- `list` tool with deque operations (lpush, rpush, lpop, rpop, lpeek, rpeek, list, count)
+- UI improvements (braille spinner, flicker elimination)
+- Complete readline/editline control key support (Ctrl+K kill-to-end, etc.)
+
+
+### rel-11: System prompts, skills and tools (future)
+
+**Objective**: Layered primitives for tool/prompt configuration
+
+**Features**:
+- `/toolset` - Control which tools are available to agents
+- `/skillset` - Control which prompts/memory are pinned
+- `/mode` - Named bundles of toolset + skillset (e.g., planning, research, review)
+- User-defined modes in `~/.ikigai/modes/` or `.ikigai/modes/`
+- `!` prefix for user-defined prompt commands (distinct from `/` tools)
+
+
+### rel-12: Internal Tools (future)
+
+**Objective**: Expose slash commands as tools for agent self-management
+
+**Features**:
+- Agents can invoke `/fork`, `/kill` for spawning and terminating sub-agents
+- Agents can invoke `/send`, `/check-mail`, `/read-mail` for inter-agent communication
+- Agents can invoke `/pin`, `/unpin` for managing their own context
+- Tool wrappers translate slash commands to LLM-callable tool definitions
 
 
 ### rel-13: Tool Sets (future)
@@ -226,17 +217,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Per-task profiles (coding, research, file-heavy workflows)
 
 
-### rel-14: Agent State Documents (future)
-
-**Objective**: Reserved StoredAssets for agent state with schema-enforced structure
-
-**Features**:
-- `ikigai:///agent/{self}/inbox.json` - Message queue for `check-mail`
-- `ikigai:///agent/{self}/config.json` - Agent settings (model, toolset)
-- System-provided schemas, user-extensible
-
-
-### rel-15: Token Estimation (future)
+### rel-14: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -247,19 +228,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-16: System prompts, skills and tools (future)
-
-**Objective**: Layered primitives for tool/prompt configuration
-
-**Features**:
-- `/toolset` - Control which tools are available to agents
-- `/skillset` - Control which prompts/memory are pinned
-- `/mode` - Named bundles of toolset + skillset (e.g., planning, research, review)
-- User-defined modes in `~/.ikigai/modes/` or `.ikigai/modes/`
-- `!` prefix for user-defined prompt commands (distinct from `/` tools)
-
-
-### rel-17: User Experience (future)
+### rel-15: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -269,7 +238,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Status bar showing live agent count and total memory usage (via `talloc_total_size`)
 
 
-### rel-18: Codebase Refactor & MVP Release (future)
+### rel-16: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 
