@@ -57,7 +57,7 @@ else
 	@tmpdir=$$(mktemp -d); \
 	find $(HELGRIND_BUILDDIR)/tests/unit $(HELGRIND_BUILDDIR)/tests/integration \
 		-name '*_test' -type f -executable 2>/dev/null | \
-	xargs -P$(MAKE_JOBS) -I{} sh -c ' \
+	xargs -P1 -I{} sh -c ' \
 		tmpdir="$$1"; bin="$$2"; \
 		output="$$tmpdir/$$(basename $$bin).out"; \
 		valgrind --tool=helgrind --suppressions=.suppressions/helgrind.supp \
