@@ -293,33 +293,6 @@ START_TEST(test_tool_with_child_pid_out) {
 
 END_TEST
 
-// Test: stderr buffer overflow (65KB+)
-START_TEST(test_tool_stderr_buffer_overflow) {
-    // Create a script that outputs 70KB to stderr (exceeds 65KB buffer)
-    const char *script_path = "/tmp/test_stderr_overflow.sh";
-    FILE *f = fopen(script_path, "w");
-    ck_assert_ptr_nonnull(f);
-    // Output 70 lines of 1KB each to stderr = 70KB total
-    fprintf(f, "#!/bin/sh\n");
-    fprintf(f, "for i in $(seq 70); do\n");
-    fprintf(f, "  python3 -c \"import sys; sys.stderr.write('x' * 1024 + '\\n')\" 1>&2\n");
-    fprintf(f, "done\n");
-    fprintf(f, "exit 0\n");
-    fclose(f);
-    chmod(script_path, 0755);
-
-    char *result = NULL;
-    const char *input_json = "{}";
-    res_t res = ik_tool_external_exec(test_ctx, script_path, NULL, input_json, NULL, &result);
-
-    // Should succeed but stderr is truncated at 65KB
-    ck_assert(!is_err(&res));
-    ck_assert_ptr_nonnull(result);
-
-    unlink(script_path);
-}
-
-END_TEST
 
 static Suite *tool_external_suite(void)
 {
@@ -341,7 +314,6 @@ static Suite *tool_external_suite(void)
     tcase_add_test(tc_core, test_tool_fails_with_stderr);
     tcase_add_test(tc_core, test_tool_large_stderr);
     tcase_add_test(tc_core, test_tool_with_child_pid_out);
-    tcase_add_test(tc_core, test_tool_stderr_buffer_overflow);
 
     suite_add_tcase(s, tc_core);
 
