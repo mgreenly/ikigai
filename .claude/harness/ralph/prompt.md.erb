@@ -76,7 +76,7 @@ Write 3-7 sentences. Future iterations depend on this context to avoid repeating
 Include: what you did, why, what you observed, what's next. If something failed, explain what you tried and why it didn't work.
 
 Good:
-"Read the plan document to understand the required changes. Identified 3 files that need modification: config.c, parser.c, and main.c. The parser changes depend on config changes, so starting with config.c. Ran check-build to confirm baseline - currently passing."
+"Read the plan document to understand the required changes. Identified 3 files that need modification: config.c, parser.c, and main.c. The parser changes depend on config changes, so starting with config.c. Ran check-compile to confirm baseline - currently passing."
 
 Good:
 "Attempted to add validation in parse_input() but check-unit now shows 2 failures in parser_test.c. The tests expect NULL return on invalid input, but I'm returning an error struct. Need to check the error handling convention. Will read the errors skill next iteration."
@@ -87,7 +87,19 @@ Bad: "Updated some files"
 ## Before Acting
 Review Progress first. Don't repeat work already attempted.
 
-## Scripts
+## Running Checks
+
+**Avoid using `make` directly.** The makefile runs in parallel, producing interleaved verbose output that is difficult to parse and wastes tokens. The `check-*` scripts are faster, return consistently formatted JSON, and contain 100% of the information available from make.
+
+**Pre-existing errors:** If static or dynamic checks report pre-existing failures you didn't cause, go back and run `check-unit` and `check-integration` first. These catch most issues and their output is easier to act on.
+
+**Investigating failures:** When a check reports failures in specific files, use `--file=PATH` to get detailed output for that file only:
+```bash
+.claude/scripts/check-unit --file=src/problem_file.c
+.claude/scripts/check-sanitize --file=src/problem_file.c
+```
+This gives you focused information without wading through output from passing files.
+
 Run checks after implementation actions, not after every file read.
 
 ## When Stuck
