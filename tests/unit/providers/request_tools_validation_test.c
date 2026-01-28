@@ -5,6 +5,7 @@
 
 #include "../../../src/providers/request.h"
 #include "../../../src/agent.h"
+#include "../../../src/config_defaults.h"
 #include "../../../src/doc_cache.h"
 #include "../../../src/error.h"
 #include "../../../src/paths.h"
@@ -92,6 +93,7 @@ END_TEST
 
 /**
  * Test with system message (now uses pinned documents instead of cfg)
+ * With the fallback chain, default system message is always set
  */
 START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -101,7 +103,7 @@ START_TEST(test_with_system_message) {
     agent->messages = NULL;
     agent->message_count = 0;
 
-    // Pinned documents system - no pinned paths means no system prompt
+    // Pinned documents system - no pinned paths means fallback to default
     agent->pinned_paths = NULL;
     agent->pinned_count = 0;
     agent->doc_cache = NULL;
@@ -110,13 +112,14 @@ START_TEST(test_with_system_message) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    // With no pinned documents, system_prompt should be NULL
-    ck_assert_ptr_null(req->system_prompt);
+    // With fallback chain, default system message is always set
+    ck_assert_ptr_nonnull(req->system_prompt);
+    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
 }
 END_TEST
 
 /**
- * Test with NULL shared context (line 249 - first condition false)
+ * Test with NULL shared context - still gets default system message
  */
 START_TEST(test_null_shared_context) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -130,12 +133,14 @@ START_TEST(test_null_shared_context) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_null(req->system_prompt);
+    // With fallback chain, default system message is always set
+    ck_assert_ptr_nonnull(req->system_prompt);
+    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
 }
 END_TEST
 
 /**
- * Test with NULL config (line 249 - second condition false)
+ * Test with NULL config - still gets default system message
  */
 START_TEST(test_null_config) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -150,12 +155,14 @@ START_TEST(test_null_config) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_null(req->system_prompt);
+    // With fallback chain, default system message is always set
+    ck_assert_ptr_nonnull(req->system_prompt);
+    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
 }
 END_TEST
 
 /**
- * Test without system message (line 249 - third condition false)
+ * Test without config system message - falls back to default
  */
 START_TEST(test_without_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -171,7 +178,9 @@ START_TEST(test_without_system_message) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_null(req->system_prompt);
+    // With fallback chain, default system message is always set
+    ck_assert_ptr_nonnull(req->system_prompt);
+    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
 }
 END_TEST
 

@@ -153,6 +153,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
+    agent->shared = shared;  // Agent needs shared for system prompt fallback
     r->current = agent;
 
     r->shared = shared;
@@ -206,6 +207,7 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock DB to return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -219,7 +221,8 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 
     // Clean up
@@ -253,6 +256,7 @@ START_TEST(test_clear_system_db_error_json_add_fail) {
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock DB to return error on second call (system message)
     mock_insert_fail_on_call = 2;

@@ -131,6 +131,7 @@ static ik_repl_ctx_t *create_test_repl_with_conversation(void *parent)
     ck_assert_ptr_nonnull(agent);
     agent->scrollback = scrollback;
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
+    agent->shared = shared;  // Agent needs shared for system prompt fallback
     r->current = agent;
 
     r->shared = shared;
@@ -174,6 +175,7 @@ static void setup_db_and_pipe(ik_repl_ctx_t *r, ik_config_t *cfg, int *pipefd)
     r->shared->db_ctx = db_ctx;
     r->shared->session_id = 1;
     r->shared->db_debug_pipe = debug_pipe;
+    r->current->shared = r->shared;  // Agent needs shared for system prompt fallback
 }
 
 // Test: Clear with database error on clear event persist
@@ -192,7 +194,8 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened despite DB error
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 
     // Clean up
@@ -267,7 +270,8 @@ START_TEST(test_clear_without_db_ctx) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -288,6 +292,7 @@ START_TEST(test_clear_db_error_no_debug_pipe) {
     repl->shared->cfg = cfg;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->shared->db_debug_pipe = NULL;
@@ -300,7 +305,8 @@ START_TEST(test_clear_db_error_no_debug_pipe) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened despite DB error and no error logging
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -321,6 +327,7 @@ START_TEST(test_clear_system_db_error_no_debug_pipe) {
     repl->shared->cfg = cfg;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // No debug pipe set - db_debug_pipe is NULL
     repl->shared->db_debug_pipe = NULL;
@@ -361,6 +368,7 @@ START_TEST(test_clear_db_error_write_end_null) {
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -370,7 +378,8 @@ START_TEST(test_clear_db_error_write_end_null) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -397,6 +406,7 @@ START_TEST(test_clear_system_db_error_write_end_null) {
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
     repl->shared->db_debug_pipe = debug_pipe;
+    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;
@@ -428,7 +438,8 @@ START_TEST(test_clear_with_invalid_session_id) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
+    // With fallback chain, default system message is always shown (2 lines)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 

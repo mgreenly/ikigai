@@ -107,34 +107,32 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
  * Request Building from Agent Conversation
  * ================================================================ */
 
-static res_t build_system_prompt_from_pins(ik_request_t *req, ik_agent_ctx_t *agent)
+static res_t build_system_prompt_from_agent(ik_request_t *req, ik_agent_ctx_t *agent)
 {
     assert(req != NULL);   // LCOV_EXCL_BR_LINE
     assert(agent != NULL); // LCOV_EXCL_BR_LINE
 
-    if (agent->pinned_count == 0 || agent->doc_cache == NULL) {
-        return OK(NULL);
+    // Use effective system prompt with fallback chain:
+    // 1. Pinned files (if any)
+    // 2. $IKIGAI_DATA_DIR/system/prompt.md (if exists)
+    // 3. cfg->openai_system_message (config fallback)
+    char *system_prompt = NULL;
+    res_t prompt_res = ik_agent_get_effective_system_prompt(agent, &system_prompt);
+    if (is_err(&prompt_res)) {
+        return prompt_res;  // LCOV_EXCL_LINE
     }
 
-    char *system_prompt = talloc_strdup(req, "");
-    if (system_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (system_prompt != NULL && strlen(system_prompt) > 0) {
+        // Copy to request context since ik_agent_get_effective_system_prompt
+        // allocates on agent context
+        char *req_prompt = talloc_strdup(req, system_prompt);
+        talloc_free(system_prompt);
+        if (req_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    for (size_t i = 0; i < agent->pinned_count; i++) {
-        const char *path = agent->pinned_paths[i];
-        char *content = NULL;
-        res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
-
-        if (is_ok(&doc_res) && content != NULL) {
-            char *new_prompt = talloc_asprintf(req, "%s%s", system_prompt, content);
-            if (new_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-            talloc_free(system_prompt);
-            system_prompt = new_prompt;
-        }
-    }
-
-    if (strlen(system_prompt) > 0) {
-        res_t res = ik_request_set_system(req, system_prompt);
+        res_t res = ik_request_set_system(req, req_prompt);
         if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
+    } else if (system_prompt != NULL) {
+        talloc_free(system_prompt);
     }
 
     return OK(NULL);
@@ -195,7 +193,7 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
 
     ik_request_set_thinking(req, (ik_thinking_level_t)agent->thinking_level, false);
 
-    res = build_system_prompt_from_pins(req, agent);
+    res = build_system_prompt_from_agent(req, agent);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
         talloc_free(req);  // LCOV_EXCL_LINE
         return res;        // LCOV_EXCL_LINE

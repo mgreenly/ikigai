@@ -339,3 +339,21 @@ void ik_agent_clear_messages(ik_agent_ctx_t *agent);
  * @return     OK(dest->messages) on success
  */
 res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src);
+
+/**
+ * Get effective system prompt with fallback chain
+ *
+ * Returns the system prompt that should be used for this agent,
+ * following the priority order:
+ *   1. Assembled content from pinned files (if any)
+ *   2. Content of $IKIGAI_DATA_DIR/system/prompt.md (if exists)
+ *   3. cfg->openai_system_message (config fallback)
+ *
+ * The returned string is talloc-allocated on agent context.
+ * Caller should NOT free it (owned by agent).
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param out   Output parameter for system prompt (may be NULL if no prompt available)
+ * @return      OK on success (even if *out is NULL), ERR on failure
+ */
+res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out);
