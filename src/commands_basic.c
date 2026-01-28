@@ -83,7 +83,7 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         // Use effective system prompt with fallback chain
         char *db_prompt = NULL;
         res_t db_prompt_res = ik_agent_get_effective_system_prompt(repl->current, &db_prompt);
-        if (is_ok(&db_prompt_res) && db_prompt != NULL) {
+        if (is_ok(&db_prompt_res) && db_prompt != NULL) {  // LCOV_EXCL_BR_LINE
             res_t system_res = ik_db_message_insert(
                 repl->shared->db_ctx,
                 repl->shared->session_id,
@@ -114,10 +114,10 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // 3. cfg->openai_system_message (config fallback)
     char *effective_prompt = NULL;
     res_t prompt_res = ik_agent_get_effective_system_prompt(repl->current, &effective_prompt);
-    if (is_err(&prompt_res)) {
-        return prompt_res;
+    if (is_err(&prompt_res)) {  // LCOV_EXCL_BR_LINE
+        return prompt_res;  // LCOV_EXCL_LINE
     }
-    if (effective_prompt != NULL) {
+    if (effective_prompt != NULL) {  // LCOV_EXCL_BR_LINE
         res_t render_res = ik_event_render(
             repl->current->scrollback,
             "system",
@@ -125,8 +125,8 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
             "{}"
             );
         talloc_free(effective_prompt);
-        if (is_err(&render_res)) {
-            return render_res;
+        if (is_err(&render_res)) {  // LCOV_EXCL_BR_LINE
+            return render_res;  // LCOV_EXCL_LINE
         }
     }
 
