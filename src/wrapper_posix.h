@@ -13,6 +13,7 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -175,6 +176,21 @@ MOCKABLE void globfree_(glob_t *pglob)
     globfree(pglob);
 }
 
+MOCKABLE int kill_(pid_t pid, int sig)
+{
+    return kill(pid, sig);
+}
+
+MOCKABLE pid_t waitpid_(pid_t pid, int *status, int options)
+{
+    return waitpid(pid, status, options);
+}
+
+MOCKABLE int usleep_(useconds_t usec)
+{
+    return usleep(usec);
+}
+
 #else
 
 MOCKABLE int posix_open_(const char *pathname, int flags);
@@ -208,6 +224,9 @@ MOCKABLE char *getenv_(const char *name);
 MOCKABLE struct passwd *getpwuid_(uid_t uid);
 MOCKABLE int glob_(const char *pattern, int flags, int (*errfunc)(const char *, int), glob_t *pglob);
 MOCKABLE void globfree_(glob_t *pglob);
+MOCKABLE int kill_(pid_t pid, int sig);
+MOCKABLE pid_t waitpid_(pid_t pid, int *status, int options);
+MOCKABLE int usleep_(useconds_t usec);
 
 #endif
 

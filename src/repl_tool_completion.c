@@ -49,6 +49,7 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
     agent->tool_thread_result = NULL;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     agent->tool_child_pid = 0;
+    ik_agent_transition_from_executing_tool(agent);
     const char *msg = "Interrupted";
     ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {

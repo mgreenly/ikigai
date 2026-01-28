@@ -224,7 +224,7 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
             pid_t child_pid = agent->tool_child_pid;
 
             // Send SIGTERM to process group (negative PID)
-            kill(-child_pid, SIGTERM);
+            kill_(-child_pid, SIGTERM);
 
             // Wait up to 2 seconds for process to terminate
             const int32_t timeout_ms = 2000;
@@ -235,7 +235,7 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
             while (elapsed_ms < timeout_ms) {
                 // Check if process has terminated (WNOHANG = non-blocking)
                 int32_t status;
-                pid_t result = waitpid(child_pid, &status, WNOHANG);
+                pid_t result = waitpid_(child_pid, &status, WNOHANG);
                 if (result == child_pid || result == -1) {
                     // Process terminated or doesn't exist
                     terminated = true;
@@ -243,13 +243,13 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
                 }
 
                 // Sleep for check interval
-                usleep((useconds_t)(check_interval_ms * 1000));
+                usleep_((useconds_t)(check_interval_ms * 1000));
                 elapsed_ms += check_interval_ms;
             }
 
             // Escalate to SIGKILL if process didn't terminate
             if (!terminated) {
-                kill(-child_pid, SIGKILL);
+                kill_(-child_pid, SIGKILL);
             }
         }
     }
