@@ -119,6 +119,345 @@ START_TEST(test_input_parse_delete) {
 }
 
 END_TEST
+// Test: parse arrow up with NumLock modifier (ESC [ 1 ; 129 A)
+START_TEST(test_input_parse_arrow_up_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 A (129 = 1 + 128 NumLock)
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'A', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_ARROW_UP);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse arrow down with NumLock modifier
+START_TEST(test_input_parse_arrow_down_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 B
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'B', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_ARROW_DOWN);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse arrow left with NumLock modifier
+START_TEST(test_input_parse_arrow_left_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 D
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'D', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_ARROW_LEFT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse arrow right with NumLock modifier
+START_TEST(test_input_parse_arrow_right_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 C
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'C', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_ARROW_RIGHT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Ctrl+arrow with NumLock modifier (ESC [ 1 ; 133 A)
+START_TEST(test_input_parse_ctrl_arrow_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 133 A (133 = 5 + 128 = Ctrl + NumLock)
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '3', &action);
+    ik_input_parse_byte(parser, '3', &action);
+    ik_input_parse_byte(parser, 'A', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_NAV_PARENT);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Home key escape sequence
+START_TEST(test_input_parse_home) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse full sequence \x1b[1~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '1', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);  // Home = beginning of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse End key escape sequence
+START_TEST(test_input_parse_end) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse full sequence \x1b[4~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '[', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '4', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);  // End = end of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Home key with NumLock modifier (ESC [ 1 ; 129 ~)
+START_TEST(test_input_parse_home_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 ~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);  // Home = beginning of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse End key with NumLock modifier (ESC [ 4 ; 129 ~)
+START_TEST(test_input_parse_end_numlock) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 4 ; 129 ~
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '4', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);  // End = end of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Home key alternate sequence (ESC [ H)
+START_TEST(test_input_parse_home_alternate) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ H
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, 'H', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);  // Home = beginning of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse End key alternate sequence (ESC [ F)
+START_TEST(test_input_parse_end_alternate) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ F
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, 'F', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);  // End = end of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse Home key with modifier (ESC [ 1 ; 129 H) - CSI u with NumLock
+START_TEST(test_input_parse_home_modified_h) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 H
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'H', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);  // Home = beginning of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: parse End key with modifier (ESC [ 1 ; 129 F) - CSI u with NumLock
+START_TEST(test_input_parse_end_modified_f) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; 129 F
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, '9', &action);
+    ik_input_parse_byte(parser, 'F', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);  // End = end of line
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: ESC [ 1 ; X H with invalid modifier char is rejected
+START_TEST(test_input_parse_home_invalid_modifier) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 1 ; x H (invalid: 'x' instead of digit)
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, 'x', &action);
+    ik_input_parse_byte(parser, 'H', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: ESC [ 2 ; 1 H is not recognized (must start with '1')
+START_TEST(test_input_parse_home_wrong_prefix) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ 2 ; 1 H (wrong: starts with '2' not '1')
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, '2', &action);
+    ik_input_parse_byte(parser, ';', &action);
+    ik_input_parse_byte(parser, '1', &action);
+    ik_input_parse_byte(parser, 'H', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: ESC [ x ~ with invalid key number char
+START_TEST(test_input_parse_tilde_invalid_key) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_action_t action = {0};
+
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+
+    // Parse ESC [ x ~ (invalid: 'x' instead of digit)
+    ik_input_parse_byte(parser, 0x1B, &action);
+    ik_input_parse_byte(parser, '[', &action);
+    ik_input_parse_byte(parser, 'x', &action);
+    ik_input_parse_byte(parser, '~', &action);
+    ck_assert_int_eq(action.type, IK_INPUT_UNKNOWN);
+    ck_assert(!parser->in_escape);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: parse invalid escape sequence resets parser
 START_TEST(test_input_parse_invalid_escape) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -401,7 +740,23 @@ static Suite *input_escape_suite(void)
     tcase_add_test(tc_core, test_input_parse_arrow_down);
     tcase_add_test(tc_core, test_input_parse_arrow_left);
     tcase_add_test(tc_core, test_input_parse_arrow_right);
+    tcase_add_test(tc_core, test_input_parse_arrow_up_numlock);
+    tcase_add_test(tc_core, test_input_parse_arrow_down_numlock);
+    tcase_add_test(tc_core, test_input_parse_arrow_left_numlock);
+    tcase_add_test(tc_core, test_input_parse_arrow_right_numlock);
+    tcase_add_test(tc_core, test_input_parse_ctrl_arrow_numlock);
     tcase_add_test(tc_core, test_input_parse_delete);
+    tcase_add_test(tc_core, test_input_parse_home);
+    tcase_add_test(tc_core, test_input_parse_end);
+    tcase_add_test(tc_core, test_input_parse_home_numlock);
+    tcase_add_test(tc_core, test_input_parse_end_numlock);
+    tcase_add_test(tc_core, test_input_parse_home_alternate);
+    tcase_add_test(tc_core, test_input_parse_end_alternate);
+    tcase_add_test(tc_core, test_input_parse_home_modified_h);
+    tcase_add_test(tc_core, test_input_parse_end_modified_f);
+    tcase_add_test(tc_core, test_input_parse_home_invalid_modifier);
+    tcase_add_test(tc_core, test_input_parse_home_wrong_prefix);
+    tcase_add_test(tc_core, test_input_parse_tilde_invalid_key);
     tcase_add_test(tc_core, test_input_parse_page_up);
     tcase_add_test(tc_core, test_input_parse_page_down);
     tcase_add_test(tc_core, test_input_parse_invalid_escape);
