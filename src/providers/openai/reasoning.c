@@ -101,7 +101,16 @@ bool ik_openai_supports_temperature(const char *model)
 
 bool ik_openai_prefer_responses_api(const char *model)
 {
-    // Reasoning models perform 3% better with Responses API
+    if (model == NULL) {
+        return false;
+    }
+
+    // GPT-4 models: force Chat Completions API
+    if (strncmp(model, "gpt-4", 5) == 0) {
+        return false;
+    }
+
+    // Reasoning models (o1, o3, gpt-5.x): prefer Responses API (3% better performance)
     return ik_openai_is_reasoning_model(model);
 }
 
