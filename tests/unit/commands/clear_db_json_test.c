@@ -249,10 +249,6 @@ START_TEST(test_clear_system_db_error_json_add_fail) {
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Clean up
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
 }
 
 END_TEST

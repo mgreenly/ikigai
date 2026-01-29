@@ -84,7 +84,6 @@ res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 static ik_db_ctx_t *mock_db_ctx;
-static int db_debug_pipe_fds[2];
 static char test_dir[256];
 static char log_file_path[512];
 
@@ -112,10 +111,6 @@ static void setup(void)
     // Create mock database context (just a talloc pointer)
     mock_db_ctx = talloc_zero_(test_ctx, 1);
     ck_assert_ptr_nonnull(mock_db_ctx);
-
-    // Create pipe for db_debug_pipe
-    int ret = pipe(db_debug_pipe_fds);
-    ck_assert_int_eq(ret, 0);
 
     // Create minimal REPL context for testing
     repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
@@ -175,12 +170,6 @@ static void setup(void)
     repl->shared->db_ctx = mock_db_ctx;
     repl->shared->session_id = 1;
 
-    // Create db_debug_pipe
-    repl->shared->db_debug_pipe = talloc_zero_(repl, sizeof(ik_debug_pipe_t));
-    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe);
-    repl->shared->db_debug_pipe->write_end = fdopen(db_debug_pipe_fds[1], "w");
-    ck_assert_ptr_nonnull(repl->shared->db_debug_pipe->write_end);
-
     // Set viewport offset
     repl->current->viewport_offset = 0;
 
@@ -197,11 +186,6 @@ static void setup(void)
 
 static void teardown(void)
 {
-    if (repl->shared->db_debug_pipe && repl->shared->db_debug_pipe->write_end) {
-        fclose(repl->shared->db_debug_pipe->write_end);
-    }
-    close(db_debug_pipe_fds[0]);
-
     if (mock_err_ctx != NULL) {
         talloc_free(mock_err_ctx);
         mock_err_ctx = NULL;
@@ -266,77 +250,6 @@ START_TEST(test_db_message_insert_error) {
     ck_assert(repl->current->scrollback->count >= 1);
 }
 END_TEST
-// Test normal path (no DB error) for comparison
-START_TEST(test_db_message_insert_success) {
-    // Set up: Insert text into input buffer
-    const char *test_text = "Test message";
-    for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
-        ck_assert(is_ok(&r));
-    }
-
-    // No DB error
-    mock_message_insert_should_fail = false;
-
-    // Create newline action
-    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
-
-    // Process newline action
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // No error message should be logged
-    fflush(repl->shared->db_debug_pipe->write_end);
-
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(db_debug_pipe_fds[0], &readfds);
-    struct timeval timeout = {0, 0}; // Non-blocking
-    int ready = select(db_debug_pipe_fds[0] + 1, &readfds, NULL, NULL, &timeout);
-
-    // Should be no data to read (no error logged)
-    ck_assert_int_eq(ready, 0);
-
-    // Verify the user message was added to conversation
-    ck_assert_uint_eq(repl->current->message_count, 1);
-    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
-    ck_assert(repl->current->messages[0]->content_count > 0);
-
-    // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
-    ck_assert(repl->current->scrollback->count >= 1);
-}
-
-END_TEST
-// Test DB error when db_debug_pipe is NULL (shouldn't crash)
-START_TEST(test_db_message_insert_error_no_debug_pipe) {
-    // Close and remove debug pipe
-    fclose(repl->shared->db_debug_pipe->write_end);
-    repl->shared->db_debug_pipe->write_end = NULL;
-
-    // Set up: Insert text into input buffer
-    const char *test_text = "Test";
-    for (const char *p = test_text; *p; p++) {
-        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
-        ck_assert(is_ok(&r));
-    }
-
-    // Enable DB error simulation
-    mock_message_insert_should_fail = true;
-
-    // Create newline action
-    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
-
-    // Process newline action (should handle DB error gracefully without debug pipe)
-    res_t result = ik_repl_process_action(repl, &action);
-    ck_assert(is_ok(&result));
-
-    // Verify the user message was still added to conversation
-    ck_assert_uint_eq(repl->current->message_count, 1);
-    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
-    ck_assert(repl->current->messages[0]->content_count > 0);
-}
-
-END_TEST
 // Test message submission when db_ctx is NULL (no DB persistence)
 START_TEST(test_message_submission_no_db_ctx) {
     // Set db_ctx to NULL
@@ -361,15 +274,6 @@ START_TEST(test_message_submission_no_db_ctx) {
     ck_assert_uint_eq(repl->current->message_count, 1);
     ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
     ck_assert(repl->current->messages[0]->content_count > 0);
-
-    // No DB operation should have occurred, so no error logged
-    fflush(repl->shared->db_debug_pipe->write_end);
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(db_debug_pipe_fds[0], &readfds);
-    struct timeval timeout = {0, 0};
-    int ready = select(db_debug_pipe_fds[0] + 1, &readfds, NULL, NULL, &timeout);
-    ck_assert_int_eq(ready, 0);
 }
 
 END_TEST
@@ -386,8 +290,6 @@ static Suite *repl_actions_db_error_suite(void)
 
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_db_message_insert_error);
-    tcase_add_test(tc_core, test_db_message_insert_success);
-    tcase_add_test(tc_core, test_db_message_insert_error_no_debug_pipe);
     tcase_add_test(tc_core, test_message_submission_no_db_ctx);
 
     suite_add_tcase(s, tc_core);

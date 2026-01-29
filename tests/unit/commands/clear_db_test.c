@@ -156,19 +156,12 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-// Helper: Setup DB context and debug pipe with write_end
-static void setup_db_and_pipe(ik_repl_ctx_t *r, ik_config_t *cfg, int *pipefd)
+// Helper: Setup DB context
+static void setup_db(ik_repl_ctx_t *r, ik_config_t *cfg)
 {
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;
-
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-
-    ck_assert_int_eq(pipe(pipefd), 0);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
 
     r->shared->cfg = cfg;
     r->shared->db_ctx = db_ctx;
@@ -182,12 +175,11 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = NULL;
 
-    int pipefd[2];
-    setup_db_and_pipe(repl, cfg, pipefd);
+    setup_db(repl, cfg);
 
     mock_insert_fail_on_call = 1;
 
-    // Execute /clear - should log error but not fail
+    // Execute /clear - should succeed despite DB error
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
@@ -195,10 +187,6 @@ START_TEST(test_clear_db_error_clear_event) {
     // With fallback chain, default system message is always shown (2 lines)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Clean up
-    fclose(repl->shared->db_debug_pipe->write_end);
-    close(pipefd[0]);
 }
 END_TEST
 // Test: Clear with database error on system message persist
@@ -207,12 +195,11 @@ START_TEST(test_clear_db_error_system_message) {
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
 
-    int pipefd[2];
-    setup_db_and_pipe(repl, cfg, pipefd);
+    setup_db(repl, cfg);
 
     mock_insert_fail_on_call = 2;
 
-    // Execute /clear - should log error but not fail
+    // Execute /clear - should succeed despite DB error
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
@@ -220,10 +207,6 @@ START_TEST(test_clear_db_error_system_message) {
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Clean up
-    fclose(repl->shared->db_debug_pipe->write_end);
-    close(pipefd[0]);
 }
 
 END_TEST
@@ -233,8 +216,7 @@ START_TEST(test_clear_db_success_system_message) {
     ck_assert_ptr_nonnull(cfg);
     cfg->openai_system_message = talloc_strdup(cfg, "You are a helpful assistant");
 
-    int pipefd[2];
-    setup_db_and_pipe(repl, cfg, pipefd);
+    setup_db(repl, cfg);
 
     mock_insert_fail_on_call = -1;
 
@@ -246,10 +228,6 @@ START_TEST(test_clear_db_success_system_message) {
     // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Clean up
-    fclose(repl->shared->db_debug_pipe->write_end);
-    close(pipefd[0]);
 }
 
 END_TEST
@@ -269,150 +247,6 @@ START_TEST(test_clear_without_db_ctx) {
 
     // Verify clear happened
     // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->current->message_count, 0);
-}
-
-END_TEST
-// Test: Clear with DB error but no debug pipe (silent failure)
-START_TEST(test_clear_db_error_no_debug_pipe) {
-    // Create minimal config (no system message)
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->openai_system_message = NULL;
-
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-
-    // Update repl->shared with all required fields
-    repl->shared->cfg = cfg;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
-
-    // No debug pipe set - db_debug_pipe is NULL
-
-    // Mock will return error on first call (clear event)
-    mock_insert_fail_on_call = 1;
-
-    // Execute /clear - should succeed without attempting to log error
-    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
-    ck_assert(is_ok(&res));
-
-    // Verify clear happened despite DB error and no error logging
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->current->message_count, 0);
-}
-
-END_TEST
-// Test: Clear with system message DB error but no debug pipe
-START_TEST(test_clear_system_db_error_no_debug_pipe) {
-    // Create config with system message
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-
-    // Update repl->shared with all required fields
-    repl->shared->cfg = cfg;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
-
-    // No debug pipe set - db_debug_pipe is NULL
-
-    // Mock will return error on second call (system message)
-    mock_insert_fail_on_call = 2;
-
-    // Execute /clear - should succeed without attempting to log error
-    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
-    ck_assert(is_ok(&res));
-
-    // Verify clear happened
-    // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->current->message_count, 0);
-}
-
-END_TEST
-// Test: Clear with DB error and debug pipe but write_end is NULL
-START_TEST(test_clear_db_error_write_end_null) {
-    // Create minimal config
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->openai_system_message = NULL;
-
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-
-    // Create debug pipe but with NULL write_end
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = NULL;  // NULL write_end
-
-    // Update repl->shared with all required fields
-    repl->shared->cfg = cfg;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-    repl->shared->db_debug_pipe = debug_pipe;
-    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
-
-    // Mock will return error on first call (clear event)
-    mock_insert_fail_on_call = 1;
-
-    // Execute /clear - should succeed without attempting to log error
-    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
-    ck_assert(is_ok(&res));
-
-    // Verify clear happened
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-    ck_assert_uint_eq(repl->current->message_count, 0);
-}
-
-END_TEST
-// Test: Clear with system message DB error and write_end is NULL
-START_TEST(test_clear_system_db_error_write_end_null) {
-    // Create config with system message
-    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(cfg);
-    cfg->openai_system_message = talloc_strdup(cfg, "You are helpful");
-
-    // Set up database context and session with proper mock structure
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    ck_assert_ptr_nonnull(db_ctx);
-    db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
-
-    // Create debug pipe but with NULL write_end
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-    debug_pipe->write_end = NULL;  // NULL write_end
-
-    // Update repl->shared with all required fields
-    repl->shared->cfg = cfg;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-    repl->shared->db_debug_pipe = debug_pipe;
-    repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
-
-    // Mock will return error on second call (system message)
-    mock_insert_fail_on_call = 2;
-
-    // Execute /clear - should succeed without attempting to log error
-    res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
-    ck_assert(is_ok(&res));
-
-    // Verify clear happened
-    // System message should be displayed in scrollback (with blank line after)
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
@@ -454,10 +288,6 @@ static Suite *commands_clear_db_suite(void)
     tcase_add_test(tc, test_clear_db_error_system_message);
     tcase_add_test(tc, test_clear_db_success_system_message);
     tcase_add_test(tc, test_clear_without_db_ctx);
-    tcase_add_test(tc, test_clear_db_error_no_debug_pipe);
-    tcase_add_test(tc, test_clear_system_db_error_no_debug_pipe);
-    tcase_add_test(tc, test_clear_db_error_write_end_null);
-    tcase_add_test(tc, test_clear_system_db_error_write_end_null);
     tcase_add_test(tc, test_clear_with_invalid_session_id);
 
     suite_add_tcase(s, tc);

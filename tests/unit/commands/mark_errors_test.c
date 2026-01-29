@@ -176,72 +176,18 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-// Test: Mark with unlabeled DB insert error and debug pipe
-START_TEST(test_mark_unlabeled_db_error_with_debug_pipe) {
+// Test: Mark with unlabeled DB insert error
+START_TEST(test_mark_unlabeled_db_error) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
 
-    // Set up debug pipe
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    int pipefd[2];
-    ck_assert_int_eq(pipe(pipefd), 0);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->db_debug_pipe = debug_pipe;
-
     // Mock INSERT to fail
     mock_insert_should_fail = true;
 
-    // Create unlabeled mark - should succeed in memory but log DB error
-    res_t res = ik_cmd_mark(ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->mark_count, 1);
-
-    // Clean up
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
-}
-END_TEST
-// Test: Mark with unlabeled DB insert error, no debug pipe
-START_TEST(test_mark_unlabeled_db_error_no_debug_pipe) {
-    // Set up DB context
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    db_ctx->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
-    // No debug pipe
-
-    // Mock INSERT to fail
-    mock_insert_should_fail = true;
-
-    // Create unlabeled mark - should succeed without crash
-    res_t res = ik_cmd_mark(ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->mark_count, 1);
-}
-
-END_TEST
-// Test: Mark with unlabeled DB insert error, NULL write_end
-START_TEST(test_mark_unlabeled_db_error_null_write_end) {
-    // Set up DB context
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    db_ctx->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
-    // Debug pipe with NULL write_end
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    debug_pipe->write_end = NULL;
-    repl->shared->db_debug_pipe = debug_pipe;
-
-    // Mock INSERT to fail
-    mock_insert_should_fail = true;
-
-    // Create unlabeled mark - should succeed without crash
+    // Create unlabeled mark - should succeed in memory despite DB error
     res_t res = ik_cmd_mark(ctx, repl, NULL);
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->mark_count, 1);
@@ -268,21 +214,13 @@ START_TEST(test_rewind_mark_not_found) {
 }
 
 END_TEST
-// Test: Rewind with DB insert error and debug pipe
-START_TEST(test_rewind_db_error_with_debug_pipe) {
+// Test: Rewind with DB insert error
+START_TEST(test_rewind_db_error) {
     // Set up DB context
     ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
     db_ctx->conn = (PGconn *)0x1234;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
-
-    // Set up debug pipe
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    int pipefd[2];
-    ck_assert_int_eq(pipe(pipefd), 0);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-    repl->shared->db_debug_pipe = debug_pipe;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");
@@ -299,78 +237,7 @@ START_TEST(test_rewind_db_error_with_debug_pipe) {
     mock_query_value = "123";  // Fake message ID
     mock_insert_should_fail = true;
 
-    // Rewind should succeed in memory but log DB error
-    res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Clean up
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
-}
-
-END_TEST
-// Test: Rewind with DB insert error, no debug pipe
-START_TEST(test_rewind_db_error_no_debug_pipe) {
-    // Set up DB context
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    db_ctx->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
-    // No debug pipe
-
-    // Create a mark in memory
-    res_t mark_res = ik_mark_create(repl, "checkpoint");
-    ck_assert(is_ok(&mark_res));
-
-    // Add a message
-    ik_message_t *msg_created = ik_message_create_text(ctx, IK_ROLE_USER, "test");
-    // removed assertion
-    ik_agent_add_message(repl->current, msg_created);
-    // removed assertion
-
-    // Mock: SELECT succeeds, INSERT fails
-    mock_ntuples = 1;
-    mock_query_value = "123";
-    mock_insert_should_fail = true;
-
-    // Should succeed without crash
-    res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(repl->current->message_count, 0);
-}
-
-END_TEST
-// Test: Rewind with DB insert error, NULL write_end
-START_TEST(test_rewind_db_error_null_write_end) {
-    // Set up DB context
-    ik_db_ctx_t *db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    db_ctx->conn = (PGconn *)0x1234;
-    repl->shared->db_ctx = db_ctx;
-    repl->shared->session_id = 1;
-
-    // Debug pipe with NULL write_end
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    debug_pipe->write_end = NULL;
-    repl->shared->db_debug_pipe = debug_pipe;
-
-    // Create a mark in memory
-    res_t mark_res = ik_mark_create(repl, "checkpoint");
-    ck_assert(is_ok(&mark_res));
-
-    // Add a message
-    ik_message_t *msg_created = ik_message_create_text(ctx, IK_ROLE_USER, "test");
-    // removed assertion
-    ik_agent_add_message(repl->current, msg_created);
-    // removed assertion
-
-    // Mock: SELECT succeeds, INSERT fails
-    mock_ntuples = 1;
-    mock_query_value = "123";
-    mock_insert_should_fail = true;
-
-    // Should succeed without crash
+    // Rewind should succeed in memory despite DB error
     res_t res = ik_cmd_rewind(ctx, repl, "checkpoint");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->message_count, 0);
@@ -455,13 +322,9 @@ static Suite *commands_mark_errors_suite(void)
 
     tcase_add_checked_fixture(tc, setup, teardown);
 
-    tcase_add_test(tc, test_mark_unlabeled_db_error_with_debug_pipe);
-    tcase_add_test(tc, test_mark_unlabeled_db_error_no_debug_pipe);
-    tcase_add_test(tc, test_mark_unlabeled_db_error_null_write_end);
+    tcase_add_test(tc, test_mark_unlabeled_db_error);
     tcase_add_test(tc, test_rewind_mark_not_found);
-    tcase_add_test(tc, test_rewind_db_error_with_debug_pipe);
-    tcase_add_test(tc, test_rewind_db_error_no_debug_pipe);
-    tcase_add_test(tc, test_rewind_db_error_null_write_end);
+    tcase_add_test(tc, test_rewind_db_error);
     tcase_add_test(tc, test_mark_with_db_ctx_but_no_session);
     tcase_add_test(tc, test_rewind_with_db_ctx_but_no_session);
     tcase_add_test(tc, test_rewind_with_zero_message_id);

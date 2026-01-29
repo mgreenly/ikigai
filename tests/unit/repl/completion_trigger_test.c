@@ -276,8 +276,8 @@ START_TEST(test_empty_slash_then_typing) {
     ck_assert_ptr_nonnull(repl->current->completion);
     size_t initial_count = repl->current->completion->count;
 
-    // Type "d" for "debug"
-    action.codepoint = 'd';
+    // Type "m" for "mark", "model", "mail-*"
+    action.codepoint = 'm';
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
