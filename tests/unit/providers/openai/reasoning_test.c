@@ -26,106 +26,22 @@ static void teardown(void)
  * ik_openai_is_reasoning_model Tests
  * ================================================================ */
 
-START_TEST(test_is_reasoning_model_null) {
-    bool result = ik_openai_is_reasoning_model(NULL);
-    ck_assert(!result);
-}
-END_TEST
-
-START_TEST(test_is_reasoning_model_empty) {
-    bool result = ik_openai_is_reasoning_model("");
-    ck_assert(!result);
+START_TEST(test_is_reasoning_model_reasoning) {
+    const char *models[] = {"o1", "o1-mini", "o1-preview", "o3", "o3-mini",
+        "gpt-5", "gpt-5-mini", "gpt-5-pro", "gpt-5.2", "gpt-5.2-codex"};
+    for (size_t i = 0; i < 10; i++) {
+        ck_assert(ik_openai_is_reasoning_model(models[i]));
+    }
 }
 
 END_TEST
 
-START_TEST(test_is_reasoning_model_o1) {
-    bool result = ik_openai_is_reasoning_model("o1");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_o1_mini) {
-    bool result = ik_openai_is_reasoning_model("o1-mini");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_o1_preview) {
-    bool result = ik_openai_is_reasoning_model("o1-preview");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_o3) {
-    bool result = ik_openai_is_reasoning_model("o3");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_o3_mini) {
-    bool result = ik_openai_is_reasoning_model("o3-mini");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt5) {
-    bool result = ik_openai_is_reasoning_model("gpt-5");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt5_mini) {
-    bool result = ik_openai_is_reasoning_model("gpt-5-mini");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt5_pro) {
-    bool result = ik_openai_is_reasoning_model("gpt-5-pro");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt52) {
-    bool result = ik_openai_is_reasoning_model("gpt-5.2");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt52_codex) {
-    bool result = ik_openai_is_reasoning_model("gpt-5.2-codex");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt4) {
-    bool result = ik_openai_is_reasoning_model("gpt-4");
-    ck_assert(!result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_gpt4o) {
-    bool result = ik_openai_is_reasoning_model("gpt-4o");
-    ck_assert(!result);
-}
-
-END_TEST
-
-START_TEST(test_is_reasoning_model_claude) {
-    bool result = ik_openai_is_reasoning_model("claude-3-5-sonnet");
-    ck_assert(!result);
+START_TEST(test_is_reasoning_model_non_reasoning) {
+    ck_assert(!ik_openai_is_reasoning_model(NULL));
+    ck_assert(!ik_openai_is_reasoning_model(""));
+    ck_assert(!ik_openai_is_reasoning_model("gpt-4"));
+    ck_assert(!ik_openai_is_reasoning_model("gpt-4o"));
+    ck_assert(!ik_openai_is_reasoning_model("claude-3-5-sonnet"));
 }
 
 END_TEST
@@ -311,138 +227,34 @@ END_TEST
  * ik_openai_use_responses_api Tests
  * ================================================================ */
 
-// Chat Completions API models (should return false)
-START_TEST(test_use_responses_api_gpt4) {
-    ck_assert(!ik_openai_use_responses_api("gpt-4"));
+START_TEST(test_use_responses_api_chat_completions) {
+    const char *chat_models[] = {"gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini"};
+    for (size_t i = 0; i < 4; i++) {
+        ck_assert(!ik_openai_use_responses_api(chat_models[i]));
+    }
 }
 
 END_TEST
 
-START_TEST(test_use_responses_api_gpt4_turbo) {
-    ck_assert(!ik_openai_use_responses_api("gpt-4-turbo"));
+START_TEST(test_use_responses_api_responses) {
+    const char *resp_models[] = {
+        "o1", "o1-mini", "o1-preview", "o3", "o3-mini",
+        "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro",
+        "gpt-5.1", "gpt-5.1-chat-latest", "gpt-5.1-codex",
+        "gpt-5.2", "gpt-5.2-chat-latest", "gpt-5.2-codex"
+    };
+    for (size_t i = 0; i < 15; i++) {
+        ck_assert(ik_openai_use_responses_api(resp_models[i]));
+    }
 }
 
 END_TEST
 
-START_TEST(test_use_responses_api_gpt4o) {
-    ck_assert(!ik_openai_use_responses_api("gpt-4o"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt4o_mini) {
-    ck_assert(!ik_openai_use_responses_api("gpt-4o-mini"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_unknown_model) {
-    // Unknown models default to Chat Completions API
+START_TEST(test_use_responses_api_edge_cases) {
+    ck_assert(!ik_openai_use_responses_api(NULL));
+    ck_assert(!ik_openai_use_responses_api(""));
     ck_assert(!ik_openai_use_responses_api("gpt-7"));
     ck_assert(!ik_openai_use_responses_api("unknown-model"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_null) {
-    ck_assert(!ik_openai_use_responses_api(NULL));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_empty) {
-    ck_assert(!ik_openai_use_responses_api(""));
-}
-
-END_TEST
-
-// Responses API models (should return true)
-START_TEST(test_use_responses_api_o1) {
-    ck_assert(ik_openai_use_responses_api("o1"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_o1_mini) {
-    ck_assert(ik_openai_use_responses_api("o1-mini"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_o1_preview) {
-    ck_assert(ik_openai_use_responses_api("o1-preview"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_o3) {
-    ck_assert(ik_openai_use_responses_api("o3"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_o3_mini) {
-    ck_assert(ik_openai_use_responses_api("o3-mini"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt5) {
-    ck_assert(ik_openai_use_responses_api("gpt-5"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt5_mini) {
-    ck_assert(ik_openai_use_responses_api("gpt-5-mini"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt5_nano) {
-    ck_assert(ik_openai_use_responses_api("gpt-5-nano"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt5_pro) {
-    ck_assert(ik_openai_use_responses_api("gpt-5-pro"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt51) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.1"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt51_chat_latest) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.1-chat-latest"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt51_codex) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.1-codex"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt52) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.2"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt52_chat_latest) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.2-chat-latest"));
-}
-
-END_TEST
-
-START_TEST(test_use_responses_api_gpt52_codex) {
-    ck_assert(ik_openai_use_responses_api("gpt-5.2-codex"));
 }
 
 END_TEST
@@ -564,21 +376,8 @@ static Suite *reasoning_suite(void)
     TCase *tc_is_reasoning = tcase_create("is_reasoning_model");
     tcase_set_timeout(tc_is_reasoning, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_is_reasoning, setup, teardown);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_null);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_empty);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o1);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o1_mini);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o1_preview);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o3);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o3_mini);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_mini);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_pro);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt52);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt52_codex);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt4);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt4o);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_claude);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_reasoning);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_non_reasoning);
     suite_add_tcase(s, tc_is_reasoning);
 
     TCase *tc_effort = tcase_create("reasoning_effort");
@@ -616,30 +415,9 @@ static Suite *reasoning_suite(void)
     TCase *tc_responses = tcase_create("use_responses_api");
     tcase_set_timeout(tc_responses, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_responses, setup, teardown);
-    // Chat Completions API models
-    tcase_add_test(tc_responses, test_use_responses_api_gpt4);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt4_turbo);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt4o);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt4o_mini);
-    tcase_add_test(tc_responses, test_use_responses_api_unknown_model);
-    tcase_add_test(tc_responses, test_use_responses_api_null);
-    tcase_add_test(tc_responses, test_use_responses_api_empty);
-    // Responses API models
-    tcase_add_test(tc_responses, test_use_responses_api_o1);
-    tcase_add_test(tc_responses, test_use_responses_api_o1_mini);
-    tcase_add_test(tc_responses, test_use_responses_api_o1_preview);
-    tcase_add_test(tc_responses, test_use_responses_api_o3);
-    tcase_add_test(tc_responses, test_use_responses_api_o3_mini);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt5);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt5_mini);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt5_nano);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt5_pro);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt51);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt51_chat_latest);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt51_codex);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt52);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt52_chat_latest);
-    tcase_add_test(tc_responses, test_use_responses_api_gpt52_codex);
+    tcase_add_test(tc_responses, test_use_responses_api_chat_completions);
+    tcase_add_test(tc_responses, test_use_responses_api_responses);
+    tcase_add_test(tc_responses, test_use_responses_api_edge_cases);
     suite_add_tcase(s, tc_responses);
 
     TCase *tc_validate = tcase_create("validate_thinking");
