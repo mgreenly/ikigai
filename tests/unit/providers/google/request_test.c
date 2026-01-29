@@ -35,22 +35,22 @@ static void teardown(void)
 START_TEST(test_build_url_non_streaming) {
     char *url = NULL;
     res_t r = ik_google_build_url(test_ctx, "https://api.test.com",
-                                  "gemini-2.0-flash", "test-key", false, &url);
+                                  "gemini-2.5-flash", "test-key", false, &url);
 
     ck_assert(is_ok(&r));
     ck_assert_ptr_nonnull(url);
-    ck_assert_str_eq(url, "https://api.test.com/models/gemini-2.0-flash:generateContent?key=test-key");
+    ck_assert_str_eq(url, "https://api.test.com/models/gemini-2.5-flash:generateContent?key=test-key");
 }
 END_TEST
 
 START_TEST(test_build_url_streaming) {
     char *url = NULL;
     res_t r = ik_google_build_url(test_ctx, "https://api.test.com",
-                                  "gemini-2.0-flash", "test-key", true, &url);
+                                  "gemini-2.5-flash", "test-key", true, &url);
 
     ck_assert(is_ok(&r));
     ck_assert_ptr_nonnull(url);
-    ck_assert_str_eq(url, "https://api.test.com/models/gemini-2.0-flash:streamGenerateContent?key=test-key&alt=sse");
+    ck_assert_str_eq(url, "https://api.test.com/models/gemini-2.5-flash:streamGenerateContent?key=test-key&alt=sse");
 }
 
 END_TEST

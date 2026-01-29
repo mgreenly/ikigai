@@ -48,7 +48,7 @@ static void setup(void)
 
     /* Create basic request */
     request = talloc_zero(test_ctx, ik_request_t);
-    request->model = talloc_strdup(request, "gemini-2.0-flash");
+    request->model = talloc_strdup(request, "gemini-2.5-flash");
     request->max_output_tokens = 1024;
 
     /* Add user message */

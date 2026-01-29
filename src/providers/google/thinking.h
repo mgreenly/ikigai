@@ -17,7 +17,7 @@
  * Gemini series classification
  */
 typedef enum {
-    IK_GEMINI_2_5 = 0,  /* Gemini 2.5 or 2.0 models (budget-based) */
+    IK_GEMINI_2_5 = 0,  /* Gemini 2.5 models (budget-based) */
     IK_GEMINI_3 = 1,    /* Gemini 3.x models (level-based) */
     IK_GEMINI_OTHER = 2 /* Other Gemini models (no thinking support) */
 } ik_gemini_series_t;
@@ -30,7 +30,7 @@ typedef enum {
  *
  * Classification rules:
  * - Contains "gemini-3" -> IK_GEMINI_3
- * - Contains "gemini-2.5" or "gemini-2.0" -> IK_GEMINI_2_5
+ * - Contains "gemini-2.5" -> IK_GEMINI_2_5
  * - Otherwise -> IK_GEMINI_OTHER
  * - NULL -> IK_GEMINI_OTHER
  */
@@ -63,12 +63,13 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level);
  * Get thinking level string for Gemini 3 models
  *
  * @param level Thinking level
- * @return      "LOW" or "HIGH" for Gemini 3, NULL if NONE
+ * @return      "minimal", "low", "medium", or "high" for Gemini 3 API
  *
  * Only applies to Gemini 3 models.
- * - NONE -> NULL (don't include thinking config)
- * - LOW and MED -> "LOW"
- * - HIGH -> "HIGH"
+ * - NONE -> "minimal"
+ * - LOW -> "low"
+ * - MED -> "medium"
+ * - HIGH -> "high"
  */
 const char *ik_google_thinking_level_str(ik_thinking_level_t level);
 
@@ -79,7 +80,7 @@ const char *ik_google_thinking_level_str(ik_thinking_level_t level);
  * @return      true if model supports thinking, false otherwise
  *
  * Gemini 2.5 and 3.x models support thinking.
- * Gemini 1.5 and other models do not.
+ * Other Gemini models do not.
  * NULL returns false.
  */
 bool ik_google_supports_thinking(const char *model);
