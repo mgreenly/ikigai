@@ -186,7 +186,7 @@ END_TEST
 
 START_TEST(test_auto_prefer_responses_api_start_request) {
     /* Test that o1 model auto-selects responses API even without use_responses_api flag
-     * This exercises the "|| ik_openai_prefer_responses_api(req->model)" branch */
+     * This exercises the "|| ik_openai_use_responses_api(req->model)" branch */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -205,7 +205,7 @@ END_TEST
 
 START_TEST(test_auto_prefer_responses_api_start_stream) {
     /* Test that o1 model auto-selects responses API even without use_responses_api flag
-     * This exercises the "|| ik_openai_prefer_responses_api(req->model)" branch */
+     * This exercises the "|| ik_openai_use_responses_api(req->model)" branch */
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));

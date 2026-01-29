@@ -174,3 +174,77 @@ yyjson_mut_val *ik_openai_serialize_message(yyjson_mut_doc *doc, const ik_messag
 
     return msg_obj;
 }
+
+bool ik_openai_serialize_responses_message(yyjson_mut_doc *doc, const ik_message_t *msg,
+                                           yyjson_mut_val *out_arr)
+{
+    assert(doc != NULL);     // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);     // LCOV_EXCL_BR_LINE
+    assert(out_arr != NULL); // LCOV_EXCL_BR_LINE
+
+    // Process each content block as separate Responses API item
+    for (size_t i = 0; i < msg->content_count; i++) {
+        const ik_content_block_t *block = &msg->content_blocks[i];
+
+        if (block->type == IK_CONTENT_TEXT) {
+            // Text content -> {"role": "user"/"assistant", "content": "text"}
+            yyjson_mut_val *item = yyjson_mut_obj(doc);
+            if (item == NULL) PANIC("Out of memory");  // LCOV_EXCL_LINE
+
+            const char *role_str = map_role_to_string(msg->role);
+            if (!yyjson_mut_obj_add_str(doc, item, "role", role_str)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "content", block->data.text.text)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+
+            if (!yyjson_mut_arr_append(out_arr, item)) {  // LCOV_EXCL_BR_LINE
+                return false;
+            }
+
+        } else if (block->type == IK_CONTENT_TOOL_CALL) {
+            // Tool call -> {"type": "function_call", "call_id": "...", "name": "...", "arguments": "..."}
+            yyjson_mut_val *item = yyjson_mut_obj(doc);
+            if (item == NULL) PANIC("Out of memory");  // LCOV_EXCL_LINE
+
+            if (!yyjson_mut_obj_add_str(doc, item, "type", "function_call")) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "call_id", block->data.tool_call.id)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "name", block->data.tool_call.name)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "arguments", block->data.tool_call.arguments)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+
+            if (!yyjson_mut_arr_append(out_arr, item)) {  // LCOV_EXCL_BR_LINE
+                return false;
+            }
+
+        } else if (block->type == IK_CONTENT_TOOL_RESULT) {
+            // Tool result -> {"type": "function_call_output", "call_id": "...", "output": "..."}
+            yyjson_mut_val *item = yyjson_mut_obj(doc);
+            if (item == NULL) PANIC("Out of memory");  // LCOV_EXCL_LINE
+
+            if (!yyjson_mut_obj_add_str(doc, item, "type", "function_call_output")) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "call_id", block->data.tool_result.tool_call_id)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+            if (!yyjson_mut_obj_add_str(doc, item, "output", block->data.tool_result.content)) {  // LCOV_EXCL_BR_LINE
+                PANIC("Out of memory");  // LCOV_EXCL_LINE
+            }
+
+            if (!yyjson_mut_arr_append(out_arr, item)) {  // LCOV_EXCL_BR_LINE
+                return false;
+            }
+        }
+    }
+
+    return true;
+}

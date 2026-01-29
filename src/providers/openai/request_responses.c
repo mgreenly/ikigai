@@ -165,8 +165,7 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     for (size_t i = 0; i < req->message_count; i++) {
-        yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
-        if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
+        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) {
             return false;
         }
     }
@@ -194,11 +193,11 @@ static bool add_input_field(yyjson_mut_doc *doc, yyjson_mut_val *root,
 
 static bool add_reasoning_config(yyjson_mut_doc *doc, yyjson_mut_val *root, const ik_request_t *req)
 {
-    if (!ik_openai_is_reasoning_model(req->model) || req->thinking.level == IK_THINKING_NONE) {
+    if (!ik_openai_is_reasoning_model(req->model)) {
         return true;
     }
 
-    const char *effort = ik_openai_reasoning_effort(req->thinking.level);
+    const char *effort = ik_openai_reasoning_effort(req->model, req->thinking.level);
     if (effort == NULL) {
         return true;
     }

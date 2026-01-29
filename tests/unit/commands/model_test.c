@@ -122,12 +122,12 @@ START_TEST(test_model_switch_gpt4o) {
 }
 
 END_TEST
-// Test: Switch to gpt-3.5-turbo
-START_TEST(test_model_switch_gpt35_turbo) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-3.5-turbo");
+// Test: Switch to gpt-5
+START_TEST(test_model_switch_gpt5) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(repl->current->model);
-    ck_assert_str_eq(repl->current->model, "gpt-3.5-turbo");
+    ck_assert_str_eq(repl->current->model, "gpt-5");
 }
 
 END_TEST
@@ -178,9 +178,9 @@ START_TEST(test_model_multiple_switches) {
     ck_assert_str_eq(repl->current->model, "gpt-4");
 
     // Second switch
-    res = ik_cmd_dispatch(ctx, repl, "/model gpt-3.5-turbo");
+    res = ik_cmd_dispatch(ctx, repl, "/model gpt-5");
     ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->model, "gpt-3.5-turbo");
+    ck_assert_str_eq(repl->current->model, "gpt-5");
 
     // Third switch
     res = ik_cmd_dispatch(ctx, repl, "/model o1-mini");
@@ -204,7 +204,8 @@ END_TEST
 START_TEST(test_model_all_valid_models) {
     const char *valid_models[] = {
         "gpt-4", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini",
-        "gpt-3.5-turbo", "gpt-5", "gpt-5-mini", "o1", "o1-mini", "o1-preview"
+        "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro",
+        "gpt-5.2", "gpt-5.2-codex", "o1", "o1-mini", "o1-preview", "o3", "o3-mini"
     };
     const size_t model_count = sizeof(valid_models) / sizeof(valid_models[0]);
 
@@ -234,7 +235,7 @@ static Suite *commands_model_suite(void)
     tcase_add_test(tc_core, test_model_switch_gpt4);
     tcase_add_test(tc_core, test_model_switch_gpt4_turbo);
     tcase_add_test(tc_core, test_model_switch_gpt4o);
-    tcase_add_test(tc_core, test_model_switch_gpt35_turbo);
+    tcase_add_test(tc_core, test_model_switch_gpt5);
     tcase_add_test(tc_core, test_model_switch_o1_mini);
     tcase_add_test(tc_core, test_model_missing_name);
     tcase_add_test(tc_core, test_model_invalid_name);

@@ -130,7 +130,36 @@ START_TEST(test_serialize_reasoning_none) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-    // No reasoning field should be present
+    // For o1 models, NONE maps to "low" effort
+    yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
+    ck_assert_ptr_nonnull(reasoning);
+    yyjson_val *effort = yyjson_obj_get(reasoning, "effort");
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(yyjson_get_str(effort), "low");
+
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_gpt5_reasoning_none) {
+    ik_request_t *req = NULL;
+    res_t create_result = ik_request_create(test_ctx, "gpt-5", &req);
+    ck_assert(!is_err(&create_result));
+
+    // GPT-5 with NONE should omit reasoning field
+    ik_request_set_thinking(req, IK_THINKING_NONE, false);
+    ik_request_add_message(req, IK_ROLE_USER, "Test");
+
+    char *json = NULL;
+    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
+
+    ck_assert(!is_err(&result));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+
+    // No reasoning field should be present for gpt-5 with NONE
     yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
     ck_assert_ptr_null(reasoning);
 
@@ -375,6 +404,7 @@ static Suite *request_responses_reasoning_tools_suite(void)
     tcase_add_test(tc_reasoning, test_serialize_reasoning_medium);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_high);
     tcase_add_test(tc_reasoning, test_serialize_reasoning_none);
+    tcase_add_test(tc_reasoning, test_serialize_gpt5_reasoning_none);
     tcase_add_test(tc_reasoning, test_serialize_non_reasoning_model_with_thinking);
     suite_add_tcase(s, tc_reasoning);
 
