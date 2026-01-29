@@ -81,8 +81,7 @@ Implement web-fetch tool with HTML-to-markdown conversion per project/plan/web-f
 - Unit tests in tests/unit/web_fetch/ pass
 
 ## Acceptance
-- `make check` passes
-- `make lint` passes
+- All quality checks pass
 - Manual: `./ikigai` → `/web-fetch https://example.com` returns markdown
 ```
 
@@ -103,8 +102,8 @@ Discover all hardcoded ~/.config/ikigai path references in tests/ directory and 
 - No hardcoded ~/.config/ikigai paths remain in tests directory
 
 ## Acceptance
+- All quality checks pass
 - grep -r "\.config/ikigai" tests/ returns no hardcoded paths
-- check-unit passes
 ```
 
 Why explicit discovery matters: Objective starts with "Discover", first outcome confirms discovery happened. Ralph won't skip the grep step.
