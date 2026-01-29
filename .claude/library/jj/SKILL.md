@@ -50,7 +50,7 @@ When ready to push:
 jj bookmark create feature-name
 
 # Push the bookmark (pushes ALL commits from main to HEAD)
-jj git push --bookmark feature-name --allow-new
+jj git push --bookmark feature-name --allow-private-push
 ```
 
 ## Updating a PR
@@ -112,7 +112,7 @@ jj op restore <operation-id>
 | Create bookmark | `jj bookmark create <name>` |
 | Move bookmark to HEAD | `jj bookmark set <name>` |
 | Push bookmark | `jj git push --bookmark <name>` |
-| Push new bookmark | `jj git push --bookmark <name> --allow-new` |
+| Push new bookmark | `jj git push --bookmark <name> --allow-private-push` |
 
 ## Key Concepts
 
