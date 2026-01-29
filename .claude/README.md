@@ -42,7 +42,7 @@ Skills are knowledge modules. Each skill is a directory containing `SKILL.md` wi
 
 **Examples to explore:**
 - [database](library/database/SKILL.md) - PostgreSQL schema and query patterns
-- [cdd](library/cdd/SKILL.md) - Context Driven Development pipeline
+- [ralph](library/ralph/SKILL.md) - Iterative goal execution harness
 - [task](library/task/SKILL.md) - File-based task orchestration
 - [tdd](library/tdd/SKILL.md) - Test-Driven Development workflow
 
@@ -178,7 +178,7 @@ Persistent configuration data for automation workflows.
 
 ## Cross-References
 
-- **CDD pipeline:** [library/cdd/SKILL.md](library/cdd/SKILL.md) - Release workflow details
+- **Goal execution:** [library/ralph/SKILL.md](library/ralph/SKILL.md) - Iterative goal completion
 - **Task orchestration:** [library/task/SKILL.md](library/task/SKILL.md) - Execution state tracking
 - **Harness mechanics:** [library/harness/SKILL.md](library/harness/SKILL.md) - Quality loop implementation
 - **Project principles:** [library/principles/SKILL.md](library/principles/SKILL.md) - Guiding philosophy

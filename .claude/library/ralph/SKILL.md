@@ -60,7 +60,7 @@ Goal files MUST be named: `<name>-ralph-goal.md`
 
 **Required sections:**
 - `## Objective` - What to achieve (outcomes, not steps)
-- `## Reference` - All relevant plan/research/user-story docs
+- `## Reference` - All relevant docs and codebase examples
 - `## Outcomes` - Measurable, verifiable outcomes
 - `## Acceptance` - Success criteria (make check, tests, etc.)
 
