@@ -198,17 +198,17 @@ START_TEST(test_serialize_single_tool) {
     yyjson_val *type = yyjson_obj_get(tool, "type");
     ck_assert_str_eq(yyjson_get_str(type), "function");
 
-    yyjson_val *func = yyjson_obj_get(tool, "function");
-    ck_assert_ptr_nonnull(func);
-
-    yyjson_val *name = yyjson_obj_get(func, "name");
+    yyjson_val *name = yyjson_obj_get(tool, "name");
     ck_assert_str_eq(yyjson_get_str(name), "calculator");
 
-    yyjson_val *desc = yyjson_obj_get(func, "description");
+    yyjson_val *desc = yyjson_obj_get(tool, "description");
     ck_assert_str_eq(yyjson_get_str(desc), "Performs calculations");
 
-    yyjson_val *strict = yyjson_obj_get(func, "strict");
+    yyjson_val *strict = yyjson_obj_get(tool, "strict");
     ck_assert(yyjson_get_bool(strict));
+
+    yyjson_val *func = yyjson_obj_get(tool, "function");
+    ck_assert_ptr_null(func);
 
     yyjson_doc_free(doc);
 }

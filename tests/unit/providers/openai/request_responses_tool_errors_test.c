@@ -110,31 +110,9 @@ START_TEST(test_serialize_tool_add_strict_fails) {
     const char *params = "{\"type\":\"object\"}";
     ik_request_add_tool(req, "test_tool", "Test description", params, true);
 
-    // Fail on yyjson_mut_obj_add_bool_ call (line 67: adding "strict")
+    // Fail on yyjson_mut_obj_add_bool_ call (adding "strict")
     yyjson_call_count = 0;
     yyjson_fail_count = 5;
-
-    char *json = NULL;
-    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-    ck_assert(is_err(&result));
-}
-
-END_TEST
-
-START_TEST(test_serialize_tool_add_function_fails) {
-    ik_request_t *req = NULL;
-    res_t create_result = ik_request_create(test_ctx, "o1", &req);
-    ck_assert(!is_err(&create_result));
-
-    ik_request_add_message(req, IK_ROLE_USER, "Test");
-
-    const char *params = "{\"type\":\"object\"}";
-    ik_request_add_tool(req, "test_tool", "Test description", params, true);
-
-    // Fail on second yyjson_mut_obj_add_val_ call (line 72: adding "function")
-    yyjson_call_count = 0;
-    yyjson_fail_count = 6;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
@@ -154,9 +132,9 @@ START_TEST(test_serialize_tool_add_to_array_fails) {
     const char *params = "{\"type\":\"object\"}";
     ik_request_add_tool(req, "test_tool", "Test description", params, true);
 
-    // Fail on yyjson_mut_arr_add_val_ call (line 77: adding tool to array)
+    // Fail on yyjson_mut_arr_add_val_ call (adding tool to array)
     yyjson_call_count = 0;
-    yyjson_fail_count = 7;
+    yyjson_fail_count = 6;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
@@ -180,10 +158,10 @@ START_TEST(test_add_tool_choice_fails) {
     const char *params = "{\"type\":\"object\"}";
     ik_request_add_tool(req, "test_tool", "Test description", params, true);
 
-    // Fail on yyjson_mut_obj_add_str_ in add_tool_choice (line 108)
-    // This happens after all tool serialization succeeds (7 calls) + 1 for tool_choice
+    // Fail on yyjson_mut_obj_add_str_ in add_tool_choice
+    // This happens after all tool serialization succeeds (6 calls) + 1 for tool_choice
     yyjson_call_count = 0;
-    yyjson_fail_count = 8;
+    yyjson_fail_count = 7;
 
     char *json = NULL;
     res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
@@ -209,7 +187,6 @@ static Suite *request_responses_tool_errors_suite(void)
     tcase_add_test(tc_tool_errors, test_serialize_tool_add_description_fails);
     tcase_add_test(tc_tool_errors, test_serialize_tool_add_parameters_fails);
     tcase_add_test(tc_tool_errors, test_serialize_tool_add_strict_fails);
-    tcase_add_test(tc_tool_errors, test_serialize_tool_add_function_fails);
     tcase_add_test(tc_tool_errors, test_serialize_tool_add_to_array_fails);
     suite_add_tcase(s, tc_tool_errors);
 

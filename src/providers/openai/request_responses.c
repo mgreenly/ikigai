@@ -19,7 +19,7 @@
 
 /**
  * Serialize a single tool definition to Responses API format
- * (Same nested format as Chat Completions)
+ * (Flat format - no function wrapper)
  */
 static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
                                      const ik_tool_def_t *tool)
@@ -36,17 +36,13 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
         return false;
     }
 
-    // Create function object
-    yyjson_mut_val *func_obj = yyjson_mut_obj(doc);
-    if (!func_obj) return false; // LCOV_EXCL_BR_LINE
-
     // Add name
-    if (!yyjson_mut_obj_add_str_(doc, func_obj, "name", tool->name)) {
+    if (!yyjson_mut_obj_add_str_(doc, tool_obj, "name", tool->name)) {
         return false;
     }
 
     // Add description
-    if (!yyjson_mut_obj_add_str_(doc, func_obj, "description", tool->description)) {
+    if (!yyjson_mut_obj_add_str_(doc, tool_obj, "description", tool->description)) {
         return false;
     }
 
@@ -59,17 +55,12 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
     yyjson_doc_free(params_doc);
     if (!params_mut) return false; // LCOV_EXCL_BR_LINE
 
-    if (!yyjson_mut_obj_add_val_(doc, func_obj, "parameters", params_mut)) {
+    if (!yyjson_mut_obj_add_val_(doc, tool_obj, "parameters", params_mut)) {
         return false;
     }
 
     // Add strict: true for structured outputs
-    if (!yyjson_mut_obj_add_bool_(doc, func_obj, "strict", true)) {
-        return false;
-    }
-
-    // Add function object to tool
-    if (!yyjson_mut_obj_add_val_(doc, tool_obj, "function", func_obj)) {
+    if (!yyjson_mut_obj_add_bool_(doc, tool_obj, "strict", true)) {
         return false;
     }
 
