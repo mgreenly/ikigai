@@ -199,31 +199,52 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
     }
 
     const char *state_dir = ik_paths_get_state_dir(paths);
+    const char *data_dir = ik_paths_get_data_dir(paths);
     const char *uri_prefix = "ik://";
+    const char *system_suffix = "system";
     const size_t uri_prefix_len = 5;  // strlen("ik://")
+    const size_t system_suffix_len = 6;  // strlen("system")
     const size_t state_dir_len = strlen(state_dir);
+    const size_t data_dir_len = strlen(data_dir);
 
     // Count occurrences to estimate output size
-    size_t count = 0;
+    size_t generic_count = 0;
+    size_t system_count = 0;
     const char *pos = input;
     while ((pos = strstr(pos, uri_prefix)) != NULL) {
         // Check that it's not a false positive (e.g., "myik://")
-        if (pos == input || !is_alnum_or_underscore(pos[-1])) {
-            count++;
+        bool is_false_positive = (pos != input && is_alnum_or_underscore(pos[-1]));
+        if (is_false_positive) {
+            pos += uri_prefix_len;
+            continue;
         }
+
+        const char *after_prefix = pos + uri_prefix_len;
+        bool is_system_ns = (strncmp(after_prefix, system_suffix, system_suffix_len) == 0);
+        if (is_system_ns) {
+            char following = after_prefix[system_suffix_len];
+            if (following == '\0' || following == '/') {
+                system_count++;
+                pos += uri_prefix_len + system_suffix_len;
+                continue;
+            }
+        }
+
+        generic_count++;
         pos += uri_prefix_len;
     }
 
     // If no replacements needed, return copy
-    if (count == 0) {
+    if (generic_count == 0 && system_count == 0) {
         *out = talloc_strdup(ctx, input);
         if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return OK(NULL);
     }
 
-    // Allocate output buffer (input + (state_dir_len - uri_prefix_len + 1) * count)
-    // +1 per replacement accounts for potential '/' separator
-    size_t output_size = strlen(input) + (state_dir_len - uri_prefix_len + 1) * count + 1;
+    // Allocate output buffer
+    size_t output_size = strlen(input) +
+                        (state_dir_len - uri_prefix_len + 1) * generic_count +
+                        (data_dir_len + system_suffix_len + 1 - uri_prefix_len - system_suffix_len + 1) * system_count + 1;
     char *result = talloc_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -233,16 +254,14 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
     while (*src != '\0') {
         const char *next = strstr(src, uri_prefix);
         if (next == NULL) {
-            // Copy remainder
             size_t remainder_len = strlen(src);
             memcpy(dest, src, remainder_len);
             dest += remainder_len;
             break;
         }
 
-        // Check for false positive
-        if (next != input && is_alnum_or_underscore(next[-1])) {
-            // False positive - copy including "ik://"
+        bool is_false_positive = (next != input && is_alnum_or_underscore(next[-1]));
+        if (is_false_positive) {
             size_t copy_len = (size_t)(next - src) + uri_prefix_len;
             memcpy(dest, src, copy_len);
             dest += copy_len;
@@ -250,24 +269,38 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
             continue;
         }
 
-        // Copy text before ik://
         if (next > src) {
             size_t copy_len = (size_t)(next - src);
             memcpy(dest, src, copy_len);
             dest += copy_len;
         }
 
-        // Replace ik:// with state_dir
-        memcpy(dest, state_dir, state_dir_len);
-        dest += state_dir_len;
-
-        // Add trailing slash if not present after ik://
-        const char *after_uri = next + uri_prefix_len;
-        if (*after_uri != '\0' && *after_uri != '/' && state_dir[state_dir_len - 1] != '/') {
-            *dest++ = '/';
+        const char *after_prefix = next + uri_prefix_len;
+        bool is_system_ns = (strncmp(after_prefix, system_suffix, system_suffix_len) == 0);
+        bool system_boundary = false;
+        if (is_system_ns) {
+            char following = after_prefix[system_suffix_len];
+            system_boundary = (following == '\0' || following == '/');
         }
 
-        src = after_uri;
+        if (system_boundary) {
+            memcpy(dest, data_dir, data_dir_len);
+            dest += data_dir_len;
+            *dest++ = '/';
+            memcpy(dest, system_suffix, system_suffix_len);
+            dest += system_suffix_len;
+            src = after_prefix + system_suffix_len;
+            continue;
+        }
+
+        memcpy(dest, state_dir, state_dir_len);
+        dest += state_dir_len;
+        bool need_slash = (*after_prefix != '\0' && *after_prefix != '/' &&
+                          state_dir[state_dir_len - 1] != '/');
+        if (need_slash) {
+            *dest++ = '/';
+        }
+        src = after_prefix;
     }
 
     // Add null terminator
@@ -291,60 +324,106 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
     }
 
     const char *state_dir = ik_paths_get_state_dir(paths);
+    const char *data_dir = ik_paths_get_data_dir(paths);
     const char *uri_prefix = "ik://";
+    const char *system_suffix = "system";
     const size_t uri_prefix_len = 5;  // strlen("ik://")
+    const size_t system_suffix_len = 6;  // strlen("system")
     size_t state_dir_len = strlen(state_dir);
+    size_t data_dir_len = strlen(data_dir);
+
+    // Build system path for matching
+    char *system_path = talloc_asprintf(ctx, "%s/system", data_dir);
+    if (system_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    size_t system_path_len = data_dir_len + 1 + system_suffix_len;
 
     // Count occurrences
-    size_t count = 0;
+    size_t generic_count = 0;
+    size_t system_count = 0;
     const char *pos = input;
-    while ((pos = strstr(pos, state_dir)) != NULL) {
-        count++;
-        pos += state_dir_len;
+    while (true) {
+        const char *system_match = strstr(pos, system_path);
+        const char *state_match = strstr(pos, state_dir);
+
+        if (system_match == NULL && state_match == NULL) {
+            break;
+        }
+
+        // Check which match comes first
+        if (system_match != NULL && (state_match == NULL || system_match < state_match)) {
+            system_count++;
+            pos = system_match + system_path_len;
+        } else {
+            generic_count++;
+            pos = state_match + state_dir_len;
+        }
     }
 
+    talloc_free(system_path);
+
     // If no replacements needed, return copy
-    if (count == 0) {
+    if (generic_count == 0 && system_count == 0) {
         *out = talloc_strdup(ctx, input);
         if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return OK(NULL);
     }
 
     // Allocate output buffer
-    size_t output_size = strlen(input) + (uri_prefix_len - state_dir_len) * count + count + 1;
+    size_t output_size = strlen(input) +
+                        (uri_prefix_len - state_dir_len) * generic_count +
+                        (uri_prefix_len + system_suffix_len - (data_dir_len + 1 + system_suffix_len)) * system_count +
+                        generic_count + system_count + 1;
     char *result = talloc_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Rebuild system_path for replacement loop
+    system_path = talloc_asprintf(ctx, "%s/system", data_dir);
+    if (system_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build output with replacements
     char *dest = result;
     const char *src = input;
     while (*src != '\0') {
-        const char *next = strstr(src, state_dir);
-        if (next == NULL) {
-            // Copy remainder
+        const char *system_match = strstr(src, system_path);
+        const char *state_match = strstr(src, state_dir);
+
+        if (system_match == NULL && state_match == NULL) {
             strcpy(dest, src);
             break;
         }
 
-        // Copy text before state_dir
-        if (next > src) {
-            size_t copy_len = (size_t)(next - src);
+        bool use_system = (system_match != NULL &&
+                          (state_match == NULL || system_match < state_match));
+
+        const char *match = use_system ? system_match : state_match;
+        size_t match_len = use_system ? system_path_len : state_dir_len;
+
+        if (match > src) {
+            size_t copy_len = (size_t)(match - src);
             memcpy(dest, src, copy_len);
             dest += copy_len;
         }
 
-        // Replace state_dir with ik://
         memcpy(dest, uri_prefix, uri_prefix_len);
         dest += uri_prefix_len;
 
-        src = next + state_dir_len;
+        if (use_system) {
+            memcpy(dest, system_suffix, system_suffix_len);
+            dest += system_suffix_len;
+        }
 
-        // Skip leading slash after state_dir if present
-        // (state_dir without trailing slash leaves /path, we want path after ik://)
+        src = match + match_len;
+
         if (*src == '/') {
+            if (use_system) {
+                *dest++ = '/';
+            }
             src++;
         }
     }
+
+    *dest = '\0';
+    talloc_free(system_path);
 
     *out = result;
     return OK(NULL);
