@@ -3,7 +3,6 @@
 #include "config.h"
 #include "credentials.h"
 #include "db/connection.h"
-#include "debug_pipe.h"
 #include "error.h"
 #include "history.h"
 #include "logger.h"
@@ -42,10 +41,6 @@ typedef struct ik_shared_ctx {
     ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
     int64_t session_id;       // Current session ID (0 if no database)
     ik_history_t *history;   // Command history (shared across all agents)
-    ik_debug_pipe_manager_t *debug_mgr;  // Debug pipe manager
-    ik_debug_pipe_t *openai_debug_pipe;  // OpenAI debug pipe
-    ik_debug_pipe_t *db_debug_pipe;      // Database debug pipe
-    bool debug_enabled;                   // Debug flag
     atomic_bool fork_pending;             // Fork operation in progress (concurrency control)
     ik_tool_registry_t *tool_registry;   // External tool registry (rel-08)
 } ik_shared_ctx_t;

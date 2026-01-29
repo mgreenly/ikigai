@@ -66,7 +66,6 @@ static const ik_command_t commands[] = {
     {"help", "Show available commands", ik_cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", ik_cmd_model},
     {"system", "Set system message (usage: /system <text>)", ik_cmd_system},
-    {"debug", "Toggle debug output (usage: /debug [on|off])", ik_cmd_debug},
     {"tool", "List tools or show schema (usage: /tool [name])", ik_cmd_tool},
     {"refresh", "Reload tool registry", ik_cmd_refresh},
     {"pin", "Manage pinned documents (usage: /pin [path])", ik_cmd_pin},

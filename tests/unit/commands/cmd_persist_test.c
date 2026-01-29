@@ -9,7 +9,6 @@
 #include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"

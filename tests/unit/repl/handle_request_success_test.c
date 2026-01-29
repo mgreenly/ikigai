@@ -12,7 +12,6 @@
 #include "../../../src/db/connection.h"
 #include "../../../src/db/message.h"
 #include "../../../src/db/session.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/tool.h"
 #include "../../../src/wrapper.h"

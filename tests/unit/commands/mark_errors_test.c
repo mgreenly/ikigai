@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
 #include "../../../src/message.h"
@@ -215,7 +214,6 @@ START_TEST(test_mark_unlabeled_db_error_no_debug_pipe) {
     repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->shared->db_debug_pipe = NULL;
 
     // Mock INSERT to fail
     mock_insert_should_fail = true;
@@ -321,7 +319,6 @@ START_TEST(test_rewind_db_error_no_debug_pipe) {
     repl->shared->session_id = 1;
 
     // No debug pipe
-    repl->shared->db_debug_pipe = NULL;
 
     // Create a mark in memory
     res_t mark_res = ik_mark_create(repl, "checkpoint");

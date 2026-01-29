@@ -15,7 +15,6 @@
 #include "config.h"
 #include "providers/provider.h"
 #include "tool.h"
-#include "debug_pipe.h"
 #include <check.h>
 #include <talloc.h>
 #include <curl/curl.h>

@@ -312,7 +312,6 @@ START_TEST(test_db_message_insert_error_no_debug_pipe) {
     // Close and remove debug pipe
     fclose(repl->shared->db_debug_pipe->write_end);
     repl->shared->db_debug_pipe->write_end = NULL;
-    repl->shared->db_debug_pipe = NULL;
 
     // Set up: Insert text into input buffer
     const char *test_text = "Test";

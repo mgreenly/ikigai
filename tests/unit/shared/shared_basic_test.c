@@ -332,12 +332,6 @@ START_TEST(test_shared_ctx_debug) {
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
-    // Test debug_mgr initialized
-    ck_assert_ptr_nonnull(shared->debug_mgr);
-    ck_assert(!shared->debug_enabled);
-    // Test debug pipes created
-    ck_assert_ptr_nonnull(shared->openai_debug_pipe);
-    ck_assert_ptr_nonnull(shared->db_debug_pipe);
 
     talloc_free(ctx);
 }

@@ -9,7 +9,6 @@
 #include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
 #include "../../../src/repl.h"
@@ -174,7 +173,6 @@ static void setup_db_and_pipe(ik_repl_ctx_t *r, ik_config_t *cfg, int *pipefd)
     r->shared->cfg = cfg;
     r->shared->db_ctx = db_ctx;
     r->shared->session_id = 1;
-    r->shared->db_debug_pipe = debug_pipe;
     r->current->shared = r->shared;  // Agent needs shared for system prompt fallback
 }
 
@@ -295,7 +293,6 @@ START_TEST(test_clear_db_error_no_debug_pipe) {
     repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on first call (clear event)
     mock_insert_fail_on_call = 1;
@@ -330,7 +327,6 @@ START_TEST(test_clear_system_db_error_no_debug_pipe) {
     repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // No debug pipe set - db_debug_pipe is NULL
-    repl->shared->db_debug_pipe = NULL;
 
     // Mock will return error on second call (system message)
     mock_insert_fail_on_call = 2;

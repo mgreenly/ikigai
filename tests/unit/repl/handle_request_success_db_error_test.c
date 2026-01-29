@@ -10,7 +10,6 @@
 #include "../../../src/repl.h"
 #include "../../../src/repl_event_handlers.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/wrapper.h"
 #include "../../test_utils_helper.h"
@@ -112,7 +111,6 @@ static void teardown(void)
 START_TEST(test_db_error_no_debug_pipe) {
     repl->current->assistant_response = talloc_strdup(test_ctx, "Test response");
     repl->current->response_model = talloc_strdup(test_ctx, "gpt-4");
-    repl->shared->db_debug_pipe = NULL;
 
     // Configure mock to fail
     mock_db_insert_should_fail = true;

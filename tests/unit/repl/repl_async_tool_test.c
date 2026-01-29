@@ -261,40 +261,6 @@ START_TEST(test_async_tool_file_read) {
 
 END_TEST
 /*
- * Test async execution with debug pipe
- */
-START_TEST(test_async_tool_with_debug_pipe) {
-    /* Create debug pipe */
-    res_t debug_res = ik_debug_pipe_create(ctx, "[openai]");
-    ck_assert(!debug_res.is_err);
-    ik_debug_pipe_t *debug_pipe = (ik_debug_pipe_t *)debug_res.ok;
-    repl->shared->openai_debug_pipe = debug_pipe;
-
-    /* Start and wait */
-    ik_repl_start_tool_execution(repl);
-
-    /* Wait up to 120 seconds for completion (helgrind is extremely slow with parallel tests) */
-    int max_wait = 12000;
-    bool complete = false;
-    for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-        complete = repl->current->tool_thread_complete;
-        pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
-        if (complete) break;
-        usleep(10000);
-    }
-    ck_assert(complete);
-
-    /* Complete execution */
-    ik_repl_complete_tool_execution(repl);
-
-    /* Verify execution succeeded */
-    ck_assert_uint_eq(repl->current->message_count, 2);
-    ck_assert_ptr_null(repl->current->pending_tool_call);
-}
-
-END_TEST
-/*
  * Test async execution with database persistence
  */
 START_TEST(test_async_tool_db_persistence) {
@@ -418,7 +384,6 @@ static Suite *repl_async_tool_suite(void)
     tcase_add_test(tc_core, test_start_tool_execution);
     tcase_add_test(tc_core, test_complete_tool_execution);
     tcase_add_test(tc_core, test_async_tool_file_read);
-    tcase_add_test(tc_core, test_async_tool_with_debug_pipe);
     tcase_add_test(tc_core, test_async_tool_db_persistence);
     tcase_add_test(tc_core, test_async_tool_no_db_ctx);
     tcase_add_test(tc_core, test_async_tool_no_session_id);

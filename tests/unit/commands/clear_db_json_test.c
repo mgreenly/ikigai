@@ -9,7 +9,6 @@
 #include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
 #include "../../../src/repl.h"
@@ -193,20 +192,10 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
-    // Set up debug pipe to capture error
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-
-    int pipefd[2];
-    ck_assert_int_eq(pipe(pipefd), 0);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-
     // Update repl->shared with all required fields
     repl->shared->cfg = cfg;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
-    repl->shared->db_debug_pipe = debug_pipe;
     repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock DB to return error on first call (clear event)
@@ -225,9 +214,6 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
     ck_assert_uint_eq(repl->current->message_count, 0);
 
-    // Clean up
-    fclose(debug_pipe->write_end);
-    close(pipefd[0]);
 }
 END_TEST
 // Test: Clear with system message DB error and yyjson_mut_obj_add_str_ failure
@@ -242,20 +228,10 @@ START_TEST(test_clear_system_db_error_json_add_fail) {
     ck_assert_ptr_nonnull(db_ctx);
     db_ctx->conn = (PGconn *)0x1234;  // Fake connection pointer
 
-    // Set up debug pipe to capture error
-    ik_debug_pipe_t *debug_pipe = talloc_zero(ctx, ik_debug_pipe_t);
-    ck_assert_ptr_nonnull(debug_pipe);
-
-    int pipefd[2];
-    ck_assert_int_eq(pipe(pipefd), 0);
-    debug_pipe->write_end = fdopen(pipefd[1], "w");
-    ck_assert_ptr_nonnull(debug_pipe->write_end);
-
     // Update repl->shared with all required fields
     repl->shared->cfg = cfg;
     repl->shared->db_ctx = db_ctx;
     repl->shared->session_id = 1;
-    repl->shared->db_debug_pipe = debug_pipe;
     repl->current->shared = repl->shared;  // Agent needs shared for system prompt fallback
 
     // Mock DB to return error on second call (system message)
