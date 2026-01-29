@@ -389,6 +389,7 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
 
         if (system_match == NULL && state_match == NULL) {
             strcpy(dest, src);
+            dest += strlen(src);
             break;
         }
 
