@@ -124,7 +124,7 @@ START_TEST(test_google_start_stream_http_multi_add_request_failure) {
         .content_blocks = &block
     };
     ik_request_t req = {
-        .model = (char *)"gemini-2.0-flash",
+        .model = (char *)"gemini-2.5-flash",
         .message_count = 1,
         .messages = &message
     };

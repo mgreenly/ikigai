@@ -403,7 +403,7 @@ END_TEST
 
 START_TEST(test_serialize_request_with_thinking_gemini_3) {
     ik_request_t req = {0};
-    req.model = (char *)"gemini-3.0-flash";
+    req.model = (char *)"gemini-3-flash-preview";
     req.message_count = 0;
     req.tool_count = 0;
     req.max_output_tokens = 0;

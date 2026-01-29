@@ -44,8 +44,8 @@ ik_gemini_series_t ik_google_model_series(const char *model)
         return IK_GEMINI_3;
     }
 
-    // Check for Gemini 2.5 or 2.0
-    if (strstr(model, "gemini-2.5") != NULL || strstr(model, "gemini-2.0") != NULL) {
+    // Check for Gemini 2.5
+    if (strstr(model, "gemini-2.5") != NULL) {
         return IK_GEMINI_2_5;
     }
 
@@ -141,12 +141,13 @@ const char *ik_google_thinking_level_str(ik_thinking_level_t level)
 {
     switch (level) { // LCOV_EXCL_BR_LINE
         case IK_THINKING_NONE:
-            return NULL;
+            return "minimal";
         case IK_THINKING_LOW:
+            return "low";
         case IK_THINKING_MED:
-            return "LOW";
+            return "medium";
         case IK_THINKING_HIGH:
-            return "HIGH";
+            return "high";
         default: // LCOV_EXCL_LINE
             PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
     }

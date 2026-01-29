@@ -38,13 +38,6 @@ START_TEST(test_model_series_gemini_2_5_flash) {
 
 END_TEST
 
-START_TEST(test_model_series_gemini_2_0_flash) {
-    ik_gemini_series_t series = ik_google_model_series("gemini-2.0-flash");
-    ck_assert_int_eq(series, IK_GEMINI_2_5);
-}
-
-END_TEST
-
 START_TEST(test_model_series_gemini_3_pro) {
     ik_gemini_series_t series = ik_google_model_series("gemini-3-pro");
     ck_assert_int_eq(series, IK_GEMINI_3);
@@ -152,28 +145,28 @@ END_TEST
 
 START_TEST(test_thinking_level_str_none) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_NONE);
-    ck_assert_ptr_null(level);
+    ck_assert_str_eq(level, "minimal");
 }
 
 END_TEST
 
 START_TEST(test_thinking_level_str_low) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_LOW);
-    ck_assert_str_eq(level, "LOW");
+    ck_assert_str_eq(level, "low");
 }
 
 END_TEST
 
 START_TEST(test_thinking_level_str_med) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_MED);
-    ck_assert_str_eq(level, "LOW"); // maps to LOW
+    ck_assert_str_eq(level, "medium");
 }
 
 END_TEST
 
 START_TEST(test_thinking_level_str_high) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_HIGH);
-    ck_assert_str_eq(level, "HIGH");
+    ck_assert_str_eq(level, "high");
 }
 
 END_TEST
@@ -383,7 +376,6 @@ static Suite *google_thinking_suite(void)
     tcase_add_unchecked_fixture(tc_series, setup, teardown);
     tcase_add_test(tc_series, test_model_series_gemini_2_5_pro);
     tcase_add_test(tc_series, test_model_series_gemini_2_5_flash);
-    tcase_add_test(tc_series, test_model_series_gemini_2_0_flash);
     tcase_add_test(tc_series, test_model_series_gemini_3_pro);
     tcase_add_test(tc_series, test_model_series_gemini_1_5_pro);
     tcase_add_test(tc_series, test_model_series_null);
