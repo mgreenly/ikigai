@@ -145,6 +145,45 @@ START_TEST(test_serialize_content_tool_call) {
 
 END_TEST
 
+START_TEST(test_serialize_content_tool_call_gemini3_with_thought_signature) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    ik_content_block_t block = {0};
+    block.type = IK_CONTENT_TOOL_CALL;
+    block.data.tool_call.id = (char *)"call_456";
+    block.data.tool_call.name = (char *)"get_temperature";
+    block.data.tool_call.arguments = (char *)"{\"unit\":\"celsius\"}";
+    block.data.tool_call.thought_signature = (char *)"sig-789";
+
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-3-flash-preview");
+    ck_assert(result);
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
+
+    yyjson_mut_val *obj = yyjson_mut_arr_get_first(arr);
+
+    // Check thought signature is present
+    yyjson_mut_val *sig = yyjson_mut_obj_get(obj, "thoughtSignature");
+    ck_assert(sig != NULL);
+    ck_assert_str_eq(yyjson_mut_get_str(sig), "sig-789");
+
+    // Check function call is present
+    yyjson_mut_val *func_call = yyjson_mut_obj_get(obj, "functionCall");
+    ck_assert(func_call != NULL);
+
+    yyjson_mut_val *name = yyjson_mut_obj_get(func_call, "name");
+    ck_assert_str_eq(yyjson_mut_get_str(name), "get_temperature");
+
+    yyjson_mut_val *args = yyjson_mut_obj_get(func_call, "args");
+    ck_assert(args != NULL);
+    yyjson_mut_val *unit = yyjson_mut_obj_get(args, "unit");
+    ck_assert_str_eq(yyjson_mut_get_str(unit), "celsius");
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+
 START_TEST(test_serialize_content_tool_call_invalid_json) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -382,6 +421,7 @@ static Suite *request_helpers_suite(void)
     tcase_add_test(tc_content, test_serialize_content_text);
     tcase_add_test(tc_content, test_serialize_content_thinking);
     tcase_add_test(tc_content, test_serialize_content_tool_call);
+    tcase_add_test(tc_content, test_serialize_content_tool_call_gemini3_with_thought_signature);
     tcase_add_test(tc_content, test_serialize_content_tool_call_invalid_json);
     tcase_add_test(tc_content, test_serialize_content_tool_result);
     suite_add_tcase(s, tc_content);

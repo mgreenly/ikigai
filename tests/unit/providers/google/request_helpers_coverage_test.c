@@ -28,10 +28,6 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-/* ================================================================
- * Mock Failure Injection
- * ================================================================ */
-
 static int32_t g_mock_yyjson_mut_obj_add_str_fail_after = -1;
 static int32_t g_mock_yyjson_mut_obj_add_str_call_count = 0;
 static bool g_mock_yyjson_mut_obj_add_bool_fail = false;
@@ -107,10 +103,6 @@ static void reset_mocks(void)
     g_mock_yyjson_mut_arr_add_val_fail_after = -1;
     g_mock_yyjson_mut_arr_add_val_call_count = 0;
 }
-
-/* ================================================================
- * Content Block Serialization Error Path Tests
- * ================================================================ */
 
 START_TEST(test_serialize_content_text_add_str_fail) {
     reset_mocks();
@@ -404,10 +396,6 @@ START_TEST(test_find_latest_thought_no_signature_found) {
     ck_assert(doc == NULL);
 }
 END_TEST
-
-/* ================================================================
- * Test Suite Setup
- * ================================================================ */
 
 static Suite *request_helpers_coverage_suite(void)
 {
