@@ -1,5 +1,5 @@
 # Ikigai - Elegant Makefile
-# Phase 1: Compilation only
+# Build system for ikigai terminal agent
 
 .PHONY: all help clean install uninstall
 .DEFAULT_GOAL := all
