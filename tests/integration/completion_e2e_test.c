@@ -93,10 +93,10 @@ START_TEST(test_completion_history_no_conflict) {
     ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_input_buffer_clear(repl->current->input_buffer);
-    // Use Ctrl+P for explicit history navigation (rel-05: arrow keys now handled by burst detector)
+    // Ctrl+P is now disabled (no-op) - history navigation will use Ctrl+R in future
     ik_input_action_t hist_action = {.type = IK_INPUT_CTRL_P};
     ik_repl_process_action(repl, &hist_action);
-    ck_assert(ik_history_is_browsing(repl->shared->history));
+    ck_assert(!ik_history_is_browsing(repl->shared->history));
 
     ik_repl_cleanup(repl);
     talloc_free(ctx);

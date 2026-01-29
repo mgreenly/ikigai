@@ -259,6 +259,48 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
         return true;
     }
 
+    // Handle Ctrl+A (keycode 97 = 'a', modifiers 5 = Ctrl)
+    if (keycode == 97 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_A;
+        return true;
+    }
+
+    // Handle Ctrl+E (keycode 101 = 'e', modifiers 5 = Ctrl)
+    if (keycode == 101 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_E;
+        return true;
+    }
+
+    // Handle Ctrl+K (keycode 107 = 'k', modifiers 5 = Ctrl)
+    if (keycode == 107 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_K;
+        return true;
+    }
+
+    // Handle Ctrl+N (keycode 110 = 'n', modifiers 5 = Ctrl)
+    if (keycode == 110 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_N;
+        return true;
+    }
+
+    // Handle Ctrl+P (keycode 112 = 'p', modifiers 5 = Ctrl)
+    if (keycode == 112 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_P;
+        return true;
+    }
+
+    // Handle Ctrl+U (keycode 117 = 'u', modifiers 5 = Ctrl)
+    if (keycode == 117 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_U;
+        return true;
+    }
+
+    // Handle Ctrl+W (keycode 119 = 'w', modifiers 5 = Ctrl)
+    if (keycode == 119 && modifiers == 5) {
+        action_out->type = IK_INPUT_CTRL_W;
+        return true;
+    }
+
     // Handle Tab key (keycode 9)
     if (keycode == 9 && modifiers == 1) {
         action_out->type = IK_INPUT_TAB;

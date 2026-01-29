@@ -348,9 +348,11 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             repl->current->viewport_offset = 0;
             return ik_input_buffer_kill_to_line_end(repl->current->input_buffer);
         case IK_INPUT_CTRL_N:
-            return ik_repl_handle_history_next_action(repl);
+            // Disabled - history navigation will use Ctrl+R reverse search
+            return OK(NULL);
         case IK_INPUT_CTRL_P:
-            return ik_repl_handle_history_prev_action(repl);
+            // Disabled - history navigation will use Ctrl+R reverse search
+            return OK(NULL);
         case IK_INPUT_CTRL_U:
             repl->current->viewport_offset = 0;
             return ik_input_buffer_kill_line(repl->current->input_buffer);

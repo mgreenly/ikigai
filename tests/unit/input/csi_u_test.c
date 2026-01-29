@@ -352,6 +352,132 @@ START_TEST(test_csi_u_shift_2_produces_at) {
 }
 
 END_TEST
+// Test: CSI u Ctrl+A (keycode 97 = 'a', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_a) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[97;5u = Ctrl+A
+    const char seq[] = "\x1b[97;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_A);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+E (keycode 101 = 'e', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_e) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[101;5u = Ctrl+E
+    const char seq[] = "\x1b[101;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_E);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+K (keycode 107 = 'k', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_k) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[107;5u = Ctrl+K
+    const char seq[] = "\x1b[107;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_K);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+N (keycode 110 = 'n', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_n) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[110;5u = Ctrl+N
+    const char seq[] = "\x1b[110;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_N);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+P (keycode 112 = 'p', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_p) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[112;5u = Ctrl+P
+    const char seq[] = "\x1b[112;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_P);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+U (keycode 117 = 'u', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_u) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[117;5u = Ctrl+U
+    const char seq[] = "\x1b[117;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_U);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+// Test: CSI u Ctrl+W (keycode 119 = 'w', modifiers 5 = Ctrl)
+START_TEST(test_csi_u_ctrl_w) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_input_parser_t *parser = ik_input_parser_create(ctx);
+    ik_input_action_t action;
+
+    // ESC[119;5u = Ctrl+W
+    const char seq[] = "\x1b[119;5u";
+    for (size_t i = 0; i < sizeof(seq) - 1; i++) {
+        ik_input_parse_byte(parser, seq[i], &action);
+    }
+
+    ck_assert_int_eq(action.type, IK_INPUT_CTRL_W);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 // Test suite
 static Suite *input_csi_u_suite(void)
@@ -383,6 +509,13 @@ static Suite *input_csi_u_suite(void)
     tcase_add_test(tc_core, test_csi_u_shift_a_produces_uppercase);
     tcase_add_test(tc_core, test_csi_u_shift_1_produces_exclamation);
     tcase_add_test(tc_core, test_csi_u_shift_2_produces_at);
+    tcase_add_test(tc_core, test_csi_u_ctrl_a);
+    tcase_add_test(tc_core, test_csi_u_ctrl_e);
+    tcase_add_test(tc_core, test_csi_u_ctrl_k);
+    tcase_add_test(tc_core, test_csi_u_ctrl_n);
+    tcase_add_test(tc_core, test_csi_u_ctrl_p);
+    tcase_add_test(tc_core, test_csi_u_ctrl_u);
+    tcase_add_test(tc_core, test_csi_u_ctrl_w);
 
     suite_add_tcase(s, tc_core);
     return s;
