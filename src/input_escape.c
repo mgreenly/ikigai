@@ -1,524 +1,271 @@
-// Input parser module - Escape sequence parsing
+// Input escape sequence parsing
 #include "input_escape.h"
-
 #include "input_xkb.h"
-#include "panic.h"
-
 #include <assert.h>
-#include <string.h>
 
-// Helper to reset escape sequence state
 static void reset_escape_state(ik_input_parser_t *parser)
 {
     assert(parser != NULL);  // LCOV_EXCL_BR_LINE
-
     parser->in_escape = false;
     parser->esc_len = 0;
 }
 
 // Check if byte completes an unrecognized CSI sequence to discard
-// Handles SGR sequences (m) and other unrecognized sequences (~)
 static bool is_discardable_csi_terminal(const ik_input_parser_t *parser, char byte)
 {
     assert(parser != NULL);  // LCOV_EXCL_BR_LINE
-
-    // SGR sequences terminate with 'm' (e.g., \x1b[0m or \x1b[38;5;242m)
-    if (byte == 'm' && parser->esc_len >= 1) {  // LCOV_EXCL_BR_LINE - defensive: esc_len >= 1 always true when byte=='m'
+    if (byte == 'm' && parser->esc_len >= 1) {  // LCOV_EXCL_BR_LINE
         return true;
     }
-
-    // Other unrecognized sequences: ESC [ digit ~ (e.g., Insert=2~)
     if (parser->esc_len == 3 && byte == '~') {
         return true;
     }
-
     return false;
 }
 
-// Handle first byte after ESC (validation)
 static bool parse_first_escape_byte(ik_input_parser_t *parser, char byte,
                                     ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // If it's '[', continue CSI sequence parsing
     if (byte == '[') {
-        return false; // Continue processing
+        return false;
     }
-
-    // If it's ESC again (double ESC), treat first ESC as escape action
     if (byte == 0x1B) {
         reset_escape_state(parser);
-        parser->in_escape = true;  // Start new escape sequence
+        parser->in_escape = true;
         parser->esc_len = 0;
         action_out->type = IK_INPUT_ESCAPE;
-        return true; // Handled
-    }
-
-    // Not '[' - invalid sequence
-    reset_escape_state(parser);
-    action_out->type = IK_INPUT_UNKNOWN;
-    return true; // Handled
-}
-
-// Handle arrow key sequences: ESC [ A/B/C/D and ESC [ 1 ; N A/B/C/D
-static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
-                             ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Only handle A/B/C/D terminators
-    if (byte != 'A' && byte != 'B' && byte != 'C' && byte != 'D') {
-        return false;
-    }
-
-    // Handle plain arrow keys: ESC [ A/B/C/D (2-character sequences)
-    if (parser->esc_len == 2) {
-        reset_escape_state(parser);
-        if (byte == 'A') {
-            action_out->type = IK_INPUT_ARROW_UP;
-        } else if (byte == 'B') {
-            action_out->type = IK_INPUT_ARROW_DOWN;
-        } else if (byte == 'C') {
-            action_out->type = IK_INPUT_ARROW_RIGHT;
-        } else {
-            action_out->type = IK_INPUT_ARROW_LEFT;
-        }
         return true;
     }
-
-    // Handle modified arrow keys: ESC [ 1 ; N A/B/C/D
-    // Minimum length: [ 1 ; N A = 5 chars, max with NumLock: [ 1 ; NNN A = 7 chars
-    // Note: esc_len includes the terminator byte (A/B/C/D) which is at esc_buf[esc_len-1]
-    if (parser->esc_len >= 5 && parser->esc_buf[1] == '1' && parser->esc_buf[2] == ';') {
-        // Parse modifier value from position 3 to esc_len-2 (excluding terminator)
-        int32_t modifier = 0;
-        for (size_t i = 3; i < parser->esc_len - 1; i++) {
-            char c = parser->esc_buf[i];
-            if (c >= '0' && c <= '9') {
-                modifier = modifier * 10 + (c - '0');
-            } else {
-                return false;  // Invalid character in modifier
-            }
-        }
-
-        // Mask off NumLock bit (128) - NumLock state shouldn't affect arrow behavior
-        modifier &= ~128;
-
-        // Plain arrow with no real modifiers (modifier == 1)
-        if (modifier == 1) {
-            reset_escape_state(parser);
-            if (byte == 'A') {
-                action_out->type = IK_INPUT_ARROW_UP;
-            } else if (byte == 'B') {
-                action_out->type = IK_INPUT_ARROW_DOWN;
-            } else if (byte == 'C') {
-                action_out->type = IK_INPUT_ARROW_RIGHT;
-            } else {
-                action_out->type = IK_INPUT_ARROW_LEFT;
-            }
-            return true;
-        }
-
-        // Ctrl+Arrow (modifier == 5 = 1 + Ctrl bit)
-        if (modifier == 5) {
-            reset_escape_state(parser);
-            if (byte == 'A') {
-                action_out->type = IK_INPUT_NAV_PARENT;
-            } else if (byte == 'B') {
-                action_out->type = IK_INPUT_NAV_CHILD;
-            } else if (byte == 'C') {
-                action_out->type = IK_INPUT_NAV_NEXT_SIBLING;
-            } else {
-                action_out->type = IK_INPUT_NAV_PREV_SIBLING;
-            }
-            return true;
-        }
-    }
-
-    return false; // Not a recognized arrow key sequence
-}
-
-// Handle mouse SGR sequences: ESC [ < button ; col ; row M/m
-static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
-                            ik_input_action_t *action_out)
-{
-    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
-    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Mouse SGR sequences must start with ESC [ <
-    if (parser->esc_len < 2 || parser->esc_buf[1] != '<') {
-        return false;
-    }
-
-    // Mouse sequences end with 'M' (press) or 'm' (release)
-    if (byte != 'M' && byte != 'm') {
-        return false;
-    }
-
-    // We only care about scroll events (button 64 = scroll up, 65 = scroll down)
-    // Parse the button number from esc_buf[2] onwards until first ';'
-    size_t button_start = 2;
-    size_t button_end = button_start;
-
-    while (button_end < parser->esc_len && parser->esc_buf[button_end] != ';') {
-        button_end++;
-    }
-
-    // Check if we found a valid button field
-    if (button_end >= parser->esc_len) {
-        return false;
-    }
-
-    // Extract button number (only support 2-digit buttons for scroll: 64, 65)
-    if (button_end - button_start == 2) {
-        char b0 = parser->esc_buf[button_start];
-        char b1 = parser->esc_buf[button_start + 1];
-
-        // Scroll up: button 64
-        if (b0 == '6' && b1 == '4') {  // LCOV_EXCL_BR_LINE - Defensive: only care about 64/65
-            reset_escape_state(parser);
-            action_out->type = IK_INPUT_SCROLL_UP;
-            return true;
-        }
-
-        // Scroll down: button 65
-        if (b0 == '6' && b1 == '5') {  // LCOV_EXCL_BR_LINE - Defensive: only care about 64/65
-            reset_escape_state(parser);
-            action_out->type = IK_INPUT_SCROLL_DOWN;
-            return true;
-        }
-    }
-
-    // Other mouse events (clicks, drags) - discard
     reset_escape_state(parser);
     action_out->type = IK_INPUT_UNKNOWN;
     return true;
 }
 
-// Parse CSI u sequence: ESC [ keycode ; modifiers u
-// Returns true if valid CSI u sequence parsed
+// Arrow keys: ESC [ A/B/C/D and ESC [ 1 ; N A/B/C/D (with modifiers)
+static bool parse_arrow_keys(ik_input_parser_t *parser, char byte,
+                             ik_input_action_t *action_out)
+{
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+    if (byte != 'A' && byte != 'B' && byte != 'C' && byte != 'D') {
+        return false;
+    }
+    // Plain: ESC [ A/B/C/D
+    if (parser->esc_len == 2) {
+        reset_escape_state(parser);
+        if (byte == 'A') action_out->type = IK_INPUT_ARROW_UP;
+        else if (byte == 'B') action_out->type = IK_INPUT_ARROW_DOWN;
+        else if (byte == 'C') action_out->type = IK_INPUT_ARROW_RIGHT;
+        else action_out->type = IK_INPUT_ARROW_LEFT;
+        return true;
+    }
+    // Modified: ESC [ 1 ; N A/B/C/D
+    if (parser->esc_len >= 5 && parser->esc_buf[1] == '1' && parser->esc_buf[2] == ';') {
+        int32_t mod = 0;
+        for (size_t i = 3; i < parser->esc_len - 1; i++) {
+            char c = parser->esc_buf[i];
+            if (c >= '0' && c <= '9') mod = mod * 10 + (c - '0');
+            else return false;
+        }
+        mod &= ~128;  // Mask NumLock
+        if (mod == 1) {
+            reset_escape_state(parser);
+            if (byte == 'A') action_out->type = IK_INPUT_ARROW_UP;
+            else if (byte == 'B') action_out->type = IK_INPUT_ARROW_DOWN;
+            else if (byte == 'C') action_out->type = IK_INPUT_ARROW_RIGHT;
+            else action_out->type = IK_INPUT_ARROW_LEFT;
+            return true;
+        }
+        if (mod == 5) {  // Ctrl
+            reset_escape_state(parser);
+            if (byte == 'A') action_out->type = IK_INPUT_NAV_PARENT;
+            else if (byte == 'B') action_out->type = IK_INPUT_NAV_CHILD;
+            else if (byte == 'C') action_out->type = IK_INPUT_NAV_NEXT_SIBLING;
+            else action_out->type = IK_INPUT_NAV_PREV_SIBLING;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Mouse SGR: ESC [ < button ; col ; row M/m
+static bool parse_mouse_sgr(ik_input_parser_t *parser, char byte,
+                            ik_input_action_t *action_out)
+{
+    assert(parser != NULL);      // LCOV_EXCL_BR_LINE
+    assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
+    if (parser->esc_len < 2 || parser->esc_buf[1] != '<') return false;
+    if (byte != 'M' && byte != 'm') return false;
+    size_t btn_end = 2;
+    while (btn_end < parser->esc_len && parser->esc_buf[btn_end] != ';') btn_end++;
+    if (btn_end >= parser->esc_len) return false;
+    if (btn_end - 2 == 2) {
+        char b0 = parser->esc_buf[2], b1 = parser->esc_buf[3];
+        if (b0 == '6' && b1 == '4') {  // LCOV_EXCL_BR_LINE
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_SCROLL_UP;
+            return true;
+        }
+        if (b0 == '6' && b1 == '5') {  // LCOV_EXCL_BR_LINE
+            reset_escape_state(parser);
+            action_out->type = IK_INPUT_SCROLL_DOWN;
+            return true;
+        }
+    }
+    reset_escape_state(parser);
+    action_out->type = IK_INPUT_UNKNOWN;
+    return true;
+}
+
+// CSI u: ESC [ keycode ; modifiers u
 static bool parse_csi_u_sequence(ik_input_parser_t *parser,
                                  ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Minimum: ESC [ digit u = 4 chars in buffer (excluding ESC)
-    // Format: [keycode;modifiers u
-    if (parser->esc_len < 3) {
-        return false;
-    }
-
-    // Must end with 'u'  (defensive check - caller only invokes when byte == 'u')
-    if (parser->esc_buf[parser->esc_len - 1] != 'u') {  // LCOV_EXCL_BR_LINE
-        return false;  // LCOV_EXCL_LINE
-    }
-
-    // Parse keycode and modifiers
-    int32_t keycode = 0;
-    int32_t modifiers = 1;  // Default: no modifiers
-
-    size_t i = 1;  // Skip '[' (buf[0] is '[')
-
-    // Parse keycode
-    // LCOV_EXCL_BR_START - Defensive: well-formed sequences always have digits
+    if (parser->esc_len < 3) return false;
+    if (parser->esc_buf[parser->esc_len - 1] != 'u') return false;  // LCOV_EXCL_BR_LINE
+    int32_t keycode = 0, modifiers = 1;
+    size_t i = 1;
+    // LCOV_EXCL_BR_START
     while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
         // LCOV_EXCL_BR_STOP
         keycode = keycode * 10 + (parser->esc_buf[i] - '0');
         i++;
     }
-
-    // Parse modifiers if present
-    // LCOV_EXCL_BR_START - Defensive: well-formed sequences properly terminated
+    // LCOV_EXCL_BR_START
     if (i < parser->esc_len && parser->esc_buf[i] == ';') {
         // LCOV_EXCL_BR_STOP
         i++;
         modifiers = 0;
-        // LCOV_EXCL_BR_START - Defensive: well-formed sequences have modifier digits
+        // LCOV_EXCL_BR_START
         while (i < parser->esc_len && parser->esc_buf[i] >= '0' && parser->esc_buf[i] <= '9') {
             // LCOV_EXCL_BR_STOP
             modifiers = modifiers * 10 + (parser->esc_buf[i] - '0');
             i++;
         }
     }
-
-    // Mask off NumLock bit (bit 7, value 128) for non-numpad keys
-    // NumLock state is irrelevant for letter keys but matters for numpad
-    // CSI u modifier encoding: 1 + Shift(0) + Alt(1) + Ctrl(2) + Super(3) + Hyper(4) + Meta(5) + CapsLock(6) + NumLock(7)
-    // For now, unconditionally mask NumLock to fix letter key input
-    // TODO: Preserve NumLock for numpad keys (need to distinguish numpad keycodes)
-    modifiers &= ~128;  // Clear bit 7 (NumLock)
-
-    // Filter Alacritty modifier-only events (keycode > 50000)
-    if (keycode > 50000) {
-        action_out->type = IK_INPUT_UNKNOWN;
-        return true;
-    }
-
-    // Handle Enter key (keycode 13)
+    modifiers &= ~128;  // Mask NumLock
+    if (keycode > 50000) { action_out->type = IK_INPUT_UNKNOWN; return true; }
     if (keycode == 13) {
-        if (modifiers == 1) {
-            // Plain Enter - submit
-            action_out->type = IK_INPUT_NEWLINE;
-        } else {
-            // Modified Enter (Shift/Ctrl/Alt) - insert newline
-            action_out->type = IK_INPUT_INSERT_NEWLINE;
+        action_out->type = (modifiers == 1) ? IK_INPUT_NEWLINE : IK_INPUT_INSERT_NEWLINE;
+        return true;
+    }
+    // Ctrl+key combinations (modifiers == 5)
+    if (modifiers == 5) {
+        switch (keycode) {
+            case 99: action_out->type = IK_INPUT_CTRL_C; return true;
+            case 97: action_out->type = IK_INPUT_CTRL_A; return true;
+            case 101: action_out->type = IK_INPUT_CTRL_E; return true;
+            case 107: action_out->type = IK_INPUT_CTRL_K; return true;
+            case 110: action_out->type = IK_INPUT_CTRL_N; return true;
+            case 112: action_out->type = IK_INPUT_CTRL_P; return true;
+            case 117: action_out->type = IK_INPUT_CTRL_U; return true;
+            case 119: action_out->type = IK_INPUT_CTRL_W; return true;
         }
-        return true;
     }
-
-    // Handle Ctrl+C (keycode 99 = 'c', modifiers 5 = Ctrl)
-    if (keycode == 99 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_C;
-        return true;
+    if (modifiers == 1) {
+        if (keycode == 9) { action_out->type = IK_INPUT_TAB; return true; }
+        if (keycode == 127) { action_out->type = IK_INPUT_BACKSPACE; return true; }
+        if (keycode == 27) { action_out->type = IK_INPUT_ESCAPE; return true; }
+        if (keycode >= 32 && keycode <= 126) {
+            action_out->type = IK_INPUT_CHAR;
+            action_out->codepoint = (uint32_t)keycode;
+            return true;
+        }
+        if (keycode > 126 && keycode <= 0x10FFFF) {  // LCOV_EXCL_BR_LINE
+            action_out->type = IK_INPUT_CHAR;
+            action_out->codepoint = (uint32_t)keycode;
+            return true;
+        }
     }
-
-    // Handle Ctrl+A (keycode 97 = 'a', modifiers 5 = Ctrl)
-    if (keycode == 97 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_A;
-        return true;
-    }
-
-    // Handle Ctrl+E (keycode 101 = 'e', modifiers 5 = Ctrl)
-    if (keycode == 101 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_E;
-        return true;
-    }
-
-    // Handle Ctrl+K (keycode 107 = 'k', modifiers 5 = Ctrl)
-    if (keycode == 107 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_K;
-        return true;
-    }
-
-    // Handle Ctrl+N (keycode 110 = 'n', modifiers 5 = Ctrl)
-    if (keycode == 110 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_N;
-        return true;
-    }
-
-    // Handle Ctrl+P (keycode 112 = 'p', modifiers 5 = Ctrl)
-    if (keycode == 112 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_P;
-        return true;
-    }
-
-    // Handle Ctrl+U (keycode 117 = 'u', modifiers 5 = Ctrl)
-    if (keycode == 117 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_U;
-        return true;
-    }
-
-    // Handle Ctrl+W (keycode 119 = 'w', modifiers 5 = Ctrl)
-    if (keycode == 119 && modifiers == 5) {
-        action_out->type = IK_INPUT_CTRL_W;
-        return true;
-    }
-
-    // Handle Tab key (keycode 9)
-    if (keycode == 9 && modifiers == 1) {
-        action_out->type = IK_INPUT_TAB;
-        return true;
-    }
-
-    // Handle Backspace (keycode 127)
-    if (keycode == 127 && modifiers == 1) {
-        action_out->type = IK_INPUT_BACKSPACE;
-        return true;
-    }
-
-    // Handle Escape key (keycode 27)
-    if (keycode == 27 && modifiers == 1) {
-        action_out->type = IK_INPUT_ESCAPE;
-        return true;
-    }
-
-    // Handle printable ASCII characters (32-126) with no modifiers
-    if (keycode >= 32 && keycode <= 126 && modifiers == 1) {
-        action_out->type = IK_INPUT_CHAR;
-        action_out->codepoint = (uint32_t)keycode;
-        return true;
-    }
-
-    // Handle printable ASCII characters (32-126) with Shift modifier
-    // CSI u modifier encoding: modifiers = 1 + modifier_bits, Shift = bit 0
-    // So modifiers == 2 means Shift only (1 + 1)
     if (keycode >= 32 && keycode <= 126 && modifiers == 2) {
-        uint32_t translated = ik_input_xkb_translate_shifted_key(parser, (uint32_t)keycode);
         action_out->type = IK_INPUT_CHAR;
-        action_out->codepoint = translated;
+        action_out->codepoint = ik_input_xkb_translate_shifted_key(parser, (uint32_t)keycode);
         return true;
     }
-
-    // Handle Unicode characters (above ASCII) with no modifiers
-    if (keycode > 126 && keycode <= 0x10FFFF && modifiers == 1) {  // LCOV_EXCL_BR_LINE - Defensive: modifiers==1 typical
-        action_out->type = IK_INPUT_CHAR;
-        action_out->codepoint = (uint32_t)keycode;
-        return true;
-    }
-
-    // Other CSI u keys (modified keys, function keys, etc.) - ignore for now
     action_out->type = IK_INPUT_UNKNOWN;
     return true;
 }
 
-// Handle tilde-terminated sequences: ESC [ N ~ or ESC [ N ; M ~
-// Also handles ESC [ H (Home) and ESC [ F (End) alternate sequences
-// And ESC [ 1 ; M H/F (with modifier, e.g., NumLock)
+// Tilde sequences (ESC [ N ~), Home/End (ESC [ H/F, ESC [ 1 ; N H/F)
 static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
                                   ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Handle ESC [ H (Home) and ESC [ F (End) - 2-character sequences
+    // ESC [ H/F
     if (parser->esc_len == 2 && (byte == 'H' || byte == 'F')) {
         reset_escape_state(parser);
         action_out->type = (byte == 'H') ? IK_INPUT_CTRL_A : IK_INPUT_CTRL_E;
         return true;
     }
-
-    // Handle ESC [ 1 ; N H/F (Home/End with modifier like NumLock)
-    // Format: [ 1 ; digits H/F
-    if ((byte == 'H' || byte == 'F') && parser->esc_len >= 5) {
-        if (parser->esc_buf[1] == '1' && parser->esc_buf[2] == ';') {
-            // Validate remaining chars are digits (modifier value)
-            bool valid = true;
-            for (size_t i = 3; i < parser->esc_len - 1; i++) {
-                char c = parser->esc_buf[i];
-                if (c < '0' || c > '9') {
-                    valid = false;
-                    break;
-                }
-            }
-            if (valid) {
-                reset_escape_state(parser);
-                action_out->type = (byte == 'H') ? IK_INPUT_CTRL_A : IK_INPUT_CTRL_E;
-                return true;
-            }
+    // ESC [ 1 ; N H/F (with modifier)
+    if ((byte == 'H' || byte == 'F') && parser->esc_len >= 5 &&
+        parser->esc_buf[1] == '1' && parser->esc_buf[2] == ';') {
+        bool valid = true;
+        for (size_t i = 3; i < parser->esc_len - 1 && valid; i++) {
+            if (parser->esc_buf[i] < '0' || parser->esc_buf[i] > '9') valid = false;
+        }
+        if (valid) {
+            reset_escape_state(parser);
+            action_out->type = (byte == 'H') ? IK_INPUT_CTRL_A : IK_INPUT_CTRL_E;
+            return true;
         }
     }
-
-    // For tilde sequences, must end with '~'
-    if (byte != '~') {
-        return false;
-    }
-
-    // Parse key number from esc_buf[1] until ';' or end
-    // Format: ESC [ N ~ or ESC [ N ; M ~
-    int32_t key_num = 0;
-    size_t i = 1;
-    while (i < parser->esc_len - 1 && parser->esc_buf[i] != ';') {
+    if (byte != '~') return false;
+    int32_t key = 0;
+    for (size_t i = 1; i < parser->esc_len - 1 && parser->esc_buf[i] != ';'; i++) {
         char c = parser->esc_buf[i];
-        if (c >= '0' && c <= '9') {
-            key_num = key_num * 10 + (c - '0');
-        } else {
-            return false;  // Invalid character
-        }
-        i++;
+        if (c >= '0' && c <= '9') key = key * 10 + (c - '0');
+        else return false;
     }
-
-    // Key number 0 is invalid
-    if (key_num == 0) {
-        return false;
-    }
-
-    // Map key numbers to actions (modifiers are ignored - NumLock doesn't change behavior)
+    if (key == 0) return false;
     reset_escape_state(parser);
-    switch (key_num) {
-        case 1:  // Home
-            action_out->type = IK_INPUT_CTRL_A;
-            return true;
-        case 3:  // Delete
-            action_out->type = IK_INPUT_DELETE;
-            return true;
-        case 4:  // End
-            action_out->type = IK_INPUT_CTRL_E;
-            return true;
-        case 5:  // Page Up
-            action_out->type = IK_INPUT_PAGE_UP;
-            return true;
-        case 6:  // Page Down
-            action_out->type = IK_INPUT_PAGE_DOWN;
-            return true;
-        default:
-            action_out->type = IK_INPUT_UNKNOWN;
-            return true;  // Recognized format but unknown key
+    switch (key) {
+        case 1: action_out->type = IK_INPUT_CTRL_A; return true;
+        case 3: action_out->type = IK_INPUT_DELETE; return true;
+        case 4: action_out->type = IK_INPUT_CTRL_E; return true;
+        case 5: action_out->type = IK_INPUT_PAGE_UP; return true;
+        case 6: action_out->type = IK_INPUT_PAGE_DOWN; return true;
+        default: action_out->type = IK_INPUT_UNKNOWN; return true;
     }
 }
 
-// Parse escape sequence byte
 void ik_input_parse_escape_sequence(ik_input_parser_t *parser, char byte,
                                     ik_input_action_t *action_out)
 {
     assert(parser != NULL);      // LCOV_EXCL_BR_LINE
     assert(action_out != NULL);  // LCOV_EXCL_BR_LINE
-
-    // Buffer the byte
     parser->esc_buf[parser->esc_len++] = byte;
     parser->esc_buf[parser->esc_len] = '\0';
-
-    // Buffer overflow protection - reset if we've filled the buffer
     if (parser->esc_len >= sizeof(parser->esc_buf) - 1) {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
         return;
     }
-
-    // Validate first byte after ESC
-    if (parser->esc_len == 1) {
-        if (parse_first_escape_byte(parser, byte, action_out)) {
-            return; // Handled
-        }
-    }
-
-    // Try parsing as arrow key
-    if (parse_arrow_keys(parser, byte, action_out)) {
-        return; // Handled
-    }
-
-    // Try parsing as mouse SGR sequence
-    if (parse_mouse_sgr(parser, byte, action_out)) {
-        return; // Handled
-    }
-
-    // Try parsing as tilde-terminated sequence
-    if (parse_tilde_sequences(parser, byte, action_out)) {
-        return; // Handled
-    }
-
-    // Try parsing as CSI u sequence when byte is 'u'
+    if (parser->esc_len == 1 && parse_first_escape_byte(parser, byte, action_out)) return;
+    if (parse_arrow_keys(parser, byte, action_out)) return;
+    if (parse_mouse_sgr(parser, byte, action_out)) return;
+    if (parse_tilde_sequences(parser, byte, action_out)) return;
     if (byte == 'u') {
-        if (parse_csi_u_sequence(parser, action_out)) {
-            reset_escape_state(parser);
-            return;
-        }
-
-        // Not a recognized CSI u sequence
+        if (parse_csi_u_sequence(parser, action_out)) { reset_escape_state(parser); return; }
         action_out->type = IK_INPUT_UNKNOWN;
         reset_escape_state(parser);
         return;
     }
-
-    // Check for unrecognized CSI sequences to discard (SGR and others)
     if (is_discardable_csi_terminal(parser, byte)) {
         reset_escape_state(parser);
         action_out->type = IK_INPUT_UNKNOWN;
         return;
     }
-
-    // Check for unrecognized 2-character sequences at esc_len == 2
-    // If we have ESC [ <letter> and it's not A/B/C/D, it's complete but unknown
-    // GCC 14.2.0 bug: branch coverage not recorded despite tests covering both branches
+    // GCC 14.2.0 bug: branch coverage not recorded despite tests
     if (parser->esc_len == 2 && byte >= 'A' && byte <= 'Z') {  // LCOV_EXCL_BR_LINE
         reset_escape_state(parser);  // LCOV_EXCL_LINE
         action_out->type = IK_INPUT_UNKNOWN;  // LCOV_EXCL_LINE
         return;  // LCOV_EXCL_LINE
     }
-
-    // Incomplete sequence - need more bytes
     action_out->type = IK_INPUT_UNKNOWN;
 }
