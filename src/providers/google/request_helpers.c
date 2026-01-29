@@ -23,7 +23,7 @@
 /**
  * Map internal role to Google role string
  */
-const char *ik_google_role_to_string(ik_role_t role)
+const char *ik_google_role_to_string(ik_role_t role, const char *model)
 {
     switch (role) {
         case IK_ROLE_USER:
@@ -31,6 +31,10 @@ const char *ik_google_role_to_string(ik_role_t role)
         case IK_ROLE_ASSISTANT:
             return "model";
         case IK_ROLE_TOOL:
+            // Gemini 3 requires "user" role for tool results
+            if (model != NULL && ik_google_model_series(model) == IK_GEMINI_3) {
+                return "user";
+            }
             return "function";
         default: // LCOV_EXCL_LINE
             return "user"; // LCOV_EXCL_LINE
@@ -41,7 +45,7 @@ const char *ik_google_role_to_string(ik_role_t role)
  * Serialize a single content block to Google JSON format
  */
 bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                       const ik_content_block_t *block)
+                                       const ik_content_block_t *block, const char *model)
 {
     assert(doc != NULL);   // LCOV_EXCL_BR_LINE
     assert(arr != NULL);   // LCOV_EXCL_BR_LINE
@@ -67,6 +71,15 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
             break;
 
         case IK_CONTENT_TOOL_CALL: { // LCOV_EXCL_BR_LINE
+            // Add thought signature if present (Gemini 3 only)
+            if (block->data.tool_call.thought_signature != NULL &&
+                model != NULL && ik_google_model_series(model) == IK_GEMINI_3) {
+                if (!yyjson_mut_obj_add_str_(doc, obj, "thoughtSignature",
+                                             block->data.tool_call.thought_signature)) {
+                    return false;
+                }
+            }
+
             // Build functionCall object
             yyjson_mut_val *func_obj = yyjson_mut_obj(doc);
             if (!func_obj) return false; // LCOV_EXCL_BR_LINE
@@ -221,7 +234,7 @@ const char *ik_google_find_latest_thought_signature(const ik_request_t *req, yyj
  */
 bool ik_google_serialize_message_parts(yyjson_mut_doc *doc, yyjson_mut_val *content_obj,
                                        const ik_message_t *message, const char *thought_sig,
-                                       bool is_first_assistant)
+                                       bool is_first_assistant, const char *model)
 {
     assert(doc != NULL);         // LCOV_EXCL_BR_LINE
     assert(content_obj != NULL); // LCOV_EXCL_BR_LINE
@@ -246,7 +259,7 @@ bool ik_google_serialize_message_parts(yyjson_mut_doc *doc, yyjson_mut_val *cont
 
     // Add regular content blocks
     for (size_t i = 0; i < message->content_count; i++) {
-        if (!ik_google_serialize_content_block(doc, parts_arr, &message->content_blocks[i])) {
+        if (!ik_google_serialize_content_block(doc, parts_arr, &message->content_blocks[i], model)) {
             return false;
         }
     }

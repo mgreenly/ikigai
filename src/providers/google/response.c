@@ -16,7 +16,7 @@
  * ================================================================ */
 
 static res_t process_function_call(TALLOC_CTX *ctx, ik_content_block_t *blocks,
-                                   yyjson_val *function_call, size_t idx)
+                                   yyjson_val *part, yyjson_val *function_call, size_t idx)
 {
     blocks[idx].type = IK_CONTENT_TOOL_CALL;
 
@@ -52,6 +52,17 @@ static res_t process_function_call(TALLOC_CTX *ctx, ik_content_block_t *blocks,
         // No args, use empty object
         blocks[idx].data.tool_call.arguments = talloc_strdup(blocks, "{}");
         if (blocks[idx].data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Extract thought signature if present (Gemini 3 only, appears alongside functionCall)
+    blocks[idx].data.tool_call.thought_signature = NULL;
+    yyjson_val *thought_sig_val = yyjson_obj_get(part, "thoughtSignature");
+    if (thought_sig_val != NULL) {
+        const char *thought_sig = yyjson_get_str(thought_sig_val);
+        if (thought_sig != NULL) {
+            blocks[idx].data.tool_call.thought_signature = talloc_strdup(blocks, thought_sig);
+            if (blocks[idx].data.tool_call.thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     }
 
     return OK(NULL);
@@ -117,7 +128,7 @@ static res_t parse_content_parts(TALLOC_CTX *ctx, yyjson_val *parts_arr,
         // Check for functionCall (tool call)
         yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
         if (function_call != NULL) {
-            res_t result = process_function_call(ctx, blocks, function_call, idx);
+            res_t result = process_function_call(ctx, blocks, part, function_call, idx);
             if (is_err(&result)) return result;
             continue;
         }

@@ -23,6 +23,7 @@ struct ik_google_stream_ctx {
     char *current_tool_id;             /* Current tool call ID (generated) */
     char *current_tool_name;           /* Current tool call name */
     char *current_tool_args;           /* Accumulated tool call arguments (JSON) */
+    char *current_tool_thought_sig;    /* Thought signature for current tool call (Gemini 3 only) */
     int32_t part_index;                /* Current part index for events */
 };
 
