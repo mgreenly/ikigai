@@ -165,8 +165,7 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     for (size_t i = 0; i < req->message_count; i++) {
-        yyjson_mut_val *msg_obj = ik_openai_serialize_message(doc, &req->messages[i]);
-        if (!yyjson_mut_arr_add_val(input_arr, msg_obj)) { // LCOV_EXCL_BR_LINE
+        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) {
             return false;
         }
     }

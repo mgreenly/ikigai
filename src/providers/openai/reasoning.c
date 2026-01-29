@@ -99,19 +99,45 @@ bool ik_openai_supports_temperature(const char *model)
     return !ik_openai_is_reasoning_model(model);
 }
 
-bool ik_openai_prefer_responses_api(const char *model)
+/**
+ * Models that use Responses API (not Chat Completions API)
+ *
+ * Hardcoded mapping table - no heuristics. Unknown models default to Chat Completions API.
+ */
+static const char *RESPONSES_API_MODELS[] = {
+    "o1",
+    "o1-mini",
+    "o1-preview",
+    "o3",
+    "o3-mini",
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-5-pro",
+    "gpt-5.1",
+    "gpt-5.1-chat-latest",
+    "gpt-5.1-codex",
+    "gpt-5.2",
+    "gpt-5.2-chat-latest",
+    "gpt-5.2-codex",
+    NULL  // Sentinel
+};
+
+bool ik_openai_use_responses_api(const char *model)
 {
-    if (model == NULL) {
+    if (model == NULL || model[0] == '\0') {
         return false;
     }
 
-    // GPT-4 models: force Chat Completions API
-    if (strncmp(model, "gpt-4", 5) == 0) {
-        return false;
+    // Exact match lookup - no heuristics
+    for (size_t i = 0; RESPONSES_API_MODELS[i] != NULL; i++) {
+        if (strcmp(model, RESPONSES_API_MODELS[i]) == 0) {
+            return true;
+        }
     }
 
-    // Reasoning models (o1, o3, gpt-5.x): prefer Responses API (3% better performance)
-    return ik_openai_is_reasoning_model(model);
+    // Unknown models default to Chat Completions API
+    return false;
 }
 
 res_t ik_openai_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level)

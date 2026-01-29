@@ -59,15 +59,17 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
 bool ik_openai_supports_temperature(const char *model);
 
 /**
- * Determine if model should prefer Responses API
+ * Determine if model uses Responses API
  *
  * @param model Model identifier
- * @return      true if model should use Responses API for better performance
+ * @return      true if model uses Responses API (not Chat Completions API)
  *
- * Reasoning models (o1/o3) perform 3% better with Responses API.
- * Non-reasoning models should use Chat Completions API.
+ * Hardcoded lookup table:
+ * - Responses API: o1, o1-mini, o1-preview, o3, o3-mini, gpt-5*, gpt-5.1*, gpt-5.2*
+ * - Chat Completions API: gpt-4, gpt-4-turbo, gpt-4o, gpt-4o-mini
+ * - Unknown models: Default to Chat Completions API
  */
-bool ik_openai_prefer_responses_api(const char *model);
+bool ik_openai_use_responses_api(const char *model);
 
 /**
  * Validate thinking level for model

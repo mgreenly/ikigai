@@ -308,27 +308,141 @@ START_TEST(test_supports_temperature_o3) {
 
 END_TEST
 /* ================================================================
- * ik_openai_prefer_responses_api Tests
+ * ik_openai_use_responses_api Tests
  * ================================================================ */
 
-START_TEST(test_prefer_responses_api_gpt4) {
-    bool result = ik_openai_prefer_responses_api("gpt-4");
-    ck_assert(!result);
+// Chat Completions API models (should return false)
+START_TEST(test_use_responses_api_gpt4) {
+    ck_assert(!ik_openai_use_responses_api("gpt-4"));
 }
 
 END_TEST
 
-START_TEST(test_prefer_responses_api_o1) {
-    // Reasoning models prefer Responses API
-    bool result = ik_openai_prefer_responses_api("o1");
-    ck_assert(result);
+START_TEST(test_use_responses_api_gpt4_turbo) {
+    ck_assert(!ik_openai_use_responses_api("gpt-4-turbo"));
 }
 
 END_TEST
 
-START_TEST(test_prefer_responses_api_o3_mini) {
-    bool result = ik_openai_prefer_responses_api("o3-mini");
-    ck_assert(result);
+START_TEST(test_use_responses_api_gpt4o) {
+    ck_assert(!ik_openai_use_responses_api("gpt-4o"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt4o_mini) {
+    ck_assert(!ik_openai_use_responses_api("gpt-4o-mini"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_unknown_model) {
+    // Unknown models default to Chat Completions API
+    ck_assert(!ik_openai_use_responses_api("gpt-7"));
+    ck_assert(!ik_openai_use_responses_api("unknown-model"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_null) {
+    ck_assert(!ik_openai_use_responses_api(NULL));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_empty) {
+    ck_assert(!ik_openai_use_responses_api(""));
+}
+
+END_TEST
+
+// Responses API models (should return true)
+START_TEST(test_use_responses_api_o1) {
+    ck_assert(ik_openai_use_responses_api("o1"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_o1_mini) {
+    ck_assert(ik_openai_use_responses_api("o1-mini"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_o1_preview) {
+    ck_assert(ik_openai_use_responses_api("o1-preview"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_o3) {
+    ck_assert(ik_openai_use_responses_api("o3"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_o3_mini) {
+    ck_assert(ik_openai_use_responses_api("o3-mini"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt5) {
+    ck_assert(ik_openai_use_responses_api("gpt-5"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt5_mini) {
+    ck_assert(ik_openai_use_responses_api("gpt-5-mini"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt5_nano) {
+    ck_assert(ik_openai_use_responses_api("gpt-5-nano"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt5_pro) {
+    ck_assert(ik_openai_use_responses_api("gpt-5-pro"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt51) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.1"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt51_chat_latest) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.1-chat-latest"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt51_codex) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.1-codex"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt52) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.2"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt52_chat_latest) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.2-chat-latest"));
+}
+
+END_TEST
+
+START_TEST(test_use_responses_api_gpt52_codex) {
+    ck_assert(ik_openai_use_responses_api("gpt-5.2-codex"));
 }
 
 END_TEST
@@ -499,12 +613,33 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_temperature, test_supports_temperature_o3);
     suite_add_tcase(s, tc_temperature);
 
-    TCase *tc_responses = tcase_create("prefer_responses_api");
+    TCase *tc_responses = tcase_create("use_responses_api");
     tcase_set_timeout(tc_responses, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_responses, setup, teardown);
-    tcase_add_test(tc_responses, test_prefer_responses_api_gpt4);
-    tcase_add_test(tc_responses, test_prefer_responses_api_o1);
-    tcase_add_test(tc_responses, test_prefer_responses_api_o3_mini);
+    // Chat Completions API models
+    tcase_add_test(tc_responses, test_use_responses_api_gpt4);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt4_turbo);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt4o);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt4o_mini);
+    tcase_add_test(tc_responses, test_use_responses_api_unknown_model);
+    tcase_add_test(tc_responses, test_use_responses_api_null);
+    tcase_add_test(tc_responses, test_use_responses_api_empty);
+    // Responses API models
+    tcase_add_test(tc_responses, test_use_responses_api_o1);
+    tcase_add_test(tc_responses, test_use_responses_api_o1_mini);
+    tcase_add_test(tc_responses, test_use_responses_api_o1_preview);
+    tcase_add_test(tc_responses, test_use_responses_api_o3);
+    tcase_add_test(tc_responses, test_use_responses_api_o3_mini);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt5);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt5_mini);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt5_nano);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt5_pro);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt51);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt51_chat_latest);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt51_codex);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt52);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt52_chat_latest);
+    tcase_add_test(tc_responses, test_use_responses_api_gpt52_codex);
     suite_add_tcase(s, tc_responses);
 
     TCase *tc_validate = tcase_create("validate_thinking");

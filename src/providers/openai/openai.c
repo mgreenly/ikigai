@@ -169,7 +169,7 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
 
     // Determine which API to use
     bool use_responses_api = impl_ctx->use_responses_api
-                             || ik_openai_prefer_responses_api(req->model);
+                             || ik_openai_use_responses_api(req->model);
 
     // Create request context for tracking this request
     ik_openai_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_request_ctx_t);
@@ -270,7 +270,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
 
     // Determine which API to use
     bool use_responses_api = impl_ctx->use_responses_api
-                             || ik_openai_prefer_responses_api(req->model);
+                             || ik_openai_use_responses_api(req->model);
 
     // Create streaming request context
     ik_openai_stream_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_stream_request_ctx_t);
