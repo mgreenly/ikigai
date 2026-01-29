@@ -10,7 +10,6 @@
 #include "layer.h"
 #include "layer_wrappers.h"
 #include "config.h"
-#include "debug_pipe.h"
 #include "tool.h"
 #include "db/connection.h"
 #include "history.h"

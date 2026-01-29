@@ -54,7 +54,6 @@ START_TEST(test_clear_command_clears_autocomplete) {
     repl->shared->history = NULL;  // No history needed for this test
     repl->shared->db_ctx = NULL;   // No database needed for this test
     repl->shared->session_id = 0;
-    repl->shared->db_debug_pipe = NULL;
 
     repl->quit = false;
     repl->current->completion = NULL;  // Initialize completion to NULL

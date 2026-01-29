@@ -195,50 +195,6 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t ik_cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args)
-{
-    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
-    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
-
-    char *msg = NULL;
-
-    if (args == NULL) {
-        // Show current status
-        msg = talloc_asprintf(ctx, "Debug output: %s", repl->shared->debug_enabled ? "ON" : "OFF");
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-    } else if (strcmp(args, "on") == 0) {
-        // Enable debug output
-        repl->shared->debug_enabled = true;
-        msg = talloc_strdup(ctx, "Debug output enabled");
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-    } else if (strcmp(args, "off") == 0) {
-        // Disable debug output
-        repl->shared->debug_enabled = false;
-        msg = talloc_strdup(ctx, "Debug output disabled");
-        if (!msg) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-    } else {
-        // Invalid argument
-        char *err_text = talloc_asprintf(ctx, "Invalid argument '%s' (usage: /debug [on|off])", args);
-        if (!err_text) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-        msg = ik_scrollback_format_warning(ctx, err_text);
-        talloc_free(err_text);
-        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
-        talloc_free(msg);
-        return ERR(ctx, INVALID_ARG, "Invalid argument '%s'", args);
-    }
-
-    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
-    return OK(NULL);
-}
-
 res_t ik_cmd_exit(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE

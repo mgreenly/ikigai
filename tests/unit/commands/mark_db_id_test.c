@@ -8,7 +8,6 @@
 #include "../../../src/config.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/marks.h"
 #include "../../../src/message.h"

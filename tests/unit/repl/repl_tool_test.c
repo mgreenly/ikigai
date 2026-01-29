@@ -10,7 +10,6 @@
 #include "config.h"
 #include "db/connection.h"
 #include "db/message.h"
-#include "debug_pipe.h"
 #include "json_allocator.h"
 #include "repl.h"
 #include "scrollback.h"

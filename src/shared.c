@@ -2,7 +2,6 @@
 
 #include "db/connection.h"
 #include "debug_log.h"
-#include "debug_pipe.h"
 #include "history.h"
 #include "history_io.h"
 #include "logger.h"
@@ -147,17 +146,6 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         ik_logger_warn_json(logger, log_doc);
         talloc_free(result.err);
     }
-
-    // Initialize debug infrastructure
-    shared->debug_enabled = false;
-    shared->debug_mgr = ik_debug_manager_create(shared).ok;
-    if (shared->debug_mgr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    shared->openai_debug_pipe = ik_debug_manager_add_pipe(shared->debug_mgr, "[openai]").ok;
-    if (shared->openai_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    shared->db_debug_pipe = ik_debug_manager_add_pipe(shared->debug_mgr, "[db]").ok;
-    if (shared->db_debug_pipe == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Initialize tool registry (rel-08)
     shared->tool_registry = ik_tool_registry_create(shared);

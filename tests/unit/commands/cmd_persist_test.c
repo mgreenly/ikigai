@@ -9,7 +9,6 @@
 #include "../../../src/logger.h"
 #include "../../../src/shared.h"
 #include "../../../src/db/connection.h"
-#include "../../../src/debug_pipe.h"
 #include "../../../src/error.h"
 #include "../../../src/repl.h"
 #include "../../../src/scrollback.h"
@@ -204,30 +203,6 @@ START_TEST(test_model_persisted) {
 }
 
 END_TEST
-// Test: /debug command output is persisted
-START_TEST(test_debug_persisted) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/debug on");
-    ck_assert(is_ok(&res));
-
-    // Should have called ik_db_message_insert once
-    ck_assert_int_eq(insert_call_count, 1);
-
-    // Verify kind is "command"
-    ck_assert_ptr_nonnull(last_kind);
-    ck_assert_str_eq(last_kind, "command");
-
-    // Verify content contains output only (not echo)
-    ck_assert_ptr_nonnull(last_content);
-    ck_assert(strstr(last_content, "Debug output enabled") != NULL);
-
-    // Verify data_json contains command metadata and echo
-    ck_assert_ptr_nonnull(last_data_json);
-    ck_assert(strstr(last_data_json, "\"command\":\"debug\"") != NULL);
-    ck_assert(strstr(last_data_json, "\"args\":\"on\"") != NULL);
-    ck_assert(strstr(last_data_json, "\"echo\":\"/debug on\"") != NULL);
-}
-
-END_TEST
 // Test: Command persistence without database context (should not crash)
 START_TEST(test_command_persist_no_db) {
     // Remove database context
@@ -267,7 +242,6 @@ static Suite *cmd_persist_suite(void)
 
     tcase_add_test(tc, test_help_persisted);
     tcase_add_test(tc, test_model_persisted);
-    tcase_add_test(tc, test_debug_persisted);
     tcase_add_test(tc, test_command_persist_no_db);
     tcase_add_test(tc, test_unknown_command_not_persisted);
 

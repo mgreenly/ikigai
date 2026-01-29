@@ -48,11 +48,6 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         int max_fd;
         CHECK(ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
 
-        // Add debug pipes to fd_set
-        if (repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_manager_add_to_fdset(repl->shared->debug_mgr, &read_fds, &max_fd);  // LCOV_EXCL_LINE
-        }
-
         // Calculate minimum curl timeout across ALL agents
         long curl_timeout_ms = -1;
         CHECK(ik_repl_calculate_curl_min_timeout(repl, &curl_timeout_ms));
@@ -82,14 +77,6 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Note: Don't continue here - curl events must still be processed
         if (ready == 0) {
             CHECK(ik_repl_handle_select_timeout(repl));  // LCOV_EXCL_BR_LINE
-        }
-
-        // Handle debug pipes
-        if (ready > 0 && repl->shared->debug_mgr != NULL) {  // LCOV_EXCL_BR_LINE
-            ik_debug_manager_handle_ready(repl->shared->debug_mgr,  // LCOV_EXCL_LINE
-                                          &read_fds,  // LCOV_EXCL_LINE
-                                          repl->current->scrollback,  // LCOV_EXCL_LINE
-                                          repl->shared->debug_enabled);  // LCOV_EXCL_LINE
         }
 
         // Handle terminal input
