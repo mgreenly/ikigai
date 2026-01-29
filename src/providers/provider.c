@@ -16,10 +16,17 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"claude-sonnet-4-5", "anthropic", true, 64000},
     {"claude-opus-4-5", "anthropic", true, 64000},
 
-    // OpenAI thinking models (effort-based, budget = 0)
+    // OpenAI GPT-5 thinking models (effort-based, budget = 0)
     {"gpt-5", "openai", true, 0},
     {"gpt-5-mini", "openai", true, 0},
     {"gpt-5-nano", "openai", true, 0},
+    {"gpt-5-pro", "openai", true, 0},
+    {"gpt-5.1", "openai", true, 0},
+    {"gpt-5.1-chat-latest", "openai", true, 0},
+    {"gpt-5.1-codex", "openai", true, 0},
+    {"gpt-5.2", "openai", true, 0},
+    {"gpt-5.2-chat-latest", "openai", true, 0},
+    {"gpt-5.2-codex", "openai", true, 0},
 
     // Google models (mixed: level-based for 3.x, budget for 2.5)
     {"gemini-3.0-flash", "google", true, 0},       // Level-based (LOW/HIGH)
@@ -28,19 +35,18 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"gemini-2.5-flash", "google", true, 24576},   // Budget-based
     {"gemini-2.5-flash-lite", "google", true, 24576},  // Budget-based
 
-    // Legacy non-thinking OpenAI models
+    // GPT-4 era (no thinking support)
     {"gpt-4", "openai", false, 0},
     {"gpt-4-turbo", "openai", false, 0},
     {"gpt-4o", "openai", false, 0},
     {"gpt-4o-mini", "openai", false, 0},
-    {"gpt-3.5-turbo", "openai", false, 0},
 
-    // O-series models (legacy reasoning models, not GPT-5 compatible)
-    {"o1", "openai", false, 0},
-    {"o1-mini", "openai", false, 0},
-    {"o1-preview", "openai", false, 0},
-    {"o3", "openai", false, 0},
-    {"o3-mini", "openai", false, 0},
+    // O-series reasoning models (effort-based, budget = 0)
+    {"o1", "openai", true, 0},
+    {"o1-mini", "openai", true, 0},
+    {"o1-preview", "openai", true, 0},
+    {"o3", "openai", true, 0},
+    {"o3-mini", "openai", true, 0},
 };
 
 static const size_t MODEL_CAPABILITIES_COUNT = sizeof(MODEL_CAPABILITIES) / sizeof(MODEL_CAPABILITIES[0]);

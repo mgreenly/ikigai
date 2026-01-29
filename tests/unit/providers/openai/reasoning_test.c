@@ -74,31 +74,37 @@ START_TEST(test_is_reasoning_model_o3_mini) {
 
 END_TEST
 
-START_TEST(test_is_reasoning_model_o4) {
-    bool result = ik_openai_is_reasoning_model("o4");
+START_TEST(test_is_reasoning_model_gpt5) {
+    bool result = ik_openai_is_reasoning_model("gpt-5");
     ck_assert(result);
 }
 
 END_TEST
 
-START_TEST(test_is_reasoning_model_o4_turbo) {
-    bool result = ik_openai_is_reasoning_model("o4-turbo");
+START_TEST(test_is_reasoning_model_gpt5_mini) {
+    bool result = ik_openai_is_reasoning_model("gpt-5-mini");
     ck_assert(result);
 }
 
 END_TEST
 
-START_TEST(test_is_reasoning_model_o1_underscore) {
-    bool result = ik_openai_is_reasoning_model("o1_variant");
+START_TEST(test_is_reasoning_model_gpt5_pro) {
+    bool result = ik_openai_is_reasoning_model("gpt-5-pro");
     ck_assert(result);
 }
 
 END_TEST
 
-START_TEST(test_is_reasoning_model_o30_not_reasoning) {
-    // "o30" should NOT match - the '0' after "o3" is not a valid separator
-    bool result = ik_openai_is_reasoning_model("o30");
-    ck_assert(!result);
+START_TEST(test_is_reasoning_model_gpt5_1) {
+    bool result = ik_openai_is_reasoning_model("gpt-5.1");
+    ck_assert(result);
+}
+
+END_TEST
+
+START_TEST(test_is_reasoning_model_gpt5_2_codex) {
+    bool result = ik_openai_is_reasoning_model("gpt-5.2-codex");
+    ck_assert(result);
 }
 
 END_TEST
@@ -127,40 +133,132 @@ END_TEST
  * ik_openai_reasoning_effort Tests
  * ================================================================ */
 
-START_TEST(test_reasoning_effort_none) {
-    const char *effort = ik_openai_reasoning_effort(IK_THINKING_NONE);
+// NULL model tests
+START_TEST(test_reasoning_effort_null_model) {
+    const char *effort = ik_openai_reasoning_effort(NULL, IK_THINKING_LOW);
     ck_assert_ptr_null(effort);
 }
 
 END_TEST
 
-START_TEST(test_reasoning_effort_low) {
-    const char *effort = ik_openai_reasoning_effort(IK_THINKING_LOW);
+// o1/o3 family tests (NONE->low, LOW->low, MED->medium, HIGH->high)
+START_TEST(test_reasoning_effort_o1_none) {
+    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_NONE);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "low");
 }
 
 END_TEST
 
-START_TEST(test_reasoning_effort_med) {
-    const char *effort = ik_openai_reasoning_effort(IK_THINKING_MED);
+START_TEST(test_reasoning_effort_o1_low) {
+    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_LOW);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "low");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_o1_med) {
+    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_MED);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "medium");
 }
 
 END_TEST
 
-START_TEST(test_reasoning_effort_high) {
-    const char *effort = ik_openai_reasoning_effort(IK_THINKING_HIGH);
+START_TEST(test_reasoning_effort_o1_high) {
+    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_HIGH);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "high");
 }
 
 END_TEST
 
-START_TEST(test_reasoning_effort_invalid) {
-    // Test with an invalid enum value
-    const char *effort = ik_openai_reasoning_effort((ik_thinking_level_t)999);
+START_TEST(test_reasoning_effort_o3_mini_none) {
+    const char *effort = ik_openai_reasoning_effort("o3-mini", IK_THINKING_NONE);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "low");
+}
+
+END_TEST
+
+// gpt-5 family tests (NONE->NULL, LOW->low, MED->medium, HIGH->high)
+START_TEST(test_reasoning_effort_gpt5_none) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_NONE);
+    ck_assert_ptr_null(effort);
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_low) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_LOW);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "low");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_med) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_MED);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "medium");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_high) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_HIGH);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
+
+// gpt-5-pro tests (all levels -> "high")
+START_TEST(test_reasoning_effort_gpt5_pro_none) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_NONE);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_pro_low) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_LOW);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_pro_med) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_MED);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
+START_TEST(test_reasoning_effort_gpt5_pro_high) {
+    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_HIGH);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
+// Non-reasoning model test
+START_TEST(test_reasoning_effort_gpt4) {
+    const char *effort = ik_openai_reasoning_effort("gpt-4", IK_THINKING_LOW);
+    ck_assert_ptr_null(effort);
+}
+
+END_TEST
+
+// Invalid thinking level test
+START_TEST(test_reasoning_effort_invalid_level) {
+    const char *effort = ik_openai_reasoning_effort("o1", (ik_thinking_level_t)999);
     ck_assert_ptr_null(effort);
 }
 
@@ -204,6 +302,15 @@ START_TEST(test_supports_temperature_o3) {
 }
 
 END_TEST
+
+START_TEST(test_supports_temperature_gpt5) {
+    // GPT-5 reasoning models do NOT support temperature
+    bool result = ik_openai_supports_temperature("gpt-5");
+    ck_assert(!result);
+}
+
+END_TEST
+
 /* ================================================================
  * ik_openai_prefer_responses_api Tests
  * ================================================================ */
@@ -229,6 +336,15 @@ START_TEST(test_prefer_responses_api_o3_mini) {
 }
 
 END_TEST
+
+START_TEST(test_prefer_responses_api_gpt5) {
+    // GPT-5 reasoning models prefer Responses API
+    bool result = ik_openai_prefer_responses_api("gpt-5");
+    ck_assert(result);
+}
+
+END_TEST
+
 /* ================================================================
  * ik_openai_validate_thinking Tests
  * ================================================================ */
@@ -281,7 +397,7 @@ END_TEST
 
 START_TEST(test_validate_thinking_high_non_reasoning) {
     // HIGH is invalid for non-reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-3.5-turbo", IK_THINKING_HIGH);
+    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4", IK_THINKING_HIGH);
     ck_assert(is_err(&r));
     ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
 }
@@ -312,6 +428,15 @@ START_TEST(test_validate_thinking_high_reasoning) {
 
 END_TEST
 
+START_TEST(test_validate_thinking_gpt5_low) {
+    // GPT-5 models support thinking
+    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-5", IK_THINKING_LOW);
+    ck_assert(!is_err(&r));
+}
+
+END_TEST
+
+
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -330,10 +455,11 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o1_preview);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o3);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o3_mini);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o4);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o4_turbo);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o1_underscore);
-    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_o30_not_reasoning);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_mini);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_pro);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_1);
+    tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt5_2_codex);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt4);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_gpt4o);
     tcase_add_test(tc_is_reasoning, test_is_reasoning_model_claude);
@@ -342,11 +468,22 @@ static Suite *reasoning_suite(void)
     TCase *tc_effort = tcase_create("reasoning_effort");
     tcase_set_timeout(tc_effort, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_effort, setup, teardown);
-    tcase_add_test(tc_effort, test_reasoning_effort_none);
-    tcase_add_test(tc_effort, test_reasoning_effort_low);
-    tcase_add_test(tc_effort, test_reasoning_effort_med);
-    tcase_add_test(tc_effort, test_reasoning_effort_high);
-    tcase_add_test(tc_effort, test_reasoning_effort_invalid);
+    tcase_add_test(tc_effort, test_reasoning_effort_null_model);
+    tcase_add_test(tc_effort, test_reasoning_effort_o1_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_o1_low);
+    tcase_add_test(tc_effort, test_reasoning_effort_o1_med);
+    tcase_add_test(tc_effort, test_reasoning_effort_o1_high);
+    tcase_add_test(tc_effort, test_reasoning_effort_o3_mini_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_low);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_med);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_high);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_low);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_med);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_high);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt4);
+    tcase_add_test(tc_effort, test_reasoning_effort_invalid_level);
     suite_add_tcase(s, tc_effort);
 
     TCase *tc_temperature = tcase_create("supports_temperature");
@@ -357,6 +494,7 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_temperature, test_supports_temperature_o1);
     tcase_add_test(tc_temperature, test_supports_temperature_o1_mini);
     tcase_add_test(tc_temperature, test_supports_temperature_o3);
+    tcase_add_test(tc_temperature, test_supports_temperature_gpt5);
     suite_add_tcase(s, tc_temperature);
 
     TCase *tc_responses = tcase_create("prefer_responses_api");
@@ -365,6 +503,7 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_responses, test_prefer_responses_api_gpt4);
     tcase_add_test(tc_responses, test_prefer_responses_api_o1);
     tcase_add_test(tc_responses, test_prefer_responses_api_o3_mini);
+    tcase_add_test(tc_responses, test_prefer_responses_api_gpt5);
     suite_add_tcase(s, tc_responses);
 
     TCase *tc_validate = tcase_create("validate_thinking");
@@ -379,6 +518,7 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_validate, test_validate_thinking_low_reasoning);
     tcase_add_test(tc_validate, test_validate_thinking_med_reasoning);
     tcase_add_test(tc_validate, test_validate_thinking_high_reasoning);
+    tcase_add_test(tc_validate, test_validate_thinking_gpt5_low);
     suite_add_tcase(s, tc_validate);
 
     return s;

@@ -31,19 +31,33 @@
 bool ik_openai_is_reasoning_model(const char *model);
 
 /**
- * Map thinking level to reasoning effort string
+ * Map thinking level to reasoning effort string (model-aware)
  *
+ * @param model Model identifier (e.g., "o1", "gpt-5", "gpt-5-pro")
  * @param level Thinking level (NONE/LOW/MED/HIGH)
- * @return      "low", "medium", "high", or NULL if NONE
+ * @return      "low", "medium", "high", or NULL based on model and level
  *
- * Mapping:
- * - IK_THINKING_NONE -> NULL (don't include reasoning config)
- * - IK_THINKING_LOW  -> "low"
- * - IK_THINKING_MED  -> "medium"
- * - IK_THINKING_HIGH -> "high"
- * - Unknown levels   -> NULL
+ * Mapping by model family:
+ *
+ * o1/o3 family (o1, o1-mini, o1-preview, o3, o3-mini):
+ * - NONE -> "low"
+ * - LOW  -> "low"
+ * - MED  -> "medium"
+ * - HIGH -> "high"
+ *
+ * gpt-5 family (gpt-5, gpt-5-mini, gpt-5-nano, gpt-5.1*, gpt-5.2*):
+ * - NONE -> NULL (omit param)
+ * - LOW  -> "low"
+ * - MED  -> "medium"
+ * - HIGH -> "high"
+ *
+ * gpt-5-pro:
+ * - NONE -> "high"
+ * - LOW  -> "high"
+ * - MED  -> "high"
+ * - HIGH -> "high"
  */
-const char *ik_openai_reasoning_effort(ik_thinking_level_t level);
+const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t level);
 
 /**
  * Check if model supports temperature parameter

@@ -245,9 +245,10 @@ START_TEST(test_model_supports_thinking) {
     ik_model_supports_thinking("gpt-5-mini", &supports); ck_assert(supports);
     ik_model_supports_thinking("gemini-2.5-flash-lite", &supports); ck_assert(supports);
     ik_model_supports_thinking("gemini-3.0-flash", &supports); ck_assert(supports);
+    ik_model_supports_thinking("o1-mini", &supports); ck_assert(supports);
+    ik_model_supports_thinking("o3", &supports); ck_assert(supports);
     ik_model_supports_thinking("gpt-4o", &supports); ck_assert(!supports);
     ik_model_supports_thinking("gpt-4", &supports); ck_assert(!supports);
-    ik_model_supports_thinking("o1-mini", &supports); ck_assert(!supports);
     ik_model_supports_thinking("unknown-model", &supports); ck_assert(!supports);
 }
 

@@ -9,22 +9,32 @@
 #include <assert.h>
 
 /**
- * Reasoning model prefixes
+ * Lookup table for reasoning models
+ *
+ * Reasoning models support reasoning.effort parameter:
+ * - o1, o1-mini, o1-preview, o3, o3-mini
+ * - gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro
+ * - gpt-5.1, gpt-5.1-chat-latest, gpt-5.1-codex
+ * - gpt-5.2, gpt-5.2-chat-latest, gpt-5.2-codex
  */
-static const char *REASONING_PREFIXES[] = {
+static const char *REASONING_MODELS[] = {
     "o1",
+    "o1-mini",
+    "o1-preview",
     "o3",
-    "o4",
+    "o3-mini",
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-5-pro",
+    "gpt-5.1",
+    "gpt-5.1-chat-latest",
+    "gpt-5.1-codex",
+    "gpt-5.2",
+    "gpt-5.2-chat-latest",
+    "gpt-5.2-codex",
     NULL  // Sentinel
 };
-
-/**
- * Check if character is a valid separator after prefix
- */
-static bool is_valid_separator(char c)
-{
-    return c == '\0' || c == '-' || c == '_';
-}
 
 bool ik_openai_is_reasoning_model(const char *model)
 {
@@ -32,38 +42,77 @@ bool ik_openai_is_reasoning_model(const char *model)
         return false;
     }
 
-    // Check each prefix
-    for (size_t i = 0; REASONING_PREFIXES[i] != NULL; i++) {
-        const char *prefix = REASONING_PREFIXES[i];
-        size_t prefix_len = strlen(prefix);
-
-        // Check if model starts with prefix
-        if (strncmp(model, prefix, prefix_len) == 0) {
-            // Validate separator to avoid false matches (e.g., "o30")
-            char next_char = model[prefix_len];
-            if (is_valid_separator(next_char)) {
-                return true;
-            }
+    // Check each reasoning model in lookup table
+    for (size_t i = 0; REASONING_MODELS[i] != NULL; i++) {
+        if (strcmp(model, REASONING_MODELS[i]) == 0) {
+            return true;
         }
     }
 
     return false;
 }
 
-const char *ik_openai_reasoning_effort(ik_thinking_level_t level)
+const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t level)
 {
-    switch (level) {
-        case IK_THINKING_NONE:
-            return NULL;
-        case IK_THINKING_LOW:
-            return "low";
-        case IK_THINKING_MED:
-            return "medium";
-        case IK_THINKING_HIGH:
-            return "high";
-        default:
-            return NULL;
+    if (model == NULL) {
+        return NULL;
     }
+
+    // Determine model family
+    bool is_o1_o3 = (strcmp(model, "o1") == 0 ||
+                     strcmp(model, "o1-mini") == 0 ||
+                     strcmp(model, "o1-preview") == 0 ||
+                     strcmp(model, "o3") == 0 ||
+                     strcmp(model, "o3-mini") == 0);
+
+    bool is_gpt5_pro = (strcmp(model, "gpt-5-pro") == 0);
+
+    bool is_gpt5_family = (strncmp(model, "gpt-5", 5) == 0 && !is_gpt5_pro);
+
+    // Apply model-specific mapping
+    if (is_o1_o3) {
+        // o1/o3 family: NONE->low, LOW->low, MED->medium, HIGH->high
+        switch (level) {
+            case IK_THINKING_NONE:
+                return "low";
+            case IK_THINKING_LOW:
+                return "low";
+            case IK_THINKING_MED:
+                return "medium";
+            case IK_THINKING_HIGH:
+                return "high";
+            default:
+                return NULL;
+        }
+    } else if (is_gpt5_pro) {
+        // gpt-5-pro: all levels -> "high"
+        switch (level) {
+            case IK_THINKING_NONE:
+            case IK_THINKING_LOW:
+            case IK_THINKING_MED:
+            case IK_THINKING_HIGH:
+                return "high";
+            default:
+                return NULL;
+        }
+    } else if (is_gpt5_family) {
+        // gpt-5 family: NONE->NULL, LOW->low, MED->medium, HIGH->high
+        switch (level) {
+            case IK_THINKING_NONE:
+                return NULL;
+            case IK_THINKING_LOW:
+                return "low";
+            case IK_THINKING_MED:
+                return "medium";
+            case IK_THINKING_HIGH:
+                return "high";
+            default:
+                return NULL;
+        }
+    }
+
+    // Unknown model or non-reasoning model
+    return NULL;
 }
 
 bool ik_openai_supports_temperature(const char *model)

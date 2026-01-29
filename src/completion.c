@@ -37,18 +37,27 @@ static arg_provider_result_t provide_model_args(TALLOC_CTX *ctx, ik_repl_ctx_t *
         "claude-haiku-4-5",
         "claude-sonnet-4-5",
         "claude-opus-4-5",
-        // OpenAI
+        // OpenAI - GPT-4 era
         "gpt-4",
         "gpt-4-turbo",
         "gpt-4o",
         "gpt-4o-mini",
-        "gpt-3.5-turbo",
+        // OpenAI - GPT-5 family
         "gpt-5",
         "gpt-5-mini",
         "gpt-5-nano",
+        "gpt-5-pro",
+        "gpt-5.1",
+        "gpt-5.1-chat-latest",
+        "gpt-5.1-codex",
+        "gpt-5.2",
+        "gpt-5.2-chat-latest",
+        "gpt-5.2-codex",
+        // OpenAI - O-series
         "o1",
         "o1-mini",
         "o1-preview",
+        "o3",
         "o3-mini",
         // Google
         "gemini-2.5-flash-lite",
