@@ -46,7 +46,9 @@ jobs:
 
     steps:
     - name: Install git for paths-filter
-      run: apt-get update && apt-get install -y git
+      run: |
+        apt-get update && apt-get install -y git
+        git config --global --add safe.directory /__w/ikigai/ikigai
 
     - uses: actions/checkout@v4
 
