@@ -1,11 +1,11 @@
 ---
 name: goal-authoring
-description: Writing effective Ralph goal files for CDD execution
+description: Writing effective goal files for Ralph execution
 ---
 
 # Goal Authoring
 
-Writing effective goal files for Ralph loop execution in `$CDD_DIR/goals/`.
+Writing effective goal files for Ralph loop execution.
 
 ## File Naming Convention
 
@@ -28,7 +28,7 @@ Goal files MUST be named: `<name>-ralph-goal.md`
 [Complete objective - not tiny steps]
 
 ## Reference
-[All relevant plan/research/user-story docs + codebase examples]
+[All relevant docs + codebase examples]
 
 ## Outcomes
 [Measurable, verifiable outcomes]
@@ -65,23 +65,20 @@ Problems: Artificially small, minimal reference, no acceptance criteria.
 **Good (leverages unlimited context):**
 ```markdown
 ## Objective
-Implement web-fetch tool with HTML-to-markdown conversion per plan/web-fetch.md.
+Implement web-fetch tool with HTML-to-markdown conversion per project/plan/web-fetch.md.
 
 ## Reference
-- $CDD_DIR/plan/web-fetch.md - Interface and behavior spec
-- $CDD_DIR/plan/tool-integration.md - Registry integration
-- $CDD_DIR/plan/html-markdown.md - Conversion approach
-- $CDD_DIR/research/html-to-markdown.md - Library rationale
-- $CDD_DIR/user-stories/web-fetch.md - Expected behaviors
+- project/plan/web-fetch.md - Interface and behavior spec
+- project/plan/tool-integration.md - Registry integration
+- project/research/html-to-markdown.md - Library rationale
 - src/tool_registry.c - Registration pattern
 - tests/unit/tool_bash/ - Test structure
 
 ## Outcomes
-- web_fetch tool implemented per plan/web-fetch.md
-- HTML-to-markdown working per plan/html-markdown.md
-- Integrated with registry per plan/tool-integration.md
+- web_fetch tool implemented per project/plan/web-fetch.md
+- HTML-to-markdown conversion working
+- Integrated with tool registry
 - Unit tests in tests/unit/web_fetch/ pass
-- User stories in user-stories/web-fetch.md satisfied
 
 ## Acceptance
 - `make check` passes

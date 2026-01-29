@@ -6,9 +6,9 @@
     "principles"
   ],
   "advertise": [
-    {"skill": "cdd", "description": "Context Driven Development pipeline workflow"},
     {"skill": "harness", "description": "Automated quality check loops with escalation"},
     {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
-    {"skill": "ralph", "description": "Automated execution harness for CDD pipeline"}
+    {"skill": "ralph", "description": "Iterative goal execution harness"},
+    {"skill": "goal-authoring", "description": "Writing effective goal files for Ralph"}
   ]
 }
