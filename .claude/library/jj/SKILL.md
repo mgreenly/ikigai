@@ -49,8 +49,11 @@ When ready to push:
 # Create bookmark on current commit (HEAD of your stack)
 jj bookmark create feature-name
 
+# Track the bookmark (required before first push)
+jj bookmark track feature-name@origin
+
 # Push the bookmark (pushes ALL commits from main to HEAD)
-jj git push --bookmark feature-name --allow-private-push
+jj git push --bookmark feature-name
 ```
 
 ## Updating a PR
@@ -112,7 +115,7 @@ jj op restore <operation-id>
 | Create bookmark | `jj bookmark create <name>` |
 | Move bookmark to HEAD | `jj bookmark set <name>` |
 | Push bookmark | `jj git push --bookmark <name>` |
-| Push new bookmark | `jj git push --bookmark <name> --allow-private-push` |
+| Track new bookmark | `jj bookmark track <name>@origin` |
 
 ## Key Concepts
 
