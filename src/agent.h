@@ -143,6 +143,10 @@ typedef struct ik_agent_ctx {
     char **pinned_paths;      // Ordered list of paths (FIFO)
     size_t pinned_count;      // Number of pinned paths
     struct ik_doc_cache *doc_cache;  // Document content cache
+
+    // Toolset filter (per-agent)
+    char **toolset_filter;    // Allowed tool names (NULL = no filter)
+    size_t toolset_count;     // Number of tools in filter
 } ik_agent_ctx_t;
 
 // Create agent context
