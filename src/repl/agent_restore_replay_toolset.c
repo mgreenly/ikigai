@@ -40,20 +40,6 @@ static void replay_toolset_command(ik_agent_ctx_t *agent, const char *args)
     char *saveptr = NULL;
     char *token = strtok_r(work, " ,", &saveptr);
     while (token != NULL) {
-        while (*token == ' ' || *token == ',') {
-            token++;
-        }
-        if (*token == '\0') {
-            token = strtok_r(NULL, " ,", &saveptr);
-            continue;
-        }
-
-        char *end = token + strlen(token) - 1;
-        while (end > token && (*end == ' ' || *end == ',')) {
-            *end = '\0';
-            end--;
-        }
-
         if (count >= capacity) {
             capacity *= 2;
             tools = talloc_realloc(agent, tools, char *, (unsigned int)capacity);
