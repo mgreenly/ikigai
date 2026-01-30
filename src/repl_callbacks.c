@@ -265,6 +265,10 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
         talloc_free(agent->pending_tool_call);
         agent->pending_tool_call = NULL;
     }
+    if (agent->pending_tool_thought_signature != NULL) {
+        talloc_free(agent->pending_tool_thought_signature);
+        agent->pending_tool_thought_signature = NULL;
+    }
 
     for (size_t i = 0; i < response->content_count; i++) {
         ik_content_block_t *block = &response->content_blocks[i];
@@ -289,6 +293,10 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
                                                            block->data.tool_call.name,
                                                            block->data.tool_call.arguments);
             if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (block->data.tool_call.thought_signature != NULL) {
+                agent->pending_tool_thought_signature = talloc_strdup(agent, block->data.tool_call.thought_signature);
+                if (agent->pending_tool_thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
             break;  // Only handle first tool call
         }
     }

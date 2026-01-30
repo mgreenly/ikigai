@@ -55,8 +55,11 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
                 dst->data.tool_call.id = talloc_strdup(req, src->data.tool_call.id);
                 dst->data.tool_call.name = talloc_strdup(req, src->data.tool_call.name);
                 dst->data.tool_call.arguments = talloc_strdup(req, src->data.tool_call.arguments);
+                dst->data.tool_call.thought_signature = (src->data.tool_call.thought_signature != NULL)
+                    ? talloc_strdup(req, src->data.tool_call.thought_signature) : NULL;
                 if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL || // LCOV_EXCL_BR_LINE
-                    dst->data.tool_call.arguments == NULL) { // LCOV_EXCL_BR_LINE
+                    dst->data.tool_call.arguments == NULL || // LCOV_EXCL_BR_LINE
+                    (src->data.tool_call.thought_signature != NULL && dst->data.tool_call.thought_signature == NULL)) { // LCOV_EXCL_BR_LINE
                     PANIC("Out of memory"); // LCOV_EXCL_LINE
                 }
                 break;

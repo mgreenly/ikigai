@@ -146,6 +146,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize tool execution state
     agent->pending_tool_call = NULL;
+    agent->pending_tool_thought_signature = NULL;
     agent->tool_thread_running = false;
     agent->tool_thread_complete = false;
     agent->tool_thread_ctx = NULL;

@@ -59,7 +59,8 @@ ik_message_t *ik_message_create_tool_call_with_thinking(
     const char *redacted_data,
     const char *tool_id,
     const char *tool_name,
-    const char *tool_args)
+    const char *tool_args,
+    const char *tool_thought_sig)
 {
     assert(tool_id != NULL);    // LCOV_EXCL_BR_LINE
     assert(tool_name != NULL);  // LCOV_EXCL_BR_LINE
@@ -112,6 +113,10 @@ ik_message_t *ik_message_create_tool_call_with_thinking(
     msg->content_blocks[idx].data.tool_call.arguments = talloc_strdup(msg, tool_args);
     if (!msg->content_blocks[idx].data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks[idx].data.tool_call.thought_signature = NULL;
+    if (tool_thought_sig != NULL) {
+        msg->content_blocks[idx].data.tool_call.thought_signature = talloc_strdup(msg, tool_thought_sig);
+        if (!msg->content_blocks[idx].data.tool_call.thought_signature) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
 
     return msg;
 }
@@ -222,7 +227,7 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         // Create message with appropriate blocks
         if (thinking_text != NULL || redacted_data != NULL) {
             *out = ik_message_create_tool_call_with_thinking(
-                ctx, thinking_text, thinking_sig, redacted_data, id, name, arguments);
+                ctx, thinking_text, thinking_sig, redacted_data, id, name, arguments, NULL);
         } else {
             *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
         }

@@ -82,6 +82,7 @@ START_TEST(test_completion_stores_tool_call) {
     response->content_blocks[0].data.tool_call.id = talloc_strdup(response, "call_test123");
     response->content_blocks[0].data.tool_call.name = talloc_strdup(response, "glob");
     response->content_blocks[0].data.tool_call.arguments = talloc_strdup(response, "{\"pattern\": \"*.c\"}");
+    response->content_blocks[0].data.tool_call.thought_signature = NULL;
 
     /* Create successful completion */
     ik_provider_completion_t completion = make_success_completion();
@@ -115,6 +116,7 @@ START_TEST(test_completion_clears_previous_tool_call) {
     response->content_blocks[0].data.tool_call.id = talloc_strdup(response, "new_call");
     response->content_blocks[0].data.tool_call.name = talloc_strdup(response, "new_tool");
     response->content_blocks[0].data.tool_call.arguments = talloc_strdup(response, "{\"key\": \"value\"}");
+    response->content_blocks[0].data.tool_call.thought_signature = NULL;
 
     /* Create successful completion */
     ik_provider_completion_t completion = make_success_completion();

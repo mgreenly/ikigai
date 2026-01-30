@@ -228,7 +228,8 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     ik_message_t *tc_msg = ik_message_create_tool_call_with_thinking(agent, agent->pending_thinking_text,
                                                                      agent->pending_thinking_signature,
                                                                      agent->pending_redacted_data,
-                                                                     tc->id, tc->name, tc->arguments);
+                                                                     tc->id, tc->name, tc->arguments,
+                                                                     agent->pending_tool_thought_signature);
     const char *formatted_call = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
     if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {

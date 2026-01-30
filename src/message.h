@@ -48,14 +48,15 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id, const
  * 2. Redacted thinking block (if redacted_data != NULL)
  * 3. Tool call block
  *
- * @param ctx              Talloc parent
- * @param thinking_text    Thinking text (may be NULL)
- * @param thinking_sig     Thinking signature (may be NULL)
- * @param redacted_data    Redacted thinking data (may be NULL)
- * @param tool_id          Tool call ID
- * @param tool_name        Tool name
- * @param tool_args        Tool arguments JSON
- * @return                 Allocated message
+ * @param ctx                   Talloc parent
+ * @param thinking_text         Thinking text (may be NULL)
+ * @param thinking_sig          Thinking signature (may be NULL)
+ * @param redacted_data         Redacted thinking data (may be NULL)
+ * @param tool_id               Tool call ID
+ * @param tool_name             Tool name
+ * @param tool_args             Tool arguments JSON
+ * @param tool_thought_sig      Tool call thought signature (Gemini 3, may be NULL)
+ * @return                      Allocated message
  */
 ik_message_t *ik_message_create_tool_call_with_thinking(TALLOC_CTX *ctx,
                                                         const char *thinking_text,
@@ -63,7 +64,8 @@ ik_message_t *ik_message_create_tool_call_with_thinking(TALLOC_CTX *ctx,
                                                         const char *redacted_data,
                                                         const char *tool_id,
                                                         const char *tool_name,
-                                                        const char *tool_args);
+                                                        const char *tool_args,
+                                                        const char *tool_thought_sig);
 
 /**
  * Create a tool result message

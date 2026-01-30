@@ -127,6 +127,7 @@ typedef struct ik_agent_ctx {
 
     // Tool execution state (per-agent)
     ik_tool_call_t *pending_tool_call;
+    char *pending_tool_thought_signature;  // Thought signature from tool call (Gemini 3)
     pthread_t tool_thread;
     pthread_mutex_t tool_thread_mutex;
     bool tool_thread_running;
