@@ -35,4 +35,28 @@ struct ik_openai_responses_stream_ctx {
  */
 void ik_openai_responses_parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage);
 
+/**
+ * Map OpenAI Responses API status to finish reason
+ */
+ik_finish_reason_t ik_openai_map_responses_status(const char *status, const char *incomplete_reason);
+
+/**
+ * Event emission and control helpers
+ */
+void ik_openai_emit_event(ik_openai_responses_stream_ctx_t *sctx, const ik_stream_event_t *event);
+void ik_openai_maybe_emit_start(ik_openai_responses_stream_ctx_t *sctx);
+void ik_openai_maybe_end_tool_call(ik_openai_responses_stream_ctx_t *sctx);
+
+/**
+ * Event handler functions
+ */
+void ik_openai_responses_handle_response_created(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_output_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_reasoning_summary_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_output_item_added(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_function_call_arguments_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_output_item_done(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_response_completed(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+void ik_openai_responses_handle_error_event(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
+
 #endif /* IK_PROVIDERS_OPENAI_STREAMING_RESPONSES_INTERNAL_H */
