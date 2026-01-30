@@ -77,6 +77,64 @@ START_TEST(test_toolset_no_args_empty) {
 }
 END_TEST
 
+START_TEST(test_toolset_set_single) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset bash");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->toolset_count, 1);
+    ck_assert_ptr_nonnull(repl->current->toolset_filter);
+    ck_assert_str_eq(repl->current->toolset_filter[0], "bash");
+
+    res = ik_cmd_dispatch(ctx, repl, "/toolset");
+    ck_assert(is_ok(&res));
+
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(line);
+    ck_assert(strstr(line, "bash") != NULL);
+}
+END_TEST
+
+START_TEST(test_toolset_set_multiple_comma) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset bash, file_read, file_write");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->toolset_count, 3);
+    ck_assert_ptr_nonnull(repl->current->toolset_filter);
+    ck_assert_str_eq(repl->current->toolset_filter[0], "bash");
+    ck_assert_str_eq(repl->current->toolset_filter[1], "file_read");
+    ck_assert_str_eq(repl->current->toolset_filter[2], "file_write");
+}
+END_TEST
+
+START_TEST(test_toolset_set_multiple_space) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset bash file_read file_write");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->toolset_count, 3);
+    ck_assert_ptr_nonnull(repl->current->toolset_filter);
+    ck_assert_str_eq(repl->current->toolset_filter[0], "bash");
+    ck_assert_str_eq(repl->current->toolset_filter[1], "file_read");
+    ck_assert_str_eq(repl->current->toolset_filter[2], "file_write");
+}
+END_TEST
+
+START_TEST(test_toolset_set_replace) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset bash, file_read");
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(repl->current->toolset_count, 2);
+
+    res = ik_cmd_dispatch(ctx, repl, "/toolset glob");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->toolset_count, 1);
+    ck_assert_ptr_nonnull(repl->current->toolset_filter);
+    ck_assert_str_eq(repl->current->toolset_filter[0], "glob");
+}
+END_TEST
+
 static Suite *commands_toolset_suite(void)
 {
     Suite *s = suite_create("commands_toolset");
@@ -88,6 +146,17 @@ static Suite *commands_toolset_suite(void)
     tcase_add_test(tc_core, test_toolset_no_args_empty);
 
     suite_add_tcase(s, tc_core);
+
+    TCase *tc_set = tcase_create("Set");
+    tcase_set_timeout(tc_set, IK_TEST_TIMEOUT);
+    tcase_add_checked_fixture(tc_set, setup, teardown);
+
+    tcase_add_test(tc_set, test_toolset_set_single);
+    tcase_add_test(tc_set, test_toolset_set_multiple_comma);
+    tcase_add_test(tc_set, test_toolset_set_multiple_space);
+    tcase_add_test(tc_set, test_toolset_set_replace);
+
+    suite_add_tcase(s, tc_set);
 
     return s;
 }

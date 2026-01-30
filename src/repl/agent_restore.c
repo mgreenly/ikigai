@@ -125,6 +125,16 @@ static void restore_agent_zero(
         ik_logger_warn_json(repl->shared->logger, pin_log);     // LCOV_EXCL_LINE
     }
 
+    // Replay toolset (independent of clear boundaries)
+    res = ik_agent_replay_toolset(db_ctx, agent);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *toolset_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *toolset_root = yyjson_mut_doc_get_root(toolset_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(toolset_log, toolset_root, "event", "agent0_toolset_replay_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(toolset_log, toolset_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, toolset_log);     // LCOV_EXCL_LINE
+    }
+
     yyjson_mut_doc *log_doc = ik_log_create();
     yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_BR_LINE
     yyjson_mut_obj_add_str(log_doc, root, "event", "agent0_restored");     // LCOV_EXCL_BR_LINE
@@ -196,6 +206,17 @@ static void restore_child_agent(
         yyjson_mut_obj_add_str(pin_log, pin_root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
         yyjson_mut_obj_add_str(pin_log, pin_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
         ik_logger_warn_json(repl->shared->logger, pin_log);     // LCOV_EXCL_LINE
+    }
+
+    // Replay toolset (independent of clear boundaries)
+    res = ik_agent_replay_toolset(db_ctx, agent);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *toolset_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *toolset_root = yyjson_mut_doc_get_root(toolset_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(toolset_log, toolset_root, "event", "agent_toolset_replay_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(toolset_log, toolset_root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(toolset_log, toolset_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, toolset_log);     // LCOV_EXCL_LINE
     }
 
     // Add to repl->agents[] array

@@ -67,4 +67,18 @@ void ik_agent_restore_replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *ms
  */
 res_t ik_agent_replay_pins(ik_db_ctx_t *db, ik_agent_ctx_t *agent);
 
+/**
+ * Replay all toolset commands for an agent (independent of clear boundaries)
+ *
+ * Queries the agent's fork event to extract initial toolset_filter snapshot,
+ * then replays ALL toolset commands chronologically to rebuild toolset state.
+ * This operates independently of clear boundaries, ensuring toolset persists
+ * across /clear and restart.
+ *
+ * @param db Database context (must not be NULL)
+ * @param agent Agent context (must not be NULL)
+ * @return OK(NULL) on success, ERR on database failure
+ */
+res_t ik_agent_replay_toolset(ik_db_ctx_t *db, ik_agent_ctx_t *agent);
+
 #endif // IK_REPL_AGENT_RESTORE_REPLAY_H

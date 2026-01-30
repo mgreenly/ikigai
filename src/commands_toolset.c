@@ -90,9 +90,68 @@ res_t ik_cmd_toolset_list(void *ctx, ik_repl_ctx_t *repl)
 
 res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
-    (void)ctx;
-    (void)repl;
-    (void)args;
+    assert(args != NULL);      // LCOV_EXCL_BR_LINE
+
+    char *work = talloc_strdup(ctx, args);
+    if (!work) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+
+    size_t capacity = 16;
+    char **tools = talloc_array(ctx, char *, capacity);
+    if (!tools) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+    size_t count = 0;
+
+    char *saveptr = NULL;
+    char *token = strtok_r(work, " ,", &saveptr);
+    while (token != NULL) {
+        while (*token == ' ' || *token == ',') {
+            token++;
+        }
+        if (*token == '\0') {
+            token = strtok_r(NULL, " ,", &saveptr);
+            continue;
+        }
+
+        char *end = token + strlen(token) - 1;
+        while (end > token && (*end == ' ' || *end == ',')) {
+            *end = '\0';
+            end--;
+        }
+
+        if (count >= capacity) {
+            capacity *= 2;
+            tools = talloc_realloc(ctx, tools, char *, capacity);
+            if (!tools) {     // LCOV_EXCL_BR_LINE
+                PANIC("OOM");   // LCOV_EXCL_LINE
+            }
+        }
+
+        tools[count] = talloc_strdup(repl->current, token);
+        if (!tools[count]) {     // LCOV_EXCL_BR_LINE
+            PANIC("OOM");   // LCOV_EXCL_LINE
+        }
+        count++;
+
+        token = strtok_r(NULL, " ,", &saveptr);
+    }
+
+    if (repl->current->toolset_filter != NULL) {
+        talloc_free(repl->current->toolset_filter);
+    }
+
+    repl->current->toolset_filter = talloc_realloc(repl->current, tools, char *, count);
+    if (count > 0 && !repl->current->toolset_filter) {     // LCOV_EXCL_BR_LINE
+        PANIC("OOM");   // LCOV_EXCL_LINE
+    }
+    repl->current->toolset_count = count;
+
+    talloc_free(work);
+
+    ik_persist_toolset_command(ctx, repl, args);
+
     return OK(NULL);
 }
 
