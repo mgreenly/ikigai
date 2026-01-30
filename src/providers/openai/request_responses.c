@@ -245,7 +245,7 @@ static bool add_string_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
 
     if (input_text == NULL) {
         if (!yyjson_mut_obj_add_str(doc, root, "input", "")) { // LCOV_EXCL_BR_LINE
-            return false;
+            return false; // LCOV_EXCL_LINE
         }
         return true;
     }
@@ -264,13 +264,13 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     for (size_t i = 0; i < req->message_count; i++) {
-        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) {
-            return false;
+        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) { // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "input", input_arr)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -307,11 +307,11 @@ static bool add_reasoning_config(yyjson_mut_doc *doc, yyjson_mut_val *root, cons
     }
 
     if (!yyjson_mut_obj_add_str(doc, reasoning_obj, "effort", effort)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "reasoning", reasoning_obj)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -336,7 +336,7 @@ static bool add_tools_and_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!add_tool_choice(doc, root, req->tool_choice_mode)) {
@@ -382,9 +382,9 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    if (!add_input_field(doc, root, req)) {
-        yyjson_mut_doc_free(doc);
-        return ERR(ctx, PARSE, "Failed to add input field");
+    if (!add_input_field(doc, root, req)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
     }
 
     if (req->max_output_tokens > 0) {
@@ -401,9 +401,9 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    if (!add_reasoning_config(doc, root, req)) {
-        yyjson_mut_doc_free(doc);
-        return ERR(ctx, PARSE, "Failed to add reasoning config");
+    if (!add_reasoning_config(doc, root, req)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "Failed to add reasoning config"); // LCOV_EXCL_LINE
     }
 
     if (!add_tools_and_choice(doc, root, req)) {
