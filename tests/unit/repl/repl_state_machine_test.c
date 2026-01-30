@@ -190,6 +190,7 @@ START_TEST(test_repl_state_transition_waiting_to_idle) {
 
     // Transition to IDLE
     repl->current->state = IK_AGENT_STATE_IDLE;
+    repl->current->input_buffer_visible = true;  // Set explicitly for document height calculation
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(!repl->current->spinner_state.visible);

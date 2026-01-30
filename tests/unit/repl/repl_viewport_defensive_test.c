@@ -138,6 +138,7 @@ START_TEST(test_viewport_input_buffer_before_viewport) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // At bottom
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Calculate viewport
     // Document: 5 scrollback + 1 separator + 10 input buffer = 16 rows
