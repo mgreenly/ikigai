@@ -66,4 +66,13 @@ void ik_spinner_advance(ik_spinner_state_t *state);
 // visible_ptr and completion_ptr are raw pointers that must remain valid
 ik_layer_t *ik_completion_layer_create(TALLOC_CTX *ctx, const char *name, ik_completion_t **completion_ptr);
 
+// Create status layer (renders agent model and thinking level)
+// The layer shows a separator line and status row with model/thinking info
+// visible_ptr, model_ptr, and thinking_level_ptr are raw pointers that must remain valid
+ik_layer_t *ik_status_layer_create(TALLOC_CTX *ctx,
+                                   const char *name,
+                                   bool *visible_ptr,
+                                   char **model_ptr,
+                                   int *thinking_level_ptr);
+
 #endif // IK_LAYER_WRAPPERS_H

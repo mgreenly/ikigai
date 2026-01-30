@@ -74,6 +74,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_buffer = ik_input_buffer_create(agent);
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
+    agent->status_visible = true;
     agent->input_text = NULL;
     agent->input_text_len = 0;
 
@@ -129,6 +130,10 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Create completion layer (pass pointer to agent's completion field)
     agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset
@@ -211,6 +216,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_buffer = ik_input_buffer_create(agent);
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
+    agent->status_visible = true;
     agent->input_text = NULL;
     agent->input_text_len = 0;
 
@@ -266,6 +272,10 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Create completion layer (pass pointer to agent's completion field)
     agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
+    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+
+    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
     if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset

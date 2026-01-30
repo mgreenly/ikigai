@@ -344,21 +344,6 @@ START_TEST(test_fork_already_in_progress) {
 }
 END_TEST
 
-// Test: Lines 205-207: Add lower_separator_layer to child agent
-START_TEST(test_fork_with_lower_separator_layer) {
-    bool lower_separator_visible = false;
-    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &lower_separator_visible);
-    ck_assert_ptr_nonnull(repl->lower_separator_layer);
-
-    res_t res = ik_cmd_fork(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
-
-    ik_agent_ctx_t *child = repl->current;
-    ck_assert_ptr_nonnull(child);
-    ck_assert_ptr_nonnull(child->layer_cake);
-}
-END_TEST
-
 static Suite *cmd_fork_coverage_suite(void)
 {
     Suite *s = suite_create("Fork Command Coverage");
@@ -378,7 +363,6 @@ static Suite *cmd_fork_coverage_suite(void)
     tcase_add_test(tc, test_fork_supports_thinking);
     tcase_add_test(tc, test_fork_parse_error_display);
     tcase_add_test(tc, test_fork_already_in_progress);
-    tcase_add_test(tc, test_fork_with_lower_separator_layer);
 
     suite_add_tcase(s, tc);
     return s;

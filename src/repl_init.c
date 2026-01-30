@@ -86,17 +86,7 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     repl->quit = false;
 
     // Initialize layer-based rendering (Phase 1.3)
-    // Initialize reference fields
-    repl->lower_separator_visible = true;  // Lower separator initially visible
-
     // Note: completion initialization removed - now in agent context (repl->current->completion)
-
-    // Create lower separator layer (not part of agent - stays in repl)
-    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
-
-    // Add lower separator to agent's layer cake
-    result = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
 
     // Ensure Agent 0 exists in registry if database is configured
     if (shared->db_ctx != NULL) {
