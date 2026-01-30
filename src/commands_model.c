@@ -49,7 +49,7 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
     ik_model_get_thinking_budget(model_name, &thinking_budget);
 
     if (thinking_level == IK_THINKING_NONE) {
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: disabled",
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: none",
                                provider, model_name);
     }
 
