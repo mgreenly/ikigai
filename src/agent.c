@@ -47,17 +47,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     if (agent == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     agent->uuid = ik_generate_uuid(agent);
-    agent->name = NULL;  // Unnamed by default
     agent->parent_uuid = parent_uuid ? talloc_strdup(agent, parent_uuid) : NULL;
     agent->shared = shared;
-    agent->repl = NULL;  // Set by caller after creation
     agent->created_at = time(NULL);
-
-    // Initialize provider configuration (set by ik_agent_apply_defaults)
-    agent->provider = NULL;
-    agent->model = NULL;
-    agent->thinking_level = 0;  // IK_THINKING_NONE
-    agent->provider_instance = NULL;
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
@@ -67,40 +59,11 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->scrollback = ik_scrollback_create(agent, term_cols);
     agent->layer_cake = ik_layer_cake_create(agent, (size_t)term_rows);
 
-    // Initialize input state (per-agent - preserves partial composition)
     agent->input_buffer = ik_input_buffer_create(agent);
     agent->banner_visible = true;
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
     agent->status_visible = true;
-    agent->input_text = NULL;
-    agent->input_text_len = 0;
-
-    // Initialize tab completion state (per-agent)
-    agent->completion = NULL;  // Created on Tab press, destroyed on completion
-
-    // Initialize conversation state (per-agent)
-    agent->messages = NULL;
-    agent->message_count = 0;
-    agent->message_capacity = 0;
-    agent->marks = NULL;
-    agent->mark_count = 0;
-
-    // Initialize LLM interaction state (per-agent)
-    agent->curl_still_running = 0;
-    agent->state = IK_AGENT_STATE_IDLE;
-    agent->assistant_response = NULL;
-    agent->streaming_line_buffer = NULL;
-    agent->http_error_message = NULL;
-    agent->response_model = NULL;
-    agent->response_finish_reason = NULL;
-    agent->response_input_tokens = 0;
-    agent->response_output_tokens = 0;
-    agent->response_thinking_tokens = 0;
-
-    // Initialize spinner state (per-agent - embedded in agent struct)
-    agent->spinner_state.frame_index = 0;
-    agent->spinner_state.visible = false;
 
     // Create and add layers (following pattern from repl_init.c)
     // Banner layer must be first (topmost)
@@ -139,28 +102,6 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
-    // Initialize viewport offset
-    agent->viewport_offset = 0;
-
-    // Initialize pending thinking fields
-    agent->pending_thinking_text = NULL;
-    agent->pending_thinking_signature = NULL;
-    agent->pending_redacted_data = NULL;
-
-    // Initialize tool execution state
-    agent->pending_tool_call = NULL;
-    agent->pending_tool_thought_signature = NULL;
-    agent->tool_thread_running = false;
-    agent->tool_thread_complete = false;
-    agent->tool_thread_ctx = NULL;
-    agent->tool_thread_result = NULL;
-    agent->tool_iteration_count = 0;
-    agent->tool_child_pid = 0;
-    agent->interrupt_requested = false;
-
-    // Initialize pinned documents state
-    agent->pinned_paths = NULL;
-    agent->pinned_count = 0;
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
@@ -193,20 +134,12 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     ik_agent_ctx_t *agent = talloc_zero_(ctx, sizeof(ik_agent_ctx_t));
     if (agent == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    // Restore identity from database row (instead of generating new values)
     agent->uuid = talloc_strdup(agent, row->uuid);
     agent->name = row->name ? talloc_strdup(agent, row->name) : NULL;
     agent->parent_uuid = row->parent_uuid ? talloc_strdup(agent, row->parent_uuid) : NULL;
     agent->created_at = row->created_at;
     agent->fork_message_id = row->fork_message_id ? strtoll(row->fork_message_id, NULL, 10) : 0;
     agent->shared = shared;
-    agent->repl = NULL;  // Set by caller after restore
-
-    // Initialize provider configuration (populated by ik_agent_restore_from_row)
-    agent->provider = NULL;
-    agent->model = NULL;
-    agent->thinking_level = 0;  // IK_THINKING_NONE
-    agent->provider_instance = NULL;
 
     // Initialize display state
     // Use default terminal width (80) if shared->term is not yet initialized
@@ -216,40 +149,11 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->scrollback = ik_scrollback_create(agent, term_cols);
     agent->layer_cake = ik_layer_cake_create(agent, (size_t)term_rows);
 
-    // Initialize input state (per-agent - preserves partial composition)
     agent->input_buffer = ik_input_buffer_create(agent);
     agent->banner_visible = true;
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
     agent->status_visible = true;
-    agent->input_text = NULL;
-    agent->input_text_len = 0;
-
-    // Initialize tab completion state (per-agent)
-    agent->completion = NULL;  // Created on Tab press, destroyed on completion
-
-    // Initialize conversation state (per-agent)
-    agent->messages = NULL;
-    agent->message_count = 0;
-    agent->message_capacity = 0;
-    agent->marks = NULL;
-    agent->mark_count = 0;
-
-    // Initialize LLM interaction state (per-agent)
-    agent->curl_still_running = 0;
-    agent->state = IK_AGENT_STATE_IDLE;
-    agent->assistant_response = NULL;
-    agent->streaming_line_buffer = NULL;
-    agent->http_error_message = NULL;
-    agent->response_model = NULL;
-    agent->response_finish_reason = NULL;
-    agent->response_input_tokens = 0;
-    agent->response_output_tokens = 0;
-    agent->response_thinking_tokens = 0;
-
-    // Initialize spinner state (per-agent - embedded in agent struct)
-    agent->spinner_state.frame_index = 0;
-    agent->spinner_state.visible = false;
 
     // Create and add layers (following pattern from repl_init.c)
     // Banner layer must be first (topmost)
@@ -288,22 +192,6 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
-    // Initialize viewport offset
-    agent->viewport_offset = 0;
-
-    // Initialize tool execution state
-    agent->pending_tool_call = NULL;
-    agent->tool_thread_running = false;
-    agent->tool_thread_complete = false;
-    agent->tool_thread_ctx = NULL;
-    agent->tool_thread_result = NULL;
-    agent->tool_iteration_count = 0;
-    agent->tool_child_pid = 0;
-    agent->interrupt_requested = false;
-
-    // Initialize pinned documents state
-    agent->pinned_paths = NULL;
-    agent->pinned_count = 0;
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
