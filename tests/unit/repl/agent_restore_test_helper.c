@@ -84,15 +84,3 @@ ik_repl_ctx_t *create_test_repl(void)
 
     return repl;
 }
-
-// Helper: Create repl with lower_separator_layer
-ik_repl_ctx_t *create_test_repl_with_lower_separator(void)
-{
-    ik_repl_ctx_t *repl = create_test_repl();
-
-    // Create lower separator layer (as done in repl_init.c)
-    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
-    ck_assert_ptr_nonnull(repl->lower_separator_layer);
-
-    return repl;
-}

@@ -51,10 +51,8 @@ typedef struct ik_repl_ctx_t {
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
 
     // Layer-based rendering (Phase 1.3)
-    ik_layer_t *lower_separator_layer; // Separator layer (lower) - below input
 
     // Reference fields for layers (updated before each render)
-    bool lower_separator_visible;     // Separator visibility flag (lower)
 
     // Debug info for separator (updated before each render)
     size_t debug_viewport_offset;     // viewport_offset value

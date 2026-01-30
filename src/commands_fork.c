@@ -219,12 +219,6 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Set repl backpointer on child agent
     child->repl = repl;
 
-    // Add shared lower separator to child's layer cake
-    if (repl->lower_separator_layer != NULL) {
-        res = ik_layer_cake_add_layer(child->layer_cake, repl->lower_separator_layer);
-        if (is_err(&res)) PANIC("allocation failed");  // LCOV_EXCL_BR_LINE
-    }
-
     // Set fork_message_id on child (history inheritance point)
     child->fork_message_id = fork_message_id;
 

@@ -63,12 +63,6 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
     repl->current = agent;
     agent->viewport_offset = 0;
 
-    // Setup lower separator layer on repl
-    repl->lower_separator_visible = true;
-    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator", &repl->lower_separator_visible);
-    res = ik_layer_cake_add_layer(agent->layer_cake, repl->lower_separator_layer);
-    ck_assert(is_ok(&res));
-
     *repl_out = repl;
 }
 
@@ -80,18 +74,18 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
  * - Scrollback: 15+ lines (enough to fill most of viewport)
  * - Input buffer: 1 line
  * - Upper separator: 1 line
- * - Lower separator: 1 line
+ * - Status layer: 2 lines
  *
  * Expected layout (from bottom):
  * Row 0-14: scrollback (15 lines)
  * Row 15: upper separator
  * Row 16: input buffer
- * Row 17: lower separator
- * Rows 18-19: empty (or scrollback if available)
+ * Row 17-18: status layer
+ * Row 19: empty (or scrollback if available)
  *
  * Bug manifestation:
  * - Without fix: document_height = scrollback + 1 (sep) + input = 17 rows
- * - With fix: document_height = scrollback + 1 (sep) + input + 1 (lower_sep) = 18 rows
+ * - With fix: document_height = scrollback + 1 (sep) + input + 2 (status) = 19 rows
  */
 START_TEST(test_layer_positions_when_viewport_full) {
     void *ctx = talloc_new(NULL);
@@ -145,12 +139,12 @@ START_TEST(test_layer_positions_when_viewport_full) {
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
 
-    // Document model (CORRECT - including lower separator):
-    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) + 1 (lower_sep) = 18 rows
-    size_t expected_document_height = scrollback_rows + 1 + input_buffer_rows + 1;
+    // Document model (CORRECT - including status layer):
+    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) + 2 (status) = 19 rows
+    size_t expected_document_height = scrollback_rows + 1 + input_buffer_rows + 2;
 
     // The BUGGY implementation calculates document height as:
-    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) = 17 rows (missing lower_sep!)
+    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) = 17 rows (missing status layer!)
 
     // Since document fits within terminal (20 rows), everything should be visible from top
     // first_visible_row = 0, last_visible_row = 17
@@ -177,23 +171,23 @@ START_TEST(test_layer_positions_when_viewport_full) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Now we have: 20 scrollback + 1 sep + 1 input + 1 lower_sep = 23 rows total
+    // Now we have: 20 scrollback + 1 sep + 1 input + 2 status = 24 rows total
     // Terminal is 20 rows, so document overflows
     // Expected: showing bottom of document (viewport_offset = 0)
     // Document rows 3-22 should be visible (20 rows)
 
     scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    expected_document_height = scrollback_rows + 1 + input_buffer_rows + 1;  // 20 + 1 + 1 + 1 = 23
+    expected_document_height = scrollback_rows + 1 + input_buffer_rows + 2;  // 20 + 1 + 1 + 2 = 24
 
-    // With BUGGY code: document_height = 20 + 1 + 1 = 22 (missing lower_sep)
+    // With BUGGY code: document_height = 20 + 1 + 1 = 22 (missing status layer)
     // last_visible_row = 22 - 1 - 0 = 21
     // first_visible_row = 21 + 1 - 20 = 2
     // Input buffer at doc row 21, viewport row = 21 - 2 = 19 (correct - at bottom of screen)
 
-    // With CORRECT code: document_height = 20 + 1 + 1 + 1 = 23
-    // last_visible_row = 23 - 1 - 0 = 22
-    // first_visible_row = 22 + 1 - 20 = 3
-    // Input buffer at doc row 21, viewport row = 21 - 3 = 18
+    // With CORRECT code: document_height = 20 + 1 + 1 + 2 = 24
+    // last_visible_row = 24 - 1 - 0 = 23
+    // first_visible_row = 23 + 1 - 20 = 4
+    // Input buffer at doc row 21, viewport row = 21 - 4 = 17
 
     // BUG: With incorrect document_height, first_visible_row will be off by 1
     // This test will FAIL until we fix the document_height calculation
@@ -209,7 +203,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // Calculate total visible height using layer cake
     size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
 
-    // Expected: scrollback (15) + upper_sep (1) + input (1) + lower_sep (1) = 18 rows
+    // Expected: scrollback (15 or 20) + upper_sep (1) + input (1) + status (2) = 19 or 24 rows
     ck_assert_msg(total_layer_height == expected_document_height,
                   "Total layer height should be %zu, got %zu",
                   expected_document_height, total_layer_height);
@@ -218,9 +212,9 @@ START_TEST(test_layer_positions_when_viewport_full) {
 }
 END_TEST
 /**
- * Test: Verify lower separator is accounted for in document height
+ * Test: Verify status layer is accounted for in document height
  *
- * This test verifies that the document height calculation includes the lower separator.
+ * This test verifies that the document height calculation includes the status layer.
  */
 START_TEST(test_document_height_includes_lower_separator) {
     void *ctx = talloc_new(NULL);
@@ -253,11 +247,11 @@ START_TEST(test_document_height_includes_lower_separator) {
     // Calculate total visible height using layer cake
     size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
 
-    // Expected: scrollback (5) + upper_sep (1) + input (1) + lower_sep (1) = 8 rows
-    size_t expected_height = 5 + 1 + 1 + 1;
+    // Expected: scrollback (5) + upper_sep (1) + input (1) + status (2) = 9 rows
+    size_t expected_height = 5 + 1 + 1 + 2;
 
     ck_assert_msg(total_layer_height == expected_height,
-                  "Total layer height should be %zu (scrollback 5 + sep 1 + input 1 + lower_sep 1), got %zu",
+                  "Total layer height should be %zu (scrollback 5 + sep 1 + input 1 + status 2), got %zu",
                   expected_height, total_layer_height);
 
     talloc_free(ctx);

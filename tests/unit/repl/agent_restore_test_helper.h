@@ -37,9 +37,3 @@ void insert_message(const char *agent_uuid, const char *kind, const char *conten
  * @return Initialized repl context
  */
 ik_repl_ctx_t *create_test_repl(void);
-
-/**
- * Create repl with lower_separator_layer for testing
- * @return Initialized repl context with lower separator layer
- */
-ik_repl_ctx_t *create_test_repl_with_lower_separator(void);
