@@ -1,6 +1,7 @@
 // Agent restoration on startup
 #include "agent_restore.h"
 #include "agent_restore_replay.h"
+#include "agent_restore_replay_toolset.h"
 
 #include "../agent.h"
 #include "../db/agent.h"

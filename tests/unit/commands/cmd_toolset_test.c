@@ -88,9 +88,11 @@ START_TEST(test_toolset_set_single) {
     res = ik_cmd_dispatch(ctx, repl, "/toolset");
     ck_assert(is_ok(&res));
 
+    size_t count = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_ge(count, 5);
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, count - 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
     ck_assert(strstr(line, "bash") != NULL);
