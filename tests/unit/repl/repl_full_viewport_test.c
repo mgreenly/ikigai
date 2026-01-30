@@ -139,12 +139,12 @@ START_TEST(test_layer_positions_when_viewport_full) {
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
 
-    // Document model (CORRECT - including status layer):
-    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) + 2 (status) = 19 rows
-    size_t expected_document_height = scrollback_rows + 1 + input_buffer_rows + 2;
+    // Document model (CORRECT - including banner and status layer):
+    // 6 (banner) + scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) + 2 (status) = 25 rows
+    size_t expected_document_height = 6 + scrollback_rows + 1 + input_buffer_rows + 2;
 
     // The BUGGY implementation calculates document height as:
-    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) = 17 rows (missing status layer!)
+    // scrollback_rows (15) + 1 (upper_sep) + input_buffer_rows (1) = 17 rows (missing banner and status layer!)
 
     // Since document fits within terminal (20 rows), everything should be visible from top
     // first_visible_row = 0, last_visible_row = 17
@@ -171,23 +171,23 @@ START_TEST(test_layer_positions_when_viewport_full) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Now we have: 20 scrollback + 1 sep + 1 input + 2 status = 24 rows total
+    // Now we have: 6 banner + 20 scrollback + 1 sep + 1 input + 2 status = 30 rows total
     // Terminal is 20 rows, so document overflows
     // Expected: showing bottom of document (viewport_offset = 0)
-    // Document rows 3-22 should be visible (20 rows)
+    // Document rows 9-28 should be visible (20 rows)
 
     scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    expected_document_height = scrollback_rows + 1 + input_buffer_rows + 2;  // 20 + 1 + 1 + 2 = 24
+    expected_document_height = 6 + scrollback_rows + 1 + input_buffer_rows + 2;  // 6 + 20 + 1 + 1 + 2 = 30
 
-    // With BUGGY code: document_height = 20 + 1 + 1 = 22 (missing status layer)
+    // With BUGGY code: document_height = 20 + 1 + 1 = 22 (missing status layer and banner)
     // last_visible_row = 22 - 1 - 0 = 21
     // first_visible_row = 21 + 1 - 20 = 2
     // Input buffer at doc row 21, viewport row = 21 - 2 = 19 (correct - at bottom of screen)
 
-    // With CORRECT code: document_height = 20 + 1 + 1 + 2 = 24
-    // last_visible_row = 24 - 1 - 0 = 23
-    // first_visible_row = 23 + 1 - 20 = 4
-    // Input buffer at doc row 21, viewport row = 21 - 4 = 17
+    // With CORRECT code: document_height = 6 + 20 + 1 + 1 + 2 = 30
+    // last_visible_row = 30 - 1 - 0 = 29
+    // first_visible_row = 29 + 1 - 20 = 10
+    // Input buffer at doc row 27 (6 banner + 20 scrollback + 1 sep), viewport row = 27 - 10 = 17
 
     // BUG: With incorrect document_height, first_visible_row will be off by 1
     // This test will FAIL until we fix the document_height calculation
@@ -247,11 +247,11 @@ START_TEST(test_document_height_includes_lower_separator) {
     // Calculate total visible height using layer cake
     size_t total_layer_height = ik_layer_cake_get_total_height(repl->current->layer_cake, 80);
 
-    // Expected: scrollback (5) + upper_sep (1) + input (1) + status (2) = 9 rows
-    size_t expected_height = 5 + 1 + 1 + 2;
+    // Expected: banner (6) + scrollback (5) + upper_sep (1) + input (1) + status (2) = 15 rows
+    size_t expected_height = 6 + 5 + 1 + 1 + 2;
 
     ck_assert_msg(total_layer_height == expected_height,
-                  "Total layer height should be %zu (scrollback 5 + sep 1 + input 1 + status 2), got %zu",
+                  "Total layer height should be %zu (banner 6 + scrollback 5 + sep 1 + input 1 + status 2), got %zu",
                   expected_height, total_layer_height);
 
     talloc_free(ctx);

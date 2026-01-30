@@ -69,6 +69,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize input state (per-agent - preserves partial composition)
     agent->input_buffer = ik_input_buffer_create(agent);
+    agent->banner_visible = true;
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
     agent->status_visible = true;
@@ -102,8 +103,13 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->spinner_state.visible = false;
 
     // Create and add layers (following pattern from repl_init.c)
+    // Banner layer must be first (topmost)
+    agent->banner_layer = ik_banner_layer_create(agent, "banner", &agent->banner_visible);
+    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->banner_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
-    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create spinner layer (pass pointer to agent's spinner_state)
@@ -212,6 +218,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize input state (per-agent - preserves partial composition)
     agent->input_buffer = ik_input_buffer_create(agent);
+    agent->banner_visible = true;
     agent->separator_visible = true;
     agent->input_buffer_visible = true;
     agent->status_visible = true;
@@ -245,8 +252,13 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->spinner_state.visible = false;
 
     // Create and add layers (following pattern from repl_init.c)
+    // Banner layer must be first (topmost)
+    agent->banner_layer = ik_banner_layer_create(agent, "banner", &agent->banner_visible);
+    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->banner_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
-    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create spinner layer (pass pointer to agent's spinner_state)

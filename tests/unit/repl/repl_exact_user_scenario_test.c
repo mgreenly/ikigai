@@ -42,25 +42,25 @@ static void reset_mock(void)
 /**
  * Test: Exact user scenario
  *
- * Terminal: 5 rows
+ * Terminal: 11 rows (increased to accommodate banner layer)
  * Initial scrollback: A, B, C, D (4 lines)
- * At bottom: shows B, C, D, separator, input buffer
- * After Page Up: should show A, B, C, D, separator (input buffer off-screen)
+ * At bottom: shows banner, B, C, D, separator, input buffer, status
+ * After Page Up: should show banner, A, B, C, D, separator (input buffer off-screen)
  */
 START_TEST(test_exact_user_scenario) {
     reset_mock();
     void *ctx = talloc_new(NULL);
     res_t res;
 
-    // Terminal: 5 rows x 80 cols
+    // Terminal: 11 rows x 80 cols (increased from 5 to accommodate 6-row banner)
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
-    term->screen_rows = 5;
+    term->screen_rows = 11;
     term->screen_cols = 80;
     term->tty_fd = 1;
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
-    res = ik_render_create(ctx, 5, 80, 1, &render_ctx);
+    res = ik_render_create(ctx, 11, 80, 1, &render_ctx);
     ck_assert(is_ok(&res));
 
     // Create REPL at bottom (offset=0)
@@ -95,9 +95,9 @@ START_TEST(test_exact_user_scenario) {
 
     agent->viewport_offset = 0;
 
-    // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows
-    // Terminal: 5 rows
-    // At bottom (offset=0): shows C, D, separator, input buffer, lower separator (A, B off-screen top)
+    // Document: 6 banner + 4 scrollback + 1 (upper sep) + 1 input + 2 (status) = 14 rows
+    // Terminal: 11 rows
+    // At bottom (offset=0): shows banner, C, D, separator, input buffer, status (A, B off-screen top)
 
     fprintf(stderr, "\n=== User Scenario: At Bottom ===\n");
 
@@ -115,7 +115,7 @@ START_TEST(test_exact_user_scenario) {
 
     // Now press Page Up
     reset_mock();
-    agent->viewport_offset = 5;
+    agent->viewport_offset = 6;
 
     fprintf(stderr, "\n=== After Page Up ===\n");
 
