@@ -63,7 +63,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     ik_scrollback_ensure_layout(scrollback, 80);
     ck_assert_uint_eq(scrollback->layouts[0].physical_lines, 2);
 
-    // Total document: 30 lines * 2 rows each = 60 scrollback rows + 1 sep + 1 ws = 62 rows
+    // Total document: 30 lines * 2 rows each = 60 scrollback rows + 1 upper_sep + 1 input + 2 status = 64 rows
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -88,15 +88,16 @@ START_TEST(test_separator_with_wrapped_lines) {
     // Each line is 2 physical rows, so:
     // - Line 0-9: rows 0-19
     // - Line 10-14: rows 20-29
-    // viewport_offset = 62 - 1 - 29 = 32
-    repl->current->viewport_offset = 32;
+    // viewport_offset = 64 - 1 - 29 = 34
+    repl->current->viewport_offset = 34;
 
     // Calculate viewport
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // We should see 5 logical lines (lines 10-14), covering 10 physical rows
+    // We should see 5 logical lines (lines 10-14), covering physical rows
+    // (Status layer adds 2 rows to document)
     printf("Viewport: start_line=%zu, lines_count=%zu\n",
            viewport.scrollback_start_line, viewport.scrollback_lines_count);
 

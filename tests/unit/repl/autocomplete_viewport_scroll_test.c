@@ -134,7 +134,8 @@ START_TEST(test_autocomplete_viewport_includes_completion_height) {
     printf("Expected: 5 (with completion), would be 8 (without completion)\n");
 
     // The key test: input buffer should be pushed up by the completion layer
-    ck_assert_uint_eq(viewport.input_buffer_start_row, 5);
+    // (Status layer adds 1 row to document, shifting viewport by 1)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 4);
 
     talloc_free(ctx);
 }

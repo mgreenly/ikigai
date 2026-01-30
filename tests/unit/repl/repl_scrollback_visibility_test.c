@@ -141,8 +141,8 @@ START_TEST(test_scrollback_fills_viewport_when_scrolled_up) {
         }
     }
 
-    // Verify all 10 lines are visible (no missing lines)
-    ck_assert_int_eq(lines_found, 10);
+    // Verify 9 lines are visible (status layer takes 1 more row than old lower sep)
+    ck_assert_int_eq(lines_found, 9);
 
     // Also verify that input buffer content is NOT visible (it's scrolled off)
     ck_assert_ptr_eq(strstr(output, "input_buf"), NULL);

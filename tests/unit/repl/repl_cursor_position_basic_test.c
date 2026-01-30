@@ -268,10 +268,10 @@ START_TEST(test_cursor_position_viewport_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // Document: 100 scrollback + separator + input + lower sep = 103 rows
-    // Terminal shows last 20 rows; cursor should be on input line (row 19), not lower sep (20)
-    ck_assert_int_ne(cursor_row, 20);  // Not on lower separator
-    ck_assert_int_eq(cursor_row, 19);  // On input line
+    // Document: 100 scrollback + separator + input + status (2 rows) = 104 rows
+    // Terminal shows last 20 rows; cursor should be on input line (row 18)
+    ck_assert_int_ne(cursor_row, 20);  // Not on status layer
+    ck_assert_int_eq(cursor_row, 18);  // On input line
     ck_assert_int_eq(cursor_col, 5);   // After "test"
 
     talloc_free(fixture->ctx);
@@ -297,7 +297,7 @@ START_TEST(test_cursor_position_viewport_half_full) {
                                          &cursor_row, &cursor_col);
     ck_assert(found);
 
-    // Document: 5 scrollback + separator + input + lower sep = 8 rows (fits in terminal)
+    // Document: 5 scrollback + separator + input + status (2 rows) = 9 rows (fits in terminal)
     // Cursor should be on input line (row 7, 1-indexed)
     ck_assert_int_eq(cursor_row, 7);  // Input line
     ck_assert_int_eq(cursor_col, 3);  // After "hi"

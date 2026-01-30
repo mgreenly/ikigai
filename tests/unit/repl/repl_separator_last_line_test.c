@@ -174,15 +174,15 @@ START_TEST(test_separator_last_row_input_buffer_offscreen) {
         ck_assert(is_ok(&res));
     }
 
-    // Document: 19 scrollback (rows 0-18) + 1 upper_separator (row 19) + 1 input buffer (row 20) + 1 lower_separator (row 21) = 22 rows
+    // Document: 19 scrollback (rows 0-18) + 1 upper_separator (row 19) + 1 input buffer (row 20) + 2 status layer (rows 21-22) = 23 rows
     // We want to view rows 10-19 (10 rows):
     //   Rows 10-18: scrollback lines 10-18 (9 rows)
     //   Row 19: upper_separator (LAST visible row - this is Separator visibility!)
     //   Row 20: input buffer (off-screen)
-    //   Row 21: lower_separator (off-screen)
+    //   Rows 21-22: status layer (off-screen)
     //
     // last_visible = 19, first_visible = 10
-    // offset = 22 - 1 - 19 = 2
+    // offset = 23 - 1 - 19 = 3
 
     // Create render context
     ik_render_ctx_t *render_ctx = NULL;
@@ -202,16 +202,16 @@ START_TEST(test_separator_last_row_input_buffer_offscreen) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     shared->render = render_ctx;
-    repl->current->viewport_offset = 2;
+    repl->current->viewport_offset = 3;
 
     // Calculate viewport
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // input_buffer_start_row should be exactly terminal_rows (input buffer off-screen)
-    // This means separator is at screen row terminal_rows - 1 (last visible row)
-    ck_assert_uint_eq(viewport.input_buffer_start_row, 10);  // == terminal_rows
+    // input_buffer_start_row should be terminal_rows (input buffer off-screen)
+    // Status layer adds 2 rows to document, pushing input buffer off-screen
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 10);
 
     // Separator should be visible!
     bool separator_visible = viewport.input_buffer_start_row >= 1 &&

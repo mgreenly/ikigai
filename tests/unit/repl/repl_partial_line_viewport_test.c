@@ -129,9 +129,9 @@ START_TEST(test_separator_partial_first_line) {
     //   - Line 3: rows 9-11, visible rows 9-10 (partial, 2 rows shown)
     //   Total: 2 + 3 + 3 + 2 = 10 rows ✓
     //
-    // Expected: start_line=0, lines_count=4
+    // Expected: start_line=1, lines_count=4 (status layer shifts viewport by 1)
     // Bug: May calculate incorrect count due to not using row_offset
-    ck_assert_uint_eq(viewport.scrollback_start_line, 0);
+    ck_assert_uint_eq(viewport.scrollback_start_line, 1);
 
     // This is the key assertion - we should include 4 lines to fill the viewport
     // Separator visibility would cause this to fail (might be 3 or 5 depending on the bug)
@@ -225,7 +225,7 @@ START_TEST(test_separator_row_offset_impact) {
     printf("Viewport: start=%zu, count=%zu\n",
            viewport.scrollback_start_line, viewport.scrollback_lines_count);
 
-    ck_assert_uint_eq(viewport.scrollback_start_line, 0);
+    ck_assert_uint_eq(viewport.scrollback_start_line, 1);
     ck_assert_uint_eq(viewport.scrollback_lines_count, 3);
 
     talloc_free(ctx);

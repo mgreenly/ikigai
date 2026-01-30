@@ -218,8 +218,11 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     // Input buffer must be visible
     ck_assert_uint_lt(viewport.input_buffer_start_row, (size_t)term->screen_rows);
 
-    // Input buffer should be at row 3 (after 2 scrollback lines + separator)
-    ck_assert_uint_eq(viewport.input_buffer_start_row, 3);
+    // Document: 2 scrollback + 1 separator + 1 input + 2 status = 6 rows
+    // Terminal: 5 rows, so document overflows by 1
+    // first_visible_row = 6 - 5 = 1
+    // Input at doc row 3, viewport row = 3 - 1 = 2
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 2);
 
     // Render and verify cursor positioning
     int pipefd[2];
@@ -242,7 +245,7 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
 
     // Verify cursor is visible and positioned
     ck_assert_ptr_ne(strstr(output, "\x1b[?25h"), NULL);
-    ck_assert_ptr_ne(strstr(output, "\x1b[4;1H"), NULL);  // Row 4 (1-indexed)
+    ck_assert_ptr_ne(strstr(output, "\x1b[3;1H"), NULL);  // Row 3 (1-indexed)
 
     talloc_free(ctx);
 }

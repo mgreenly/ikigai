@@ -180,13 +180,13 @@ START_TEST(test_viewport_large_scrollback) {
     res = ik_repl_calculate_viewport(repl, &viewport);
     ck_assert(is_ok(&res));
 
-    // Terminal: 10 rows, input buffer: 2 rows, upper_separator: 1 row, lower_separator: 1 row
-    // Document: 20 scrollback + 1 upper_separator + 2 input buffer + 1 lower_separator = 24 rows
-    // Viewport shows last 10 rows: scrollback 14-19 (6 rows) + upper_separator (1) + input buffer (2) + lower_separator (1)
-    ck_assert_uint_eq(viewport.scrollback_start_line, 14);
-    ck_assert_uint_eq(viewport.scrollback_lines_count, 6);
-    // Input buffer starts at row 7 (6 scrollback + 1 upper_separator)
-    ck_assert_uint_eq(viewport.input_buffer_start_row, 7);
+    // Terminal: 10 rows, input buffer: 2 rows, upper_separator: 1 row, status: 2 rows
+    // Document: 20 scrollback + 1 upper_separator + 2 input buffer + 2 status = 25 rows
+    // Viewport shows last 10 rows: scrollback 15-19 (5 rows) + upper_separator (1) + input buffer (2) + status (2)
+    ck_assert_uint_eq(viewport.scrollback_start_line, 15);
+    ck_assert_uint_eq(viewport.scrollback_lines_count, 5);
+    // Input buffer starts at row 6 (5 scrollback + 1 upper_separator)
+    ck_assert_uint_eq(viewport.input_buffer_start_row, 6);
 
     talloc_free(ctx);
 }

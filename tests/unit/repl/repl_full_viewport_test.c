@@ -192,8 +192,8 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // BUG: With incorrect document_height, first_visible_row will be off by 1
     // This test will FAIL until we fix the document_height calculation
 
-    ck_assert_msg(viewport.input_buffer_start_row == 18,
-                  "Input buffer should be at viewport row 18 (with correct doc height), got %zu",
+    ck_assert_msg(viewport.input_buffer_start_row == 17,
+                  "Input buffer should be at viewport row 17 (with correct doc height), got %zu",
                   viewport.input_buffer_start_row);
 
     // Verify no blank line between separator and input

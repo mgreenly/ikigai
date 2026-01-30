@@ -84,15 +84,14 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
 
-    // Document: 9 scrollback + 1 upper_separator + 1 input buffer + 1 lower_separator = 12 rows
+    // Document: 9 scrollback + 1 upper_separator + 1 input buffer + 2 status = 13 rows
     // (input buffer always occupies 1 row even when empty, for cursor visibility)
     // Terminal: 5 rows
-    // At bottom (offset=0), showing rows 7-11:
-    //   Row 7: C (scrollback line 7)
+    // At bottom (offset=0), showing rows 8-12:
     //   Row 8: D (scrollback line 8)
     //   Row 9: upper separator
     //   Row 10: input buffer
-    //   Row 11: lower separator
+    //   Row 11-12: status layer
 
     // Calculate viewport at bottom
     ik_viewport_t viewport_bottom;
@@ -105,15 +104,15 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     fprintf(stderr, "separator_visible: %d\n", viewport_bottom.separator_visible);
     fprintf(stderr, "input_buffer_start_row: %zu\n", viewport_bottom.input_buffer_start_row);
 
-    // Should show scrollback lines 7, 8 (C, D)
-    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 7);
-    ck_assert_uint_eq(viewport_bottom.scrollback_lines_count, 2);
+    // Should show scrollback line 8 (D) only
+    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 8);
+    ck_assert_uint_eq(viewport_bottom.scrollback_lines_count, 1);
     ck_assert(viewport_bottom.separator_visible);
-    ck_assert_uint_eq(viewport_bottom.input_buffer_start_row, 3);  // Input buffer visible at row 3
+    ck_assert_uint_eq(viewport_bottom.input_buffer_start_row, 2);  // Input buffer visible at row 2
 
     // Now press Page Up (scroll to max offset to see earliest lines)
-    // Document height = 12, terminal = 5, max offset = 7
-    repl->current->viewport_offset = 7;
+    // Document height = 13, terminal = 5, max offset = 8
+    repl->current->viewport_offset = 8;
 
     // After Page Up to max, showing rows 0-4:
     //   Row 0: initial0 (scrollback line 0)

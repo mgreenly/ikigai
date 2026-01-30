@@ -21,8 +21,8 @@
  * - scrollback_rows
  * - 1 row for upper separator
  * - MAX(input_buffer_rows, 1) for input buffer (always at least 1 for cursor)
- * - 1 row for lower separator
  * - completion_rows (if active)
+ * - 2 rows for status layer (separator line + status line)
  *
  * @param repl REPL context
  * @return Total document height in rows
@@ -34,7 +34,7 @@ static size_t calculate_document_height(const ik_repl_ctx_t *repl)
     size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
     size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
 
-    return scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
+    return scrollback_rows + 1 + input_buffer_display_rows + completion_rows + 2;
 }
 
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out)

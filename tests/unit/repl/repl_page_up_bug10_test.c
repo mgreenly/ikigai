@@ -100,12 +100,13 @@ START_TEST(test_page_up_shows_earliest_line) {
     ik_scrollback_ensure_layout(scrollback, 80);
 
     // At this point:
-    // - Scrollback: a, b, c, d (4 lines, 4 physical rows)
+    // - Scrollback: a, b, c, d (4 lines, 8 physical rows with blanks)
     // - Separator: 1 row
     // - Input buffer: e (1 line, 1 physical row)
-    // - Document: 8 (scrollback with blank lines) + 1 (separator) + 1 (input) = 10 rows total
+    // - Status layer: 2 rows
+    // - Document: 8 (scrollback) + 1 (separator) + 1 (input) + 2 (status) = 12 rows total
     // - Terminal: 5 rows
-    // - At bottom (offset=0): Shows last few scrollback rows + separator + e
+    // - At bottom (offset=0): Shows last scrollback row + separator + input + status
     //   Earlier rows are off-screen
 
     // Verify document structure
@@ -119,9 +120,9 @@ START_TEST(test_page_up_shows_earliest_line) {
     res = ik_repl_calculate_viewport(repl, &viewport_bottom);
     ck_assert(is_ok(&res));
 
-    // At bottom, first scrollback line visible should be line 6 (showing last few lines)
-    // With document_height = 11 (including lower sep), at bottom we show rows 6-10
-    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 6);
+    // At bottom, first scrollback line visible should be line 7 (showing last row)
+    // With document_height = 12 (including status layer), at bottom we show rows 7-11
+    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 7);
 
     // Simulate: Press Page Up
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -129,8 +130,8 @@ START_TEST(test_page_up_shows_earliest_line) {
     ck_assert(is_ok(&res));
 
     // After Page Up, viewport_offset should be 5 (clamped to max_offset)
-    // max_offset = document_height - terminal_rows = 11 - 5 = 6
-    // offset = min(0 + 5, 6) = 5
+    // max_offset = document_height - terminal_rows = 12 - 5 = 7
+    // offset = min(0 + 5, 7) = 5
     ck_assert_uint_eq(repl->current->viewport_offset, 5);
 
     // Calculate viewport after Page Up
@@ -138,10 +139,10 @@ START_TEST(test_page_up_shows_earliest_line) {
     res = ik_repl_calculate_viewport(repl, &viewport_up);
     ck_assert(is_ok(&res));
 
-    // After Page Up with offset=5, should show rows 1-5
-    // With scrollback occupying rows 0-7, showing rows 1-5 means starting at line 1
-    ck_assert_msg(viewport_up.scrollback_start_line == 1,
-                  "Expected first scrollback line to be 1, got %zu",
+    // After Page Up with offset=5, should show rows 2-6
+    // With scrollback occupying rows 0-7, showing rows 2-6 means starting at line 2
+    ck_assert_msg(viewport_up.scrollback_start_line == 2,
+                  "Expected first scrollback line to be 2, got %zu",
                   viewport_up.scrollback_start_line);
 
     // Should see 5 scrollback lines (a, blank, b, blank, c)

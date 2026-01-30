@@ -95,9 +95,9 @@ START_TEST(test_exact_user_scenario) {
 
     agent->viewport_offset = 0;
 
-    // Document: 4 scrollback + 1 (upper sep) + 1 input + 1 (lower sep) = 7 rows
+    // Document: 4 scrollback + 1 (upper sep) + 1 input + 2 (status) = 8 rows
     // Terminal: 5 rows
-    // At bottom (offset=0): shows C, D, separator, input buffer, lower separator (A, B off-screen top)
+    // At bottom (offset=0): shows D, separator, input buffer, status (A, B, C off-screen top)
 
     fprintf(stderr, "\n=== User Scenario: At Bottom ===\n");
 
@@ -109,9 +109,9 @@ START_TEST(test_exact_user_scenario) {
     fprintf(stderr, "Contains C: %s\n", strstr(mock_output, "C") ? "YES" : "NO");
     fprintf(stderr, "Contains D: %s\n", strstr(mock_output, "D") ? "YES" : "NO");
 
-    // At bottom: should see C, D, separator, input buffer, lower separator (A and B are off-screen top)
-    ck_assert_ptr_ne(strstr(mock_output, "C"), NULL);
-    ck_assert_ptr_ne(strstr(mock_output, "D"), NULL);
+    // At bottom: should see D, separator, input buffer, status (A, B, C are off-screen top)
+    ck_assert_ptr_eq(strstr(mock_output, "C"), NULL);  // C is off-screen
+    ck_assert_ptr_ne(strstr(mock_output, "D"), NULL);  // D is visible
 
     // Now press Page Up
     reset_mock();
