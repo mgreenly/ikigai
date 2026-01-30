@@ -83,12 +83,12 @@ START_TEST(test_model_thinking_none) {
     ck_assert_str_eq(repl->current->provider, "anthropic");
     ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
 
-    // Verify feedback shows "disabled" (line 2, after echo and blank)
+    // Verify feedback shows "none" (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "disabled") != NULL);
+    ck_assert(strstr(line, "none") != NULL);
 }
 
 END_TEST
@@ -225,12 +225,12 @@ START_TEST(test_model_openai_thinking_none) {
     ck_assert_str_eq(repl->current->provider, "openai");
     ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
 
-    // Verify feedback shows "disabled" (not "none effort") (line 2, after echo and blank)
+    // Verify feedback shows "none" (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "disabled") != NULL);
+    ck_assert(strstr(line, "none") != NULL);
 }
 
 END_TEST
