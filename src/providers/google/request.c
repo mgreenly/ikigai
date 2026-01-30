@@ -102,7 +102,8 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
 
         // Add parts
         if (!ik_google_serialize_message_parts(doc, content_obj, msg, thought_sig,
-                                                is_first_assistant, req->model)) {
+                                                is_first_assistant, req->model,
+                                                req->messages, req->message_count, i)) {
             return false;
         }
 

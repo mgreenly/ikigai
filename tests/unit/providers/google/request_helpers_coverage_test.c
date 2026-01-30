@@ -114,7 +114,7 @@ START_TEST(test_serialize_content_text_add_str_fail) {
     block.data.text.text = (char *)"Hello";
 
     g_mock_yyjson_mut_obj_add_str_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
 
     reset_mocks();
@@ -133,7 +133,7 @@ START_TEST(test_serialize_content_thinking_add_str_fail) {
     block.data.thinking.text = (char *)"Thinking...";
 
     g_mock_yyjson_mut_obj_add_str_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
 
     reset_mocks();
@@ -152,7 +152,7 @@ START_TEST(test_serialize_content_thinking_add_bool_fail) {
     block.data.thinking.text = (char *)"Thinking...";
 
     g_mock_yyjson_mut_obj_add_bool_fail = true;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
 
     reset_mocks();
@@ -171,7 +171,7 @@ START_TEST(test_serialize_content_tool_call_add_name_fail) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
     g_mock_yyjson_mut_obj_add_str_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -188,7 +188,7 @@ START_TEST(test_serialize_content_tool_call_copy_fail) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
     g_mock_yyjson_val_mut_copy_fail = true;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -205,7 +205,7 @@ START_TEST(test_serialize_content_tool_call_add_args_fail) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
     g_mock_yyjson_mut_obj_add_val_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -222,7 +222,25 @@ START_TEST(test_serialize_content_tool_call_add_function_call_fail) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
     g_mock_yyjson_mut_obj_add_val_fail_after = 1;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
+    ck_assert(!result);
+    reset_mocks();
+    yyjson_mut_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_content_tool_call_thought_signature_add_fail) {
+    reset_mocks();
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+    ik_content_block_t block = {0};
+    block.type = IK_CONTENT_TOOL_CALL;
+    block.data.tool_call.id = (char *)"call_123";
+    block.data.tool_call.name = (char *)"get_weather";
+    block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
+    block.data.tool_call.thought_signature = (char *)"sig-456";
+    g_mock_yyjson_mut_obj_add_str_fail_after = 0;
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-3-flash-preview", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -238,7 +256,7 @@ START_TEST(test_serialize_content_tool_result_add_name_fail) {
     block.data.tool_result.tool_call_id = (char *)"call_123";
     block.data.tool_result.content = (char *)"Sunny, 72F";
     g_mock_yyjson_mut_obj_add_str_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -254,7 +272,7 @@ START_TEST(test_serialize_content_tool_result_add_content_fail) {
     block.data.tool_result.tool_call_id = (char *)"call_123";
     block.data.tool_result.content = (char *)"Sunny, 72F";
     g_mock_yyjson_mut_obj_add_str_fail_after = 1;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -270,7 +288,7 @@ START_TEST(test_serialize_content_tool_result_add_response_fail) {
     block.data.tool_result.tool_call_id = (char *)"call_123";
     block.data.tool_result.content = (char *)"Sunny, 72F";
     g_mock_yyjson_mut_obj_add_val_fail_after = 0;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -286,7 +304,7 @@ START_TEST(test_serialize_content_tool_result_add_function_response_fail) {
     block.data.tool_result.tool_call_id = (char *)"call_123";
     block.data.tool_result.content = (char *)"Sunny, 72F";
     g_mock_yyjson_mut_obj_add_val_fail_after = 1;
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -305,7 +323,7 @@ START_TEST(test_serialize_message_parts_arr_add_fail) {
     message.content_blocks = &block;
     message.content_count = 1;
     g_mock_yyjson_mut_arr_add_val_fail_after = 0;
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -324,7 +342,7 @@ START_TEST(test_serialize_message_parts_thought_sig_add_str_fail) {
     message.content_blocks = &block;
     message.content_count = 1;
     g_mock_yyjson_mut_obj_add_str_fail_after = 0;
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -343,7 +361,7 @@ START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail) {
     message.content_blocks = &block;
     message.content_count = 1;
     g_mock_yyjson_mut_arr_add_val_fail_after = 0;
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -362,7 +380,7 @@ START_TEST(test_serialize_message_parts_add_parts_fail) {
     message.content_blocks = &block;
     message.content_count = 1;
     g_mock_yyjson_mut_obj_add_val_fail_after = 0;
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
     reset_mocks();
     yyjson_mut_doc_free(doc);
@@ -411,6 +429,7 @@ static Suite *request_helpers_coverage_suite(void)
     tcase_add_test(tc_error, test_serialize_content_tool_call_copy_fail);
     tcase_add_test(tc_error, test_serialize_content_tool_call_add_args_fail);
     tcase_add_test(tc_error, test_serialize_content_tool_call_add_function_call_fail);
+    tcase_add_test(tc_error, test_serialize_content_tool_call_thought_signature_add_fail);
     tcase_add_test(tc_error, test_serialize_content_tool_result_add_name_fail);
     tcase_add_test(tc_error, test_serialize_content_tool_result_add_content_fail);
     tcase_add_test(tc_error, test_serialize_content_tool_result_add_response_fail);

@@ -77,7 +77,7 @@ START_TEST(test_serialize_content_text) {
     block.type = IK_CONTENT_TEXT;
     block.data.text.text = (char *)"Hello, world!";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
@@ -98,7 +98,7 @@ START_TEST(test_serialize_content_thinking) {
     block.type = IK_CONTENT_THINKING;
     block.data.thinking.text = (char *)"Let me think...";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
@@ -124,7 +124,7 @@ START_TEST(test_serialize_content_tool_call) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"{\"city\":\"Boston\"}";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
@@ -156,7 +156,7 @@ START_TEST(test_serialize_content_tool_call_gemini3_with_thought_signature) {
     block.data.tool_call.arguments = (char *)"{\"unit\":\"celsius\"}";
     block.data.tool_call.thought_signature = (char *)"sig-789";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-3-flash-preview");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-3-flash-preview", NULL, 0, 0);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
@@ -194,7 +194,7 @@ START_TEST(test_serialize_content_tool_call_invalid_json) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"not valid json";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
 
     yyjson_mut_doc_free(doc);
@@ -206,12 +206,24 @@ START_TEST(test_serialize_content_tool_result) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
 
+    // Create a message with a tool_call that will be referenced
+    ik_message_t messages[2] = {0};
+    messages[0].role = IK_ROLE_ASSISTANT;
+    messages[0].content_count = 1;
+    messages[0].content_blocks = talloc_array(NULL, ik_content_block_t, 1);
+    messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    messages[0].content_blocks[0].data.tool_call.id = (char *)"call_123";
+    messages[0].content_blocks[0].data.tool_call.name = (char *)"web_search";
+    messages[0].content_blocks[0].data.tool_call.arguments = (char *)"{}";
+
+    // Create a tool result block
     ik_content_block_t block = {0};
     block.type = IK_CONTENT_TOOL_RESULT;
     block.data.tool_result.tool_call_id = (char *)"call_123";
     block.data.tool_result.content = (char *)"Sunny, 72F";
 
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro");
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro",
+                                                      messages, 2, 1);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
@@ -220,12 +232,41 @@ START_TEST(test_serialize_content_tool_result) {
     ck_assert(func_resp != NULL);
 
     yyjson_mut_val *name = yyjson_mut_obj_get(func_resp, "name");
-    ck_assert_str_eq(yyjson_mut_get_str(name), "call_123");
+    ck_assert_str_eq(yyjson_mut_get_str(name), "web_search");
 
     yyjson_mut_val *response = yyjson_mut_obj_get(func_resp, "response");
     ck_assert(response != NULL);
     yyjson_mut_val *content = yyjson_mut_obj_get(response, "content");
     ck_assert_str_eq(yyjson_mut_get_str(content), "Sunny, 72F");
+
+    talloc_free(messages[0].content_blocks);
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+
+START_TEST(test_serialize_content_tool_result_no_matching_call) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *arr = yyjson_mut_arr(doc);
+
+    // Create empty messages array (no matching tool call)
+    ik_message_t messages[1] = {0};
+
+    // Create a tool result block
+    ik_content_block_t block = {0};
+    block.type = IK_CONTENT_TOOL_RESULT;
+    block.data.tool_result.tool_call_id = (char *)"call_999";
+    block.data.tool_result.content = (char *)"Result";
+
+    // Should fall back to using tool_call_id when no matching tool call is found
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro",
+                                                      messages, 1, 0);
+    ck_assert(result);
+
+    yyjson_mut_val *obj = yyjson_mut_arr_get_first(arr);
+    yyjson_mut_val *func_resp = yyjson_mut_obj_get(obj, "functionResponse");
+    yyjson_mut_val *name = yyjson_mut_obj_get(func_resp, "name");
+    ck_assert_str_eq(yyjson_mut_get_str(name), "call_999");
 
     yyjson_mut_doc_free(doc);
 }
@@ -248,7 +289,7 @@ START_TEST(test_serialize_message_parts_basic) {
     message.content_blocks = &block;
     message.content_count = 1;
 
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
 
     yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
@@ -273,7 +314,7 @@ START_TEST(test_serialize_message_parts_with_thought_signature) {
     message.content_blocks = &block;
     message.content_count = 1;
 
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", true, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
 
     yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
@@ -304,7 +345,7 @@ START_TEST(test_serialize_message_parts_thought_not_first_assistant) {
     message.content_count = 1;
 
     // thought_sig present but is_first_assistant is false
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
 
     yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
@@ -332,7 +373,7 @@ START_TEST(test_serialize_message_parts_with_tool_call) {
     message.content_blocks = &block;
     message.content_count = 1;
 
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
 
     yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
@@ -358,7 +399,7 @@ START_TEST(test_serialize_message_parts_with_tool_result) {
     message.content_blocks = &block;
     message.content_count = 1;
 
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
 
     yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
@@ -389,7 +430,7 @@ START_TEST(test_serialize_message_parts_invalid_block_stops) {
     message.content_blocks = blocks;
     message.content_count = 2;
 
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro");
+    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, NULL, false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(!result);
 
     yyjson_mut_doc_free(doc);
@@ -424,6 +465,7 @@ static Suite *request_helpers_suite(void)
     tcase_add_test(tc_content, test_serialize_content_tool_call_gemini3_with_thought_signature);
     tcase_add_test(tc_content, test_serialize_content_tool_call_invalid_json);
     tcase_add_test(tc_content, test_serialize_content_tool_result);
+    tcase_add_test(tc_content, test_serialize_content_tool_result_no_matching_call);
     suite_add_tcase(s, tc_content);
 
     TCase *tc_parts = tcase_create("Message Parts Serialization");

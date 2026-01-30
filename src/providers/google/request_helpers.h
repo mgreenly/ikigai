@@ -25,14 +25,19 @@ const char *ik_google_role_to_string(ik_role_t role, const char *model);
 /**
  * Serialize a single content block to Google JSON format
  *
- * @param doc   Mutable JSON document
- * @param arr   Parts array to append to
- * @param block Content block to serialize
- * @param model Model identifier (for Gemini 3 thought signature handling)
- * @return      true on success, false on failure
+ * @param doc              Mutable JSON document
+ * @param arr              Parts array to append to
+ * @param block            Content block to serialize
+ * @param model            Model identifier (for Gemini 3 thought signature handling)
+ * @param messages         Array of all messages (for tool call name lookup)
+ * @param message_count    Total number of messages
+ * @param current_msg_idx  Index of current message being serialized
+ * @return                 true on success, false on failure
  */
 bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                       const ik_content_block_t *block, const char *model);
+                                       const ik_content_block_t *block, const char *model,
+                                       const ik_message_t *messages, size_t message_count,
+                                       size_t current_msg_idx);
 
 /**
  * Extract thought signature from provider_metadata JSON
@@ -53,6 +58,9 @@ const char *ik_google_find_latest_thought_signature(const ik_request_t *req, yyj
  * @param thought_sig        Thought signature (for first assistant message)
  * @param is_first_assistant true if this is the first assistant message
  * @param model              Model identifier (for Gemini 3 thought signature handling)
+ * @param messages           Array of all messages (for tool call name lookup)
+ * @param message_count      Total number of messages
+ * @param current_msg_idx    Index of current message being serialized
  * @return                   true on success, false on failure
  */
 bool ik_google_serialize_message_parts(yyjson_mut_doc *doc,
@@ -60,6 +68,9 @@ bool ik_google_serialize_message_parts(yyjson_mut_doc *doc,
                                        const ik_message_t *message,
                                        const char *thought_sig,
                                        bool is_first_assistant,
-                                       const char *model);
+                                       const char *model,
+                                       const ik_message_t *messages,
+                                       size_t message_count,
+                                       size_t current_msg_idx);
 
 #endif /* IK_PROVIDERS_GOOGLE_REQUEST_HELPERS_H */
