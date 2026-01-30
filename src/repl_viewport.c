@@ -1,35 +1,19 @@
 #include "repl.h"
+
 #include "agent.h"
 #include "debug_log.h"
-#include "shared.h"
 #include "panic.h"
-#include "wrapper.h"
 #include "render_cursor.h"
-#include "logger.h"
-#include <assert.h>
-#include <talloc.h>
-#include <string.h>
-#include <inttypes.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
+#include "shared.h"
+#include "wrapper.h"
 
-/**
- * Calculate total document height including all components.
- *
- * Document model (must match layer cake order):
- * - banner (6 when visible)
- * - scrollback (always visible)
- * - spinner (1 when visible, mutually exclusive with input)
- * - separator (1, always visible)
- * - input (1+ when visible, mutually exclusive with spinner)
- * - completion (variable when active)
- * - status (2 when visible: separator + status line)
- *
- * @param repl REPL context
- * @return Total document height in rows
- */
+#include <assert.h>
+#include <inttypes.h>
+#include <string.h>
+#include <talloc.h>
+
+// Calculate total document height.
+// Layer order: banner, scrollback, spinner, separator, input, completion, status.
 size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl)
 {
     size_t banner_rows = repl->current->banner_visible ? 6 : 0;
@@ -369,47 +353,3 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     return OK(repl);
 }
-
-#ifdef IKIGAI_DEV
-void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
-
-    // Skip if no framebuffer saved
-    if (repl->dev_framebuffer == NULL || repl->dev_framebuffer_len == 0) {
-        return;
-    }
-
-    // Check if debug directory exists (runtime opt-in)
-    struct stat st;
-    if (stat(".ikigai/debug", &st) != 0 || !S_ISDIR(st.st_mode)) {
-        return;
-    }
-
-    // Open file for writing
-    int fd = open(".ikigai/debug/repl_viewport.framebuffer",
-                  O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) {
-        return;  // Silently fail - debug feature shouldn't break normal operation
-    }
-
-    // Write header line
-    char header[128];
-    int header_len = snprintf(header, sizeof(header),
-                              "# rows=%d cols=%d cursor=%d,%d len=%zu\n",
-                              repl->shared->term->screen_rows,
-                              repl->shared->term->screen_cols,
-                              repl->dev_cursor_row,
-                              repl->dev_cursor_col,
-                              repl->dev_framebuffer_len);
-
-    ssize_t written = write(fd, header, (size_t)header_len);
-    (void)written;  // Ignore write errors for debug feature
-
-    // Write raw framebuffer bytes
-    written = write(fd, repl->dev_framebuffer, repl->dev_framebuffer_len);
-    (void)written;
-
-    close(fd);
-}
-#endif

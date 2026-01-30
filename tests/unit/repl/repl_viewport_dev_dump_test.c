@@ -78,6 +78,41 @@ START_TEST(test_dev_dump_no_debug_dir) {
 }
 END_TEST
 
+/* Test: Dev dump when .ikigai/debug is a file (not directory) */
+START_TEST(test_dev_dump_debug_is_file) {
+    void *ctx = talloc_new(NULL);
+
+    // Create .ikigai directory and .ikigai/debug as a FILE (not directory)
+    mkdir(".ikigai", 0755);
+    int fd = open(".ikigai/debug", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    close(fd);
+
+    // Create minimal repl context with framebuffer
+    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
+    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
+    ik_term_ctx_t *term = talloc_zero(shared, ik_term_ctx_t);
+    repl->shared = shared;
+    shared->term = term;
+    term->screen_rows = 24;
+    term->screen_cols = 80;
+
+    char buffer[100] = "test data";
+    repl->dev_framebuffer = buffer;
+    repl->dev_framebuffer_len = 9;
+    repl->dev_cursor_row = 0;
+    repl->dev_cursor_col = 0;
+
+    // Should return early without crashing (.ikigai/debug is not a directory)
+    ik_repl_dev_dump_framebuffer(repl);
+
+    // Clean up
+    unlink(".ikigai/debug");
+    rmdir(".ikigai");
+
+    talloc_free(ctx);
+}
+END_TEST
+
 /* Test: Dev dump with debug directory - successful write */
 START_TEST(test_dev_dump_success) {
     void *ctx = talloc_new(NULL);
@@ -169,6 +204,7 @@ static Suite *repl_viewport_dev_dump_suite(void)
     tcase_add_test(tc_dev_dump, test_dev_dump_null_framebuffer);
     tcase_add_test(tc_dev_dump, test_dev_dump_empty_framebuffer);
     tcase_add_test(tc_dev_dump, test_dev_dump_no_debug_dir);
+    tcase_add_test(tc_dev_dump, test_dev_dump_debug_is_file);
     tcase_add_test(tc_dev_dump, test_dev_dump_success);
     tcase_add_test(tc_dev_dump, test_dev_dump_readonly_dir);
     suite_add_tcase(s, tc_dev_dump);
