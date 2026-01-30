@@ -113,6 +113,7 @@ START_TEST(test_initial_state_cursor_visible) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;  // At bottom (initial state)
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -209,6 +210,7 @@ START_TEST(test_initial_state_with_scrollback_cursor_visible) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Calculate viewport
     ik_viewport_t viewport;
@@ -293,6 +295,7 @@ START_TEST(test_scrolled_up_cursor_hidden) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 5;  // Scrolled up
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Calculate viewport
     ik_viewport_t viewport;

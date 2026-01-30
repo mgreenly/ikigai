@@ -1,5 +1,6 @@
 #include "layer.h"
 
+#include "debug_log.h"
 #include "panic.h"
 #include "wrapper.h"
 
@@ -148,6 +149,9 @@ void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outpu
     size_t current_row = 0;
     size_t viewport_end = cake->viewport_row + cake->viewport_height;
 
+    DEBUG_LOG("layer_cake_render: viewport_row=%zu, viewport_height=%zu, viewport_end=%zu",
+              cake->viewport_row, cake->viewport_height, viewport_end);
+
     for (size_t i = 0; i < cake->layer_count; i++) {
         ik_layer_t *layer = cake->layers[i];
 
@@ -173,8 +177,14 @@ void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *outpu
                 row_count -= (layer_end - viewport_end);
             }
 
+            DEBUG_LOG("  layer[%zu] '%s': current_row=%zu, layer_height=%zu, start_row=%zu, row_count=%zu",
+                      i, layer->name, current_row, layer_height, start_row, row_count);
+
             // Render this layer's portion
             layer->render(layer, output, width, start_row, row_count);
+        } else {
+            DEBUG_LOG("  layer[%zu] '%s': SKIPPED (current_row=%zu, layer_end=%zu, viewport_row=%zu, viewport_end=%zu)",
+                      i, layer->name, current_row, layer_end, cake->viewport_row, viewport_end);
         }
 
         current_row = layer_end;

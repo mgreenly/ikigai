@@ -124,8 +124,8 @@ START_TEST(test_scroll_up_clamps_at_max) {
     ck_assert(is_ok(&res));
 
     // Create scrollback with 20 lines
-    // Document: 20 scrollback + 1 upper_separator + 1 input + 1 lower_separator = 23 rows
-    // Max offset = 23 - 10 = 13
+    // Document: 20 scrollback + 1 separator + 1 input = 22 rows
+    // Max offset = 22 - 10 = 12
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
     for (int32_t i = 0; i < 20; i++) {
         char buf[32];
@@ -145,15 +145,16 @@ START_TEST(test_scroll_up_clamps_at_max) {
     repl->current = agent;
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
-    repl->current->viewport_offset = 13;  // Already at max
+    repl->current->viewport_offset = 12;  // Already at max
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Process scroll up action
     ik_input_action_t action = {.type = IK_INPUT_SCROLL_UP};
     res = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&res));
 
-    // Should stay at max (13), not go to 14
-    ck_assert_uint_eq(repl->current->viewport_offset, 13);
+    // Should stay at max (12), not go higher
+    ck_assert_uint_eq(repl->current->viewport_offset, 12);
 
     talloc_free(ctx);
 }

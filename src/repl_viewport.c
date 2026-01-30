@@ -1,40 +1,33 @@
 #include "repl.h"
+
 #include "agent.h"
-#include "shared.h"
+#include "debug_log.h"
 #include "panic.h"
-#include "wrapper.h"
 #include "render_cursor.h"
-#include "logger.h"
+#include "shared.h"
+#include "wrapper.h"
+
 #include <assert.h>
-#include <talloc.h>
-#include <string.h>
 #include <inttypes.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
+#include <string.h>
+#include <talloc.h>
 
-/**
- * Calculate total document height including all components.
- *
- * Document model:
- * - scrollback_rows
- * - 1 row for upper separator
- * - MAX(input_buffer_rows, 1) for input buffer (always at least 1 for cursor)
- * - 1 row for lower separator
- * - completion_rows (if active)
- *
- * @param repl REPL context
- * @return Total document height in rows
- */
-static size_t calculate_document_height(const ik_repl_ctx_t *repl)
+// Calculate total document height.
+// Layer order: banner, scrollback, spinner, separator, input, completion, status.
+size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl)
 {
+    size_t banner_rows = repl->current->banner_visible ? 6 : 0;
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
+    size_t spinner_rows = repl->current->spinner_state.visible ? 1 : 0;
+    size_t separator_rows = 1;  // Always visible
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
-    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
+    size_t input_rows = repl->current->input_buffer_visible
+                        ? ((input_buffer_rows == 0) ? 1 : input_buffer_rows)
+                        : 0;
     size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
+    size_t status_rows = repl->current->status_visible ? 2 : 0;
 
-    return scrollback_rows + 1 + input_buffer_display_rows + 1 + completion_rows;
+    return banner_rows + scrollback_rows + spinner_rows + separator_rows + input_rows + completion_rows + status_rows;
 }
 
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out)
@@ -51,15 +44,17 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
 
-    // Get component sizes
+    // Get component sizes (must match layer cake order)
+    size_t banner_rows = repl->current->banner_visible ? 6 : 0;
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t scrollback_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
+    size_t spinner_rows = repl->current->spinner_state.visible ? 1 : 0;
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
-    // Calculate document dimensions
-    size_t separator_row = scrollback_rows;  // Separator is at this document row (0-indexed)
-    size_t input_buffer_start_doc_row = scrollback_rows + 1;  // Input buffer starts here
-    size_t document_height = calculate_document_height(repl);
+    // Calculate document dimensions (must match layer cake order: banner, scrollback, spinner, separator, input, ...)
+    size_t separator_row = banner_rows + scrollback_rows + spinner_rows;  // Separator is at this document row (0-indexed)
+    size_t input_buffer_start_doc_row = separator_row + 1;  // Input buffer starts after separator
+    size_t document_height = ik_repl_calculate_document_height(repl);
 
     // Calculate visible document range
     // viewport_offset = how many rows scrolled UP from bottom
@@ -85,20 +80,26 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     }
 
     // Determine which scrollback lines are visible
-    if (first_visible_row > separator_row || scrollback_rows == 0) {
-        // Viewport starts after all scrollback - no scrollback visible
+    // Scrollback occupies document rows [banner_rows, separator_row - 1]
+    if (first_visible_row >= separator_row || scrollback_rows == 0) {
+        // Viewport starts at or after separator - no scrollback visible
         viewport_out->scrollback_start_line = 0;
         viewport_out->scrollback_lines_count = 0;
     } else {
         // Some scrollback is visible
-        // Find logical line at first_visible_row
+        // Find logical line at first visible scrollback row
         size_t start_line = 0;
         size_t row_offset = 0;
 
-        if (scrollback_rows > 0 && first_visible_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
+        // Convert document row to scrollback-relative row
+        size_t scrollback_first_row = (first_visible_row > banner_rows)
+                                        ? first_visible_row - banner_rows
+                                        : 0;
+
+        if (scrollback_rows > 0 && scrollback_first_row < scrollback_rows) {  /* LCOV_EXCL_BR_LINE */
             res_t result = ik_scrollback_find_logical_line_at_physical_row(
                 repl->current->scrollback,
-                first_visible_row,
+                scrollback_first_row,
                 &start_line,
                 &row_offset
                 );
@@ -109,11 +110,11 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
 
         // Count how many scrollback lines are visible
         size_t lines_count = 0;
-        size_t current_row = first_visible_row;
-        for (size_t i = start_line; i < scrollback_line_count && current_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
-            current_row += repl->current->scrollback->layouts[i].physical_lines;
+        size_t current_doc_row = banner_rows + scrollback_first_row;
+        for (size_t i = start_line; i < scrollback_line_count && current_doc_row < separator_row; i++) {  /* LCOV_EXCL_BR_LINE */
+            current_doc_row += repl->current->scrollback->layouts[i].physical_lines;
             lines_count++;
-            if (current_row > last_visible_row) break;
+            if (current_doc_row > last_visible_row) break;
         }
 
         viewport_out->scrollback_start_line = start_line;
@@ -206,7 +207,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->current->input_text_len = text_len;
 
     // Calculate document dimensions for layer cake viewport
-    size_t document_height = calculate_document_height(repl);
+    size_t document_height = ik_repl_calculate_document_height(repl);
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     size_t first_visible_row;
@@ -225,6 +226,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // Configure layer cake viewport
     repl->current->layer_cake->viewport_row = first_visible_row;
     repl->current->layer_cake->viewport_height = (size_t)terminal_rows;
+
+    DEBUG_LOG("render_frame: banner_visible=%d, document_height=%zu, terminal_rows=%d, first_visible_row=%zu, viewport_offset=%zu",
+              repl->current->banner_visible, document_height, terminal_rows, first_visible_row, repl->current->viewport_offset);
 
     // Update debug info for separator display
     repl->debug_viewport_offset = repl->current->viewport_offset;
@@ -266,6 +270,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         final_cursor_row = (int32_t)viewport.input_buffer_start_row;
         final_cursor_col = 0;
     }
+
+    DEBUG_LOG("cursor: input_buffer_start_row=%zu, final_cursor_row=%d, final_cursor_col=%d, terminal_rows=%d",
+              viewport.input_buffer_start_row, final_cursor_row, final_cursor_col, terminal_rows);
 
     // Build framebuffer with terminal control sequences
     size_t framebuffer_size = 6 + 3 + output->size + 3 + 6 + 20;  // hide cursor + home + content + clear-to-end + cursor visibility + position
@@ -346,47 +353,3 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
 
     return OK(repl);
 }
-
-#ifdef IKIGAI_DEV
-void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
-
-    // Skip if no framebuffer saved
-    if (repl->dev_framebuffer == NULL || repl->dev_framebuffer_len == 0) {
-        return;
-    }
-
-    // Check if debug directory exists (runtime opt-in)
-    struct stat st;
-    if (stat(".ikigai/debug", &st) != 0 || !S_ISDIR(st.st_mode)) {
-        return;
-    }
-
-    // Open file for writing
-    int fd = open(".ikigai/debug/repl_viewport.framebuffer",
-                  O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) {
-        return;  // Silently fail - debug feature shouldn't break normal operation
-    }
-
-    // Write header line
-    char header[128];
-    int header_len = snprintf(header, sizeof(header),
-                              "# rows=%d cols=%d cursor=%d,%d len=%zu\n",
-                              repl->shared->term->screen_rows,
-                              repl->shared->term->screen_cols,
-                              repl->dev_cursor_row,
-                              repl->dev_cursor_col,
-                              repl->dev_framebuffer_len);
-
-    ssize_t written = write(fd, header, (size_t)header_len);
-    (void)written;  // Ignore write errors for debug feature
-
-    // Write raw framebuffer bytes
-    written = write(fd, repl->dev_framebuffer, repl->dev_framebuffer_len);
-    (void)written;
-
-    close(fd);
-}
-#endif

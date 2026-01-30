@@ -90,6 +90,7 @@ START_TEST(test_separator_with_wrapped_lines) {
     // - Line 10-14: rows 20-29
     // viewport_offset = 62 - 1 - 29 = 32
     repl->current->viewport_offset = 32;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Calculate viewport
     ik_viewport_t viewport;

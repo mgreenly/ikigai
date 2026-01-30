@@ -11,15 +11,15 @@ coverage-build:
 	@find tests/unit -type d | sed 's|tests/unit|build-coverage/tests/unit|' | xargs mkdir -p 2>/dev/null || true
 	@find tests/integration -type d | sed 's|tests/integration|build-coverage/tests/integration|' | xargs mkdir -p 2>/dev/null || true
 ifdef RAW
-	BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)"
-	BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov"
-	BUILDDIR=build-coverage $(MAKE) check-unit FILE=
-	BUILDDIR=build-coverage $(MAKE) check-integration FILE=
+	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)"
+	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov"
+	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) check-unit FILE=
+	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) check-integration FILE=
 else
-	@BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)" >/dev/null 2>&1
-	@BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov" >/dev/null 2>&1
-	@BUILDDIR=build-coverage $(MAKE) -s check-unit FILE= >/dev/null 2>&1
-	@BUILDDIR=build-coverage $(MAKE) -s check-integration FILE= >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)" >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov" >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -s check-unit FILE= >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -s check-integration FILE= >/dev/null 2>&1
 endif
 
 # Common lcov flags (ignore gcov errors from stale files)

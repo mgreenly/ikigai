@@ -74,6 +74,7 @@ typedef struct ik_agent_ctx {
     // Display state (per-agent)
     ik_scrollback_t *scrollback;
     ik_layer_cake_t *layer_cake;
+    ik_layer_t *banner_layer;
     ik_layer_t *scrollback_layer;
     ik_layer_t *spinner_layer;
     ik_layer_t *separator_layer;
@@ -114,6 +115,7 @@ typedef struct ik_agent_ctx {
     int32_t response_thinking_tokens;
 
     // Layer reference fields (updated before each render)
+    bool banner_visible;
     bool separator_visible;
     bool input_buffer_visible;
     bool status_visible;

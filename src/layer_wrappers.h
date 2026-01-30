@@ -75,4 +75,11 @@ ik_layer_t *ik_status_layer_create(TALLOC_CTX *ctx,
                                    char **model_ptr,
                                    int *thinking_level_ptr);
 
+// Create banner layer (renders colored ASCII owl face with version info)
+// The layer shows a 6-row banner at the top of the terminal
+// visible_ptr is a raw pointer that must remain valid
+ik_layer_t *ik_banner_layer_create(TALLOC_CTX *ctx,
+                                   const char *name,
+                                   bool *visible_ptr);
+
 #endif // IK_LAYER_WRAPPERS_H

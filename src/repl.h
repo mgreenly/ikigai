@@ -90,6 +90,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl);
 // Calculate viewport boundaries (Phase 4)
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out);
 
+// Calculate total document height (all layers)
+size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl);
+
 // Submit current input buffer line to scrollback (Phase 4 Task 4.6)
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl);
 
