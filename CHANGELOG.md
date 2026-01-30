@@ -4,9 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
-## [rel-10] - 2026-01-25
+## [rel-10] - UNRELEASED
 
 ### Added
+
+#### Multi-Provider AI Support
+- **Status layer**: Shows current model and thinking level in REPL UI
+- **Gemini 3 support**: Updated Google AI provider for Gemini 3 API
+- **AI providers documentation**: User-facing documentation for configuring supported providers
+
+#### /jj-reset Command
+- **Fresh working copy**: New `/jj-reset` command to reset jj working copy to fresh state from main@origin
+
+#### XDG-Aware Configuration (Complete)
+- **Directory configuration**: IKIGAI_STATE_DIR, IKIGAI_DATA_DIR, IKIGAI_CACHE_DIR with compiled defaults
+- **XDG compliance**: Follows XDG Base Directory specification
+- **Database environment variables**: Configure PostgreSQL connection via PGHOST, PGDATABASE, PGUSER
+- **User-facing configuration docs**: Comprehensive documentation for all configuration options
+
+#### System Prompt System (Complete)
+- **File-based loading**: System prompt loaded from `$IKIGAI_DATA_DIR/prompts/system.md`
+- **Effective prompt display**: Display and style effective system prompt in REPL
+- **Secret field**: Added secret to system prompt for verification
 
 #### Pin/Unpin Commands (Complete)
 - **/pin and /unpin commands**: Manage pinned documents that form the system prompt
@@ -36,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Model requests: ik:// → filesystem path ($IKIGAI_STATE_DIR/path)
   - Tool results: filesystem path → ik://
   - Transparent translation at tool execution boundaries
+- **ik://system namespace**: Translation for system-level paths
 - **Edge case handling**: Multiple paths, trailing slashes, false positive avoidance
 
 #### List Tool (Complete)
@@ -45,25 +65,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Stores data in `$IKIGAI_STATE_DIR/agents/<agent_id>/list.json`
   - O(1) token cost per operation (vs TodoWrite's O(n))
 
+#### Keyboard Improvements
+- **Home/End keys**: Support for Home/End key navigation in input
+- **Arrow keys with NumLock**: Fixed arrow key handling when NumLock is enabled
+
 #### UI Improvements
 - **Braille spinner**: Replaced ASCII spinner (|/-\\) with braille animation (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏)
 - **Flicker elimination**: Screen clear moved from render path to terminal initialization
 - **Cursor visibility fix**: Explicit cursor state at end of each render frame
+- **Hidden cursor during spinner**: Cursor hidden while spinner is active
+
+#### Documentation
+- **Development setup guide**: Comprehensive installation and development guide
+- **AI providers guide**: User-facing documentation for configuring AI providers
+- **Module documentation**: doc_cache, paths, and file_utils modules documented
+- **make-as-query-engine**: Documentation for using `make -n` to query file dependencies
+
+#### Developer Tools
+- **Dev framebuffer dump**: Compile-time conditional for debugging render issues
+- **dev-dump skill**: Documentation for debug buffer dumps
 
 ### Changed
 
-#### Documentation
-- **Removed structured-memory**: Superseded by simpler pin implementation
-- **Updated CDD docs**: context-driven-development.md and what-is-ikigai.md reflect actual /pin implementation
-- **jj skill**: Added selective commit requirement, prohibition on restoring others' work
-- **make-as-query-engine**: Documentation for using `make -n` to query file dependencies
+#### REPL Behavior
+- **History navigation disabled**: Keeps readline commands (Ctrl+A/E/K/U/W) but disables Up/Down history navigation
+- **Readline in CSI u mode**: Fixed readline command support in CSI u keyboard protocol mode
+
+#### List Tool
+- **Directory change**: Uses IKIGAI_STATE_DIR instead of IKIGAI_CACHE_DIR
+
+#### jj Skill
+- **Track-then-push workflow**: Updated jj skill to use `jj bookmark track` before first push
+- **Selective commit requirement**: Added prohibition on restoring others' work
+
+#### Infrastructure
+- **Database scripts**: Use environment variables for PostgreSQL connection
+- **Build artifacts**: Cleaned up build artifacts and CI paths
 
 ### Fixed
+
+#### Multi-Provider Fixes
+- **Gemini 3 tool calls**: Fixed crashes and HTTP 400 errors in tool call handling
+- **Gemini 3 tool call bugs**: Fixed various tool call handling issues
+- **OpenAI Responses API strict mode**: Fixed compatibility with strict mode validation
+- **OpenAI Responses API serialization**: Fixed serialization for multi-turn conversations
+- **Responses API tool format**: Fixed tool serialization format
+
+#### UI Fixes
+- **Cursor during spinner**: Hide cursor during spinner display
+- **Cursor visibility control**: Fixed cursor visibility in REPL viewport
+- **Live streaming output**: Fixed prefix and blank line spacing
 - **Render test loops**: Fixed off-by-one error in search loops
 - **Buffer overflow**: Fixed ik_render_scrollback (13 bytes needed, not 7)
-- **Cursor visibility**: Added escape sequence at end of render_combined
+
+#### CI Fixes
+- **Container git**: Added safe.directory for git in container
+- **CI badge**: Fixed workflow_dispatch and trigger for full CI run
+- **Paths-filter**: Install git before paths-filter step
+
+#### Other Fixes
+- **Tool result persistence**: Fixed database persistence for conversation replay
+- **Web-search tool bugs**: Various bug fixes and clean target
 - **XML output**: Added to render_text_test
 - **PostgreSQL callback**: Added test for notice processor callback
+
+### Removed
+
+- **/debug command**: Removed debug pipe infrastructure (use dev framebuffer dump instead)
+- **CDD workflow**: Removed Context-Driven Development workflow, keeping Ralph execution harness
+- **note.md**: Removed temporary note file
+- **Old task scripts**: Cleaned up obsolete task scripts
+- **structured-memory docs**: Superseded by simpler pin implementation
 
 ### Technical Metrics
 - **Quality gates**: All 11 checks pass (compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage)
