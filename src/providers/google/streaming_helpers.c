@@ -228,9 +228,21 @@ void ik_google_stream_process_parts(ik_google_stream_ctx_t *sctx, yyjson_val *pa
     size_t idx, max;
     yyjson_val *part;
     yyjson_arr_foreach(parts_arr, idx, max, part) { // LCOV_EXCL_BR_LINE (vendor macro loop control branches)
+        // Check for thoughtSignature (Gemini 3 only, appears alongside functionCall)
+        yyjson_val *thought_sig_val = yyjson_obj_get(part, "thoughtSignature");
+        const char *thought_sig = NULL;
+        if (thought_sig_val != NULL) {
+            thought_sig = yyjson_get_str(thought_sig_val);
+        }
+
         // Check for functionCall
         yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
         if (function_call != NULL) {
+            // Store thought signature in context before processing function call
+            if (thought_sig != NULL) {
+                sctx->current_tool_thought_sig = talloc_strdup(sctx, thought_sig);
+                if (sctx->current_tool_thought_sig == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
             process_function_call(sctx, function_call);
             continue;
         }

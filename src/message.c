@@ -111,6 +111,7 @@ ik_message_t *ik_message_create_tool_call_with_thinking(
     if (!msg->content_blocks[idx].data.tool_call.name) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks[idx].data.tool_call.arguments = talloc_strdup(msg, tool_args);
     if (!msg->content_blocks[idx].data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    msg->content_blocks[idx].data.tool_call.thought_signature = NULL;
 
     return msg;
 }

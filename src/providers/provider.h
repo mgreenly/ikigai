@@ -141,9 +141,10 @@ struct ik_content_block {
 
         /* IK_CONTENT_TOOL_CALL */
         struct {
-            char *id;        /* Tool call ID */
-            char *name;      /* Function name */
-            char *arguments; /* JSON arguments */
+            char *id;                /* Tool call ID */
+            char *name;              /* Function name */
+            char *arguments;         /* JSON arguments */
+            char *thought_signature; /* Thought signature (Gemini 3 only, optional) */
         } tool_call;
 
         /* IK_CONTENT_TOOL_RESULT */

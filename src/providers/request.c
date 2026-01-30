@@ -58,6 +58,8 @@ ik_content_block_t *ik_content_block_tool_call(TALLOC_CTX *ctx, const char *id,
     block->data.tool_call.arguments = talloc_strdup(block, arguments);
     if (!block->data.tool_call.arguments) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
+    block->data.tool_call.thought_signature = NULL;
+
     return block;
 }
 

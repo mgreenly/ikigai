@@ -60,6 +60,12 @@ ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
                                                         sctx->current_tool_args !=
                                                         NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.thought_signature = NULL;
+        if (sctx->current_tool_thought_sig != NULL) {
+            block->data.tool_call.thought_signature = talloc_strdup(resp->content_blocks,
+                                                                    sctx->current_tool_thought_sig);
+            if (block->data.tool_call.thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
     } else {
         // No tool call - empty content
         resp->content_blocks = NULL;
@@ -98,6 +104,7 @@ res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_c
     sctx->current_tool_id = NULL;
     sctx->current_tool_name = NULL;
     sctx->current_tool_args = NULL;
+    sctx->current_tool_thought_sig = NULL;
     sctx->part_index = 0;
 
     *out_stream_ctx = sctx;

@@ -89,7 +89,7 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
         if (!content_obj) return false; // LCOV_EXCL_BR_LINE
 
         // Add role
-        const char *role_str = ik_google_role_to_string(msg->role);
+        const char *role_str = ik_google_role_to_string(msg->role, req->model);
         if (!yyjson_mut_obj_add_str(doc, content_obj, "role", role_str)) { // LCOV_EXCL_BR_LINE
             return false; // LCOV_EXCL_LINE
         }
@@ -101,7 +101,9 @@ static bool serialize_contents(yyjson_mut_doc *doc, yyjson_mut_val *root,
         }
 
         // Add parts
-        if (!ik_google_serialize_message_parts(doc, content_obj, msg, thought_sig, is_first_assistant)) {
+        if (!ik_google_serialize_message_parts(doc, content_obj, msg, thought_sig,
+                                                is_first_assistant, req->model,
+                                                req->messages, req->message_count, i)) {
             return false;
         }
 
