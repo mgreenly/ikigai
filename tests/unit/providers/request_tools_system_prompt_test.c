@@ -29,14 +29,16 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-// Test empty system_prompt branch (lines 134-136)
+// Test empty system_prompt branch (line 137)
 START_TEST(test_empty_system_prompt) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->shared->paths = NULL;
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->pinned_count = 0;
 
     // Set config to empty string to trigger the empty system_prompt branch
     agent->shared->cfg->openai_system_message = talloc_strdup(agent->shared->cfg, "");
@@ -52,24 +54,23 @@ START_TEST(test_empty_system_prompt) {
 }
 END_TEST
 
-// Test NULL system_prompt (should use hardcoded default)
-START_TEST(test_null_system_prompt) {
+// Test non-empty system_prompt (line 128)
+START_TEST(test_nonempty_system_prompt) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->shared->paths = NULL;
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
     agent->pinned_count = 0;
-    agent->shared->paths = NULL;
 
-    // Set config to NULL to trigger NULL system_prompt path
-    agent->shared->cfg->openai_system_message = NULL;
+    // Set config to non-empty string to trigger line 128
+    agent->shared->cfg->openai_system_message = talloc_strdup(agent->shared->cfg, "You are a helpful assistant");
 
     ik_request_t *req = NULL;
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
-    // Should succeed - will use hardcoded default
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(req);
 
@@ -85,7 +86,7 @@ static Suite *request_tools_system_prompt_suite(void)
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_empty_system_prompt);
-    tcase_add_test(tc, test_null_system_prompt);
+    tcase_add_test(tc, test_nonempty_system_prompt);
     suite_add_tcase(s, tc);
 
     return s;

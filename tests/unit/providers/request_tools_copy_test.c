@@ -173,6 +173,40 @@ START_TEST(test_copy_tool_result_error_message) {
 END_TEST
 
 /**
+ * Test copying message with TOOL_CALL with thought_signature (line 59 true branch)
+ */
+START_TEST(test_copy_tool_call_with_thought_signature) {
+    ik_shared_ctx_t *shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
+    shared_ctx->cfg = ik_test_create_config(shared_ctx);
+
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gemini-3-pro-preview");
+    agent->thinking_level = 0;
+
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 1);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_ASSISTANT;
+    agent->messages[0]->content_count = 1;
+    agent->messages[0]->content_blocks = talloc_array(agent->messages[0], ik_content_block_t, 1);
+    agent->messages[0]->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    agent->messages[0]->content_blocks[0].data.tool_call.id = talloc_strdup(agent->messages[0], "c1");
+    agent->messages[0]->content_blocks[0].data.tool_call.name = talloc_strdup(agent->messages[0], "bash");
+    agent->messages[0]->content_blocks[0].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{}");
+    agent->messages[0]->content_blocks[0].data.tool_call.thought_signature = talloc_strdup(agent->messages[0], "sig123");
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.tool_call.thought_signature, "sig123");
+}
+END_TEST
+
+/**
  * Test copying message with multiple content blocks
  */
 START_TEST(test_copy_multiple_content_blocks) {
@@ -235,6 +269,7 @@ static Suite *request_tools_copy_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_copy_text_message);
     tcase_add_test(tc, test_copy_tool_call_message);
+    tcase_add_test(tc, test_copy_tool_call_with_thought_signature);
     tcase_add_test(tc, test_copy_tool_result_message);
     tcase_add_test(tc, test_copy_tool_result_error_message);
     tcase_add_test(tc, test_copy_multiple_content_blocks);

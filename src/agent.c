@@ -1,5 +1,4 @@
 #include "agent.h"
-
 #include "config.h"
 #include "config_defaults.h"
 #include "db/agent.h"
@@ -23,8 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-// Forward declarations to avoid type conflicts during migration
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
 

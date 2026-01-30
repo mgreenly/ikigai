@@ -121,7 +121,7 @@ static res_t build_system_prompt_from_agent(ik_request_t *req, ik_agent_ctx_t *a
     // 3. cfg->openai_system_message (config fallback)
     char *system_prompt = NULL;
     res_t prompt_res = ik_agent_get_effective_system_prompt(agent, &system_prompt);
-    if (is_err(&prompt_res)) {
+    if (is_err(&prompt_res)) {  // LCOV_EXCL_BR_LINE - ik_agent_get_effective_system_prompt always succeeds
         return prompt_res;  // LCOV_EXCL_LINE
     }
 
