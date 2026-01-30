@@ -1,10 +1,5 @@
 #include "../../../test_constants.h"
-/**
- * @file request_helpers_coverage_test.c
- * @brief Coverage tests for Google request helpers
- */
-
-// Disable cast-qual for test literals
+// Coverage tests for Google request helpers
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 
@@ -104,7 +99,7 @@ static void reset_mocks(void)
     g_mock_yyjson_mut_arr_add_val_call_count = 0;
 }
 
-START_TEST(test_serialize_content_text_add_str_fail) {
+START_TEST(test_text_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -120,10 +115,9 @@ START_TEST(test_serialize_content_text_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_content_thinking_add_str_fail) {
+START_TEST(test_thinking_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -139,10 +133,9 @@ START_TEST(test_serialize_content_thinking_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_content_thinking_add_bool_fail) {
+START_TEST(test_thinking_add_bool_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -158,10 +151,9 @@ START_TEST(test_serialize_content_thinking_add_bool_fail) {
     reset_mocks();
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_name_fail) {
+START_TEST(test_tool_call_add_name_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -178,7 +170,7 @@ START_TEST(test_serialize_content_tool_call_add_name_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_copy_fail) {
+START_TEST(test_tool_call_copy_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -195,7 +187,7 @@ START_TEST(test_serialize_content_tool_call_copy_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_args_fail) {
+START_TEST(test_tool_call_add_args_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -212,7 +204,7 @@ START_TEST(test_serialize_content_tool_call_add_args_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_add_function_call_fail) {
+START_TEST(test_tool_call_add_fc_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -229,7 +221,7 @@ START_TEST(test_serialize_content_tool_call_add_function_call_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_thought_signature_add_fail) {
+START_TEST(test_tool_call_thought_sig_add_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -247,7 +239,7 @@ START_TEST(test_serialize_content_tool_call_thought_signature_add_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_name_fail) {
+START_TEST(test_tool_result_add_name_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -263,7 +255,7 @@ START_TEST(test_serialize_content_tool_result_add_name_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_content_fail) {
+START_TEST(test_tool_result_add_content_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -279,7 +271,7 @@ START_TEST(test_serialize_content_tool_result_add_content_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_response_fail) {
+START_TEST(test_tool_result_add_resp_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -295,7 +287,7 @@ START_TEST(test_serialize_content_tool_result_add_response_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_add_function_response_fail) {
+START_TEST(test_tool_result_add_func_response_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
@@ -311,7 +303,7 @@ START_TEST(test_serialize_content_tool_result_add_function_response_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_arr_add_fail) {
+START_TEST(test_parts_arr_add_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -330,7 +322,7 @@ START_TEST(test_serialize_message_parts_arr_add_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_thought_sig_add_str_fail) {
+START_TEST(test_parts_thought_sig_add_str_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -349,7 +341,7 @@ START_TEST(test_serialize_message_parts_thought_sig_add_str_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail) {
+START_TEST(test_parts_thought_sig_arr_add_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -368,7 +360,7 @@ START_TEST(test_serialize_message_parts_thought_sig_arr_add_fail) {
 }
 END_TEST
 
-START_TEST(test_serialize_message_parts_add_parts_fail) {
+START_TEST(test_parts_add_parts_fail) {
     reset_mocks();
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
@@ -387,7 +379,7 @@ START_TEST(test_serialize_message_parts_add_parts_fail) {
 }
 END_TEST
 
-START_TEST(test_extract_thought_signature_null_root) {
+START_TEST(test_extract_thought_null_root) {
     yyjson_doc *doc = NULL;
     const char *sig = ik_google_extract_thought_signature("   ", &doc);
     ck_assert(sig == NULL);
@@ -395,7 +387,7 @@ START_TEST(test_extract_thought_signature_null_root) {
 }
 END_TEST
 
-START_TEST(test_find_latest_thought_no_signature_found) {
+START_TEST(test_find_thought_no_sig_found) {
     ik_message_t messages[2];
     memset(messages, 0, sizeof(messages));
     messages[0].role = IK_ROLE_ASSISTANT;
@@ -422,29 +414,29 @@ static Suite *request_helpers_coverage_suite(void)
     TCase *tc_error = tcase_create("Error Paths");
     tcase_set_timeout(tc_error, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_error, setup, teardown);
-    tcase_add_test(tc_error, test_serialize_content_text_add_str_fail);
-    tcase_add_test(tc_error, test_serialize_content_thinking_add_str_fail);
-    tcase_add_test(tc_error, test_serialize_content_thinking_add_bool_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_call_add_name_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_call_copy_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_call_add_args_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_call_add_function_call_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_call_thought_signature_add_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_result_add_name_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_result_add_content_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_result_add_response_fail);
-    tcase_add_test(tc_error, test_serialize_content_tool_result_add_function_response_fail);
-    tcase_add_test(tc_error, test_serialize_message_parts_arr_add_fail);
-    tcase_add_test(tc_error, test_serialize_message_parts_thought_sig_add_str_fail);
-    tcase_add_test(tc_error, test_serialize_message_parts_thought_sig_arr_add_fail);
-    tcase_add_test(tc_error, test_serialize_message_parts_add_parts_fail);
+    tcase_add_test(tc_error, test_text_add_str_fail);
+    tcase_add_test(tc_error, test_thinking_add_str_fail);
+    tcase_add_test(tc_error, test_thinking_add_bool_fail);
+    tcase_add_test(tc_error, test_tool_call_add_name_fail);
+    tcase_add_test(tc_error, test_tool_call_copy_fail);
+    tcase_add_test(tc_error, test_tool_call_add_args_fail);
+    tcase_add_test(tc_error, test_tool_call_add_fc_fail);
+    tcase_add_test(tc_error, test_tool_call_thought_sig_add_fail);
+    tcase_add_test(tc_error, test_tool_result_add_name_fail);
+    tcase_add_test(tc_error, test_tool_result_add_content_fail);
+    tcase_add_test(tc_error, test_tool_result_add_resp_fail);
+    tcase_add_test(tc_error, test_tool_result_add_func_response_fail);
+    tcase_add_test(tc_error, test_parts_arr_add_fail);
+    tcase_add_test(tc_error, test_parts_thought_sig_add_str_fail);
+    tcase_add_test(tc_error, test_parts_thought_sig_arr_add_fail);
+    tcase_add_test(tc_error, test_parts_add_parts_fail);
     suite_add_tcase(s, tc_error);
 
     TCase *tc_thought = tcase_create("Thought Signature Coverage");
     tcase_set_timeout(tc_thought, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_thought, setup, teardown);
-    tcase_add_test(tc_thought, test_extract_thought_signature_null_root);
-    tcase_add_test(tc_thought, test_find_latest_thought_no_signature_found);
+    tcase_add_test(tc_thought, test_extract_thought_null_root);
+    tcase_add_test(tc_thought, test_find_thought_no_sig_found);
     suite_add_tcase(s, tc_thought);
 
     return s;

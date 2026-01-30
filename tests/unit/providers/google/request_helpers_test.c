@@ -1,10 +1,5 @@
 #include "../../../test_constants.h"
-/**
- * @file request_helpers_test.c
- * @brief Unit tests for Google request serialization helpers
- */
-
-// Disable cast-qual for test literals
+// Unit tests for Google request serialization helpers
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 
@@ -28,10 +23,6 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-/* ================================================================
- * Role Mapping Tests
- * ================================================================ */
-
 START_TEST(test_role_to_string_user) {
     const char *role = ik_google_role_to_string(IK_ROLE_USER, "gemini-2.5-pro");
     ck_assert_str_eq(role, "user");
@@ -42,32 +33,25 @@ START_TEST(test_role_to_string_assistant) {
     const char *role = ik_google_role_to_string(IK_ROLE_ASSISTANT, "gemini-2.5-pro");
     ck_assert_str_eq(role, "model");
 }
-
 END_TEST
 
 START_TEST(test_role_to_string_tool_gemini2) {
     const char *role = ik_google_role_to_string(IK_ROLE_TOOL, "gemini-2.5-pro");
     ck_assert_str_eq(role, "function");
 }
-
 END_TEST
 
 START_TEST(test_role_to_string_tool_gemini3) {
     const char *role = ik_google_role_to_string(IK_ROLE_TOOL, "gemini-3-flash-preview");
     ck_assert_str_eq(role, "user");
 }
-
 END_TEST
 
 START_TEST(test_role_to_string_invalid) {
     const char *role = ik_google_role_to_string((ik_role_t)999, "gemini-2.5-pro");
     ck_assert_str_eq(role, "user");
 }
-
 END_TEST
-/* ================================================================
- * Content Block Serialization Tests
- * ================================================================ */
 
 START_TEST(test_serialize_content_text) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -87,7 +71,6 @@ START_TEST(test_serialize_content_text) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_content_thinking) {
@@ -111,7 +94,6 @@ START_TEST(test_serialize_content_thinking) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_content_tool_call) {
@@ -142,46 +124,34 @@ START_TEST(test_serialize_content_tool_call) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_content_tool_call_gemini3_with_thought_signature) {
+START_TEST(test_serialize_tool_call_gemini3_thought_sig) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
-
     ik_content_block_t block = {0};
     block.type = IK_CONTENT_TOOL_CALL;
     block.data.tool_call.id = (char *)"call_456";
     block.data.tool_call.name = (char *)"get_temperature";
     block.data.tool_call.arguments = (char *)"{\"unit\":\"celsius\"}";
     block.data.tool_call.thought_signature = (char *)"sig-789";
-
     bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-3-flash-preview", NULL, 0, 0);
     ck_assert(result);
     ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
-
     yyjson_mut_val *obj = yyjson_mut_arr_get_first(arr);
-
-    // Check thought signature is present
     yyjson_mut_val *sig = yyjson_mut_obj_get(obj, "thoughtSignature");
     ck_assert(sig != NULL);
     ck_assert_str_eq(yyjson_mut_get_str(sig), "sig-789");
-
-    // Check function call is present
-    yyjson_mut_val *func_call = yyjson_mut_obj_get(obj, "functionCall");
-    ck_assert(func_call != NULL);
-
-    yyjson_mut_val *name = yyjson_mut_obj_get(func_call, "name");
+    yyjson_mut_val *fc = yyjson_mut_obj_get(obj, "functionCall");
+    ck_assert(fc != NULL);
+    yyjson_mut_val *name = yyjson_mut_obj_get(fc, "name");
     ck_assert_str_eq(yyjson_mut_get_str(name), "get_temperature");
-
-    yyjson_mut_val *args = yyjson_mut_obj_get(func_call, "args");
+    yyjson_mut_val *args = yyjson_mut_obj_get(fc, "args");
     ck_assert(args != NULL);
     yyjson_mut_val *unit = yyjson_mut_obj_get(args, "unit");
     ck_assert_str_eq(yyjson_mut_get_str(unit), "celsius");
-
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_content_tool_call_invalid_json) {
@@ -199,7 +169,6 @@ START_TEST(test_serialize_content_tool_call_invalid_json) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_content_tool_result) {
@@ -242,39 +211,25 @@ START_TEST(test_serialize_content_tool_result) {
     talloc_free(messages[0].content_blocks);
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_content_tool_result_no_matching_call) {
+START_TEST(test_serialize_tool_result_no_match) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     yyjson_mut_val *arr = yyjson_mut_arr(doc);
-
-    // Create empty messages array (no matching tool call)
     ik_message_t messages[1] = {0};
-
-    // Create a tool result block
     ik_content_block_t block = {0};
     block.type = IK_CONTENT_TOOL_RESULT;
     block.data.tool_result.tool_call_id = (char *)"call_999";
     block.data.tool_result.content = (char *)"Result";
-
-    // Should fall back to using tool_call_id when no matching tool call is found
-    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro",
-                                                      messages, 1, 0);
+    bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", messages, 1, 0);
     ck_assert(result);
-
     yyjson_mut_val *obj = yyjson_mut_arr_get_first(arr);
-    yyjson_mut_val *func_resp = yyjson_mut_obj_get(obj, "functionResponse");
-    yyjson_mut_val *name = yyjson_mut_obj_get(func_resp, "name");
+    yyjson_mut_val *fr = yyjson_mut_obj_get(obj, "functionResponse");
+    yyjson_mut_val *name = yyjson_mut_obj_get(fr, "name");
     ck_assert_str_eq(yyjson_mut_get_str(name), "call_999");
-
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
-/* ================================================================
- * Message Parts Serialization Tests
- * ================================================================ */
 
 START_TEST(test_serialize_message_parts_basic) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -298,7 +253,6 @@ START_TEST(test_serialize_message_parts_basic) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_message_parts_with_thought_signature) {
@@ -328,34 +282,25 @@ START_TEST(test_serialize_message_parts_with_thought_signature) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
-START_TEST(test_serialize_message_parts_thought_not_first_assistant) {
+START_TEST(test_serialize_parts_thought_not_first) {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    yyjson_mut_val *content_obj = yyjson_mut_obj(doc);
-
+    yyjson_mut_val *obj = yyjson_mut_obj(doc);
     ik_content_block_t block = {0};
     block.type = IK_CONTENT_TEXT;
     block.data.text.text = (char *)"Hello";
-
     ik_message_t message = {0};
     message.role = IK_ROLE_ASSISTANT;
     message.content_blocks = &block;
     message.content_count = 1;
-
-    // thought_sig present but is_first_assistant is false
-    bool result = ik_google_serialize_message_parts(doc, content_obj, &message, "sig-123", false, "gemini-2.5-pro", NULL, 0, 0);
+    bool result = ik_google_serialize_message_parts(doc, obj, &message, "sig-123", false, "gemini-2.5-pro", NULL, 0, 0);
     ck_assert(result);
-
-    yyjson_mut_val *parts = yyjson_mut_obj_get(content_obj, "parts");
+    yyjson_mut_val *parts = yyjson_mut_obj_get(obj, "parts");
     ck_assert(parts != NULL);
-    // Should only have 1 part (the text block), not the thought signature
     ck_assert_uint_eq(yyjson_mut_arr_size(parts), 1);
-
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_message_parts_with_tool_call) {
@@ -382,7 +327,6 @@ START_TEST(test_serialize_message_parts_with_tool_call) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_message_parts_with_tool_result) {
@@ -408,7 +352,6 @@ START_TEST(test_serialize_message_parts_with_tool_result) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_message_parts_invalid_block_stops) {
@@ -435,12 +378,7 @@ START_TEST(test_serialize_message_parts_invalid_block_stops) {
 
     yyjson_mut_doc_free(doc);
 }
-
 END_TEST
-
-/* ================================================================
- * Test Suite Setup
- * ================================================================ */
 
 static Suite *request_helpers_suite(void)
 {
@@ -462,10 +400,10 @@ static Suite *request_helpers_suite(void)
     tcase_add_test(tc_content, test_serialize_content_text);
     tcase_add_test(tc_content, test_serialize_content_thinking);
     tcase_add_test(tc_content, test_serialize_content_tool_call);
-    tcase_add_test(tc_content, test_serialize_content_tool_call_gemini3_with_thought_signature);
+    tcase_add_test(tc_content, test_serialize_tool_call_gemini3_thought_sig);
     tcase_add_test(tc_content, test_serialize_content_tool_call_invalid_json);
     tcase_add_test(tc_content, test_serialize_content_tool_result);
-    tcase_add_test(tc_content, test_serialize_content_tool_result_no_matching_call);
+    tcase_add_test(tc_content, test_serialize_tool_result_no_match);
     suite_add_tcase(s, tc_content);
 
     TCase *tc_parts = tcase_create("Message Parts Serialization");
@@ -473,7 +411,7 @@ static Suite *request_helpers_suite(void)
     tcase_add_checked_fixture(tc_parts, setup, teardown);
     tcase_add_test(tc_parts, test_serialize_message_parts_basic);
     tcase_add_test(tc_parts, test_serialize_message_parts_with_thought_signature);
-    tcase_add_test(tc_parts, test_serialize_message_parts_thought_not_first_assistant);
+    tcase_add_test(tc_parts, test_serialize_parts_thought_not_first);
     tcase_add_test(tc_parts, test_serialize_message_parts_with_tool_call);
     tcase_add_test(tc_parts, test_serialize_message_parts_with_tool_result);
     tcase_add_test(tc_parts, test_serialize_message_parts_invalid_block_stops);
