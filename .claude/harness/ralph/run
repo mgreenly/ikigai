@@ -7,9 +7,13 @@ require 'shellwords'
 require 'time'
 require 'erb'
 require 'tempfile'
+require 'fileutils'
 
 # Resolve script directory at load time (before any chdir)
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
+STATE_DIR = File.join(ENV['HOME'], '.local', 'state', 'ralph')
+GOALS_DIR = File.join(STATE_DIR, 'goals')
+STATS_FILE = File.join(STATE_DIR, 'stats.jsonl')
 
 # Ralph: Iterative goal completion harness
 class Ralph
@@ -56,9 +60,7 @@ class Ralph
   }.freeze
 
   def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:)
-    @goal_files = goal_file.split(',')
-    @goal_file = @goal_files.first
-    @current_goal_index = 0
+    @goal_file = goal_file
     @duration_seconds = parse_duration(duration)
     @model = model
     @reasoning = reasoning
@@ -86,7 +88,8 @@ class Ralph
     @total_tool_uses = 0
     @total_tokens = { input: 0, output: 0, cache_read: 0, cache_create: 0 }
     @total_cost = 0.0
-    @total_elapsed = 0
+    @total_llm_time = 0.0
+    @total_tool_time = 0.0
 
     set_goal_paths(@goal_file)
 
@@ -107,57 +110,36 @@ class Ralph
   end
 
   def run
-    @goal_files.each_with_index do |goal_file, idx|
-      @goal_file = goal_file
-      @current_goal_index = idx
-      set_goal_paths(@goal_file)
+    set_goal_paths(@goal_file)
+    validate_files
+    copy_goal_file
+    initialize_state unless @continue_run
+    load_state if @continue_run
 
-      validate_files
-      initialize_state if idx > 0 || !@continue_run
-      load_state if idx == 0 && @continue_run
+    display_header
+    display_goal
+    sleep 2
+    display_continue_status
+    handle_dirty_state
+    create_bookmark_if_needed
+    summarize_if_needed if @continue_run
 
-      goal_start_time = Time.now
-
-      if idx == 0
-        display_header
-      else
-        puts
-        puts "\e[1m" + '═' * 70 + "\e[0m"
-        puts "\e[1m  NEXT GOAL (#{idx + 1}/#{@goal_files.length})\e[0m"
-        puts "\e[1m" + '═' * 70 + "\e[0m"
-        puts
+    @exit_reason = nil
+    loop do
+      if time_expired?
+        @exit_reason = :timeout
+        break
       end
 
-      display_goal
-      sleep 2
-      display_continue_status if idx == 0
-      handle_dirty_state
-      create_bookmark_if_needed
-      summarize_if_needed if @continue_run && idx == 0
+      @iteration += 1
+      result = run_iteration
 
-      @exit_reason = nil
-      loop do
-        if time_expired?
-          @exit_reason = :timeout
-          break
-        end
-
-        @iteration += 1
-        result = run_iteration
-
-        if result == 'DONE'
-          @exit_reason = :done
-          break
-        end
-
-        summarize_if_needed
+      if result == 'DONE'
+        @exit_reason = :done
+        break
       end
 
-      # Update running totals for this goal
-      goal_elapsed = (Time.now - goal_start_time).to_i
-      @total_elapsed += goal_elapsed
-
-      break if @exit_reason == :timeout || @exit_reason == :interrupted
+      summarize_if_needed
     end
 
     display_summary
@@ -480,7 +462,7 @@ class Ralph
 
     result = nil
     tool_names = {}  # track tool_use_id -> tool_name for result lookup
-    counters = { assistant_messages: 0, tool_uses: 0 }
+    counters = { assistant_messages: 0, tool_uses: 0, llm_time: 0.0, tool_time: 0.0 }
 
     start_waiting_timer(iteration_start) if iteration_start
     IO.popen(cmd, 'r+') do |io|
@@ -545,6 +527,8 @@ class Ralph
       if iteration_start
         @total_assistant_messages += counters[:assistant_messages]
         @total_tool_uses += counters[:tool_uses]
+        @total_llm_time += counters[:llm_time]
+        @total_tool_time += counters[:tool_time]
       end
 
       result&.to_json
@@ -552,12 +536,15 @@ class Ralph
 
   def read_until_result(io, tool_names, iteration_start, model, counters)
     result = nil
+    last_event_time = Time.now
 
     io.each_line do |line|
       event = JSON.parse(line) rescue next
       debug("event type: #{event['type']}")
       case event['type']
       when 'assistant'
+        counters[:llm_time] += (Time.now - last_event_time)
+        last_event_time = Time.now
         counters[:assistant_messages] += 1
         context_pct = extract_context_percentage(event)
         text = extract_text_content(event)
@@ -571,6 +558,8 @@ class Ralph
         # Track tokens from usage
         track_usage(event, model) if iteration_start
       when 'user'
+        counters[:tool_time] += (Time.now - last_event_time)
+        last_event_time = Time.now
         # Tool results only - user text messages don't appear in this context
         extract_tool_results(event).each do |tool_result|
           name = tool_names[tool_result['tool_use_id']] || 'unknown'
@@ -913,20 +902,12 @@ class Ralph
   end
 
   def display_summary
-    # Final update of totals
-    @total_iterations += @iteration
+    @total_iterations = @iteration
     actual_elapsed = (Time.now - @start_time).to_i
-    @total_elapsed = actual_elapsed if @goal_files.length == 1
-
     elapsed = format_elapsed(actual_elapsed)
 
     puts
     puts "\e[1m" + '═' * 70 + "\e[0m"
-
-    if @goal_files.length > 1
-      puts "  Goals: #{@goal_files.length}"
-    end
-
     puts "  Iterations: #{@total_iterations}"
     puts "  Assistant Messages: #{@total_assistant_messages}"
     puts "  Tool Uses: #{@total_tool_uses}"
@@ -942,10 +923,18 @@ class Ralph
     puts
 
     puts "  Cost: $#{format('%.4f', @total_cost)}"
-    puts "  Elapsed: #{elapsed}"
+    puts
+    other_time = [actual_elapsed - @total_llm_time - @total_tool_time, 0].max
+    puts "  Time:"
+    puts "    LLM: #{format_elapsed(@total_llm_time.to_i)}"
+    puts "    Tools: #{format_elapsed(@total_tool_time.to_i)}"
+    puts "    Other: #{format_elapsed(other_time.to_i)}"
+    puts "    Total: #{elapsed}"
 
     puts "\e[1m" + '═' * 70 + "\e[0m"
     puts
+
+    write_stats_record(actual_elapsed)
   end
 
   def format_number(num)
@@ -996,6 +985,58 @@ class Ralph
   rescue StandardError => e
     # Notification failure is non-fatal
     $stderr.puts "\e[33mNotification failed: #{e.message}\e[0m"
+  end
+
+  # ─────────────────────────────────────────────────────────────
+  # Stats Logging
+  # ─────────────────────────────────────────────────────────────
+
+  def ensure_state_dirs
+    FileUtils.mkdir_p(STATE_DIR)
+    FileUtils.mkdir_p(GOALS_DIR)
+  end
+
+  def copy_goal_file
+    ensure_state_dirs
+    # Append datetime to filename: feature-goal.md -> feature-goal-2026-01-30T14-30-00.md
+    base = File.basename(@goal_file, '.*')
+    ext = File.extname(@goal_file)
+    timestamp = @start_time.strftime('%Y-%m-%dT%H-%M-%S')
+    @goal_copy_name = "#{base}-#{timestamp}#{ext}"
+    dest = File.join(GOALS_DIR, @goal_copy_name)
+    FileUtils.cp(@goal_file, dest)
+  end
+
+  def write_stats_record(actual_elapsed)
+    ensure_state_dirs
+
+    other_time = [actual_elapsed - @total_llm_time - @total_tool_time, 0].max
+
+    record = {
+      goal_file: "goals/#{@goal_copy_name}",
+      started_at: @start_time.iso8601,
+      exit_reason: @exit_reason.to_s,
+      model: @model,
+      reasoning: @reasoning,
+      iterations: @total_iterations,
+      assistant_messages: @total_assistant_messages,
+      tool_uses: @total_tool_uses,
+      tokens: {
+        input: @total_tokens[:input],
+        output: @total_tokens[:output],
+        cache_read: @total_tokens[:cache_read],
+        cache_create: @total_tokens[:cache_create]
+      },
+      cost_usd: @total_cost,
+      time_seconds: {
+        llm: @total_llm_time.to_i,
+        tools: @total_tool_time.to_i,
+        other: other_time.to_i,
+        total: actual_elapsed
+      }
+    }
+
+    File.open(STATS_FILE, 'a') { |f| f.puts(record.to_json) }
   end
 
   # ─────────────────────────────────────────────────────────────
@@ -1162,7 +1203,7 @@ OptionParser.new do |opts|
     Usage: ralph --goal=FILE [--duration=4h] [options]
   BANNER
 
-  opts.on('--goal=FILE', 'Goal markdown file (required) or comma-separated list') do |f|
+  opts.on('--goal=FILE', 'Goal markdown file (required)') do |f|
     options[:goal] = f
   end
 
