@@ -5,6 +5,7 @@
 
 #include "streaming.h"
 
+#include "debug_log.h"
 #include "panic.h"
 #include "streaming_responses_internal.h"
 
@@ -25,6 +26,9 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
                                                                         ik_stream_cb_t stream_cb,
                                                                         void *stream_ctx)
 {
+    DEBUG_LOG("responses_stream_ctx_create: ctx=%p stream_cb=%p stream_ctx=%p",
+              (void *)ctx, (void *)stream_cb, stream_ctx);
+
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(stream_cb != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -46,6 +50,9 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
 
     sctx->sse_parser = ik_sse_parser_create(sctx);
     if (sctx->sse_parser == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    DEBUG_LOG("responses_stream_ctx_create: created sctx=%p sse_parser=%p",
+              (void *)sctx, (void *)sctx->sse_parser);
 
     return sctx;
 }
@@ -75,12 +82,38 @@ ik_finish_reason_t ik_openai_responses_stream_get_finish_reason(ik_openai_respon
  */
 static void sse_event_handler(const char *event_name, const char *data, size_t len, void *user_ctx)
 {
-    assert(user_ctx != NULL); // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("sse_event_handler: event='%s' data_len=%zu user_ctx=%p",
+              event_name ? event_name : "(null)", len, user_ctx);
+
+    // Defensive NULL checks
+    if (user_ctx == NULL) {
+        DEBUG_LOG("sse_event_handler: FATAL - user_ctx is NULL!");
+        return;
+    }
+
+    if (event_name == NULL) {
+        DEBUG_LOG("sse_event_handler: WARNING - event_name is NULL, skipping");
+        return;
+    }
+
+    if (data == NULL) {
+        DEBUG_LOG("sse_event_handler: WARNING - data is NULL, skipping");
+        return;
+    }
+
     (void)len;
 
     ik_openai_responses_stream_ctx_t *stream_ctx = (ik_openai_responses_stream_ctx_t *)user_ctx;
 
+    // Validate stream_ctx fields before processing
+    if (stream_ctx->stream_cb == NULL) {
+        DEBUG_LOG("sse_event_handler: FATAL - stream_ctx->stream_cb is NULL!");
+        return;
+    }
+
+    DEBUG_LOG("sse_event_handler: calling process_event for '%s'", event_name);
     ik_openai_responses_stream_process_event(stream_ctx, event_name, data);
+    DEBUG_LOG("sse_event_handler: process_event returned for '%s'", event_name);
 }
 
 /* ================================================================
@@ -92,10 +125,30 @@ static void sse_event_handler(const char *event_name, const char *data, size_t l
  */
 size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    assert(userdata != NULL); // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("responses_write_callback: ptr=%p size=%zu nmemb=%zu userdata=%p",
+              ptr, size, nmemb, userdata);
+
+    // Defensive NULL check with logging
+    if (userdata == NULL) {
+        DEBUG_LOG("responses_write_callback: FATAL - userdata is NULL!");
+        return 0;  // Signal error to curl
+    }
 
     ik_openai_responses_stream_ctx_t *ctx = (ik_openai_responses_stream_ctx_t *)userdata;
+
+    // Validate context fields
+    if (ctx->sse_parser == NULL) {
+        DEBUG_LOG("responses_write_callback: FATAL - sse_parser is NULL! ctx=%p", (void *)ctx);
+        return 0;  // Signal error to curl
+    }
+
+    if (ctx->stream_cb == NULL) {
+        DEBUG_LOG("responses_write_callback: FATAL - stream_cb is NULL! ctx=%p", (void *)ctx);
+        return 0;  // Signal error to curl
+    }
+
     size_t total = size * nmemb;
+    DEBUG_LOG("responses_write_callback: feeding %zu bytes to SSE parser", total);
 
     ik_sse_parser_feed(ctx->sse_parser, (const char *)ptr, total);
 
@@ -103,13 +156,21 @@ size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t 
     if (tmp_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ik_sse_event_t *event;
+    int event_count = 0;
     while ((event = ik_sse_parser_next(ctx->sse_parser, tmp_ctx)) != NULL) {
+        event_count++;
+        DEBUG_LOG("responses_write_callback: event #%d type='%s' data_len=%zu",
+                  event_count,
+                  event->event ? event->event : "(null)",
+                  event->data ? strlen(event->data) : 0);
+
         if (event->event != NULL && event->data != NULL) {
             sse_event_handler(event->event, event->data, strlen(event->data), ctx);
         }
         talloc_free(event);
     }
 
+    DEBUG_LOG("responses_write_callback: processed %d events, returning %zu", event_count, total);
     talloc_free(tmp_ctx);
 
     return total;
@@ -146,8 +207,8 @@ ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx,
         // but we need IK_FINISH_TOOL_USE so the tool loop continues
         resp->finish_reason = IK_FINISH_TOOL_USE;
 
-        // Allocate content blocks array with one tool call
-        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        // Allocate content blocks array with one tool call (zero-init to avoid garbage pointers)
+        resp->content_blocks = talloc_zero_array(resp, ik_content_block_t, 1);
         if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         resp->content_count = 1;
 
@@ -162,6 +223,7 @@ ik_response_t *ik_openai_responses_stream_build_response(TALLOC_CTX *ctx,
                                                         sctx->current_tool_args !=
                                                         NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        // thought_signature is NULL (zero-initialized) - Responses API doesn't provide it
     } else {
         // No tool call - empty content
         resp->content_blocks = NULL;

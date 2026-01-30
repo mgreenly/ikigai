@@ -3,6 +3,7 @@
 #include "repl.h"
 #include "agent.h"
 #include "ansi.h"
+#include "debug_log.h"
 #include "event_render.h"
 #include "output_style.h"
 #include "repl_actions.h"
@@ -181,6 +182,10 @@ static void render_usage_event(ik_agent_ctx_t *agent)
 
 static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
+    DEBUG_LOG("store_response_metadata: ENTRY agent=%p response=%p", (void *)agent, (const void *)response);
+    DEBUG_LOG("store_response_metadata: response->model=%s finish_reason=%d",
+              response->model ? response->model : "(null)", response->finish_reason);
+
     // Clear previous metadata
     if (agent->response_model != NULL) {
         talloc_free(agent->response_model);
@@ -218,6 +223,10 @@ static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *
 
 static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
+    DEBUG_LOG("extract_tool_calls: ENTRY agent=%p response=%p", (void *)agent, (const void *)response);
+    DEBUG_LOG("extract_tool_calls: response->content_count=%zu response->content_blocks=%p",
+              response->content_count, (void *)response->content_blocks);
+
     // Clear any previous pending thinking
     if (agent->pending_thinking_text != NULL) {
         talloc_free(agent->pending_thinking_text);
@@ -242,8 +251,11 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
         agent->pending_tool_thought_signature = NULL;
     }
 
+    DEBUG_LOG("extract_tool_calls: iterating over %zu content blocks", response->content_count);
     for (size_t i = 0; i < response->content_count; i++) {
+        DEBUG_LOG("extract_tool_calls: accessing block[%zu] at %p", i, (void *)response->content_blocks);
         ik_content_block_t *block = &response->content_blocks[i];
+        DEBUG_LOG("extract_tool_calls: block[%zu]=%p type=%d", i, (void *)block, block->type);
 
         if (block->type == IK_CONTENT_THINKING) {
             if (block->data.thinking.text != NULL) {
@@ -260,15 +272,29 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
                 if (agent->pending_redacted_data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             }
         } else if (block->type == IK_CONTENT_TOOL_CALL) {
+            DEBUG_LOG("extract_tool_calls: TOOL_CALL branch entered");
+            DEBUG_LOG("extract_tool_calls: tool_call.id=%p tool_call.name=%p tool_call.arguments=%p",
+                      (void *)block->data.tool_call.id,
+                      (void *)block->data.tool_call.name,
+                      (void *)block->data.tool_call.arguments);
+            DEBUG_LOG("extract_tool_calls: id='%s' name='%s' args='%.100s'",
+                      block->data.tool_call.id ? block->data.tool_call.id : "(null)",
+                      block->data.tool_call.name ? block->data.tool_call.name : "(null)",
+                      block->data.tool_call.arguments ? block->data.tool_call.arguments : "(null)");
             agent->pending_tool_call = ik_tool_call_create(agent,
                                                            block->data.tool_call.id,
                                                            block->data.tool_call.name,
                                                            block->data.tool_call.arguments);
+            DEBUG_LOG("extract_tool_calls: ik_tool_call_create returned %p", (void *)agent->pending_tool_call);
             if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            DEBUG_LOG("extract_tool_calls: checking thought_signature ptr=%p", (void *)block->data.tool_call.thought_signature);
             if (block->data.tool_call.thought_signature != NULL) {
+                DEBUG_LOG("extract_tool_calls: thought_signature is non-NULL, copying...");
                 agent->pending_tool_thought_signature = talloc_strdup(agent, block->data.tool_call.thought_signature);
+                DEBUG_LOG("extract_tool_calls: talloc_strdup returned %p", (void *)agent->pending_tool_thought_signature);
                 if (agent->pending_tool_thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
             }
+            DEBUG_LOG("extract_tool_calls: tool call extracted successfully");
             break;  // Only handle first tool call
         }
     }
@@ -276,10 +302,15 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
 
 res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, void *ctx)
 {
+    DEBUG_LOG("repl_completion_callback: ENTRY completion=%p ctx=%p", (const void *)completion, ctx);
+
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
 
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
+
+    DEBUG_LOG("repl_completion_callback: agent=%p success=%d response=%p",
+              (void *)agent, completion->success, (const void *)completion->response);
 
     // Log response metadata via JSONL logger
     {
@@ -344,10 +375,15 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
+        DEBUG_LOG("repl_completion_callback: calling store_response_metadata");
         store_response_metadata(agent, completion->response);
+        DEBUG_LOG("repl_completion_callback: calling render_usage_event");
         render_usage_event(agent);
+        DEBUG_LOG("repl_completion_callback: calling extract_tool_calls");
         extract_tool_calls(agent, completion->response);
+        DEBUG_LOG("repl_completion_callback: extract_tool_calls returned");
     }
 
+    DEBUG_LOG("repl_completion_callback: EXIT");
     return OK(NULL);
 }

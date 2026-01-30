@@ -5,6 +5,7 @@
 
 #include "streaming_responses_internal.h"
 
+#include "debug_log.h"
 #include "error.h"
 #include "panic.h"
 #include "response.h"
@@ -39,10 +40,27 @@ static void handle_error(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *roo
  */
 static void emit_event(ik_openai_responses_stream_ctx_t *sctx, const ik_stream_event_t *event)
 {
-    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(event != NULL); // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("emit_event: sctx=%p event=%p", (void *)sctx, (const void *)event);
 
+    // Defensive NULL checks
+    if (sctx == NULL) {
+        DEBUG_LOG("emit_event: FATAL - sctx is NULL!");
+        return;
+    }
+
+    if (event == NULL) {
+        DEBUG_LOG("emit_event: FATAL - event is NULL!");
+        return;
+    }
+
+    if (sctx->stream_cb == NULL) {
+        DEBUG_LOG("emit_event: FATAL - stream_cb is NULL!");
+        return;
+    }
+
+    DEBUG_LOG("emit_event: type=%d stream_ctx=%p", event->type, sctx->stream_ctx);
     sctx->stream_cb(event, sctx->stream_ctx);
+    DEBUG_LOG("emit_event: callback returned");
 }
 
 /**
@@ -371,20 +389,47 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                                               const char *event_name,
                                               const char *data)
 {
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    assert(event_name != NULL); // LCOV_EXCL_BR_LINE
-    assert(data != NULL); // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("process_event: stream_ctx=%p event='%s' data_len=%zu",
+              (void *)stream_ctx,
+              event_name ? event_name : "(null)",
+              data ? strlen(data) : 0);
+
+    // Defensive NULL checks
+    if (stream_ctx == NULL) {
+        DEBUG_LOG("process_event: FATAL - stream_ctx is NULL!");
+        return;
+    }
+
+    if (event_name == NULL) {
+        DEBUG_LOG("process_event: FATAL - event_name is NULL!");
+        return;
+    }
+
+    if (data == NULL) {
+        DEBUG_LOG("process_event: FATAL - data is NULL!");
+        return;
+    }
+
+    // Validate stream_ctx fields
+    if (stream_ctx->stream_cb == NULL) {
+        DEBUG_LOG("process_event: FATAL - stream_ctx->stream_cb is NULL!");
+        return;
+    }
 
     yyjson_doc *doc = yyjson_read(data, strlen(data), 0);
     if (doc == NULL) {
+        DEBUG_LOG("process_event: yyjson_read failed for event '%s'", event_name);
         return;
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
     if (root == NULL || !yyjson_is_obj(root)) {
+        DEBUG_LOG("process_event: invalid JSON root for event '%s'", event_name);
         yyjson_doc_free(doc);
         return;
     }
+
+    DEBUG_LOG("process_event: dispatching event '%s'", event_name);
 
     if (strcmp(event_name, "response.created") == 0) {
         handle_response_created(stream_ctx, root);
@@ -398,13 +443,17 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         handle_function_call_arguments_delta(stream_ctx, root);
     } else if (strcmp(event_name, "response.function_call_arguments.done") == 0) {
         // No-op: arguments already accumulated via delta events
+        DEBUG_LOG("process_event: function_call_arguments.done - no-op");
     } else if (strcmp(event_name, "response.output_item.done") == 0) {
         handle_output_item_done(stream_ctx, root);
     } else if (strcmp(event_name, "response.completed") == 0) {
         handle_response_completed(stream_ctx, root);
     } else if (strcmp(event_name, "error") == 0) {
         handle_error(stream_ctx, root);
+    } else {
+        DEBUG_LOG("process_event: unknown event type '%s' - ignoring", event_name);
     }
 
+    DEBUG_LOG("process_event: finished processing '%s'", event_name);
     yyjson_doc_free(doc);
 }
