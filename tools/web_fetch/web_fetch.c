@@ -101,11 +101,11 @@ int32_t web_fetch_execute(void *ctx, const web_fetch_params_t *params)
         return 0;
     }
 
-    int64_t http_code = 0;
+    long http_code = 0;
     curl_easy_getinfo_(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code >= 400) {
         char error_msg[256];
-        snprintf(error_msg, sizeof(error_msg), "HTTP %" PRId64 " error", http_code);
+        snprintf(error_msg, sizeof(error_msg), "HTTP %ld error", http_code);
         curl_easy_cleanup_(curl);
         output_error(ctx, error_msg, "ERR_IO");
         return 0;
