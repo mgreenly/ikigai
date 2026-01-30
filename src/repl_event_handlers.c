@@ -105,9 +105,7 @@ res_t ik_repl_handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *
 {
     char byte;
     ssize_t n = posix_read_(terminal_fd, &byte, 1);
-    DEBUG_LOG("terminal read: n=%zd, errno=%d (%s)", n, errno, strerror(errno));
     if (n < 0) {
-        DEBUG_LOG("read failed, errno=%d", errno);
         if (errno == EINTR) {
             return OK(NULL);
         }

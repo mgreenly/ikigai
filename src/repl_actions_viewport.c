@@ -14,6 +14,8 @@
  * @brief Calculate maximum viewport offset
  *
  * Computes max scrollback offset based on document height and terminal size.
+ * Uses ik_repl_calculate_document_height() which accounts for all layers
+ * (banner, scrollback, spinner, separator, input, completion, status).
  *
  * @param repl REPL context
  * @return Maximum viewport offset
@@ -23,10 +25,7 @@ size_t ik_repl_calculate_max_viewport_offset(ik_repl_ctx_t *repl)
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
     ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
-    size_t input_buffer_display_rows = (input_buffer_rows == 0) ? 1 : input_buffer_rows;
-    size_t document_height = scrollback_rows + 1 + input_buffer_display_rows + 1;  // +1 for lower separator
+    size_t document_height = ik_repl_calculate_document_height(repl);
 
     if (document_height > (size_t)repl->shared->term->screen_rows) {
         return document_height - (size_t)repl->shared->term->screen_rows;

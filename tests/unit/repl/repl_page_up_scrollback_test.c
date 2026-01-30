@@ -83,16 +83,16 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     repl->current->input_buffer = input_buf;
     repl->current->scrollback = scrollback;
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
-    // Document: 9 scrollback + 1 upper_separator + 1 input buffer + 1 lower_separator = 12 rows
-    // (input buffer always occupies 1 row even when empty, for cursor visibility)
+    // Document: 9 scrollback + 1 separator + 1 input buffer = 11 rows
     // Terminal: 5 rows
-    // At bottom (offset=0), showing rows 7-11:
+    // At bottom (offset=0), showing rows 6-10:
+    //   Row 6: B (scrollback line 6)
     //   Row 7: C (scrollback line 7)
     //   Row 8: D (scrollback line 8)
-    //   Row 9: upper separator
+    //   Row 9: separator
     //   Row 10: input buffer
-    //   Row 11: lower separator
 
     // Calculate viewport at bottom
     ik_viewport_t viewport_bottom;
@@ -105,15 +105,15 @@ START_TEST(test_page_up_shows_earlier_scrollback) {
     fprintf(stderr, "separator_visible: %d\n", viewport_bottom.separator_visible);
     fprintf(stderr, "input_buffer_start_row: %zu\n", viewport_bottom.input_buffer_start_row);
 
-    // Should show scrollback lines 7, 8 (C, D)
-    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 7);
-    ck_assert_uint_eq(viewport_bottom.scrollback_lines_count, 2);
+    // Should show scrollback lines 6, 7, 8 (B, C, D)
+    ck_assert_uint_eq(viewport_bottom.scrollback_start_line, 6);
+    ck_assert_uint_eq(viewport_bottom.scrollback_lines_count, 3);
     ck_assert(viewport_bottom.separator_visible);
-    ck_assert_uint_eq(viewport_bottom.input_buffer_start_row, 3);  // Input buffer visible at row 3
+    ck_assert_uint_eq(viewport_bottom.input_buffer_start_row, 4);  // Input buffer visible at row 4
 
     // Now press Page Up (scroll to max offset to see earliest lines)
-    // Document height = 12, terminal = 5, max offset = 7
-    repl->current->viewport_offset = 7;
+    // Document height = 11, terminal = 5, max offset = 6
+    repl->current->viewport_offset = 6;
 
     // After Page Up to max, showing rows 0-4:
     //   Row 0: initial0 (scrollback line 0)

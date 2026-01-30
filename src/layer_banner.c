@@ -2,6 +2,7 @@
 #include "layer_wrappers.h"
 
 #include "ansi.h"
+#include "debug_log.h"
 #include "layer.h"
 #include "panic.h"
 #include "version.h"
@@ -54,8 +55,10 @@ static void banner_render(const ik_layer_t *layer,
 {
     assert(layer != NULL);       // LCOV_EXCL_BR_LINE
     assert(layer->data != NULL); // LCOV_EXCL_BR_LINE
-    (void)start_row; // Banner is only 6 rows, so start_row is always 0
-    (void)row_count; // Always render the full banner layer
+
+    // Calculate visible row range
+    size_t end_row = start_row + row_count;
+    DEBUG_LOG("banner_render: start_row=%zu, row_count=%zu, end_row=%zu", start_row, row_count, end_row);
 
     // Build color escape sequences
     char color_border[16];
@@ -72,84 +75,101 @@ static void banner_render(const ik_layer_t *layer,
     size_t len_version = ik_ansi_fg_256(color_version, sizeof(color_version), 153); // Soft blue
     size_t len_tagline = ik_ansi_fg_256(color_tagline, sizeof(color_tagline), 250); // Light gray
 
-    // Row 1: Top border (═ repeated for terminal width)
-    ik_output_buffer_append(output, color_border, len_border);
-    for (size_t i = 0; i < width; i++) {
-        ik_output_buffer_append(output, BOX_DOUBLE_HORIZONTAL, UNICODE_CHAR_LEN);
+    // Row 0: Top border (═ repeated for terminal width)
+    if (0 >= start_row && 0 < end_row) {
+        ik_output_buffer_append(output, color_border, len_border);
+        for (size_t i = 0; i < width; i++) {
+            ik_output_buffer_append(output, BOX_DOUBLE_HORIZONTAL, UNICODE_CHAR_LEN);
+        }
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
     }
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
 
-    // Row 2:  ╭─╮╭─╮
-    ik_output_buffer_append(output, " ", 1);
-    ik_output_buffer_append(output, color_eyes, len_eyes);
-    ik_output_buffer_append(output, BOX_ROUNDED_DOWN_RIGHT, UNICODE_CHAR_LEN);  // ╭
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_ROUNDED_DOWN_LEFT, UNICODE_CHAR_LEN);   // ╮
-    ik_output_buffer_append(output, BOX_ROUNDED_DOWN_RIGHT, UNICODE_CHAR_LEN);  // ╭
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_ROUNDED_DOWN_LEFT, UNICODE_CHAR_LEN);   // ╮
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
-
-    // Row 3:  │●││●│    Ikigai v0.10.0
-    ik_output_buffer_append(output, " ", 1);
-    ik_output_buffer_append(output, color_eyes, len_eyes);
-    ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, color_pupils, len_pupils);
-    ik_output_buffer_append(output, BLACK_CIRCLE, UNICODE_CHAR_LEN);            // ●
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, color_eyes, len_eyes);
-    ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
-    ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, color_pupils, len_pupils);
-    ik_output_buffer_append(output, BLACK_CIRCLE, UNICODE_CHAR_LEN);            // ●
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, color_eyes, len_eyes);
-    ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "    ", 4);
-    ik_output_buffer_append(output, color_version, len_version);
-    ik_output_buffer_append(output, "Ikigai v", 8);
-    ik_output_buffer_append(output, IK_VERSION, strlen(IK_VERSION));
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
-
-    // Row 4:  ╰─╯╰─╯    Agentic Orchestration
-    ik_output_buffer_append(output, " ", 1);
-    ik_output_buffer_append(output, color_eyes, len_eyes);
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "    ", 4);
-    ik_output_buffer_append(output, color_tagline, len_tagline);
-    ik_output_buffer_append(output, "Agentic Orchestration", 21);
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
-
-    // Row 5:   ╰──╯
-    ik_output_buffer_append(output, "  ", 2);
-    ik_output_buffer_append(output, color_smile, len_smile);
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
-    ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
-
-    // Row 6: Bottom border (═ repeated for terminal width)
-    ik_output_buffer_append(output, color_border, len_border);
-    for (size_t i = 0; i < width; i++) {
-        ik_output_buffer_append(output, BOX_DOUBLE_HORIZONTAL, UNICODE_CHAR_LEN);
+    // Row 1:  ╭─╮╭─╮
+    if (1 >= start_row && 1 < end_row) {
+        ik_output_buffer_append(output, " ", 1);
+        ik_output_buffer_append(output, color_eyes, len_eyes);
+        ik_output_buffer_append(output, BOX_ROUNDED_DOWN_RIGHT, UNICODE_CHAR_LEN);  // ╭
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_ROUNDED_DOWN_LEFT, UNICODE_CHAR_LEN);   // ╮
+        ik_output_buffer_append(output, BOX_ROUNDED_DOWN_RIGHT, UNICODE_CHAR_LEN);  // ╭
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_ROUNDED_DOWN_LEFT, UNICODE_CHAR_LEN);   // ╮
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
     }
-    ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+
+    // Row 2: (│●││●│)    Ikigai vX.X.X
+    if (2 >= start_row && 2 < end_row) {
+        ik_output_buffer_append(output, color_smile, len_smile);
+        ik_output_buffer_append(output, "(", 1);                                    // ( ear
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_eyes, len_eyes);
+        ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_pupils, len_pupils);
+        ik_output_buffer_append(output, BLACK_CIRCLE, UNICODE_CHAR_LEN);            // ●
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_eyes, len_eyes);
+        ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
+        ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_pupils, len_pupils);
+        ik_output_buffer_append(output, BLACK_CIRCLE, UNICODE_CHAR_LEN);            // ●
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_eyes, len_eyes);
+        ik_output_buffer_append(output, BOX_LIGHT_VERTICAL, UNICODE_CHAR_LEN);      // │
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, color_smile, len_smile);
+        ik_output_buffer_append(output, ")", 1);                                    // ) ear
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "    ", 4);
+        ik_output_buffer_append(output, color_version, len_version);
+        ik_output_buffer_append(output, "Ikigai v", 8);
+        ik_output_buffer_append(output, IK_VERSION, strlen(IK_VERSION));
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+    }
+
+    // Row 3:  ╰─╯╰─╯    Agentic Orchestration
+    if (3 >= start_row && 3 < end_row) {
+        ik_output_buffer_append(output, " ", 1);
+        ik_output_buffer_append(output, color_eyes, len_eyes);
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "    ", 4);
+        ik_output_buffer_append(output, color_tagline, len_tagline);
+        ik_output_buffer_append(output, "Agentic Orchestration", 21);
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+    }
+
+    // Row 4:   ╰──╯
+    if (4 >= start_row && 4 < end_row) {
+        ik_output_buffer_append(output, "  ", 2);
+        ik_output_buffer_append(output, color_smile, len_smile);
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_RIGHT, UNICODE_CHAR_LEN);    // ╰
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
+        ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+    }
+
+    // Row 5: Bottom border (═ repeated for terminal width)
+    if (5 >= start_row && 5 < end_row) {
+        ik_output_buffer_append(output, color_border, len_border);
+        for (size_t i = 0; i < width; i++) {
+            ik_output_buffer_append(output, BOX_DOUBLE_HORIZONTAL, UNICODE_CHAR_LEN);
+        }
+        ik_output_buffer_append(output, IK_ANSI_RESET, 4);
+        ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+    }
 }
 
 // Create banner layer
