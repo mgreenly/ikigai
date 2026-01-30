@@ -1,5 +1,4 @@
 #include "agent.h"
-
 #include "config.h"
 #include "config_defaults.h"
 #include "db/agent.h"
@@ -23,8 +22,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-// Forward declarations to avoid type conflicts during migration
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
 
@@ -146,6 +143,7 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Initialize tool execution state
     agent->pending_tool_call = NULL;
+    agent->pending_tool_thought_signature = NULL;
     agent->tool_thread_running = false;
     agent->tool_thread_complete = false;
     agent->tool_thread_ctx = NULL;

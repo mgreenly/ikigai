@@ -153,6 +153,7 @@ START_TEST(test_extract_thinking_with_tool_call) {
     response->content_blocks[1].data.tool_call.id = talloc_strdup(response, "toolu_01abc");
     response->content_blocks[1].data.tool_call.name = talloc_strdup(response, "glob");
     response->content_blocks[1].data.tool_call.arguments = talloc_strdup(response, "{\"pattern\": \"*.c\"}");
+    response->content_blocks[1].data.tool_call.thought_signature = NULL;
 
     ik_provider_completion_t completion = {
         .success = true,

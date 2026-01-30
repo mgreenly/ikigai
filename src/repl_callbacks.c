@@ -14,11 +14,6 @@
 #include <talloc.h>
 #include <string.h>
 
-/**
- * Helper to flush a complete line to scrollback
- *
- * On the first line of streaming output, prepends the "● " prefix.
- */
 static void flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
                                      size_t start, size_t chunk_len)
 {
@@ -80,9 +75,6 @@ static void flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
     agent->streaming_first_line = false;
 }
 
-/**
- * Helper to handle text delta streaming with line buffering
- */
 static void handle_text_delta(ik_agent_ctx_t *agent, const char *chunk, size_t chunk_len)
 {
     // Accumulate complete response for adding to conversation later
@@ -116,17 +108,6 @@ static void handle_text_delta(ik_agent_ctx_t *agent, const char *chunk, size_t c
     }
 }
 
-/**
- * @brief Stream callback for provider API responses
- *
- * Called during perform() as data arrives from the network.
- * Handles normalized stream events (text deltas, thinking, tool calls, etc.).
- * Updates UI incrementally as content streams in.
- *
- * @param event   Stream event (text delta, tool call, etc.)
- * @param ctx     Agent context pointer
- * @return        OK(NULL) to continue, ERR(...) to abort
- */
 res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 {
     assert(event != NULL);  /* LCOV_EXCL_BR_LINE */
@@ -182,9 +163,6 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
     return OK(NULL);
 }
 
-/**
- * Helper to render usage event with token counts
- */
 static void render_usage_event(ik_agent_ctx_t *agent)
 {
     int32_t total = agent->response_input_tokens + agent->response_output_tokens +
@@ -201,9 +179,6 @@ static void render_usage_event(ik_agent_ctx_t *agent)
     }
 }
 
-/**
- * Helper to store response metadata
- */
 static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
     // Clear previous metadata
@@ -241,9 +216,6 @@ static void store_response_metadata(ik_agent_ctx_t *agent, const ik_response_t *
     agent->response_thinking_tokens = response->usage.thinking_tokens;
 }
 
-/**
- * Helper to extract tool calls and thinking blocks from response
- */
 static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
     // Clear any previous pending thinking
@@ -264,6 +236,10 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
     if (agent->pending_tool_call != NULL) {
         talloc_free(agent->pending_tool_call);
         agent->pending_tool_call = NULL;
+    }
+    if (agent->pending_tool_thought_signature != NULL) {
+        talloc_free(agent->pending_tool_thought_signature);
+        agent->pending_tool_thought_signature = NULL;
     }
 
     for (size_t i = 0; i < response->content_count; i++) {
@@ -289,21 +265,15 @@ static void extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *respo
                                                            block->data.tool_call.name,
                                                            block->data.tool_call.arguments);
             if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (block->data.tool_call.thought_signature != NULL) {
+                agent->pending_tool_thought_signature = talloc_strdup(agent, block->data.tool_call.thought_signature);
+                if (agent->pending_tool_thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
             break;  // Only handle first tool call
         }
     }
 }
 
-/**
- * @brief Completion callback for provider requests
- *
- * Called from info_read() when an HTTP request completes (success or failure).
- * Stores response metadata and finalizes streaming state.
- *
- * @param completion   Completion information (usage, metadata, error)
- * @param ctx          Agent context pointer
- * @return             OK(NULL) on success, ERR(...) on failure
- */
 res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, void *ctx)
 {
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */

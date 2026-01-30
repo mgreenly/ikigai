@@ -86,7 +86,8 @@ START_TEST(test_create_tool_call_with_thinking) {
         NULL,
         "call_456",
         "grep",
-        "{\"pattern\":\"test\"}");
+        "{\"pattern\":\"test\"}",
+        NULL);
 
     ck_assert_ptr_nonnull(msg);
     ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
@@ -115,7 +116,8 @@ START_TEST(test_create_tool_call_with_redacted) {
         "encrypted_data_xyz",
         "call_789",
         "bash",
-        "{\"cmd\":\"ls\"}");
+        "{\"cmd\":\"ls\"}",
+        NULL);
 
     ck_assert_ptr_nonnull(msg);
     ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
@@ -140,7 +142,8 @@ START_TEST(test_create_tool_call_no_thinking) {
         NULL,
         "call_simple",
         "echo",
-        "{\"text\":\"hi\"}");
+        "{\"text\":\"hi\"}",
+        NULL);
 
     ck_assert_ptr_nonnull(msg);
     ck_assert_int_eq(msg->role, IK_ROLE_ASSISTANT);
@@ -162,7 +165,8 @@ START_TEST(test_create_tool_call_with_signature) {
         NULL,
         "call_sig",
         "read",
-        "{\"path\":\"/tmp/test\"}");
+        "{\"path\":\"/tmp/test\"}",
+        NULL);
 
     ck_assert_ptr_nonnull(msg);
     ck_assert_uint_eq(msg->content_count, 2);
@@ -178,7 +182,8 @@ START_TEST(test_create_tool_call_with_signature) {
         NULL,
         "call_nosig",
         "write",
-        "{}");
+        "{}",
+        NULL);
 
     ck_assert_ptr_nonnull(msg2);
     ck_assert_ptr_null(msg2->content_blocks[0].data.thinking.signature);

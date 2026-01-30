@@ -55,8 +55,11 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
                 dst->data.tool_call.id = talloc_strdup(req, src->data.tool_call.id);
                 dst->data.tool_call.name = talloc_strdup(req, src->data.tool_call.name);
                 dst->data.tool_call.arguments = talloc_strdup(req, src->data.tool_call.arguments);
+                dst->data.tool_call.thought_signature = (src->data.tool_call.thought_signature != NULL)
+                    ? talloc_strdup(req, src->data.tool_call.thought_signature) : NULL;
                 if (dst->data.tool_call.id == NULL || dst->data.tool_call.name == NULL || // LCOV_EXCL_BR_LINE
-                    dst->data.tool_call.arguments == NULL) { // LCOV_EXCL_BR_LINE
+                    dst->data.tool_call.arguments == NULL || // LCOV_EXCL_BR_LINE
+                    (src->data.tool_call.thought_signature != NULL && dst->data.tool_call.thought_signature == NULL)) { // LCOV_EXCL_BR_LINE
                     PANIC("Out of memory"); // LCOV_EXCL_LINE
                 }
                 break;
@@ -118,7 +121,7 @@ static res_t build_system_prompt_from_agent(ik_request_t *req, ik_agent_ctx_t *a
     // 3. cfg->openai_system_message (config fallback)
     char *system_prompt = NULL;
     res_t prompt_res = ik_agent_get_effective_system_prompt(agent, &system_prompt);
-    if (is_err(&prompt_res)) {
+    if (is_err(&prompt_res)) {  // LCOV_EXCL_BR_LINE - ik_agent_get_effective_system_prompt always succeeds
         return prompt_res;  // LCOV_EXCL_LINE
     }
 
