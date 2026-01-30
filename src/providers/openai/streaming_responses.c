@@ -82,38 +82,18 @@ ik_finish_reason_t ik_openai_responses_stream_get_finish_reason(ik_openai_respon
  */
 static void sse_event_handler(const char *event_name, const char *data, size_t len, void *user_ctx)
 {
-    DEBUG_LOG("sse_event_handler: event='%s' data_len=%zu user_ctx=%p",
-              event_name ? event_name : "(null)", len, user_ctx);
-
-    // Defensive NULL checks
-    if (user_ctx == NULL) {
-        DEBUG_LOG("sse_event_handler: FATAL - user_ctx is NULL!");
-        return;
-    }
-
-    if (event_name == NULL) {
-        DEBUG_LOG("sse_event_handler: WARNING - event_name is NULL, skipping");
-        return;
-    }
-
-    if (data == NULL) {
-        DEBUG_LOG("sse_event_handler: WARNING - data is NULL, skipping");
-        return;
-    }
-
     (void)len;
 
+    assert(user_ctx != NULL);   // LCOV_EXCL_BR_LINE
+    assert(event_name != NULL); // LCOV_EXCL_BR_LINE
+    assert(data != NULL);       // LCOV_EXCL_BR_LINE
+
     ik_openai_responses_stream_ctx_t *stream_ctx = (ik_openai_responses_stream_ctx_t *)user_ctx;
+    assert(stream_ctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    // Validate stream_ctx fields before processing
-    if (stream_ctx->stream_cb == NULL) {
-        DEBUG_LOG("sse_event_handler: FATAL - stream_ctx->stream_cb is NULL!");
-        return;
-    }
-
-    DEBUG_LOG("sse_event_handler: calling process_event for '%s'", event_name);
+    DEBUG_LOG("sse_event_handler: event='%s' data_len=%zu calling process_event",
+              event_name, strlen(data));
     ik_openai_responses_stream_process_event(stream_ctx, event_name, data);
-    DEBUG_LOG("sse_event_handler: process_event returned for '%s'", event_name);
 }
 
 /* ================================================================
@@ -125,27 +105,11 @@ static void sse_event_handler(const char *event_name, const char *data, size_t l
  */
 size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    DEBUG_LOG("responses_write_callback: ptr=%p size=%zu nmemb=%zu userdata=%p",
-              ptr, size, nmemb, userdata);
-
-    // Defensive NULL check with logging
-    if (userdata == NULL) {
-        DEBUG_LOG("responses_write_callback: FATAL - userdata is NULL!");
-        return 0;  // Signal error to curl
-    }
+    assert(userdata != NULL); // LCOV_EXCL_BR_LINE
 
     ik_openai_responses_stream_ctx_t *ctx = (ik_openai_responses_stream_ctx_t *)userdata;
-
-    // Validate context fields
-    if (ctx->sse_parser == NULL) {
-        DEBUG_LOG("responses_write_callback: FATAL - sse_parser is NULL! ctx=%p", (void *)ctx);
-        return 0;  // Signal error to curl
-    }
-
-    if (ctx->stream_cb == NULL) {
-        DEBUG_LOG("responses_write_callback: FATAL - stream_cb is NULL! ctx=%p", (void *)ctx);
-        return 0;  // Signal error to curl
-    }
+    assert(ctx->sse_parser != NULL); // LCOV_EXCL_BR_LINE
+    assert(ctx->stream_cb != NULL);  // LCOV_EXCL_BR_LINE
 
     size_t total = size * nmemb;
     DEBUG_LOG("responses_write_callback: feeding %zu bytes to SSE parser", total);

@@ -23,27 +23,12 @@
  */
 void ik_openai_emit_event(ik_openai_responses_stream_ctx_t *sctx, const ik_stream_event_t *event)
 {
-    DEBUG_LOG("emit_event: sctx=%p event=%p", (void *)sctx, (const void *)event);
-
-    // Defensive NULL checks
-    if (sctx == NULL) {
-        DEBUG_LOG("emit_event: FATAL - sctx is NULL!");
-        return;
-    }
-
-    if (event == NULL) {
-        DEBUG_LOG("emit_event: FATAL - event is NULL!");
-        return;
-    }
-
-    if (sctx->stream_cb == NULL) {
-        DEBUG_LOG("emit_event: FATAL - stream_cb is NULL!");
-        return;
-    }
+    assert(sctx != NULL);           // LCOV_EXCL_BR_LINE
+    assert(event != NULL);          // LCOV_EXCL_BR_LINE
+    assert(sctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
     DEBUG_LOG("emit_event: type=%d stream_ctx=%p", event->type, sctx->stream_ctx);
     sctx->stream_cb(event, sctx->stream_ctx);
-    DEBUG_LOG("emit_event: callback returned");
 }
 
 /**
@@ -92,32 +77,12 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                                               const char *event_name,
                                               const char *data)
 {
-    DEBUG_LOG("process_event: stream_ctx=%p event='%s' data_len=%zu",
-              (void *)stream_ctx,
-              event_name ? event_name : "(null)",
-              data ? strlen(data) : 0);
+    assert(stream_ctx != NULL);           // LCOV_EXCL_BR_LINE
+    assert(event_name != NULL);           // LCOV_EXCL_BR_LINE
+    assert(data != NULL);                 // LCOV_EXCL_BR_LINE
+    assert(stream_ctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    // Defensive NULL checks
-    if (stream_ctx == NULL) {
-        DEBUG_LOG("process_event: FATAL - stream_ctx is NULL!");
-        return;
-    }
-
-    if (event_name == NULL) {
-        DEBUG_LOG("process_event: FATAL - event_name is NULL!");
-        return;
-    }
-
-    if (data == NULL) {
-        DEBUG_LOG("process_event: FATAL - data is NULL!");
-        return;
-    }
-
-    // Validate stream_ctx fields
-    if (stream_ctx->stream_cb == NULL) {
-        DEBUG_LOG("process_event: FATAL - stream_ctx->stream_cb is NULL!");
-        return;
-    }
+    DEBUG_LOG("process_event: event='%s' data_len=%zu", event_name, strlen(data));
 
     yyjson_doc *doc = yyjson_read(data, strlen(data), 0);
     if (doc == NULL) {
