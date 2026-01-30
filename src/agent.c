@@ -107,17 +107,17 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
     res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create spinner layer (pass pointer to agent's spinner_state)
     agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create separator layer (upper) - pass pointer to agent field
     agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
@@ -125,16 +125,16 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                                                &agent->input_text,
                                                &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create completion layer (pass pointer to agent's completion field)
     agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset
     agent->viewport_offset = 0;
@@ -249,17 +249,17 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     // Create and add layers (following pattern from repl_init.c)
     agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
     res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create spinner layer (pass pointer to agent's spinner_state)
     agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create separator layer (upper) - pass pointer to agent field
     agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create input layer - pass pointers to agent fields
     agent->input_layer = ik_input_layer_create(agent, "input",
@@ -267,16 +267,16 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
                                                &agent->input_text,
                                                &agent->input_text_len);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Create completion layer (pass pointer to agent's completion field)
     agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
-    if (is_err(&result)) PANIC("allocation failed"); /* LCOV_EXCL_BR_LINE */
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     // Initialize viewport offset
     agent->viewport_offset = 0;
