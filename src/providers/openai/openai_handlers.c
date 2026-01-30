@@ -4,6 +4,7 @@
  */
 
 #include "openai_handlers.h"
+#include "debug_log.h"
 #include "error.h"
 #include "panic.h"
 #include "response.h"
@@ -132,15 +133,34 @@ void ik_openai_http_completion_handler(const ik_http_completion_t *http_completi
  */
 size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userdata)
 {
+    DEBUG_LOG("stream_write_callback: data=%p len=%zu userdata=%p", (const void *)data, len, userdata);
+
+    // Defensive NULL check for userdata
+    if (userdata == NULL) {
+        DEBUG_LOG("stream_write_callback: FATAL - userdata is NULL!");
+        return 0;  // Signal error to curl
+    }
+
     ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)userdata;
-    assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    DEBUG_LOG("stream_write_callback: req_ctx=%p use_responses_api=%d parser_ctx=%p",
+              (void *)req_ctx, req_ctx->use_responses_api, req_ctx->parser_ctx);
 
     // Responses API has its own SSE parser - delegate to its write callback
     if (req_ctx->use_responses_api) {
+        // Defensive check for parser_ctx
+        if (req_ctx->parser_ctx == NULL) {
+            DEBUG_LOG("stream_write_callback: FATAL - parser_ctx is NULL for responses API!");
+            return 0;  // Signal error to curl
+        }
+
+        DEBUG_LOG("stream_write_callback: delegating to responses_stream_write_callback");
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        return ik_openai_responses_stream_write_callback((void *)data, 1, len, req_ctx->parser_ctx);
+        size_t result = ik_openai_responses_stream_write_callback((void *)data, 1, len, req_ctx->parser_ctx);
 #pragma GCC diagnostic pop
+        DEBUG_LOG("stream_write_callback: responses_stream_write_callback returned %zu", result);
+        return result;
     }
 
     // Chat Completions API: Parse SSE manually
@@ -198,9 +218,24 @@ size_t ik_openai_stream_write_callback(const char *data, size_t len, void *userd
 void ik_openai_stream_completion_handler(const ik_http_completion_t *http_completion,
                                          void *user_ctx)
 {
+    DEBUG_LOG("stream_completion_handler: ENTRY http_completion=%p user_ctx=%p",
+              (const void *)http_completion, user_ctx);
+
+    if (user_ctx == NULL) {
+        DEBUG_LOG("stream_completion_handler: FATAL - user_ctx is NULL!");
+        return;
+    }
+
     ik_openai_stream_request_ctx_t *req_ctx = (ik_openai_stream_request_ctx_t *)user_ctx;
-    assert(req_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(req_ctx->completion_cb != NULL);  // LCOV_EXCL_BR_LINE
+
+    DEBUG_LOG("stream_completion_handler: req_ctx=%p completion_cb=%p http_code=%d type=%d",
+              (void *)req_ctx, (void *)req_ctx->completion_cb,
+              http_completion->http_code, http_completion->type);
+
+    if (req_ctx->completion_cb == NULL) {
+        DEBUG_LOG("stream_completion_handler: FATAL - completion_cb is NULL!");
+        return;
+    }
 
     // Build provider completion structure
     ik_provider_completion_t provider_completion = {0};
@@ -246,24 +281,39 @@ void ik_openai_stream_completion_handler(const ik_http_completion_t *http_comple
 
     // Success - stream events were already delivered during perform()
     // Build response from accumulated streaming data (if parser context exists)
+    DEBUG_LOG("stream_completion_handler: building response, parser_ctx=%p use_responses_api=%d",
+              req_ctx->parser_ctx, req_ctx->use_responses_api);
+
     provider_completion.success = true;
     if (req_ctx->parser_ctx != NULL) {
         if (req_ctx->use_responses_api) {
+            DEBUG_LOG("stream_completion_handler: calling responses_stream_build_response");
             provider_completion.response = ik_openai_responses_stream_build_response(
                 req_ctx, (ik_openai_responses_stream_ctx_t *)req_ctx->parser_ctx);
+            DEBUG_LOG("stream_completion_handler: responses_stream_build_response returned %p",
+                      (void *)provider_completion.response);
         } else {
+            DEBUG_LOG("stream_completion_handler: calling chat_stream_build_response");
             provider_completion.response = ik_openai_chat_stream_build_response(
                 req_ctx, (ik_openai_chat_stream_ctx_t *)req_ctx->parser_ctx);
+            DEBUG_LOG("stream_completion_handler: chat_stream_build_response returned %p",
+                      (void *)provider_completion.response);
         }
     } else {
+        DEBUG_LOG("stream_completion_handler: parser_ctx is NULL, no response");
         provider_completion.response = NULL;
     }
     provider_completion.error_category = IK_ERR_CAT_UNKNOWN;
     provider_completion.error_message = NULL;
     provider_completion.retry_after_ms = -1;
 
+    DEBUG_LOG("stream_completion_handler: calling user completion_cb=%p ctx=%p",
+              (void *)req_ctx->completion_cb, req_ctx->completion_ctx);
     req_ctx->completion_cb(&provider_completion, req_ctx->completion_ctx);
+    DEBUG_LOG("stream_completion_handler: user completion_cb returned");
 
     // Cleanup
+    DEBUG_LOG("stream_completion_handler: freeing req_ctx");
     talloc_free(req_ctx);
+    DEBUG_LOG("stream_completion_handler: done");
 }

@@ -70,8 +70,8 @@ ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
 
     // Check if we have a tool call to include
     if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
-        // Allocate content blocks array with one tool call
-        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        // Allocate content blocks array with one tool call (zero-init to avoid garbage pointers)
+        resp->content_blocks = talloc_zero_array(resp, ik_content_block_t, 1);
         if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         resp->content_count = 1;
 
@@ -86,6 +86,7 @@ ik_response_t *ik_openai_chat_stream_build_response(TALLOC_CTX *ctx,
                                                         sctx->current_tool_args !=
                                                         NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        // thought_signature is NULL (zero-initialized) - Chat API doesn't provide it
     } else {
         // No tool call - empty content
         resp->content_blocks = NULL;
