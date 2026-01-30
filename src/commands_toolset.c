@@ -98,7 +98,7 @@ res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     size_t capacity = 16;
-    char **tools = talloc_array(ctx, char *, capacity);
+    char **tools = talloc_array(repl->current, char *, (unsigned int)capacity);
     if (!tools) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
@@ -123,7 +123,7 @@ res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
         if (count >= capacity) {
             capacity *= 2;
-            tools = talloc_realloc(ctx, tools, char *, capacity);
+            tools = talloc_realloc(ctx, tools, char *, (unsigned int)capacity);
             if (!tools) {     // LCOV_EXCL_BR_LINE
                 PANIC("OOM");   // LCOV_EXCL_LINE
             }
@@ -142,7 +142,7 @@ res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
         talloc_free(repl->current->toolset_filter);
     }
 
-    repl->current->toolset_filter = talloc_realloc(repl->current, tools, char *, count);
+    repl->current->toolset_filter = talloc_realloc(repl->current, tools, char *, (unsigned int)count);
     if (count > 0 && !repl->current->toolset_filter) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
