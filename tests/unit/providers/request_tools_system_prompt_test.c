@@ -78,6 +78,30 @@ START_TEST(test_nonempty_system_prompt) {
 }
 END_TEST
 
+// Test NULL system_prompt (lines 128 and 137 false branches)
+START_TEST(test_null_system_prompt) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->shared->paths = NULL;
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->pinned_count = 0;
+
+    // Set config to NULL to make system_prompt NULL
+    agent->shared->cfg->openai_system_message = NULL;
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
+
+    ck_assert(is_ok(&result));
+    ck_assert_ptr_nonnull(req);
+
+    talloc_free(req);
+}
+END_TEST
+
 static Suite *request_tools_system_prompt_suite(void)
 {
     Suite *s = suite_create("Request Tools System Prompt");
@@ -87,6 +111,7 @@ static Suite *request_tools_system_prompt_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_empty_system_prompt);
     tcase_add_test(tc, test_nonempty_system_prompt);
+    tcase_add_test(tc, test_null_system_prompt);
     suite_add_tcase(s, tc);
 
     return s;

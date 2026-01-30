@@ -11,6 +11,7 @@
 #include "commands_model.h"
 #include "commands_pin.h"
 #include "commands_tool.h"
+#include "commands_toolset.h"
 #include "db/message.h"
 #include "logger.h"
 #include "output_style.h"
@@ -70,6 +71,7 @@ static const ik_command_t commands[] = {
     {"refresh", "Reload tool registry", ik_cmd_refresh},
     {"pin", "Manage pinned documents (usage: /pin [path])", ik_cmd_pin},
     {"unpin", "Remove pinned document (usage: /unpin <path>)", ik_cmd_unpin},
+    {"toolset", "Filter tools visible to LLM (usage: /toolset [tool1, tool2, ...])", ik_cmd_toolset},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

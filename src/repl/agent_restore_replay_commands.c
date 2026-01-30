@@ -17,6 +17,7 @@
 
 // Forward declarations
 static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root);
+static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val);
 static void replay_model_command(ik_agent_ctx_t *agent, const char *args, ik_logger_t *logger);
 static void replay_pin_command(ik_agent_ctx_t *agent, const char *args);
 static void replay_unpin_command(ik_agent_ctx_t *agent, const char *args);
@@ -32,34 +33,66 @@ static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root)
     }
 
     yyjson_val *pins_val = yyjson_obj_get_(root, "pinned_paths");
-    if (!yyjson_is_arr(pins_val)) {     // LCOV_EXCL_BR_LINE
-        return;     // LCOV_EXCL_LINE
+    if (yyjson_is_arr(pins_val)) {
+        size_t arr_size = yyjson_arr_size(pins_val);
+
+        if (agent->pinned_paths != NULL) {     // LCOV_EXCL_BR_LINE
+            talloc_free(agent->pinned_paths);     // LCOV_EXCL_LINE
+            agent->pinned_paths = NULL;     // LCOV_EXCL_LINE
+            agent->pinned_count = 0;     // LCOV_EXCL_LINE
+        }
+
+        if (arr_size > 0) {
+            agent->pinned_paths = talloc_array(agent, char *, (unsigned int)arr_size);
+            if (agent->pinned_paths == NULL) return;  // LCOV_EXCL_LINE
+
+            size_t idx = 0;
+            size_t max_idx = 0;
+            yyjson_val *path_val = NULL;
+            yyjson_arr_foreach(pins_val, idx, max_idx, path_val) {     // LCOV_EXCL_BR_LINE
+                const char *path_str = yyjson_get_str(path_val);
+                if (path_str != NULL) {     // LCOV_EXCL_BR_LINE
+                    agent->pinned_paths[agent->pinned_count] = talloc_strdup(agent, path_str);
+                    if (agent->pinned_paths[agent->pinned_count] == NULL) return;  // LCOV_EXCL_LINE
+                    agent->pinned_count++;
+                }
+            }
+        }
     }
 
-    size_t arr_size = yyjson_arr_size(pins_val);
+    yyjson_val *toolset_val = yyjson_obj_get_(root, "toolset_filter");
+    replay_fork_toolset(agent, toolset_val);
+}
 
-    if (agent->pinned_paths != NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(agent->pinned_paths);     // LCOV_EXCL_LINE
-        agent->pinned_paths = NULL;     // LCOV_EXCL_LINE
-        agent->pinned_count = 0;     // LCOV_EXCL_LINE
+// Helper: Replay toolset from fork event
+static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val)
+{
+    if (!yyjson_is_arr(toolset_val)) {
+        return;
     }
 
-    if (arr_size == 0) {     // LCOV_EXCL_BR_LINE
-        return;     // LCOV_EXCL_LINE
+    size_t arr_size = yyjson_arr_size(toolset_val);
+
+    if (agent->toolset_filter != NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(agent->toolset_filter);     // LCOV_EXCL_LINE
+        agent->toolset_filter = NULL;     // LCOV_EXCL_LINE
+        agent->toolset_count = 0;     // LCOV_EXCL_LINE
     }
 
-    agent->pinned_paths = talloc_array(agent, char *, (unsigned int)arr_size);
-    if (agent->pinned_paths == NULL) return;  // LCOV_EXCL_LINE
+    if (arr_size > 0) {
+        agent->toolset_filter = talloc_array(agent, char *, (unsigned int)arr_size);
+        if (agent->toolset_filter == NULL) return;  // LCOV_EXCL_LINE
 
-    size_t idx = 0;
-    size_t max_idx = 0;
-    yyjson_val *path_val = NULL;
-    yyjson_arr_foreach(pins_val, idx, max_idx, path_val) {     // LCOV_EXCL_BR_LINE
-        const char *path_str = yyjson_get_str(path_val);
-        if (path_str != NULL) {     // LCOV_EXCL_BR_LINE
-            agent->pinned_paths[agent->pinned_count] = talloc_strdup(agent, path_str);
-            if (agent->pinned_paths[agent->pinned_count] == NULL) return;  // LCOV_EXCL_LINE
-            agent->pinned_count++;
+        size_t idx = 0;
+        size_t max_idx = 0;
+        yyjson_val *tool_val = NULL;
+        yyjson_arr_foreach(toolset_val, idx, max_idx, tool_val) {     // LCOV_EXCL_BR_LINE
+            const char *tool_str = yyjson_get_str(tool_val);
+            if (tool_str != NULL) {     // LCOV_EXCL_BR_LINE
+                agent->toolset_filter[agent->toolset_count] = talloc_strdup(agent, tool_str);
+                if (agent->toolset_filter[agent->toolset_count] == NULL) return;  // LCOV_EXCL_LINE
+                agent->toolset_count++;
+            }
         }
     }
 }
