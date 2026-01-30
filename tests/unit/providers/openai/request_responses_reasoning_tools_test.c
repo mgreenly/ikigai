@@ -236,6 +236,20 @@ START_TEST(test_serialize_single_tool) {
     yyjson_val *strict = yyjson_obj_get(tool, "strict");
     ck_assert(yyjson_get_bool(strict));
 
+    // Verify additionalProperties: false is set (required for strict mode)
+    yyjson_val *params_obj = yyjson_obj_get(tool, "parameters");
+    ck_assert_ptr_nonnull(params_obj);
+    yyjson_val *additional_props = yyjson_obj_get(params_obj, "additionalProperties");
+    ck_assert_ptr_nonnull(additional_props);
+    ck_assert(!yyjson_get_bool(additional_props));
+
+    // Verify all properties are in required array (strict mode requirement)
+    yyjson_val *required_arr = yyjson_obj_get(params_obj, "required");
+    ck_assert_ptr_nonnull(required_arr);
+    ck_assert(yyjson_is_arr(required_arr));
+    // The schema has property "x", so required should contain "x"
+    ck_assert_int_eq((int)yyjson_arr_size(required_arr), 1);
+
     yyjson_val *func = yyjson_obj_get(tool, "function");
     ck_assert_ptr_null(func);
 

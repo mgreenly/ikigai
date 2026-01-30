@@ -18,6 +18,92 @@
  * ================================================================ */
 
 /**
+ * Remove "format" fields from schema recursively.
+ * OpenAI rejects certain format validators like "uri" that are valid JSON Schema.
+ * This function recursively walks the schema and removes all "format" fields.
+ */
+static void remove_format_validators(yyjson_mut_val *schema)
+{
+    if (!schema || !yyjson_mut_is_obj(schema)) {
+        return;
+    }
+
+    // Remove format field if present
+    yyjson_mut_obj_remove_key(schema, "format");
+
+    // Recursively process properties object
+    yyjson_mut_val *properties = yyjson_mut_obj_get(schema, "properties");
+    if (properties && yyjson_mut_is_obj(properties)) {
+        yyjson_mut_obj_iter iter;
+        yyjson_mut_obj_iter_init(properties, &iter);
+        yyjson_mut_val *key;
+        while ((key = yyjson_mut_obj_iter_next(&iter)) != NULL) {
+            yyjson_mut_val *value = yyjson_mut_obj_iter_get_val(key);
+            remove_format_validators(value);
+        }
+    }
+
+    // Recursively process items (for arrays)
+    yyjson_mut_val *items = yyjson_mut_obj_get(schema, "items");
+    if (items && yyjson_mut_is_obj(items)) {
+        remove_format_validators(items);
+    }
+
+    // Recursively process oneOf/anyOf/allOf arrays
+    const char *combinators[] = {"oneOf", "anyOf", "allOf"};
+    for (size_t i = 0; i < 3; i++) {
+        yyjson_mut_val *combinator = yyjson_mut_obj_get(schema, combinators[i]);
+        if (combinator && yyjson_mut_is_arr(combinator)) {
+            yyjson_mut_arr_iter arr_iter;
+            yyjson_mut_arr_iter_init(combinator, &arr_iter);
+            yyjson_mut_val *elem;
+            while ((elem = yyjson_mut_arr_iter_next(&arr_iter)) != NULL) {
+                remove_format_validators(elem);
+            }
+        }
+    }
+}
+
+/**
+ * Ensure all properties are in the required array for OpenAI strict mode.
+ * OpenAI's strict mode requires every property to be listed in required[].
+ */
+static bool ensure_all_properties_required(yyjson_mut_doc *doc, yyjson_mut_val *params)
+{
+    assert(doc != NULL);    // LCOV_EXCL_BR_LINE
+    assert(params != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *properties = yyjson_mut_obj_get(params, "properties");
+    if (!properties || !yyjson_mut_is_obj(properties)) {
+        return true; // No properties to require
+    }
+
+    // Build new required array with ALL property keys
+    yyjson_mut_val *new_required = yyjson_mut_arr(doc);
+    if (!new_required) return false; // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_obj_iter iter;
+    yyjson_mut_obj_iter_init(properties, &iter);
+    yyjson_mut_val *key;
+    while ((key = yyjson_mut_obj_iter_next(&iter)) != NULL) {
+        const char *key_str = yyjson_mut_get_str(key);
+        if (key_str) { // LCOV_EXCL_BR_LINE - JSON object keys are always strings per spec
+            if (!yyjson_mut_arr_add_str(doc, new_required, key_str)) { // LCOV_EXCL_BR_LINE
+                return false; // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    // Remove existing required array if present and add new one
+    yyjson_mut_obj_remove_key(params, "required");
+    if (!yyjson_mut_obj_add_val(doc, params, "required", new_required)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
+
+    return true;
+}
+
+/**
  * Serialize a single tool definition to Responses API format
  * (Flat format - no function wrapper)
  */
@@ -54,6 +140,19 @@ static bool serialize_responses_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_
     yyjson_mut_val *params_mut = yyjson_val_mut_copy(doc, yyjson_doc_get_root(params_doc));
     yyjson_doc_free(params_doc);
     if (!params_mut) return false; // LCOV_EXCL_BR_LINE
+
+    // Remove format validators that OpenAI doesn't support (e.g., "uri")
+    remove_format_validators(params_mut);
+
+    // OpenAI strict mode requires ALL properties in the required array
+    if (!ensure_all_properties_required(doc, params_mut)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
+
+    // OpenAI strict mode requires additionalProperties: false
+    if (!yyjson_mut_obj_add_bool(doc, params_mut, "additionalProperties", false)) { // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    }
 
     if (!yyjson_mut_obj_add_val_(doc, tool_obj, "parameters", params_mut)) {
         return false;
@@ -146,7 +245,7 @@ static bool add_string_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
 
     if (input_text == NULL) {
         if (!yyjson_mut_obj_add_str(doc, root, "input", "")) { // LCOV_EXCL_BR_LINE
-            return false;
+            return false; // LCOV_EXCL_LINE
         }
         return true;
     }
@@ -165,13 +264,13 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     for (size_t i = 0; i < req->message_count; i++) {
-        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) {
-            return false;
+        if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) { // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
         }
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "input", input_arr)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -208,11 +307,11 @@ static bool add_reasoning_config(yyjson_mut_doc *doc, yyjson_mut_val *root, cons
     }
 
     if (!yyjson_mut_obj_add_str(doc, reasoning_obj, "effort", effort)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "reasoning", reasoning_obj)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     return true;
@@ -237,7 +336,7 @@ static bool add_tools_and_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
-        return false;
+        return false; // LCOV_EXCL_LINE
     }
 
     if (!add_tool_choice(doc, root, req->tool_choice_mode)) {
@@ -283,9 +382,9 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    if (!add_input_field(doc, root, req)) {
-        yyjson_mut_doc_free(doc);
-        return ERR(ctx, PARSE, "Failed to add input field");
+    if (!add_input_field(doc, root, req)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "Failed to add input field"); // LCOV_EXCL_LINE
     }
 
     if (req->max_output_tokens > 0) {
@@ -302,9 +401,9 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         }
     }
 
-    if (!add_reasoning_config(doc, root, req)) {
-        yyjson_mut_doc_free(doc);
-        return ERR(ctx, PARSE, "Failed to add reasoning config");
+    if (!add_reasoning_config(doc, root, req)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        return ERR(ctx, PARSE, "Failed to add reasoning config"); // LCOV_EXCL_LINE
     }
 
     if (!add_tools_and_choice(doc, root, req)) {
