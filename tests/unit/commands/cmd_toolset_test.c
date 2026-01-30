@@ -137,6 +137,49 @@ START_TEST(test_toolset_set_replace) {
 }
 END_TEST
 
+START_TEST(test_toolset_messy_whitespace) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset  ,, bash ,  , file_read  ,");
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(repl->current->toolset_count, 2);
+    ck_assert_ptr_nonnull(repl->current->toolset_filter);
+    ck_assert_str_eq(repl->current->toolset_filter[0], "bash");
+    ck_assert_str_eq(repl->current->toolset_filter[1], "file_read");
+}
+END_TEST
+
+START_TEST(test_toolset_capacity_overflow) {
+    char cmd[512];
+    int32_t n = snprintf(cmd, sizeof(cmd),
+        "/toolset t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18");
+    ck_assert_int_gt(n, 0);
+    ck_assert_int_lt(n, (int32_t)sizeof(cmd));
+
+    res_t res = ik_cmd_dispatch(ctx, repl, cmd);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(repl->current->toolset_count, 18);
+}
+END_TEST
+
+START_TEST(test_toolset_list_with_colors_disabled) {
+    setenv("NO_COLOR", "1", 1);
+    ik_ansi_init();
+
+    res_t res = ik_cmd_dispatch(ctx, repl, "/toolset bash,grep");
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(repl->current->toolset_count, 2);
+
+    res = ik_cmd_dispatch(ctx, repl, "/toolset");
+    ck_assert(is_ok(&res));
+
+    size_t count = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_ge(count, 5);
+
+    unsetenv("NO_COLOR");
+    ik_ansi_init();
+}
+END_TEST
+
 static Suite *commands_toolset_suite(void)
 {
     Suite *s = suite_create("commands_toolset");
@@ -157,6 +200,9 @@ static Suite *commands_toolset_suite(void)
     tcase_add_test(tc_set, test_toolset_set_multiple_comma);
     tcase_add_test(tc_set, test_toolset_set_multiple_space);
     tcase_add_test(tc_set, test_toolset_set_replace);
+    tcase_add_test(tc_set, test_toolset_messy_whitespace);
+    tcase_add_test(tc_set, test_toolset_capacity_overflow);
+    tcase_add_test(tc_set, test_toolset_list_with_colors_disabled);
 
     suite_add_tcase(s, tc_set);
 

@@ -334,6 +334,63 @@ START_TEST(test_build_from_conversation_null_values) {
 }
 END_TEST
 
+/**
+ * Test toolset_filter excluding tools (lines 155-164)
+ * Registry has 2 tools, filter only allows 1, so 1 gets skipped
+ */
+START_TEST(test_toolset_filter_excludes_tool) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->toolset_count = 1;
+    agent->toolset_filter = talloc_array(agent, char *, 1);
+    agent->toolset_filter[0] = talloc_strdup(agent, "allowed_tool");
+
+    // Create registry with TWO tools, but filter only allows one
+    ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
+    registry->capacity = 2;
+    registry->count = 2;
+    registry->entries = talloc_array(registry, ik_tool_registry_entry_t, 2);
+
+    // Tool 1: allowed
+    const char *schema1_json = "{"
+                               "\"name\":\"allowed_tool\","
+                               "\"description\":\"This one is allowed\""
+                               "}";
+    yyjson_doc *schema1_doc = yyjson_read(schema1_json, strlen(schema1_json), 0);
+    registry->entries[0].name = talloc_strdup(registry->entries, "allowed_tool");
+    registry->entries[0].path = talloc_strdup(registry->entries, "/tmp/allowed");
+    registry->entries[0].schema_doc = schema1_doc;
+    registry->entries[0].schema_root = yyjson_doc_get_root(schema1_doc);
+
+    // Tool 2: NOT in filter, should be excluded
+    const char *schema2_json = "{"
+                               "\"name\":\"excluded_tool\","
+                               "\"description\":\"This one is excluded\""
+                               "}";
+    yyjson_doc *schema2_doc = yyjson_read(schema2_json, strlen(schema2_json), 0);
+    registry->entries[1].name = talloc_strdup(registry->entries, "excluded_tool");
+    registry->entries[1].path = talloc_strdup(registry->entries, "/tmp/excluded");
+    registry->entries[1].schema_doc = schema2_doc;
+    registry->entries[1].schema_root = yyjson_doc_get_root(schema2_doc);
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, registry, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(req);
+    // Only 1 tool should be in the request (the allowed one)
+    ck_assert_int_eq((int)req->tool_count, 1);
+    ck_assert_str_eq(req->tools[0].name, "allowed_tool");
+
+    yyjson_doc_free(schema1_doc);
+    yyjson_doc_free(schema2_doc);
+}
+END_TEST
+
 static Suite *request_tools_schema_suite(void)
 {
     Suite *s = suite_create("Request Tools Schema");
@@ -348,6 +405,7 @@ static Suite *request_tools_schema_suite(void)
     tcase_add_test(tc, test_build_from_conversation_registry_empty);
     tcase_add_test(tc, test_build_from_conversation_registry_multiple_tools);
     tcase_add_test(tc, test_build_from_conversation_null_values);
+    tcase_add_test(tc, test_toolset_filter_excludes_tool);
     suite_add_tcase(s, tc);
 
     return s;

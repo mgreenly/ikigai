@@ -107,20 +107,6 @@ res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
     char *saveptr = NULL;
     char *token = strtok_r(work, " ,", &saveptr);
     while (token != NULL) {
-        while (*token == ' ' || *token == ',') {
-            token++;
-        }
-        if (*token == '\0') {
-            token = strtok_r(NULL, " ,", &saveptr);
-            continue;
-        }
-
-        char *end = token + strlen(token) - 1;
-        while (end > token && (*end == ' ' || *end == ',')) {
-            *end = '\0';
-            end--;
-        }
-
         if (count >= capacity) {
             capacity *= 2;
             tools = talloc_realloc(ctx, tools, char *, (unsigned int)capacity);
