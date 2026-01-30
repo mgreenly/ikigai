@@ -79,6 +79,7 @@ typedef struct ik_agent_ctx {
     ik_layer_t *separator_layer;
     ik_layer_t *input_layer;
     ik_layer_t *completion_layer;
+    ik_layer_t *status_layer;
 
     // Viewport state
     size_t viewport_offset;
@@ -115,6 +116,7 @@ typedef struct ik_agent_ctx {
     // Layer reference fields (updated before each render)
     bool separator_visible;
     bool input_buffer_visible;
+    bool status_visible;
     const char *input_text;
     size_t input_text_len;
 

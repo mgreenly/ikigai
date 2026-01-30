@@ -53,7 +53,7 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     repl->current->spinner_state.frame_index = 0;
     repl->current->spinner_state.visible = false;
     repl->current->separator_visible = true;
-    repl->lower_separator_visible = true;
+    repl->current->status_visible = true;
     repl->current->input_buffer_visible = true;
     repl->current->input_text = "";
     repl->current->input_text_len = 0;
@@ -64,8 +64,10 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     repl->current->separator_layer = ik_separator_layer_create(repl, "separator", &repl->current->separator_visible);
     repl->current->input_layer = ik_input_layer_create(repl, "input", &repl->current->input_buffer_visible,
                                                        &repl->current->input_text, &repl->current->input_text_len);
-    repl->lower_separator_layer = ik_separator_layer_create(repl, "lower_separator",
-                                                            &repl->lower_separator_visible);
+    repl->current->status_layer = ik_status_layer_create(repl, "status",
+                                                         &repl->current->status_visible,
+                                                         &repl->current->model,
+                                                         &repl->current->thinking_level);
 
     res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->scrollback_layer);
     ck_assert(is_ok(&res));
@@ -75,7 +77,7 @@ static void init_layer_cake(ik_repl_ctx_t *repl, int32_t rows)
     ck_assert(is_ok(&res));
     res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->input_layer);
     ck_assert(is_ok(&res));
-    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->lower_separator_layer);
+    res = ik_layer_cake_add_layer(repl->current->layer_cake, repl->current->status_layer);
     ck_assert(is_ok(&res));
 }
 
