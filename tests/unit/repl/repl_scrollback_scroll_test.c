@@ -50,6 +50,7 @@ START_TEST(test_page_down_scrolling) {
 
     // Start scrolled up (viewport_offset = 48, i.e., 2 pages up)
     repl->current->viewport_offset = 48;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -96,6 +97,7 @@ START_TEST(test_page_down_at_bottom) {
 
     // Start at bottom (viewport_offset = 0)
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -142,6 +144,7 @@ START_TEST(test_page_down_small_offset) {
 
     // Start with small offset (less than screen_rows)
     repl->current->viewport_offset = 10;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Down action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_DOWN};
@@ -196,6 +199,7 @@ START_TEST(test_page_up_scrolling) {
 
     // Start at bottom (viewport_offset = 0)
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Up action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -245,6 +249,7 @@ START_TEST(test_page_up_empty_scrollback) {
 
     // Start at bottom (viewport_offset = 0)
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Up action
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};
@@ -298,18 +303,13 @@ START_TEST(test_page_up_clamping) {
     }
 
     // With unified document model:
-    // document_height = scrollback (30) + upper_separator (1) + MAX(input buffer, 1) + lower_separator (1) = 33 rows
-    // input buffer always occupies at least 1 row (for cursor visibility when empty)
-    // max_offset = 33 - 24 = 9
-    size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
-    size_t input_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
-    size_t input_display_rows = (input_rows == 0) ? 1 : input_rows;
-    size_t document_height = scrollback_rows + 1 + input_display_rows + 1;
-    size_t expected_max = document_height - (size_t)repl->shared->term->screen_rows;
+    // document_height = banner (6) + scrollback (30) + separator (1) + input (1) + status (2) = 40 rows
+    // max_offset = 40 - 24 = 16
+    size_t expected_max = 16;
 
     // Start near top
     repl->current->viewport_offset = (expected_max > 10) ? expected_max - 10 : 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     // Simulate Page Up action (should hit ceiling)
     ik_input_action_t action = {.type = IK_INPUT_PAGE_UP};

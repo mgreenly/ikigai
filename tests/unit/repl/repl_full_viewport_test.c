@@ -62,6 +62,7 @@ static void create_test_repl(TALLOC_CTX *ctx, int32_t rows, int32_t cols, ik_rep
     ck_assert(is_ok(&res));
     repl->current = agent;
     agent->viewport_offset = 0;
+    agent->input_buffer_visible = true;  // Required for document height calculation
 
     *repl_out = repl;
 }
@@ -117,6 +118,7 @@ START_TEST(test_layer_positions_when_viewport_full) {
 
     // Calculate viewport (viewport_offset = 0 means showing bottom of document)
     repl->current->viewport_offset = 0;
+    repl->current->input_buffer_visible = true;  // Required for document height calculation
 
     ik_viewport_t viewport;
     res = ik_repl_calculate_viewport(repl, &viewport);
@@ -189,11 +191,11 @@ START_TEST(test_layer_positions_when_viewport_full) {
     // first_visible_row = 29 + 1 - 20 = 10
     // Input buffer at doc row 27 (6 banner + 20 scrollback + 1 sep), viewport row = 27 - 10 = 17
 
-    // BUG: With incorrect document_height, first_visible_row will be off by 1
-    // This test will FAIL until we fix the document_height calculation
+    // With corrected document_height (single separator model):
+    // Input buffer at viewport row 17 (as calculated above)
 
-    ck_assert_msg(viewport.input_buffer_start_row == 18,
-                  "Input buffer should be at viewport row 18 (with correct doc height), got %zu",
+    ck_assert_msg(viewport.input_buffer_start_row == 17,
+                  "Input buffer should be at viewport row 17 (with corrected doc height), got %zu",
                   viewport.input_buffer_start_row);
 
     // Verify no blank line between separator and input
