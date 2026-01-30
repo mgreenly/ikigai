@@ -110,13 +110,37 @@ res_t insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
     }
     talloc_free(pins_json);
 
+    // Build toolset_filter JSON array from parent's current filter
+    char *toolset_json = talloc_strdup(ctx, "[");
+    if (toolset_json == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    for (size_t i = 0; i < parent->toolset_count; i++) {
+        const char *tool = parent->toolset_filter[i];
+        char *new_toolset = talloc_asprintf(ctx, "%s%s\"%s\"",
+                                            toolset_json,
+                                            (i > 0) ? "," : "",
+                                            tool);
+        if (new_toolset == NULL) {     // LCOV_EXCL_BR_LINE
+            PANIC("Out of memory");     // LCOV_EXCL_LINE
+        }
+        talloc_free(toolset_json);
+        toolset_json = new_toolset;
+    }
+    char *final_toolset_json = talloc_asprintf(ctx, "%s]", toolset_json);
+    if (final_toolset_json == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    talloc_free(toolset_json);
+
     char *child_data = talloc_asprintf(ctx,
-                                       "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\",\"pinned_paths\":%s}",
-                                       parent->uuid, fork_message_id, final_pins_json);
+                                       "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s}",
+                                       parent->uuid, fork_message_id, final_pins_json, final_toolset_json);
     if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
     talloc_free(final_pins_json);
+    talloc_free(final_toolset_json);
 
     res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                child->uuid, "fork", child_content, child_data);

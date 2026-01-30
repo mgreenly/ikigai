@@ -138,7 +138,7 @@ static res_t build_system_prompt_from_agent(ik_request_t *req, ik_agent_ctx_t *a
     return OK(NULL);
 }
 
-static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *registry)
+static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *registry, ik_agent_ctx_t *agent)
 {
     assert(req != NULL); // LCOV_EXCL_BR_LINE
 
@@ -148,6 +148,19 @@ static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *regi
 
     for (size_t i = 0; i < registry->count; i++) {
         ik_tool_registry_entry_t *entry = &registry->entries[i];
+
+        if (agent != NULL && agent->toolset_filter != NULL && agent->toolset_count > 0) {
+            bool allowed = false;
+            for (size_t j = 0; j < agent->toolset_count; j++) {
+                if (strcmp(entry->name, agent->toolset_filter[j]) == 0) {
+                    allowed = true;
+                    break;
+                }
+            }
+            if (!allowed) {
+                continue;
+            }
+        }
 
         const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));  // LCOV_EXCL_BR_LINE
         if (description == NULL) description = "";
@@ -212,7 +225,7 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
         }
     }
 
-    res = add_tools_from_registry(req, registry);
+    res = add_tools_from_registry(req, registry, agent);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
         talloc_free(req);  // LCOV_EXCL_LINE
         return res;        // LCOV_EXCL_LINE

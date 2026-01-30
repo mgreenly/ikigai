@@ -63,6 +63,9 @@ START_TEST(test_build_from_conversation_with_registry) {
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->toolset_count = 1;
+    agent->toolset_filter = talloc_array(agent, char *, 1);
+    agent->toolset_filter[0] = talloc_strdup(agent, "test_tool");
 
     // Create mock registry with test tool
     ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
@@ -113,6 +116,9 @@ START_TEST(test_build_from_conversation_registry_no_description) {
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->toolset_count = 1;
+    agent->toolset_filter = talloc_array(agent, char *, 1);
+    agent->toolset_filter[0] = talloc_strdup(agent, "tool2");
 
     // Create mock registry with test tool (no description field)
     ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
@@ -159,6 +165,9 @@ START_TEST(test_build_from_conversation_registry_no_parameters) {
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->toolset_count = 1;
+    agent->toolset_filter = talloc_array(agent, char *, 1);
+    agent->toolset_filter[0] = talloc_strdup(agent, "tool3");
 
     // Create mock registry with test tool (no parameters field)
     ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
@@ -229,6 +238,10 @@ START_TEST(test_build_from_conversation_registry_multiple_tools) {
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->toolset_count = 2;
+    agent->toolset_filter = talloc_array(agent, char *, 2);
+    agent->toolset_filter[0] = talloc_strdup(agent, "tool_a");
+    agent->toolset_filter[1] = talloc_strdup(agent, "tool_b");
 
     // Create registry with two tools
     ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
@@ -285,6 +298,9 @@ START_TEST(test_build_from_conversation_null_values) {
     agent->thinking_level = 0;
     agent->messages = NULL;
     agent->message_count = 0;
+    agent->toolset_count = 1;
+    agent->toolset_filter = talloc_array(agent, char *, 1);
+    agent->toolset_filter[0] = talloc_strdup(agent, "test_null");
 
     // Create registry with tool having null description
     ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
