@@ -11,8 +11,9 @@
 #include "../../test_utils_helper.h"
 
 #ifdef IKIGAI_DEV
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 /* Test: Dev dump with NULL framebuffer */
@@ -82,9 +83,14 @@ END_TEST
 START_TEST(test_dev_dump_debug_is_file) {
     void *ctx = talloc_new(NULL);
 
+    // Force cleanup any existing .ikigai directory structure
+    int result = system("rm -rf .ikigai");
+    (void)result;
+
     // Create .ikigai directory and .ikigai/debug as a FILE (not directory)
     mkdir(".ikigai", 0755);
-    int fd = open(".ikigai/debug", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open(".ikigai/debug", O_WRONLY | O_CREAT | O_EXCL, 0644);
+    ck_assert_int_ge(fd, 0);  // Ensure file was created
     close(fd);
 
     // Create minimal repl context with framebuffer
