@@ -30,7 +30,7 @@ static ik_agent_ctx_t *create_test_agent(void *ctx)
     ck_assert_ptr_nonnull(agent);
 
     // Initialize state to IDLE (default)
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
 
     // Initialize spinner state
     agent->spinner_state.frame_index = 0;
@@ -72,7 +72,7 @@ START_TEST(test_agent_transition_to_idle) {
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
     // Start in WAITING_FOR_LLM state
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->spinner_state.visible = true;
     agent->input_buffer_visible = false;
 
@@ -98,7 +98,7 @@ START_TEST(test_agent_transition_to_executing_tool) {
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
     // Start in WAITING_FOR_LLM state
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->spinner_state.visible = true;
     agent->input_buffer_visible = false;
 
@@ -123,7 +123,7 @@ START_TEST(test_agent_transition_from_executing_tool) {
     ik_agent_ctx_t *agent = create_test_agent(ctx);
 
     // Start in EXECUTING_TOOL state
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->spinner_state.visible = true;
     agent->input_buffer_visible = false;
 

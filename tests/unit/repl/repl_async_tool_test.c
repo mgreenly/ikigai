@@ -6,6 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <unistd.h>
 #include "repl.h"
 #include "shared.h"
@@ -104,7 +105,7 @@ static void setup(void)
     repl->current->tool_thread_ctx = NULL;
 
     /* Set initial state */
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     /* Create pending_tool_call with a simple glob call */
     repl->current->pending_tool_call = ik_tool_call_create(repl,

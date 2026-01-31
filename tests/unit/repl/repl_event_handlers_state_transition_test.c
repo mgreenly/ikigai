@@ -32,6 +32,7 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -83,7 +84,7 @@ void ik_agent_start_tool_execution_(void *agent_ctx)
     ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
     start_tool_execution_called = true;
     /* Change state from WAITING_FOR_LLM to EXECUTING_TOOL */
-    agent_local->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent_local->state, IK_AGENT_STATE_EXECUTING_TOOL);
 }
 
 /* Mock agent should continue tool loop */
@@ -104,7 +105,7 @@ void ik_repl_submit_tool_loop_continuation_(void *repl_ctx, void *agent_ctx)
 void ik_agent_transition_to_idle_(void *agent_ctx)
 {
     ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
-    agent_local->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent_local->state, IK_AGENT_STATE_IDLE);
 }
 
 /* Mock provider vtable */
@@ -190,7 +191,7 @@ static void setup(void)
     agent->assistant_response = NULL;
     agent->pending_tool_call = NULL;
     agent->provider_instance = NULL;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_iteration_count = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 
@@ -234,7 +235,7 @@ START_TEST(test_state_changes_to_executing_tool) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
     agent->pending_tool_call = dummy_tool_call;  /* This will trigger tool execution */
 
@@ -271,7 +272,7 @@ START_TEST(test_current_agent_in_array) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     /* Add agent to repl array AND set as current */
@@ -307,7 +308,7 @@ START_TEST(test_state_changes_but_not_current_agent) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
     agent->pending_tool_call = dummy_tool_call;  /* This will trigger tool execution and state change */
 
@@ -318,7 +319,7 @@ START_TEST(test_state_changes_but_not_current_agent) {
     other_agent->input_buffer = ik_input_buffer_create(other_agent);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
 
     /* Add agent to repl but set different agent as current */
@@ -357,7 +358,7 @@ START_TEST(test_current_agent_not_in_array) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     /* Create a different agent for the array */
@@ -367,7 +368,7 @@ START_TEST(test_current_agent_not_in_array) {
     other_agent->input_buffer = ik_input_buffer_create(other_agent);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
 
     /* Put OTHER agent in array, but set AGENT as current */
@@ -396,7 +397,7 @@ START_TEST(test_curl_running_but_no_provider) {
     /* Edge case: curl thinks it's running but provider was cleaned up */
     agent->provider_instance = NULL;
     agent->curl_still_running = 1;  /* > 0 but no provider */
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     /* Add agent to repl array */
     repl->agent_count = 1;

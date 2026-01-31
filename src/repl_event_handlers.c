@@ -42,9 +42,7 @@ long ik_repl_calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_
     long tool_poll_timeout_ms = -1;
     for (size_t i = 0; i < repl->agent_count; i++) {
         ik_agent_ctx_t *agent = repl->agents[i];
-        pthread_mutex_lock_(&agent->tool_thread_mutex);
-        bool executing = (agent->state == IK_AGENT_STATE_EXECUTING_TOOL);
-        pthread_mutex_unlock_(&agent->tool_thread_mutex);
+        bool executing = (atomic_load(&agent->state) == IK_AGENT_STATE_EXECUTING_TOOL);
         if (executing) {
             tool_poll_timeout_ms = 50;
             break;
@@ -299,9 +297,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         int prev_running = agent->curl_still_running;
         CHECK(agent->provider_instance->vt->perform(agent->provider_instance->ctx, &agent->curl_still_running));
         agent->provider_instance->vt->info_read(agent->provider_instance->ctx, repl->shared->logger);
-        pthread_mutex_lock_(&agent->tool_thread_mutex);
-        ik_agent_state_t current_state = agent->state;
-        pthread_mutex_unlock_(&agent->tool_thread_mutex);
+        ik_agent_state_t current_state = atomic_load(&agent->state);
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
             // Check interrupt flag before processing completion
             if (agent->interrupt_requested) {
@@ -312,9 +308,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
                 } else {
                     ik_repl_handle_agent_request_success(repl, agent);
                 }
-                pthread_mutex_lock_(&agent->tool_thread_mutex);
-                current_state = agent->state;
-                pthread_mutex_unlock_(&agent->tool_thread_mutex);
+                current_state = atomic_load(&agent->state);
                 if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
                     ik_agent_transition_to_idle_(agent);
                 }

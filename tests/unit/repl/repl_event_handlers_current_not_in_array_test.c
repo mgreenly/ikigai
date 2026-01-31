@@ -33,6 +33,7 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -93,14 +94,14 @@ void ik_repl_submit_tool_loop_continuation_(void *repl_ctx, void *agent_ctx)
 void ik_agent_transition_to_idle_(void *agent_ctx)
 {
     ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
-    agent_local->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent_local->state, IK_AGENT_STATE_IDLE);
 }
 
 /* Mock agent start tool execution */
 void ik_agent_start_tool_execution_(void *agent_ctx)
 {
     ik_agent_ctx_t *agent_local = (ik_agent_ctx_t *)agent_ctx;
-    agent_local->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent_local->state, IK_AGENT_STATE_EXECUTING_TOOL);
 }
 
 /* Mock provider vtable */
@@ -201,7 +202,7 @@ static void setup(void)
     agent->assistant_response = NULL;
     agent->pending_tool_call = NULL;
     agent->provider_instance = NULL;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_iteration_count = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 
@@ -240,7 +241,7 @@ START_TEST(test_curl_events_current_not_in_array) {
     current_agent->scrollback = ik_scrollback_create(current_agent, 80);
     current_agent->input_buffer = ik_input_buffer_create(current_agent);
     current_agent->curl_still_running = 1;
-    current_agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&current_agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     current_agent->assistant_response = talloc_strdup(current_agent, "Current agent response");
     current_agent->spinner_state.visible = false;
     current_agent->spinner_state.frame_index = 0;
@@ -296,7 +297,7 @@ START_TEST(test_curl_events_current_not_in_array_perform_error) {
     current_agent->scrollback = ik_scrollback_create(current_agent, 80);
     current_agent->input_buffer = ik_input_buffer_create(current_agent);
     current_agent->curl_still_running = 1;
-    current_agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&current_agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     pthread_mutex_init(&current_agent->tool_thread_mutex, NULL);
 
     /* Create mock provider with error vtable for current agent */
@@ -331,7 +332,7 @@ START_TEST(test_curl_events_background_agent_completes) {
     background_agent->scrollback = ik_scrollback_create(background_agent, 80);
     background_agent->input_buffer = ik_input_buffer_create(background_agent);
     background_agent->curl_still_running = 1;
-    background_agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&background_agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     background_agent->assistant_response = talloc_strdup(background_agent, "Background agent response");
     background_agent->spinner_state.visible = false;
     background_agent->spinner_state.frame_index = 0;

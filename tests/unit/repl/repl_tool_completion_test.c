@@ -27,6 +27,7 @@
 #include <check.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <talloc.h>
 #include <unistd.h>
 
@@ -154,7 +155,7 @@ static void setup(void)
     agent->shared = shared;
     agent->repl = repl;
     agent->scrollback = ik_scrollback_create(agent, 80);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->messages = NULL;
     agent->message_count = 0;
     agent->message_capacity = 0;
@@ -229,7 +230,7 @@ START_TEST(test_poll_tool_completions_agents_array) {
     repl->agent_count = 1;
     repl->current = NULL;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->tool_thread_complete = true;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     res_t result = ik_repl_poll_tool_completions(repl);
@@ -244,7 +245,7 @@ START_TEST(test_poll_tool_completions_current_not_executing) {
     repl->agent_count = 0;
     repl->current = agent;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_thread_complete = false;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     size_t initial_count = agent->message_count;
@@ -260,7 +261,7 @@ START_TEST(test_poll_tool_completions_current_executing) {
     setup_tool_completion("stop");
     repl->agent_count = 0;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->tool_thread_complete = true;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     repl->current = agent;
@@ -287,7 +288,7 @@ START_TEST(test_submit_tool_loop_continuation_request_error) {
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     mock_provider_should_fail = false;
     mock_request_should_fail = true;
     mock_stream_should_fail = false;
@@ -304,7 +305,7 @@ START_TEST(test_submit_tool_loop_continuation_stream_error) {
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     mock_provider_should_fail = false;
     mock_request_should_fail = false;
     mock_stream_should_fail = true;
@@ -321,7 +322,7 @@ START_TEST(test_submit_tool_loop_continuation_success) {
     agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
     agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
     agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->curl_still_running = 0;
     mock_provider_should_fail = false;
     mock_request_should_fail = false;
@@ -348,7 +349,7 @@ START_TEST(test_poll_tool_completions_agent_not_complete) {
     repl->agent_count = 1;
     repl->current = NULL;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->tool_thread_complete = false;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     size_t initial_count = agent->message_count;
@@ -368,7 +369,7 @@ START_TEST(test_poll_tool_completions_agent_wrong_state) {
     repl->agent_count = 1;
     repl->current = NULL;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_thread_complete = true;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     size_t initial_count = agent->message_count;
@@ -386,7 +387,7 @@ START_TEST(test_poll_tool_completions_current_executing_not_complete) {
     repl->agent_count = 0;
     repl->current = agent;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     agent->tool_thread_complete = false;
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     size_t initial_count = agent->message_count;

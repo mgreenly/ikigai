@@ -27,6 +27,7 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -62,7 +63,7 @@ static void setup(void)
     agent->assistant_response = NULL;
     agent->pending_tool_call = NULL;
     agent->provider_instance = NULL;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_iteration_count = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 
@@ -182,7 +183,7 @@ START_TEST(test_curl_events_current_not_in_array) {
     other_agent->scrollback = ik_scrollback_create(other_agent, 80);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
 
     /* Set as current but don't add to agents array */
@@ -207,7 +208,7 @@ END_TEST
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     // Add agent to repl
@@ -231,7 +232,7 @@ END_TEST
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->http_error_message = talloc_strdup(agent, "Connection failed");
 
     // Add agent to repl

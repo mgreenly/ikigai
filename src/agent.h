@@ -6,9 +6,10 @@
 #include "scrollback.h"
 #include "tool.h"
 
-#include <talloc.h>
-#include <stdbool.h>
 #include <pthread.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <talloc.h>
 
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
@@ -103,7 +104,7 @@ typedef struct ik_agent_ctx {
 
     // LLM interaction state (per-agent)
     int curl_still_running;
-    ik_agent_state_t state;
+    _Atomic ik_agent_state_t state;
     char *assistant_response;
     char *streaming_line_buffer;
     bool streaming_first_line;      // True when next output needs "● " prefix

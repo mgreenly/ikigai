@@ -189,9 +189,7 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->current->separator_visible = separator_visible;
 
     // State-based visibility (Phase 1.6 Task 6.4)
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    ik_agent_state_t current_state = repl->current->state;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+    ik_agent_state_t current_state = atomic_load(&repl->current->state);
 
     if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
         // When waiting for LLM: hide input, show spinner

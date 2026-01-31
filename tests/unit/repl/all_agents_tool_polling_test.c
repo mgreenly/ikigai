@@ -22,6 +22,7 @@
 #include <check.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <talloc.h>
 #include <unistd.h>
 
@@ -78,7 +79,7 @@ static void setup(void)
     agent_a->shared = shared;
     agent_a->repl = repl;
     agent_a->scrollback = ik_scrollback_create(agent_a, 80);
-    agent_a->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent_a->state, IK_AGENT_STATE_EXECUTING_TOOL);
 
     agent_a->messages = NULL; agent_a->message_count = 0; agent_a->message_capacity = 0;
 
@@ -103,7 +104,7 @@ static void setup(void)
     agent_b->shared = shared;
     agent_b->repl = repl;
     agent_b->scrollback = ik_scrollback_create(agent_b, 80);
-    agent_b->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent_b->state, IK_AGENT_STATE_IDLE);
 
     agent_b->messages = NULL; agent_b->message_count = 0; agent_b->message_capacity = 0;
 

@@ -2,6 +2,7 @@
 #include <curl/curl.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
@@ -347,7 +348,7 @@ START_TEST(test_interrupt_calls_provider_cancel) {
     // Create agent in WAITING_FOR_LLM state
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = false;
 
@@ -398,7 +399,7 @@ START_TEST(test_interrupt_kills_child_process_immediate) {
     // Create agent in EXECUTING_TOOL state with child process
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = false;
     agent->tool_child_pid = 12345;  // Fake PID
@@ -445,7 +446,7 @@ START_TEST(test_interrupt_kills_child_process_timeout) {
     // Create agent in EXECUTING_TOOL state with child process
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = false;
     agent->tool_child_pid = 12345;  // Fake PID

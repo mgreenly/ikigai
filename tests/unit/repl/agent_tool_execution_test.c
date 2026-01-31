@@ -20,6 +20,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -88,7 +89,7 @@ static void setup(void)
     agent_a->shared = shared;
     agent_a->repl = repl;
     agent_a->scrollback = ik_scrollback_create(agent_a, 80);
-    agent_a->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent_a->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     /* Messages array starts empty in new API */
     agent_a->messages = NULL;
@@ -112,7 +113,7 @@ static void setup(void)
     agent_b->shared = shared;
     agent_b->repl = repl;
     agent_b->scrollback = ik_scrollback_create(agent_b, 80);
-    agent_b->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent_b->state, IK_AGENT_STATE_IDLE);
 
     /* Messages array starts empty in new API */
     agent_b->messages = NULL;

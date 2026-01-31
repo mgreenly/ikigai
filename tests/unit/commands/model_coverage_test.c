@@ -14,6 +14,7 @@
 #include "../../test_utils_helper.h"
 
 #include <check.h>
+#include <stdatomic.h>
 #include <talloc.h>
 
 // Forward declaration for suite function
@@ -235,7 +236,7 @@ END_TEST
 // Test: Error path - switch model during active LLM request (line 94)
 START_TEST(test_model_switch_during_llm_request) {
     // Set agent state to waiting for LLM
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Attempt to switch model - should fail
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
@@ -245,7 +246,7 @@ START_TEST(test_model_switch_during_llm_request) {
     talloc_free(res.err);
 
     // Reset state
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
 }
 
 END_TEST

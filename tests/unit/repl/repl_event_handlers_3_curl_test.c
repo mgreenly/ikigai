@@ -33,6 +33,7 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -166,7 +167,7 @@ static void setup(void)
     agent->assistant_response = NULL;
     agent->pending_tool_call = NULL;
     agent->provider_instance = NULL;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_iteration_count = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 
@@ -205,7 +206,7 @@ START_TEST(test_curl_events_with_http_error) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->http_error_message = talloc_strdup(agent, "Connection failed");
 
     /* Add agent to repl - but set different agent as current to avoid render */
@@ -219,7 +220,7 @@ START_TEST(test_curl_events_with_http_error) {
     other_agent->scrollback = ik_scrollback_create(other_agent, 80);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
     repl->current = other_agent;
 
@@ -242,7 +243,7 @@ START_TEST(test_curl_events_with_http_error_and_assistant_response) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->http_error_message = talloc_strdup(agent, "Connection failed");
     agent->assistant_response = talloc_strdup(agent, "Partial response");
 
@@ -257,7 +258,7 @@ START_TEST(test_curl_events_with_http_error_and_assistant_response) {
     other_agent->scrollback = ik_scrollback_create(other_agent, 80);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
     repl->current = other_agent;
 
@@ -281,7 +282,7 @@ START_TEST(test_curl_events_with_running_curl_success) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     /* Add agent to repl - but set different agent as current to avoid render */
@@ -295,7 +296,7 @@ START_TEST(test_curl_events_with_running_curl_success) {
     other_agent->scrollback = ik_scrollback_create(other_agent, 80);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
     repl->current = other_agent;
 
@@ -318,7 +319,7 @@ START_TEST(test_curl_events_not_current_agent) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     /* Add agent to repl */
@@ -332,7 +333,7 @@ START_TEST(test_curl_events_not_current_agent) {
     other_agent->scrollback = ik_scrollback_create(other_agent, 80);
     other_agent->curl_still_running = 0;
     other_agent->provider_instance = NULL;
-    other_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init(&other_agent->tool_thread_mutex, NULL);
     repl->current = other_agent;
 
@@ -352,7 +353,7 @@ START_TEST(test_curl_events_is_current_agent_triggers_render) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     agent->assistant_response = talloc_strdup(agent, "Response text");
 
     /* Add agent to repl and set as current */
@@ -391,7 +392,7 @@ START_TEST(test_curl_events_state_not_waiting_for_llm) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_IDLE;  /* Not WAITING_FOR_LLM */
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);  /* Not WAITING_FOR_LLM */
 
     /* Add agent to repl */
     repl->agent_count = 1;
@@ -410,7 +411,7 @@ START_TEST(test_curl_events_no_provider_instance) {
     /* No provider instance - should just skip processing */
     agent->provider_instance = NULL;
     agent->curl_still_running = 0;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
 
     /* Add agent to repl */
     repl->agent_count = 1;
@@ -432,7 +433,7 @@ START_TEST(test_curl_events_perform_error) {
     instance->ctx = NULL;
     agent->provider_instance = instance;
     agent->curl_still_running = 1;
-    agent->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     /* Add agent to repl */
     repl->agent_count = 1;

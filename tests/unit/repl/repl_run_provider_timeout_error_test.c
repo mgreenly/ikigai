@@ -9,6 +9,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/providers/provider.h"
 #include <pthread.h>
+#include <stdatomic.h>
 
 /* Mock provider timeout that returns an error */
 static res_t mock_provider_timeout_fails(void *provider_ctx, long *timeout)
@@ -85,7 +86,7 @@ START_TEST(test_repl_run_provider_timeout_error) {
     agent->input_buffer = input_buf;
     agent->scrollback = scrollback;
     agent->viewport_offset = 0;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->curl_still_running = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 
