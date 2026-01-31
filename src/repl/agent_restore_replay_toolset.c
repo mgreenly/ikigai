@@ -73,13 +73,14 @@ static void replay_toolset_command(ik_agent_ctx_t *agent, const char *args)
 // Replay toolset from JSON array (used for fork-inherited toolsets)
 static void replay_toolset_from_json_array(ik_agent_ctx_t *agent, yyjson_val *arr)
 {
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(yyjson_is_arr(arr));  // LCOV_EXCL_BR_LINE
+
     if (agent->toolset_filter != NULL) {
         talloc_free(agent->toolset_filter);
         agent->toolset_filter = NULL;
         agent->toolset_count = 0;
     }
-
-    if (!yyjson_is_arr(arr)) return;
 
     size_t arr_len = yyjson_arr_size(arr);
     if (arr_len == 0) return;

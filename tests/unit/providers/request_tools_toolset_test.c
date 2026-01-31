@@ -129,6 +129,48 @@ START_TEST(test_toolset_filter_zero_count) {
 }
 END_TEST
 
+/**
+ * Test NULL toolset_filter (line 159, 168 branch coverage)
+ * toolset_filter is NULL, so all tools should be added
+ */
+START_TEST(test_toolset_filter_null) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->model = talloc_strdup(agent, "gpt-4");
+    agent->thinking_level = 0;
+    agent->messages = NULL;
+    agent->message_count = 0;
+    agent->toolset_count = 0;
+    agent->toolset_filter = NULL;  // NULL filter
+
+    // Create registry with one tool
+    ik_tool_registry_t *registry = talloc_zero(test_ctx, ik_tool_registry_t);
+    registry->capacity = 1;
+    registry->count = 1;
+    registry->entries = talloc_array(registry, ik_tool_registry_entry_t, 1);
+
+    const char *schema_json = "{"
+                              "\"name\":\"some_tool\","
+                              "\"description\":\"A tool\""
+                              "}";
+    yyjson_doc *schema_doc = yyjson_read(schema_json, strlen(schema_json), 0);
+    registry->entries[0].name = talloc_strdup(registry->entries, "some_tool");
+    registry->entries[0].path = talloc_strdup(registry->entries, "/tmp/some_tool");
+    registry->entries[0].schema_doc = schema_doc;
+    registry->entries[0].schema_root = yyjson_doc_get_root(schema_doc);
+
+    ik_request_t *req = NULL;
+    res_t result = ik_request_build_from_conversation(test_ctx, agent, registry, &req);
+
+    ck_assert(!is_err(&result));
+    ck_assert_ptr_nonnull(req);
+    // With NULL filter, all tools are included
+    ck_assert_int_eq((int)req->tool_count, 1);
+
+    yyjson_doc_free(schema_doc);
+}
+END_TEST
+
 static Suite *request_tools_toolset_suite(void)
 {
     Suite *s = suite_create("Request Tools Toolset Filter");
@@ -138,6 +180,7 @@ static Suite *request_tools_toolset_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_toolset_filter_excludes_tool);
     tcase_add_test(tc, test_toolset_filter_zero_count);
+    tcase_add_test(tc, test_toolset_filter_null);
     suite_add_tcase(s, tc);
 
     return s;
