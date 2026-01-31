@@ -27,7 +27,6 @@ bool ik_event_renders_visible(const char *kind)
     // These kinds render visible content
     if (strcmp(kind, "user") == 0 ||
         strcmp(kind, "assistant") == 0 ||
-        strcmp(kind, "system") == 0 ||
         strcmp(kind, "mark") == 0 ||
         strcmp(kind, "command") == 0 ||
         strcmp(kind, "fork") == 0 ||
@@ -36,6 +35,7 @@ bool ik_event_renders_visible(const char *kind)
     }
 
     // These kinds do not render visible content
+    // system: stored for LLM context but not shown in UI
     // rewind: action is handled separately (truncation)
     // clear: action is handled separately (clear scrollback)
     return false;
@@ -346,9 +346,6 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     } else if (strcmp(kind, "tool_result") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_TOOL_RESPONSE);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
-    } else if (strcmp(kind, "system") == 0) {
-        int32_t color_code = ik_output_color(IK_OUTPUT_SYSTEM_PROMPT);
-        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
     } else if (strcmp(kind, "fork") == 0) {
         int32_t color_code = ik_output_color(IK_OUTPUT_SLASH_OUTPUT);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
@@ -356,21 +353,6 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     // mark, rewind, clear, command: handled separately
 
     // Handle each event kind
-    // System messages: truncate to 256 chars for display
-    if (strcmp(kind, "system") == 0) {
-        #define SYSTEM_PROMPT_DISPLAY_LIMIT 256
-        if (content != NULL && strlen(content) > SYSTEM_PROMPT_DISPLAY_LIMIT) {
-            TALLOC_CTX *tmp = tmp_ctx_create();
-            char *truncated = talloc_asprintf(tmp, "%.*s...",
-                                              SYSTEM_PROMPT_DISPLAY_LIMIT, content);
-            if (truncated == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            res_t result = render_content_event(scrollback, truncated, color, prefix);
-            talloc_free(tmp);
-            return result;
-        }
-        return render_content_event(scrollback, content, color, prefix);
-    }
-
     if (strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "user") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
@@ -394,8 +376,12 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return ik_scrollback_append_line_(scrollback, "", 0);
     }
 
-    if (strcmp(kind, "rewind") == 0 || strcmp(kind, "clear") == 0 || strcmp(kind, "agent_killed") == 0) {
+    if (strcmp(kind, "system") == 0 ||
+        strcmp(kind, "rewind") == 0 ||
+        strcmp(kind, "clear") == 0 ||
+        strcmp(kind, "agent_killed") == 0) {
         // These events don't render visual content
+        // system: stored for LLM context but not shown in UI
         // rewind: truncation is handled by replay logic
         // clear: clearing is handled by caller
         // agent_killed: metadata event for tracking killed agents

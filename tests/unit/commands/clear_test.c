@@ -84,7 +84,7 @@ static void teardown(void)
 }
 
 // Test: Clear empty scrollback and conversation
-// After clear, the default system message is displayed (fallback chain priority 4)
+// After clear, scrollback is empty (system message is stored but not displayed)
 START_TEST(test_clear_empty) {
     // Verify initially empty
     ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
@@ -94,20 +94,13 @@ START_TEST(test_clear_empty) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // After clear, default system message is shown (2 lines: message + blank)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // After clear, scrollback is empty (system message not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
-
-    // Verify the content is the default system message
-    const char *line = NULL;
-    size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(strstr(line, "Ikigai"));
 }
 END_TEST
 // Test: Clear scrollback with content
-// After clear, previous content is replaced with default system message
+// After clear, scrollback is empty
 START_TEST(test_clear_scrollback_with_content) {
     // Add some lines to scrollback
     res_t res = ik_scrollback_append_line(repl->current->scrollback, "Line 1", 6);
@@ -124,8 +117,8 @@ START_TEST(test_clear_scrollback_with_content) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback has default system message (2 lines: message + blank)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify scrollback is empty (system message not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -178,8 +171,8 @@ START_TEST(test_clear_both_scrollback_and_conversation) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify conversation is empty, scrollback has default system message
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify conversation is empty, scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -201,8 +194,8 @@ START_TEST(test_clear_with_null_conversation) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback has default system message (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -216,8 +209,8 @@ START_TEST(test_clear_with_ignored_arguments) {
     res = ik_cmd_dispatch(ctx, repl, "/clear extra args");
     ck_assert(is_ok(&res));
 
-    // Verify old content cleared, default system message shown
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify old content cleared, scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -249,14 +242,14 @@ START_TEST(test_clear_with_marks) {
     ck_assert_uint_eq(repl->current->mark_count, 0);
     ck_assert_ptr_null(repl->current->marks);
 
-    // Verify conversation cleared, scrollback has default system message
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify conversation cleared, scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
 END_TEST
-// Test: Clear with system message should display system message in scrollback
-START_TEST(test_clear_with_system_message_displays_in_scrollback) {
+// Test: Clear with system message does NOT display in scrollback (stored for LLM only)
+START_TEST(test_clear_with_system_message_not_in_scrollback) {
     // Create a config with system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -284,29 +277,13 @@ START_TEST(test_clear_with_system_message_displays_in_scrollback) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // After /clear with system message configured,
-    // scrollback should have 2 lines (the system message + blank line), not 0
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-
-    // Verify the content is the system message (with color styling)
-    const char *line = NULL;
-    size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-    // System messages are colored with gray 242
-    ck_assert_ptr_nonnull(strstr(line, "You are a helpful assistant."));
-
-    // Verify the second line is blank
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 1, &line, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_uint_eq(line_len, 0);
+    // After /clear, scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
-// Test: Clear without config system message shows default message
-// When no config message is set, the hardcoded default is shown (priority 4 in fallback)
-START_TEST(test_clear_without_config_shows_default_message) {
+// Test: Clear without config system message leaves scrollback empty
+START_TEST(test_clear_without_config_empty_scrollback) {
     // Create a config WITHOUT system message
     ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
     ck_assert_ptr_nonnull(cfg);
@@ -331,23 +308,13 @@ START_TEST(test_clear_without_config_shows_default_message) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
-
-    // Verify the content is the default system message
-    const char *line = NULL;
-    size_t line_len = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 0, &line, &line_len);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-    ck_assert_ptr_nonnull(strstr(line, "Ikigai"));
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
-// Test: Clear with system message completes successfully even with long config message
-// Note: System messages are truncated to 256 chars for display, so the original
-// long message content doesn't affect scrollback capacity requirements
-START_TEST(test_clear_with_long_system_message_truncates) {
+// Test: Clear with long system message completes successfully (message not displayed)
+START_TEST(test_clear_with_long_system_message_succeeds) {
     // Create a very long system message
     char long_message[2000];
     memset(long_message, 'A', sizeof(long_message) - 1);
@@ -370,14 +337,8 @@ START_TEST(test_clear_with_long_system_message_truncates) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify scrollback has content (system message was rendered)
-    ck_assert_uint_gt(ik_scrollback_get_line_count(repl->current->scrollback), 0);
-
-    // Get the rendered content and verify it's truncated (ends with "...")
-    const char *text;
-    size_t length;
-    ik_scrollback_get_line_text(repl->current->scrollback, 0, &text, &length);
-    ck_assert_ptr_nonnull(strstr(text, "..."));
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -398,9 +359,9 @@ static Suite *commands_clear_suite(void)
     tcase_add_test(tc, test_clear_with_null_conversation);
     tcase_add_test(tc, test_clear_with_ignored_arguments);
     tcase_add_test(tc, test_clear_with_marks);
-    tcase_add_test(tc, test_clear_with_system_message_displays_in_scrollback);
-    tcase_add_test(tc, test_clear_without_config_shows_default_message);
-    tcase_add_test(tc, test_clear_with_long_system_message_truncates);
+    tcase_add_test(tc, test_clear_with_system_message_not_in_scrollback);
+    tcase_add_test(tc, test_clear_without_config_empty_scrollback);
+    tcase_add_test(tc, test_clear_with_long_system_message_succeeds);
 
     suite_add_tcase(s, tc);
     return s;

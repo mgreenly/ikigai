@@ -210,8 +210,8 @@ START_TEST(test_clear_db_error_json_add_fail_clear) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 
 }
@@ -246,8 +246,8 @@ START_TEST(test_clear_system_db_error_json_add_fail) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
