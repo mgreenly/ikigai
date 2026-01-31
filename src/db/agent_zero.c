@@ -17,6 +17,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
 {
     assert(db != NULL);         // LCOV_EXCL_BR_LINE

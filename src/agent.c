@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "poison.h"
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
 

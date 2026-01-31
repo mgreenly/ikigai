@@ -13,6 +13,8 @@
 #include <talloc.h>
 
 
+#include "poison.h"
+
 void ik_agent_restore_populate_conversation(
     ik_agent_ctx_t *agent,
     ik_replay_context_t *replay_ctx,

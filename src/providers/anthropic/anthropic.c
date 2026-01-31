@@ -18,6 +18,8 @@
 #include <string.h>
 #include <sys/select.h>
 
+
+#include "poison.h"
 /**
  * Anthropic provider implementation context
  */

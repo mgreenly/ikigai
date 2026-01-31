@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+
+#include "poison.h"
 void ik_pp_header(ik_format_buffer_t *buf, int32_t indent, const char *type, const void *ptr)
 {
     assert(buf != NULL); /* LCOV_EXCL_BR_LINE */

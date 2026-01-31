@@ -18,6 +18,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
 {
     assert(db_ctx != NULL);        // LCOV_EXCL_BR_LINE

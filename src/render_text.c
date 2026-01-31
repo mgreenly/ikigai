@@ -3,6 +3,8 @@
 
 #include <assert.h>
 
+
+#include "poison.h"
 // Count newlines in text
 size_t ik_render_count_newlines(const char *text, size_t text_len)
 {

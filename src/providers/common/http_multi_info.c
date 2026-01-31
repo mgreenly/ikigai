@@ -7,6 +7,8 @@
 #include <inttypes.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 static void categorize_http_response(ik_http_multi_t *multi, long response_code,
                                       ik_http_completion_t *completion)
 {

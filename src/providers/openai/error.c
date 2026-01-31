@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+
+#include "poison.h"
 /**
  * Map HTTP status code to error category (default mapping)
  */

@@ -24,6 +24,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 void ik_persist_toolset_command(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     if (repl->shared->db_ctx == NULL || repl->shared->session_id == 0) {     // LCOV_EXCL_BR_LINE

@@ -6,6 +6,8 @@
 
 #include "panic.h"
 
+
+#include "poison.h"
 // Create detector (talloc-based)
 ik_scroll_detector_t *ik_scroll_detector_create(void *parent)
 {

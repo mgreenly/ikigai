@@ -17,6 +17,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 /**
  * Migration file entry
  */
@@ -47,7 +49,17 @@ static int get_current_version(PGconn *conn)
         return 0;
     }
 
-    int version = atoi(PQgetvalue(res, 0, 0));
+    const char *version_str = PQgetvalue(res, 0, 0);
+    char *endptr;
+    long version_long = strtol(version_str, &endptr, 10);
+
+    // If parse fails or value out of range, treat as version 0
+    if (*endptr != '\0' || version_long < 0 || version_long > INT_MAX) {
+        talloc_free(tmp_ctx);
+        return 0;
+    }
+
+    int version = (int)version_long;
     talloc_free(tmp_ctx);
     return version;
 }
@@ -133,8 +145,15 @@ static int parse_migration_number(const char *filename)
 
     // Convert to number
     char num_str[5] = {0};
-    strncpy(num_str, filename, (size_t)digit_count);
-    return atoi(num_str);
+    memcpy(num_str, filename, (size_t)digit_count);
+    num_str[digit_count] = '\0';
+
+    char *endptr;
+    long result = strtol(num_str, &endptr, 10);
+    if (*endptr != '\0' || result < 0 || result > INT_MAX) {
+        return -1;
+    }
+    return (int)result;
 }
 
 /**

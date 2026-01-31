@@ -19,6 +19,8 @@
 #include <string.h>
 #include <sys/select.h>
 
+
+#include "poison.h"
 /* ================================================================
  * Forward Declarations - Vtable Methods
  * ================================================================ */

@@ -11,6 +11,8 @@
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * Map HTTP status code to error category
  */

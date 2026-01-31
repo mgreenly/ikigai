@@ -8,6 +8,8 @@
 #include <assert.h>
 #include <inttypes.h>
 
+
+#include "poison.h"
 #define MOUSE_SCROLL_LINES 3
 
 /**

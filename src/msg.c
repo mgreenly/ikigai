@@ -9,6 +9,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 bool ik_msg_is_conversation_kind(const char *kind)
 {
     if (kind == NULL) {

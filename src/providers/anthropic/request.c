@@ -20,6 +20,8 @@
 #include <string.h>
 #include <assert.h>
 
+
+#include "poison.h"
 // Helper: calculate max_tokens with thinking budget adjustment
 static int32_t calculate_max_tokens(const ik_request_t *req)
 {

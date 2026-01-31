@@ -7,6 +7,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json)
 {
     // Parse the tool result JSON

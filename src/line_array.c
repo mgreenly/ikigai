@@ -2,6 +2,8 @@
 
 #include "line_array.h"
 
+
+#include "poison.h"
 // Create new line array
 res_t ik_line_array_create(TALLOC_CTX *ctx, size_t increment)
 {

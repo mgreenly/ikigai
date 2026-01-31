@@ -14,6 +14,8 @@
 #include <talloc.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 res_t ik_tool_external_exec(TALLOC_CTX *ctx,
                             const char *tool_path,
                             const char *agent_id,

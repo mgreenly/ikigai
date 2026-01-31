@@ -2,6 +2,8 @@
 #include "wrapper.h"
 #include <talloc.h>
 
+
+#include "poison.h"
 // Use the shared allocator wrapper for consistency
 void *talloc_zero_for_error(TALLOC_CTX *ctx, size_t size)
 {

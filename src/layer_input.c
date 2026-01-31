@@ -3,6 +3,8 @@
 #include "panic.h"
 #include <assert.h>
 
+
+#include "poison.h"
 // Input layer data
 typedef struct {
     bool *visible_ptr;        // Raw pointer to visibility flag

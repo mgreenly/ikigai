@@ -12,6 +12,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+
+#include "poison.h"
 // Helper to expand tilde in path
 static res_t expand_tilde(TALLOC_CTX *ctx, const char *path, char **out_path)
 {

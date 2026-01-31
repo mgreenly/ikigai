@@ -17,6 +17,8 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width)
 {
     assert(terminal_width > 0);  // LCOV_EXCL_BR_LINE

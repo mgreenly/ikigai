@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 #ifdef IKIGAI_DEV
 void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
 {

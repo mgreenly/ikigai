@@ -15,6 +15,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 /**
  * Generate ISO 8601 timestamp for current time
  *

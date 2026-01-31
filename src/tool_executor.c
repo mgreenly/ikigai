@@ -10,6 +10,8 @@
 
 #include <talloc.h>
 
+
+#include "poison.h"
 char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
                                     ik_tool_registry_t *registry,
                                     ik_paths_t *paths,

@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 void ik_config_apply_env_overrides(ik_config_t *cfg)
 {
     const char *env_db_host = getenv("IKIGAI_DB_HOST");

@@ -8,6 +8,8 @@
 #include <string.h>
 #include <assert.h>
 
+
+#include "poison.h"
 /**
  * Reasoning model lookup table
  *

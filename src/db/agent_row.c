@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                             PGresult *res, int row_index,
                             ik_db_agent_row_t **out)

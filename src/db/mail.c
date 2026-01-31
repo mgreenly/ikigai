@@ -10,6 +10,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_db_mail_insert(ik_db_ctx_t *db, int64_t session_id,
                         ik_mail_msg_t *msg)
 {

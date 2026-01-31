@@ -13,6 +13,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
+
+#include "poison.h"
 static ik_error_category_t map_http_status_to_category(int http_status)
 {
     switch (http_status) {

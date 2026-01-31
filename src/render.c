@@ -12,6 +12,8 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 // Create render context
 res_t ik_render_create(TALLOC_CTX *ctx, int32_t rows, int32_t cols,
                        int32_t tty_fd, ik_render_ctx_t **render_ctx_out)

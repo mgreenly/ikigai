@@ -14,6 +14,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * Serialize a single content block to Anthropic JSON format
  */

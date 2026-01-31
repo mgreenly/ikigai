@@ -17,6 +17,8 @@
 #include <time.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 static void log_error_and_cleanup(ik_logger_t *logger,
                                    const char *event,
                                    err_t *err,

@@ -13,6 +13,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+
+#include "poison.h"
 struct ik_logger {
     FILE *file;
     pthread_mutex_t mutex;

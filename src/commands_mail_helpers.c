@@ -16,6 +16,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 void ik_mail_format_timestamp(int64_t diff, char *buf, size_t buf_size)
 {
     assert(buf != NULL);       // LCOV_EXCL_BR_LINE

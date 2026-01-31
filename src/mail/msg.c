@@ -5,6 +5,8 @@
 
 #include <time.h>
 
+
+#include "poison.h"
 ik_mail_msg_t *ik_mail_msg_create(TALLOC_CTX *ctx,
                                   const char *from_uuid,
                                   const char *to_uuid,

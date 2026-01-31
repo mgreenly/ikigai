@@ -16,6 +16,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     ik_agent_complete_tool_execution(agent);

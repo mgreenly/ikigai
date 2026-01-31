@@ -8,6 +8,8 @@
 #include "panic.h"
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * Model-specific thinking budget limits
  */

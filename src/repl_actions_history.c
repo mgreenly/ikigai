@@ -11,6 +11,8 @@
 #include <talloc.h>
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * @brief Load history entry into input buffer
  *

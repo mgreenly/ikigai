@@ -12,6 +12,8 @@
 #include <sys/select.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 /**
  * Shared HTTP multi-handle client implementation
  *

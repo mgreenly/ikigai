@@ -36,6 +36,8 @@
 #include <time.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 // Helper: Copy parent's pinned_paths to child
 static void copy_pinned_paths(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
 {

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 ik_history_t *ik_history_create(void *ctx, size_t capacity)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE

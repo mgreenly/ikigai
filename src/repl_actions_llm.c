@@ -22,6 +22,8 @@
 #include <string.h>
 #include "logger.h"
 
+
+#include "poison.h"
 /**
  * @brief Handle legacy /pp command (internal debug command)
  *

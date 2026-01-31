@@ -8,6 +8,8 @@
 #include <limits.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_validate_required_string(TALLOC_CTX *ctx, yyjson_val *val, const char *field_name)
 {
     if (!val) {

@@ -18,6 +18,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 bool ik_event_renders_visible(const char *kind)
 {
     if (kind == NULL) {

@@ -9,6 +9,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char *text)
 {
     assert(text != NULL); // LCOV_EXCL_BR_LINE

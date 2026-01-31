@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 // Calculate cursor screen position (row, col) from byte offset
 // Internal function for testing - calculates where cursor should appear on screen
 // accounting for UTF-8 character widths and line wrapping

@@ -9,6 +9,8 @@
 
 #include <assert.h>
 
+
+#include "poison.h"
 /**
  * Parse usage object from JSON
  */

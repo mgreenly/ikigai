@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Forward declarations to avoid type conflicts during migration
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);

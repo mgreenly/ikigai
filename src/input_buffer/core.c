@@ -11,6 +11,8 @@
 #include <stdbool.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 ik_input_buffer_t *ik_input_buffer_create(void *parent)
 {
     ik_input_buffer_t *input_buffer = talloc_zero_(parent, sizeof(ik_input_buffer_t));

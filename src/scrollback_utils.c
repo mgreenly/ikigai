@@ -15,6 +15,8 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 size_t ik_scrollback_calculate_display_width(const char *text, size_t length)
 {
     size_t display_width = 0;

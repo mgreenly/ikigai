@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Unicode box-drawing characters (UTF-8 encoding, 3 bytes each, 1 display column)
 #define BOX_DOUBLE_HORIZONTAL "\xE2\x95\x90"        // ═ (U+2550)
 #define BOX_ROUNDED_DOWN_RIGHT "\xE2\x95\xAD"       // ╭ (U+256D)

@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+
+#include "poison.h"
 #define DEBUG_LOG_FILENAME "IKIGAI_DEBUG.LOG"
 
 static FILE *g_debug_log = NULL;

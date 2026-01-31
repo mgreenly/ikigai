@@ -10,6 +10,8 @@
 #include <inttypes.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 /**
  * @brief Calculate display width of UTF-8 text
  *

@@ -13,6 +13,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 /* ================================================================
  * Forward Declarations (from events.c)
  * ================================================================ */

@@ -15,6 +15,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_agent_find_clear(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
                           const char *agent_uuid, int64_t max_id,
                           int64_t *clear_id_out)

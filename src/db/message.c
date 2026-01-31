@@ -14,6 +14,8 @@
 #include <talloc.h>
 #include "vendor/yyjson/yyjson.h"
 
+
+#include "poison.h"
 // Valid event kinds
 static const char *VALID_KINDS[] = {
     "clear",

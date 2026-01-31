@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
+#include "poison.h"
 // Base64url alphabet (RFC 4648 section 5)
 static const char BASE64URL[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";

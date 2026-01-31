@@ -26,6 +26,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 /**
  * Helper to build feedback message for model switch
  */
