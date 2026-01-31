@@ -96,7 +96,7 @@ Comment out the function and build production:
 
 Also comment out header declaration if present.
 
-Run `make bin/ikigai` (NOT tests).
+Run `.claude/scripts/check-compile` then `.claude/scripts/check-link`.
 
 **Interpreting results:**
 - Build fails → Direct dependency exists that cflow missed, NOT dead
@@ -104,7 +104,7 @@ Run `make bin/ikigai` (NOT tests).
 
 ### Level 3: Test Execution (highest cost, most definitive)
 
-Run `make check` with function still commented out.
+Run `.claude/scripts/check-unit` with function still commented out.
 
 **Interpreting results:**
 
@@ -119,7 +119,7 @@ grep -w '{{function}}' tests/unit/test_foo.c
 ```
 
 **If YES (test references function):**
-The test is testing the dead function directly. Delete the test, re-run `make check`.
+The test is testing the dead function directly. Delete the test, re-run `.claude/scripts/check-unit`.
 
 **If NO (test doesn't reference function but still fails):**
 This is the critical case - but DON'T assume it proves the function is live. You must dig deeper:
@@ -128,7 +128,7 @@ This is the critical case - but DON'T assume it proves the function is live. You
 2. **Verify the intermediary is reachable**: Run `cflow --main main src/*.c` and check if that intermediary function appears in the output. Also check command handlers.
 3. **Interpret the result**:
    - Intermediary IS reachable from main → `{{function}}` is NOT dead (genuine production path)
-   - Intermediary is NOT reachable from main → Both are dead. Delete `{{function}}`, the intermediary, AND the test. Re-run `make check`.
+   - Intermediary is NOT reachable from main → Both are dead. Delete `{{function}}`, the intermediary, AND the test. Re-run `.claude/scripts/check-unit`.
 
 **Why this matters:** A test might exercise production code that calls `{{function}}`, but if that production code is ALSO unreachable from main, then the test was written just to get coverage on dead code. You've found a cluster of dead code - remove it all together.
 
@@ -159,7 +159,7 @@ Can you find {{function}} assigned/passed in src/?
 3. Delete any tests that directly tested it
 4. If you found a dead cluster (intermediary functions that only exist to call `{{function}}`), delete those too along with their tests
 5. Clean up empty TCases and test files
-6. Verify: `make bin/ikigai` passes, `make check` passes
+6. Run final verification: `.claude/scripts/check-compile`, `check-link`, `check-unit`, `check-integration` (all must pass)
 7. **Create a pull request** - The task is NOT complete until changes are committed and a PR is created. Use jj to commit, push, and gh to create the PR.
 
 ### If Function Is NOT Dead
@@ -191,8 +191,10 @@ A failing test is not evidence the function is live. It's evidence that *somethi
 
 ## Acceptance
 
+**Quality checks for this goal:** compile, link, unit, integration (4 checks only - NOT the full 11-check quality gate).
+
 DONE when either:
-1. **Function confirmed dead**: removed, all builds pass, all tests pass, **AND pull request created**
+1. **Function confirmed dead**: removed, check-compile/link/unit/integration all pass, **AND pull request created**
 2. **Function confirmed NOT dead**: recorded as false positive, changes reverted
 
 **IMPORTANT**: If you confirmed dead code and removed it, you MUST create a pull request before reporting DONE. Verified deletions without a PR are incomplete work.
