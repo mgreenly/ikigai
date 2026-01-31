@@ -14,20 +14,20 @@ ikigai supports three AI providers. Each requires an API key set via environment
 
 | Model Name | Thinking | Max Thinking Tokens |
 |------------|----------|---------------------|
-| `claude-opus-4-5` | Yes | 64,000 |
-| `claude-sonnet-4-5` | Yes | 64,000 |
-| `claude-haiku-4-5` | Yes | 32,000 |
+| `claude-opus-4-5` | Yes | 32,768 (default) |
+| `claude-sonnet-4-5` | Yes | 65,536 |
+| `claude-haiku-4-5` | Yes | 32,768 |
 
 ### Thinking Level Mapping
 
-Anthropic uses token budgets. ikigai divides the range between min (1,024) and max into thirds:
+Anthropic uses token budgets. ikigai divides the range between min (1,024) and max into thirds, then rounds down to the nearest power of 2:
 
 | Level | claude-sonnet-4-5 | claude-haiku-4-5 |
 |-------|-------------------|------------------|
 | `none` | 1,024 tokens | 1,024 tokens |
-| `low` | 22,016 tokens | 11,349 tokens |
-| `med` | 43,008 tokens | 21,674 tokens |
-| `high` | 64,000 tokens | 32,000 tokens |
+| `low` | 16,384 tokens | 8,192 tokens |
+| `med` | 32,768 tokens | 16,384 tokens |
+| `high` | 65,536 tokens | 32,768 tokens |
 
 **Note**: Anthropic's minimum budget is 1,024 tokens. Setting `none` enables thinking at minimum level, not disabled.
 
@@ -36,6 +36,7 @@ Anthropic uses token budgets. ikigai divides the range between min (1,024) and m
 | Parameter | Value | Notes |
 |-----------|-------|-------|
 | Temperature | Provider default | Not sent in request |
+| Stream | `true` | Always enabled |
 
 ## OpenAI
 
@@ -49,7 +50,12 @@ These models use the newer Responses API with effort-based reasoning:
 
 | Model Name | Thinking | Notes |
 |------------|----------|-------|
-| `gpt-5` | Yes | Latest GPT-5 |
+| `o1` | Yes | First-gen reasoning |
+| `o1-mini` | Yes | Smaller first-gen reasoning |
+| `o1-preview` | Yes | First-gen reasoning preview |
+| `o3` | Yes | Second-gen reasoning |
+| `o3-mini` | Yes | Smaller second-gen reasoning |
+| `gpt-5` | Yes | GPT-5 base |
 | `gpt-5-mini` | Yes | Smaller GPT-5 |
 | `gpt-5-nano` | Yes | Smallest GPT-5 |
 | `gpt-5-pro` | Yes | Always uses "high" effort |
@@ -59,11 +65,6 @@ These models use the newer Responses API with effort-based reasoning:
 | `gpt-5.2` | Yes | GPT-5.2 base |
 | `gpt-5.2-chat-latest` | Yes | GPT-5.2 chat |
 | `gpt-5.2-codex` | Yes | GPT-5.2 code-focused |
-| `gpt-4-o1` | Yes | First-gen reasoning |
-| `gpt-4-o1-mini` | Yes | Smaller first-gen reasoning |
-| `gpt-4-o1-preview` | Yes | First-gen reasoning preview |
-| `gpt-4-o3` | Yes | Second-gen reasoning (faster, cheaper) |
-| `gpt-4-o3-mini` | Yes | Smaller second-gen reasoning |
 
 ### Chat Completions API Models
 
@@ -89,7 +90,7 @@ Legacy models without reasoning support:
 | `med` | `"medium"` |
 | `high` | `"high"` |
 
-**O-series models** (gpt-4-o1, gpt-4-o3):
+**O-series models** (o1, o3):
 
 | Level | API Value |
 |-------|-----------|
@@ -113,7 +114,7 @@ Legacy models without reasoning support:
 |-----------|-------|-------|
 | Temperature | Not sent | Reasoning models do not support temperature |
 | strict | `true` | Tool schemas use strict mode |
-| tool_choice | `"auto"` | Default tool selection |
+| parallel_tool_calls | `false` | Tools executed sequentially |
 
 ## Google
 
@@ -140,35 +141,26 @@ Google has two thinking mechanisms depending on model series.
 
 ### Thinking Level Mapping
 
-**Gemini 3 Pro** (only `low`, `high` available):
+**Gemini 3 models** (both Pro and Flash use same mapping):
 
 | Level | API Value |
 |-------|-----------|
-| `none` | `"low"` |
-| `low` | `"low"` |
-| `med` | `"high"` |
-| `high` | `"high"` |
+| `none` | `"LOW"` |
+| `low` | `"LOW"` |
+| `med` | `"HIGH"` |
+| `high` | `"HIGH"` |
 
-**Gemini 3 Flash** (has `minimal`, `low`, `high`):
-
-| Level | API Value |
-|-------|-----------|
-| `none` | `"minimal"` |
-| `low` | `"low"` |
-| `med` | `"low"` |
-| `high` | `"high"` |
-
-**Note**: Gemini 3 models do not have a "medium" level. Gemini 3 Pro cannot disable thinking (`none` maps to `"low"`).
+**Note**: Gemini 3 models only support two levels (`LOW` and `HIGH`, uppercase). Thinking cannot be disabled.
 
 **Gemini 2.5 (budget-based)**:
 
-Budget is calculated by dividing the range between min and max into thirds:
+Budget is calculated by dividing the range between min and max into thirds, then rounded down to the nearest power of 2:
 
 | Level | gemini-2.5-pro | gemini-2.5-flash | gemini-2.5-flash-lite |
 |-------|----------------|------------------|----------------------|
 | `none` | 128 tokens | 0 tokens | 512 tokens |
-| `low` | 11,008 tokens | 8,192 tokens | 8,533 tokens |
-| `med` | 21,888 tokens | 16,384 tokens | 16,554 tokens |
+| `low` | 8,192 tokens | 8,192 tokens | 8,192 tokens |
+| `med` | 16,384 tokens | 16,384 tokens | 16,384 tokens |
 | `high` | 32,768 tokens | 24,576 tokens | 24,576 tokens |
 
 **Note**: `gemini-2.5-pro` and `gemini-2.5-flash-lite` cannot fully disable thinking (minimum budget > 0).
@@ -178,3 +170,4 @@ Budget is calculated by dividing the range between min and max into thirds:
 | Parameter | Value | Notes |
 |-----------|-------|-------|
 | Temperature | Provider default | Not sent in request |
+| includeThoughts | `true` | Always enabled |
