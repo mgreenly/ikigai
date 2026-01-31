@@ -2,6 +2,7 @@
 #include <curl/curl.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
@@ -296,7 +297,7 @@ START_TEST(test_handle_interrupted_tool_completion) {
     // Create agent in EXECUTING_TOOL state with interrupt requested
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = true;
     agent->tool_thread_running = true;
@@ -355,7 +356,7 @@ START_TEST(test_poll_tool_completions_with_interrupt) {
     // Create agent in EXECUTING_TOOL state with tool complete and interrupt requested
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = true;
     agent->tool_thread_running = true;
@@ -400,12 +401,12 @@ START_TEST(test_interrupted_tool_completion_non_current_agent) {
     // Create two agents
     ik_agent_ctx_t *current_agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(current_agent);
-    current_agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&current_agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_init_(&current_agent->tool_thread_mutex, NULL);
 
     ik_agent_ctx_t *other_agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(other_agent);
-    other_agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&other_agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&other_agent->tool_thread_mutex, NULL);
     other_agent->interrupt_requested = true;
     other_agent->tool_thread_running = true;
@@ -443,7 +444,7 @@ START_TEST(test_interrupted_tool_completion_with_database) {
     // Create agent
     ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
     ck_assert_ptr_nonnull(agent);
-    agent->state = IK_AGENT_STATE_EXECUTING_TOOL;
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = true;
     agent->tool_thread_running = true;

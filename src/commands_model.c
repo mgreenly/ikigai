@@ -75,7 +75,7 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Check if an LLM request is currently active
-    if (repl->current->state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+    if (atomic_load(&repl->current->state) == IK_AGENT_STATE_WAITING_FOR_LLM) {
         char *msg = ik_scrollback_format_warning(ctx, "Cannot switch models during active request");
         ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
         talloc_free(msg);

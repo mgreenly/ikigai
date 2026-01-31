@@ -1,5 +1,6 @@
 #include "../../test_constants.h"
 #include <check.h>
+#include <stdatomic.h>
 #include "../../../src/repl_actions.h"
 #include "../../../src/repl_actions_internal.h"
 #include "../../../src/repl.h"
@@ -159,7 +160,7 @@ static void setup(void)
     repl->current->curl_still_running = 0;
 
     // Initialize state (idle)
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Reset mock state
     mock_start_stream_should_fail = false;

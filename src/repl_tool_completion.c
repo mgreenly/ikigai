@@ -117,7 +117,7 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
         for (size_t i = 0; i < repl->agent_count; i++) {
             ik_agent_ctx_t *agent = repl->agents[i];
             pthread_mutex_lock_(&agent->tool_thread_mutex);
-            ik_agent_state_t state = agent->state;
+            ik_agent_state_t state = atomic_load(&agent->state);
             bool complete = agent->tool_thread_complete;
             pthread_mutex_unlock_(&agent->tool_thread_mutex);
             if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {
@@ -131,7 +131,7 @@ res_t ik_repl_poll_tool_completions(ik_repl_ctx_t *repl)
         }
     } else if (repl->current != NULL) {
         pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-        ik_agent_state_t state = repl->current->state;
+        ik_agent_state_t state = atomic_load(&repl->current->state);
         bool complete = repl->current->tool_thread_complete;
         pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
         if (state == IK_AGENT_STATE_EXECUTING_TOOL && complete) {

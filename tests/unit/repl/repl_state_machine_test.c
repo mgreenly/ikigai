@@ -5,6 +5,7 @@
  */
 
 #include <check.h>
+#include <stdatomic.h>
 #include "../../../src/agent.h"
 #include "../../../src/shared.h"
 #include <talloc.h>
@@ -77,7 +78,7 @@ static ik_repl_ctx_t *create_test_repl(void *ctx)
     repl->current->spinner_state.visible = false;
 
     // Initialize state to IDLE (default)
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Create layers
     ik_layer_t *scrollback_layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
@@ -119,7 +120,7 @@ START_TEST(test_repl_state_idle_visibility) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Set state to IDLE
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
 
     // Call render_frame to update visibility flags
     res_t res = ik_repl_render_frame(repl);
@@ -139,7 +140,7 @@ START_TEST(test_repl_state_waiting_for_llm_visibility) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Set state to WAITING_FOR_LLM
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
 
     // Call render_frame to update visibility flags
     res_t res = ik_repl_render_frame(repl);
@@ -159,14 +160,14 @@ START_TEST(test_repl_state_transition_idle_to_waiting) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in IDLE state
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(!repl->current->spinner_state.visible);
     ck_assert(repl->current->input_buffer_visible);
 
     // Transition to WAITING_FOR_LLM
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(repl->current->spinner_state.visible);
@@ -182,14 +183,14 @@ START_TEST(test_repl_state_transition_waiting_to_idle) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in WAITING_FOR_LLM state
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     res_t res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
     ck_assert(repl->current->spinner_state.visible);
     ck_assert(!repl->current->input_buffer_visible);
 
     // Transition to IDLE
-    repl->current->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_IDLE);
     repl->current->input_buffer_visible = true;  // Set explicitly for document height calculation
     res = ik_repl_render_frame(repl);
     ck_assert(is_ok(&res));
@@ -228,7 +229,7 @@ START_TEST(test_repl_transition_to_idle_function) {
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
     // Start in WAITING_FOR_LLM state
-    repl->current->state = IK_AGENT_STATE_WAITING_FOR_LLM;
+    atomic_store(&repl->current->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     repl->current->spinner_state.visible = true;
     repl->current->input_buffer_visible = false;
 

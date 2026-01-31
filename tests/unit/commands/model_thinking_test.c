@@ -13,6 +13,7 @@
 #include "../../test_utils_helper.h"
 
 #include <check.h>
+#include <stdatomic.h>
 #include <talloc.h>
 
 // Forward declaration for suite function
@@ -302,7 +303,7 @@ END_TEST
 // Test: Model switch during active LLM request
 START_TEST(test_model_switch_during_request) {
     // Set agent state to waiting for LLM
-    repl->current->state = 1; // IK_AGENT_STATE_WAITING_FOR_LLM
+    atomic_store(&repl->current->state, 1); // IK_AGENT_STATE_WAITING_FOR_LLM
 
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4");
     ck_assert(is_err(&res));
@@ -315,7 +316,7 @@ START_TEST(test_model_switch_during_request) {
     ck_assert(strstr(line, "Cannot switch models during active request") != NULL);
 
     // Reset state for other tests
-    repl->current->state = 0;
+    atomic_store(&repl->current->state, 0);
 }
 
 END_TEST

@@ -28,6 +28,7 @@
 #include <talloc.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -126,7 +127,7 @@ static void setup(void)
     agent->assistant_response = NULL;
     agent->pending_tool_call = NULL;
     agent->provider_instance = NULL;
-    agent->state = IK_AGENT_STATE_IDLE;
+    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     agent->tool_iteration_count = 0;
     pthread_mutex_init(&agent->tool_thread_mutex, NULL);
 

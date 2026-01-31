@@ -157,9 +157,7 @@ res_t ik_repl_handle_escape_action(ik_repl_ctx_t *repl)
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
 
     // Check if there's an in-flight operation to interrupt
-    pthread_mutex_lock_(&repl->current->tool_thread_mutex);
-    ik_agent_state_t state = repl->current->state;
-    pthread_mutex_unlock_(&repl->current->tool_thread_mutex);
+    ik_agent_state_t state = atomic_load(&repl->current->state);
 
     // If agent is waiting or executing, interrupt it
     if (state == IK_AGENT_STATE_WAITING_FOR_LLM || state == IK_AGENT_STATE_EXECUTING_TOOL) {
@@ -200,9 +198,7 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl)
     ik_agent_ctx_t *agent = repl->current;
 
     // Check current state (thread-safe read)
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    ik_agent_state_t state = agent->state;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    ik_agent_state_t state = atomic_load(&agent->state);
 
     // IDLE state: nothing to interrupt
     if (state == IK_AGENT_STATE_IDLE) {
