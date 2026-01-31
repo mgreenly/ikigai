@@ -5,7 +5,6 @@
 
 #include "streaming.h"
 
-#include "debug_log.h"
 #include "panic.h"
 #include "streaming_responses_internal.h"
 
@@ -26,9 +25,6 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
                                                                         ik_stream_cb_t stream_cb,
                                                                         void *stream_ctx)
 {
-    DEBUG_LOG("responses_stream_ctx_create: ctx=%p stream_cb=%p stream_ctx=%p",
-              (void *)ctx, (void *)stream_cb, stream_ctx);
-
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(stream_cb != NULL);  // LCOV_EXCL_BR_LINE
 
@@ -50,9 +46,6 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
 
     sctx->sse_parser = ik_sse_parser_create(sctx);
     if (sctx->sse_parser == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    DEBUG_LOG("responses_stream_ctx_create: created sctx=%p sse_parser=%p",
-              (void *)sctx, (void *)sctx->sse_parser);
 
     return sctx;
 }
@@ -91,8 +84,6 @@ static void sse_event_handler(const char *event_name, const char *data, size_t l
     ik_openai_responses_stream_ctx_t *stream_ctx = (ik_openai_responses_stream_ctx_t *)user_ctx;
     assert(stream_ctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    DEBUG_LOG("sse_event_handler: event='%s' data_len=%zu calling process_event",
-              event_name, strlen(data));
     ik_openai_responses_stream_process_event(stream_ctx, event_name, data);
 }
 
@@ -112,7 +103,6 @@ size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t 
     assert(ctx->stream_cb != NULL);  // LCOV_EXCL_BR_LINE
 
     size_t total = size * nmemb;
-    DEBUG_LOG("responses_write_callback: feeding %zu bytes to SSE parser", total);
 
     ik_sse_parser_feed(ctx->sse_parser, (const char *)ptr, total);
 
@@ -120,21 +110,13 @@ size_t ik_openai_responses_stream_write_callback(void *ptr, size_t size, size_t 
     if (tmp_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     ik_sse_event_t *event;
-    int event_count = 0;
     while ((event = ik_sse_parser_next(ctx->sse_parser, tmp_ctx)) != NULL) {
-        event_count++;
-        DEBUG_LOG("responses_write_callback: event #%d type='%s' data_len=%zu",
-                  event_count,
-                  event->event ? event->event : "(null)",
-                  event->data ? strlen(event->data) : 0);
-
         if (event->event != NULL && event->data != NULL) {
             sse_event_handler(event->event, event->data, strlen(event->data), ctx);
         }
         talloc_free(event);
     }
 
-    DEBUG_LOG("responses_write_callback: processed %d events, returning %zu", event_count, total);
     talloc_free(tmp_ctx);
 
     return total;

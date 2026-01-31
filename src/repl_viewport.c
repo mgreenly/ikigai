@@ -1,7 +1,6 @@
 #include "repl.h"
 
 #include "agent.h"
-#include "debug_log.h"
 #include "panic.h"
 #include "render_cursor.h"
 #include "shared.h"
@@ -227,9 +226,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->current->layer_cake->viewport_row = first_visible_row;
     repl->current->layer_cake->viewport_height = (size_t)terminal_rows;
 
-    DEBUG_LOG("render_frame: banner_visible=%d, document_height=%zu, terminal_rows=%d, first_visible_row=%zu, viewport_offset=%zu",
-              repl->current->banner_visible, document_height, terminal_rows, first_visible_row, repl->current->viewport_offset);
-
     // Update debug info for separator display
     repl->debug_viewport_offset = repl->current->viewport_offset;
     repl->debug_viewport_row = first_visible_row;
@@ -270,9 +266,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         final_cursor_row = (int32_t)viewport.input_buffer_start_row;
         final_cursor_col = 0;
     }
-
-    DEBUG_LOG("cursor: input_buffer_start_row=%zu, final_cursor_row=%d, final_cursor_col=%d, terminal_rows=%d",
-              viewport.input_buffer_start_row, final_cursor_row, final_cursor_col, terminal_rows);
 
     // Build framebuffer with terminal control sequences
     size_t framebuffer_size = 6 + 3 + output->size + 3 + 6 + 20;  // hide cursor + home + content + clear-to-end + cursor visibility + position

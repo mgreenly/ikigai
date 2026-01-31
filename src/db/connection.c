@@ -1,6 +1,5 @@
 #include "connection.h"
 #include "migration.h"
-#include "../debug_log.h"
 #include "../error.h"
 #include "../panic.h"
 #include <libpq-fe.h>
@@ -20,7 +19,7 @@
 static void pq_notice_processor(void *arg, const char *message)
 {
     (void)arg; // Unused
-    DEBUG_LOG("PostgreSQL notice: %s", message);
+    (void)message; // Suppress notice
 }
 
 /**

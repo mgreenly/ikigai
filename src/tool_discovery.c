@@ -1,6 +1,5 @@
 #include "tool_discovery.h"
 
-#include "debug_log.h"
 #include "error.h"
 #include "json_allocator.h"
 #include "panic.h"
@@ -142,11 +141,9 @@ static char *extract_tool_name(TALLOC_CTX *ctx, const char *path)
 // Returns OK even if directory doesn't exist or is empty
 static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_registry_t *registry)
 {
-    DEBUG_LOG("scan_directory: scanning %s", dir_path);
     DIR *dir = opendir(dir_path);
     if (dir == NULL) {
         // Directory doesn't exist - this is OK
-        DEBUG_LOG("scan_directory: %s does not exist or cannot be opened", dir_path);
         return OK(NULL);
     }
 
@@ -161,11 +158,8 @@ static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_regis
         char *full_path = talloc_asprintf(ctx, "%s/%s", dir_path, entry->d_name);
         if (full_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-        DEBUG_LOG("scan_directory: checking %s", full_path);
-
         // Check if executable
         if (!is_executable(full_path)) {
-            DEBUG_LOG("scan_directory: %s is not executable, skipping", full_path);
             talloc_free(full_path);
             continue;
         }
@@ -175,12 +169,9 @@ static res_t scan_directory(TALLOC_CTX *ctx, const char *dir_path, ik_tool_regis
         size_t name_len = strlen(entry->d_name);
         size_t suffix_len = strlen(suffix);
         if (name_len <= suffix_len || strcmp(entry->d_name + name_len - suffix_len, suffix) != 0) {
-            DEBUG_LOG("scan_directory: %s does not end in '-tool', skipping", full_path);
             talloc_free(full_path);
             continue;
         }
-
-        DEBUG_LOG("scan_directory: calling %s --schema", full_path);
         // Call tool with --schema
         yyjson_doc *schema_doc = call_tool_schema(ctx, full_path);
         if (schema_doc == NULL) {
@@ -214,9 +205,6 @@ res_t ik_tool_discovery_run(TALLOC_CTX *ctx,
                             const char *project_dir,
                             ik_tool_registry_t *registry)
 {
-    DEBUG_LOG("ik_tool_discovery_run: system_dir=%s, user_dir=%s, project_dir=%s",
-              system_dir, user_dir, project_dir);
-
     // Scan all three directories in order: system, user, project
     // Override precedence: project > user > system (later scans override earlier)
 

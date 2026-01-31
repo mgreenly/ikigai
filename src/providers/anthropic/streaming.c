@@ -202,6 +202,7 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
                                                         sctx->current_tool_args !=
                                                         NULL ? sctx->current_tool_args : "{}");
         if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        block->data.tool_call.thought_signature = NULL; // Anthropic doesn't use this field
     }
 
     return resp;

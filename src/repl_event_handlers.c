@@ -1,7 +1,6 @@
 #include "repl_event_handlers.h"
 
 #include "agent.h"
-#include "debug_log.h"
 
 #include <errno.h>
 #include <string.h>

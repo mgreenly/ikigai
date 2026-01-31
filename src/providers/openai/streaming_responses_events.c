@@ -5,7 +5,6 @@
 
 #include "streaming_responses_internal.h"
 
-#include "debug_log.h"
 #include "error.h"
 #include "panic.h"
 #include "response.h"
@@ -27,7 +26,6 @@ void ik_openai_emit_event(ik_openai_responses_stream_ctx_t *sctx, const ik_strea
     assert(event != NULL);          // LCOV_EXCL_BR_LINE
     assert(sctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    DEBUG_LOG("emit_event: type=%d stream_ctx=%p", event->type, sctx->stream_ctx);
     sctx->stream_cb(event, sctx->stream_ctx);
 }
 
@@ -82,22 +80,16 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
     assert(data != NULL);                 // LCOV_EXCL_BR_LINE
     assert(stream_ctx->stream_cb != NULL); // LCOV_EXCL_BR_LINE
 
-    DEBUG_LOG("process_event: event='%s' data_len=%zu", event_name, strlen(data));
-
     yyjson_doc *doc = yyjson_read(data, strlen(data), 0);
     if (doc == NULL) {
-        DEBUG_LOG("process_event: yyjson_read failed for event '%s'", event_name);
         return;
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
     if (root == NULL || !yyjson_is_obj(root)) {
-        DEBUG_LOG("process_event: invalid JSON root for event '%s'", event_name);
         yyjson_doc_free(doc);
         return;
     }
-
-    DEBUG_LOG("process_event: dispatching event '%s'", event_name);
 
     if (strcmp(event_name, "response.created") == 0) {
         ik_openai_responses_handle_response_created(stream_ctx, root);
@@ -111,17 +103,13 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         ik_openai_responses_handle_function_call_arguments_delta(stream_ctx, root);
     } else if (strcmp(event_name, "response.function_call_arguments.done") == 0) {
         // No-op: arguments already accumulated via delta events
-        DEBUG_LOG("process_event: function_call_arguments.done - no-op");
     } else if (strcmp(event_name, "response.output_item.done") == 0) {
         ik_openai_responses_handle_output_item_done(stream_ctx, root);
     } else if (strcmp(event_name, "response.completed") == 0) {
         ik_openai_responses_handle_response_completed(stream_ctx, root);
     } else if (strcmp(event_name, "error") == 0) {
         ik_openai_responses_handle_error_event(stream_ctx, root);
-    } else {
-        DEBUG_LOG("process_event: unknown event type '%s' - ignoring", event_name);
     }
 
-    DEBUG_LOG("process_event: finished processing '%s'", event_name);
     yyjson_doc_free(doc);
 }

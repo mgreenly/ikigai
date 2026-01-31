@@ -38,7 +38,6 @@ static void log_error_and_cleanup(ik_logger_t *logger,
     yyjson_mut_obj_add_int(doc, root, "exit_code", EXIT_FAILURE);
     ik_logger_info_json(logger, doc);
 
-    DEBUG_LOG("=== Session ending: %s ===", event);
     g_panic_logger = NULL;
     talloc_free(root_ctx);
     talloc_free(logger_ctx);
@@ -59,7 +58,6 @@ int main(void)
 
     // Initialize debug log (DEBUG builds only, compiled away in release)
     ik_debug_log_init();
-    DEBUG_LOG("=== Session starting, PID=%d ===", getpid());
 
     // Logger first (its own talloc root for independent lifetime)
     void *logger_ctx = talloc_new(NULL);
@@ -80,10 +78,8 @@ int main(void)
     if (root_ctx == NULL) PANIC("Failed to create root talloc context");
 
     // Initialize paths module first (other subsystems may need it)
-    DEBUG_LOG("=== Calling paths_init ===");
     ik_paths_t *paths = NULL;
     res_t result = ik_paths_init(root_ctx, &paths);
-    DEBUG_LOG("=== paths_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
         fprintf(stderr, "Error: %s\n", error_message(result.err));
         fprintf(stderr, "\nRequired environment variables:\n");
@@ -99,17 +95,14 @@ int main(void)
     }
 
     // Load configuration
-    DEBUG_LOG("=== Calling config_load ===");
     ik_config_t *cfg = NULL;
     res_t cfg_result = ik_config_load(root_ctx, paths, &cfg);
-    DEBUG_LOG("=== config_load returned, is_err=%d ===", cfg_result.is_err);
     if (is_err(&cfg_result)) {
         log_error_and_cleanup(logger, "config_load_error", cfg_result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
 
     // Load credentials
-    DEBUG_LOG("=== Loading credentials ===");
     ik_credentials_t *creds = NULL;
     res_t creds_result = ik_credentials_load(root_ctx, NULL, &creds);
     if (is_err(&creds_result)) {
@@ -122,20 +115,16 @@ int main(void)
     }
 
     // Create shared context
-    DEBUG_LOG("=== Calling shared_ctx_init ===");
     ik_shared_ctx_t *shared = NULL;
     result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, &shared);
-    DEBUG_LOG("=== shared_ctx_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
         log_error_and_cleanup(logger, "shared_ctx_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
 
     // Create REPL context with shared context
-    DEBUG_LOG("=== Calling repl_init ===");
     ik_repl_ctx_t *repl = NULL;
     result = ik_repl_init(root_ctx, shared, &repl);
-    DEBUG_LOG("=== repl_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
         // Cleanup terminal first (exit alternate buffer)
         ik_term_cleanup(shared->term);
@@ -150,9 +139,7 @@ int main(void)
     // The talloc library will call this, instead of `abort` if it's defined, which will restore the primary buffer.
     talloc_set_abort_fn(ik_talloc_abort_handler);
 
-    DEBUG_LOG("=== Calling repl_run ===");
     result = ik_repl_run(repl);
-    DEBUG_LOG("=== repl_run returned, is_err=%d ===", result.is_err);
 
     ik_repl_cleanup(repl);
 
@@ -179,7 +166,6 @@ int main(void)
     yyjson_mut_obj_add_int(doc, root, "exit_code", exit_code);
     ik_logger_info_json(logger, doc);
 
-    DEBUG_LOG("=== Session ending normally, exit_code=%d ===", exit_code);
     g_panic_logger = NULL;   // Disable panic logging
     talloc_free(logger_ctx); // Logger last
 
