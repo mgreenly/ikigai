@@ -178,23 +178,12 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Document cache with `ik://` URI support
 - Bidirectional `ik://` to filesystem path translation
 - `list` tool with deque operations (lpush, rpush, lpop, rpop, lpeek, rpeek, list, count)
+- `/toolset` command to filter which tools are visible to the LLM during a session
 - UI improvements (braille spinner, flicker elimination)
 - Complete readline/editline control key support (Ctrl+K kill-to-end, etc.)
 
 
-### rel-11: System prompts, skills and tools (future)
-
-**Objective**: Layered primitives for tool/prompt configuration
-
-**Features**:
-- `/toolset` - Control which tools are available to agents
-- `/skillset` - Control which prompts/memory are pinned
-- `/mode` - Named bundles of toolset + skillset (e.g., planning, research, review)
-- User-defined modes in `~/.ikigai/modes/` or `.ikigai/modes/`
-- `!` prefix for user-defined prompt commands (distinct from `/` tools)
-
-
-### rel-12: Internal Tools (future)
+### rel-11: Internal Tools (future)
 
 **Objective**: Expose slash commands as tools for agent self-management
 
@@ -203,21 +192,10 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Agents can invoke `/send`, `/check-mail`, `/read-mail` for inter-agent communication
 - Agents can invoke `/pin`, `/unpin` for managing their own context
 - Tool wrappers translate slash commands to LLM-callable tool definitions
+- `!` prefix for user-defined prompt commands (distinct from `/` tools)
 
 
-### rel-13: Tool Sets (future)
-
-**Objective**: Named collections of tools for task-specific and model-optimized configurations
-
-**Features**:
-- Full tool index with all available tools registered
-- Named tool collections (sets) with include/exclude lists
-- Active set switching at runtime
-- Per-model defaults (match tools to model training data)
-- Per-task profiles (coding, research, file-heavy workflows)
-
-
-### rel-14: Token Estimation (future)
+### rel-12: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -228,17 +206,26 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-15: User Experience (future)
+### rel-13: HTTP API for External Agents (future)
+
+**Objective**: Enable external processes to spawn and communicate with agents
+
+**Features**:
+- Fork null agent (starting point on which you set model, tools, etc...)
+- Support basic message exchange (no tools)
+- Build minimal external agent to demo
+
+
+### rel-14: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
 **Features**:
-- Separate credentials from config ([design](backlog/config-credentials-split.md))
-- Layered resolution for commands, skills, and personas ([design](backlog/agents-layered-resolution.md))
-- Status bar showing live agent count and total memory usage (via `talloc_total_size`)
+- lots of tab auto completion
+- improved status bar
 
 
-### rel-16: Codebase Refactor & MVP Release (future)
+### rel-15: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 
@@ -248,21 +235,3 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Remove unnecessary abstractions (e.g., `layer_wrappers.c`)
 - Consolidate and clean up test structure
 - Improve dependency injection consistency
-
-### Far Future: Vision
-
-Intelligent context management through comprehensive RAG infrastructure. Automated indexing and summarization will maintain conversation history, with retrieval systems constructing optimal context for each LLM request. The model gains tools to search and retrieve historical messages, while the architecture introduces concurrency foundations for background processing of RAG operations.
-
-### Far Future: Interactive Shell
-
-`bash_interactive` tool for long-running interactive shell sessions. PTY management, streaming I/O, session persistence. Enables REPL workflows, debugging sessions, and processes requiring ongoing input.
-
-### Far Future: LSP Integration
-
-Language Server Protocol support for code intelligence. Go to definition, find references, hover info, workspace symbols. Enables precise code navigation without regex guessing.
-
-### Far Future: Notebook Support
-
-Jupyter notebook editing with cell-level operations. Read, replace, insert, and delete cells. Enables data science and scientific computing workflows.
-
----
