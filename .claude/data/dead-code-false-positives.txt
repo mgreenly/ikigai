@@ -2,5 +2,6 @@ add_tool_call_to_array
 add_tool_calls_content
 ik_ansi_init
 ik_anthropic_handle_error
+ik_anthropic_stream_process_event
 ik_db_messages_load
 ik_openai_responses_handle_output_item_done
