@@ -130,51 +130,6 @@ START_TEST(test_log_error_has_error_level) {
 }
 
 END_TEST
-// Test: ik_log_fatal_json calls exit(1)
-START_TEST(test_log_fatal_calls_exit) {
-    setup_logger();
-
-    // Fork to test exit behavior
-    pid_t child_pid = fork();
-    if (child_pid == 0) {
-        // Child process
-        yyjson_mut_doc *doc = ik_log_create();
-        yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-        yyjson_mut_obj_add_str(doc, root, "event", "test");
-
-        ik_log_fatal_json(doc);
-        // Should not reach here
-        exit(2);
-    } else {
-        // Parent process
-        int status;
-        waitpid(child_pid, &status, 0);
-
-        // Check that child exited with code 1
-        ck_assert(WIFEXITED(status));
-        ck_assert_int_eq(WEXITSTATUS(status), 1);
-
-        // Verify log file was written
-        char *output = read_log_file();
-        ck_assert_ptr_nonnull(output);
-
-        // Parse the output as JSON
-        yyjson_doc *parsed = yyjson_read(output, strlen(output), 0);
-        ck_assert_ptr_nonnull(parsed);
-
-        yyjson_val *parsed_root = yyjson_doc_get_root(parsed);
-        yyjson_val *level = yyjson_obj_get(parsed_root, "level");
-        ck_assert_ptr_nonnull(level);
-        ck_assert(yyjson_is_str(level));
-        ck_assert_str_eq(yyjson_get_str(level), "fatal");
-
-        yyjson_doc_free(parsed);
-    }
-
-    teardown_logger();
-}
-
-END_TEST
 
 static Suite *logger_jsonl_levels_suite(void)
 {
@@ -187,7 +142,6 @@ static Suite *logger_jsonl_levels_suite(void)
     tcase_add_test(tc_core, test_log_info_has_info_level);
     tcase_add_test(tc_core, test_log_warn_has_warn_level);
     tcase_add_test(tc_core, test_log_error_has_error_level);
-    tcase_add_test(tc_core, test_log_fatal_calls_exit);
 
     suite_add_tcase(s, tc_core);
     return s;
