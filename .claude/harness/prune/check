@@ -1,0 +1,199 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/prune/check - Dead code detection
+#
+# Uses cflow to trace reachability from main() and command handlers,
+# ctags to find all defined functions, then reports orphans.
+# Filters out known false positives and pattern-based exclusions.
+#
+
+require 'json'
+require 'optparse'
+require 'set'
+require 'tempfile'
+
+FALSE_POSITIVES_FILE = '.claude/data/dead-code-false-positives.txt'
+EXCLUDED_PATTERNS = [
+  /_destructor$/,  # talloc destructors (passed to talloc_set_destructor)
+  /_$/,            # wrapper/mock functions (called via macros)
+  /^talloc_zero_for_error$/ # called via ERR() macro in error.h
+].freeze
+
+# Run command and capture output
+def run_cmd(cmd)
+  stdout_str = ''
+  IO.popen(cmd, err: [:child, :out]) do |io|
+    stdout_str = io.read
+  end
+  [$?.exitstatus, stdout_str]
+end
+
+# Get all source files (excluding vendor)
+def get_source_files
+  Dir.glob('src/**/*.c').reject { |f| f.start_with?('src/vendor/') }.sort
+end
+
+# Get functions reachable from an entry point using cflow
+def get_reachable_functions(entry_point, src_files)
+  cmd = ['cflow', '--no-preprocess', '--main', entry_point] + src_files
+  _, output = run_cmd(cmd)
+
+  functions = Set.new
+  # Match: func_name() <...at src/...>
+  output.scan(/([a-zA-Z_][a-zA-Z0-9_]*)\(\) <[^>]+at src\/[^>]+>/) do |match|
+    functions.add(match[0])
+  end
+  functions
+end
+
+# Get all defined functions using ctags
+def get_defined_functions(src_files)
+  cmd = ['ctags', '-x', '--c-kinds=f'] + src_files
+  _, output = run_cmd(cmd)
+
+  functions = {}
+  output.each_line do |line|
+    parts = line.split
+    next if parts.length < 4
+
+    func_name = parts[0]
+    line_num = parts[2]
+    file_path = parts[3]
+    functions[func_name] = { file: file_path, line: line_num }
+  end
+  functions
+end
+
+# Get command handlers from src/commands.c
+def get_command_handlers
+  return [] unless File.exist?('src/commands.c')
+
+  content = File.read('src/commands.c')
+  content.scan(/ik_cmd_[a-z_]+/).uniq
+end
+
+# Load false positives from file
+def load_false_positives
+  return Set.new unless File.exist?(FALSE_POSITIVES_FILE)
+
+  Set.new(File.readlines(FALSE_POSITIVES_FILE).map(&:strip).reject(&:empty?))
+end
+
+# Check if function matches exclusion patterns
+def matches_exclusion_pattern?(func_name)
+  EXCLUDED_PATTERNS.any? { |pattern| func_name.match?(pattern) }
+end
+
+# Check if function is used beyond its definition
+def function_is_used?(func_name, src_files)
+  # Grep for function usage in source files
+  cmd = ['grep', '-l', "\\b#{func_name}\\b"] + src_files
+  exit_code, output = run_cmd(cmd)
+
+  return false if exit_code != 0 || output.strip.empty?
+
+  # Check each file that contains the function name
+  files_with_match = output.strip.split("\n")
+
+  files_with_match.each do |file|
+    content = File.read(file)
+
+    # Look for usages that aren't the definition
+    # Definition pattern: return_type func_name(
+    content.each_line.with_index do |line, _idx|
+      # Skip if this looks like a definition (has return type before func name)
+      next if line.match?(/^\s*(static\s+)?(const\s+)?(struct\s+\w+\s*\*?|enum\s+\w+|void|int|bool|char|res_t|size_t|ssize_t|int32_t|uint32_t|int64_t|uint64_t|ik_\w+_t)\s*\*?\s*#{Regexp.escape(func_name)}\s*\(/)
+
+      # Skip header file declarations
+      next if file.end_with?('.h')
+
+      # If we find the function name followed by ( and it's not a definition, it's a call
+      return true if line.match?(/\b#{Regexp.escape(func_name)}\s*\(/) && !line.match?(/^\s*#{Regexp.escape(func_name)}\s*\([^)]*\)\s*[;{]?\s*$/)
+    end
+  end
+
+  false
+end
+
+# Find dead code candidates
+def find_dead_code
+  src_files = get_source_files
+  return [] if src_files.empty?
+
+  # Get all reachable functions from main()
+  reachable = get_reachable_functions('main', src_files)
+
+  # Also trace from command handlers
+  handlers = get_command_handlers
+  handlers.each do |handler|
+    reachable.merge(get_reachable_functions(handler, src_files))
+  end
+
+  # Get all defined functions
+  defined = get_defined_functions(src_files)
+
+  # Load exclusions
+  false_positives = load_false_positives
+
+  # Find orphans: defined but not reachable
+  candidates = []
+  defined.each do |func_name, location|
+    next if reachable.include?(func_name)
+    next if matches_exclusion_pattern?(func_name)
+    next if false_positives.include?(func_name)
+    next if function_is_used?(func_name, src_files)
+
+    candidates << {
+      function: func_name,
+      file: location[:file],
+      line: location[:line]
+    }
+  end
+
+  candidates.sort_by { |c| [c[:file], c[:line].to_i] }
+end
+
+def main
+  options = {}
+
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: check [options]'
+    opts.on('--file FILE', 'Filter results to specific file') do |f|
+      options[:file] = f
+    end
+  end.parse!
+
+  # Change to project root (3 levels up from harness/prune/)
+  script_dir = File.dirname(File.realpath(__FILE__))
+  project_root = File.expand_path('../../..', script_dir)
+  Dir.chdir(project_root)
+
+  # Find dead code
+  candidates = find_dead_code
+
+  # Filter by file if specified
+  if options[:file]
+    candidates = candidates.select { |c| c[:file] == options[:file] }
+  end
+
+  if candidates.empty?
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Format items as "function:file:line"
+  items = candidates.map { |c| "#{c[:function]}:#{c[:file]}:#{c[:line]}" }
+
+  puts JSON.generate(ok: false, items: items)
+  exit 1
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

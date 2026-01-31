@@ -1,11 +1,17 @@
-Remove dead code using sub-agents.
+Detect dead code candidates.
 
 **Usage:**
-- `/check-prune` - Find and remove all dead code
-- `/check-prune --limit 5` - Process only the first 5 candidates
+- `/check:prune` - List all dead code candidates (JSON output)
+- `/check:prune --file src/foo.c` - Check specific file only
 
-**Action:** Executes the harness script which runs dead-code analysis, comments out functions to verify they're unused, fixes affected tests, and removes the functions. Uses escalation ladder and commits on success.
+**Output:** JSON with `ok` and `items` fields:
+```json
+{"ok": false, "items": ["function:file:line", ...]}
+{"ok": true}
+```
+
+**Note:** This only detects CANDIDATES. Use `/fix:prune` to verify and remove dead code via Ralph.
 
 ---
 
-Run `.claude/scripts/check-prune --no-spinner {{args}}` and report the results.
+Run `.claude/scripts/check-prune {{args}}` and report the results.
