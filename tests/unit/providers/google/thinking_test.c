@@ -142,22 +142,22 @@ END_TEST
 
 START_TEST(test_thinking_level_str_none) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_NONE);
-    ck_assert_str_eq(level, "minimal");
+    ck_assert_str_eq(level, "LOW");  // Gemini 3 maps NONE to LOW
 }
 END_TEST
 START_TEST(test_thinking_level_str_low) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_LOW);
-    ck_assert_str_eq(level, "low");
+    ck_assert_str_eq(level, "LOW");
 }
 END_TEST
 START_TEST(test_thinking_level_str_med) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_MED);
-    ck_assert_str_eq(level, "medium");
+    ck_assert_str_eq(level, "HIGH");  // Gemini 3 maps MED to HIGH
 }
 END_TEST
 START_TEST(test_thinking_level_str_high) {
     const char *level = ik_google_thinking_level_str(IK_THINKING_HIGH);
-    ck_assert_str_eq(level, "high");
+    ck_assert_str_eq(level, "HIGH");
 }
 END_TEST
 /* Thinking Support Tests */
