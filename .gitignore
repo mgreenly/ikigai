@@ -41,6 +41,7 @@ coverage_html/
 
 # Ralph loop state files (any directory)
 **/*-ralph-goal.md
+!.claude/harness/*/*-ralph-goal.md
 **/*-ralph-progress.jsonl
 **/*-ralph-summary.md
 **/*-ralph-summary-meta.json
