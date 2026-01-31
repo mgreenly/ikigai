@@ -17,6 +17,7 @@
 
 // Include provider.h after other headers to avoid type conflicts
 #include "providers/provider.h"
+#include "providers/anthropic/thinking.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -25,53 +26,42 @@
 #include <talloc.h>
 
 /**
- * Helper to calculate thinking budget for a given level
- */
-static int32_t calculate_thinking_budget(ik_thinking_level_t level, int32_t min_budget,
-                                         int32_t max_budget)
-{
-    if (level == IK_THINKING_LOW) {
-        return min_budget + (max_budget - min_budget) / 3;
-    } else if (level == IK_THINKING_MED) {
-        return min_budget + (2 * (max_budget - min_budget)) / 3;
-    } else {
-        return max_budget;
-    }
-}
-
-/**
  * Helper to build feedback message for model switch
  */
 static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
                                       const char *model_name, ik_thinking_level_t thinking_level)
 {
-    int32_t thinking_budget = 0;
-    ik_model_get_thinking_budget(model_name, &thinking_budget);
+    const char *level_name = (thinking_level == IK_THINKING_NONE) ? "none" :
+                             (thinking_level == IK_THINKING_LOW)  ? "low" :
+                             (thinking_level == IK_THINKING_MED)  ? "med" : "high";
 
-    if (thinking_level == IK_THINKING_NONE) {
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: none",
-                               provider, model_name);
-    }
-
-    const char *level_name = (thinking_level == IK_THINKING_LOW) ? "low" :
-                             (thinking_level == IK_THINKING_MED) ? "medium" : "high";
-
-    if (strcmp(provider, "anthropic") == 0 && thinking_budget > 0) {
-        int32_t budget = calculate_thinking_budget(thinking_level, 1024, thinking_budget);
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                               provider, model_name, level_name, budget);
-    } else if (strcmp(provider, "google") == 0 && thinking_budget > 0) {
-        int32_t budget = calculate_thinking_budget(thinking_level, 512, thinking_budget);
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                               provider, model_name, level_name, budget);
+    if (strcmp(provider, "anthropic") == 0) {
+        int32_t budget = ik_anthropic_thinking_budget(model_name, thinking_level);
+        if (budget > 0) {
+            return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s (%d tokens)",
+                                   model_name, level_name, budget);
+        }
+        return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s",
+                               model_name, level_name);
+    } else if (strcmp(provider, "google") == 0) {
+        int32_t thinking_budget = 0;
+        ik_model_get_thinking_budget(model_name, &thinking_budget);
+        if (thinking_budget > 0 && thinking_level != IK_THINKING_NONE) {
+            int32_t min_budget = 512;
+            int32_t range = thinking_budget - min_budget;
+            int32_t budget = (thinking_level == IK_THINKING_LOW) ? min_budget + range / 3 :
+                             (thinking_level == IK_THINKING_MED) ? min_budget + (2 * range) / 3 :
+                             thinking_budget;
+            return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
+                                   provider, model_name, level_name, budget);
+        }
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s",
+                               provider, model_name, level_name);
     } else if (strcmp(provider, "openai") == 0) {
-        // Note: THINKING_NONE is handled by early return at line 50-53
-        const char *effort = (thinking_level == IK_THINKING_LOW) ? "low" :
-                             (thinking_level == IK_THINKING_MED) ? "medium" : "high";
         return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
-                               provider, model_name, effort);
+                               provider, model_name, level_name);
     } else {
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s level",
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s",
                                provider, model_name, level_name);
     }
 }

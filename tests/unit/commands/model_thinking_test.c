@@ -119,7 +119,7 @@ START_TEST(test_model_thinking_med) {
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "medium") != NULL);
+    ck_assert(strstr(line, "med") != NULL);
     ck_assert(strstr(line, "tokens") != NULL);
 }
 
@@ -202,18 +202,18 @@ START_TEST(test_model_openai_thinking_low) {
 }
 
 END_TEST
-// Test: OpenAI GPT-5 with medium thinking effort
+// Test: OpenAI GPT-5 with med thinking effort
 START_TEST(test_model_openai_thinking_med) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/med");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "openai");
 
-    // Verify feedback shows medium effort for GPT-5 (line 2, after echo and blank)
+    // Verify feedback shows med effort for GPT-5 (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "medium") != NULL);
+    ck_assert(strstr(line, "med") != NULL);
     ck_assert(strstr(line, "effort") != NULL);
 }
 
@@ -302,36 +302,36 @@ START_TEST(test_model_parse_empty_model) {
 }
 
 END_TEST
-// Test: Google model with budget=0 (gemini-3.0-flash - level-based)
+// Test: Google model with budget=0 (gemini-3.0-flash - no token count)
 START_TEST(test_model_google_level_based) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-3.0-flash/high");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "google");
 
-    // Verify feedback shows "level" instead of tokens for Gemini 3.x (line 2, after echo and blank)
+    // Verify feedback shows level name without tokens for Gemini 3.x (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "level") != NULL);
+    ck_assert(strstr(line, "tokens") == NULL); // No token count for budget=0
 }
 
 END_TEST
-// Test: Anthropic model with budget=0 (non-budget model)
+// Test: Anthropic model not in budget table (uses default budget)
 START_TEST(test_model_anthropic_no_budget) {
-    // Use claude-3-5-sonnet-20241022 which is not in capability table (budget=0)
+    // Use claude-3-5-sonnet-20241022 which is not in budget table (uses default)
     res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/high");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->provider, "anthropic");
 
-    // Verify feedback shows "level" instead of tokens when budget=0 (line 2, after echo and blank)
+    // Verify feedback shows tokens (uses default budget for unknown claude models)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "level") != NULL);
+    ck_assert(strstr(line, "tokens") != NULL);
 }
 
 END_TEST

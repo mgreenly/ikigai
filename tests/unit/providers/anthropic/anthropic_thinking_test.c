@@ -72,25 +72,25 @@ END_TEST
 
 START_TEST(test_thinking_budget_sonnet_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_LOW);
-    // min=1024, max=64000, range=62976
-    // LOW = 1024 + 62976/3 = 1024 + 20992 = 22016
-    ck_assert_int_eq(budget, 22016);
+    // min=1024, max=65536, range=64512
+    // LOW = 1024 + 64512/3 = 22528 -> floor to 2^14 = 16384
+    ck_assert_int_eq(budget, 16384);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_sonnet_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_MED);
-    // min=1024, max=64000, range=62976
-    // MED = 1024 + 2*62976/3 = 1024 + 41984 = 43008
-    ck_assert_int_eq(budget, 43008);
+    // min=1024, max=65536, range=64512
+    // MED = 1024 + 2*64512/3 = 44032 -> floor to 2^15 = 32768
+    ck_assert_int_eq(budget, 32768);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_sonnet_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_HIGH);
-    ck_assert_int_eq(budget, 64000); // maximum
+    ck_assert_int_eq(budget, 65536); // max (64*1024)
 }
 
 END_TEST
@@ -107,25 +107,25 @@ END_TEST
 
 START_TEST(test_thinking_budget_haiku_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_LOW);
-    // min=1024, max=32000, range=30976
-    // LOW = 1024 + 30976/3 = 1024 + 10325 = 11349
-    ck_assert_int_eq(budget, 11349);
+    // min=1024, max=32768, range=31744
+    // LOW = 1024 + 31744/3 = 11605 -> floor to 2^13 = 8192
+    ck_assert_int_eq(budget, 8192);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_haiku_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_MED);
-    // min=1024, max=32000, range=30976
-    // MED = 1024 + 2*30976/3 = 1024 + 20650 = 21674
-    ck_assert_int_eq(budget, 21674);
+    // min=1024, max=32768, range=31744
+    // MED = 1024 + 2*31744/3 = 22186 -> floor to 2^14 = 16384
+    ck_assert_int_eq(budget, 16384);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_haiku_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_HIGH);
-    ck_assert_int_eq(budget, 32000); // maximum
+    ck_assert_int_eq(budget, 32768); // max (32*1024)
 }
 
 END_TEST
@@ -142,25 +142,25 @@ END_TEST
 
 START_TEST(test_thinking_budget_unknown_claude_low) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_LOW);
-    // min=1024, max=32000, range=30976
-    // LOW = 1024 + 30976/3 = 1024 + 10325 = 11349
-    ck_assert_int_eq(budget, 11349);
+    // min=1024, max=32768, range=31744
+    // LOW = 1024 + 31744/3 = 11605 -> floor to 2^13 = 8192
+    ck_assert_int_eq(budget, 8192);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_unknown_claude_med) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_MED);
-    // min=1024, max=32000, range=30976
-    // MED = 1024 + 2*30976/3 = 1024 + 20650 = 21674
-    ck_assert_int_eq(budget, 21674);
+    // min=1024, max=32768, range=31744
+    // MED = 1024 + 2*31744/3 = 22186 -> floor to 2^14 = 16384
+    ck_assert_int_eq(budget, 16384);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_unknown_claude_high) {
     int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_HIGH);
-    ck_assert_int_eq(budget, 32000); // default maximum
+    ck_assert_int_eq(budget, 32768); // default max (32*1024)
 }
 
 END_TEST
