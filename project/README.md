@@ -195,7 +195,17 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - `!` prefix for user-defined prompt commands (distinct from `/` tools)
 
 
-### rel-12: Token Estimation (future)
+### rel-12: HTTP API for External Agents (future)
+
+**Objective**: Enable external processes to spawn and communicate with agents
+
+**Features**:
+- Fork null agent (starting point on which you set model, tools, etc...)
+- Support basic message exchange (no tools)
+- Build minimal external agent to demo
+
+
+### rel-13: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -204,16 +214,6 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Embed vocabularies for OpenAI, Google, Meta, xAI (~15-20MB)
 - Fallback estimation for Anthropic (cl100k_base, ~80-90% accuracy)
 - Display `~NUMBER` during composition, exact count after response
-
-
-### rel-13: HTTP API for External Agents (future)
-
-**Objective**: Enable external processes to spawn and communicate with agents
-
-**Features**:
-- Fork null agent (starting point on which you set model, tools, etc...)
-- Support basic message exchange (no tools)
-- Build minimal external agent to demo
 
 
 ### rel-14: User Experience (future)
