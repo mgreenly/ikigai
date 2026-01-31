@@ -311,49 +311,6 @@ START_TEST(test_history_load_exceeds_max_entries) {
 
 END_TEST
 
-START_TEST(test_history_save_ensure_directory_failure) {
-    ik_history_add(hist, "command1");
-    ik_history_add(hist, "command2");
-    mock_mkdir_should_fail = true;
-    mock_mkdir_errno = EACCES;
-    res_t res = ik_history_save(hist);
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    talloc_free(res.err);
-}
-
-END_TEST
-
-START_TEST(test_history_save_fopen_failure) {
-    ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
-    ik_history_add(hist, "command1");
-    ik_history_add(hist, "command2");
-    mock_fopen_should_fail = true;
-    mock_fopen_fail_path = ".ikigai/history.tmp";
-    res_t res = ik_history_save(hist);
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert(strstr(error_message(res.err), "Failed to create") != NULL);
-    ck_assert(strstr(error_message(res.err), "history.tmp") != NULL);
-    talloc_free(res.err);
-}
-
-END_TEST
-
-START_TEST(test_history_save_rename_failure) {
-    ck_assert_int_eq(mkdir(".ikigai", 0755), 0);
-    ik_history_add(hist, "command1");
-    ik_history_add(hist, "command2");
-    mock_rename_should_fail = true;
-    res_t res = ik_history_save(hist);
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-    ck_assert(strstr(error_message(res.err), "Failed to rename") != NULL);
-    talloc_free(res.err);
-}
-
-END_TEST
-
 START_TEST(test_history_append_ensure_directory_failure) {
     mock_mkdir_should_fail = true;
     mock_mkdir_errno = EACCES;
@@ -394,9 +351,6 @@ static Suite *history_file_io_errors_suite(void)
     tcase_add_test(tc, test_history_load_fseek_to_beginning_failure);
     tcase_add_test(tc, test_history_load_fread_incomplete);
     tcase_add_test(tc, test_history_load_exceeds_max_entries);
-    tcase_add_test(tc, test_history_save_ensure_directory_failure);
-    tcase_add_test(tc, test_history_save_fopen_failure);
-    tcase_add_test(tc, test_history_save_rename_failure);
     tcase_add_test(tc, test_history_append_ensure_directory_failure);
     tcase_add_test(tc, test_history_append_fopen_failure);
     suite_add_tcase(s, tc);

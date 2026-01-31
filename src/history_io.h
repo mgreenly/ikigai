@@ -59,27 +59,6 @@ res_t ik_history_ensure_directory(TALLOC_CTX *ctx);
 res_t ik_history_load(TALLOC_CTX *ctx, ik_history_t *hist, ik_logger_t *logger);
 
 /**
- * Save entire history to .ikigai/history file
- *
- * Writes all entries to JSONL file using atomic write pattern (temp file + rename).
- * Each entry formatted as: {"cmd": "...", "ts": "ISO-8601-timestamp"}\n
- * Multi-line commands preserved with JSON \n escaping.
- *
- * @param hist  History context to save
- * @return      OK(NULL) on success, ERR with IO error on failure
- *
- * Error cases:
- * - Directory creation fails
- * - Temp file creation fails
- * - Write fails (disk full, permissions)
- * - Rename fails
- *
- * Assertions:
- * - hist must not be NULL
- */
-res_t ik_history_save(const ik_history_t *hist);
-
-/**
  * Append single entry to .ikigai/history file
  *
  * Opens file in append mode and writes one JSONL line.
