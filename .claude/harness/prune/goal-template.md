@@ -165,8 +165,9 @@ Can you find {{function}} assigned/passed in src/?
 ### If Function Is NOT Dead
 
 1. Add `{{function}}` to `.claude/data/dead-code-false-positives.txt`
-2. Revert all changes: `jj restore`
-3. Return DONE - this is a successful outcome (we learned something)
+2. Commit the whitelist update: `jj commit -m "Add {{function}} to dead-code false positives"`
+3. Revert all other changes: `jj restore` (this only affects uncommitted changes)
+4. Return DONE - this is a successful outcome (we learned something)
 
 ## Confidence Calibration
 
