@@ -131,40 +131,35 @@ START_TEST(test_rewind_no_role_prefixes) {
     ck_assert(is_ok(&rewind_res));
 
     // Check scrollback content - should NOT have "You:" or "Assistant:" prefixes
-    // Line 0: system message
+    // System message is NOT displayed (stored for LLM only)
+    // Line 0: user message (no prefix)
     // Line 1: blank line
-    // Line 2: user message (no prefix)
+    // Line 2: assistant message (no prefix)
     // Line 3: blank line
-    // Line 4: assistant message (no prefix)
+    // Line 4: /mark qux
     // Line 5: blank line
-    // Line 6: /mark qux
-    // Line 7: blank line
 
-    // Get scrollback line count (each event + blank line = 8 lines total)
+    // Get scrollback line count (each event + blank line = 6 lines total, no system message)
     size_t line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    ck_assert_uint_eq(line_count, 8);
+    ck_assert_uint_eq(line_count, 6);
 
     // Get lines and verify content
     const char *line0 = get_line_text(repl->current->scrollback, 0);
     const char *line2 = get_line_text(repl->current->scrollback, 2);
     const char *line4 = get_line_text(repl->current->scrollback, 4);
-    const char *line6 = get_line_text(repl->current->scrollback, 6);
 
-    // Verify system message is first (with color styling)
-    ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
-
-    // Verify user message has "❯" prefix
-    ck_assert_str_eq(line2, "❯ what is 2 + 2");
+    // Verify user message has "❯" prefix (first line, no system message)
+    ck_assert_str_eq(line0, "❯ what is 2 + 2");
 
     // Verify assistant message has no "Assistant:" prefix (but has color styling)
-    ck_assert_ptr_nonnull(strstr(line4, "2 + 2 = 4"));
+    ck_assert_ptr_nonnull(strstr(line2, "2 + 2 = 4"));
 
     // Verify mark indicator
-    ck_assert_str_eq(line6, "/mark qux");
+    ck_assert_str_eq(line4, "/mark qux");
 }
 END_TEST
-// Test: Rewind should include system message from config
-START_TEST(test_rewind_includes_system_message) {
+// Test: Rewind does NOT display system message (stored for LLM only)
+START_TEST(test_rewind_system_message_not_displayed) {
     // Add a user message
     ik_message_t *msg_user = ik_message_create_text(ctx, IK_ROLE_USER, "Hello");
     // removed assertion
@@ -189,9 +184,11 @@ START_TEST(test_rewind_includes_system_message) {
     res_t rewind_res = ik_mark_rewind_to_mark(repl, target_mark);
     ck_assert(is_ok(&rewind_res));
 
-    // Verify system message is first line (with color styling)
+    // Verify first line is user message, not system message
     const char *line0 = get_line_text(repl->current->scrollback, 0);
-    ck_assert_ptr_nonnull(strstr(line0, "You are a helpful assistant for testing."));
+    ck_assert_ptr_nonnull(strstr(line0, "Hello"));
+    // System message should NOT be in scrollback
+    ck_assert_ptr_null(strstr(line0, "You are a helpful assistant for testing."));
 }
 
 END_TEST
@@ -276,7 +273,7 @@ static Suite *mark_scrollback_format_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
 
     tcase_add_test(tc, test_rewind_no_role_prefixes);
-    tcase_add_test(tc, test_rewind_includes_system_message);
+    tcase_add_test(tc, test_rewind_system_message_not_displayed);
     tcase_add_test(tc, test_rewind_without_system_message);
     tcase_add_test(tc, test_rewind_with_null_config);
 

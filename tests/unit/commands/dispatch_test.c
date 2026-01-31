@@ -142,8 +142,8 @@ START_TEST(test_dispatch_clear_command) {
     res = ik_cmd_dispatch(ctx, repl, "/clear");
     ck_assert(is_ok(&res));
 
-    // Verify old content cleared, default system message shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify old content cleared, scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST
@@ -227,8 +227,8 @@ START_TEST(test_dispatch_command_with_whitespace) {
     res = ik_cmd_dispatch(ctx, repl, "/  clear  ");
     ck_assert(is_ok(&res));
 
-    // Verify old content cleared, default system message shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Verify old content cleared, scrollback is empty
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
 
 END_TEST

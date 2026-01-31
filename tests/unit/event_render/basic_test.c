@@ -21,9 +21,9 @@ START_TEST(test_renders_visible_assistant) {
 }
 
 END_TEST
-// Test: ik_event_renders_visible - system events are visible
+// Test: ik_event_renders_visible - system events are not visible (stored for LLM but not shown)
 START_TEST(test_renders_visible_system) {
-    ck_assert(ik_event_renders_visible("system"));
+    ck_assert(!ik_event_renders_visible("system"));
 }
 
 END_TEST
@@ -105,24 +105,14 @@ START_TEST(test_render_assistant_event) {
 }
 
 END_TEST
-// Test: Render system event
+// Test: System events do not render (stored for LLM but not shown in UI)
 START_TEST(test_render_system_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     res_t result = ik_event_render(scrollback, "system", "You are helpful.", NULL);
     ck_assert(!is_err(&result));
-    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
-
-    const char *text;
-    size_t length;
-    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
-    // System messages now include color codes
-    ck_assert_ptr_nonnull(strstr(text, "You are helpful."));
-
-    // Second line should be blank
-    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
-    ck_assert_uint_eq(length, 0);
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
     talloc_free(ctx);
 }

@@ -184,8 +184,8 @@ START_TEST(test_clear_db_error_clear_event) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened despite DB error
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 END_TEST
@@ -204,8 +204,8 @@ START_TEST(test_clear_db_error_system_message) {
     ck_assert(is_ok(&res));
 
     // Verify clear still happened despite DB error
-    // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -225,8 +225,8 @@ START_TEST(test_clear_db_success_system_message) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened successfully
-    // System message should be displayed in scrollback (with blank line after)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -246,8 +246,8 @@ START_TEST(test_clear_without_db_ctx) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 
@@ -268,8 +268,8 @@ START_TEST(test_clear_with_invalid_session_id) {
     ck_assert(is_ok(&res));
 
     // Verify clear happened
-    // With fallback chain, default system message is always shown (2 lines)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 2);
+    // Scrollback is empty (system message stored but not displayed)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 0);
     ck_assert_uint_eq(repl->current->message_count, 0);
 }
 

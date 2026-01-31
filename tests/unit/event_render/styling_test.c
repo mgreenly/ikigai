@@ -93,22 +93,14 @@ START_TEST(test_tool_result_message_gray_242) {
 }
 
 END_TEST
-// Test: system message wrapped with soft blue 153
-START_TEST(test_system_message_soft_blue_153) {
+// Test: system message does not render (stored for LLM but not shown in UI)
+START_TEST(test_system_message_no_render) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     res_t result = ik_event_render(scrollback, "system", "System prompt", NULL);
     ck_assert(!is_err(&result));
-
-    const char *text;
-    size_t length;
-    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
-
-    // Should contain ANSI color sequence for soft blue 153
-    ck_assert_ptr_nonnull(strstr(text, "\x1b[38;5;153m"));
-    ck_assert_ptr_nonnull(strstr(text, "\x1b[0m"));
-    ck_assert_ptr_nonnull(strstr(text, "System prompt"));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
     talloc_free(ctx);
 }
@@ -223,8 +215,8 @@ START_TEST(test_multiline_color_per_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    // System messages use color 153 (soft blue)
-    res_t result = ik_event_render(scrollback, "system", "line1\nline2\nline3", NULL);
+    // Assistant messages use color 249 (light gray)
+    res_t result = ik_event_render(scrollback, "assistant", "line1\nline2\nline3", NULL);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -233,7 +225,7 @@ START_TEST(test_multiline_color_per_line) {
 
     // Each line should have its own color sequence and reset
     // Format: <color>line1<reset>\n<color>line2<reset>\n<color>line3<reset>
-    const char *color_seq = "\x1b[38;5;153m";
+    const char *color_seq = "\x1b[38;5;249m";
     const char *reset_seq = "\x1b[0m";
 
     // Count color sequences - should be 3 (one per line)
@@ -269,7 +261,7 @@ static Suite *event_render_styling_suite(void)
     tcase_add_test(tc_colors, test_assistant_message_gray_249);
     tcase_add_test(tc_colors, test_tool_call_message_gray_242);
     tcase_add_test(tc_colors, test_tool_result_message_gray_242);
-    tcase_add_test(tc_colors, test_system_message_soft_blue_153);
+    tcase_add_test(tc_colors, test_system_message_no_render);
     tcase_add_test(tc_colors, test_mark_no_color);
     tcase_add_test(tc_colors, test_rewind_no_color);
     tcase_add_test(tc_colors, test_clear_no_color);
