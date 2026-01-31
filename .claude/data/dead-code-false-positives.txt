@@ -3,3 +3,4 @@ add_tool_calls_content
 ik_ansi_init
 ik_anthropic_handle_error
 ik_db_messages_load
+ik_openai_responses_handle_output_item_done
