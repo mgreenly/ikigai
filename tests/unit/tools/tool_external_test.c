@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <talloc.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 // Test fixture
 static TALLOC_CTX *test_ctx;
@@ -325,7 +326,7 @@ int main(void)
     int number_failed;
     Suite *s = tool_external_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/tool_external_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

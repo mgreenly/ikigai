@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../../src/logger.h"
+#include "../../test_utils_helper.h"
 
 START_TEST(test_shutdown_when_null) {
     // Call shutdown without init - should handle NULL gracefully
@@ -35,7 +36,7 @@ int main(void)
 
     s = test_suite();
     sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/logger/jsonl_error_shutdown_null_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

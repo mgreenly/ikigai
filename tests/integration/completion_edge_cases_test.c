@@ -470,7 +470,7 @@ int main(void)
 {
     Suite *s = completion_edge_cases_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/integration/completion_edge_cases_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_NORMAL);
     int nf = srunner_ntests_failed(sr);
     srunner_free(sr);

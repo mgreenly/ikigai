@@ -30,6 +30,7 @@
 #include <stdatomic.h>
 #include <talloc.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 /* Mock db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
@@ -432,7 +433,7 @@ int main(void)
 {
     Suite *s = repl_tool_completion_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/repl_tool_completion_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

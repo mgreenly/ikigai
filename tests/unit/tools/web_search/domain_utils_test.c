@@ -3,6 +3,7 @@
 #include <check.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include "../../../test_utils_helper.h"
 
 START_TEST(test_exact_match) {
     ck_assert_int_eq(url_matches_domain("http://example.com", "example.com"), 1);
@@ -82,7 +83,7 @@ int32_t main(void)
 {
     Suite *s = domain_utils_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/web_search/domain_utils_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

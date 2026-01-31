@@ -7,6 +7,7 @@
 #include "helpers/openai_serialize_user_test.h"
 #include "helpers/openai_serialize_assistant_test.h"
 #include "helpers/openai_serialize_tool_test.h"
+#include "../../../test_utils_helper.h"
 
 /* ================================================================
  * Test Suite Coordination
@@ -19,7 +20,7 @@ int main(void)
     // Run user message tests
     Suite *user_suite = openai_serialize_user_suite();
     SRunner *user_runner = srunner_create(user_suite);
-    srunner_set_xml(user_runner, "reports/check/unit/providers/openai/openai_serialize_test.xml");
+    srunner_set_xml(user_runner, ik_test_xml_path(__FILE__));
     srunner_run_all(user_runner, CK_NORMAL);
     number_failed += srunner_ntests_failed(user_runner);
     srunner_free(user_runner);
@@ -27,7 +28,7 @@ int main(void)
     // Run assistant message tests
     Suite *assistant_suite = openai_serialize_assistant_suite();
     SRunner *assistant_runner = srunner_create(assistant_suite);
-    srunner_set_xml(assistant_runner, "reports/check/unit/providers/openai/openai_serialize_test.xml");
+    srunner_set_xml(assistant_runner, ik_test_xml_path(__FILE__));
     srunner_run_all(assistant_runner, CK_NORMAL);
     number_failed += srunner_ntests_failed(assistant_runner);
     srunner_free(assistant_runner);
@@ -35,7 +36,7 @@ int main(void)
     // Run tool message tests
     Suite *tool_suite = openai_serialize_tool_suite();
     SRunner *tool_runner = srunner_create(tool_suite);
-    srunner_set_xml(tool_runner, "reports/check/unit/providers/openai/openai_serialize_test.xml");
+    srunner_set_xml(tool_runner, ik_test_xml_path(__FILE__));
     srunner_run_all(tool_runner, CK_NORMAL);
     number_failed += srunner_ntests_failed(tool_runner);
     srunner_free(tool_runner);

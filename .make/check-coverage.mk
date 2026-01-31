@@ -13,13 +13,13 @@ coverage-build:
 ifdef RAW
 	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)"
 	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov"
-	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) check-unit FILE=
-	IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) check-integration FILE=
+	IKIGAI_DEV=1 BUILDDIR=build-coverage IK_REPORT_DIR=reports/coverage IK_TEST_SUITE=coverage $(MAKE) check-unit FILE=
+	IKIGAI_DEV=1 BUILDDIR=build-coverage IK_REPORT_DIR=reports/coverage IK_TEST_SUITE=coverage $(MAKE) check-integration FILE=
 else
 	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-compile FILE= CFLAGS="$(CFLAGS) $(COVERAGE_FLAGS)" >/dev/null 2>&1
 	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -k -j$(MAKE_JOBS) check-link FILE= LDFLAGS="$(LDFLAGS) $(COVERAGE_LDFLAGS)" LDLIBS="$(LDLIBS) -lgcov" >/dev/null 2>&1
-	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -s check-unit FILE= >/dev/null 2>&1
-	@IKIGAI_DEV=1 BUILDDIR=build-coverage $(MAKE) -s check-integration FILE= >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage IK_REPORT_DIR=reports/coverage IK_TEST_SUITE=coverage $(MAKE) -s check-unit FILE= >/dev/null 2>&1
+	@IKIGAI_DEV=1 BUILDDIR=build-coverage IK_REPORT_DIR=reports/coverage IK_TEST_SUITE=coverage $(MAKE) -s check-integration FILE= >/dev/null 2>&1
 endif
 
 # Common lcov flags (ignore gcov errors from stale files)

@@ -171,6 +171,19 @@ res_t ik_test_db_destroy(const char *db_name);
  */
 void ik_test_set_log_dir(const char *file_path);
 
+/**
+ * Derive XML report path from source file path.
+ *
+ * Reads IK_REPORT_DIR environment variable (default: "reports/check").
+ * Converts "tests/unit/foo/bar_test.c" to "${IK_REPORT_DIR}/unit/foo/bar_test.xml".
+ *
+ * Uses thread-local static buffer (safe for parallel test execution).
+ *
+ * @param file_path Source file path (typically __FILE__)
+ * @return XML report path string (static buffer, do not free)
+ */
+const char *ik_test_xml_path(const char *file_path);
+
 // ========== Terminal Utilities ==========
 
 /**

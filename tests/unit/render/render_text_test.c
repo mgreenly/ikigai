@@ -3,6 +3,7 @@
 
 #include <check.h>
 #include <string.h>
+#include "../../test_utils_helper.h"
 
 START_TEST(test_count_newlines_empty)
 {
@@ -99,7 +100,7 @@ int main(void)
     int number_failed;
     Suite *s = render_text_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/render/render_text_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

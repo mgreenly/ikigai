@@ -5,6 +5,7 @@
 #include <string.h>
 #include "../../../src/pp_helpers.h"
 #include "../../../src/format.h"
+#include "../../test_utils_helper.h"
 
 // Test: ik_pp_header with valid inputs
 START_TEST(test_pp_header_valid) {
@@ -275,7 +276,7 @@ int main(void)
     int number_failed;
     Suite *s = pp_helpers_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/pp_helpers/pp_helpers_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

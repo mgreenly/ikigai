@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <talloc.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 static TALLOC_CTX *test_ctx;
 static const char *tool_path = "libexec/ikigai/glob-tool";
@@ -470,7 +471,7 @@ int main(void)
 {
     Suite *s = glob_tool_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/glob_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

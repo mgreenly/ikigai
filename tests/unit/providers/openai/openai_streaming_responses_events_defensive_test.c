@@ -16,6 +16,7 @@
 #include "wrapper_json.h"
 #include "vendor/yyjson/yyjson.h"
 #include "openai_streaming_responses_events_test_helper.h"
+#include "../../../test_utils_helper.h"
 
 /* Mock state */
 static bool mock_yyjson_get_str_should_return_null = false;
@@ -179,7 +180,7 @@ int main(void)
 {
     Suite *s = openai_streaming_responses_events_defensive_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/openai/openai_streaming_responses_events_defensive_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

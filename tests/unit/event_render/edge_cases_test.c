@@ -12,6 +12,7 @@
 #include "../../../src/event_render.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/wrapper.h"
+#include "../../test_utils_helper.h"
 
 // Mock state for yyjson_get_str_
 static bool mock_yyjson_get_str_should_return_null = false;
@@ -134,7 +135,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = event_render_edge_cases_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/event_render/edge_cases_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

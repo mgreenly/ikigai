@@ -9,6 +9,7 @@
 #include <talloc.h>
 #include "../../../src/event_render.h"
 #include "../../../src/scrollback.h"
+#include "../../test_utils_helper.h"
 
 // Test: ik_event_renders_visible - command events are visible
 START_TEST(test_renders_visible_command) {
@@ -269,7 +270,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = event_render_command_fork_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/event_render/command_fork_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

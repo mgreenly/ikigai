@@ -10,6 +10,7 @@
 #include "../../../src/event_render.h"
 #include "../../../src/scrollback.h"
 #include "../../../src/ansi.h"
+#include "../../test_utils_helper.h"
 
 // Test: user message has no color codes
 START_TEST(test_user_message_no_color) {
@@ -278,7 +279,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = event_render_styling_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/event_render/styling_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

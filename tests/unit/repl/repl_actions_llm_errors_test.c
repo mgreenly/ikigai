@@ -17,6 +17,7 @@
 #include "../../../src/db/session.h"
 #include <talloc.h>
 #include <string.h>
+#include "../../test_utils_helper.h"
 
 // Mock state for provider operations
 static bool mock_get_provider_should_fail = false;
@@ -346,7 +347,7 @@ int main(void)
     int number_failed;
     Suite *s = repl_actions_llm_errors_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/repl_actions_llm_errors_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

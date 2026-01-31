@@ -10,6 +10,7 @@
 #include "providers/openai/streaming.h"
 #include "providers/openai/streaming_responses_internal.h"
 #include "providers/provider.h"
+#include "../../../test_utils_helper.h"
 
 typedef struct {
     ik_stream_event_t *items;
@@ -238,7 +239,7 @@ int main(void)
 {
     Suite *s = openai_streaming_responses_usage_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/openai/openai_streaming_responses_usage_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

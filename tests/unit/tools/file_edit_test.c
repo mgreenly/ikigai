@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 static void run_tool_with_args(const char *arg1, const char *stdin_data, char **stdout_out, char **stderr_out,
                                int32_t *exit_code)
@@ -574,7 +575,7 @@ int32_t main(void)
 {
     Suite *s = file_edit_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tools/file_edit_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

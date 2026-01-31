@@ -1,13 +1,16 @@
 # check-integration: Run integration tests and parse XML results
-# Tests output XML to reports/check/, which is parsed for structured output
+# Tests output XML to $IK_REPORT_DIR (default: reports/check/), which is parsed for structured output
 
 .PHONY: check-integration
+
+# Report directory: use IK_REPORT_DIR if set, otherwise reports/check
+REPORTDIR = $(if $(IK_REPORT_DIR),$(IK_REPORT_DIR),reports/check)
 
 check-integration:
 ifdef FILE
 	@# Single test mode - run one test binary and show detailed per-assertion results
-	@mkdir -p reports/check/$$(dirname $(FILE) | sed 's|^$(BUILDDIR)/tests/||')
-	@xml_path=$$(echo $(FILE) | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
+	@mkdir -p $(REPORTDIR)/$$(dirname $(FILE) | sed 's|^$(BUILDDIR)/tests/||')
+	@xml_path=$$(echo $(FILE) | sed 's|^$(BUILDDIR)/tests/|$(REPORTDIR)/|').xml; \
 	if [ ! -x "$(FILE)" ]; then \
 		echo "🔴 $(FILE): binary not found (run make check-link first)"; \
 		exit 1; \
@@ -24,8 +27,8 @@ ifdef FILE
 else ifdef RAW
 	@# RAW mode - run tests with full output visible
 	$(MAKE) check-link
-	@mkdir -p reports/check
-	@find tests/integration -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
+	@mkdir -p $(REPORTDIR)
+	@find tests/integration -type d | sed 's|^tests/|$(REPORTDIR)/|' | xargs mkdir -p 2>/dev/null || true
 	@for bin in $(INTEGRATION_TEST_BINARIES); do \
 		echo "=== $$bin ==="; \
 		$$bin || exit 1; \
@@ -38,14 +41,14 @@ else
 		exit 1; \
 	fi
 	@# Phase 2: Create output directories
-	@mkdir -p reports/check
-	@find tests/integration -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
+	@mkdir -p $(REPORTDIR)
+	@find tests/integration -type d | sed 's|^tests/|$(REPORTDIR)/|' | xargs mkdir -p 2>/dev/null || true
 	@# Phase 3: Run all tests in parallel (each writes XML, suppress console output)
 	@echo $(INTEGRATION_TEST_BINARIES) | tr ' ' '\n' | xargs -P$(MAKE_JOBS) -I{} sh -c '{} >/dev/null 2>&1 || true'
 	@# Phase 4: Check each binary's XML for pass/fail, one line per binary
 	@passed=0; failed=0; \
 	for bin in $(INTEGRATION_TEST_BINARIES); do \
-		xml=$$(echo $$bin | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
+		xml=$$(echo $$bin | sed 's|^$(BUILDDIR)/tests/|$(REPORTDIR)/|').xml; \
 		if [ ! -f "$$xml" ]; then \
 			echo "🔴 $$bin"; \
 			failed=$$((failed + 1)); \

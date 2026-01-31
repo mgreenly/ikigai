@@ -10,6 +10,7 @@
 #include "providers/openai/streaming.h"
 #include "providers/openai/openai.h"
 #include "providers/provider.h"
+#include "../../../test_utils_helper.h"
 
 /* ================================================================
  * Test Context and Event Capture
@@ -389,7 +390,7 @@ int main(void)
 {
     Suite *s = streaming_chat_coverage_suite_1();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/openai/streaming_chat_coverage_1_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
