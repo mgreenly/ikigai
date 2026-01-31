@@ -19,18 +19,38 @@ typedef struct {
 
 /**
  * Budget table for known Claude models
+ * All values are powers of 2
  */
 static const ik_anthropic_budget_t BUDGET_TABLE[] = {
-    {"claude-sonnet-4-5", 1024, 64000},
-    {"claude-haiku-4-5", 1024, 32000},
+    {"claude-sonnet-4-5", 1024, 65536},
+    {"claude-haiku-4-5", 1024, 32768},
     {NULL, 0, 0} // Sentinel
 };
 
 /**
  * Default budget for unknown Claude models
+ * All values are powers of 2
  */
 static const int32_t DEFAULT_MIN_BUDGET = 1024;
-static const int32_t DEFAULT_MAX_BUDGET = 32000;
+static const int32_t DEFAULT_MAX_BUDGET = 32768;
+
+/**
+ * Round down to nearest power of 2
+ */
+static int32_t floor_power_of_2(int32_t n)
+{
+    if (n <= 0) {
+        return 0;
+    }
+    // Set all bits below the highest set bit
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    // (n >> 1) + 1 gives us the highest power of 2 <= original n
+    return (n >> 1) + 1;
+}
 
 bool ik_anthropic_supports_thinking(const char *model)
 {
@@ -73,9 +93,9 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
         case IK_THINKING_NONE:
             return min_budget;
         case IK_THINKING_LOW:
-            return min_budget + range / 3;
+            return floor_power_of_2(min_budget + range / 3);
         case IK_THINKING_MED:
-            return min_budget + (2 * range) / 3;
+            return floor_power_of_2(min_budget + (2 * range) / 3);
         case IK_THINKING_HIGH:
             return max_budget;
         default: // LCOV_EXCL_LINE

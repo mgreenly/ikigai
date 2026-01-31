@@ -18,18 +18,18 @@
  *
  * @param model Model identifier (e.g., "claude-sonnet-4-5")
  * @param level Thinking level (NONE/LOW/MED/HIGH)
- * @return      Thinking budget in tokens, or -1 if unsupported
+ * @return      Thinking budget in tokens (power of 2), or -1 if unsupported
  *
- * Budget calculation:
- * - NONE: 1024 (minimum)
- * - LOW:  min_budget + range/3
- * - MED:  min_budget + 2*range/3
+ * Budget calculation (LOW/MED rounded down to nearest power of 2):
+ * - NONE: min_budget (1024)
+ * - LOW:  floor_power_of_2(min_budget + range/3)
+ * - MED:  floor_power_of_2(min_budget + 2*range/3)
  * - HIGH: max_budget
  *
- * Model-specific max budgets:
- * - claude-sonnet-4-5: 64000
- * - claude-haiku-4-5:  32000
- * - Unknown Claude:    32000 (default)
+ * Model-specific max budgets (powers of 2):
+ * - claude-sonnet-4-5: 65536 (2^16)
+ * - claude-haiku-4-5:  32768 (2^15)
+ * - Unknown Claude:    32768 (default)
  * - Non-Claude:        -1 (unsupported)
  */
 int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t level);
