@@ -142,7 +142,7 @@ static void banner_render(const ik_layer_t *layer,
         ik_output_buffer_append(output, BOX_LIGHT_HORIZONTAL, UNICODE_CHAR_LEN);    // ─
         ik_output_buffer_append(output, BOX_ROUNDED_UP_LEFT, UNICODE_CHAR_LEN);     // ╯
         ik_output_buffer_append(output, IK_ANSI_RESET, 4);
-        ik_output_buffer_append(output, "    ", 4);
+        ik_output_buffer_append(output, "     ", 5);
         ik_output_buffer_append(output, color_tagline, len_tagline);
         ik_output_buffer_append(output, "Agentic Orchestration", 21);
         ik_output_buffer_append(output, IK_ANSI_RESET, 4);
