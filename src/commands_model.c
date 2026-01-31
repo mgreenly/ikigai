@@ -18,6 +18,7 @@
 // Include provider.h after other headers to avoid type conflicts
 #include "providers/provider.h"
 #include "providers/anthropic/thinking.h"
+#include "providers/google/thinking.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -44,14 +45,8 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
         return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s",
                                model_name, level_name);
     } else if (strcmp(provider, "google") == 0) {
-        int32_t thinking_budget = 0;
-        ik_model_get_thinking_budget(model_name, &thinking_budget);
-        if (thinking_budget > 0 && thinking_level != IK_THINKING_NONE) {
-            int32_t min_budget = 512;
-            int32_t range = thinking_budget - min_budget;
-            int32_t budget = (thinking_level == IK_THINKING_LOW) ? min_budget + range / 3 :
-                             (thinking_level == IK_THINKING_MED) ? min_budget + (2 * range) / 3 :
-                             thinking_budget;
+        int32_t budget = ik_google_thinking_budget(model_name, thinking_level);
+        if (budget >= 0) {
             return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
                                    provider, model_name, level_name, budget);
         }

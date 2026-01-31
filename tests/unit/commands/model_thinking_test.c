@@ -170,6 +170,23 @@ START_TEST(test_model_google_thinking) {
 }
 
 END_TEST
+
+// Test: Google Gemini 2.5 with none level (should show token count)
+START_TEST(test_model_google_thinking_none) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/none");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->provider, "google");
+
+    // Verify feedback shows token count even for none level (line 2, after echo and blank)
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "none") != NULL);
+    ck_assert(strstr(line, "tokens") != NULL);
+}
+
+END_TEST
 // Test: OpenAI GPT-5 with high thinking effort
 START_TEST(test_model_openai_thinking) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/high");
@@ -351,6 +368,7 @@ static Suite *commands_model_thinking_suite(void)
     tcase_add_test(tc_core, test_model_thinking_high);
     tcase_add_test(tc_core, test_model_thinking_invalid);
     tcase_add_test(tc_core, test_model_google_thinking);
+    tcase_add_test(tc_core, test_model_google_thinking_none);
     tcase_add_test(tc_core, test_model_openai_thinking);
     tcase_add_test(tc_core, test_model_openai_thinking_low);
     tcase_add_test(tc_core, test_model_openai_thinking_med);

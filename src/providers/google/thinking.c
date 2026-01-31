@@ -33,6 +33,24 @@ static const ik_google_budget_t BUDGET_TABLE[] = {
 static const int32_t DEFAULT_MIN_BUDGET = 0;
 static const int32_t DEFAULT_MAX_BUDGET = 24576;
 
+/**
+ * Round down to nearest power of 2
+ */
+static int32_t floor_power_of_2(int32_t n)
+{
+    if (n <= 0) {
+        return 0;
+    }
+    // Set all bits below the highest set bit
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    // (n >> 1) + 1 gives us the highest power of 2 <= original n
+    return (n >> 1) + 1;
+}
+
 ik_gemini_series_t ik_google_model_series(const char *model)
 {
     if (model == NULL) {
@@ -127,9 +145,9 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
         case IK_THINKING_NONE:
             return min_budget;
         case IK_THINKING_LOW:
-            return min_budget + range / 3;
+            return floor_power_of_2(min_budget + range / 3);
         case IK_THINKING_MED:
-            return min_budget + (2 * range) / 3;
+            return floor_power_of_2(min_budget + (2 * range) / 3);
         case IK_THINKING_HIGH:
             return max_budget;
         default: // LCOV_EXCL_LINE

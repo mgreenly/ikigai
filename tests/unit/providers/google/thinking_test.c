@@ -64,48 +64,84 @@ END_TEST
 
 START_TEST(test_thinking_budget_2_5_pro_none) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_NONE);
-    ck_assert_int_eq(budget, 128); // minimum
+    ck_assert_int_eq(budget, 128);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_pro_low) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_LOW);
-    // min=128, max=32768, range=32640
-    // LOW = 128 + 32640/3 = 128 + 10880 = 11008
-    ck_assert_int_eq(budget, 11008);
+    ck_assert_int_eq(budget, 8192);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_pro_med) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_MED);
-    // min=128, max=32768, range=32640
-    // MED = 128 + 2*32640/3 = 128 + 21760 = 21888
-    ck_assert_int_eq(budget, 21888);
+    ck_assert_int_eq(budget, 16384);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_pro_high) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_HIGH);
-    ck_assert_int_eq(budget, 32768); // maximum
+    ck_assert_int_eq(budget, 32768);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_flash_none) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_NONE);
-    ck_assert_int_eq(budget, 0); // can disable
+    ck_assert_int_eq(budget, 0);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_low) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_LOW);
+    ck_assert_int_eq(budget, 8192);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_flash_med) {
     int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_MED);
-    // min=0, max=24576, range=24576
-    // MED = 0 + 2*24576/3 = 16384
     ck_assert_int_eq(budget, 16384);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_high) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_HIGH);
+    ck_assert_int_eq(budget, 24576);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_lite_none) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_NONE);
+    ck_assert_int_eq(budget, 512);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_lite_low) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_LOW);
+    ck_assert_int_eq(budget, 8192);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_lite_med) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_MED);
+    ck_assert_int_eq(budget, 16384);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_flash_lite_high) {
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_HIGH);
+    ck_assert_int_eq(budget, 24576);
 }
 
 END_TEST
@@ -389,7 +425,13 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_budget, test_thinking_budget_2_5_pro_med);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_pro_high);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_none);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_low);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_med);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_high);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_lite_none);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_lite_low);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_lite_med);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_flash_lite_high);
     tcase_add_test(tc_budget, test_thinking_budget_gemini_3_pro);
     tcase_add_test(tc_budget, test_thinking_budget_null);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_unknown_model);
