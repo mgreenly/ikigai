@@ -41,7 +41,13 @@ jj commit -m "Add feature X"
 
 Commits stack automatically. After 3 commits you have: `main → A → B → C (@)`
 
-**CRITICAL: Commit what's there.** When asked to commit, commit ALL changes in the working copy. Never restore, revert, or selectively exclude files unless explicitly asked. If there are "unexpected" changes from another session (e.g., ralph), they are intentional - commit them.
+**CRITICAL: Be explicit about files.** When asked to commit specific changes, explicitly list the files:
+
+```bash
+jj commit -m "msg" path/to/file1.c path/to/file2.c
+```
+
+Never use `jj restore` or `jj new` to avoid committing other files - that destroys work. Changes in the working copy are cumulative and intentional. If you only want to commit certain files, specify them explicitly in the commit command.
 
 ## Creating a PR
 
@@ -80,7 +86,7 @@ jj git push --bookmark feature-name
 - Force pushing to main
 - Creating multiple bookmarks
 - Pushing partial commit stacks
-- Reverting/restoring files when asked to commit (commit what's there)
+- Using `jj restore` or `jj new` to avoid committing files (specify files explicitly instead)
 
 ## Squashing (Permission Required)
 
