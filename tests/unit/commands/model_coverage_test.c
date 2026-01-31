@@ -91,8 +91,8 @@ START_TEST(test_model_switch_without_db) {
     ck_assert_str_eq(repl->current->model, "gpt-4");
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
 
-    // Verify confirmation message (echo + blank + confirmation + warning)
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 5);
+    // Verify confirmation message (echo + blank + confirmation + final blank)
+    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 4);
 }
 
 END_TEST
