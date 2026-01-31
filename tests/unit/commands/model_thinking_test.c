@@ -170,6 +170,23 @@ START_TEST(test_model_google_thinking) {
 }
 
 END_TEST
+
+// Test: Google Gemini 2.5 with none level (should show token count)
+START_TEST(test_model_google_thinking_none) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/none");
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(repl->current->provider, "google");
+
+    // Verify feedback shows token count even for none level (line 2, after echo and blank)
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "none") != NULL);
+    ck_assert(strstr(line, "tokens") != NULL);
+}
+
+END_TEST
 // Test: OpenAI GPT-5 with high thinking effort
 START_TEST(test_model_openai_thinking) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/high");
@@ -234,21 +251,51 @@ START_TEST(test_model_openai_thinking_none) {
 }
 
 END_TEST
-// Test: Warning for non-thinking model with thinking level
-START_TEST(test_model_nothinking_with_level) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/high");
-    ck_assert(is_ok(&res));
 
-    // Should have 4 lines: echo + blank + confirmation + warning
-    ck_assert_uint_eq(ik_scrollback_get_line_count(repl->current->scrollback), 5);
+// Test: Unknown Google model with typo (gemini-2.5-flash-light instead of flash-lite)
+START_TEST(test_model_google_unknown_typo) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash-light/low");
+    ck_assert(is_err(&res));
 
-    // Verify warning message (line 3, after echo + blank + confirmation)
+    // Verify error message (line 2, after echo and blank)
     const char *line;
     size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 3, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "Warning") != NULL);
-    ck_assert(strstr(line, "does not support thinking") != NULL);
+    ck_assert(strstr(line, "Error") != NULL);
+    ck_assert(strstr(line, "Unknown") != NULL);
+}
+
+END_TEST
+
+// Test: Unknown Google Gemini 2.5 model
+START_TEST(test_model_google_unknown_2_5) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-experimental/high");
+    ck_assert(is_err(&res));
+
+    // Verify error message (line 2, after echo and blank)
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "Error") != NULL);
+    ck_assert(strstr(line, "Unknown") != NULL);
+}
+
+END_TEST
+
+// Test: Gemini 2.5 Pro with none level (cannot disable thinking)
+START_TEST(test_model_google_pro_none_fails) {
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-pro/none");
+    ck_assert(is_err(&res));
+
+    // Verify error message (line 2, after echo and blank)
+    const char *line;
+    size_t length;
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
+    ck_assert(is_ok(&res));
+    ck_assert(strstr(line, "Error") != NULL);
+    ck_assert(strstr(line, "cannot disable thinking") != NULL);
 }
 
 END_TEST
@@ -351,11 +398,14 @@ static Suite *commands_model_thinking_suite(void)
     tcase_add_test(tc_core, test_model_thinking_high);
     tcase_add_test(tc_core, test_model_thinking_invalid);
     tcase_add_test(tc_core, test_model_google_thinking);
+    tcase_add_test(tc_core, test_model_google_thinking_none);
     tcase_add_test(tc_core, test_model_openai_thinking);
     tcase_add_test(tc_core, test_model_openai_thinking_low);
     tcase_add_test(tc_core, test_model_openai_thinking_med);
     tcase_add_test(tc_core, test_model_openai_thinking_none);
-    tcase_add_test(tc_core, test_model_nothinking_with_level);
+    tcase_add_test(tc_core, test_model_google_unknown_typo);
+    tcase_add_test(tc_core, test_model_google_unknown_2_5);
+    tcase_add_test(tc_core, test_model_google_pro_none_fails);
     tcase_add_test(tc_core, test_model_switch_during_request);
     tcase_add_test(tc_core, test_model_parse_trailing_slash);
     tcase_add_test(tc_core, test_model_parse_empty_model);

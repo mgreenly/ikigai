@@ -18,6 +18,7 @@
 // Include provider.h after other headers to avoid type conflicts
 #include "providers/provider.h"
 #include "providers/anthropic/thinking.h"
+#include "providers/google/thinking.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -44,14 +45,8 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
         return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s",
                                model_name, level_name);
     } else if (strcmp(provider, "google") == 0) {
-        int32_t thinking_budget = 0;
-        ik_model_get_thinking_budget(model_name, &thinking_budget);
-        if (thinking_budget > 0 && thinking_level != IK_THINKING_NONE) {
-            int32_t min_budget = 512;
-            int32_t range = thinking_budget - min_budget;
-            int32_t budget = (thinking_level == IK_THINKING_LOW) ? min_budget + range / 3 :
-                             (thinking_level == IK_THINKING_MED) ? min_budget + (2 * range) / 3 :
-                             thinking_budget;
+        int32_t budget = ik_google_thinking_budget(model_name, thinking_level);
+        if (budget >= 0) {
             return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
                                    provider, model_name, level_name, budget);
         }
@@ -123,16 +118,35 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         } else if (strcmp(thinking_str, "high") == 0) {
             thinking_level = IK_THINKING_HIGH;
         } else {
-            char *msg = talloc_asprintf(ctx,
-                                        "Error: Invalid thinking level '%s' (must be: none, low, med, high)",
-                                        thinking_str);
-            if (!msg) {     // LCOV_EXCL_BR_LINE
-                PANIC("OOM");   // LCOV_EXCL_LINE
-            }
+            char *msg = talloc_asprintf(ctx, "Error: Invalid thinking level '%s' (must be: none, low, med, high)", thinking_str);
+            if (!msg) PANIC("OOM");   // LCOV_EXCL_BR_LINE
             ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
             return ERR(ctx, INVALID_ARG, "Invalid thinking level '%s'", thinking_str);
         }
     }
+
+    // Validate Google models BEFORE switching
+    if (strcmp(provider, "google") != 0) goto skip_google_validation;
+
+    // Validate thinking level compatibility
+    res_t validate_res = ik_google_validate_thinking(ctx, model_name, thinking_level);
+    if (is_err(&validate_res)) {
+        char *msg = talloc_asprintf(ctx, "Error: %s", error_message(validate_res.err));
+        if (!msg) PANIC("OOM");   // LCOV_EXCL_BR_LINE
+        ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+        return validate_res;
+    }
+
+    // For Gemini 2.5, verify model is in BUDGET_TABLE
+    if (ik_google_model_series(model_name) != IK_GEMINI_2_5) goto skip_google_validation;
+    if (ik_google_thinking_budget(model_name, thinking_level) != -1) goto skip_google_validation;
+
+    char *msg = talloc_asprintf(ctx, "Error: Unknown Gemini 2.5 model '%s'", model_name);
+    if (!msg) PANIC("OOM");   // LCOV_EXCL_BR_LINE
+    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    return ERR(ctx, INVALID_ARG, "Unknown Gemini 2.5 model '%s'", model_name);
+
+skip_google_validation:
 
     // Update agent state
     if (repl->current->provider != NULL) {
@@ -189,17 +203,6 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     ik_scrollback_append_line(repl->current->scrollback, feedback, strlen(feedback));
-
-    // Warn if user requested thinking on non-thinking model
-    bool supports_thinking = false;
-    ik_model_supports_thinking(model_name, &supports_thinking);
-    if (!supports_thinking && thinking_level != IK_THINKING_NONE) {
-        char *warning = talloc_asprintf(ctx, "Warning: Model '%s' does not support thinking/reasoning", model_name);
-        if (!warning) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");   // LCOV_EXCL_LINE
-        }
-        ik_scrollback_append_line(repl->current->scrollback, warning, strlen(warning));
-    }
 
     return OK(NULL);
 }
