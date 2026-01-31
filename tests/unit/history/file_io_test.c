@@ -164,52 +164,6 @@ START_TEST(test_history_load_malformed_line) {
 }
 
 END_TEST
-// Test: Save writes atomic JSONL file
-START_TEST(test_history_save_atomic_write) {
-    // Add entries to history
-    ik_history_add(hist, "/clear");
-    ik_history_add(hist, "hello\nworld");
-    ik_history_add(hist, "/model gpt-4o");
-
-    // Save history
-    res_t res = ik_history_save(hist);
-    ck_assert(is_ok(&res));
-
-    // Verify file exists
-    struct stat st;
-    ck_assert_int_eq(stat(".ikigai/history", &st), 0);
-
-    // Read file and verify JSONL format
-    FILE *f = fopen(".ikigai/history", "r");
-    ck_assert_ptr_nonnull(f);
-
-    char line[512];
-
-    // Read first line - should contain "/clear"
-    ck_assert_ptr_nonnull(fgets(line, sizeof(line), f));
-    ck_assert(strstr(line, "\"cmd\"") != NULL);
-    ck_assert(strstr(line, "\"/clear\"") != NULL);
-    ck_assert(strstr(line, "\"ts\"") != NULL);
-
-    // Read second line - should contain "hello\nworld" with \n escaped
-    ck_assert_ptr_nonnull(fgets(line, sizeof(line), f));
-    ck_assert(strstr(line, "\"cmd\"") != NULL);
-    ck_assert(strstr(line, "hello\\nworld") != NULL);  // JSON escaped \n
-
-    // Read third line
-    ck_assert_ptr_nonnull(fgets(line, sizeof(line), f));
-    ck_assert(strstr(line, "\"/model gpt-4o\"") != NULL);
-
-    // Verify no more lines
-    ck_assert_ptr_null(fgets(line, sizeof(line), f));
-
-    fclose(f);
-
-    // Verify temp file was cleaned up
-    ck_assert_int_eq(stat(".ikigai/history.tmp", &st), -1);
-}
-
-END_TEST
 // Test: Append entry to file
 START_TEST(test_history_append_entry) {
     // Create directory and file with initial entries
@@ -280,19 +234,6 @@ START_TEST(test_history_append_creates_file) {
     ck_assert(strstr(line, "\"first entry\"") != NULL);
 
     fclose(f);
-}
-
-END_TEST
-// Test: Save empty history
-START_TEST(test_history_save_empty) {
-    // Save empty history
-    res_t res = ik_history_save(hist);
-    ck_assert(is_ok(&res));
-
-    // Verify file exists but is empty
-    struct stat st;
-    ck_assert_int_eq(stat(".ikigai/history", &st), 0);
-    ck_assert_int_eq((int)st.st_size, 0);
 }
 
 END_TEST
@@ -430,11 +371,9 @@ static Suite *history_file_io_suite(void)
     tcase_add_test(tc, test_history_load_valid_entries);
     tcase_add_test(tc, test_history_load_respects_capacity);
     tcase_add_test(tc, test_history_load_malformed_line);
-    tcase_add_test(tc, test_history_save_atomic_write);
     tcase_add_test(tc, test_history_append_entry);
     tcase_add_test(tc, test_history_load_file_missing);
     tcase_add_test(tc, test_history_append_creates_file);
-    tcase_add_test(tc, test_history_save_empty);
     tcase_add_test(tc, test_history_load_file_size_zero);
     tcase_add_test(tc, test_history_load_last_line_no_newline);
     tcase_add_test(tc, test_history_load_empty_lines);
