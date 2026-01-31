@@ -1,4 +1,5 @@
 add_tool_call_to_array
+add_tool_calls_content
 ik_ansi_init
 ik_anthropic_handle_error
 ik_db_messages_load
