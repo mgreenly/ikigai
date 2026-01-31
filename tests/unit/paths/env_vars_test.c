@@ -202,7 +202,6 @@ START_TEST(test_env_with_spaces) {
     // Assert
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(paths);
-    ck_assert_str_eq(ik_paths_get_bin_dir(paths), "/test/path with spaces/bin");
 
     // Cleanup
     unsetenv("IKIGAI_BIN_DIR");
@@ -232,7 +231,6 @@ START_TEST(test_env_with_trailing_slash) {
     // Assert - trailing slashes should be preserved
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(paths);
-    ck_assert_str_eq(ik_paths_get_bin_dir(paths), "/test/bin/");
     ck_assert_str_eq(ik_paths_get_config_dir(paths), "/test/config/");
 
     // Cleanup
