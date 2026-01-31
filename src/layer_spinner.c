@@ -2,6 +2,7 @@
 #include "layer_wrappers.h"
 #include "panic.h"
 #include <assert.h>
+#include <inttypes.h>
 #include <string.h>
 
 
@@ -22,6 +23,24 @@ void ik_spinner_advance(ik_spinner_state_t *state)
 {
     assert(state != NULL);  // LCOV_EXCL_BR_LINE
     state->frame_index = (state->frame_index + 1) % SPINNER_FRAME_COUNT;
+}
+
+// Check elapsed time and advance spinner if >= 80ms since last advance
+bool ik_spinner_maybe_advance(ik_spinner_state_t *state, int64_t now_ms)
+{
+    assert(state != NULL);  // LCOV_EXCL_BR_LINE
+
+    // Calculate elapsed time since last advance
+    int64_t elapsed_ms = now_ms - state->last_advance_ms;
+
+    // Advance if 80ms or more has elapsed
+    if (elapsed_ms >= 80) {
+        ik_spinner_advance(state);
+        state->last_advance_ms = now_ms;
+        return true;
+    }
+
+    return false;
 }
 
 // Spinner layer data

@@ -47,8 +47,9 @@ ik_layer_t *ik_input_layer_create(TALLOC_CTX *ctx,
 
 // Spinner state structure
 typedef struct {
-    size_t frame_index;  // Current animation frame (0-9)
-    bool visible;        // Whether spinner is visible
+    size_t frame_index;      // Current animation frame (0-9)
+    bool visible;            // Whether spinner is visible
+    int64_t last_advance_ms; // Timestamp of last advancement (CLOCK_MONOTONIC)
 } ik_spinner_state_t;
 
 // Create spinner layer (renders animated spinner)
@@ -60,6 +61,10 @@ const char *ik_spinner_get_frame(const ik_spinner_state_t *state);
 
 // Advance to next spinner frame (cycles through animation)
 void ik_spinner_advance(ik_spinner_state_t *state);
+
+// Check elapsed time and advance spinner if >= 80ms since last advance
+// Returns true if spinner was advanced, false otherwise
+bool ik_spinner_maybe_advance(ik_spinner_state_t *state, int64_t now_ms);
 
 // Create completion layer (wraps completion context)
 // The layer renders tab completion suggestions below input buffer
