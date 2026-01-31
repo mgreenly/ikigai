@@ -169,20 +169,6 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
                                               const char *data);
 
 /**
- * Get accumulated usage statistics
- *
- * @param stream_ctx Streaming context
- * @return           Usage statistics
- *
- * Returns accumulated token counts from response.completed event:
- * - input_tokens (prompt_tokens)
- * - output_tokens (completion_tokens)
- * - thinking_tokens (completion_tokens_details.reasoning_tokens)
- * - total_tokens
- */
-ik_usage_t ik_openai_responses_stream_get_usage(ik_openai_responses_stream_ctx_t *stream_ctx);
-
-/**
  * Get finish reason from stream
  *
  * @param stream_ctx Streaming context
