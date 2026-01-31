@@ -188,7 +188,7 @@ res_t ik_http_multi_add_request(ik_http_multi_t *multi,
     /* Initialize write context */
     active_req->write_ctx->user_callback = write_cb;
     active_req->write_ctx->user_ctx = write_ctx;
-    active_req->write_ctx->response_buffer = talloc_array(active_req->write_ctx, char, 4096);
+    active_req->write_ctx->response_buffer = talloc_zero_array(active_req->write_ctx, char, 4096);
     if (active_req->write_ctx->response_buffer == NULL) {  // LCOV_EXCL_BR_LINE
         curl_easy_cleanup_(active_req->easy_handle);  // LCOV_EXCL_LINE
         talloc_free(active_req);  // LCOV_EXCL_LINE

@@ -133,7 +133,7 @@ static arg_provider_result_t provide_rewind_args(TALLOC_CTX *ctx, ik_repl_ctx_t 
     }
 
     // Allocate temporary array for mark labels
-    const char **mark_labels = talloc_array(ctx, const char *, (unsigned int)labeled_count);
+    const char **mark_labels = talloc_zero_array(ctx, const char *, (unsigned int)labeled_count);
     if (mark_labels == NULL) PANIC("Out of memory");     // LCOV_EXCL_BR_LINE
 
     size_t collected = 0;
@@ -164,7 +164,7 @@ ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
     const ik_command_t *commands = ik_cmd_get_all(&cmd_count);
 
     // Build candidate array
-    const char **candidates = talloc_array(ctx, const char *, (unsigned int)cmd_count);
+    const char **candidates = talloc_zero_array(ctx, const char *, (unsigned int)cmd_count);
     if (candidates == NULL) PANIC("OOM");     // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < cmd_count; i++) {     // LCOV_EXCL_BR_LINE
@@ -185,7 +185,7 @@ ik_completion_t *ik_completion_create_for_commands(TALLOC_CTX *ctx,
     ik_completion_t *comp = talloc_zero(ctx, ik_completion_t);
     if (!comp) PANIC("OOM");     // LCOV_EXCL_BR_LINE
 
-    comp->candidates = talloc_array(comp, char *, (unsigned int)match_count);
+    comp->candidates = talloc_zero_array(comp, char *, (unsigned int)match_count);
     if (!comp->candidates) PANIC("OOM");     // LCOV_EXCL_BR_LINE
 
     comp->prefix = talloc_strdup(comp, prefix);
@@ -314,7 +314,7 @@ ik_completion_t *ik_completion_create_for_arguments(TALLOC_CTX *ctx,
     }
 
     // Allocate candidate array
-    comp->candidates = talloc_array(comp, char *, (unsigned int)match_count);
+    comp->candidates = talloc_zero_array(comp, char *, (unsigned int)match_count);
     if (!comp->candidates) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }

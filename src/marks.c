@@ -29,7 +29,7 @@ static res_t get_iso8601_timestamp(void *parent)
         return ERR(parent, IO, "gmtime failed to convert timestamp");
     }
 
-    char *timestamp = talloc_array(parent, char, 32);
+    char *timestamp = talloc_zero_array(parent, char, 32);
     if (timestamp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     size_t len = strftime_(timestamp, 32, "%Y-%m-%dT%H:%M:%SZ", tm_utc);

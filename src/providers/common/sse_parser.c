@@ -28,7 +28,7 @@ ik_sse_parser_t *ik_sse_parser_create(void *parent)
     }
 
     /* Allocate initial buffer */
-    parser->buffer = talloc_array(parser, char, SSE_INITIAL_BUFFER_SIZE);
+    parser->buffer = talloc_zero_array(parser, char, SSE_INITIAL_BUFFER_SIZE);
     if (!parser->buffer) { // LCOV_EXCL_BR_LINE
         PANIC("Failed to allocate SSE parser buffer"); // LCOV_EXCL_LINE
     }

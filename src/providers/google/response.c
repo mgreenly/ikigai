@@ -119,7 +119,7 @@ static res_t parse_content_parts(TALLOC_CTX *ctx, yyjson_val *parts_arr,
 
     // Safe cast: content block count should never exceed UINT_MAX in practice
     assert(count <= (size_t)UINT_MAX); // LCOV_EXCL_BR_LINE
-    ik_content_block_t *blocks = talloc_array(ctx, ik_content_block_t, (unsigned int)count);
+    ik_content_block_t *blocks = talloc_zero_array(ctx, ik_content_block_t, (unsigned int)count);
     if (blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     size_t idx, max;

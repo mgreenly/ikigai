@@ -205,7 +205,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     }
 
     // Allocate array of pointers
-    ik_db_agent_row_t **rows = talloc_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
+    ik_db_agent_row_t **rows = talloc_zero_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
     if (rows == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Process each row

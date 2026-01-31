@@ -115,7 +115,7 @@ ik_layer_t *ik_completion_layer_create(TALLOC_CTX *ctx,
     assert(completion_ptr != NULL);   // LCOV_EXCL_BR_LINE
 
     // Allocate completion data
-    ik_completion_layer_data_t *data = talloc(ctx, ik_completion_layer_data_t);
+    ik_completion_layer_data_t *data = talloc_zero(ctx, ik_completion_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->completion_ptr = completion_ptr;

@@ -40,7 +40,7 @@ ik_fzy_result_t *ik_fzy_filter(TALLOC_CTX *ctx,
     if (candidate_count == 0) return NULL;
 
     // Score all candidates
-    scored_index_t *scored = talloc_array(ctx, scored_index_t, (unsigned int)candidate_count);
+    scored_index_t *scored = talloc_zero_array(ctx, scored_index_t, (unsigned int)candidate_count);
     if (scored == NULL) PANIC("OOM");  // LCOV_EXCL_BR_LINE
 
     size_t search_len = strlen(search);
@@ -70,7 +70,7 @@ ik_fzy_result_t *ik_fzy_filter(TALLOC_CTX *ctx,
     size_t result_count = (match_count < max_results) ? match_count : max_results;
 
     // Build result array
-    ik_fzy_result_t *results = talloc_array(ctx, ik_fzy_result_t, (unsigned int)result_count);
+    ik_fzy_result_t *results = talloc_zero_array(ctx, ik_fzy_result_t, (unsigned int)result_count);
     if (results == NULL) PANIC("OOM");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < result_count; i++) {

@@ -411,7 +411,7 @@ res_t ik_google_build_headers(TALLOC_CTX *ctx, bool streaming, char ***out_heade
     assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
     assert(out_headers != NULL); // LCOV_EXCL_BR_LINE
 
-    char **headers = talloc_array(ctx, char *, streaming ? 3U : 2U);
+    char **headers = talloc_zero_array(ctx, char *, streaming ? 3U : 2U);
     if (!headers) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     headers[0] = talloc_strdup(headers, "Content-Type: application/json");

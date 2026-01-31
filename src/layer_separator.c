@@ -210,7 +210,7 @@ ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx,
     assert(visible_ptr != NULL);  // LCOV_EXCL_BR_LINE
 
     // Allocate separator data
-    ik_separator_layer_data_t *data = talloc(ctx, ik_separator_layer_data_t);
+    ik_separator_layer_data_t *data = talloc_zero(ctx, ik_separator_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->visible_ptr = visible_ptr;

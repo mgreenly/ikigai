@@ -110,7 +110,7 @@ ik_layer_t *ik_input_layer_create(TALLOC_CTX *ctx,
     assert(text_len_ptr != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate input data
-    ik_input_layer_data_t *data = talloc(ctx, ik_input_layer_data_t);
+    ik_input_layer_data_t *data = talloc_zero(ctx, ik_input_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->visible_ptr = visible_ptr;

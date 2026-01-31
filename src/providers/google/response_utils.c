@@ -29,7 +29,7 @@ char *ik_google_generate_tool_id(TALLOC_CTX *ctx)
         seeded = true;
     }
 
-    char *id = talloc_array(ctx, char, 23); // 22 chars + null
+    char *id = talloc_zero_array(ctx, char, 23); // 22 chars + null
     if (id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     for (int i = 0; i < 22; i++) {

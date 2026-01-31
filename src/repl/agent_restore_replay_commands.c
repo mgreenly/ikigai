@@ -43,7 +43,7 @@ static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root)
         }
 
         if (arr_size > 0) {
-            agent->pinned_paths = talloc_array(agent, char *, (unsigned int)arr_size);
+            agent->pinned_paths = talloc_zero_array(agent, char *, (unsigned int)arr_size);
             if (agent->pinned_paths == NULL) return;  // LCOV_EXCL_LINE
 
             size_t idx = 0;
@@ -80,7 +80,7 @@ static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val)
     }
 
     if (arr_size > 0) {
-        agent->toolset_filter = talloc_array(agent, char *, (unsigned int)arr_size);
+        agent->toolset_filter = talloc_zero_array(agent, char *, (unsigned int)arr_size);
         if (agent->toolset_filter == NULL) return;  // LCOV_EXCL_LINE
 
         size_t idx = 0;

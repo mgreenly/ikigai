@@ -109,7 +109,7 @@ ik_layer_t *ik_status_layer_create(TALLOC_CTX *ctx,
     assert(thinking_level_ptr != NULL);   // LCOV_EXCL_BR_LINE
 
     // Allocate status data
-    ik_status_layer_data_t *data = talloc(ctx, ik_status_layer_data_t);
+    ik_status_layer_data_t *data = talloc_zero(ctx, ik_status_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->visible_ptr = visible_ptr;

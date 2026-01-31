@@ -435,7 +435,7 @@ res_t ik_openai_parse_responses_response(TALLOC_CTX *ctx, const char *json,
 
     // Allocate content blocks
     assert(content_count <= (size_t)UINT_MAX); // LCOV_EXCL_BR_LINE
-    ik_content_block_t *blocks = talloc_array(resp, ik_content_block_t, (unsigned int)content_count);
+    ik_content_block_t *blocks = talloc_zero_array(resp, ik_content_block_t, (unsigned int)content_count);
     if (blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     size_t block_idx = 0;

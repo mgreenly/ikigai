@@ -31,14 +31,14 @@ static res_t ik_request_add_message_direct(ik_request_t *req, const ik_message_t
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
     assert(msg != NULL);  // LCOV_EXCL_BR_LINE
 
-    ik_message_t *copy = talloc(req, ik_message_t);
+    ik_message_t *copy = talloc_zero(req, ik_message_t);
     if (copy == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     copy->role = msg->role;
     copy->content_count = msg->content_count;
     copy->provider_metadata = NULL;
 
-    copy->content_blocks = talloc_array(req, ik_content_block_t, (unsigned int)msg->content_count);
+    copy->content_blocks = talloc_zero_array(req, ik_content_block_t, (unsigned int)msg->content_count);
     if (copy->content_blocks == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < msg->content_count; i++) {

@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <talloc.h>
 #include "../tests/helpers/vcr_helper.h"
 
 // ============================================================================
@@ -41,7 +42,7 @@ static vcr_curl_state_t *vcr_find_or_create_state(CURL *handle)
     }
 
     // Create new state
-    vcr_curl_state_t *state = calloc(1, sizeof(vcr_curl_state_t));
+    vcr_curl_state_t *state = talloc_zero(NULL, vcr_curl_state_t);
     state->easy_handle = handle;
     state->next = g_vcr_curl_state_list;
     g_vcr_curl_state_list = state;
@@ -64,7 +65,7 @@ static void vcr_remove_state(CURL *handle)
     for (vcr_curl_state_t *state = g_vcr_curl_state_list; state; state = state->next) {
         if (state->easy_handle == handle) {
             *prev_ptr = state->next;
-            free(state);
+            talloc_free(state);
             return;
         }
         prev_ptr = &state->next;

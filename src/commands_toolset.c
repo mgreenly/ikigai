@@ -98,7 +98,7 @@ res_t ik_cmd_toolset_set(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     size_t capacity = 16;
-    char **tools = talloc_array(repl->current, char *, (unsigned int)capacity);
+    char **tools = talloc_zero_array(repl->current, char *, (unsigned int)capacity);
     if (!tools) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }

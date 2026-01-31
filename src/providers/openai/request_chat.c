@@ -406,7 +406,7 @@ res_t ik_openai_build_headers(TALLOC_CTX *ctx, const char *api_key, char ***out_
     assert(out_headers != NULL); // LCOV_EXCL_BR_LINE
 
     // Allocate array of 3 strings (2 headers + NULL)
-    char **headers = talloc_array(ctx, char *, 3);
+    char **headers = talloc_zero_array(ctx, char *, 3);
     if (!headers) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Build Authorization header

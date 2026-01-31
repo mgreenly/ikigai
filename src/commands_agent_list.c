@@ -60,8 +60,8 @@ res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
     size_t dead_count = 0;
 
     // Queue for breadth-first traversal (stores indices and depths)
-    size_t *queue_idx = talloc_array(tmp_ctx, size_t, (uint32_t)all_count);
-    size_t *queue_depth = talloc_array(tmp_ctx, size_t, (uint32_t)all_count);
+    size_t *queue_idx = talloc_zero_array(tmp_ctx, size_t, (uint32_t)all_count);
+    size_t *queue_depth = talloc_zero_array(tmp_ctx, size_t, (uint32_t)all_count);
     if (queue_idx == NULL || queue_depth == NULL) {     // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx);     // LCOV_EXCL_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE

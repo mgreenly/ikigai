@@ -140,7 +140,7 @@ res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = role;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->content_blocks[0] = *block;
@@ -172,7 +172,7 @@ res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = role;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, (unsigned int)count);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, (unsigned int)count);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < count; i++) {

@@ -125,7 +125,7 @@ ik_layer_t *ik_scrollback_layer_create(TALLOC_CTX *ctx,
     assert(scrollback != NULL);  // LCOV_EXCL_BR_LINE
 
     // Allocate scrollback data
-    ik_scrollback_layer_data_t *data = talloc(ctx, ik_scrollback_layer_data_t);
+    ik_scrollback_layer_data_t *data = talloc_zero(ctx, ik_scrollback_layer_data_t);
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->scrollback = scrollback;
