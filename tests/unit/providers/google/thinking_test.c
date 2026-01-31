@@ -161,17 +161,25 @@ START_TEST(test_thinking_budget_null) {
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_unknown_model) {
-    // Test a Gemini 2.5 model not in BUDGET_TABLE - uses defaults
+    // Test a Gemini 2.5 model not in BUDGET_TABLE - returns error
     int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_HIGH);
-    ck_assert_int_eq(budget, 24576); // DEFAULT_MAX_BUDGET
+    ck_assert_int_eq(budget, -1);
 }
 
 END_TEST
 
 START_TEST(test_thinking_budget_2_5_unknown_model_none) {
-    // Test NONE level with unknown model - uses DEFAULT_MIN_BUDGET
+    // Test NONE level with unknown model - returns error
     int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_NONE);
-    ck_assert_int_eq(budget, 0); // DEFAULT_MIN_BUDGET
+    ck_assert_int_eq(budget, -1);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_2_5_typo_model) {
+    // Test a typo in model name (flash-light instead of flash-lite) - returns error
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-light", IK_THINKING_LOW);
+    ck_assert_int_eq(budget, -1);
 }
 
 END_TEST
@@ -284,9 +292,9 @@ START_TEST(test_can_disable_thinking_1_5_pro) {
 END_TEST
 
 START_TEST(test_can_disable_thinking_2_5_unknown) {
-    // Test a Gemini 2.5 model not in BUDGET_TABLE - uses defaults
+    // Test a Gemini 2.5 model not in BUDGET_TABLE - returns false (unknown)
     bool can_disable = ik_google_can_disable_thinking("gemini-2.5-experimental");
-    ck_assert(can_disable); // DEFAULT_MIN_BUDGET = 0
+    ck_assert(!can_disable);
 }
 
 END_TEST
@@ -436,6 +444,7 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_budget, test_thinking_budget_null);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_unknown_model);
     tcase_add_test(tc_budget, test_thinking_budget_2_5_unknown_model_none);
+    tcase_add_test(tc_budget, test_thinking_budget_2_5_typo_model);
     suite_add_tcase(s, tc_budget);
 
     TCase *tc_level = tcase_create("Thinking Level Strings");

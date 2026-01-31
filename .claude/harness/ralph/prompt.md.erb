@@ -139,8 +139,9 @@ When the goal is complete (you would return "DONE"), instead create a pull reque
    ```
    If commits are missing, investigate and fix before proceeding. The PR must include all work from this goal.
 
-6. **Push bookmark** - Once verified, push to origin:
+6. **Set bookmark and push** - Set bookmark to current HEAD, then push to origin:
    ```bash
+   jj bookmark set <%= branch_name %>
    jj git push --bookmark <%= branch_name %>
    ```
 

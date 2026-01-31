@@ -27,11 +27,6 @@ static const ik_google_budget_t BUDGET_TABLE[] = {
     {NULL, 0, 0} // Sentinel
 };
 
-/**
- * Default budget for unknown Gemini 2.5 models
- */
-static const int32_t DEFAULT_MIN_BUDGET = 0;
-static const int32_t DEFAULT_MAX_BUDGET = 24576;
 
 /**
  * Round down to nearest power of 2
@@ -99,18 +94,15 @@ bool ik_google_can_disable_thinking(const char *model)
         return false;
     }
 
-    // For Gemini 2.5, check if min_budget is 0
-    int32_t min_budget = DEFAULT_MIN_BUDGET;
-
+    // For Gemini 2.5, check if min_budget is 0 (exact table match required)
     for (size_t i = 0; BUDGET_TABLE[i].model_pattern != NULL; i++) {
-        if (strncmp(model, BUDGET_TABLE[i].model_pattern,
-                    strlen(BUDGET_TABLE[i].model_pattern)) == 0) {
-            min_budget = BUDGET_TABLE[i].min_budget;
-            break;
+        if (strcmp(model, BUDGET_TABLE[i].model_pattern) == 0) {
+            return (BUDGET_TABLE[i].min_budget == 0);
         }
     }
 
-    return (min_budget == 0);
+    // Unknown model - cannot determine, return false
+    return false;
 }
 
 int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
@@ -125,17 +117,21 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
         return -1;
     }
 
-    // Find budget limits for this model
-    int32_t min_budget = DEFAULT_MIN_BUDGET;
-    int32_t max_budget = DEFAULT_MAX_BUDGET;
+    // Find budget limits for this model (exact match required)
+    int32_t min_budget = -1;
+    int32_t max_budget = -1;
 
     for (size_t i = 0; BUDGET_TABLE[i].model_pattern != NULL; i++) {
-        if (strncmp(model, BUDGET_TABLE[i].model_pattern,
-                    strlen(BUDGET_TABLE[i].model_pattern)) == 0) {
+        if (strcmp(model, BUDGET_TABLE[i].model_pattern) == 0) {
             min_budget = BUDGET_TABLE[i].min_budget;
             max_budget = BUDGET_TABLE[i].max_budget;
             break;
         }
+    }
+
+    // Unknown model - return error
+    if (min_budget == -1) {
+        return -1;
     }
 
     // Calculate budget based on level

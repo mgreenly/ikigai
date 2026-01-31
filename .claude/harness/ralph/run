@@ -121,7 +121,6 @@ class Ralph
     sleep 2
     display_continue_status
     handle_dirty_state
-    create_bookmark_if_needed
     summarize_if_needed if @continue_run
 
     @exit_reason = nil
@@ -225,16 +224,6 @@ class Ralph
     puts
 
     summarize_if_needed
-  end
-
-  def create_bookmark_if_needed
-    existing = `jj bookmark list --no-graph 2>/dev/null`.strip
-    if existing.include?(@branch_name)
-      log "Bookmark '#{@branch_name}' already exists"
-      return
-    end
-    system("jj bookmark create #{@branch_name.shellescape} >/dev/null 2>&1")
-    log "Created bookmark '#{@branch_name}' at current revision"
   end
 
   # ─────────────────────────────────────────────────────────────
