@@ -13,6 +13,7 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -39,8 +40,7 @@ static void setup(void)
     agent->streaming_line_buffer = NULL;
 
     // Create scrollback
-    res_t res = ik_scrollback_create(agent, &agent->scrollback);
-    ck_assert(is_ok(&res));
+    agent->scrollback = ik_scrollback_create(agent, 80);
 }
 
 static void teardown(void)
@@ -55,7 +55,7 @@ static ik_response_t *create_tool_call_response(TALLOC_CTX *ctx, const char *id,
 {
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->content_count = 1;
-    response->content_blocks = talloc_zero_array(response, ik_content_block_t, 1);
+    response->content_blocks = talloc_array(response, ik_content_block_t, 1);
 
     ik_content_block_t *block = &response->content_blocks[0];
     block->type = IK_CONTENT_TOOL_CALL;
@@ -144,6 +144,20 @@ START_TEST(test_streaming_not_first_line) {
 
     // Function should have flushed without model prefix
     ck_assert_int_eq(1, 1); // Function executed without PANIC
+}
+END_TEST
+
+// Test: process_tool_call_block returns true (line 251)
+START_TEST(test_process_tool_call_returns_true) {
+    ik_response_t *response = create_tool_call_response(test_ctx, "call_123",
+                                                          "test_tool", "{}", NULL);
+
+    ik_repl_extract_tool_calls(agent, response);
+
+    // process_tool_call_block should return true, causing the loop to break
+    ck_assert_ptr_nonnull(agent->pending_tool_call);
+
+    talloc_free(response);
 }
 END_TEST
 
