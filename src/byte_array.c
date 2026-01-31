@@ -2,6 +2,8 @@
 
 #include "byte_array.h"
 
+
+#include "poison.h"
 // Create new byte array
 res_t ik_byte_array_create(TALLOC_CTX *ctx, size_t increment)
 {

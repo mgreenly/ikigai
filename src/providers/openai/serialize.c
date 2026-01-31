@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+
+#include "poison.h"
 static const char *map_role_to_string(ik_role_t role)
 {
     switch (role) {  // LCOV_EXCL_BR_LINE: default case unreachable
@@ -115,17 +117,21 @@ static size_t calculate_text_content_length(const ik_message_t *msg)
 
 static void concatenate_text_blocks(const ik_message_t *msg, char *content)
 {
-    content[0] = '\0';
+    char *dest = content;
     bool first = true;
     for (size_t i = 0; i < msg->content_count; i++) {
         if (msg->content_blocks[i].type == IK_CONTENT_TEXT) {
             if (!first) {
-                strcat(content, "\n\n");  /* NOLINT - buffer sized correctly */
+                memcpy(dest, "\n\n", 2);
+                dest += 2;
             }
-            strcat(content, msg->content_blocks[i].data.text.text);  /* NOLINT - buffer sized correctly */
+            size_t text_len = strlen(msg->content_blocks[i].data.text.text);
+            memcpy(dest, msg->content_blocks[i].data.text.text, text_len);
+            dest += text_len;
             first = false;
         }
     }
+    *dest = '\0';
 }
 
 static void add_text_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,

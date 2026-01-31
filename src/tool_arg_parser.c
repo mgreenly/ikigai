@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+
+#include "poison.h"
 char *ik_tool_arg_get_string(void *parent, const char *arguments_json, const char *key)
 {
     // Defensive: return NULL if inputs are NULL

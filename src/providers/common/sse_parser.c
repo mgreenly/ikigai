@@ -4,6 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
+
+#include "poison.h"
 /**
  * SSE parser implementation
  *

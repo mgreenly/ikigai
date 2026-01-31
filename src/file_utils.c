@@ -10,6 +10,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_file_read_all(TALLOC_CTX *ctx, const char *path, char **out_content, size_t *out_size)
 {
     assert(ctx != NULL);         // LCOV_EXCL_BR_LINE

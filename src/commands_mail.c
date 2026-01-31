@@ -24,6 +24,8 @@
 #include <string.h>
 #include <time.h>
 
+
+#include "poison.h"
 res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE

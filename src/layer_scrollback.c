@@ -4,6 +4,8 @@
 #include "panic.h"
 #include <assert.h>
 
+
+#include "poison.h"
 // Scrollback layer data
 typedef struct {
     ik_scrollback_t *scrollback;  // Borrowed pointer to scrollback buffer

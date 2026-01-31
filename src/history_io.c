@@ -17,6 +17,8 @@
 #include <time.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 res_t ik_history_ensure_directory(TALLOC_CTX *ctx)
 {
     assert(ctx != NULL);  // LCOV_EXCL_BR_LINE

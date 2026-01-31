@@ -25,6 +25,8 @@
 #include "tool_external.h"
 #include "tool_registry.h"
 
+
+#include "poison.h"
 // ============================================================================
 // Internal ikigai function wrappers for testing - debug/test builds only
 // ============================================================================

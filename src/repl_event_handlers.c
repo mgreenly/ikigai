@@ -31,6 +31,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 // Forward declarations
 static void persist_assistant_msg(ik_repl_ctx_t *repl);
 

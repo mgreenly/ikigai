@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 res_t ik_agent_add_message(ik_agent_ctx_t *agent, ik_message_t *msg)
 {
     assert(agent != NULL);  // LCOV_EXCL_BR_LINE

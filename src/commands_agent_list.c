@@ -18,6 +18,8 @@
 #include <inttypes.h>
 #include <string.h>
 
+
+#include "poison.h"
 // /agents command implementation - displays agent hierarchy tree
 res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {

@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include "../tests/helpers/vcr_helper.h"
 
+
+#include "poison.h"
 // ============================================================================
 // libcurl wrappers - debug/test builds only
 // ============================================================================

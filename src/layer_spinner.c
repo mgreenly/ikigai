@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Spinner animation frames
 static const char *SPINNER_FRAMES[] = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
 static const size_t SPINNER_FRAME_COUNT = 10;

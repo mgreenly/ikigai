@@ -8,6 +8,8 @@
 #include "panic.h"
 #include <string.h>
 
+
+#include "poison.h"
 // Forward declarations for provider-specific factories
 // These are implemented in later tasks (openai-core.md, anthropic-core.md, google-core.md)
 extern res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);

@@ -18,6 +18,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 {
     assert(event != NULL);  /* LCOV_EXCL_BR_LINE */

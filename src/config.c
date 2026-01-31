@@ -18,6 +18,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+
+#include "poison.h"
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE

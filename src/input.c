@@ -11,6 +11,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 // Create input parser
 ik_input_parser_t *ik_input_parser_create(void *parent)
 {

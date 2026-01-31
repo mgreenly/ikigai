@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <strings.h>
 
+
+#include "poison.h"
 // Internal struct for sorting
 typedef struct {
     size_t index;

@@ -7,6 +7,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 ik_tool_registry_t *ik_tool_registry_create(TALLOC_CTX *ctx)
 {
     ik_tool_registry_t *registry = talloc_zero(ctx, ik_tool_registry_t);

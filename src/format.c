@@ -17,6 +17,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 ik_format_buffer_t *ik_format_buffer_create(void *parent)
 {
     assert(parent != NULL);  // LCOV_EXCL_BR_LINE - assertion branches untestable

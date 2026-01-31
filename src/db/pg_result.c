@@ -7,6 +7,8 @@
 #include <libpq-fe.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 // Destructor called automatically when talloc frees the wrapper
 static int32_t pg_result_destructor(ik_pg_result_wrapper_t *wrapper)
 {

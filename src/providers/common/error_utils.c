@@ -6,6 +6,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 bool ik_error_is_retryable(int category)
 {
     switch (category) {

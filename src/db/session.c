@@ -15,6 +15,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
     assert(db_ctx != NULL);        // LCOV_EXCL_BR_LINE

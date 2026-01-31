@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * Process message_start event
  */

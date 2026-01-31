@@ -15,6 +15,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 // Forward declarations
 static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root);
 static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val);

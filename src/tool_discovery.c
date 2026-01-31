@@ -18,6 +18,8 @@
 #include <talloc.h>
 #include <unistd.h>
 
+
+#include "poison.h"
 // Check if file is executable
 static bool is_executable(const char *path)
 {

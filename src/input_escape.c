@@ -3,6 +3,8 @@
 #include "input_xkb.h"
 #include <assert.h>
 
+
+#include "poison.h"
 static void reset_escape_state(ik_input_parser_t *parser)
 {
     assert(parser != NULL);  // LCOV_EXCL_BR_LINE

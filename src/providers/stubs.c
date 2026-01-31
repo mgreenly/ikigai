@@ -12,6 +12,8 @@
 
 #include "providers/stubs.h"
 
+
+#include "poison.h"
 // OpenAI factory implementation moved to providers/openai/shim.c
 // Anthropic factory implementation moved to providers/anthropic/anthropic.c
 // Google factory implementation moved to providers/google/google.c

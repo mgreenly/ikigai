@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Create new array with specified element size and increment
 res_t ik_array_create(TALLOC_CTX *ctx, size_t element_size, size_t increment)
 {

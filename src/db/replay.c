@@ -11,6 +11,8 @@
 #include <libpq-fe.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Initial capacity for context array (as specified in design)
 #define INITIAL_CAPACITY 16
 

@@ -6,6 +6,8 @@
 
 #include "wrapper_json.h"
 
+
+#include "poison.h"
 #ifndef NDEBUG
 // LCOV_EXCL_START
 

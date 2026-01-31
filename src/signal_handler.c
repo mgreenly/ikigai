@@ -10,6 +10,8 @@
 #include <signal.h>
 #include <errno.h>
 
+
+#include "poison.h"
 // Global flag for SIGWINCH (terminal resize signal)
 static volatile sig_atomic_t g_resize_pending = 0;
 

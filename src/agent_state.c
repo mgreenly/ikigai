@@ -4,6 +4,8 @@
 
 #include <assert.h>
 
+
+#include "poison.h"
 bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent)
 {
     assert(agent != NULL);  // LCOV_EXCL_BR_LINE

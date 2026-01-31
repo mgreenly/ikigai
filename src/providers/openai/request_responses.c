@@ -13,6 +13,8 @@
 #include <string.h>
 #include <assert.h>
 
+
+#include "poison.h"
 /* ================================================================
  * Helper Functions
  * ================================================================ */
@@ -223,17 +225,21 @@ static char *build_string_input(const ik_message_t *msg)
     char *input_text = malloc(total_len + 1);
     if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    input_text[0] = '\0';
+    char *dest = input_text;
     bool first = true;
     for (size_t i = 0; i < msg->content_count; i++) {
         if (msg->content_blocks[i].type == IK_CONTENT_TEXT) {
             if (!first) {
-                strcat(input_text, "\n\n"); // NOLINT - buffer sized correctly
+                memcpy(dest, "\n\n", 2);
+                dest += 2;
             }
-            strcat(input_text, msg->content_blocks[i].data.text.text); // NOLINT
+            size_t text_len = strlen(msg->content_blocks[i].data.text.text);
+            memcpy(dest, msg->content_blocks[i].data.text.text, text_len);
+            dest += text_len;
             first = false;
         }
     }
+    *dest = '\0';
 
     return input_text;
 }

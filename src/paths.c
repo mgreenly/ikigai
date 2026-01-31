@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Private struct definition (NOT in header)
 struct ik_paths_t {
     char *bin_dir;
@@ -379,8 +381,9 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
         const char *state_match = strstr(src, state_dir);
 
         if (system_match == NULL && state_match == NULL) {
-            strcpy(dest, src);
-            dest += strlen(src);
+            size_t remainder_len = strlen(src);
+            memcpy(dest, src, remainder_len);
+            dest += remainder_len;
             break;
         }
 

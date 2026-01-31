@@ -15,6 +15,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+
+#include "poison.h"
 /**
  * Helper to convert thinking level enum to string
  */

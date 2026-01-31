@@ -7,6 +7,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 // Cache entry
 typedef struct {
     char *path;      // Canonical path (ik:// translated to filesystem)

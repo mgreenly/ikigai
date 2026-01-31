@@ -20,6 +20,8 @@
 #include <talloc.h>
 #include "vendor/yyjson/yyjson.h"
 
+
+#include "poison.h"
 // Worker thread arguments - strings owned by ctx, safe for thread use.
 typedef struct {
     TALLOC_CTX *ctx;

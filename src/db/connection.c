@@ -6,6 +6,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 /**
  * Notice processor for PostgreSQL to suppress stderr output
  *

@@ -27,6 +27,8 @@
 #include <talloc.h>
 #include <time.h>
 
+
+#include "poison.h"
 res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */

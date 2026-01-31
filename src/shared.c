@@ -17,6 +17,8 @@
 
 #include <assert.h>
 
+
+#include "poison.h"
 // Destructor for shared context - handles cleanup
 static int shared_destructor(ik_shared_ctx_t *shared)
 {

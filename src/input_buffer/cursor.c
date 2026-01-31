@@ -12,6 +12,8 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
+
+#include "poison.h"
 ik_input_buffer_cursor_t *ik_input_buffer_cursor_create(void *parent)
 {
     assert(parent != NULL);  /* LCOV_EXCL_BR_LINE */

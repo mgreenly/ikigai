@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Create output buffer with initial capacity
 ik_output_buffer_t *ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capacity)
 {

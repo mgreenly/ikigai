@@ -6,6 +6,8 @@
 #include "panic.h"
 #include <assert.h>
 
+
+#include "poison.h"
 // @brief Find the start of the current line (position after previous newline, or 0)
 //
 // @param text Text buffer

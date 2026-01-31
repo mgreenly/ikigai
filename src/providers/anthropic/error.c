@@ -9,6 +9,8 @@
 #include <ctype.h>
 #include <string.h>
 
+
+#include "poison.h"
 /**
  * Map HTTP status code to error category
  */

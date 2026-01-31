@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 void ik_input_xkb_build_reverse_map(struct xkb_keymap *keymap, struct xkb_state *state,
                                     ik_xkb_reverse_map_t *map)
 {

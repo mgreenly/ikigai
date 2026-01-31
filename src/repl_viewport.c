@@ -11,6 +11,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 // Calculate total document height.
 // Layer order: banner, scrollback, spinner, separator, input, completion, status.
 size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl)

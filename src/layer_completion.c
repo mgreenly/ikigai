@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+
+#include "poison.h"
 // Completion layer data
 typedef struct {
     ik_completion_t **completion_ptr;  // Raw pointer to completion context pointer (defined in completion.h)

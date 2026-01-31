@@ -7,6 +7,8 @@
 #include "error.h"
 #include <assert.h>
 
+
+#include "poison.h"
 size_t ik_scrollback_calc_start_byte_for_row(ik_scrollback_t *scrollback,
                                              size_t line_index,
                                              size_t terminal_width,

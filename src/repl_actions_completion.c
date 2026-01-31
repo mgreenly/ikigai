@@ -11,6 +11,8 @@
 #include <string.h>
 #include <talloc.h>
 
+
+#include "poison.h"
 /**
  * @brief Dismiss active completion
  *
