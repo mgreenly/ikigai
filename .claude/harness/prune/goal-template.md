@@ -159,7 +159,7 @@ Can you find {{function}} assigned/passed in src/?
 3. Delete any tests that directly tested it
 4. If you found a dead cluster (intermediary functions that only exist to call `{{function}}`), delete those too along with their tests
 5. Clean up empty TCases and test files
-6. Run all quality checks (they must all pass)
+6. Run all quality checks (they must all pass). **Run checks ONE AT A TIME, serially. Do not run in parallel.**
 7. **Create a pull request** - The task is NOT complete until changes are committed and a PR is created. Use jj to commit, push, and gh to create the PR.
 
 ### If Function Is NOT Dead
