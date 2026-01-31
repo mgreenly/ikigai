@@ -160,6 +160,7 @@ Can you find {{function}} assigned/passed in src/?
 4. If you found a dead cluster (intermediary functions that only exist to call `{{function}}`), delete those too along with their tests
 5. Clean up empty TCases and test files
 6. Verify: `make bin/ikigai` passes, `make check` passes
+7. **Create a pull request** - The task is NOT complete until changes are committed and a PR is created. Use jj to commit, push, and gh to create the PR.
 
 ### If Function Is NOT Dead
 
@@ -191,5 +192,7 @@ A failing test is not evidence the function is live. It's evidence that *somethi
 ## Acceptance
 
 DONE when either:
-1. Function confirmed dead: removed, all builds pass, all tests pass
-2. Function confirmed NOT dead: recorded as false positive, changes reverted
+1. **Function confirmed dead**: removed, all builds pass, all tests pass, **AND pull request created**
+2. **Function confirmed NOT dead**: recorded as false positive, changes reverted
+
+**IMPORTANT**: If you confirmed dead code and removed it, you MUST create a pull request before reporting DONE. Verified deletions without a PR are incomplete work.
