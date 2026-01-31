@@ -153,15 +153,15 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
 
 const char *ik_google_thinking_level_str(ik_thinking_level_t level)
 {
+    // Gemini 3 only accepts LOW or HIGH (uppercase)
+    // NONE/LOW map to LOW, MED/HIGH map to HIGH
     switch (level) { // LCOV_EXCL_BR_LINE
         case IK_THINKING_NONE:
-            return "minimal";
         case IK_THINKING_LOW:
-            return "low";
+            return "LOW";
         case IK_THINKING_MED:
-            return "medium";
         case IK_THINKING_HIGH:
-            return "high";
+            return "HIGH";
         default: // LCOV_EXCL_LINE
             PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
     }

@@ -92,7 +92,7 @@ START_TEST(test_thinking_gemini_versions) {
     doc = yyjson_read(json, strlen(json), 0);
     gc = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
     ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(yyjson_obj_get(gc, "thinkingConfig"),
-                                                   "thinkingLevel")), "high");
+                                                   "thinkingLevel")), "HIGH");
     yyjson_doc_free(doc);
     // Gemini 2.5 with NONE level - no generation config
     req.model = (char *)"gemini-2.5-flash"; req.thinking.level = IK_THINKING_NONE;
