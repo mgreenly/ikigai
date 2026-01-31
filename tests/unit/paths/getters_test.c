@@ -18,37 +18,6 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-START_TEST(test_get_bin_dir) {
-    // Setup
-    setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
-    setenv("IKIGAI_CONFIG_DIR", "/custom/config", 1);
-    setenv("IKIGAI_DATA_DIR", "/custom/data", 1);
-    setenv("IKIGAI_LIBEXEC_DIR", "/custom/libexec", 1);
-    setenv("IKIGAI_CACHE_DIR", "/custom/cache", 1);
-    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
-    setenv("HOME", "/home/testuser", 1);
-
-    // Execute
-    ik_paths_t *paths = NULL;
-    res_t result = ik_paths_init(test_ctx, &paths);
-    ck_assert(is_ok(&result));
-
-    // Assert
-    const char *bin_dir = ik_paths_get_bin_dir(paths);
-    ck_assert_ptr_nonnull(bin_dir);
-    ck_assert_str_eq(bin_dir, "/custom/bin");
-
-    // Cleanup
-    unsetenv("IKIGAI_BIN_DIR");
-    unsetenv("IKIGAI_CONFIG_DIR");
-    unsetenv("IKIGAI_DATA_DIR");
-    unsetenv("IKIGAI_LIBEXEC_DIR");
-    unsetenv("IKIGAI_CACHE_DIR");
-    unsetenv("IKIGAI_STATE_DIR");
-    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
-}
-END_TEST
-
 START_TEST(test_get_config_dir) {
     // Setup
     setenv("IKIGAI_BIN_DIR", "/custom/bin", 1);
@@ -153,7 +122,6 @@ START_TEST(test_getters_not_null) {
     ck_assert(is_ok(&result));
 
     // Assert - all getters should never return NULL when initialized
-    ck_assert_ptr_nonnull(ik_paths_get_bin_dir(paths));
     ck_assert_ptr_nonnull(ik_paths_get_config_dir(paths));
     ck_assert_ptr_nonnull(ik_paths_get_data_dir(paths));
     ck_assert_ptr_nonnull(ik_paths_get_libexec_dir(paths));
@@ -177,10 +145,6 @@ START_TEST(test_getters_const_strings) {
 
     // Assert - strings should remain valid while paths instance alive
     // Get pointers multiple times and verify they're stable
-    const char *bin_dir_1 = ik_paths_get_bin_dir(paths);
-    const char *bin_dir_2 = ik_paths_get_bin_dir(paths);
-    ck_assert_ptr_eq(bin_dir_1, bin_dir_2);  // Should return same pointer
-
     const char *config_dir_1 = ik_paths_get_config_dir(paths);
     const char *config_dir_2 = ik_paths_get_config_dir(paths);
     ck_assert_ptr_eq(config_dir_1, config_dir_2);
@@ -195,7 +159,6 @@ static Suite *paths_getters_suite(void)
     TCase *tc = tcase_create("Getters");
     tcase_add_checked_fixture(tc, setup, teardown);
 
-    tcase_add_test(tc, test_get_bin_dir);
     tcase_add_test(tc, test_get_config_dir);
     tcase_add_test(tc, test_get_data_dir);
     tcase_add_test(tc, test_get_libexec_dir);

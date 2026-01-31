@@ -117,12 +117,6 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
     return OK(NULL);
 }
 
-const char *ik_paths_get_bin_dir(ik_paths_t *paths)
-{
-    assert(paths != NULL);  // LCOV_EXCL_BR_LINE
-    return paths->bin_dir;
-}
-
 const char *ik_paths_get_config_dir(ik_paths_t *paths)
 {
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
