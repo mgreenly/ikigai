@@ -1,7 +1,6 @@
 #include "shared.h"
 
 #include "db/connection.h"
-#include "debug_log.h"
 #include "history.h"
 #include "history_io.h"
 #include "logger.h"
@@ -54,47 +53,35 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     shared->logger = logger;
 
     // Initialize terminal (raw mode + alternate screen)
-    DEBUG_LOG("=== About to call ik_term_init ===");
     res_t result = ik_term_init(shared, shared->logger, &shared->term);
-    DEBUG_LOG("=== ik_term_init returned, is_err=%d ===", result.is_err);
     if (is_err(&result)) {
-        DEBUG_LOG("=== ik_term_init failed: %s ===", error_message(result.err));
         talloc_free(shared);
         return result;
     }
-    DEBUG_LOG("=== ik_term_init succeeded ===");
 
     // Redirect stdout and stderr to /dev/null to prevent any library output
     // from bypassing the alternate screen buffer and causing screen flicker.
     // We use /dev/tty for all rendering, and logs go to files.
-    DEBUG_LOG("=== Redirecting stdout/stderr to /dev/null ===");
     int null_fd = open("/dev/null", O_WRONLY);
     if (null_fd >= 0) {
         dup2(null_fd, STDOUT_FILENO);  // Redirect stdout (fd 1)
         dup2(null_fd, STDERR_FILENO);  // Redirect stderr (fd 2)
         close(null_fd);
-        DEBUG_LOG("=== stdout/stderr redirected successfully ===");
-    } else {
-        DEBUG_LOG("=== WARNING: Failed to open /dev/null, stdout/stderr not redirected ===");
     }
 
     // Initialize render
-    DEBUG_LOG("=== About to call ik_render_create ===");
     result = ik_render_create(shared,
                               shared->term->screen_rows,
                               shared->term->screen_cols,
                               shared->term->tty_fd,
                               &shared->render);
     if (is_err(&result)) {
-        DEBUG_LOG("=== ik_render_create failed: %s ===", error_message(result.err));
         ik_term_cleanup(shared->term);
         talloc_free(shared);
         return result;
     }
-    DEBUG_LOG("=== ik_render_create succeeded ===");
 
     // Initialize database connection if configured
-    DEBUG_LOG("=== About to build database connection string ===");
     char *db_connection_string = NULL;
     if (cfg->db_host && cfg->db_name && cfg->db_user) {
         // Build PostgreSQL connection string: postgresql://user:pass@host:port/dbname
@@ -107,16 +94,12 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                                                cfg->db_port,
                                                cfg->db_name);
         if (!db_connection_string) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        DEBUG_LOG("=== Built connection string (password hidden) ===");
     }
 
     if (db_connection_string != NULL) {
-        DEBUG_LOG("=== About to call ik_db_init_ ===");
         const char *data_dir = ik_paths_get_data_dir(paths);
-        DEBUG_LOG("=== Using data_dir: %s ===", data_dir);
         result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->db_ctx);
         if (is_err(&result)) {
-            DEBUG_LOG("=== ik_db_init_ failed: %s ===", error_message(result.err));
             // Cleanup already-initialized resources
             if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
                 ik_term_cleanup(shared->term);

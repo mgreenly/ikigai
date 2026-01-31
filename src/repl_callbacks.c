@@ -25,8 +25,11 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
 
+    DEBUG_LOG("stream_callback: event_type=%d", event->type);
+
     switch (event->type) { // LCOV_EXCL_BR_LINE - default case is defensive
         case IK_STREAM_START:
+            DEBUG_LOG("stream_callback: IK_STREAM_START");
             if (agent->assistant_response != NULL) {
                 talloc_free(agent->assistant_response);
                 agent->assistant_response = NULL;
@@ -75,15 +78,14 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
 res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, void *ctx)
 {
-    DEBUG_LOG("repl_completion_callback: ENTRY completion=%p ctx=%p", (const void *)completion, ctx);
-
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
 
+    DEBUG_LOG("completion_callback: ENTRY success=%d", completion->success);
+
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
 
-    DEBUG_LOG("repl_completion_callback: agent=%p success=%d response=%p",
-              (void *)agent, completion->success, (const void *)completion->response);
+    DEBUG_LOG("completion_callback: logging response metadata");
 
     // Log response metadata via JSONL logger
     {
@@ -104,6 +106,8 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
         ik_logger_debug_json(agent->shared->logger, doc);  // LCOV_EXCL_LINE
     }
+
+    DEBUG_LOG("completion_callback: after logging");
 
     // Flush any remaining buffered line content (with prefix if first line)
     bool had_response_content = (agent->assistant_response != NULL);
@@ -148,15 +152,16 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
-        DEBUG_LOG("repl_completion_callback: calling store_response_metadata");
+        DEBUG_LOG("completion_callback: storing response metadata");
         ik_repl_store_response_metadata(agent, completion->response);
-        DEBUG_LOG("repl_completion_callback: calling render_usage_event");
+        DEBUG_LOG("completion_callback: rendering usage event");
         ik_repl_render_usage_event(agent);
-        DEBUG_LOG("repl_completion_callback: calling extract_tool_calls");
+        DEBUG_LOG("completion_callback: extracting tool calls");
         ik_repl_extract_tool_calls(agent, completion->response);
-        DEBUG_LOG("repl_completion_callback: extract_tool_calls returned");
+        DEBUG_LOG("completion_callback: tool calls extracted, pending=%p", (void *)agent->pending_tool_call);
     }
 
-    DEBUG_LOG("repl_completion_callback: EXIT");
+    DEBUG_LOG("completion_callback: EXIT");
+
     return OK(NULL);
 }

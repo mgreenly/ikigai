@@ -11,7 +11,6 @@
 #include <talloc.h>
 #include <termios.h>
 #include <unistd.h>
-#include "debug_log.h"
 #include "logger.h"
 #include "panic.h"
 #include "terminal.h"
@@ -31,7 +30,6 @@ static bool probe_csi_u_support(int tty_fd)
     // Send query
     const char *query = ESC_CSI_U_QUERY;
     if (posix_write_(tty_fd, query, 4) < 0) {
-        DEBUG_LOG("CSI_u probe: write failed");
         return false;
     }
 
@@ -46,7 +44,6 @@ static bool probe_csi_u_support(int tty_fd)
 
     int ready = posix_select_(tty_fd + 1, &read_fds, NULL, NULL, &timeout);
     if (ready <= 0) {
-        DEBUG_LOG("CSI_u probe: select timeout/error, ready=%d", ready);
         return false;  // Timeout or error - no CSI u support
     }
 
@@ -54,7 +51,6 @@ static bool probe_csi_u_support(int tty_fd)
     char buf[32];
     ssize_t n = posix_read_(tty_fd, buf, sizeof(buf) - 1);
     if (n <= 0) {
-        DEBUG_LOG("CSI_u probe: read failed, n=%zd", n);
         return false;
     }
     buf[n] = '\0';
@@ -64,13 +60,11 @@ static bool probe_csi_u_support(int tty_fd)
         // Look for 'u' terminator
         for (ssize_t i = 3; i < n; i++) {
             if (buf[i] == 'u') {
-                DEBUG_LOG("CSI_u probe: SUPPORTED, response received");
                 return true;
             }
         }
     }
 
-    DEBUG_LOG("CSI_u probe: invalid response format");
     return false;
 }
 
@@ -80,7 +74,6 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
 {
     // Send enable command with flag 9 (disambiguate + report all keys)
     if (posix_write_(tty_fd, ESC_CSI_U_ENABLE, 5) < 0) {
-        DEBUG_LOG("CSI_u enable: write failed");
         return false;
     }
 
@@ -97,7 +90,6 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
     if (ready <= 0) {
         // Some terminals don't send a response to enable command
         // This is OK - assume it worked if probe succeeded
-        DEBUG_LOG("CSI_u enable: no response (may be normal)");
         return true;
     }
 
@@ -106,12 +98,9 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
     char buf[32];
     ssize_t n = posix_read_(tty_fd, buf, sizeof(buf) - 1);
     if (n <= 0) {
-        DEBUG_LOG("CSI_u enable: read failed after select, n=%zd", n);
         return false;
     }
     buf[n] = '\0';
-
-    DEBUG_LOG("CSI_u enable: received response, %zd bytes", n);
 
     // Parse the response to see what flags were actually enabled
     // Expected format: ESC[?<flags>u
@@ -120,8 +109,6 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
         int flags = 0;
         for (ssize_t i = 3; i < n; i++) {
             if (buf[i] == 'u') {
-                DEBUG_LOG("CSI_u enable: terminal confirmed flags=%d", flags);
-
                 // Log to JSONL
                 if (logger != NULL) {
                     yyjson_mut_doc *doc = ik_log_create();
@@ -137,8 +124,6 @@ static bool enable_csi_u(int tty_fd, ik_logger_t *logger)
             }
         }
     }
-
-    DEBUG_LOG("CSI_u enable: unexpected response format");
 
     // Log unexpected response to JSONL
     if (logger != NULL) {
@@ -206,13 +191,10 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
     // Apply raw mode immediately (no blocking)
     errno = 0;  // Clear errno before call
     int tcset_ret = posix_tcsetattr_(tty_fd, TCSANOW, &raw);
-    DEBUG_LOG("tcsetattr returned %d, errno=%d (%s)", tcset_ret, errno, strerror(errno));
     if (tcset_ret < 0) {
-        DEBUG_LOG("tcsetattr FAILED, returning error");
         posix_close_(tty_fd);
         return ERR(ctx, IO, "Failed to set raw mode");
     }
-    DEBUG_LOG("tcsetattr SUCCEEDED, continuing init");
 
     // Flush any stale input that was queued before raw mode
     if (posix_tcflush_(tty_fd, TCIFLUSH) < 0) {
@@ -236,21 +218,14 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
     }
 
     // Probe for CSI u support and enable if available
-    DEBUG_LOG("CSI_u: Starting detection");
     term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);
     if (term_ctx->csi_u_supported) {
-        DEBUG_LOG("CSI_u: Probe succeeded, attempting to enable");
         // Enable CSI u with flag 9 (disambiguate + report all keys)
         // This also reads and verifies the response
         if (!enable_csi_u(tty_fd, logger)) {
             // Not critical - continue without CSI u
-            DEBUG_LOG("CSI_u: Enable failed, continuing without CSI_u");
             term_ctx->csi_u_supported = false;
-        } else {
-            DEBUG_LOG("CSI_u: Successfully enabled");
         }
-    } else {
-        DEBUG_LOG("CSI_u: Probe failed, not supported");
     }
 
     // Get terminal size

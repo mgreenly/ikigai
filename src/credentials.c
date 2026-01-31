@@ -1,6 +1,5 @@
 #include "credentials.h"
 
-#include "debug_log.h"
 #include "json_allocator.h"
 #include "panic.h"
 #include "wrapper_json.h"
@@ -140,17 +139,9 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
     ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Check for insecure permissions and warn
-    if (ik_credentials_insecure_permissions(expanded_path)) {
-        DEBUG_LOG("Warning: credentials file %s has insecure permissions (should be 0600)", expanded_path);
-    }
-
     // Load from file first (errors are warnings, env vars take priority)
     res_t load_result = load_from_file(ctx, expanded_path, creds);
-    if (is_err(&load_result)) {
-        // Warn but continue - env vars can still provide credentials
-        DEBUG_LOG("Warning: %s", load_result.err->msg);
-    }
+    (void)load_result;  // Warn but continue - env vars can still provide credentials
 
     // Override with environment variables (higher precedence)
     const char *env_openai = get_env_nonempty("OPENAI_API_KEY");

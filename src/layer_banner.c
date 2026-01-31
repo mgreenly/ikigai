@@ -2,7 +2,6 @@
 #include "layer_wrappers.h"
 
 #include "ansi.h"
-#include "debug_log.h"
 #include "layer.h"
 #include "panic.h"
 #include "version.h"
@@ -58,7 +57,6 @@ static void banner_render(const ik_layer_t *layer,
 
     // Calculate visible row range
     size_t end_row = start_row + row_count;
-    DEBUG_LOG("banner_render: start_row=%zu, row_count=%zu, end_row=%zu", start_row, row_count, end_row);
 
     // Build color escape sequences
     char color_border[16];

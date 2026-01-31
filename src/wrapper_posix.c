@@ -5,7 +5,6 @@
 // In debug/test builds, these are compiled as weak symbols.
 
 #include "wrapper_posix.h"
-#include "debug_log.h"
 
 #ifndef NDEBUG
 // LCOV_EXCL_START
