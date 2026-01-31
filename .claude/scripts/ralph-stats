@@ -1,0 +1,63 @@
+#!/bin/bash
+# Print ralph execution statistics
+
+STATS_FILE="$HOME/.local/state/ralph/stats.jsonl"
+
+if [[ ! -f "$STATS_FILE" ]]; then
+    echo "No stats file found at $STATS_FILE"
+    exit 1
+fi
+
+# Count runs (non-empty lines)
+runs=$(grep -c '^{' "$STATS_FILE" 2>/dev/null || echo 0)
+
+if [[ "$runs" -eq 0 ]]; then
+    echo "Ralph has not run yet."
+    exit 0
+fi
+
+# Sum up time values using jq
+stats=$(jq -rs '
+    reduce .[] as $r (
+        {total: 0, llm: 0, cost: 0};
+        {
+            total: (.total + $r.time_seconds.total),
+            llm: (.llm + $r.time_seconds.llm),
+            cost: (.cost + $r.cost_usd)
+        }
+    )
+' "$STATS_FILE")
+
+total_seconds=$(echo "$stats" | jq -r '.total')
+llm_seconds=$(echo "$stats" | jq -r '.llm')
+total_cost=$(echo "$stats" | jq -r '.cost')
+
+# Calculate percentage
+if [[ "$total_seconds" -gt 0 ]]; then
+    pct=$(awk "BEGIN {printf \"%.1f\", ($llm_seconds / $total_seconds) * 100}")
+else
+    pct="0.0"
+fi
+
+# Format durations
+format_duration() {
+    local secs=$1
+    local mins=$((secs / 60))
+    local remaining_secs=$((secs % 60))
+    if [[ $mins -gt 0 ]]; then
+        echo "${mins}m ${remaining_secs}s"
+    else
+        echo "${remaining_secs}s"
+    fi
+}
+
+total_fmt=$(format_duration "$total_seconds")
+llm_fmt=$(format_duration "$llm_seconds")
+cost_fmt=$(printf "%.2f" "$total_cost")
+
+echo
+printf "%-20s %s\n" "Runs" "$runs"
+printf "%-20s %s\n" "Total duration" "$total_fmt"
+printf "%-20s %s (%s%%)\n" "Model wait time" "$llm_fmt" "$pct"
+printf "%-20s %s\n" "Total cost" "\$$cost_fmt"
+echo
