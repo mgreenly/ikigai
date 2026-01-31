@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+
+rm -f .ikigai/logs/*.log
+mkdir -p .ikigai/debug
+touch .ikigai/debug/.keep
+mkdir -p .ikigai/logs
+touch .ikigai/logs/.keep
+mkdir -p .ikigai/skills
+touch .ikigai/skills/.keep
