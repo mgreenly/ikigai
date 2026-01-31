@@ -27,7 +27,7 @@ char *ik_generate_uuid(TALLOC_CTX *ctx)
     // Encode 16 bytes to 22 base64url characters (no padding)
     // 16 bytes = 128 bits, base64 encodes 6 bits per char
     // ceil(128/6) = 22 characters
-    char *uuid = talloc_array(ctx, char, 23);  // 22 chars + null
+    char *uuid = talloc_zero_array(ctx, char, 23);  // 22 chars + null
     if (uuid == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     int j = 0;

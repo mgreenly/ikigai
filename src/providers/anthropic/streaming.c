@@ -160,7 +160,7 @@ ik_response_t *ik_anthropic_stream_build_response(TALLOC_CTX *ctx,
     }
 
     // Allocate content blocks array
-    resp->content_blocks = talloc_array(resp,
+    resp->content_blocks = talloc_zero_array(resp,
                                         ik_content_block_t,
                                         block_count);
     if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

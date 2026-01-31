@@ -93,7 +93,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     // Dynamic array for ranges (will be reversed at the end)
     size_t capacity = 8;
     size_t count = 0;
-    ik_replay_range_t *ranges = talloc_array(tmp, ik_replay_range_t, (unsigned int)capacity);
+    ik_replay_range_t *ranges = talloc_zero_array(tmp, ik_replay_range_t, (unsigned int)capacity);
     if (ranges == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Walk backwards from leaf agent
@@ -159,7 +159,7 @@ res_t ik_agent_build_replay_ranges(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     }
 
     // Reverse the array to get chronological order (root first)
-    ik_replay_range_t *result = talloc_array(ctx, ik_replay_range_t, (unsigned int)count);
+    ik_replay_range_t *result = talloc_zero_array(ctx, ik_replay_range_t, (unsigned int)count);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < count; i++) {
@@ -229,7 +229,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     }
 
     // Allocate message array
-    ik_msg_t **messages = talloc_array(ctx, ik_msg_t *, (unsigned int)num_rows);
+    ik_msg_t **messages = talloc_zero_array(ctx, ik_msg_t *, (unsigned int)num_rows);
     if (messages == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (int i = 0; i < num_rows; i++) {

@@ -43,7 +43,7 @@ static void copy_pinned_paths(ik_agent_ctx_t *child, const ik_agent_ctx_t *paren
         return;
     }
 
-    child->pinned_paths = talloc_array(child, char *, (unsigned int)parent->pinned_count);
+    child->pinned_paths = talloc_zero_array(child, char *, (unsigned int)parent->pinned_count);
     if (child->pinned_paths == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < parent->pinned_count; i++) {
@@ -60,7 +60,7 @@ static void copy_toolset_filter(ik_agent_ctx_t *child, const ik_agent_ctx_t *par
         return;
     }
 
-    child->toolset_filter = talloc_array(child, char *, (unsigned int)parent->toolset_count);
+    child->toolset_filter = talloc_zero_array(child, char *, (unsigned int)parent->toolset_count);
     if (child->toolset_filter == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < parent->toolset_count; i++) {

@@ -48,7 +48,7 @@ res_t ik_file_read_all(TALLOC_CTX *ctx, const char *path, char **out_content, si
         return ERR(ctx, IO, "File too large: %s", path);
     }
 
-    char *buffer = talloc_array(ctx, char, (unsigned int)(file_size + 1));
+    char *buffer = talloc_zero_array(ctx, char, (unsigned int)(file_size + 1));
     if (buffer == NULL) {      // LCOV_EXCL_BR_LINE
         fclose_(f);             // LCOV_EXCL_LINE
         PANIC("Out of memory"); // LCOV_EXCL_LINE

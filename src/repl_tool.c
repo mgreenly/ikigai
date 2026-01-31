@@ -183,7 +183,7 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
     ik_tool_call_t *tc = agent->pending_tool_call;
     agent->tool_thread_ctx = talloc_new(agent);
     if (agent->tool_thread_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    tool_thread_args_t *args = talloc(agent->tool_thread_ctx, tool_thread_args_t);
+    tool_thread_args_t *args = talloc_zero(agent->tool_thread_ctx, tool_thread_args_t);
     if (args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     args->ctx = agent->tool_thread_ctx;
     args->tool_name = talloc_strdup(agent->tool_thread_ctx, tc->name);

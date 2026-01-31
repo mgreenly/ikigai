@@ -17,7 +17,7 @@ ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = role;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Create text content block using existing helper
@@ -40,7 +40,7 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_ASSISTANT;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Create tool call content block using existing helper
@@ -75,7 +75,7 @@ ik_message_t *ik_message_create_tool_call_with_thinking(
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_ASSISTANT;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, (unsigned int)block_count);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, (unsigned int)block_count);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_count = block_count;
     msg->provider_metadata = NULL;
@@ -131,7 +131,7 @@ ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_ca
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_TOOL;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Create tool result content block using existing helper

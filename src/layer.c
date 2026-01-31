@@ -12,7 +12,7 @@ ik_output_buffer_t *ik_output_buffer_create(TALLOC_CTX *ctx, size_t initial_capa
     assert(ctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(initial_capacity > 0); // LCOV_EXCL_BR_LINE
 
-    ik_output_buffer_t *buf = talloc(ctx, ik_output_buffer_t);
+    ik_output_buffer_t *buf = talloc_zero(ctx, ik_output_buffer_t);
     if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     buf->data = talloc_array_(buf, sizeof(char), initial_capacity);
@@ -69,7 +69,7 @@ ik_layer_t *ik_layer_create(TALLOC_CTX *ctx,
     assert(get_height != NULL); // LCOV_EXCL_BR_LINE
     assert(render != NULL);     // LCOV_EXCL_BR_LINE
 
-    ik_layer_t *layer = talloc(ctx, ik_layer_t);
+    ik_layer_t *layer = talloc_zero(ctx, ik_layer_t);
     if (layer == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     layer->name = name;
@@ -86,7 +86,7 @@ ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height)
 {
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
 
-    ik_layer_cake_t *cake = talloc(ctx, ik_layer_cake_t);
+    ik_layer_cake_t *cake = talloc_zero(ctx, ik_layer_cake_t);
     if (cake == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     const size_t initial_capacity = 4; // Reasonable starting size

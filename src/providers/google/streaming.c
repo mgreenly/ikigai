@@ -45,7 +45,7 @@ ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
         resp->finish_reason = IK_FINISH_TOOL_USE;
 
         // Allocate content blocks array with one tool call
-        resp->content_blocks = talloc_array(resp, ik_content_block_t, 1);
+        resp->content_blocks = talloc_zero_array(resp, ik_content_block_t, 1);
         if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         resp->content_count = 1;
 

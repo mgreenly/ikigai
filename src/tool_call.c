@@ -14,7 +14,7 @@ ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
     assert(name != NULL); // LCOV_EXCL_BR_LINE
     assert(arguments != NULL); // LCOV_EXCL_BR_LINE
 
-    ik_tool_call_t *call = talloc(ctx, ik_tool_call_t);
+    ik_tool_call_t *call = talloc_zero(ctx, ik_tool_call_t);
     if (call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Copy strings as children of the struct

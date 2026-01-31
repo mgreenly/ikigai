@@ -31,7 +31,7 @@ static void replay_toolset_command(ik_agent_ctx_t *agent, const char *args)
     if (work == NULL) return;  // LCOV_EXCL_LINE
 
     size_t capacity = 16;
-    char **tools = talloc_array(agent, char *, (unsigned int)capacity);
+    char **tools = talloc_zero_array(agent, char *, (unsigned int)capacity);
     if (tools == NULL) {     // LCOV_EXCL_LINE
         talloc_free(work);     // LCOV_EXCL_LINE
         return;     // LCOV_EXCL_LINE
@@ -85,7 +85,7 @@ static void replay_toolset_from_json_array(ik_agent_ctx_t *agent, yyjson_val *ar
     size_t arr_len = yyjson_arr_size(arr);
     if (arr_len == 0) return;
 
-    char **tools = talloc_array(agent, char *, (unsigned int)arr_len);
+    char **tools = talloc_zero_array(agent, char *, (unsigned int)arr_len);
     if (tools == NULL) return;  // LCOV_EXCL_LINE
 
     size_t count = 0;

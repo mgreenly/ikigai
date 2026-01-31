@@ -20,7 +20,7 @@ ik_history_t *ik_history_create(void *ctx, size_t capacity)
     hist->pending = NULL;
 
     // Allocate entries array
-    hist->entries = talloc_array(hist, char *, (unsigned int)capacity);
+    hist->entries = talloc_zero_array(hist, char *, (unsigned int)capacity);
     if (hist->entries == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     return hist;

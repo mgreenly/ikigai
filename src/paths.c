@@ -236,7 +236,7 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
     size_t output_size = strlen(input) +
                         (state_dir_len - uri_prefix_len + 1) * generic_count +
                         (data_dir_len + system_suffix_len + 1 - uri_prefix_len - system_suffix_len + 1) * system_count + 1;
-    char *result = talloc_array(ctx, char, (unsigned int)output_size);
+    char *result = talloc_zero_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Build output with replacements
@@ -364,7 +364,7 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
                         (uri_prefix_len - state_dir_len) * generic_count +
                         (uri_prefix_len + system_suffix_len - (data_dir_len + 1 + system_suffix_len)) * system_count +
                         generic_count + system_count + 1;
-    char *result = talloc_array(ctx, char, (unsigned int)output_size);
+    char *result = talloc_zero_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Rebuild system_path for replacement loop

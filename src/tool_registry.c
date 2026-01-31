@@ -13,7 +13,7 @@ ik_tool_registry_t *ik_tool_registry_create(TALLOC_CTX *ctx)
     if (registry == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     registry->capacity = 16;
-    registry->entries = talloc_array(registry, ik_tool_registry_entry_t, (unsigned int)registry->capacity);
+    registry->entries = talloc_zero_array(registry, ik_tool_registry_entry_t, (unsigned int)registry->capacity);
     if (registry->entries == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     registry->count = 0;

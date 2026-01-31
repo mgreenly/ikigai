@@ -173,7 +173,7 @@ static res_t scan_migrations(TALLOC_CTX *ctx, const char *migrations_dir,
     size_t capacity = 10;
     size_t count = 0;
     // talloc_array expects unsigned int, cast is safe for small values
-    migration_entry_t *entries = talloc_array(ctx, migration_entry_t, (unsigned)capacity);
+    migration_entry_t *entries = talloc_zero_array(ctx, migration_entry_t, (unsigned)capacity);
     if (entries == NULL) {         // LCOV_EXCL_BR_LINE
         closedir(dir);             // LCOV_EXCL_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
