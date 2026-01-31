@@ -27,11 +27,39 @@ register(function_name);            // passed as arg
 
 In all cases, `function_name` appears WITHOUT parentheses (no `function_name(`). If you grep for the function name and find it ONLY in contexts with `(` after it, those are all calls - and if cflow says there are no calls from main, then those must be test-only calls.
 
-### Tests Don't Count
+### Default Assumption: It's Dead
+
+**If cflow says unreachable from main AND you find no pointer assignments in `src/`, the function is almost certainly dead.**
+
+These two checks cover all the ways C code can invoke a function:
+1. Direct call → cflow would find it
+2. Pointer/callback → assignment would exist in source
+
+When both checks say "not used", be skeptical of any argument that the function is needed. The burden of proof is on showing it IS used, not on proving it ISN'T. Tests failing doesn't automatically mean the function is live - tests can be wrong, tests can be dead too.
+
+### Tests Don't Count (But Be Careful)
 
 Tests exist to verify production code works. A test calling a function doesn't make that function "used" - it just means someone wrote a test for it. If the function is dead in production, the test is dead too.
 
 **The question is always: does PRODUCTION code (`src/`) need this function?**
+
+### The Circular Dependency Trap
+
+Here's a subtle failure mode to watch for:
+
+1. Function `foo()` is truly dead (no real production usage)
+2. Production code has `bar()` which internally calls `foo()`
+3. Someone wrote `test_bar()` specifically to get coverage on `foo()`
+4. `bar()` itself is ALSO only called from tests
+
+When you remove `foo()`:
+- `test_bar()` fails
+- `test_bar()` doesn't directly reference `foo()` (it calls `bar()`)
+- You might conclude: "indirect production usage, NOT DEAD"
+
+**But that's wrong!** The test exercises `bar()`, and `bar()` calls `foo()`, but `bar()` is ALSO dead code. The test was written to cover `foo()` through a production wrapper, creating circular reasoning.
+
+**The fix:** When a test fails without directly referencing `{{function}}`, identify what production function the test calls. Then verify THAT function is reachable from `main()` or command handlers. If the intermediary is also unreachable, you've found a cluster of dead code - delete it all.
 
 ## Evaluation Framework
 
@@ -94,7 +122,15 @@ grep -w '{{function}}' tests/unit/test_foo.c
 The test is testing the dead function directly. Delete the test, re-run `make check`.
 
 **If NO (test doesn't reference function but still fails):**
-This is the critical case. The test exercises production code that internally uses `{{function}}` via pointer/vtable. This PROVES the function is NOT dead.
+This is the critical case - but DON'T assume it proves the function is live. You must dig deeper:
+
+1. **Identify the intermediary**: What production function does the test call that leads to `{{function}}`?
+2. **Verify the intermediary is reachable**: Run `cflow --main main src/*.c` and check if that intermediary function appears in the output. Also check command handlers.
+3. **Interpret the result**:
+   - Intermediary IS reachable from main → `{{function}}` is NOT dead (genuine production path)
+   - Intermediary is NOT reachable from main → Both are dead. Delete `{{function}}`, the intermediary, AND the test. Re-run `make check`.
+
+**Why this matters:** A test might exercise production code that calls `{{function}}`, but if that production code is ALSO unreachable from main, then the test was written just to get coverage on dead code. You've found a cluster of dead code - remove it all together.
 
 ### Decision Tree
 
@@ -108,7 +144,10 @@ Can you find {{function}} assigned/passed in src/?
                   └─ NO → For each failing test:
                           Does test directly call {{function}}?
                           ├─ YES → Delete test, retry
-                          └─ NO → NOT DEAD (indirect pointer usage)
+                          └─ NO → What production function does test call?
+                                  Is THAT function reachable from main/handlers?
+                                  ├─ YES → NOT DEAD (genuine production path)
+                                  └─ NO → DEAD CLUSTER (delete function, caller, and test)
 ```
 
 ## What To Do
@@ -118,8 +157,9 @@ Can you find {{function}} assigned/passed in src/?
 1. Delete the function from `{{file}}`
 2. Delete declaration from header
 3. Delete any tests that directly tested it
-4. Clean up empty TCases and test files
-5. Verify: `make bin/ikigai` passes, `make check` passes
+4. If you found a dead cluster (intermediary functions that only exist to call `{{function}}`), delete those too along with their tests
+5. Clean up empty TCases and test files
+6. Verify: `make bin/ikigai` passes, `make check` passes
 
 ### If Function Is NOT Dead
 
@@ -127,22 +167,26 @@ Can you find {{function}} assigned/passed in src/?
 2. Revert all changes: `jj restore`
 3. Return DONE - this is a successful outcome (we learned something)
 
-## Safety First
+## Confidence Calibration
 
-**This process is intentionally expensive. That's okay.**
+**When static analysis is clear, trust it.**
 
-The cost of a wrong deletion is severe: broken runtime behavior that might not be detected for weeks. The cost of a wrong false positive is trivial: we skip one function that could have been deleted.
+If cflow says unreachable AND no pointer assignments exist, there is no mechanism by which C code can call this function. Period. These two checks are exhaustive:
+- Direct calls → cflow finds them
+- Indirect calls → require pointer assignment in source
 
-**When in doubt, mark as false positive and move on.**
+A failing test is not evidence the function is live. It's evidence that *something* calls the function - but that something might itself be dead code, or might be test-only code.
 
-A conservative false positive list is far better than accidentally breaking production. We can always revisit false positives later with more sophisticated analysis. We cannot easily recover from a deletion that passes all tests but breaks real-world usage patterns.
+**When to mark false positive:** Only when you find concrete evidence the function IS used - a pointer assignment, a vtable entry, a callback registration. Not because a test failed. Not because you're uncertain. Uncertainty in the face of clear static analysis should resolve toward "it's dead."
+
+**When in genuine doubt:** If you find ambiguous evidence (complex macro usage, generated code, external linkage you can't trace), then mark as false positive. But "a test fails and I don't understand why" is not genuine doubt - that's a signal to investigate the test, not to give up.
 
 ## Important Reminders
 
-- **Read the code** - Don't just grep mechanically. Understand what the function does and how it might be used.
-- **Trust the tests** - If a test fails and doesn't reference the function, production code needs it.
-- **Both outcomes are valid** - Proving a function is NOT dead is just as valuable as removing dead code.
-- **When uncertain, mark false positive** - Wrong deletions are catastrophic. Wrong false positives are harmless.
+- **Trust static analysis** - If cflow + grep for assignments both say "not used", the function is dead. Don't second-guess clear evidence.
+- **Verify the call chain** - If a test fails without directly referencing the function, trace the path. A test exercising dead production code is itself dead.
+- **Investigate, don't capitulate** - When something unexpected happens (test fails, build breaks), understand WHY before concluding the function is needed.
+- **False positives require evidence** - Mark as false positive only when you find concrete proof of usage (pointer assignment, vtable, callback). Not because tests fail.
 
 ## Acceptance
 
