@@ -18,7 +18,7 @@ ifdef FILE
 		exit 1; \
 	fi; \
 	.make/parse-check-xml.sh "$$xml_path"; \
-	if grep -q 'result="failure"' "$$xml_path"; then \
+	if grep 'result="' "$$xml_path" | grep -qv 'result="success"'; then \
 		exit 1; \
 	fi
 else ifdef RAW
@@ -49,7 +49,7 @@ else
 		if [ ! -f "$$xml" ]; then \
 			echo "🔴 $$bin"; \
 			failed=$$((failed + 1)); \
-		elif grep -q 'result="failure"' "$$xml"; then \
+		elif grep 'result="' "$$xml" | grep -qv 'result="success"'; then \
 			echo "🔴 $$bin"; \
 			failed=$$((failed + 1)); \
 		else \

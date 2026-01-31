@@ -32,7 +32,7 @@ NR > 1 {
 
         if (result == "success") {
             print "🟢 " id ":" line ": " msg
-        } else if (result == "failure") {
+        } else {
             print "🔴 " id ":" line ": " msg
         }
     }
