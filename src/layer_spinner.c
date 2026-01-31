@@ -25,7 +25,7 @@ void ik_spinner_advance(ik_spinner_state_t *state)
     state->frame_index = (state->frame_index + 1) % SPINNER_FRAME_COUNT;
 }
 
-// Check elapsed time and advance spinner if >= 80ms since last advance
+// Check elapsed time and advance spinner if >= 120ms since last advance
 bool ik_spinner_maybe_advance(ik_spinner_state_t *state, int64_t now_ms)
 {
     assert(state != NULL);  // LCOV_EXCL_BR_LINE
@@ -33,8 +33,8 @@ bool ik_spinner_maybe_advance(ik_spinner_state_t *state, int64_t now_ms)
     // Calculate elapsed time since last advance
     int64_t elapsed_ms = now_ms - state->last_advance_ms;
 
-    // Advance if 80ms or more has elapsed
-    if (elapsed_ms >= 80) {
+    // Advance if 120ms or more has elapsed
+    if (elapsed_ms >= 120) {
         ik_spinner_advance(state);
         state->last_advance_ms = now_ms;
         return true;

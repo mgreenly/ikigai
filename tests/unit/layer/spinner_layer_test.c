@@ -203,12 +203,12 @@ END_TEST
 START_TEST(test_spinner_maybe_advance_enough_time) {
     ik_spinner_state_t state = {.frame_index = 0, .visible = true, .last_advance_ms = 1000};
 
-    // Current time is 80ms after last advance - should advance
-    bool advanced = ik_spinner_maybe_advance(&state, 1080);
+    // Current time is 120ms after last advance - should advance
+    bool advanced = ik_spinner_maybe_advance(&state, 1120);
 
     ck_assert(advanced == true);
     ck_assert_uint_eq(state.frame_index, 1);      // Frame should advance
-    ck_assert_int_eq(state.last_advance_ms, 1080); // Timestamp should update
+    ck_assert_int_eq(state.last_advance_ms, 1120); // Timestamp should update
 }
 
 END_TEST
