@@ -41,6 +41,8 @@ jj commit -m "Add feature X"
 
 Commits stack automatically. After 3 commits you have: `main → A → B → C (@)`
 
+**CRITICAL: Commit what's there.** When asked to commit, commit ALL changes in the working copy. Never restore, revert, or selectively exclude files unless explicitly asked. If there are "unexpected" changes from another session (e.g., ralph), they are intentional - commit them.
+
 ## Creating a PR
 
 When ready to push:
@@ -78,6 +80,7 @@ jj git push --bookmark feature-name
 - Force pushing to main
 - Creating multiple bookmarks
 - Pushing partial commit stacks
+- Reverting/restoring files when asked to commit (commit what's there)
 
 ## Squashing (Permission Required)
 
