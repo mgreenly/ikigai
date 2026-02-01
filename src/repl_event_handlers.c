@@ -367,10 +367,8 @@ res_t ik_repl_calculate_curl_min_timeout(ik_repl_ctx_t *repl, long *timeout_out)
 
 res_t ik_repl_handle_select_timeout(ik_repl_ctx_t *repl)
 {
-    if (repl->current->spinner_state.visible) {
-        ik_spinner_advance(&repl->current->spinner_state);
-        CHECK(ik_repl_render_frame(repl));
-    }
+    // Spinner advancement is now time-based (see main loop)
+    // This function handles only genuine timeout-based events (scroll detector)
     if (repl->scroll_det != NULL) {  // LCOV_EXCL_BR_LINE
         struct timespec ts;  // LCOV_EXCL_LINE
         clock_gettime(CLOCK_MONOTONIC, &ts);  // LCOV_EXCL_LINE

@@ -187,6 +187,45 @@ START_TEST(test_spinner_animation_sequence) {
 
 END_TEST
 
+START_TEST(test_spinner_maybe_advance_not_enough_time) {
+    ik_spinner_state_t state = {.frame_index = 0, .visible = true, .last_advance_ms = 1000};
+
+    // Current time is only 50ms after last advance - should not advance
+    bool advanced = ik_spinner_maybe_advance(&state, 1050);
+
+    ck_assert(advanced == false);
+    ck_assert_uint_eq(state.frame_index, 0);      // Frame should not change
+    ck_assert_int_eq(state.last_advance_ms, 1000); // Timestamp should not change
+}
+
+END_TEST
+
+START_TEST(test_spinner_maybe_advance_enough_time) {
+    ik_spinner_state_t state = {.frame_index = 0, .visible = true, .last_advance_ms = 1000};
+
+    // Current time is 120ms after last advance - should advance
+    bool advanced = ik_spinner_maybe_advance(&state, 1120);
+
+    ck_assert(advanced == true);
+    ck_assert_uint_eq(state.frame_index, 1);      // Frame should advance
+    ck_assert_int_eq(state.last_advance_ms, 1120); // Timestamp should update
+}
+
+END_TEST
+
+START_TEST(test_spinner_maybe_advance_more_than_enough_time) {
+    ik_spinner_state_t state = {.frame_index = 5, .visible = true, .last_advance_ms = 1000};
+
+    // Current time is 150ms after last advance - should advance
+    bool advanced = ik_spinner_maybe_advance(&state, 1150);
+
+    ck_assert(advanced == true);
+    ck_assert_uint_eq(state.frame_index, 6);      // Frame should advance
+    ck_assert_int_eq(state.last_advance_ms, 1150); // Timestamp should update
+}
+
+END_TEST
+
 static Suite *spinner_layer_suite(void)
 {
     Suite *s = suite_create("Spinner Layer");
@@ -197,6 +236,9 @@ static Suite *spinner_layer_suite(void)
     tcase_add_test(tc_core, test_spinner_layer_height);
     tcase_add_test(tc_core, test_spinner_get_frame_cycles);
     tcase_add_test(tc_core, test_spinner_advance);
+    tcase_add_test(tc_core, test_spinner_maybe_advance_not_enough_time);
+    tcase_add_test(tc_core, test_spinner_maybe_advance_enough_time);
+    tcase_add_test(tc_core, test_spinner_maybe_advance_more_than_enough_time);
     tcase_add_test(tc_core, test_spinner_layer_render_frame0);
     tcase_add_test(tc_core, test_spinner_layer_render_all_frames);
     tcase_add_test(tc_core, test_spinner_animation_sequence);

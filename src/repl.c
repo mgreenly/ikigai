@@ -75,7 +75,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             break;
         }
 
-        // Handle timeout (spinner animation and scroll detector)
+        // Handle timeout (scroll detector only - spinner is now time-based)
         // Note: Don't continue here - curl events must still be processed
         if (ready == 0) {
             CHECK(ik_repl_handle_select_timeout(repl));  // LCOV_EXCL_BR_LINE
@@ -89,6 +89,16 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Handle curl_multi events
         CHECK(ik_repl_handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
+
+        // Time-based spinner advancement (independent of select timeout)
+        if (repl->current->spinner_state.visible) {
+            struct timespec ts;
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+            if (ik_spinner_maybe_advance(&repl->current->spinner_state, now_ms)) {
+                CHECK(ik_repl_render_frame(repl));
+            }
+        }
 
         // Poll for tool thread completion - check ALL agents
         CHECK(ik_repl_poll_tool_completions(repl));  // LCOV_EXCL_BR_LINE
