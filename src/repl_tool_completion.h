@@ -6,9 +6,6 @@
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
 typedef struct ik_agent_ctx ik_agent_ctx_t;
 
-// Handle tool thread completion (legacy - uses repl->current)
-void ik_repl_handle_tool_completion(ik_repl_ctx_t *repl);
-
 // Handle tool thread completion for specific agent
 void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
