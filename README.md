@@ -4,7 +4,7 @@
 
 # ikigai
 
-An experiment to build a Linux focused, terminal based coding agent with hierarchical sub-agents, RAG accessible permanent memory, progressive tool discovery and a dynamic sliding context window.
+An experiment in agentic orchestration. One platform for living agents that coordinate through hierarchical sub-agents, persist state to permanent memory, and manage context through a dynamic sliding window. Build and test locally (Ikigai), deploy to production (Iki-Genba).
 
 Why? Because I want to and no one can stop me!
 
