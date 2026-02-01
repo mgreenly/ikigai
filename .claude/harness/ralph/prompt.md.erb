@@ -50,7 +50,7 @@ These scripts return terse JSON summaries - no output parsing required, minimal 
 | `.claude/scripts/check-helgrind`    | Run thread error detection    |
 | `.claude/scripts/check-coverage`    | Check test coverage           |
 
-**Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) using the Bash tool. Do NOT background or tail logs, run them one at a time and just wait.
+**Running scripts:** All scripts produce NO output until complete. Run in foreground with 60 minute timeout (3600000 ms) using the Bash tool. Do NOT background or tail logs.
 
 **Quality gate requirement:** When goal acceptance criteria require all checks to pass, run them in the order listed above (compile → link → filesize → unit → integration → complexity → sanitize → tsan → valgrind → helgrind → coverage). All 11 must pass without file changes between runs. If any check fails, fix it and restart from the beginning of the sequence.
 
