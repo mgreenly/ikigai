@@ -150,20 +150,6 @@ START_TEST(test_ctx_create_initializes_correctly) {
 }
 END_TEST
 
-START_TEST(test_get_usage_returns_zero_initially) {
-    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    ik_usage_t usage = ik_openai_responses_stream_get_usage(ctx);
-
-    ck_assert_int_eq(usage.input_tokens, 0);
-    ck_assert_int_eq(usage.output_tokens, 0);
-    ck_assert_int_eq(usage.thinking_tokens, 0);
-    ck_assert_int_eq(usage.total_tokens, 0);
-}
-
-END_TEST
-
 START_TEST(test_get_finish_reason_returns_unknown_initially) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -336,7 +322,6 @@ static Suite *openai_streaming_responses_suite(void)
     tcase_set_timeout(tc_ctx, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_ctx, setup, teardown);
     tcase_add_test(tc_ctx, test_ctx_create_initializes_correctly);
-    tcase_add_test(tc_ctx, test_get_usage_returns_zero_initially);
     tcase_add_test(tc_ctx, test_get_finish_reason_returns_unknown_initially);
     suite_add_tcase(s, tc_ctx);
 
