@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Status layer**: Shows current model and thinking level in REPL UI
 - **Gemini 3 support**: Updated Google AI provider for Gemini 3 API
 - **AI providers documentation**: User-facing documentation for configuring supported providers
+- **Gemini 2.5 strict validation**: Strict model validation with power-of-2 thinking budgets
+- **Anthropic thinking budgets**: Improved thinking budget handling for Anthropic provider
+
+#### /toolset Command
+- **Tool set management**: New `/toolset` command for managing which tools are offered to AI providers
+
+#### /fix-checks Command
+- **Quality check repairs**: New `/fix-checks` slash command replaces fix-checks harness script
 
 #### /jj-reset Command
 - **Fresh working copy**: New `/jj-reset` command to reset jj working copy to fresh state from main@origin
@@ -70,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Arrow keys with NumLock**: Fixed arrow key handling when NumLock is enabled
 
 #### UI Improvements
-- **Braille spinner**: Replaced ASCII spinner (|/-\\) with braille animation (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏)
+- **Braille spinner**: Replaced ASCII spinner (|/-\\) with braille animation (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), slowed animation rate
 - **Flicker elimination**: Screen clear moved from render path to terminal initialization
 - **Cursor visibility fix**: Explicit cursor state at end of each render frame
 - **Hidden cursor during spinner**: Cursor hidden while spinner is active
@@ -84,12 +92,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 #### Developer Tools
 - **Dev framebuffer dump**: Compile-time conditional for debugging render issues
 - **dev-dump skill**: Documentation for debug buffer dumps
+- **ralph-stats**: Skill and script for tracking Ralph execution statistics
+- **Time tracking**: Ralph logs execution time and statistics
+
+#### Security & Quality
+- **Banned functions enforcement**: Compile-time enforcement of banned unsafe C functions
+- **Dead code detection**: Improved detection to catch circular test dependencies
 
 ### Changed
 
 #### REPL Behavior
 - **History navigation disabled**: Keeps readline commands (Ctrl+A/E/K/U/W) but disables Up/Down history navigation
 - **Readline in CSI u mode**: Fixed readline command support in CSI u keyboard protocol mode
+- **Hidden system messages**: System messages no longer displayed in UI
+- **Thinking level display**: Changed from 'disabled' to 'none'
+- **Banner alignment**: Banner text columns aligned for cleaner display
+
+#### Memory Safety
+- **Atomic agent state**: Agent state made atomic to eliminate mutex contention in spinner render path
+- **Zeroing allocations**: Convert all talloc allocations to zeroing variants
+
+#### Ralph Harness
+- **Ralph v0.4.0**: Upgraded to Ralph version 0.4.0
+- **Gemini thinkingLevel**: Uses uppercase LOW/HIGH values
 
 #### List Tool
 - **Directory change**: Uses IKIGAI_STATE_DIR instead of IKIGAI_CACHE_DIR
@@ -136,6 +161,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **note.md**: Removed temporary note file
 - **Old task scripts**: Cleaned up obsolete task scripts
 - **structured-memory docs**: Superseded by simpler pin implementation
+
+#### Dead Code Pruning
+- ik_db_messages_load, ensure_capacity
+- ik_repl_handle_tool_completion
+- ik_paths_get_cache_dir, ik_paths_get_bin_dir
+- ik_line_array module
+- ik_openai_responses_stream_get_usage
+- ik_log_fatal_json
+- ik_history_save
 
 ### Technical Metrics
 - **Quality gates**: All 11 checks pass (compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage)
@@ -928,6 +962,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-10]: https://github.com/mgreenly/ikigai/releases/tag/rel-10
 [rel-09]: https://github.com/mgreenly/ikigai/releases/tag/rel-09
 [rel-08]: https://github.com/mgreenly/ikigai/releases/tag/rel-08
 [rel-07]: https://github.com/mgreenly/ikigai/releases/tag/rel-07
