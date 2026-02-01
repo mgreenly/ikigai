@@ -17,7 +17,7 @@ STATS_FILE = File.join(STATE_DIR, 'stats.jsonl')
 
 # Ralph: Iterative goal completion harness
 class Ralph
-  VERSION = '0.3.0'
+  VERSION = '0.4.0'
 
   MAX_RECENT = 10
   SUMMARY_INTERVAL = MAX_RECENT / 2
