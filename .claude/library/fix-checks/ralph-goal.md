@@ -40,8 +40,6 @@ Work through checks in order: compile, link, filesize, unit, integration, comple
     - If it fails, fix using coverage guidance below
     - Re-run `.claude/scripts/check-coverage` until it passes
 
-**Run checks ONE AT A TIME.** Do not run in parallel. Wait for each to complete before proceeding.
-
 ## Why This Order
 
 Each check builds on what comes before:
