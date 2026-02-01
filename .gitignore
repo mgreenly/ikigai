@@ -24,6 +24,7 @@ __pycache__/
 coverage_html/
 
 # Agent runtime data
+.claude/data/scratch.md
 .agents/logs/
 .ikigai/logs/
 .ikigai/history

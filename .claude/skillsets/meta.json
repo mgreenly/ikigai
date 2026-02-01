@@ -3,7 +3,8 @@
     "meta",
     "align",
     "jj",
-    "principles"
+    "principles",
+    "scratch"
   ],
   "advertise": [
     {"skill": "harness", "description": "Automated quality check loops with escalation"},
