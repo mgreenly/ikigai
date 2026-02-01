@@ -1,6 +1,10 @@
-# Crazy Makefile Idea: Make as Query Engine
+# Build System Roadmap: Make as Dependency Query Engine
 
-Status: **Idea** - may consider in the future
+Status: **Planned** - next evolution of the build system
+
+## Current State
+
+The build system uses `.make/check-*.mk` files with 🟢/🔴 output. This works but puts too much logic in Makefiles. The next step moves execution logic to `.claude/scripts/check-*` scripts, leaving Make to do what it does best: dependency resolution.
 
 ## Problem
 

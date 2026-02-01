@@ -1,14 +1,101 @@
 # Build System
 
-The ikigai build system provides multiple layers of quality checks, fast iteration tools, and multi-distro support.
+The ikigai build system uses a modular architecture with the Makefile orchestrating compilation and `.make/*.mk` files defining quality check targets. The `.claude/harness/` system provides automated fix loops.
 
-## Quality Assurance
+## File Structure
 
-Multiple layers of checks catch different classes of bugs:
+```
+Makefile                    # Orchestration: variables, pattern rules, includes
+.make/
+  check-compile.mk         # Compilation checking
+  check-link.mk            # Linking checking
+  check-filesize.mk        # File size limits
+  check-complexity.mk      # Cyclomatic complexity
+  check-unit.mk            # Unit tests
+  check-integration.mk     # Integration tests
+  check-coverage.mk        # Code coverage
+  check-sanitize.mk        # Address/UB sanitizers
+  check-tsan.mk            # Thread sanitizer
+  check-valgrind.mk        # Valgrind memcheck
+  check-helgrind.mk        # Valgrind helgrind
+.claude/harness/
+  <name>/run               # Check harness (calls make target)
+  fix-<name>/run           # Fix harness (spawns sub-agents)
+```
 
-### Compile-Time: Comprehensive Warnings
+## The 11 Check Targets
 
-19 warning flags enabled by default (always, in all build modes), with `-Werror` to treat warnings as errors:
+Each check target exists at two levels forming a check-fix workflow:
+
+### Level 1: Make Target
+
+`make check-<name>` - Core implementation in `.make/check-<name>.mk`
+
+| Target | Purpose |
+|--------|---------|
+| `check-compile` | Compile all source files to .o files |
+| `check-link` | Link all binaries (main, tools, tests) |
+| `check-filesize` | Verify source files under 16KB |
+| `check-complexity` | Verify cyclomatic complexity under 15 |
+| `check-unit` | Run unit tests |
+| `check-integration` | Run integration tests |
+| `check-coverage` | Check code coverage meets 90% threshold |
+| `check-sanitize` | Run tests with AddressSanitizer/UBSan |
+| `check-tsan` | Run tests with ThreadSanitizer |
+| `check-valgrind` | Run tests under Valgrind Memcheck |
+| `check-helgrind` | Run tests under Valgrind Helgrind |
+
+### Level 2: Harness Integration
+
+`.claude/harness/<name>/run` - Entry point for automated systems
+`.claude/harness/fix-<name>/run` - Spawns sub-agents to fix failures
+
+## Output Format
+
+All check-* targets use consistent 🟢/🔴 output.
+
+### Bulk Mode (default)
+
+One line per file. Green or red circle:
+
+```
+🟢 src/main.c
+🟢 src/config.c
+🔴 src/agent.c
+✅ All files compiled
+```
+
+Or on failure:
+```
+🟢 src/main.c
+🔴 src/agent.c
+❌ 1 files failed to compile
+```
+
+### Single File Mode (FILE=path)
+
+```bash
+make check-compile FILE=src/main.c
+```
+
+Success: `🟢 src/main.c`
+Failure: `🔴 src/agent.c:42:5: error: 'unknown_var' undeclared`
+
+## Build Modes
+
+| Mode | Use Case | Flags |
+|------|----------|-------|
+| `debug` | Default development | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
+| `release` | Production | `-O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2` |
+| `sanitize` | ASan + UBSan | `debug + -fsanitize=address,undefined` |
+| `tsan` | ThreadSanitizer | `debug + -fsanitize=thread` |
+| `valgrind` | Valgrind runs | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
+
+Usage: `make check-compile BUILD=release`
+
+## Warning Flags
+
+19 warning flags enabled by default with `-Werror`:
 
 ```
 -Wall -Wextra -Wshadow -Wstrict-prototypes -Wmissing-prototypes
@@ -24,84 +111,31 @@ These catch:
 - Variable shadowing and uninitialized variables
 - VLAs and alloca (we use talloc instead)
 
-### Runtime: Dynamic Analysis
+## Parallelization
 
-Four different sanitizers and tools, each specialized:
+All check-* targets run in parallel by default:
 
-**AddressSanitizer + UndefinedBehaviorSanitizer** (`make check-sanitize`)
-- Heap/stack/global buffer overflows
-- Use-after-free, use-after-return, double-free
-- Memory leaks
-- Undefined behavior (null derefs, signed integer overflow, etc.)
-
-**ThreadSanitizer** (`make check-tsan`)
-- Data races
-- Deadlocks
-- Thread safety violations
-
-**Valgrind Memcheck** (`make check-valgrind`)
-- Uninitialized memory reads
-- Invalid memory access
-- Memory leaks (comprehensive, catches what ASan misses)
-
-**Valgrind Helgrind** (`make check-helgrind`)
-- Race conditions
-- Lock ordering violations
-- Incorrect pthread API usage
-
-The combo target `make check-dynamic` runs all four. Clean rebuild between each to avoid conflicts.
-
-### Coverage: 100% Threshold Enforced
-
-```bash
-make coverage
+```makefile
+MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
 ```
 
-Generates line and branch coverage report, enforced at 100%.
+- Default: half of available cores
+- Override: `make check-compile MAKE_JOBS=8`
+- Output synchronized with `--output-sync=line`
 
-Uses `lcov` for text-based reports. Shows per-file coverage and summary.
+## Source Discovery
 
-With MOCKABLE seams (see below), most error paths can be tested. OOM branches are excluded from coverage (`LCOV_EXCL_BR_LINE`) since memory allocation failures now cause PANIC (abort) and cannot be tested via injection.
+Never hardcode file lists. All source discovery uses pattern-based `find`:
 
-### Code Quality: Complexity Gating
-
-```bash
-make lint
+```makefile
+SRC_FILES = $(shell find src -name '*.c' -not -path '*/vendor/*')
+TEST_FILES = $(shell find tests -name '*.c')
+VENDOR_FILES = $(shell find src/vendor -name '*.c')
 ```
-
-Enforces multiple code quality metrics:
-
-1. **Cyclomatic complexity**: threshold of 15 (uses `complexity` tool)
-   - Functions exceeding this threshold must be refactored
-2. **Nesting depth**: maximum 5 levels
-   - Excessive nesting makes code hard to understand
-3. **File line counts**: maximum 500 lines per file
-   - Applies to source files (`src/*.c`, `src/*.h`)
-   - Applies to test files (`tests/unit/*/*.c`, `tests/integration/*.c`)
-   - Applies to documentation files (`docs/*.md`, `docs/*/*.md`)
-
-Files exceeding these thresholds must be refactored or split.
-
-### Release Build
-
-```bash
-make release
-```
-
-Enables:
-- `-O2` optimization
-- `-D_FORTIFY_SOURCE=2` for runtime buffer overflow detection
-- `-DNDEBUG` to inline all MOCKABLE functions
-
-The `make ci` target runs: lint → coverage → dynamic analysis → release build.
 
 ## Test Infrastructure: MOCKABLE Seams
 
-All external library calls are wrapped to enable testing in debug builds.
-
-### What are link seams?
-
-All external library calls (talloc, yyjson, uuid, b64, POSIX) are wrapped in functions marked `MOCKABLE`:
+External library calls are wrapped for testability:
 
 ```c
 // wrapper.h
@@ -114,251 +148,70 @@ All external library calls (talloc, yyjson, uuid, b64, POSIX) are wrapped in fun
 MOCKABLE void *talloc_zero_(TALLOC_CTX *ctx, size_t size);
 ```
 
-In **debug builds**, these are weak symbols—tests can override them for non-OOM testing.
+- **Debug builds**: Weak symbols, tests can override
+- **Release builds**: Inlined away, zero overhead
 
-In **release builds** (`-DNDEBUG`), the wrappers are `static inline` and defined in the header. The compiler inlines them completely—zero runtime overhead, no symbols in the binary.
+OOM branches are excluded from coverage (`LCOV_EXCL_BR_LINE`) since allocation failures cause `PANIC()`.
 
-Benefits:
-- Release builds have zero overhead (wrappers inlined away)
-- Industry standard pattern (known as "link seams")
-- Single codebase for tests and production
+## Test Linking
 
-**Note on OOM testing:** Memory allocation failures now cause `PANIC("Out of memory")` which immediately terminates the process. OOM injection testing has been removed since allocation failures are no longer recoverable errors. OOM branches are excluded from coverage metrics (`LCOV_EXCL_BR_LINE`).
+Tests link against `MODULE_OBJ` (all src/*.o except main.o) plus automatically discovered helpers and mocks.
 
-See `docs/decisions/link-seams-mocking.md` for full details and `src/wrapper.h` for implementation.
+### Mock/Helper Discovery
 
-## Multi-Distribution Support
+Dependencies extracted from `.d` files:
+- `*_helper.h` → `*_helper.o`
+- `*_mock.h` → `*_mock.o`
+- `helpers/*_test.h` → `helpers/*_test.o`
 
-Building for multiple Linux distributions is handled via Docker.
+### Link Order
 
-### Supported distributions
-
-Current: **Arch Linux**, **Debian**, and **Fedora**
-
-Each distribution has:
-- `distros/<distro>/Dockerfile` - Build environment
-- `distros/<distro>/package.sh` - Package creation script
-- `distros/<distro>/packaging/` - Distro-specific packaging files
-
-### Build workflow
-
-```bash
-# Build Docker images for all distros
-make distro-images
-
-# Run full CI on all distros
-make distro-check
-
-# Build packages (.deb, .rpm)
-make distro-package
+```makefile
+$(CC) $(LDFLAGS) -Wl,--allow-multiple-definition \
+    -o $@ \
+    $<              # test.o (may contain inline mocks)
+    $$deps          # discovered helpers/mocks (override MODULE_OBJ)
+    $(MODULE_OBJ)   # real implementations
+    $(LDLIBS)
 ```
 
-The `distro-check` target:
-1. Builds Docker image for each distro
-2. Runs `make ci` inside container (lint → coverage → dynamic analysis → release)
-3. Fails if any distro fails
+`--allow-multiple-definition` + link order = mocks override real implementations.
 
-### Handling missing dependencies
+## Security Hardening
 
-Some libraries aren't available on all distros, or we want to avoid version conflicts.
-
-The Makefile supports selective static linking:
-
-```make
-CLIENT_LIBS ?= -ltalloc -luuid -lb64 -lpthread -lutf8proc
-CLIENT_STATIC_LIBS ?=
-```
-
-Distro-specific makefiles can override:
-
-```make
-# mk/alpine.mk (hypothetical)
-CLIENT_STATIC_LIBS = -lb64  # Not available in Alpine repos
-```
-
-The linker invocation:
-
-```make
-$(CC) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(CLIENT_STATIC_LIBS) -Wl,-Bdynamic $(CLIENT_LIBS)
-```
-
-This links `CLIENT_STATIC_LIBS` statically and `CLIENT_LIBS` dynamically.
-
-When a distro is missing dependencies, they are built from source during the Docker image build and linked statically.
-
-## Efficiency for Development
-
-Tools selected for speed and terse output:
-
-- **Check framework**: Only prints failures
-- **lcov**: Text-based coverage reports
-- **complexity**: Single-line output per function
-- **uncrustify**: Fast formatter with K&R style (120-char lines)
-- **Sanitizers**: 2-5x slowdown (vs 100x for Valgrind)
-
-### Incremental builds
-
-The Makefile uses automatic dependency generation:
-
-```make
-DEP_FLAGS = -MMD -MP
-```
-
-GCC generates `.d` files listing each source file's dependencies (headers). Make includes these:
-
-```make
--include $(wildcard build/*.d)
-```
-
-Only recompile what changed. No manual dependency tracking.
-
-### Parallel test execution
-
-Tests are independent executables. Run them in parallel:
-
-```bash
-make -j$(nproc) check
-```
-
-Each test runs in isolation with its own talloc context.
-
-### Coverage data preservation
-
-```make
-.SECONDARY:
-```
-
-Prevents Make from deleting intermediate files (like `.gcno` coverage files). Coverage data persists across incremental builds.
-
-## Build Modes
-
-Five build modes for different purposes:
-
-| Mode | Use Case | Flags |
-|------|----------|-------|
-| `debug` | Default development | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
-| `release` | Production | `-O2 -g -DNDEBUG -D_FORTIFY_SOURCE=2` |
-| `sanitize` | ASan + UBSan | `debug + -fsanitize=address,undefined` |
-| `tsan` | ThreadSanitizer | `debug + -fsanitize=thread` |
-| `valgrind` | Valgrind runs | `-O0 -g3 -fno-omit-frame-pointer -DDEBUG` |
-
-Note: All modes include `-Werror` (warnings as errors) in the base warning flags.
-
-Use with any target:
-
-```bash
-make all BUILD=release
-make check BUILD=sanitize
-```
-
-### Security hardening
-
-All modes include:
-
-```make
+All modes:
+```makefile
 SECURITY_FLAGS = -fstack-protector-strong
 ```
 
 Release mode adds:
-
-```make
+```makefile
 -D_FORTIFY_SOURCE=2  # Runtime buffer overflow detection
-```
-
-## CI Integration
-
-The `make ci` target runs the full validation pipeline:
-
-```bash
-make ci
-```
-
-Executes:
-1. `make lint` - Complexity checks
-2. `make coverage` - 100% coverage enforcement
-3. `make check-dynamic` - All sanitizers + Valgrind
-4. `make release` - Build with `-Werror`
-
-If any step fails, CI fails.
-
-This is what runs in `distro-check` for each distribution.
-
-## Zero-Overhead Abstractions
-
-The MOCKABLE pattern provides testability with no production cost.
-
-Release builds:
-- Inline all wrappers (`static inline`)
-- Optimize aggressively (`-O2`)
-- Strip debug info (`-DNDEBUG`)
-
-Debug/test builds:
-- Keep all symbols for debugging
-- Enable sanitizers
-- Maintain weak symbols for test overrides
-
-Verification:
-
-```bash
-# Debug: wrapper functions are weak symbols
-make BUILD=debug
-nm build/wrapper.o | grep ik_talloc
-# Shows: W talloc_zero_
-
-# Release: wrappers inlined, no symbols
-make BUILD=release
-nm build/wrapper.o | grep ik_talloc
-# Shows: (nothing - inlined away)
 ```
 
 ## Example Workflows
 
 ### Quick iteration
-
 ```bash
-make              # Build (debug mode)
-make check        # Run tests
-# Edit code
-make check        # Incremental rebuild + test
+make              # Build
+make check-unit   # Run unit tests
 ```
 
-### Before committing
-
+### Single file check
 ```bash
-make ci           # Full validation
+make check-compile FILE=src/main.c
+make check-coverage FILE=src/main.c
 ```
 
-### Release validation
-
+### Full quality check
 ```bash
-make distro-check  # Test on all supported distros
-make distro-package # Build packages
+make check-compile && make check-link && make check-unit && \
+make check-integration && make check-coverage && make check-sanitize
 ```
 
-### Debugging a specific issue
-
+### Debugging specific issues
 ```bash
-# Memory issue?
-make check-valgrind
-
-# Race condition?
-make check-tsan
-
-# Undefined behavior?
-make check-sanitize
-
-# All of the above?
-make check-dynamic
+make check-valgrind   # Memory issues
+make check-tsan       # Race conditions
+make check-sanitize   # Undefined behavior
 ```
-
-## Summary
-
-The build system provides:
-
-- **19 warning flags** at compile time
-- **4 dynamic analysis tools** (ASan/UBSan, TSan, Valgrind Memcheck, Helgrind)
-- **100% coverage threshold** enforced
-- **Code quality metrics** (complexity ≤15, nesting ≤5, files ≤500 lines)
-- **MOCKABLE seams** for testing error paths
-- **Multi-distro validation** (Arch, Debian, Fedora)
-- **Fast, terse tools** for quick iteration

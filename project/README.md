@@ -4,35 +4,17 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ## Project Overview
 
-**Ikigai** is an agent platform - an operating environment where you build, deploy, and coordinate living agents. Design agents interactively through the terminal (ikigai), deploy them to the runtime (iki-genba), and let them coordinate through process primitives (fork, mailbox, signals) and structured memory.
+**Ikigai** is an agentic orchestration platform - an operating environment where you develop, deploy, and test living agents through the terminal (Ikigai) on your laptop, then deploy them to a production runtime PaaS, Iki-Genba.
 
-An agent platform combining:
-- **ikigai** (terminal): Interactive agent builder with direct LLM integration
-- **iki-genba** (runtime): Autonomous agent deployment environment
-- **Structured Memory**: 4-layer context system (pinned blocks, auto-summary, sliding window, archival)
-- **Agent Process Model**: Fork, signals, mailbox communication, process tree
-- **Unified Interface**: `ikigai://` URIs, same tools for files and StoredAssets
-
-## Quick Start
-
-- **Source code**: `src/`
-- **Build target**: `bin/ikigai`
-- **Tests**: `tests/unit/`, `tests/integration/`, `tests/performance/`
-- **Build**: `make` (debug), `make release`, `make check` (run tests)
-- **Standard**: C17 with K&R style (120-char width)
-
-See [build-system.md](build-system.md) for comprehensive build documentation.
 
 ## Documentation
 
 ### Architecture & Design
 - **[architecture.md](architecture.md)** - System architecture, dependencies, and design principles
-- **[context-driven-development.md](context-driven-development.md)** - CDD: What Ikigai is and why context engineering matters
 - **[decisions/](decisions/)** - Architecture Decision Records (ADRs) for key design choices
 - **[repl/](repl/)** - REPL terminal interface documentation (rel-01 - complete)
 
 ### Development Standards
-- **[git-workflow.md](git-workflow.md)** - Git workflow with release branches and worktrees
 - **[naming.md](naming.md)** - Naming conventions and approved abbreviations
 - **[memory.md](memory.md)** - Memory management with talloc, ownership rules, and patterns
 - **[error_handling.md](error_handling.md)** - Error handling philosophy and decision framework
@@ -42,14 +24,9 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - **[generic-types.md](generic-types.md)** - Generic base implementation with type-safe wrappers
 
 ### Build & Testing
-- **[build-system.md](build-system.md)** - Build system, quality gates, testing infrastructure, multi-distro support
+- **[build-system.md](build-system.md)** - Modular build system, check-* targets, harness integration
+- **[build-system-roadmap.md](build-system-roadmap.md)** - Future: Make as dependency query engine
 - **[lcov_exclusion_strategy.md](lcov_exclusion_strategy.md)** - Coverage exclusion guidelines
-
-### Agent Tools & Automation
-- **[agent-scripts.md](agent-scripts.md)** - Script-based tools architecture (vs MCP), JSON output contract, discovery workflow
-
-### Internal Analysis
-- **[considerations.md](considerations.md)** - Candidate features and changes to consider for the future
 
 ## Roadmap to MVP
 
@@ -205,7 +182,16 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Build minimal external agent to demo
 
 
-### rel-13: Token Estimation (future)
+### rel-13: Dynamic Sliding Context Window (future)
+
+**Objective**: Manage context window efficiently with automatic history management
+
+**Features**:
+- History clipping
+- Recent summary
+
+
+### rel-14: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -216,7 +202,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-14: User Experience (future)
+### rel-15: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -225,7 +211,7 @@ See [build-system.md](build-system.md) for comprehensive build documentation.
 - improved status bar
 
 
-### rel-15: Codebase Refactor & MVP Release (future)
+### rel-16: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 
