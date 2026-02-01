@@ -3,6 +3,8 @@
 #include "wrapper_pthread.h"
 
 #include <assert.h>
+#include <inttypes.h>
+#include <time.h>
 
 
 #include "poison.h"
@@ -25,6 +27,11 @@ void ik_agent_transition_to_waiting_for_llm(ik_agent_ctx_t *agent)
     // Show spinner, hide input
     agent->spinner_state.visible = true;
     agent->input_buffer_visible = false;
+
+    // Initialize spinner timestamp for time-based advancement
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    agent->spinner_state.last_advance_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
 void ik_agent_transition_to_idle(ik_agent_ctx_t *agent)

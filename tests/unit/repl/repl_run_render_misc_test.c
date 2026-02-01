@@ -195,8 +195,8 @@ START_TEST(test_repl_run_spinner_render_error) {
 }
 
 END_TEST
-/* Test: Spinner advance and render on timeout (success case) */
-START_TEST(test_repl_run_spinner_timeout_success) {
+/* Test: Spinner advance and render based on elapsed time (not timeout) */
+START_TEST(test_repl_run_spinner_time_based_advance) {
     void *ctx = talloc_new(NULL);
 
     ik_input_buffer_t *input_buf = NULL;
@@ -238,9 +238,10 @@ START_TEST(test_repl_run_spinner_timeout_success) {
     // Set spinner visible (simulates WAITING_FOR_LLM state)
     repl->current->spinner_state.visible = true;
     repl->current->spinner_state.frame_index = 0;
+    repl->current->spinner_state.last_advance_ms = 0;  // Force advancement on first check
 
-    // Mock select to return 0 (timeout) on first call, then 1 (ready) on second call
-    mock_select_return_value = 0;
+    // Mock select to return 1 (ready, NOT timeout) - spinner should still advance via time-based check
+    mock_select_return_value = 1;
     mock_select_call_count = 0;
     mock_select_return_on_call = 0;  // Return mock value only on first call
 
@@ -397,7 +398,7 @@ static Suite *repl_run_render_misc_suite(void)
     tcase_add_test(tc_core, test_repl_run_initial_render_error);
     tcase_add_test(tc_core, test_repl_run_render_error_in_loop);
     tcase_add_test(tc_core, test_repl_run_spinner_render_error);
-    tcase_add_test(tc_core, test_repl_run_spinner_timeout_success);
+    tcase_add_test(tc_core, test_repl_run_spinner_time_based_advance);
     tcase_add_test(tc_core, test_repl_process_action_invalid_codepoint);
     tcase_add_test(tc_core, test_handle_terminal_input_success);
 
