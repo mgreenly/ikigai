@@ -356,8 +356,8 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
             return ERR(ctx, PARSE, "Failed to add tool_choice"); // LCOV_EXCL_LINE
         }
 
-        // Disable parallel tool calls - ikigai executes tools sequentially
-        if (!yyjson_mut_obj_add_bool(doc, root, "parallel_tool_calls", false)) { // LCOV_EXCL_BR_LINE
+        // Enable parallel tool calls - streaming handles multiple tool calls
+        if (!yyjson_mut_obj_add_bool(doc, root, "parallel_tool_calls", true)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             return ERR(ctx, PARSE, "Failed to add parallel_tool_calls"); // LCOV_EXCL_LINE
         }

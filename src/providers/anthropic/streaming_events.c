@@ -104,6 +104,12 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
     } else if (strcmp(type_str, "tool_use") == 0) {
         sctx->current_block_type = IK_CONTENT_TOOL_CALL; // LCOV_EXCL_BR_LINE
 
+        // Reset tool args from previous tool call (if any)
+        if (sctx->current_tool_args != NULL) {
+            talloc_free(sctx->current_tool_args);
+            sctx->current_tool_args = NULL;
+        }
+
         // Extract id
         yyjson_val *id_val = yyjson_obj_get(block_obj, "id");
         if (id_val != NULL) {
