@@ -43,7 +43,6 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
                            const char *data_json);
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
 typedef struct ik_paths_t ik_paths_t;
 res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
@@ -202,16 +201,6 @@ res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
     (void)db_ctx;
     *session_id_out = 0;  // No active session - return 0 (not an error)
-    return OK(NULL);
-}
-
-// Mock ik_db_messages_load (needed because session_restore calls it)
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger)
-{
-    (void)ctx;
-    (void)db_ctx;
-    (void)session_id;
-    (void)logger;
     return OK(NULL);
 }
 
