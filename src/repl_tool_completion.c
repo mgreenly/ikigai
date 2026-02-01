@@ -68,11 +68,6 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
     }
 }
 
-void ik_repl_handle_tool_completion(ik_repl_ctx_t *repl)
-{
-    ik_repl_handle_agent_tool_completion(repl, repl->current);
-}
-
 void ik_repl_submit_tool_loop_continuation(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     (void)repl; // Unused - was used for repl->shared->cfg

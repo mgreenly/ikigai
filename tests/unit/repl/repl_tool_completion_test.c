@@ -272,16 +272,6 @@ START_TEST(test_poll_tool_completions_current_executing) {
 }
 END_TEST
 
-/* Test: wrapper function */
-START_TEST(test_handle_tool_completion_wrapper) {
-    setup_tool_completion("stop");
-    repl->current = agent;
-    ik_repl_handle_tool_completion(repl);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert_uint_eq(agent->message_count, 2);
-}
-END_TEST
-
 /* Test: submit with request build error */
 START_TEST(test_submit_tool_loop_continuation_request_error) {
     agent->tool_thread_ctx = talloc_new(agent);
@@ -415,7 +405,6 @@ static Suite *repl_tool_completion_suite(void)
     tcase_add_test(tc_core, test_poll_tool_completions_agents_array);
     tcase_add_test(tc_core, test_poll_tool_completions_current_not_executing);
     tcase_add_test(tc_core, test_poll_tool_completions_current_executing);
-    tcase_add_test(tc_core, test_handle_tool_completion_wrapper);
     tcase_add_test(tc_core, test_submit_tool_loop_continuation_request_error);
     tcase_add_test(tc_core, test_submit_tool_loop_continuation_stream_error);
     tcase_add_test(tc_core, test_submit_tool_loop_continuation_success);
