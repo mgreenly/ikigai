@@ -107,6 +107,12 @@ static void start_new_tool_call(ik_openai_chat_stream_ctx_t *sctx, yyjson_val *t
     ik_openai_chat_maybe_emit_start(sctx);
 
     sctx->tool_call_index = tc_index;
+
+    // Free previous tool call data before overwriting
+    talloc_free(sctx->current_tool_id);
+    talloc_free(sctx->current_tool_name);
+    talloc_free(sctx->current_tool_args);
+
     sctx->current_tool_id = talloc_strdup(sctx, id);
     if (sctx->current_tool_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     sctx->current_tool_name = talloc_strdup(sctx, name);

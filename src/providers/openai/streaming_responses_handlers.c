@@ -139,6 +139,10 @@ void ik_openai_responses_handle_output_item_added(ik_openai_responses_stream_ctx
             if (call_id != NULL && name != NULL) {
                 ik_openai_maybe_end_tool_call(sctx);
 
+                // Reset accumulated args from previous tool call to prevent concatenation
+                talloc_free(sctx->current_tool_args);
+                sctx->current_tool_args = NULL;
+
                 ik_openai_maybe_emit_start(sctx);
 
                 sctx->tool_call_index = output_index;
