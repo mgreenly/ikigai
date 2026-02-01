@@ -207,11 +207,6 @@ START_TEST(test_write_callback_with_completion) {
     ck_assert_int_eq(events->items[1].data.done.usage.total_tokens, 30);
 
     /* Verify getters */
-    ik_usage_t usage = ik_openai_responses_stream_get_usage(ctx);
-    ck_assert_int_eq(usage.input_tokens, 10);
-    ck_assert_int_eq(usage.output_tokens, 20);
-    ck_assert_int_eq(usage.total_tokens, 30);
-
     ik_finish_reason_t reason = ik_openai_responses_stream_get_finish_reason(ctx);
     ck_assert_int_eq(reason, IK_FINISH_STOP);
 }

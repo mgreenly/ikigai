@@ -56,12 +56,6 @@ ik_openai_responses_stream_ctx_t *ik_openai_responses_stream_ctx_create(TALLOC_C
  * Getters
  * ================================================================ */
 
-ik_usage_t ik_openai_responses_stream_get_usage(ik_openai_responses_stream_ctx_t *stream_ctx)
-{
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    return stream_ctx->usage;
-}
-
 ik_finish_reason_t ik_openai_responses_stream_get_finish_reason(ik_openai_responses_stream_ctx_t *stream_ctx)
 {
     assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
