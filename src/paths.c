@@ -135,12 +135,6 @@ const char *ik_paths_get_libexec_dir(ik_paths_t *paths)
     return paths->libexec_dir;
 }
 
-const char *ik_paths_get_cache_dir(ik_paths_t *paths)
-{
-    assert(paths != NULL);  // LCOV_EXCL_BR_LINE
-    return paths->cache_dir;
-}
-
 const char *ik_paths_get_state_dir(ik_paths_t *paths)
 {
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
