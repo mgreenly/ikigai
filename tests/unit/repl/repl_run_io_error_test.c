@@ -10,6 +10,7 @@
 #include "../../../src/shared.h"
 #include "../../../src/repl_actions.h"
 #include <errno.h>
+#include "../../test_utils_helper.h"
 
 /* Test: read() returns -1 with EINTR (should continue loop) */
 START_TEST(test_repl_run_read_error_eintr) {
@@ -266,7 +267,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = repl_run_io_error_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/repl_run_io_error_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

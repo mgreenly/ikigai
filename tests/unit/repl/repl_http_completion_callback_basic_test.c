@@ -19,6 +19,7 @@
 #include <talloc.h>
 #include <curl/curl.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 static void *ctx;
 static ik_repl_ctx_t *repl;
@@ -389,7 +390,7 @@ int main(void)
 {
     Suite *s = repl_http_completion_callback_basic_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/repl_http_completion_callback_basic_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

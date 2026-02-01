@@ -4,6 +4,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
+#include "../../test_utils_helper.h"
 
 // Test helper: simple layer implementation
 static bool test_layer_visible(const ik_layer_t *layer)
@@ -199,7 +200,7 @@ int main(void)
 {
     Suite *s = layer_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/layer/basic_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

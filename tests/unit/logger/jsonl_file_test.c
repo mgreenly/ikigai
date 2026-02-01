@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "../../../src/logger.h"
+#include "../../test_utils_helper.h"
 
 // Test: ik_log_init creates .ikigai/logs directory and current.log file
 START_TEST(test_log_init_creates_log_file) {
@@ -198,7 +199,7 @@ int main(void)
 
     s = logger_jsonl_file_suite();
     sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/logger/jsonl_file_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

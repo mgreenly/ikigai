@@ -5,6 +5,7 @@
 #include <talloc.h>
 #include <string.h>
 #include <time.h>
+#include "../../test_utils_helper.h"
 
 // Test create allocates message
 START_TEST(test_msg_create_allocates_message) {
@@ -124,7 +125,7 @@ int main(void)
     int number_failed;
     Suite *s = msg_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/mail/msg_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

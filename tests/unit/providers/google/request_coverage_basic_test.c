@@ -10,6 +10,7 @@
 #include "providers/request.h"
 #include "vendor/yyjson/yyjson.h"
 #include "error.h"
+#include "../../../test_utils_helper.h"
 
 static TALLOC_CTX *test_ctx;
 static void setup(void)
@@ -197,7 +198,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = request_coverage_basic_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/google/request_coverage_basic_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

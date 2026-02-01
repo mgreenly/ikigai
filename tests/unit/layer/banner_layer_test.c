@@ -6,6 +6,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
+#include "../../test_utils_helper.h"
 
 START_TEST(test_banner_layer_create_and_visibility) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -448,7 +449,7 @@ int main(void) {
     int number_failed;
     Suite *s = banner_layer_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/layer/banner_layer_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

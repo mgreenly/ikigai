@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <talloc.h>
+#include "../../../test_utils_helper.h"
 
 /* Test fixture */
 static TALLOC_CTX *test_ctx;
@@ -176,7 +177,7 @@ int main(void)
     int32_t number_failed;
     Suite *s = request_responses_edge_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/openai/request_responses_edge_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

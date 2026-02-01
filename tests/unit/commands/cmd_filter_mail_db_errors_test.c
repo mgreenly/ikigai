@@ -18,6 +18,7 @@
 #include <libpq-fe.h>
 #include <string.h>
 #include <talloc.h>
+#include "../../test_utils_helper.h"
 
 // Mock posix_rename_ to prevent PANIC during logger rotation
 int posix_rename_(const char *oldpath, const char *newpath)
@@ -185,7 +186,7 @@ int main(void)
 {
     Suite *s = filter_mail_db_errors_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/commands/cmd_filter_mail_db_errors_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int failed = srunner_ntests_failed(sr);

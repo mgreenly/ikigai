@@ -7,6 +7,7 @@
 #include "shared.h"
 #include "agent.h"
 #include "layer_wrappers.h"
+#include "../../test_utils_helper.h"
 
 // Forward declaration from repl.c
 void ik_repl_update_nav_context(ik_repl_ctx_t *repl);
@@ -192,7 +193,7 @@ int main(void)
 {
     Suite *s = nav_context_dead_agent_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/nav_context_dead_agent_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

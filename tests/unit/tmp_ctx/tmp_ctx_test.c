@@ -3,6 +3,7 @@
 
 #include <check.h>
 #include <talloc.h>
+#include "../../test_utils_helper.h"
 
 START_TEST(test_tmp_ctx_create_returns_non_null) {
     TALLOC_CTX *tmp = tmp_ctx_create();
@@ -54,7 +55,7 @@ int32_t main(void)
 {
     Suite *s = tmp_ctx_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/tmp_ctx/tmp_ctx_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

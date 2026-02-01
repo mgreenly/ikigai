@@ -3,6 +3,7 @@
 #include <talloc.h>
 #include "../../../src/input_buffer/core.h"
 #include "../../../src/error.h"
+#include "../../test_utils_helper.h"
 
 // Test: cursor_up on empty input_buffer should not crash
 START_TEST(test_cursor_up_empty_input_buffer) {
@@ -358,7 +359,7 @@ int main(void)
     int number_failed;
     Suite *s = empty_input_buffer_navigation_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/input_buffer/empty_input_buffer_navigation_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

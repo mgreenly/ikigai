@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include "providers/factory.h"
 #include "error.h"
+#include "../../test_utils_helper.h"
 
 // Helper macro to check if a string contains a substring
 #define ck_assert_str_contains(haystack, needle) \
@@ -442,7 +443,7 @@ int main(void)
     int number_failed;
     Suite *s = factory_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/factory_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_VERBOSE);
     number_failed = srunner_ntests_failed(sr);

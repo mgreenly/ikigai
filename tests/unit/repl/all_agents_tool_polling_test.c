@@ -25,6 +25,7 @@
 #include <stdatomic.h>
 #include <talloc.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 /* Forward declarations */
 void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
@@ -253,7 +254,7 @@ int main(void)
 {
     Suite *s = all_agents_tool_polling_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/all_agents_tool_polling_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

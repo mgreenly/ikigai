@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "../../test_utils_helper.h"
 
 /* Forward declarations for new functions we're testing */
 void ik_agent_start_tool_execution(ik_agent_ctx_t *agent);
@@ -464,7 +465,7 @@ int main(void)
 {
     Suite *s = agent_tool_execution_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/repl/agent_tool_execution_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

@@ -16,6 +16,7 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
+#include "../../../test_utils_helper.h"
 
 static void *ctx;
 static yyjson_mut_doc *doc;
@@ -170,7 +171,7 @@ int32_t main(void)
 {
     Suite *s = serialize_message_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/openai/serialize_message_coverage_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int32_t number_failed = srunner_ntests_failed(sr);

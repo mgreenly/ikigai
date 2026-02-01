@@ -19,6 +19,7 @@
 #include "providers/provider_types.h"
 #include "vendor/yyjson/yyjson.h"
 #include "wrapper.h"
+#include "../../../test_utils_helper.h"
 
 static TALLOC_CTX *test_ctx;
 
@@ -161,7 +162,7 @@ int main(void)
 {
     Suite *s = request_coverage_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/providers/anthropic/request_coverage_test.xml");
+    srunner_set_xml(sr, ik_test_xml_path(__FILE__));
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

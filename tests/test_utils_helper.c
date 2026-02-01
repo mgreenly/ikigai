@@ -132,14 +132,25 @@ const char *ik_test_db_name(TALLOC_CTX *ctx, const char *file_path)
         name_len = strlen(basename);
     }
 
-    // Build result: "ikigai_test_" + basename (without extension)
+    // Get optional suite prefix for parallel suite isolation
+    // e.g., IK_TEST_SUITE=coverage -> ikigai_test_coverage_session_test
+    const char *suite = getenv("IK_TEST_SUITE");
+
+    // Build result: "ikigai_test_[suite_]" + basename (without extension)
     if (ctx != NULL) {
+        if (suite != NULL && suite[0] != '\0') {
+            return talloc_asprintf(ctx, "ikigai_test_%s_%.*s", suite, (int)name_len, basename);
+        }
         return talloc_asprintf(ctx, "ikigai_test_%.*s", (int)name_len, basename);
     } else {
         // Use thread-local buffer for NULL ctx (for suite-level setup before talloc)
         // Using __thread to ensure each test file running in parallel has its own buffer
         static __thread char static_buf[256];
-        snprintf(static_buf, sizeof(static_buf), "ikigai_test_%.*s", (int)name_len, basename);
+        if (suite != NULL && suite[0] != '\0') {
+            snprintf(static_buf, sizeof(static_buf), "ikigai_test_%s_%.*s", suite, (int)name_len, basename);
+        } else {
+            snprintf(static_buf, sizeof(static_buf), "ikigai_test_%.*s", (int)name_len, basename);
+        }
         return static_buf;
     }
 }
@@ -167,12 +178,65 @@ void ik_test_set_log_dir(const char *file_path)
         name_len = strlen(basename);
     }
 
-    // Build path: /tmp/ikigai_logs_{basename}
+    // Get optional suite prefix for parallel suite isolation
+    const char *suite = getenv("IK_TEST_SUITE");
+
+    // Build path: /tmp/ikigai_logs_[suite_]{basename}
     char log_dir[256];
-    snprintf(log_dir, sizeof(log_dir), "/tmp/ikigai_logs_%.*s", (int)name_len, basename);
+    if (suite != NULL && suite[0] != '\0') {
+        snprintf(log_dir, sizeof(log_dir), "/tmp/ikigai_logs_%s_%.*s", suite, (int)name_len, basename);
+    } else {
+        snprintf(log_dir, sizeof(log_dir), "/tmp/ikigai_logs_%.*s", (int)name_len, basename);
+    }
 
     // Set environment variable
     setenv("IKIGAI_LOG_DIR", log_dir, 1);
+}
+
+const char *ik_test_xml_path(const char *file_path)
+{
+    // Thread-local buffer for parallel test safety
+    static __thread char xml_path[512];
+
+    if (file_path == NULL) {
+        return NULL;
+    }
+
+    // Get report directory from environment (default: "reports/check")
+    const char *report_dir = getenv("IK_REPORT_DIR");
+    if (report_dir == NULL) {
+        report_dir = "reports/check";
+    }
+
+    // Find "tests/" in the path to get the relative portion
+    // e.g., "tests/unit/foo/bar_test.c" -> "unit/foo/bar_test.c"
+    const char *tests_marker = strstr(file_path, "tests/");
+    const char *relative_path;
+    if (tests_marker != NULL) {
+        relative_path = tests_marker + 6;  // Skip "tests/"
+    } else {
+        // Fallback: use basename if "tests/" not found
+        relative_path = strrchr(file_path, '/');
+        if (relative_path != NULL) {
+            relative_path++;
+        } else {
+            relative_path = file_path;
+        }
+    }
+
+    // Copy to buffer, replacing .c extension with .xml
+    size_t rel_len = strlen(relative_path);
+    if (rel_len >= 2 && strcmp(relative_path + rel_len - 2, ".c") == 0) {
+        // Has .c extension - replace with .xml
+        snprintf(xml_path, sizeof(xml_path), "%s/%.*s.xml",
+                 report_dir, (int)(rel_len - 2), relative_path);
+    } else {
+        // No .c extension - just append .xml
+        snprintf(xml_path, sizeof(xml_path), "%s/%s.xml",
+                 report_dir, relative_path);
+    }
+
+    return xml_path;
 }
 
 // ========== Terminal Utilities ==========
