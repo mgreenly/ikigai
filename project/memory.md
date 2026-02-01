@@ -22,6 +22,19 @@ ikigai uses explicit memory management with clear ownership rules. We prefer are
 - `*_free()` - Deallocates object and all owned resources
 - `*_init()` - Initializes pre-allocated memory (caller owns the allocation)
 
+## Zero-Initialization Rule
+
+**Always use zero-initialized allocations** (`talloc_zero`, `talloc_zero_array`) unless you intentionally choose not to for performance reasons. Uninitialized memory is a source of bugs - fields may contain garbage values leading to undefined behavior.
+
+```c
+// PREFER: Zero-initialized (safe default)
+foo_t *foo = talloc_zero(ctx, foo_t);
+int *arr = talloc_zero_array(ctx, int, 100);
+
+// ONLY when performance-critical and you will initialize all fields immediately:
+foo_t *foo = talloc(ctx, foo_t);
+```
+
 ## Hierarchical Memory with talloc
 
 ### Why talloc?

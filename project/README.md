@@ -191,7 +191,25 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Recent summary
 
 
-### rel-14: Token Estimation (future)
+### rel-14: Parallel Tool Execution (future)
+
+**Objective**: Parallelize read only tool calls
+
+**Features**:
+- Parallelize read only tool calls
+
+
+### rel-15: Additional AI Providers (future)
+
+**Objective**: Expand provider support beyond core three
+
+**Features**:
+- Support X.AI (Grok)
+- Support Ollama (local LLMs)
+- Evaluate OpenRouter
+
+
+### rel-16: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -202,7 +220,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-15: User Experience (future)
+### rel-17: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -211,7 +229,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - improved status bar
 
 
-### rel-16: Codebase Refactor & MVP Release (future)
+### rel-18: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 

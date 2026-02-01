@@ -21,6 +21,19 @@ talloc hierarchical memory allocator for ikigai. Use this for all new code.
 3. **Children freed with parent** - talloc hierarchy does this automatically
 4. **Document ownership** - Make it explicit in function comments
 
+## Zero-Initialization Rule
+
+**Always use zero-initialized allocations** (`talloc_zero`, `talloc_zero_array`) unless you intentionally choose not to for performance reasons. Uninitialized memory is a source of bugs.
+
+```c
+// PREFER: Zero-initialized
+foo_t *foo = talloc_zero(ctx, foo_t);
+int *arr = talloc_zero_array(ctx, int, 100);
+
+// ONLY when performance-critical and you will initialize all fields:
+foo_t *foo = talloc(ctx, foo_t);
+```
+
 ## Core API
 
 ```c
