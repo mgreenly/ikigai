@@ -69,16 +69,6 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
     return OK(NULL);
 }
 
-// Mock ik_db_messages_load (not used in this test, but needed for linking)
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger)
-{
-    (void)ctx;
-    (void)db_ctx;
-    (void)session_id;
-    (void)logger;
-    return OK(NULL);
-}
-
 // Note: ik_db_ensure_agent_zero and ik_db_mail_insert mocks removed
 // - now using real implementations from db/agent.c and db/mail.c (included in MODULE_SOURCES_NO_DB)
 

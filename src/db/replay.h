@@ -55,32 +55,4 @@ typedef struct {
     int64_t end_id;     // End AT this message ID (0 = no limit, i.e., leaf)
 } ik_replay_range_t;
 
-/**
- * Load messages from database and replay to build context
- *
- * TEST-ONLY FUNCTION: This function queries by session_id only and does not
- * support agent-based replay. Production code should use ik_agent_replay_history()
- * instead. This function is retained for test convenience and has no production callers.
- *
- * Queries the messages table for the specified session, ordered by created_at,
- * and processes events to build the current conversation context.
- *
- * Event processing:
- *   - "clear": Empty context (set count = 0)
- *   - "system"/"user"/"assistant": Append to context array
- *   - "mark"/"rewind": Skip for now (Task 7b will handle these)
- *
- * Memory management:
- *   - All structures allocated under ctx parameter
- *   - Uses geometric growth (capacity *= 2) for dynamic array
- *   - Initial capacity: 16 messages
- *   - Single talloc_free(ctx) releases everything
- *
- * @param ctx         Talloc context for allocations (must not be NULL)
- * @param db_ctx      Database connection context (must not be NULL)
- * @param session_id  Session ID to load messages for (must be positive)
- * @return            OK with replay_context on success, ERR on failure
- */
-res_t ik_db_messages_load(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id, ik_logger_t *logger);
-
 #endif // IK_DB_REPLAY_H
