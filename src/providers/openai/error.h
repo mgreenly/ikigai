@@ -45,19 +45,4 @@
  */
 res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category);
 
-/**
- * Extract retry-after delay from rate limit headers
- *
- * @param headers NULL-terminated array of header strings
- * @return        Retry delay in seconds, or -1 if not present
- *
- * Searches for:
- * - "x-ratelimit-reset-requests: 6m0s" -> 360 seconds
- * - "x-ratelimit-reset-tokens: 30s" -> 30 seconds
- *
- * If both headers present, returns minimum value.
- * Returns -1 if neither header found or parse fails.
- */
-int32_t ik_openai_get_retry_after(const char **headers);
-
 #endif /* IK_PROVIDERS_OPENAI_ERROR_H */
