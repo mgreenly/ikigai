@@ -95,12 +95,6 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
     }
 }
 
-bool ik_openai_supports_temperature(const char *model)
-{
-    // Reasoning models do NOT support temperature
-    return !ik_openai_is_reasoning_model(model);
-}
-
 /**
  * Models that use Responses API (not Chat Completions API)
  *

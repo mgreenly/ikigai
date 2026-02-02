@@ -184,45 +184,7 @@ START_TEST(test_reasoning_effort_invalid_level) {
 }
 
 END_TEST
-/* ================================================================
- * ik_openai_supports_temperature Tests
- * ================================================================ */
 
-START_TEST(test_supports_temperature_gpt4) {
-    bool result = ik_openai_supports_temperature("gpt-4");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_supports_temperature_gpt4o) {
-    bool result = ik_openai_supports_temperature("gpt-4o");
-    ck_assert(result);
-}
-
-END_TEST
-
-START_TEST(test_supports_temperature_o1) {
-    // Reasoning models do NOT support temperature
-    bool result = ik_openai_supports_temperature("o1");
-    ck_assert(!result);
-}
-
-END_TEST
-
-START_TEST(test_supports_temperature_o1_mini) {
-    bool result = ik_openai_supports_temperature("o1-mini");
-    ck_assert(!result);
-}
-
-END_TEST
-
-START_TEST(test_supports_temperature_o3) {
-    bool result = ik_openai_supports_temperature("o3");
-    ck_assert(!result);
-}
-
-END_TEST
 /* ================================================================
  * ik_openai_use_responses_api Tests
  * ================================================================ */
@@ -401,16 +363,6 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_effort, test_reasoning_effort_null_model);
     tcase_add_test(tc_effort, test_reasoning_effort_invalid_level);
     suite_add_tcase(s, tc_effort);
-
-    TCase *tc_temperature = tcase_create("supports_temperature");
-    tcase_set_timeout(tc_temperature, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_temperature, setup, teardown);
-    tcase_add_test(tc_temperature, test_supports_temperature_gpt4);
-    tcase_add_test(tc_temperature, test_supports_temperature_gpt4o);
-    tcase_add_test(tc_temperature, test_supports_temperature_o1);
-    tcase_add_test(tc_temperature, test_supports_temperature_o1_mini);
-    tcase_add_test(tc_temperature, test_supports_temperature_o3);
-    suite_add_tcase(s, tc_temperature);
 
     TCase *tc_responses = tcase_create("use_responses_api");
     tcase_set_timeout(tc_responses, IK_TEST_TIMEOUT);
