@@ -12,3 +12,4 @@ ik_openai_responses_stream_process_event
 openai_start_stream
 parse_usage
 process_content_delta
+process_data_line
