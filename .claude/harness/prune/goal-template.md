@@ -164,10 +164,14 @@ Can you find {{function}} assigned/passed in src/?
 
 ### If Function Is NOT Dead
 
-1. Add `{{function}}` to `.claude/data/dead-code-false-positives.txt`
-2. Commit the whitelist update: `jj commit -m "Add {{function}} to dead-code false positives"`
-3. Revert all other changes: `jj restore` (this only affects uncommitted changes)
-4. Return DONE - this is a successful outcome (we learned something)
+1. Revert any uncommitted changes first: `jj restore`
+2. Add `{{function}}` to `.claude/data/dead-code-false-positives.txt`:
+   - Read the current file contents
+   - Append `{{function}}` on a new line at the end
+   - Sort all lines alphabetically
+   - Write the sorted content back to the file
+3. Commit the whitelist update: `jj commit -m "Add {{function}} to dead-code false positives"`
+4. **Create a pull request** - Use jj to push and gh to create the PR. This documents the false positive finding for review.
 
 ## Confidence Calibration
 
@@ -194,6 +198,6 @@ A failing test is not evidence the function is live. It's evidence that *somethi
 
 DONE when either:
 1. **Function confirmed dead**: removed, all quality checks pass, **AND pull request created**
-2. **Function confirmed NOT dead**: recorded as false positive, changes reverted
+2. **Function confirmed NOT dead**: added to whitelist, **AND pull request created**
 
-**IMPORTANT**: If you confirmed dead code and removed it, you MUST create a pull request before reporting DONE. Verified deletions without a PR are incomplete work.
+**IMPORTANT**: Both outcomes require a pull request. The task is NOT complete without a PR.
