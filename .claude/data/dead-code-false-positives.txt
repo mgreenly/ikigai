@@ -1,6 +1,7 @@
 add_tool_call_to_array
 add_tool_calls_content
 anthropic_cancel
+build_completion_for_error
 ik_ansi_init
 ik_anthropic_handle_error
 ik_anthropic_stream_process_event
