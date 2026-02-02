@@ -26,47 +26,6 @@ static ik_db_agent_row_t *create_test_row(TALLOC_CTX *ctx, const char *thinking_
     return row;
 }
 
-// Test ik_agent_apply_defaults() with NULL config
-START_TEST(test_apply_defaults_null_config) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-
-    res_t res = ik_agent_apply_defaults(agent, NULL);
-    ck_assert(is_err(&res));
-    ck_assert_uint_eq(res.err->code, ERR_INVALID_ARG);
-
-    talloc_free(ctx);
-}
-END_TEST
-// Test ik_agent_apply_defaults() success
-START_TEST(test_apply_defaults_success) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(agent);
-
-    ik_config_t *config = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(config);
-    config->default_provider = talloc_strdup(config, "openai");
-    config->openai_model = talloc_strdup(config, "gpt-4");
-
-    res_t res = ik_agent_apply_defaults(agent, config);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(agent->provider);
-    ck_assert_str_eq(agent->provider, "openai");
-    ck_assert_ptr_nonnull(agent->model);
-    ck_assert_str_eq(agent->model, "gpt-4");
-    ck_assert_int_eq(agent->thinking_level, IK_THINKING_MED);
-    ck_assert_ptr_null(agent->provider_instance);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Test ik_agent_restore_from_row() with NULL row
 START_TEST(test_restore_from_row_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -423,12 +382,6 @@ END_TEST
 static Suite *agent_provider_suite(void)
 {
     Suite *s = suite_create("Agent Provider");
-
-    TCase *tc_apply_defaults = tcase_create("Apply Defaults");
-    tcase_set_timeout(tc_apply_defaults, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_apply_defaults, test_apply_defaults_null_config);
-    tcase_add_test(tc_apply_defaults, test_apply_defaults_success);
-    suite_add_tcase(s, tc_apply_defaults);
 
     TCase *tc_restore = tcase_create("Restore From Row");
     tcase_set_timeout(tc_restore, IK_TEST_TIMEOUT);

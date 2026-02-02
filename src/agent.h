@@ -270,19 +270,6 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent);
 void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent);
 
 /**
- * Apply configuration defaults to agent
- *
- * Sets provider, model, and thinking_level from config defaults.
- * For root agents: uses ik_config_get_default_provider().
- * For forked agents: should inherit from parent (caller's responsibility).
- *
- * @param agent Agent context to configure (must not be NULL)
- * @param config Configuration with defaults (must not be NULL)
- * @return OK on success, ERR_INVALID_ARG if config is NULL
- */
-res_t ik_agent_apply_defaults(ik_agent_ctx_t *agent, void *config);
-
-/**
  * Restore agent from database row
  *
  * Populates provider, model, and thinking_level fields from database row.
