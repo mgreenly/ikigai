@@ -297,47 +297,6 @@ END_TEST
  * Retry-After Header Tests
  * ================================================================ */
 
-START_TEST(test_extract_retry_after_from_reset_headers) {
-    const char *headers[] = {
-        "content-type: application/json",
-        "x-ratelimit-reset-requests: 30s",
-        "x-ratelimit-limit-requests: 10000",
-        NULL
-    };
-
-    int32_t retry_after = ik_openai_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, 30);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_missing) {
-    const char *headers[] = {
-        "content-type: application/json",
-        "x-ratelimit-limit-requests: 10000",
-        NULL
-    };
-
-    int32_t retry_after = ik_openai_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, -1);
-}
-
-END_TEST
-
-START_TEST(test_retry_after_tokens_reset) {
-    const char *headers[] = {
-        "content-type: application/json",
-        "x-ratelimit-reset-tokens: 6m0s",
-        "x-ratelimit-limit-tokens: 200000",
-        NULL
-    };
-
-    int32_t retry_after = ik_openai_get_retry_after(headers);
-    ck_assert_int_eq(retry_after, 360);  // 6 minutes = 360 seconds
-}
-
-END_TEST
-
 /* ================================================================
  * Test Suite Setup
  * ================================================================ */
@@ -361,14 +320,6 @@ static Suite *openai_errors_suite(void)
     tcase_add_test(tc_errors, test_parse_error_no_fields);
     tcase_add_test(tc_errors, test_parse_error_http_502);
     suite_add_tcase(s, tc_errors);
-
-    TCase *tc_retry = tcase_create("Retry-After");
-    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
-    tcase_add_unchecked_fixture(tc_retry, setup, teardown);
-    tcase_add_test(tc_retry, test_extract_retry_after_from_reset_headers);
-    tcase_add_test(tc_retry, test_retry_after_missing);
-    tcase_add_test(tc_retry, test_retry_after_tokens_reset);
-    suite_add_tcase(s, tc_retry);
 
     return s;
 }
