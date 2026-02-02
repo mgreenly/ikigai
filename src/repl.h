@@ -106,8 +106,6 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
 
 // Async tool execution (replaces synchronous ik_repl_execute_pending_tool)
-void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
-void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
 
 // Tool loop decision function (Phase 2: Story 02)
 bool ik_agent_should_continue_tool_loop(const ik_agent_ctx_t *agent);

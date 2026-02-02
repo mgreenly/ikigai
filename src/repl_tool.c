@@ -210,11 +210,6 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
     ik_agent_transition_to_executing_tool(agent);
 }
 
-void ik_repl_start_tool_execution(ik_repl_ctx_t *repl)
-{
-    ik_agent_start_tool_execution(repl->current);
-}
-
 // Complete async tool execution - harvest result and update state.
 void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
 {
@@ -293,7 +288,3 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     ik_agent_transition_from_executing_tool(agent);
 }
 
-void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl)
-{
-    ik_agent_complete_tool_execution(repl->current);
-}
