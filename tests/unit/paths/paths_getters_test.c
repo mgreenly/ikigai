@@ -77,36 +77,6 @@ START_TEST(test_paths_get_data_dir) {
 }
 END_TEST
 
-START_TEST(test_paths_get_libexec_dir) {
-    // Setup environment
-    setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
-    setenv("IKIGAI_CONFIG_DIR", "/usr/local/etc/ikigai", 1);
-    setenv("IKIGAI_DATA_DIR", "/usr/local/share/ikigai", 1);
-    setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
-    setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
-    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
-    setenv("HOME", "/home/testuser", 1);
-
-    ik_paths_t *paths = NULL;
-    res_t result = ik_paths_init(test_ctx, &paths);
-    ck_assert(is_ok(&result));
-
-    // Test
-    const char *libexec_dir = ik_paths_get_libexec_dir(paths);
-    ck_assert_ptr_nonnull(libexec_dir);
-    ck_assert_str_eq(libexec_dir, "/usr/local/libexec/ikigai");
-
-    // Cleanup
-    unsetenv("IKIGAI_BIN_DIR");
-    unsetenv("IKIGAI_CONFIG_DIR");
-    unsetenv("IKIGAI_DATA_DIR");
-    unsetenv("IKIGAI_LIBEXEC_DIR");
-    unsetenv("IKIGAI_CACHE_DIR");
-    unsetenv("IKIGAI_STATE_DIR");
-    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
-}
-END_TEST
-
 START_TEST(test_paths_get_tools_system_dir) {
     // Setup environment
     setenv("IKIGAI_BIN_DIR", "/usr/local/bin", 1);
@@ -121,11 +91,10 @@ START_TEST(test_paths_get_tools_system_dir) {
     res_t result = ik_paths_init(test_ctx, &paths);
     ck_assert(is_ok(&result));
 
-    // Test - tools_system_dir should return same as libexec_dir
+    // Test - tools_system_dir should return libexec directory
     const char *tools_system_dir = ik_paths_get_tools_system_dir(paths);
-    const char *libexec_dir = ik_paths_get_libexec_dir(paths);
     ck_assert_ptr_nonnull(tools_system_dir);
-    ck_assert_str_eq(tools_system_dir, libexec_dir);
+    ck_assert_str_eq(tools_system_dir, "/usr/local/libexec/ikigai");
 
     // Cleanup
     unsetenv("IKIGAI_BIN_DIR");
@@ -206,7 +175,6 @@ static Suite *paths_getters_suite(void)
     tcase_add_checked_fixture(tc_getters, setup, teardown);
     tcase_add_test(tc_getters, test_paths_get_config_dir);
     tcase_add_test(tc_getters, test_paths_get_data_dir);
-    tcase_add_test(tc_getters, test_paths_get_libexec_dir);
     tcase_add_test(tc_getters, test_paths_get_tools_system_dir);
     tcase_add_test(tc_getters, test_paths_get_tools_user_dir);
     tcase_add_test(tc_getters, test_paths_get_tools_project_dir);
