@@ -124,7 +124,8 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
             repl->current->scrollback,
             "system",
             effective_prompt,
-            "{}"
+            "{}",
+            false
             );
         talloc_free(effective_prompt);
         if (is_err(&render_res)) {  // LCOV_EXCL_BR_LINE

@@ -25,7 +25,7 @@ void ik_agent_restore_populate_conversation(
 
     for (size_t j = 0; j < replay_ctx->count; j++) {
         ik_msg_t *msg = replay_ctx->messages[j];
-        if (ik_msg_is_conversation_kind(msg->kind)) {
+        if (ik_msg_is_conversation_kind(msg->kind) && !msg->interrupted) {
             ik_message_t *provider_msg = NULL;
             res_t res = ik_message_from_db_msg(agent, msg, &provider_msg);
             if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - Parse error tested in message tests
@@ -73,7 +73,7 @@ void ik_agent_restore_populate_scrollback(
             ik_agent_restore_replay_command_effects(agent, msg, logger);
         }
 
-        res_t res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json);
+        res_t res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json, msg->interrupted);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - Render error tested in event_render tests
             yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE
             yyjson_mut_val *root = yyjson_mut_doc_get_root(log_doc);     // LCOV_EXCL_LINE

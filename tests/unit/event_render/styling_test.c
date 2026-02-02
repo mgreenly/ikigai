@@ -16,7 +16,7 @@ START_TEST(test_user_message_no_color) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "user", "Hello", NULL);
+    res_t result = ik_event_render(scrollback, "user", "Hello", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -35,7 +35,7 @@ START_TEST(test_assistant_message_gray_249) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "assistant", "I am here", NULL);
+    res_t result = ik_event_render(scrollback, "assistant", "I am here", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -56,7 +56,7 @@ START_TEST(test_tool_call_message_gray_242) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "tool_call", "function_call", NULL);
+    res_t result = ik_event_render(scrollback, "tool_call", "function_call", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -77,7 +77,7 @@ START_TEST(test_tool_result_message_gray_242) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "tool_result", "result data", NULL);
+    res_t result = ik_event_render(scrollback, "tool_result", "result data", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -98,7 +98,7 @@ START_TEST(test_system_message_no_render) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "system", "System prompt", NULL);
+    res_t result = ik_event_render(scrollback, "system", "System prompt", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -111,7 +111,7 @@ START_TEST(test_mark_no_color) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"checkpoint\"}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"checkpoint\"}", false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -131,7 +131,7 @@ START_TEST(test_rewind_no_color) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "rewind", NULL, "{\"target_message_id\":42}");
+    res_t result = ik_event_render(scrollback, "rewind", NULL, "{\"target_message_id\":42}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -144,7 +144,7 @@ START_TEST(test_clear_no_color) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "clear", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "clear", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -161,7 +161,7 @@ START_TEST(test_colors_disabled) {
     setenv("NO_COLOR", "1", 1);
     ik_ansi_init();
 
-    res_t result = ik_event_render(scrollback, "assistant", "Response text", NULL);
+    res_t result = ik_event_render(scrollback, "assistant", "Response text", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;
@@ -187,9 +187,9 @@ START_TEST(test_scrollback_contains_escapes) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     // Render different kinds of messages
-    ik_event_render(scrollback, "user", "User text", NULL);
-    ik_event_render(scrollback, "assistant", "AI text", NULL);
-    ik_event_render(scrollback, "tool_call", "Tool", NULL);
+    ik_event_render(scrollback, "user", "User text", NULL, false);
+    ik_event_render(scrollback, "assistant", "AI text", NULL, false);
+    ik_event_render(scrollback, "tool_call", "Tool", NULL, false);
 
     const char *text;
     size_t length;
@@ -216,7 +216,7 @@ START_TEST(test_multiline_color_per_line) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     // Assistant messages use color 249 (light gray)
-    res_t result = ik_event_render(scrollback, "assistant", "line1\nline2\nline3", NULL);
+    res_t result = ik_event_render(scrollback, "assistant", "line1\nline2\nline3", NULL, false);
     ck_assert(!is_err(&result));
 
     const char *text;

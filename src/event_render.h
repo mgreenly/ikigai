@@ -35,6 +35,7 @@
  * @param kind        Event kind string
  * @param content     Event content (may be NULL for mark/rewind/clear)
  * @param data_json   JSON data string (may be NULL)
+ * @param interrupted True if message was interrupted/cancelled
  * @return            OK on success, ERR on failure (invalid parameters or unknown kind)
  *
  * Error conditions:
@@ -42,7 +43,7 @@
  * - Returns ERR if kind is NULL
  * - Returns ERR if kind is not a recognized event type
  */
-res_t ik_event_render(ik_scrollback_t *scrollback, const char *kind, const char *content, const char *data_json);
+res_t ik_event_render(ik_scrollback_t *scrollback, const char *kind, const char *content, const char *data_json, bool interrupted);
 
 /**
  * Check if an event kind should render visible output

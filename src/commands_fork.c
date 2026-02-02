@@ -110,7 +110,7 @@ static void handle_fork_prompt(void *ctx, ik_repl_ctx_t *repl, const char *promp
     }
 
     // Render user message to scrollback
-    res = ik_event_render(repl->current->scrollback, "user", prompt, "{}");
+    res = ik_event_render(repl->current->scrollback, "user", prompt, "{}", false);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         return;  // Error already logged     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE

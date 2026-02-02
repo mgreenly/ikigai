@@ -15,7 +15,7 @@ START_TEST(test_event_render_user_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res_t res = ik_event_render(sb, "user", "hello", "{}");
+    res_t res = ik_event_render(sb, "user", "hello", "{}", false);
     ck_assert(!is_err(&res));
 
     // Should have 2 lines: "❯ hello" and ""
@@ -42,7 +42,7 @@ START_TEST(test_event_render_trims_trailing_newlines) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res_t res = ik_event_render(sb, "user", "hello\n\n\n", "{}");
+    res_t res = ik_event_render(sb, "user", "hello\n\n\n", "{}", false);
     ck_assert(!is_err(&res));
 
     // Should have 2 lines: "❯ hello" (trimmed with prefix) and ""
@@ -68,7 +68,7 @@ START_TEST(test_event_render_mark_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res_t res = ik_event_render(sb, "mark", NULL, "{\"label\": \"checkpoint\"}");
+    res_t res = ik_event_render(sb, "mark", NULL, "{\"label\": \"checkpoint\"}", false);
     ck_assert(!is_err(&res));
 
     // Should have 2 lines: "/mark checkpoint" and ""
@@ -94,7 +94,7 @@ START_TEST(test_event_render_tool_call_adds_blank_line) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res_t res = ik_event_render(sb, "tool_call", "→ glob: pattern=\"*.c\"", "{}");
+    res_t res = ik_event_render(sb, "tool_call", "→ glob: pattern=\"*.c\"", "{}", false);
     ck_assert(!is_err(&res));
 
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 2);
@@ -120,7 +120,7 @@ START_TEST(test_event_render_empty_content_no_double_blank) {
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
     // Empty content should not add anything
-    res_t res = ik_event_render(sb, "system", "", "{}");
+    res_t res = ik_event_render(sb, "system", "", "{}", false);
     ck_assert(!is_err(&res));
 
     ck_assert_uint_eq(ik_scrollback_get_line_count(sb), 0);
@@ -134,7 +134,7 @@ START_TEST(test_event_render_multiline_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *sb = ik_scrollback_create(ctx, 80);
 
-    res_t res = ik_event_render(sb, "user", "line1\nline2\nline3", "{}");
+    res_t res = ik_event_render(sb, "user", "line1\nline2\nline3", "{}", false);
     ck_assert(!is_err(&res));
 
     // Content is one logical line (with embedded newlines) + blank line

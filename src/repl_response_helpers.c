@@ -120,7 +120,7 @@ void ik_repl_render_usage_event(ik_agent_ctx_t *agent)
                  "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
                  agent->response_input_tokens, agent->response_output_tokens,
                  agent->response_thinking_tokens);
-        ik_event_render(agent->scrollback, "usage", NULL, data_json);
+        ik_event_render(agent->scrollback, "usage", NULL, data_json, false);
     } else {
         ik_scrollback_append_line(agent->scrollback, "", 0);
     }

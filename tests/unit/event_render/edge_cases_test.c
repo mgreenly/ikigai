@@ -71,7 +71,7 @@ START_TEST(test_render_mark_yyjson_get_str_returns_null) {
     mock_yyjson_get_str_should_return_null = true;
 
     // Even with valid JSON, our mock will make yyjson_get_str_ return NULL
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -102,7 +102,7 @@ START_TEST(test_render_mark_scrollback_append_fails) {
     mock_scrollback_append_should_fail = true;
 
     // Attempt to render mark event
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}", false);
 
     // Should return error
     ck_assert(is_err(&result));

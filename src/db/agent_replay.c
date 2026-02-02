@@ -318,6 +318,8 @@ void ik_agent_replay_append_messages(ik_replay_context_t *replay_ctx,
             msg->data_json = NULL;
         }
 
+        msg->interrupted = false;  // Initialize interrupted field
+
         replay_ctx->messages[replay_ctx->count] = msg;
         replay_ctx->count++;
     }
@@ -329,21 +331,17 @@ void ik_agent_replay_filter_interrupted(ik_replay_context_t *replay_ctx)
 
     size_t last_user_idx = 0;
 
-    // First pass: identify interrupted turns and mark messages for removal
+    // Identify interrupted turns and mark messages as interrupted (don't remove)
     for (size_t i = 0; i < replay_ctx->count; i++) {
         ik_msg_t *msg = replay_ctx->messages[i];
-        if (msg == NULL) continue; // LCOV_EXCL_BR_LINE
 
         bool is_interrupted = (strcmp(msg->kind, "interrupted") == 0);
         bool is_user = (strcmp(msg->kind, "user") == 0);
 
         if (is_interrupted) {
-            // Mark all messages from last_user_idx to i (inclusive) for removal
+            // Mark all messages from last_user_idx to i (inclusive) as interrupted
             for (size_t j = last_user_idx; j <= i; j++) {
-                ik_msg_t *to_free = replay_ctx->messages[j];
-                if (to_free == NULL) continue; // LCOV_EXCL_BR_LINE
-                talloc_free(to_free);
-                replay_ctx->messages[j] = NULL;
+                replay_ctx->messages[j]->interrupted = true;
             }
             continue;
         }
@@ -352,16 +350,6 @@ void ik_agent_replay_filter_interrupted(ik_replay_context_t *replay_ctx)
             last_user_idx = i;
         }
     }
-
-    // Second pass: compact the array by removing NULL entries
-    size_t write_idx = 0;
-    for (size_t i = 0; i < replay_ctx->count; i++) {
-        ik_msg_t *msg = replay_ctx->messages[i];
-        if (msg == NULL) continue; // LCOV_EXCL_BR_LINE
-        replay_ctx->messages[write_idx] = msg;
-        write_idx++;
-    }
-    replay_ctx->count = write_idx;
 }
 
 res_t ik_agent_replay_history(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,

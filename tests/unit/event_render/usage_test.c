@@ -23,7 +23,7 @@ START_TEST(test_render_usage_event_all_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":50,\"thinking_tokens\":25}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -50,7 +50,7 @@ START_TEST(test_render_usage_event_no_thinking) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":50}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -75,7 +75,7 @@ START_TEST(test_render_usage_event_null_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "usage", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "usage", NULL, NULL, false);
     ck_assert(!is_err(&result));
     // Should render just a blank line
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
@@ -94,7 +94,7 @@ START_TEST(test_render_usage_event_invalid_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "usage", NULL, "not valid json");
+    res_t result = ik_event_render(scrollback, "usage", NULL, "not valid json", false);
     ck_assert(!is_err(&result));
     // Should render just a blank line
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
@@ -114,7 +114,7 @@ START_TEST(test_render_usage_event_zero_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":0,\"output_tokens\":0,\"thinking_tokens\":0}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     // Should render just a blank line (no token line when total is 0)
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 1);
@@ -134,7 +134,7 @@ START_TEST(test_render_usage_event_non_integer_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":\"not a number\",\"output_tokens\":50}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     // Should render with the valid tokens only
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
@@ -154,7 +154,7 @@ START_TEST(test_render_usage_event_missing_fields) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"output_tokens\":50}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     // Should render with the available tokens
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
@@ -174,7 +174,7 @@ START_TEST(test_render_usage_event_null_output_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":null}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     // Should render with input tokens only
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
@@ -194,7 +194,7 @@ START_TEST(test_render_usage_event_null_thinking_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":50,\"thinking_tokens\":null}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -215,7 +215,7 @@ START_TEST(test_render_usage_event_boolean_output_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":true,\"thinking_tokens\":25}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -235,7 +235,7 @@ START_TEST(test_render_usage_event_boolean_thinking_tokens) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":50,\"thinking_tokens\":false}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -270,7 +270,7 @@ START_TEST(test_render_usage_event_scrollback_error) {
     mock_scrollback_error = true;
 
     const char *json = "{\"input_tokens\":100,\"output_tokens\":50}";
-    res_t result = ik_event_render(scrollback, "usage", NULL, json);
+    res_t result = ik_event_render(scrollback, "usage", NULL, json, false);
     ck_assert(is_err(&result));
     talloc_free(result.err);
 
