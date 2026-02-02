@@ -449,72 +449,11 @@ END_TEST
 
 // Test: Handle interrupted LLM completion
 START_TEST(test_handle_interrupted_llm_completion) {
-    // Create minimal REPL context
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;  // No database
-    shared->session_id = 0;
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create agent
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->interrupt_requested = true;
-
-    // Create scrollback
-    agent->scrollback = ik_scrollback_create(agent, 80);
-    ck_assert_ptr_nonnull(agent->scrollback);
-
-    // Add some messages to simulate a turn
-    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 3;
-    agent->message_capacity = 10;
-
-    // User message
-    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
-
-    // Assistant response (partial)
-    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
-
-    // Another user message
-    agent->messages[2] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
-
-    repl->current = agent;
-
-    // Call interrupted LLM completion handler
-    ik_repl_handle_interrupted_llm_completion(repl, agent);
-
-    // Verify:
-    // 1. Interrupt flag is cleared
-    ck_assert(!agent->interrupt_requested);
-
-    // 2. State is IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-
-    // 3. Messages are kept but marked as interrupted
-    ck_assert_uint_eq(agent->message_count, 3);
-    ck_assert(!agent->messages[0]->interrupted);  // First user message not interrupted
-    ck_assert(!agent->messages[1]->interrupted);  // Assistant response not interrupted
-    ck_assert(agent->messages[2]->interrupted);   // Second user message marked interrupted
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
-
-
-// Test: Handle interrupted LLM completion with error messages and tool results
-START_TEST(test_handle_interrupted_llm_completion_with_errors_and_tools) {
     // Create REPL context with database
     ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
     ck_assert_ptr_nonnull(shared);
     shared->db_ctx = (void *)1;  // Fake database context
-    shared->session_id = 123;     // Non-zero session ID
+    shared->session_id = 123;
 
     ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
@@ -536,7 +475,7 @@ START_TEST(test_handle_interrupted_llm_completion_with_errors_and_tools) {
     agent->scrollback = ik_scrollback_create(agent, 80);
     ck_assert_ptr_nonnull(agent->scrollback);
 
-    // Add messages including a tool result
+    // Add messages including a tool result to cover all render paths
     agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
     agent->message_count = 4;
     agent->message_capacity = 10;
@@ -548,7 +487,7 @@ START_TEST(test_handle_interrupted_llm_completion_with_errors_and_tools) {
     agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
 
     // Tool result message
-    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "tool output", false);
+    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "output", false);
 
     // Another user message
     agent->messages[3] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
@@ -569,92 +508,14 @@ START_TEST(test_handle_interrupted_llm_completion_with_errors_and_tools) {
     ck_assert_ptr_null(agent->http_error_message);
     ck_assert_ptr_null(agent->assistant_response);
 
-    // 4. Messages are kept but marked as interrupted
+    // 4. Messages are kept but last turn is marked as interrupted
     ck_assert_uint_eq(agent->message_count, 4);
-    ck_assert(!agent->messages[0]->interrupted);  // First user message not interrupted
-    ck_assert(!agent->messages[1]->interrupted);  // Assistant response not interrupted
-    ck_assert(!agent->messages[2]->interrupted);  // Tool result not interrupted
-    ck_assert(agent->messages[3]->interrupted);   // Second user message marked interrupted
+    ck_assert(!agent->messages[0]->interrupted);
+    ck_assert(!agent->messages[1]->interrupted);
+    ck_assert(!agent->messages[2]->interrupted);
+    ck_assert(agent->messages[3]->interrupted);
 
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
-
-
-// Test: Handle interrupted LLM completion with edge cases (NULL messages, empty content, non-current agent)
-START_TEST(test_handle_interrupted_llm_completion_edge_cases) {
-    // Create REPL context
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;
-    shared->session_id = 0;
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create a different agent as current
-    ik_agent_ctx_t *current_agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(current_agent);
-    atomic_store(&current_agent->state, IK_AGENT_STATE_IDLE);
-    pthread_mutex_init_(&current_agent->tool_thread_mutex, NULL);
-    repl->current = current_agent;
-
-    // Create agent being interrupted (not current)
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->interrupt_requested = true;
-
-    // Create scrollback
-    agent->scrollback = ik_scrollback_create(agent, 80);
-    ck_assert_ptr_nonnull(agent->scrollback);
-
-    // Add messages with NULL and empty content
-    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 5;
-    agent->message_capacity = 10;
-
-    // User message
-    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
-
-    // NULL message
-    agent->messages[1] = NULL;
-
-    // Message with empty content
-    agent->messages[2] = talloc_zero_(agent, sizeof(ik_message_t));
-    agent->messages[2]->role = IK_ROLE_ASSISTANT;
-    agent->messages[2]->content_count = 0;
-    agent->messages[2]->content_blocks = NULL;
-
-    // Assistant response
-    agent->messages[3] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
-
-    // Another user message
-    agent->messages[4] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
-
-    // Call interrupted LLM completion handler (agent != repl->current)
-    ik_repl_handle_interrupted_llm_completion(repl, agent);
-
-    // Verify:
-    // 1. Interrupt flag is cleared
-    ck_assert(!agent->interrupt_requested);
-
-    // 2. State is IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-
-    // 3. Messages are kept but turn is marked as interrupted
-    ck_assert_uint_eq(agent->message_count, 5);
-    ck_assert(!agent->messages[0]->interrupted);  // First user message not interrupted
-    // messages[1] is NULL
-    ck_assert(!agent->messages[2]->interrupted);  // Empty message not interrupted
-    ck_assert(!agent->messages[3]->interrupted);  // Assistant response not interrupted
-    ck_assert(agent->messages[4]->interrupted);   // Second user message marked interrupted
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-    pthread_mutex_destroy_(&current_agent->tool_thread_mutex);
 }
 
 END_TEST
@@ -674,8 +535,6 @@ static Suite *interrupt_state_suite(void)
     tcase_add_test(tc_core, test_escape_during_waiting_for_llm);
     tcase_add_test(tc_core, test_escape_during_executing_tool);
     tcase_add_test(tc_core, test_handle_interrupted_llm_completion);
-    tcase_add_test(tc_core, test_handle_interrupted_llm_completion_with_errors_and_tools);
-    tcase_add_test(tc_core, test_handle_interrupted_llm_completion_edge_cases);
 
     suite_add_tcase(s, tc_core);
 

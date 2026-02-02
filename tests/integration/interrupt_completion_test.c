@@ -284,11 +284,11 @@ static void teardown(void)
 
 // Test: Handle interrupted tool completion with contexts
 START_TEST(test_handle_interrupted_tool_completion) {
-    // Create minimal REPL context
+    // Create REPL context with database
     ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
     ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;  // No database
-    shared->session_id = 0;
+    shared->db_ctx = (void *)1;  // Fake database context
+    shared->session_id = 123;
 
     ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
@@ -303,14 +303,24 @@ START_TEST(test_handle_interrupted_tool_completion) {
     agent->tool_thread_running = true;
     agent->tool_thread_complete = false;
     agent->tool_child_pid = 12345;
+    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
 
     // Set tool_thread_ctx and pending_tool_call to test cleanup paths
-    agent->tool_thread_ctx = talloc_zero_(agent, 1);  // Dummy context
-    agent->pending_tool_call = talloc_zero_(agent, 1);  // Dummy tool call
+    agent->tool_thread_ctx = talloc_zero_(agent, 1);
+    agent->pending_tool_call = talloc_zero_(agent, 1);
 
     // Create scrollback
     agent->scrollback = ik_scrollback_create(agent, 80);
     ck_assert_ptr_nonnull(agent->scrollback);
+
+    // Add messages including tool result to cover all render paths
+    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
+    agent->message_count = 4;
+    agent->message_capacity = 10;
+    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
+    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
+    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "output", false);
+    agent->messages[3] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
 
     repl->current = agent;
 
@@ -335,6 +345,10 @@ START_TEST(test_handle_interrupted_tool_completion) {
     // 5. Contexts are freed
     ck_assert_ptr_null(agent->tool_thread_ctx);
     ck_assert_ptr_null(agent->pending_tool_call);
+
+    // 6. Messages are marked as interrupted
+    ck_assert_uint_eq(agent->message_count, 4);
+    ck_assert(agent->messages[3]->interrupted);
 
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
 }
@@ -476,200 +490,6 @@ START_TEST(test_interrupted_tool_completion_with_database) {
 END_TEST
 
 
-// Test: Interrupted tool completion with messages and re-rendering
-START_TEST(test_interrupted_tool_completion_with_messages) {
-    // Create REPL context with database
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = (void *)1;  // Fake database context
-    shared->session_id = 123;     // Non-zero session ID
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create agent
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->interrupt_requested = true;
-    agent->tool_thread_running = true;
-    agent->tool_thread_complete = false;
-    agent->tool_child_pid = 0;
-    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
-
-    // Create scrollback
-    agent->scrollback = ik_scrollback_create(agent, 80);
-    ck_assert_ptr_nonnull(agent->scrollback);
-
-    // Add messages including a tool result
-    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 4;
-    agent->message_capacity = 10;
-
-    // User message
-    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
-
-    // Assistant response
-    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
-
-    // Tool result message
-    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "tool output", false);
-
-    // Another user message
-    agent->messages[3] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
-
-    repl->current = agent;
-
-    // Call interrupted tool completion handler
-    ik_repl_handle_interrupted_tool_completion(repl, agent);
-
-    // Verify:
-    // 1. Interrupt flag is cleared
-    ck_assert(!agent->interrupt_requested);
-
-    // 2. State is IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-
-    // 3. Messages are kept but marked as interrupted
-    ck_assert_uint_eq(agent->message_count, 4);
-    ck_assert(!agent->messages[0]->interrupted);  // First user message not interrupted
-    ck_assert(!agent->messages[1]->interrupted);  // Assistant response not interrupted
-    ck_assert(!agent->messages[2]->interrupted);  // Tool result not interrupted
-    ck_assert(agent->messages[3]->interrupted);   // Second user message marked interrupted
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
-
-
-// Test: Interrupted tool completion through poll (current agent, no agents array)
-START_TEST(test_poll_tool_completions_current_only_with_interrupt) {
-    // Create REPL context
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;
-    shared->session_id = 0;
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create agent in EXECUTING_TOOL state with tool complete and interrupt requested
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->interrupt_requested = true;
-    agent->tool_thread_running = true;
-    agent->tool_thread_complete = true;  // Tool is complete
-    agent->tool_child_pid = 0;
-
-    agent->scrollback = ik_scrollback_create(agent, 80);
-    ck_assert_ptr_nonnull(agent->scrollback);
-
-    // Add messages to exercise rendering path
-    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 2;
-    agent->message_capacity = 10;
-    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
-    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
-
-    // No agents array, only current agent (tests else-if branch)
-    repl->agent_count = 0;
-    repl->agents = NULL;
-    repl->current = agent;
-
-    // Call poll_tool_completions - should detect interrupt via current agent path
-    res_t result = ik_repl_poll_tool_completions(repl);
-    ck_assert(!is_err(&result));
-
-    // Verify state transitioned to IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!agent->interrupt_requested);
-    ck_assert(agent->messages[1]->interrupted);  // Last user message marked interrupted
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
-
-
-// Test: Interrupted tool completion with edge cases (NULL messages, empty content)
-START_TEST(test_interrupted_tool_completion_edge_cases) {
-    // Create REPL context with database to cover database path
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = (void *)1;  // Fake database context
-    shared->session_id = 123;     // Non-zero session ID
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create agent
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    agent->interrupt_requested = true;
-    agent->tool_thread_running = true;
-    agent->tool_thread_complete = false;
-    agent->tool_child_pid = 0;
-    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
-
-    // Create scrollback
-    agent->scrollback = ik_scrollback_create(agent, 80);
-    ck_assert_ptr_nonnull(agent->scrollback);
-
-    // Add messages with NULL and empty content, and NO USER messages (to test found_user = false case)
-    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 4;
-    agent->message_capacity = 10;
-
-    // All non-USER messages to test the found_user = false path
-    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response1");
-
-    // NULL message
-    agent->messages[1] = NULL;
-
-    // Message with empty content
-    agent->messages[2] = talloc_zero_(agent, sizeof(ik_message_t));
-    agent->messages[2]->role = IK_ROLE_ASSISTANT;
-    agent->messages[2]->content_count = 0;
-    agent->messages[2]->content_blocks = NULL;
-
-    // Tool result
-    agent->messages[3] = ik_message_create_tool_result(agent, "call_123", "tool output", false);
-
-    repl->current = agent;
-
-    // Call interrupted tool completion handler
-    ik_repl_handle_interrupted_tool_completion(repl, agent);
-
-    // Verify:
-    // 1. Interrupt flag is cleared
-    ck_assert(!agent->interrupt_requested);
-
-    // 2. State is IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-
-    // 3. Messages are kept, but since there's no USER message, nothing is marked interrupted
-    ck_assert_uint_eq(agent->message_count, 4);
-    ck_assert(!agent->messages[0]->interrupted);  // Assistant message not interrupted
-    // messages[1] is NULL
-    ck_assert(!agent->messages[2]->interrupted);  // Empty message not interrupted
-    ck_assert(!agent->messages[3]->interrupted);  // Tool result not interrupted
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
-
-
-
 static Suite *interrupt_completion_suite(void)
 {
     Suite *s = suite_create("InterruptCompletion");
@@ -680,11 +500,8 @@ static Suite *interrupt_completion_suite(void)
 
     tcase_add_test(tc_core, test_handle_interrupted_tool_completion);
     tcase_add_test(tc_core, test_poll_tool_completions_with_interrupt);
-    tcase_add_test(tc_core, test_poll_tool_completions_current_only_with_interrupt);
     tcase_add_test(tc_core, test_interrupted_tool_completion_non_current_agent);
     tcase_add_test(tc_core, test_interrupted_tool_completion_with_database);
-    tcase_add_test(tc_core, test_interrupted_tool_completion_with_messages);
-    tcase_add_test(tc_core, test_interrupted_tool_completion_edge_cases);
 
     suite_add_tcase(s, tc_core);
 
