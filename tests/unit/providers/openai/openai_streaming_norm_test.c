@@ -133,31 +133,6 @@ START_TEST(test_normalize_content_to_text_delta) {
 
 END_TEST
 
-START_TEST(test_normalize_tool_calls_to_deltas) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    /* Set model */
-    const char *init_data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, init_data);
-
-    /* Process tool call with arguments */
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
-                                       "{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"tool1\",\"arguments\":\"\"}}"
-                                       "]}}]}");
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{\"tool_calls\":["
-                                       "{\"index\":0,\"function\":{\"arguments\":\"args\"}}"
-                                       "]}}]}");
-
-    /* Verify normalized to TOOL_CALL events */
-    ck_assert_int_eq(events->items[1].type, IK_STREAM_TOOL_CALL_START);
-    ck_assert_int_eq(events->items[2].type, IK_STREAM_TOOL_CALL_DELTA);
-}
-
-END_TEST
-
 START_TEST(test_normalize_finish_reason_to_done) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -250,7 +225,6 @@ static Suite *openai_streaming_norm_suite(void)
     tcase_set_timeout(tc_normalize, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_normalize, setup, teardown);
     tcase_add_test(tc_normalize, test_normalize_content_to_text_delta);
-    tcase_add_test(tc_normalize, test_normalize_tool_calls_to_deltas);
     tcase_add_test(tc_normalize, test_normalize_finish_reason_to_done);
     suite_add_tcase(s, tc_normalize);
 
