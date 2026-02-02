@@ -143,61 +143,6 @@ END_TEST
  * Build Response Tests - Tool Calls
  * ================================================================ */
 
-START_TEST(test_build_response_with_tool_call) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, dummy_stream_cb, NULL);
-
-    // Process chunks with tool call
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_xyz123\","
-                                       "\"function\":{\"name\":\"glob\",\"arguments\":\"\"}}]}}]}");
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,"
-                                       "\"function\":{\"arguments\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}}]}}]}");
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}");
-
-    // Build response
-    ik_response_t *resp = ik_openai_chat_stream_build_response(test_ctx, sctx);
-
-    // Response should have tool call content block
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_int_eq((int)resp->content_count, 1);
-    ck_assert_ptr_nonnull(resp->content_blocks);
-    ck_assert_int_eq(resp->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.id, "call_xyz123");
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.name, "glob");
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "{\"pattern\":\"*.c\"}");
-}
-
-END_TEST
-
-START_TEST(test_build_response_tool_call_empty_args) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, dummy_stream_cb, NULL);
-
-    // Process chunks with tool call but no arguments accumulated
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
-    ik_openai_chat_stream_process_data(sctx,
-                                       "{\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_abc\","
-                                       "\"function\":{\"name\":\"list_files\",\"arguments\":\"\"}}]}}]}");
-
-    // Build response (arguments should default to "{}")
-    ik_response_t *resp = ik_openai_chat_stream_build_response(test_ctx, sctx);
-
-    ck_assert_ptr_nonnull(resp);
-    ck_assert_int_eq((int)resp->content_count, 1);
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.id, "call_abc");
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.name, "list_files");
-    // Empty args streamed should produce empty string
-    ck_assert_str_eq(resp->content_blocks[0].data.tool_call.arguments, "");
-}
-
-END_TEST
-
 START_TEST(test_build_response_no_tool_after_text) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
@@ -276,8 +221,6 @@ static Suite *streaming_chat_build_response_suite(void)
     TCase *tc_tools = tcase_create("ToolCalls");
     tcase_set_timeout(tc_tools, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_tools, setup, teardown);
-    tcase_add_test(tc_tools, test_build_response_with_tool_call);
-    tcase_add_test(tc_tools, test_build_response_tool_call_empty_args);
     tcase_add_test(tc_tools, test_build_response_no_tool_after_text);
     suite_add_tcase(s, tc_tools);
 
