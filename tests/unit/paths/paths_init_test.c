@@ -36,7 +36,6 @@ START_TEST(test_paths_init_success) {
     ck_assert_ptr_nonnull(paths);
     ck_assert_str_eq(ik_paths_get_config_dir(paths), "/test/config");
     ck_assert_str_eq(ik_paths_get_data_dir(paths), "/test/data");
-    ck_assert_str_eq(ik_paths_get_libexec_dir(paths), "/test/libexec");
     ck_assert_str_eq(ik_paths_get_state_dir(paths), "/test/state");
 
     // Cleanup

@@ -18,7 +18,6 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out);
 // All getters never return NULL (paths_init guarantees all fields populated)
 const char *ik_paths_get_config_dir(ik_paths_t *paths);
 const char *ik_paths_get_data_dir(ik_paths_t *paths);
-const char *ik_paths_get_libexec_dir(ik_paths_t *paths);
 const char *ik_paths_get_state_dir(ik_paths_t *paths);
 const char *ik_paths_get_tools_system_dir(ik_paths_t *paths);
 const char *ik_paths_get_tools_user_dir(ik_paths_t *paths);

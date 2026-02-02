@@ -1,8 +1,10 @@
 #include "paths.h"
 #include "error.h"
 #include "../../test_utils_helper.h"
+
 #include <check.h>
 #include <stdlib.h>
+#include <string.h>
 #include <talloc.h>
 
 static TALLOC_CTX *test_ctx;
@@ -27,10 +29,11 @@ START_TEST(test_tools_system_dir) {
     res_t result = ik_paths_init(test_ctx, &paths);
     ck_assert(is_ok(&result));
 
-    // Assert - system tools dir should equal libexec dir
+    // Assert - system tools dir should be the libexec directory
     const char *system_dir = ik_paths_get_tools_system_dir(paths);
-    const char *libexec_dir = ik_paths_get_libexec_dir(paths);
-    ck_assert_str_eq(system_dir, libexec_dir);
+    ck_assert_ptr_nonnull(system_dir);
+    // Should be /tmp/ikigai_test_{pid}/libexec
+    ck_assert(strstr(system_dir, "/libexec") != NULL);
 
     test_paths_cleanup_env();
 }
