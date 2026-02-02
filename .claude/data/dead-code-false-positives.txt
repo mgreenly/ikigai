@@ -10,3 +10,4 @@ ik_db_messages_load
 ik_openai_responses_handle_output_item_done
 ik_openai_responses_stream_process_event
 parse_usage
+process_content_delta
