@@ -55,7 +55,4 @@ int64_t ik_scroll_detector_get_timeout_ms(ik_scroll_detector_t *det, int64_t tim
 // Returns ARROW_* if pending event flushed, NONE otherwise
 ik_scroll_result_t ik_scroll_detector_flush(ik_scroll_detector_t *det);
 
-// Reset to initial state
-void ik_scroll_detector_reset(ik_scroll_detector_t *det);
-
 #endif // IK_SCROLL_DETECTOR_H
