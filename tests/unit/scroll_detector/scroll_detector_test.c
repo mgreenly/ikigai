@@ -148,22 +148,6 @@ START_TEST(test_mixed_directions) {
 }
 
 END_TEST
-// Test 10: Reset clears state to IDLE
-START_TEST(test_reset_clears_state) {
-    ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
-
-    ik_scroll_detector_process_arrow(det, IK_INPUT_ARROW_UP, 1000);
-    ck_assert_int_eq(det->state, IK_SCROLL_STATE_WAITING);
-
-    ik_scroll_detector_reset(det);
-    ck_assert_int_eq(det->state, IK_SCROLL_STATE_IDLE);
-
-    // Timeout should return NONE (nothing pending)
-    ik_scroll_result_t r = ik_scroll_detector_check_timeout(det, 1050);
-    ck_assert_int_eq(r, IK_SCROLL_RESULT_NONE);
-}
-
-END_TEST
 // Test 11: Mouse wheel burst - emits ONE scroll, absorbs remaining arrows
 START_TEST(test_mouse_wheel_burst_absorbs) {
     ik_scroll_detector_t *det = ik_scroll_detector_create(ctx);
@@ -379,7 +363,6 @@ static Suite *scroll_detector_suite(void)
     tcase_add_test(tc_core, test_flush_emits_arrow);
     tcase_add_test(tc_core, test_scroll_direction);
     tcase_add_test(tc_core, test_mixed_directions);
-    tcase_add_test(tc_core, test_reset_clears_state);
     tcase_add_test(tc_core, test_mouse_wheel_burst_absorbs);
     tcase_add_test(tc_core, test_kitty_10_arrows_one_scroll);
     tcase_add_test(tc_core, test_key_repeat);

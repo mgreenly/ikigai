@@ -164,11 +164,3 @@ ik_scroll_result_t ik_scroll_detector_flush(ik_scroll_detector_t *det)
     return IK_SCROLL_RESULT_NONE;
 }
 
-// Reset to initial state
-void ik_scroll_detector_reset(ik_scroll_detector_t *det)
-{
-    assert(det != NULL);  // LCOV_EXCL_BR_LINE
-
-    det->state = IK_SCROLL_STATE_IDLE;
-    det->timer_start_ms = 0;
-}
