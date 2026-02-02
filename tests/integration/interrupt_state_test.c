@@ -496,8 +496,11 @@ START_TEST(test_handle_interrupted_llm_completion) {
     // 2. State is IDLE
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
 
-    // 3. Messages rolled back to last user message
-    ck_assert_uint_eq(agent->message_count, 2);
+    // 3. Messages are kept but marked as interrupted
+    ck_assert_uint_eq(agent->message_count, 3);
+    ck_assert(!agent->messages[0]->interrupted);  // First user message not interrupted
+    ck_assert(!agent->messages[1]->interrupted);  // Assistant response not interrupted
+    ck_assert(agent->messages[2]->interrupted);   // Second user message marked interrupted
 
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
 }
