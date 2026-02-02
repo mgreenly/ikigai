@@ -48,17 +48,6 @@ bool ik_openai_is_reasoning_model(const char *model);
 const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t level);
 
 /**
- * Check if model supports temperature parameter
- *
- * @param model Model identifier
- * @return      true if model supports temperature, false otherwise
- *
- * Reasoning models (o1/o3) do NOT support temperature.
- * All other models support temperature.
- */
-bool ik_openai_supports_temperature(const char *model);
-
-/**
  * Determine if model uses Responses API
  *
  * @param model Model identifier
