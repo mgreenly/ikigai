@@ -259,17 +259,3 @@ const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_va
     return NULL;
 }
 
-bool ik_credentials_insecure_permissions(const char *path)
-{
-    assert(path != NULL); // LCOV_EXCL_BR_LINE
-
-    struct stat st;
-    if (posix_stat_(path, &st) != 0) {
-        // File doesn't exist - not insecure
-        return false;
-    }
-
-    // Check if permissions are exactly 0600 (owner read/write only)
-    mode_t perms = st.st_mode & 0777;
-    return perms != 0600;
-}
