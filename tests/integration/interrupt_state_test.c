@@ -449,11 +449,11 @@ END_TEST
 
 // Test: Handle interrupted LLM completion
 START_TEST(test_handle_interrupted_llm_completion) {
-    // Create minimal REPL context
+    // Create REPL context with database
     ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
     ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;  // No database
-    shared->session_id = 0;
+    shared->db_ctx = (void *)1;  // Fake database context
+    shared->session_id = 123;
 
     ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
@@ -465,24 +465,32 @@ START_TEST(test_handle_interrupted_llm_completion) {
     atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     agent->interrupt_requested = true;
+    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
+
+    // Set error messages to test cleanup paths
+    agent->http_error_message = talloc_strdup(agent, "HTTP error");
+    agent->assistant_response = talloc_strdup(agent, "Partial response");
 
     // Create scrollback
     agent->scrollback = ik_scrollback_create(agent, 80);
     ck_assert_ptr_nonnull(agent->scrollback);
 
-    // Add some messages to simulate a turn
+    // Add messages including a tool result to cover all render paths
     agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
-    agent->message_count = 3;
+    agent->message_count = 4;
     agent->message_capacity = 10;
 
     // User message
     agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
 
-    // Assistant response (partial)
+    // Assistant response
     agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
 
+    // Tool result message
+    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "output", false);
+
     // Another user message
-    agent->messages[2] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
+    agent->messages[3] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
 
     repl->current = agent;
 
@@ -496,8 +504,16 @@ START_TEST(test_handle_interrupted_llm_completion) {
     // 2. State is IDLE
     ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
 
-    // 3. Messages rolled back to last user message
-    ck_assert_uint_eq(agent->message_count, 2);
+    // 3. Error messages were cleaned up
+    ck_assert_ptr_null(agent->http_error_message);
+    ck_assert_ptr_null(agent->assistant_response);
+
+    // 4. Messages are kept but last turn is marked as interrupted
+    ck_assert_uint_eq(agent->message_count, 4);
+    ck_assert(!agent->messages[0]->interrupted);
+    ck_assert(!agent->messages[1]->interrupted);
+    ck_assert(!agent->messages[2]->interrupted);
+    ck_assert(agent->messages[3]->interrupted);
 
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
 }

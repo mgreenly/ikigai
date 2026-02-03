@@ -284,11 +284,11 @@ static void teardown(void)
 
 // Test: Handle interrupted tool completion with contexts
 START_TEST(test_handle_interrupted_tool_completion) {
-    // Create minimal REPL context
+    // Create REPL context with database
     ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
     ck_assert_ptr_nonnull(shared);
-    shared->db_ctx = NULL;  // No database
-    shared->session_id = 0;
+    shared->db_ctx = (void *)1;  // Fake database context
+    shared->session_id = 123;
 
     ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
     ck_assert_ptr_nonnull(repl);
@@ -303,14 +303,24 @@ START_TEST(test_handle_interrupted_tool_completion) {
     agent->tool_thread_running = true;
     agent->tool_thread_complete = false;
     agent->tool_child_pid = 12345;
+    agent->uuid = talloc_strdup(agent, "test-agent-uuid");
 
     // Set tool_thread_ctx and pending_tool_call to test cleanup paths
-    agent->tool_thread_ctx = talloc_zero_(agent, 1);  // Dummy context
-    agent->pending_tool_call = talloc_zero_(agent, 1);  // Dummy tool call
+    agent->tool_thread_ctx = talloc_zero_(agent, 1);
+    agent->pending_tool_call = talloc_zero_(agent, 1);
 
     // Create scrollback
     agent->scrollback = ik_scrollback_create(agent, 80);
     ck_assert_ptr_nonnull(agent->scrollback);
+
+    // Add messages including tool result to cover all render paths
+    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
+    agent->message_count = 4;
+    agent->message_capacity = 10;
+    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
+    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_ASSISTANT, "response");
+    agent->messages[2] = ik_message_create_tool_result(agent, "call_123", "output", false);
+    agent->messages[3] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
 
     repl->current = agent;
 
@@ -335,6 +345,10 @@ START_TEST(test_handle_interrupted_tool_completion) {
     // 5. Contexts are freed
     ck_assert_ptr_null(agent->tool_thread_ctx);
     ck_assert_ptr_null(agent->pending_tool_call);
+
+    // 6. Messages are marked as interrupted
+    ck_assert_uint_eq(agent->message_count, 4);
+    ck_assert(agent->messages[3]->interrupted);
 
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
 }
@@ -365,6 +379,13 @@ START_TEST(test_poll_tool_completions_with_interrupt) {
 
     agent->scrollback = ik_scrollback_create(agent, 80);
     ck_assert_ptr_nonnull(agent->scrollback);
+
+    // Add messages to exercise rendering path
+    agent->messages = talloc_zero_(agent, sizeof(ik_message_t *) * 10);
+    agent->message_count = 2;
+    agent->message_capacity = 10;
+    agent->messages[0] = ik_message_create_text(agent, IK_ROLE_USER, "test");
+    agent->messages[1] = ik_message_create_text(agent, IK_ROLE_USER, "test2");
 
     // Add agent to repl agents array
     repl->agent_count = 1;
@@ -467,7 +488,6 @@ START_TEST(test_interrupted_tool_completion_with_database) {
 }
 
 END_TEST
-
 
 
 static Suite *interrupt_completion_suite(void)

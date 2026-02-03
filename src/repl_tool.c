@@ -157,9 +157,9 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
     const char *formatted_call = ik_format_tool_call(repl, tc);
-    ik_event_render(repl->current->scrollback, "tool_call", formatted_call, "{}");
+    ik_event_render(repl->current->scrollback, "tool_call", formatted_call, "{}", false);
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
-    ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}");
+    ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}", false);
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL);
         char *tool_result_data_json = ik_build_tool_result_data_json(repl, tc->id, tc->name, result_json);
@@ -277,8 +277,8 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
         yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);  // LCOV_EXCL_LINE
         ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
     }
-    ik_event_render(agent->scrollback, "tool_call", formatted_call, "{}");
-    ik_event_render(agent->scrollback, "tool_result", formatted_result, "{}");
+    ik_event_render(agent->scrollback, "tool_call", formatted_call, "{}", false);
+    ik_event_render(agent->scrollback, "tool_result", formatted_result, "{}", false);
     talloc_free(summary);
     talloc_free(agent->pending_tool_call);
     agent->pending_tool_call = NULL;

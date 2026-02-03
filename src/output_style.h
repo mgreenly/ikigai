@@ -16,6 +16,7 @@ typedef enum {
     IK_OUTPUT_SLASH_CMD,
     IK_OUTPUT_SLASH_OUTPUT,
     IK_OUTPUT_SYSTEM_PROMPT,
+    IK_OUTPUT_CANCELLED,
     IK_OUTPUT_COUNT
 } ik_output_category_t;
 
@@ -44,6 +45,8 @@ static inline const char *ik_output_prefix(ik_output_category_t category)
         return NULL;
     case IK_OUTPUT_SYSTEM_PROMPT:
         return NULL;
+    case IK_OUTPUT_CANCELLED:
+        return "✗";
     case IK_OUTPUT_COUNT:
         return NULL;
     }
@@ -75,6 +78,8 @@ static inline int32_t ik_output_color(ik_output_category_t category)
         return 242;  // gray
     case IK_OUTPUT_SYSTEM_PROMPT:
         return 153;  // soft blue
+    case IK_OUTPUT_CANCELLED:
+        return 242;  // gray
     case IK_OUTPUT_COUNT:
         return -1;
     }

@@ -28,7 +28,7 @@ START_TEST(test_render_command_event) {
 
     const char *command_output = "  - item1\n  - item2";
     const char *data_json = "{\"command\":\"test\",\"echo\":\"/test\"}";
-    res_t result = ik_event_render(scrollback, "command", command_output, data_json);
+    res_t result = ik_event_render(scrollback, "command", command_output, data_json, false);
     ck_assert(!is_err(&result));
 
     // Should have: echo line + blank + output lines + blank = 4 lines
@@ -59,7 +59,7 @@ START_TEST(test_render_fork_event_parent) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *fork_message = "Forked child agent-uuid-123";
-    res_t result = ik_event_render(scrollback, "fork", fork_message, "{\"role\":\"parent\"}");
+    res_t result = ik_event_render(scrollback, "fork", fork_message, "{\"role\":\"parent\"}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -83,7 +83,7 @@ START_TEST(test_render_fork_event_child) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *fork_message = "Forked from parent-uuid-456";
-    res_t result = ik_event_render(scrollback, "fork", fork_message, "{\"role\":\"child\"}");
+    res_t result = ik_event_render(scrollback, "fork", fork_message, "{\"role\":\"child\"}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -107,7 +107,7 @@ START_TEST(test_render_command_echo_only) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *data_json = "{\"command\":\"clear\",\"echo\":\"/clear\"}";
-    res_t result = ik_event_render(scrollback, "command", NULL, data_json);
+    res_t result = ik_event_render(scrollback, "command", NULL, data_json, false);
     ck_assert(!is_err(&result));
 
     // Should have: echo line + blank = 2 lines
@@ -133,7 +133,7 @@ START_TEST(test_render_command_null_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "command", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "command", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -146,7 +146,7 @@ START_TEST(test_render_command_empty_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "command", "", NULL);
+    res_t result = ik_event_render(scrollback, "command", "", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -160,7 +160,7 @@ START_TEST(test_render_command_whitespace_content) {
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
     const char *data_json = "{\"command\":\"test\",\"echo\":\"/test\"}";
-    res_t result = ik_event_render(scrollback, "command", "   \n  \t  ", data_json);
+    res_t result = ik_event_render(scrollback, "command", "   \n  \t  ", data_json, false);
     ck_assert(!is_err(&result));
 
     // Should have: echo line + blank = 2 lines (output is trimmed to empty)
@@ -177,7 +177,7 @@ START_TEST(test_render_command_empty_echo) {
 
     const char *data_json = "{\"command\":\"test\",\"echo\":\"\"}";
     const char *output = "output text";
-    res_t result = ik_event_render(scrollback, "command", output, data_json);
+    res_t result = ik_event_render(scrollback, "command", output, data_json, false);
     ck_assert(!is_err(&result));
 
     // Should have: output line + blank = 2 lines (echo is empty, skipped)
@@ -199,7 +199,7 @@ START_TEST(test_render_command_nonstring_echo) {
 
     const char *data_json = "{\"command\":\"test\",\"echo\":123}";
     const char *output = "output text";
-    res_t result = ik_event_render(scrollback, "command", output, data_json);
+    res_t result = ik_event_render(scrollback, "command", output, data_json, false);
     ck_assert(!is_err(&result));
 
     // Should have: output line + blank = 2 lines (echo is not a string, skipped)
@@ -214,7 +214,7 @@ START_TEST(test_render_fork_null_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "fork", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "fork", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -227,7 +227,7 @@ START_TEST(test_render_fork_empty_content) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "fork", "", NULL);
+    res_t result = ik_event_render(scrollback, "fork", "", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 

@@ -30,6 +30,7 @@ typedef struct {
     char *kind;       /* Message kind discriminator */
     char *content;    /* Message text content or human-readable summary */
     char *data_json;  /* Structured data for tool messages (NULL for text messages) */
+    bool interrupted; /* True if message was interrupted/cancelled */
 } ik_msg_t;
 
 /**

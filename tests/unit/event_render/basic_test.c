@@ -64,7 +64,7 @@ START_TEST(test_render_user_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "user", "Hello world", NULL);
+    res_t result = ik_event_render(scrollback, "user", "Hello world", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -87,7 +87,7 @@ START_TEST(test_render_assistant_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "assistant", "I am an AI", NULL);
+    res_t result = ik_event_render(scrollback, "assistant", "I am an AI", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -110,7 +110,7 @@ START_TEST(test_render_system_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "system", "You are helpful.", NULL);
+    res_t result = ik_event_render(scrollback, "system", "You are helpful.", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -123,7 +123,7 @@ START_TEST(test_render_mark_event_with_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"foo\"}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -146,7 +146,7 @@ START_TEST(test_render_mark_event_no_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -169,7 +169,7 @@ START_TEST(test_render_mark_event_null_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "mark", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -192,7 +192,7 @@ START_TEST(test_render_mark_event_empty_label) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"\"}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":\"\"}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -215,7 +215,7 @@ START_TEST(test_render_rewind_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "rewind", NULL, "{\"target_message_id\":42}");
+    res_t result = ik_event_render(scrollback, "rewind", NULL, "{\"target_message_id\":42}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -228,7 +228,7 @@ START_TEST(test_render_clear_event) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "clear", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "clear", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -243,13 +243,13 @@ START_TEST(test_render_agent_killed_event) {
 
     // Test with target metadata
     const char *json = "{\"killed_by\":\"user\",\"target\":\"uuid-123\"}";
-    res_t result = ik_event_render(scrollback, "agent_killed", NULL, json);
+    res_t result = ik_event_render(scrollback, "agent_killed", NULL, json, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
     // Test with cascade metadata
     const char *json2 = "{\"killed_by\":\"user\",\"target\":\"uuid-456\",\"cascade\":true,\"count\":5}";
-    result = ik_event_render(scrollback, "agent_killed", NULL, json2);
+    result = ik_event_render(scrollback, "agent_killed", NULL, json2, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -262,7 +262,7 @@ START_TEST(test_render_content_null) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "user", NULL, NULL);
+    res_t result = ik_event_render(scrollback, "user", NULL, NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -275,7 +275,7 @@ START_TEST(test_render_content_empty) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "assistant", "", NULL);
+    res_t result = ik_event_render(scrollback, "assistant", "", NULL, false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 0);
 
@@ -288,7 +288,7 @@ START_TEST(test_render_unknown_kind) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "unknown", "content", NULL);
+    res_t result = ik_event_render(scrollback, "unknown", "content", NULL, false);
     ck_assert(is_err(&result));
     ck_assert_ptr_nonnull(strstr(error_message(result.err), "Unknown event kind"));
     talloc_free(result.err);
@@ -302,7 +302,7 @@ START_TEST(test_render_mark_invalid_json) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "not valid json");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "not valid json", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -325,7 +325,7 @@ START_TEST(test_render_mark_label_not_string) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":123}");
+    res_t result = ik_event_render(scrollback, "mark", NULL, "{\"label\":123}", false);
     ck_assert(!is_err(&result));
     ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
 
@@ -348,7 +348,7 @@ START_TEST(test_render_null_kind_returns_error) {
     void *ctx = talloc_new(NULL);
     ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
 
-    res_t result = ik_event_render(scrollback, NULL, "content", NULL);
+    res_t result = ik_event_render(scrollback, NULL, "content", NULL, false);
     ck_assert(is_err(&result));
     ck_assert_ptr_nonnull(strstr(error_message(result.err), "kind"));
     ck_assert_ptr_nonnull(strstr(error_message(result.err), "cannot be NULL"));

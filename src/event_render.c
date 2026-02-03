@@ -6,6 +6,7 @@
 #include "event_render.h"
 
 #include "ansi.h"
+#include "event_render_format.h"
 #include "output_style.h"
 #include "panic.h"
 #include "scrollback.h"
@@ -324,7 +325,8 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
 res_t ik_event_render(ik_scrollback_t *scrollback,
                       const char *kind,
                       const char *content,
-                      const char *data_json)
+                      const char *data_json,
+                      bool interrupted)
 {
     assert(scrollback != NULL); // LCOV_EXCL_BR_LINE
 
@@ -335,9 +337,16 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     } // LCOV_EXCL_STOP
 
     // Determine color and prefix based on kind using centralized output style system
+    // If interrupted, override with cancelled style for user/tool_call/tool_result
     uint8_t color = 0;
     const char *prefix = NULL;
-    if (strcmp(kind, "assistant") == 0) {
+
+    if (interrupted && (strcmp(kind, "user") == 0 || strcmp(kind, "tool_call") == 0 || strcmp(kind, "tool_result") == 0)) {
+        // Use cancelled style for interrupted messages
+        int32_t color_code = ik_output_color(IK_OUTPUT_CANCELLED);
+        color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE
+        prefix = ik_output_prefix(IK_OUTPUT_CANCELLED);
+    } else if (strcmp(kind, "assistant") == 0) {
         color = IK_ANSI_GRAY_LIGHT;  // 249 - slightly subdued
         prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
     } else if (strcmp(kind, "user") == 0) {
@@ -357,10 +366,26 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     // Handle each event kind
     if (strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "user") == 0 ||
-        strcmp(kind, "tool_call") == 0 ||
-        strcmp(kind, "tool_result") == 0 ||
         strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color, prefix);
+    }
+
+    if (strcmp(kind, "tool_call") == 0) {
+        // Apply formatting/truncation if needed (handles both replay and interrupt paths)
+        TALLOC_CTX *tmp = tmp_ctx_create();
+        const char *formatted = ik_event_render_format_tool_call(tmp, content, data_json);
+        res_t result = render_content_event(scrollback, formatted, color, prefix);
+        talloc_free(tmp);
+        return result;
+    }
+
+    if (strcmp(kind, "tool_result") == 0) {
+        // Apply formatting/truncation if needed (handles both replay and interrupt paths)
+        TALLOC_CTX *tmp = tmp_ctx_create();
+        const char *formatted = ik_event_render_format_tool_result(tmp, content, data_json);
+        res_t result = render_content_event(scrollback, formatted, color, prefix);
+        talloc_free(tmp);
+        return result;
     }
 
     if (strcmp(kind, "command") == 0) {

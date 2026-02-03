@@ -1,12 +1,14 @@
 #include "repl_tool_completion.h"
 
 #include "agent.h"
+#include "event_render.h"
 #include "panic.h"
 #include "providers/provider.h"
 #include "providers/request.h"
 #include "repl.h"
 #include "repl_callbacks.h"
 #include "repl_event_handlers.h"
+#include "scrollback.h"
 #include "shared.h"
 #include "wrapper.h"
 #include "wrapper_internal.h"
@@ -52,8 +54,59 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     agent->tool_child_pid = 0;
     ik_agent_transition_from_executing_tool(agent);
-    const char *msg = "Interrupted";
-    ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+
+    // Find the most recent user message (start of the interrupted turn)
+    size_t turn_start = 0;
+    bool found_user = false;
+    for (size_t i = agent->message_count; i > 0; i--) {
+        ik_message_t *m = agent->messages[i - 1];
+        if (m != NULL && m->role == IK_ROLE_USER) {
+            turn_start = i - 1;
+            found_user = true;
+            break;
+        }
+    }
+
+    // Mark all messages from the interrupted turn as interrupted (don't remove)
+    if (found_user && turn_start < agent->message_count) {
+        for (size_t i = turn_start; i < agent->message_count; i++) {
+            if (agent->messages[i] != NULL) {
+                agent->messages[i]->interrupted = true;
+            }
+        }
+    }
+
+    // Clear scrollback and re-render all messages with interrupted styling
+    ik_scrollback_clear(agent->scrollback);
+    for (size_t i = 0; i < agent->message_count; i++) {
+        ik_message_t *m = agent->messages[i];
+        if (m == NULL || m->content_count == 0) continue;
+
+        // Render first content block (simplified for interrupt recovery)
+        ik_content_block_t *block = &m->content_blocks[0];
+        const char *kind = NULL;
+        const char *content = NULL;
+
+        switch (m->role) {
+            case IK_ROLE_USER:
+                kind = "user";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_ASSISTANT:
+                kind = "assistant";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_TOOL:
+                kind = "tool_result";
+                if (block->type == IK_CONTENT_TOOL_RESULT) content = block->data.tool_result.content;
+                break;
+        }
+
+        if (kind != NULL && content != NULL) {
+            ik_event_render(agent->scrollback, kind, content, "{}", m->interrupted);
+        }
+    }
+
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                                              agent->uuid, "interrupted", NULL, NULL);

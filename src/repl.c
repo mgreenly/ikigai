@@ -155,7 +155,7 @@ res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
         if (text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         memcpy(text, text_data, text_len);
         text[text_len] = '\0';
-        res_t result = ik_event_render(repl->current->scrollback, "user", text, "{}");
+        res_t result = ik_event_render(repl->current->scrollback, "user", text, "{}", false);
         talloc_free(text);
         if (is_err(&result)) return result;
     }

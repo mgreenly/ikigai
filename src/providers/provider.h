@@ -175,6 +175,7 @@ struct ik_message {
     ik_content_block_t *content_blocks; /* Array of content blocks */
     size_t content_count;               /* Number of content blocks */
     char *provider_metadata;            /* Provider-specific metadata (JSON) */
+    bool interrupted;                   /* True if message was interrupted/cancelled */
 };
 
 /**
