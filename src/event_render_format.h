@@ -25,4 +25,14 @@ const char *ik_event_render_format_tool_call(TALLOC_CTX *ctx, const char *conten
  */
 const char *ik_event_render_format_tool_result(TALLOC_CTX *ctx, const char *content, const char *data_json);
 
+/**
+ * Format raw tool_result content with truncation when tool name is unavailable.
+ * Adds the tool response prefix and truncates content to 3 lines or 400 chars.
+ *
+ * @param ctx Talloc context for allocations
+ * @param content Raw content to format (may be NULL)
+ * @return Formatted content (owned by ctx)
+ */
+const char *ik_event_render_format_tool_result_raw(TALLOC_CTX *ctx, const char *content);
+
 #endif // IK_EVENT_RENDER_FORMAT_H

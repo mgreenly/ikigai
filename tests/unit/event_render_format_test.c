@@ -112,8 +112,11 @@ START_TEST(test_format_tool_result_null_data_json)
     const char *raw_content = "some raw content";
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, NULL);
 
-    // Should return the original content when no data_json
-    ck_assert_ptr_eq(result, raw_content);
+    // Should return formatted content with prefix and truncation applied
+    ck_assert_ptr_ne(result, raw_content);
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "some raw content") != NULL);
 }
 END_TEST
 
@@ -124,8 +127,11 @@ START_TEST(test_format_tool_result_invalid_json)
     const char *bad_json = "not valid json{";
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, bad_json);
 
-    // Should return the original content when JSON is invalid
-    ck_assert_ptr_eq(result, raw_content);
+    // Should return formatted content with prefix and truncation applied
+    ck_assert_ptr_ne(result, raw_content);
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "raw") != NULL);
 }
 END_TEST
 
@@ -137,8 +143,11 @@ START_TEST(test_format_tool_result_missing_name)
     const char *incomplete_json = "{\"output\":\"result data\"}";
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, incomplete_json);
 
-    // Should return the original content when tool name is missing
-    ck_assert_ptr_eq(result, raw_content);
+    // Should return formatted content with prefix and truncation applied
+    ck_assert_ptr_ne(result, raw_content);
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "raw") != NULL);
 }
 END_TEST
 
@@ -286,8 +295,11 @@ START_TEST(test_format_tool_result_name_not_string)
 
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, data_json);
 
-    // Should return raw content when name is not a string
-    ck_assert_ptr_eq(result, raw_content);
+    // Should return formatted content with prefix and truncation applied when name is not a string
+    ck_assert_ptr_ne(result, raw_content);
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "raw") != NULL);
 }
 END_TEST
 
@@ -303,6 +315,55 @@ START_TEST(test_format_tool_result_output_not_string)
     ck_assert_ptr_ne(result, raw_content);
     ck_assert(strstr(result, "← read:") != NULL);
     ck_assert(strstr(result, "(no output)") != NULL);
+}
+END_TEST
+
+// Test tool_result raw formatting applies truncation to long content
+START_TEST(test_format_tool_result_raw_truncates_long_content)
+{
+    // Create content longer than 400 chars
+    char *long_content = talloc_array(test_ctx, char, 600);
+    memset(long_content, 'x', 599);
+    long_content[599] = '\0';
+
+    const char *result = ik_event_render_format_tool_result_raw(test_ctx, long_content);
+
+    // Should have prefix and be truncated with ...
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "...") != NULL);
+    // Result should be shorter than original (prefix + truncated content + ...)
+    ck_assert(strlen(result) < 500);
+}
+END_TEST
+
+// Test tool_result raw formatting with NULL content
+START_TEST(test_format_tool_result_raw_null_content)
+{
+    const char *result = ik_event_render_format_tool_result_raw(test_ctx, NULL);
+
+    // Should return formatted content with (no output)
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "(no output)") != NULL);
+}
+END_TEST
+
+// Test tool_result raw formatting truncates at 3 lines
+START_TEST(test_format_tool_result_raw_truncates_at_lines)
+{
+    const char *content = "line1\nline2\nline3\nline4\nline5";
+    const char *result = ik_event_render_format_tool_result_raw(test_ctx, content);
+
+    // Should have prefix and be truncated with ...
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    ck_assert(strncmp(result, prefix, strlen(prefix)) == 0);
+    ck_assert(strstr(result, "...") != NULL);
+    // Should contain first 3 lines but not line4
+    ck_assert(strstr(result, "line1") != NULL);
+    ck_assert(strstr(result, "line2") != NULL);
+    ck_assert(strstr(result, "line3") != NULL);
+    ck_assert(strstr(result, "line4") == NULL);
 }
 END_TEST
 
@@ -337,6 +398,9 @@ Suite *event_render_format_suite(void)
     tcase_add_test(tc_tool_result, test_format_tool_result_null_content);
     tcase_add_test(tc_tool_result, test_format_tool_result_name_not_string);
     tcase_add_test(tc_tool_result, test_format_tool_result_output_not_string);
+    tcase_add_test(tc_tool_result, test_format_tool_result_raw_truncates_long_content);
+    tcase_add_test(tc_tool_result, test_format_tool_result_raw_null_content);
+    tcase_add_test(tc_tool_result, test_format_tool_result_raw_truncates_at_lines);
     suite_add_tcase(s, tc_tool_result);
 
     return s;

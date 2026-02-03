@@ -10,7 +10,6 @@
 #include "panic.h"
 #include "tool.h"
 #include "vendor/yyjson/yyjson.h"
-#include "wrapper.h"
 
 #include <assert.h>
 #include <string.h>
@@ -74,6 +73,30 @@ const char *ik_event_render_format_tool_call(TALLOC_CTX *ctx, const char *conten
     return formatted;
 }
 
+// Helper to format raw tool result content with truncation (no tool name available)
+const char *ik_event_render_format_tool_result_raw(TALLOC_CTX *ctx, const char *content)
+{
+    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
+
+    ik_format_buffer_t *buf = ik_format_buffer_create(ctx);
+    if (buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Add prefix for tool response
+    const char *prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
+    res_t res = ik_format_appendf(buf, "%s ", prefix);
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+
+    // Truncate and append raw content
+    if (content == NULL) {
+        res = ik_format_append(buf, "(no output)");
+        if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+    } else {
+        ik_format_truncate_and_append(buf, content, strlen(content));
+    }
+
+    return ik_format_get_string(buf);
+}
+
 const char *ik_event_render_format_tool_result(TALLOC_CTX *ctx, const char *content, const char *data_json)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
@@ -86,12 +109,14 @@ const char *ik_event_render_format_tool_result(TALLOC_CTX *ctx, const char *cont
 
     // Try to extract tool info from data_json
     if (data_json == NULL) {
-        return content; // No data to format with, use content as-is
+        // No data to format with - apply truncation to raw content
+        return ik_event_render_format_tool_result_raw(ctx, content);
     }
 
     yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
     if (doc == NULL) {
-        return content; // Invalid JSON, use content as-is
+        // Invalid JSON - apply truncation to raw content
+        return ik_event_render_format_tool_result_raw(ctx, content);
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
@@ -100,7 +125,8 @@ const char *ik_event_render_format_tool_result(TALLOC_CTX *ctx, const char *cont
 
     if (name_val == NULL || !yyjson_is_str(name_val)) {
         yyjson_doc_free(doc);
-        return content; // Missing tool name
+        // Missing tool name - apply truncation to raw content
+        return ik_event_render_format_tool_result_raw(ctx, content);
     }
 
     const char *tool_name = yyjson_get_str_(name_val);
