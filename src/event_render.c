@@ -6,6 +6,7 @@
 #include "event_render.h"
 
 #include "ansi.h"
+#include "event_render_format.h"
 #include "output_style.h"
 #include "panic.h"
 #include "scrollback.h"
@@ -365,10 +366,26 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     // Handle each event kind
     if (strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "user") == 0 ||
-        strcmp(kind, "tool_call") == 0 ||
-        strcmp(kind, "tool_result") == 0 ||
         strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color, prefix);
+    }
+
+    if (strcmp(kind, "tool_call") == 0) {
+        // Apply formatting/truncation if needed (handles both replay and interrupt paths)
+        TALLOC_CTX *tmp = tmp_ctx_create();
+        const char *formatted = ik_event_render_format_tool_call(tmp, content, data_json);
+        res_t result = render_content_event(scrollback, formatted, color, prefix);
+        talloc_free(tmp);
+        return result;
+    }
+
+    if (strcmp(kind, "tool_result") == 0) {
+        // Apply formatting/truncation if needed (handles both replay and interrupt paths)
+        TALLOC_CTX *tmp = tmp_ctx_create();
+        const char *formatted = ik_event_render_format_tool_result(tmp, content, data_json);
+        res_t result = render_content_event(scrollback, formatted, color, prefix);
+        talloc_free(tmp);
+        return result;
     }
 
     if (strcmp(kind, "command") == 0) {

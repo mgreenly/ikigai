@@ -170,17 +170,19 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
     yyjson_alc allocator = ik_make_talloc_allocator(parent);
     yyjson_doc *doc = yyjson_read_opts(call->arguments, strlen(call->arguments), 0, &allocator, NULL);
     if (doc == NULL) {
-        // Invalid JSON - show raw arguments as fallback
-        res = ik_format_appendf(buf, ": %s", call->arguments);
+        // Invalid JSON - show raw arguments with truncation
+        res = ik_format_append(buf, ": ");
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        ik_format_truncate_and_append(buf, call->arguments, strlen(call->arguments));
         return ik_format_get_string(buf);
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
     if (!yyjson_is_obj(root)) {
-        // Not an object - show raw
-        res = ik_format_appendf(buf, ": %s", call->arguments);
+        // Not an object - show raw with truncation
+        res = ik_format_append(buf, ": ");
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+        ik_format_truncate_and_append(buf, call->arguments, strlen(call->arguments));
         return ik_format_get_string(buf);
     }
 
@@ -190,9 +192,9 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
         return ik_format_get_string(buf);
     }
 
-    // Format key=value pairs
-    res = ik_format_append(buf, ": ");
-    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+    // Format key=value pairs into a separate buffer
+    ik_format_buffer_t *args_buf = ik_format_buffer_create(parent);
+    if (args_buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     bool first = true;
     yyjson_obj_iter iter;
@@ -202,7 +204,7 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
         yyjson_val *val = ik_format_yyjson_obj_iter_get_val_wrapper(key);
 
         if (!first) {
-            res = ik_format_append(buf, ", ");
+            res = ik_format_append(args_buf, ", ");
             if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
         }
         first = false;
@@ -211,25 +213,33 @@ const char *ik_format_tool_call(void *parent, const ik_tool_call_t *call)
 
         // Format value based on type
         if (yyjson_is_str(val)) {
-            res = ik_format_appendf(buf, "%s=\"%s\"", key_str, yyjson_get_str_(val));
+            res = ik_format_appendf(args_buf, "%s=\"%s\"", key_str, yyjson_get_str_(val));
         } else if (yyjson_is_int(val)) {
-            res = ik_format_appendf(buf, "%s=%" PRId64, key_str, yyjson_get_sint_(val));
+            res = ik_format_appendf(args_buf, "%s=%" PRId64, key_str, yyjson_get_sint_(val));
         } else if (yyjson_is_real(val)) {
-            res = ik_format_appendf(buf, "%s=%g", key_str, yyjson_get_real(val));
+            res = ik_format_appendf(args_buf, "%s=%g", key_str, yyjson_get_real(val));
         } else if (yyjson_is_bool(val)) {
-            res = ik_format_appendf(buf, "%s=%s", key_str, yyjson_get_bool(val) ? "true" : "false");
+            res = ik_format_appendf(args_buf, "%s=%s", key_str, yyjson_get_bool(val) ? "true" : "false");
         } else if (yyjson_is_null(val)) {
-            res = ik_format_appendf(buf, "%s=null", key_str);
+            res = ik_format_appendf(args_buf, "%s=null", key_str);
         } else {
             // Arrays/objects - show as JSON
             char *val_str = ik_format_yyjson_val_write_wrapper(val);
             if (val_str != NULL) {
-                res = ik_format_appendf(buf, "%s=%s", key_str, val_str);
+                res = ik_format_appendf(args_buf, "%s=%s", key_str, val_str);
                 free(val_str);
             }
         }
         if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
     }
+
+    // Append ": " separator and truncated arguments
+    res = ik_format_append(buf, ": ");
+    if (is_err(&res)) PANIC("formatting failed"); // LCOV_EXCL_BR_LINE
+
+    const char *args_str = ik_format_get_string(args_buf);
+    size_t args_len = ik_format_get_length(args_buf);
+    ik_format_truncate_and_append(buf, args_str, args_len);
 
     return ik_format_get_string(buf);
 }
