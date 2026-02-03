@@ -44,20 +44,5 @@ typedef void TALLOC_CTX;
  */
 bool ik_error_is_retryable(int category);
 
-/**
- * Generate user-facing error message
- *
- * @param ctx      Talloc context for allocation
- * @param provider Provider name ("anthropic", "openai", "google")
- * @param category Error category
- * @param detail   Additional detail (may be NULL or empty)
- * @return         Allocated error message (never NULL)
- *
- * Generates helpful messages based on category. If detail is NULL
- * or empty, omits the detail portion.
- *
- * Memory: Allocated on provided talloc context.
- */
-char *ik_error_user_message(TALLOC_CTX *ctx, const char *provider, int category, const char *detail);
 
 #endif /* IK_PROVIDERS_COMMON_ERROR_UTILS_H */
