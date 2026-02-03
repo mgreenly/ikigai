@@ -241,5 +241,20 @@ MOCKABLE void globfree_(glob_t *pglob)
     globfree(pglob);
 }
 
+MOCKABLE int kill_(pid_t pid, int sig)
+{
+    return kill(pid, sig);
+}
+
+MOCKABLE pid_t waitpid_(pid_t pid, int *status, int options)
+{
+    return waitpid(pid, status, options);
+}
+
+MOCKABLE int usleep_(useconds_t usec)
+{
+    return usleep(usec);
+}
+
 // LCOV_EXCL_STOP
 #endif
