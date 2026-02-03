@@ -10,6 +10,7 @@ ik_db_messages_load
 ik_google_stream_process_usage
 ik_openai_responses_handle_output_item_done
 ik_openai_responses_stream_process_event
+ik_openai_stream_write_callback
 openai_start_request
 openai_start_stream
 parse_usage
