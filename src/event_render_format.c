@@ -8,15 +8,14 @@
 #include "format.h"
 #include "output_style.h"
 #include "panic.h"
+#include "poison.h"
 #include "tool.h"
 #include "vendor/yyjson/yyjson.h"
+#include "wrapper_json.h"
 
 #include <assert.h>
 #include <string.h>
 #include <talloc.h>
-
-
-#include "poison.h"
 const char *ik_event_render_format_tool_call(TALLOC_CTX *ctx, const char *content, const char *data_json)
 {
     assert(ctx != NULL); // LCOV_EXCL_BR_LINE
