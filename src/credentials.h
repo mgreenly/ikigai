@@ -58,12 +58,5 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
  */
 const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_var_name);
 
-/**
- * Check if credentials file has insecure permissions
- *
- * @param path Path to credentials file
- * @return true if permissions are insecure (not 0600), false if secure
- */
-bool ik_credentials_insecure_permissions(const char *path);
 
 #endif // IK_CREDENTIALS_H

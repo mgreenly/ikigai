@@ -283,40 +283,6 @@ START_TEST(test_corrupted_json_file) {
 
 END_TEST
 
-START_TEST(test_permissions_checks) {
-    const char *json = "{ \"OPENAI_API_KEY\": \"test-key\" }";
-
-    // Test 1: Secure permissions (0600) - should not trigger warning
-    char *path = create_temp_credentials(json);
-    chmod(path, 0600);
-    unsetenv("OPENAI_API_KEY");
-    unsetenv("ANTHROPIC_API_KEY");
-    unsetenv("GOOGLE_API_KEY");
-    ik_credentials_t *creds = NULL;
-    res_t result = ik_credentials_load(test_ctx, path, &creds);
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(creds);
-    ck_assert(!ik_credentials_insecure_permissions(path));
-    unlink(path);
-
-    // Test 2: Non-existent file should not be considered insecure
-    char *nonexistent = talloc_asprintf(test_ctx, "/tmp/ikigai_nonexistent_%d.json", getpid());
-    ck_assert(!ik_credentials_insecure_permissions(nonexistent));
-
-    // Test 3: Various insecure permission modes
-    char *path1 = talloc_asprintf(test_ctx, "/tmp/ikigai_perms_%d.json", getpid());
-    FILE *f = fopen(path1, "w");
-    fprintf(f, "%s", json);
-    fclose(f);
-    chmod(path1, 0640);
-    ck_assert(ik_credentials_insecure_permissions(path1));
-    chmod(path1, 0604);
-    ck_assert(ik_credentials_insecure_permissions(path1));
-    chmod(path1, 0700);
-    ck_assert(ik_credentials_insecure_permissions(path1));
-    unlink(path1);
-}
-END_TEST
 
 START_TEST(test_file_not_found) {
     unsetenv("OPENAI_API_KEY");
@@ -443,7 +409,6 @@ static Suite *credentials_coverage_suite(void)
     tcase_add_test(tc_core, test_invalid_json_structures);
     tcase_add_test(tc_core, test_env_var_behaviors);
     tcase_add_test(tc_core, test_corrupted_json_file);
-    tcase_add_test(tc_core, test_permissions_checks);
     tcase_add_test(tc_core, test_file_not_found);
     tcase_add_test(tc_core, test_default_path);
     tcase_add_test(tc_core, test_successful_tilde_expansion);

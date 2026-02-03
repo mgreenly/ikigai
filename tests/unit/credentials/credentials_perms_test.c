@@ -23,45 +23,6 @@ static void teardown(void)
     test_ctx = NULL;
 }
 
-START_TEST(test_insecure_permissions_missing_file) {
-    bool insecure = ik_credentials_insecure_permissions("/tmp/nonexistent_file_12345.json");
-    ck_assert(!insecure);
-}
-
-END_TEST
-
-START_TEST(test_insecure_permissions_bad_perms) {
-    const char *tmpfile = "/tmp/test_creds_insecure.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{}");
-    fclose(f);
-    chmod(tmpfile, 0644);
-
-    bool insecure = ik_credentials_insecure_permissions(tmpfile);
-    ck_assert(insecure);
-
-    unlink(tmpfile);
-}
-
-END_TEST
-
-START_TEST(test_insecure_permissions_secure) {
-    const char *tmpfile = "/tmp/test_creds_secure.json";
-    FILE *f = fopen(tmpfile, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{}");
-    fclose(f);
-    chmod(tmpfile, 0600);
-
-    bool insecure = ik_credentials_insecure_permissions(tmpfile);
-    ck_assert(!insecure);
-
-    unlink(tmpfile);
-}
-
-END_TEST
-
 START_TEST(test_load_with_insecure_permissions) {
     const char *tmpfile = "/tmp/test_creds_warning.json";
     FILE *f = fopen(tmpfile, "w");
@@ -159,9 +120,6 @@ static Suite *credentials_suite(void)
     TCase *tc_core = tcase_create("Core");
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
-    tcase_add_test(tc_core, test_insecure_permissions_missing_file);
-    tcase_add_test(tc_core, test_insecure_permissions_bad_perms);
-    tcase_add_test(tc_core, test_insecure_permissions_secure);
     tcase_add_test(tc_core, test_load_with_insecure_permissions);
     tcase_add_test(tc_core, test_file_based_credentials);
     tcase_add_test(tc_core, test_invalid_json_file);
