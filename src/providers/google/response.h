@@ -13,34 +13,6 @@
 #include "error.h"
 #include "providers/provider.h"
 
-/**
- * Parse Google JSON response to internal format
- *
- * @param ctx      Talloc context for response allocation
- * @param json     JSON string from Google API
- * @param json_len Length of JSON string
- * @param out_resp Output: parsed response (allocated on ctx)
- * @return         OK with response, ERR on parse error
- *
- * Extracts:
- * - Model name (modelVersion)
- * - Finish reason (finishReason mapped to internal enum)
- * - Content blocks from candidates[0].content.parts[]
- *   - Text parts -> IK_CONTENT_TEXT
- *   - Parts with thought=true -> IK_CONTENT_THINKING
- *   - functionCall -> IK_CONTENT_TOOL_CALL (with generated ID)
- * - Usage statistics (usageMetadata)
- * - Thought signatures (provider_data for Gemini 3)
- *
- * Returns ERR(PARSE) if:
- * - JSON is invalid
- * - Root is not an object
- *
- * Returns ERR(PROVIDER) if:
- * - Response has error object
- * - Response has promptFeedback.blockReason
- */
-res_t ik_google_parse_response(TALLOC_CTX *ctx, const char *json, size_t json_len, ik_response_t **out_resp);
 
 /**
  * Parse Google error response
@@ -111,24 +83,5 @@ char *ik_google_generate_tool_id(TALLOC_CTX *ctx);
  */
 res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx);
 
-/**
- * Start streaming request (async vtable implementation)
- *
- * @param impl_ctx       Google provider context
- * @param req            Request to send
- * @param stream_cb      Stream event callback
- * @param stream_ctx     User context for stream callback
- * @param completion_cb  Completion callback
- * @param completion_ctx User context for completion callback
- * @return               OK if request started, ERR on failure
- *
- * Returns immediately. Callbacks invoked as events arrive.
- */
-res_t ik_google_start_stream(void *impl_ctx,
-                             const ik_request_t *req,
-                             ik_stream_cb_t stream_cb,
-                             void *stream_ctx,
-                             ik_provider_completion_cb_t completion_cb,
-                             void *completion_ctx);
 
 #endif /* IK_PROVIDERS_GOOGLE_RESPONSE_H */
