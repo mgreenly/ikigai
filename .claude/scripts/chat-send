@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+require 'google/apis/chat_v1'
+require 'googleauth'
+
+AGENT_USER = ENV.fetch('GOOGLE_CHAT_USER', 'ikigai@logic-refinery.com')
+SCOPE = 'https://www.googleapis.com/auth/chat.messages.create'
+KEY_FILE = ENV.fetch('GOOGLE_APPLICATION_CREDENTIALS', File.expand_path('~/.secrets/ikigai-dev-1982.iam.gserviceaccount.com'))
+SPACE_NAME = ENV.fetch('GOOGLE_CHAT_SPACE')
+
+message_text = ARGV.join(' ')
+if message_text.empty?
+  message_text = $stdin.read
+end
+
+if message_text.strip.empty?
+  $stderr.puts "Usage: chat-send MESSAGE"
+  $stderr.puts "   or: echo MESSAGE | chat-send"
+  exit 1
+end
+
+credentials = Google::Auth::ServiceAccountCredentials.make_creds(
+  json_key_io: File.open(KEY_FILE),
+  scope: SCOPE
+)
+credentials.update!(sub: AGENT_USER)
+credentials.fetch_access_token!
+
+service = Google::Apis::ChatV1::HangoutsChatService.new
+service.authorization = credentials
+
+message = Google::Apis::ChatV1::Message.new(text: message_text)
+result = service.create_space_message(SPACE_NAME, message)
+
+puts "Sent: #{result.name}"
