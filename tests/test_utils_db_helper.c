@@ -1,7 +1,7 @@
-#include "test_utils_helper.h"
+#include "tests/helpers/test_utils_helper.h"
 
-#include "../src/db/migration.h"
-#include "../src/panic.h"
+#include "apps/ikigai/db/migration.h"
+#include "shared/panic.h"
 
 #include <libpq-fe.h>
 #include <talloc.h>

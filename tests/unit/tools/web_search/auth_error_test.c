@@ -1,4 +1,4 @@
-#include "../../../test_constants.h"
+#include "tests/test_constants.h"
 
 #include "tools/web_search/auth_error.h"
 

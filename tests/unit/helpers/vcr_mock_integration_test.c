@@ -1,4 +1,4 @@
-#include "../../test_constants.h"
+#include "tests/test_constants.h"
 /**
  * @file vcr_mock_integration_test.c
  * @brief Unit tests for VCR mock integration with curl wrappers
@@ -8,7 +8,7 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../helpers/vcr_helper.h"
+#include "tests/helpers/vcr_helper.h"
 
 // Forward declarations for curl wrappers
 CURL *curl_easy_init_(void);

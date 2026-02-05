@@ -1,7 +1,7 @@
 #include "glob_tool.h"
 
-#include "json_allocator.h"
-#include "panic.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
 
 #include <inttypes.h>
 #include <stdio.h>

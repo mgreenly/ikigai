@@ -6,8 +6,8 @@
 #include <string.h>
 #include <talloc.h>
 
-#include "json_allocator.h"
-#include "panic.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
 
 #include "vendor/yyjson/yyjson.h"
 

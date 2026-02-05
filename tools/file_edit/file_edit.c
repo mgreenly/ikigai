@@ -7,9 +7,9 @@
 #include <sys/stat.h>
 #include <talloc.h>
 
-#include "json_allocator.h"
-#include "panic.h"
-#include "wrapper.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
+#include "shared/wrapper.h"
 
 #include "vendor/yyjson/yyjson.h"
 

@@ -1,0 +1,302 @@
+#include "apps/ikigai/agent.h"
+#include <check.h>
+#include "apps/ikigai/agent.h"
+#include <talloc.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+
+#include "apps/ikigai/repl.h"
+#include "apps/ikigai/repl_actions.h"
+#include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/input_buffer/core.h"
+#include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/session.h"
+#include "apps/ikigai/db/replay.h"
+#include "shared/error.h"
+#include "apps/ikigai/providers/provider.h"
+#include "apps/ikigai/config.h"
+#include "apps/ikigai/shared.h"
+#include "shared/logger.h"
+#include "tests/helpers/test_utils_helper.h"
+
+// Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
+
+// Mock state for ik_db_message_insert
+static bool mock_message_insert_should_fail = false;
+static TALLOC_CTX *mock_err_ctx = NULL;
+
+// Mock ik_db_message_insert to simulate database error
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json)
+{
+    (void)db_ctx;
+    (void)session_id;
+    (void)agent_uuid;
+    (void)kind;
+    (void)content;
+    (void)data_json;
+
+    if (mock_message_insert_should_fail) {
+        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
+        return ERR(mock_err_ctx, DB_CONNECT, "Mock database error: Failed to insert message");
+    }
+
+    return OK(NULL);
+}
+
+// Mock ik_db_session_get_active (not used in this test, but needed for linking)
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    (void)session_id_out;
+    return OK(NULL);
+}
+
+// Mock ik_db_session_create (not used in this test, but needed for linking)
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    (void)session_id_out;
+    return OK(NULL);
+}
+
+// Note: ik_db_ensure_agent_zero mock removed - now using real implementation
+// from db/agent.c (included in MODULE_SOURCES_NO_DB)
+
+static TALLOC_CTX *test_ctx;
+static ik_repl_ctx_t *repl;
+static ik_db_ctx_t *mock_db_ctx;
+static char test_dir[256];
+static char log_file_path[512];
+
+// Mock start_stream for provider - defined here so it can be referenced in static initializer
+static res_t db_basic_mock_start_stream(void *ctx, const ik_request_t *req,
+                                        ik_stream_cb_t stream_cb, void *stream_ctx,
+                                        ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+{
+    (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+    return OK(NULL);
+}
+
+static void setup(void)
+{
+    test_ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(test_ctx);
+
+    // Initialize logger for test
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_repl_db_test_%d", getpid());
+    mkdir(test_dir, 0755);
+    ik_log_init(test_dir);
+    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
+
+    // Create mock database context (just a talloc pointer)
+    mock_db_ctx = talloc_zero_(test_ctx, 1);
+    ck_assert_ptr_nonnull(mock_db_ctx);
+
+    // Create minimal REPL context for testing
+    repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
+    ck_assert_ptr_nonnull(repl);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
+    ck_assert_ptr_nonnull(shared);
+    repl->shared = shared;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    agent->shared = shared;
+
+    // Create config
+    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_config_t));
+    ck_assert_ptr_nonnull(shared->cfg);
+    shared->cfg->openai_model = talloc_strdup_(shared->cfg, "gpt-4");
+    shared->cfg->openai_temperature = 0.7;
+    shared->cfg->openai_max_completion_tokens = 2048;
+
+    // Create scrollback
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
+
+    // Create input buffer
+    repl->current->input_buffer = ik_input_buffer_create(repl);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
+
+    // Create conversation
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
+
+    // Set agent model (required for send_to_llm check)
+    repl->current->model = talloc_strdup(repl->current, "gpt-4");
+
+    // Create mock provider (opaque pointer)
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = db_basic_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+    };
+    ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
+    mock_provider->name = "mock";
+    mock_provider->vt = &mock_vt;
+    mock_provider->ctx = talloc_zero_(repl->current, 1);
+    repl->current->provider_instance = mock_provider;
+    ck_assert_ptr_nonnull(repl->current->provider_instance);
+
+    // Create terminal context
+    repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
+    ck_assert_ptr_nonnull(repl->shared->term);
+    repl->shared->term->screen_rows = 24;
+    repl->shared->term->screen_cols = 80;
+
+    // Set up database connection
+    repl->shared->db_ctx = mock_db_ctx;
+    repl->shared->session_id = 1;
+
+    // Set viewport offset
+    repl->current->viewport_offset = 0;
+
+    // Initialize curl_still_running
+    repl->current->curl_still_running = 0;
+
+    // Reset mock state
+    mock_message_insert_should_fail = false;
+    if (mock_err_ctx != NULL) {
+        talloc_free(mock_err_ctx);
+        mock_err_ctx = NULL;
+    }
+}
+
+static void teardown(void)
+{
+    if (mock_err_ctx != NULL) {
+        talloc_free(mock_err_ctx);
+        mock_err_ctx = NULL;
+    }
+
+    talloc_free(test_ctx);
+
+    // Cleanup logger
+    ik_log_shutdown();
+    unlink(log_file_path);
+    char logs_dir[512];
+    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+    rmdir(logs_dir);
+    char ikigai_dir[512];
+    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+    rmdir(ikigai_dir);
+    rmdir(test_dir);
+}
+
+// Test that DB error during message persistence doesn't crash
+// Tests lines 145-162 in repl_actions.c
+START_TEST(test_db_message_insert_error) {
+    // Set up: Insert text into input buffer
+    const char *test_text = "Hello, world!";
+    for (const char *p = test_text; *p; p++) {
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
+        ck_assert(is_ok(&r));
+    }
+
+    // Enable DB error simulation
+    mock_message_insert_should_fail = true;
+
+    // Create newline action
+    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+
+    // Process newline action (should trigger DB persistence error path)
+    res_t result = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&result));
+
+    // Read from log file to verify error was logged
+    FILE *log_f = fopen(log_file_path, "r");
+    ck_assert_ptr_nonnull(log_f);
+
+    char buffer[1024];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, log_f);
+    buffer[len] = '\0';
+    fclose(log_f);
+
+    // Verify error was logged with structured data
+    ck_assert(strstr(buffer, "\"level\":\"warn\"") != NULL);
+    ck_assert(strstr(buffer, "\"event\":\"db_persist_failed\"") != NULL);
+    ck_assert(strstr(buffer, "\"context\":\"send_to_llm\"") != NULL);
+    ck_assert(strstr(buffer, "\"operation\":\"persist_user_message\"") != NULL);
+    ck_assert(strstr(buffer, "Mock database error") != NULL);
+
+    // Verify the user message was still added to conversation (memory state is authoritative)
+    ck_assert_uint_eq(repl->current->message_count, 1);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[0]->content_count > 0);
+
+    // Verify scrollback has the user input (scrollback may have 1 or 2 lines depending on rendering)
+    ck_assert(repl->current->scrollback->count >= 1);
+}
+END_TEST
+// Test message submission when db_ctx is NULL (no DB persistence)
+START_TEST(test_message_submission_no_db_ctx) {
+    // Set db_ctx to NULL
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 1;
+
+    // Set up: Insert text into input buffer
+    const char *test_text = "Test without DB";
+    for (const char *p = test_text; *p; p++) {
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
+        ck_assert(is_ok(&r));
+    }
+
+    // Create newline action
+    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+
+    // Process newline action (should skip DB persistence)
+    res_t result = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&result));
+
+    // Verify the user message was still added to conversation
+    ck_assert_uint_eq(repl->current->message_count, 1);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[0]->content_count > 0);
+}
+
+END_TEST
+
+static Suite *repl_actions_db_error_suite(void)
+{
+    Suite *s = suite_create("REPL Actions DB Error Basic");
+    TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+
+    tcase_add_checked_fixture(tc_core, setup, teardown);
+    tcase_add_test(tc_core, test_db_message_insert_error);
+    tcase_add_test(tc_core, test_message_submission_no_db_ctx);
+
+    suite_add_tcase(s, tc_core);
+
+    return s;
+}
+
+int main(void)
+{
+    int number_failed;
+    Suite *s = repl_actions_db_error_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/repl/repl_actions_db_basic_test.xml");
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

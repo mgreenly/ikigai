@@ -1,10 +1,10 @@
-#include "../../../tests/helpers/test_contexts_helper.h"
+#include "tests/helpers/test_contexts_helper.h"
 
-#include "../../../src/error.h"
-#include "../../../src/config.h"
-#include "../../../src/shared.h"
-#include "../../../src/repl.h"
-#include "../../test_utils_helper.h"
+#include "shared/error.h"
+#include "apps/ikigai/config.h"
+#include "apps/ikigai/shared.h"
+#include "apps/ikigai/repl.h"
+#include "tests/helpers/test_utils_helper.h"
 
 #include <check.h>
 #include <talloc.h>

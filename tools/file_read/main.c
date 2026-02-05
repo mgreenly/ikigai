@@ -1,7 +1,7 @@
 #include "file_read.h"
 
-#include "json_allocator.h"
-#include "panic.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
 
 #include <errno.h>
 #include <inttypes.h>
