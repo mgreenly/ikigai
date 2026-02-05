@@ -17,3 +17,4 @@ openai_start_stream
 parse_usage
 process_content_delta
 process_data_line
+process_function_call
