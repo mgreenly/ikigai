@@ -26,6 +26,7 @@ typedef struct {
 static const ik_anthropic_budget_t BUDGET_TABLE[] = {
     {"claude-sonnet-4-5", 1024, 65536},
     {"claude-haiku-4-5", 1024, 32768},
+    {"claude-opus-4-6", 1024, 131072},
     {NULL, 0, 0} // Sentinel
 };
 
