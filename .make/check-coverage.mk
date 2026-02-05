@@ -32,9 +32,7 @@ ifdef RAW
 	@mkdir -p $(COVERAGE_DIR)
 	lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info \
 		$(LCOV_FLAGS) --rc lcov_branch_coverage=1
-	lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' \
-		--output-file $(COVERAGE_DIR)/coverage.info $(LCOV_FLAGS)
-	lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' \
+	lcov --extract $(COVERAGE_DIR)/coverage.info '*/apps/ikigai/*' '*/shared/*' \
 		--output-file $(COVERAGE_DIR)/coverage.info $(LCOV_FLAGS)
 	lcov --list $(COVERAGE_DIR)/coverage.info --list-full-path $(LCOV_FLAGS)
 	@# Check for failures
@@ -64,9 +62,7 @@ else
 	@mkdir -p $(COVERAGE_DIR)
 	@lcov --capture --directory . --output-file $(COVERAGE_DIR)/coverage.info \
 		$(LCOV_FLAGS) --rc lcov_branch_coverage=1 --quiet >/dev/null 2>&1
-	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/src/*' \
-		--output-file $(COVERAGE_DIR)/coverage.info $(LCOV_FLAGS) --quiet >/dev/null 2>&1
-	@lcov --remove $(COVERAGE_DIR)/coverage.info '*/src/vendor/*' \
+	@lcov --extract $(COVERAGE_DIR)/coverage.info '*/apps/ikigai/*' '*/shared/*' \
 		--output-file $(COVERAGE_DIR)/coverage.info $(LCOV_FLAGS) --quiet >/dev/null 2>&1
 	@lcov --list $(COVERAGE_DIR)/coverage.info --list-full-path $(LCOV_FLAGS) 2>&1 \
 		| grep -E '\.c\s*\|' > $(COVERAGE_DIR)/files.txt

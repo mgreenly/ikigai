@@ -1,0 +1,497 @@
+/**
+ * @file repl_session_test.c
+ * @brief Unit tests for REPL session management and agent restoration
+ */
+
+#include <check.h>
+#include <talloc.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <signal.h>
+#include "apps/ikigai/repl.h"
+#include "apps/ikigai/shared.h"
+#include "apps/ikigai/paths.h"
+#include "shared/credentials.h"
+#include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/agent.h"
+#include "tests/helpers/test_utils_helper.h"
+#include "shared/logger.h"
+
+// Mock state for controlling failures
+static bool mock_session_get_active_should_fail = false;
+static bool mock_session_create_should_fail = false;
+static bool mock_restore_agents_should_fail = false;
+static bool mock_session_exists = false;  // Controls if session_get_active returns existing session
+
+// Forward declarations for wrapper functions
+int posix_open_(const char *pathname, int flags);
+int posix_ioctl_(int fd, unsigned long request, void *argp);
+int posix_close_(int fd);
+int posix_tcgetattr_(int fd, struct termios *termios_p);
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p);
+int posix_tcflush_(int fd, int queue_selector);
+ssize_t posix_write_(int fd, const void *buf, size_t count);
+ssize_t posix_read_(int fd, void *buf, size_t count);
+int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json);
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
+typedef struct ik_paths_t ik_paths_t;
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
+res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
+                                  const char *uuid,
+                                  const char *provider,
+                                  const char *model,
+                                  const char *thinking_level);
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
+res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
+
+// Forward declaration for suite function
+static Suite *repl_session_suite(void);
+
+// Suite-level setup
+static void suite_setup(void)
+{
+    ik_test_set_log_dir(__FILE__);
+}
+
+// Suite-level teardown
+static void suite_teardown(void)
+{
+    // No cleanup needed
+}
+
+// Mock ik_db_init_ - always succeeds in session tests
+res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
+{
+    (void)conn_str;
+    (void)data_dir;
+    ik_db_ctx_t *dummy_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
+    if (dummy_ctx == NULL) {
+        return ERR(mem_ctx, IO, "Out of memory");
+    }
+    *out_ctx = (void *)dummy_ctx;
+    return OK(dummy_ctx);
+}
+
+// Mock ik_db_ensure_agent_zero - always succeeds in session tests
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
+{
+    (void)paths;  // Unused in mock
+
+    *out_uuid = talloc_strdup(db, "agent-zero-uuid");
+    if (*out_uuid == NULL) {  // LCOV_EXCL_BR_LINE
+        return ERR(db, OUT_OF_MEMORY, "Out of memory");  // LCOV_EXCL_LINE
+    }
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_insert
+res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
+{
+    (void)db_ctx;
+    (void)agent;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_update_provider
+res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
+                                  const char *provider, const char *model, const char *thinking_level)
+{
+    (void)db_ctx;
+    (void)uuid;
+    (void)provider;
+    (void)model;
+    (void)thinking_level;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_get
+res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out)
+{
+    (void)db_ctx;
+    (void)uuid;
+    ik_db_agent_row_t *row = talloc_zero(ctx, ik_db_agent_row_t);
+    if (row == NULL) {  // LCOV_EXCL_BR_LINE
+        return ERR(ctx, OUT_OF_MEMORY, "Out of memory");  // LCOV_EXCL_LINE
+    }
+    row->status = talloc_strdup(row, "running");
+    *out = row;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_get_last_message_id
+res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
+                                      int64_t *out_message_id)
+{
+    (void)db_ctx;
+    (void)agent_uuid;
+    *out_message_id = 0;  // No messages
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_mark_dead
+res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
+{
+    (void)db_ctx;
+    (void)uuid;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_list_running
+res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx,
+                               ik_db_agent_row_t ***out, size_t *count)
+{
+    (void)db_ctx;
+    *out = talloc_zero_array(mem_ctx, ik_db_agent_row_t *, 0);
+    *count = 0;
+    return OK(NULL);
+}
+
+// Mock ik_repl_restore_agents
+res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
+{
+    if (mock_restore_agents_should_fail) {
+        return ERR(repl, IO, "Mock restore agents failure");
+    }
+    (void)repl;
+    (void)db_ctx;
+    return OK(NULL);
+}
+
+// Mock ik_db_message_insert
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json)
+{
+    (void)db_ctx;
+    (void)session_id;
+    (void)agent_uuid;
+    (void)kind;
+    (void)content;
+    (void)data_json;
+    return OK(NULL);
+}
+
+// Mock ik_db_session_create
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    if (mock_session_create_should_fail) {
+        return ERR(db_ctx, IO, "Mock session create failure");
+    }
+    (void)db_ctx;
+    *session_id_out = 1;  // Return a dummy session ID
+    return OK(NULL);
+}
+
+// Mock ik_db_session_get_active
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    if (mock_session_get_active_should_fail) {
+        return ERR(db_ctx, IO, "Mock session get active failure");
+    }
+    (void)db_ctx;
+    if (mock_session_exists) {
+        *session_id_out = 42;  // Return an existing session ID
+    } else {
+        *session_id_out = 0;  // No active session - return 0 (not an error)
+    }
+    return OK(NULL);
+}
+
+// Mock POSIX functions
+int posix_open_(const char *pathname, int flags)
+{
+    (void)pathname;
+    (void)flags;
+    return 99;  // Dummy fd
+}
+
+int posix_ioctl_(int fd, unsigned long request, void *argp)
+{
+    (void)fd;
+    (void)request;
+    struct winsize *ws = (struct winsize *)argp;
+    ws->ws_row = 24;
+    ws->ws_col = 80;
+    return 0;
+}
+
+int posix_close_(int fd)
+{
+    (void)fd;
+    return 0;
+}
+
+int posix_tcgetattr_(int fd, struct termios *termios_p)
+{
+    (void)fd;
+    (void)termios_p;
+    return 0;
+}
+
+int posix_tcsetattr_(int fd, int optional_actions, const struct termios *termios_p)
+{
+    (void)fd;
+    (void)optional_actions;
+    (void)termios_p;
+    return 0;
+}
+
+int posix_tcflush_(int fd, int queue_selector)
+{
+    (void)fd;
+    (void)queue_selector;
+    return 0;
+}
+
+ssize_t posix_write_(int fd, const void *buf, size_t count)
+{
+    (void)fd;
+    (void)buf;
+    return (ssize_t)count;
+}
+
+ssize_t posix_read_(int fd, void *buf, size_t count)
+{
+    (void)fd;
+    (void)buf;
+    (void)count;
+    return 0;
+}
+
+int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+    (void)signum;
+    (void)act;
+    (void)oldact;
+    return 0;  // Always succeed in session tests
+}
+
+/* Test: Session get active failure */
+START_TEST(test_repl_init_session_get_active_failure) {
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for session get active
+    mock_session_get_active_should_fail = true;
+
+    // Create config with database
+    ik_config_t *cfg = ik_test_create_config(ctx);
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on session_get_active
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_session_get_active_should_fail = false;
+
+    talloc_free(ctx);
+}
+END_TEST
+/* Test: Session create failure */
+START_TEST(test_repl_init_session_create_failure) {
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for session create
+    mock_session_create_should_fail = true;
+
+    // Create config with database
+    ik_config_t *cfg = ik_test_create_config(ctx);
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on session_create
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_session_create_should_fail = false;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Restore agents failure */
+START_TEST(test_repl_init_restore_agents_failure) {
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock failure for restore agents
+    mock_restore_agents_should_fail = true;
+
+    // Create config with database
+    ik_config_t *cfg = ik_test_create_config(ctx);
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Attempt to initialize REPL - should fail on restore_agents
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify failure
+    ck_assert(is_err(&res));
+    ck_assert_ptr_null(repl);
+
+    // Cleanup mock state
+    mock_restore_agents_should_fail = false;
+
+    talloc_free(ctx);
+}
+
+END_TEST
+/* Test: Existing session found (session_id != 0) */
+START_TEST(test_repl_init_existing_session) {
+    void *ctx = talloc_new(NULL);
+    ik_repl_ctx_t *repl = NULL;
+
+    // Enable mock existing session
+    mock_session_exists = true;
+
+    // Create config with database
+    ik_config_t *cfg = ik_test_create_config(ctx);
+    cfg->db_host = talloc_strdup(cfg, "localhost");
+    cfg->db_port = 5432;
+    cfg->db_name = talloc_strdup(cfg, "test");
+    cfg->db_user = talloc_strdup(cfg, "test");
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    ik_shared_ctx_t *shared = NULL;
+    // Setup test paths
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
+    if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    ck_assert(is_ok(&res));
+
+    // Initialize REPL - should use existing session
+    res = ik_repl_init(ctx, shared, &repl);
+
+    // Verify success
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(repl);
+    ck_assert_ptr_nonnull(repl->shared->db_ctx);
+
+    // Verify session_id was set to the existing session ID (42)
+    ck_assert_int_eq(shared->session_id, 42);
+
+    // Cleanup mock state
+    mock_session_exists = false;
+
+    ik_repl_cleanup(repl);
+    talloc_free(ctx);
+}
+
+END_TEST
+
+static Suite *repl_session_suite(void)
+{
+    Suite *s = suite_create("REPL Session Management");
+
+    TCase *tc_session = tcase_create("Session Operations");
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_session, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_session, suite_setup, suite_teardown);
+    tcase_add_test(tc_session, test_repl_init_session_get_active_failure);
+    tcase_add_test(tc_session, test_repl_init_session_create_failure);
+    tcase_add_test(tc_session, test_repl_init_restore_agents_failure);
+    tcase_add_test(tc_session, test_repl_init_existing_session);
+    suite_add_tcase(s, tc_session);
+
+    return s;
+}
+
+int main(void)
+{
+    int number_failed;
+    Suite *s = repl_session_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/repl/repl_session_test.xml");
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

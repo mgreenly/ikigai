@@ -1,13 +1,13 @@
-#include "../../../src/shared.h"
-#include "../../../src/paths.h"
+#include "apps/ikigai/shared.h"
+#include "apps/ikigai/paths.h"
 
-#include "../../../src/credentials.h"
-#include "../../../src/error.h"
-#include "../../../src/config.h"
-#include "../../../src/terminal.h"
-#include "../../../src/render.h"
-#include "../../../src/history.h"
-#include "../../test_utils_helper.h"
+#include "shared/credentials.h"
+#include "shared/error.h"
+#include "apps/ikigai/config.h"
+#include "shared/terminal.h"
+#include "apps/ikigai/render.h"
+#include "apps/ikigai/history.h"
+#include "tests/helpers/test_utils_helper.h"
 
 #include <check.h>
 #include <errno.h>

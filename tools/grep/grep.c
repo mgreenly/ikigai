@@ -1,7 +1,7 @@
 #include "grep.h"
 
-#include "panic.h"
-#include "wrapper_posix.h"
+#include "shared/panic.h"
+#include "shared/wrapper_posix.h"
 
 #include <glob.h>
 #include <regex.h>

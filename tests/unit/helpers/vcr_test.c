@@ -1,4 +1,4 @@
-#include "../../test_constants.h"
+#include "tests/test_constants.h"
 /**
  * @file vcr_test.c
  * @brief Unit tests for VCR HTTP recording/replay basic operations
@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "../../helpers/vcr_helper.h"
+#include "tests/helpers/vcr_helper.h"
 
 // Test fixture paths
 #define TEST_FIXTURE_DIR "tests/fixtures/vcr/test"

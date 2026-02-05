@@ -1,0 +1,302 @@
+#include "apps/ikigai/agent.h"
+#include <check.h>
+#include "apps/ikigai/agent.h"
+#include <talloc.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/select.h>
+
+#include "apps/ikigai/repl.h"
+#include "apps/ikigai/repl_actions.h"
+#include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/input_buffer/core.h"
+#include "apps/ikigai/db/agent.h"
+#include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/mail.h"
+#include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/replay.h"
+#include "apps/ikigai/db/session.h"
+#include "shared/error.h"
+#include "apps/ikigai/mail/msg.h"
+#include "apps/ikigai/providers/provider.h"
+#include "apps/ikigai/config.h"
+#include "apps/ikigai/shared.h"
+#include "tests/helpers/test_utils_helper.h"
+
+// Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
+
+// Mock state for ik_db_message_insert
+static bool mock_message_insert_should_fail = false;
+static TALLOC_CTX *mock_err_ctx = NULL;
+
+// Mock ik_db_message_insert to simulate database error
+res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json)
+{
+    (void)db_ctx;
+    (void)session_id;
+    (void)agent_uuid;
+    (void)kind;
+    (void)content;
+    (void)data_json;
+
+    if (mock_message_insert_should_fail) {
+        if (mock_err_ctx == NULL) mock_err_ctx = talloc_new(NULL);
+        return ERR(mock_err_ctx, DB_CONNECT, "Mock database error: Failed to insert message");
+    }
+
+    return OK(NULL);
+}
+
+// Mock ik_db_session_get_active (not used in this test, but needed for linking)
+res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    (void)session_id_out;
+    return OK(NULL);
+}
+
+// Mock ik_db_session_create (not used in this test, but needed for linking)
+res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
+{
+    (void)db_ctx;
+    (void)session_id_out;
+    return OK(NULL);
+}
+
+// Note: ik_db_ensure_agent_zero and ik_db_mail_insert mocks removed
+// - now using real implementations from db/agent.c and db/mail.c (included in MODULE_SOURCES_NO_DB)
+
+static TALLOC_CTX *test_ctx;
+static ik_repl_ctx_t *repl;
+static ik_db_ctx_t *mock_db_ctx;
+
+// Mock start_stream for provider - defined here so it can be referenced in static initializer
+static res_t db_test_mock_start_stream(void *ctx, const ik_request_t *req,
+                                       ik_stream_cb_t stream_cb, void *stream_ctx,
+                                       ik_provider_completion_cb_t completion_cb, void *completion_ctx)
+{
+    (void)ctx; (void)req; (void)stream_cb; (void)stream_ctx;
+    (void)completion_cb; (void)completion_ctx;
+    return OK(NULL);
+}
+
+static void setup(void)
+{
+    test_ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(test_ctx);
+
+    // Create mock database context (just a talloc pointer)
+    mock_db_ctx = talloc_zero_(test_ctx, 1);
+    ck_assert_ptr_nonnull(mock_db_ctx);
+
+    // Create minimal REPL context for testing
+    repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
+    ck_assert_ptr_nonnull(repl);
+
+    // Create shared context
+    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
+    ck_assert_ptr_nonnull(shared);
+    repl->shared = shared;
+
+    // Create agent context for display state
+    ik_agent_ctx_t *agent = talloc_zero_(repl, sizeof(ik_agent_ctx_t));
+    ck_assert_ptr_nonnull(agent);
+    repl->current = agent;
+    agent->shared = shared;
+
+    // Create config
+    shared->cfg = talloc_zero_(test_ctx, sizeof(ik_config_t));
+    ck_assert_ptr_nonnull(shared->cfg);
+    shared->cfg->openai_model = talloc_strdup_(shared->cfg, "gpt-4");
+    shared->cfg->openai_temperature = 0.7;
+    shared->cfg->openai_max_completion_tokens = 2048;
+
+    // Create scrollback
+    repl->current->scrollback = ik_scrollback_create(repl, 80);
+    ck_assert_ptr_nonnull(repl->current->scrollback);
+
+    // Create input buffer
+    repl->current->input_buffer = ik_input_buffer_create(repl);
+    ck_assert_ptr_nonnull(repl->current->input_buffer);
+
+    // Create conversation
+    repl->current->messages = NULL; repl->current->message_count = 0; repl->current->message_capacity = 0;
+
+    // Set agent model (required for send_to_llm check)
+    repl->current->model = talloc_strdup(repl->current, "gpt-4");
+
+    // Create mock provider (opaque pointer)
+    static const ik_provider_vtable_t mock_vt = {
+        .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
+        .start_request = NULL, .start_stream = db_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+    };
+    ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
+    mock_provider->name = "mock";
+    mock_provider->vt = &mock_vt;
+    mock_provider->ctx = talloc_zero_(repl->current, 1);
+    repl->current->provider_instance = mock_provider;
+    ck_assert_ptr_nonnull(repl->current->provider_instance);
+
+    // Create terminal context
+    repl->shared->term = talloc_zero_(repl, sizeof(ik_term_ctx_t));
+    ck_assert_ptr_nonnull(repl->shared->term);
+    repl->shared->term->screen_rows = 24;
+    repl->shared->term->screen_cols = 80;
+
+    // Set up database connection
+    repl->shared->db_ctx = mock_db_ctx;
+    repl->shared->session_id = 1;
+
+    // Set viewport offset
+    repl->current->viewport_offset = 0;
+
+    // Initialize curl_still_running
+    repl->current->curl_still_running = 0;
+
+    // Reset mock state
+    mock_message_insert_should_fail = false;
+    if (mock_err_ctx != NULL) {
+        talloc_free(mock_err_ctx);
+        mock_err_ctx = NULL;
+    }
+}
+
+static void teardown(void)
+{
+    if (mock_err_ctx != NULL) {
+        talloc_free(mock_err_ctx);
+        mock_err_ctx = NULL;
+    }
+
+    talloc_free(test_ctx);
+}
+
+// Test message submission when session_id is 0 (no active session)
+START_TEST(test_message_submission_no_session) {
+    // Set session_id to 0 (no active session)
+    repl->shared->db_ctx = mock_db_ctx;
+    repl->shared->session_id = 0;
+
+    // Set up: Insert text into input buffer
+    const char *test_text = "Test without session";
+    for (const char *p = test_text; *p; p++) {
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
+        ck_assert(is_ok(&r));
+    }
+
+    // Create newline action
+    ik_input_action_t action = {.type = IK_INPUT_NEWLINE};
+
+    // Process newline action (should skip DB persistence)
+    res_t result = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&result));
+
+    // Verify the user message was still added to conversation
+    ck_assert_uint_eq(repl->current->message_count, 1);
+    ck_assert(repl->current->messages[0]->role == IK_ROLE_USER);
+    ck_assert(repl->current->messages[0]->content_count > 0);
+}
+
+END_TEST
+// Test backspace success path (line 79 error path is defensive)
+START_TEST(test_backspace_error_path) {
+    // Note: line 79 is a defensive error check in backspace handling
+    // The actual error path is very difficult to trigger without mocking
+    // ik_input_buffer_backspace, as it would require cursor manipulation
+    // failures which are themselves defensive checks
+
+    // Test the normal success path to ensure backspace handling works
+    const char *test_text = "xy";
+    for (const char *p = test_text; *p; p++) {
+        ik_input_action_t insert_action = {.type = IK_INPUT_CHAR, .codepoint = (uint32_t)*p};
+        res_t r = ik_repl_process_action(repl, &insert_action);
+        ck_assert(is_ok(&r));
+    }
+
+    // Process backspace action - should delete 'y'
+    ik_input_action_t action = {.type = IK_INPUT_BACKSPACE};
+    res_t result = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&result));
+
+    // Verify one character was deleted
+    size_t len = 0;
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
+    ck_assert_uint_eq(len, 1);
+    ck_assert_int_eq(text[0], 'x');
+}
+
+END_TEST
+// Test ESC with completion original_input revert (lines 134-137)
+START_TEST(test_escape_revert_original_input) {
+    // Set up completion with original_input
+    repl->current->completion = talloc_zero_(repl, sizeof(ik_completion_t));
+    ck_assert_ptr_nonnull(repl->current->completion);
+
+    // Set original input
+    const char *original = "original text";
+    repl->current->completion->original_input = talloc_strdup_(repl->current->completion, original);
+    ck_assert_ptr_nonnull(repl->current->completion->original_input);
+
+    // Put different text in the input buffer
+    const char *current = "modified text";
+    for (const char *p = current; *p; p++) {
+        res_t r = ik_byte_array_append(repl->current->input_buffer->text, (uint8_t)*p);
+        ck_assert(is_ok(&r));
+    }
+
+    // Process ESC action - should revert to original
+    ik_input_action_t action = {.type = IK_INPUT_ESCAPE};
+    res_t result = ik_repl_process_action(repl, &action);
+    ck_assert(is_ok(&result));
+
+    // Verify input was reverted to original
+    size_t len = 0;
+    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &len);
+    ck_assert_uint_eq(len, strlen(original));
+    ck_assert_mem_eq(text, original, len);
+
+    // Verify completion was dismissed
+    ck_assert_ptr_null(repl->current->completion);
+}
+
+END_TEST
+
+static Suite *repl_actions_db_error_suite(void)
+{
+    Suite *s = suite_create("REPL Actions DB Error Advanced");
+    TCase *tc_core = tcase_create("Core");
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
+
+    tcase_add_checked_fixture(tc_core, setup, teardown);
+    tcase_add_test(tc_core, test_message_submission_no_session);
+    tcase_add_test(tc_core, test_backspace_error_path);
+    tcase_add_test(tc_core, test_escape_revert_original_input);
+
+    suite_add_tcase(s, tc_core);
+
+    return s;
+}
+
+int main(void)
+{
+    int number_failed;
+    Suite *s = repl_actions_db_error_suite();
+    SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/repl/repl_actions_db_advanced_test.xml");
+
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
+
+    return (number_failed == 0) ? 0 : 1;
+}

@@ -1,8 +1,8 @@
 #include "glob_tool.h"
 
-#include "json_allocator.h"
-#include "panic.h"
-#include "wrapper_posix.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
+#include "shared/wrapper_posix.h"
 
 #include <glob.h>
 #include <inttypes.h>

@@ -4,9 +4,9 @@
 
 check-compile:
 ifdef FILE
-	@obj=$$(echo $(FILE) | sed 's|^src/|$(BUILDDIR)/|; s|^tools/|$(BUILDDIR)/tools/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
+	@obj=$$(echo $(FILE) | sed 's|^apps/|$(BUILDDIR)/apps/|; s|^shared/|$(BUILDDIR)/shared/|; s|^vendor/|$(BUILDDIR)/vendor/|; s|^tools/|$(BUILDDIR)/tools/|; s|^tests/|$(BUILDDIR)/tests/|; s|\.c$$|.o|'); \
 	mkdir -p $$(dirname $$obj); \
-	if echo "$(FILE)" | grep -q "^src/vendor/"; then \
+	if echo "$(FILE)" | grep -q "^vendor/"; then \
 		cflags="$(VENDOR_CFLAGS)"; \
 	else \
 		cflags="$(CFLAGS)"; \

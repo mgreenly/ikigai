@@ -1,9 +1,9 @@
 #pragma once
 
-#include "shared.h"
-#include "repl.h"
-#include "config.h"
-#include "error.h"
+#include "apps/ikigai/shared.h"
+#include "apps/ikigai/repl.h"
+#include "apps/ikigai/config.h"
+#include "shared/error.h"
 
 #include <talloc.h>
 

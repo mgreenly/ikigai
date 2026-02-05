@@ -1,14 +1,14 @@
 // NOTE: Calling test files must call ik_test_set_log_dir(__FILE__)
 // before using these helpers to ensure proper log isolation.
 
-#include "test_contexts_helper.h"
+#include "tests/helpers/test_contexts_helper.h"
 
-#include "credentials.h"
-#include "logger.h"
-#include "panic.h"
-#include "paths.h"
-#include "wrapper.h"
-#include "../test_utils_helper.h"
+#include "shared/credentials.h"
+#include "shared/logger.h"
+#include "shared/panic.h"
+#include "apps/ikigai/paths.h"
+#include "shared/wrapper.h"
+#include "tests/helpers/test_utils_helper.h"
 
 ik_config_t *test_cfg_create(TALLOC_CTX *ctx)
 {

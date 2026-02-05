@@ -72,7 +72,7 @@ COVERAGE_THRESHOLD ?= 90
 COVERAGE_LDFLAGS = --coverage
 
 # Base flags
-BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -I. -Isrc -I/usr/include/postgresql -I/usr/include/libxml2
+BASE_FLAGS = -std=c17 -fPIC -D_GNU_SOURCE -I. -I/usr/include/postgresql -I/usr/include/libxml2
 
 # Build type selection (debug, release, sanitize, tsan, or valgrind)
 BUILD ?= debug
@@ -120,16 +120,22 @@ CFLAGS = $(BASE_FLAGS) $(WARNING_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FL
 VENDOR_CFLAGS = $(BASE_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIAG_FLAGS) -Wno-conversion
 
 # Discover all source files
-SRC_FILES = $(shell find src -name '*.c' -not -path '*/vendor/*' 2>/dev/null)
+APP_FILES = $(shell find apps/ikigai -name '*.c' 2>/dev/null)
+SHARED_FILES = $(shell find shared -name '*.c' 2>/dev/null)
+SRC_FILES = $(APP_FILES) $(SHARED_FILES)
 TOOL_FILES = $(shell find tools -name '*.c' 2>/dev/null)
 TEST_FILES = $(shell find tests -name '*.c' 2>/dev/null)
-VENDOR_FILES = $(shell find src/vendor -name '*.c' 2>/dev/null)
+VENDOR_FILES = $(shell find vendor -name '*.c' 2>/dev/null)
 
 # Convert to object files
-SRC_OBJECTS = $(patsubst src/%.c,$(BUILDDIR)/%.o,$(SRC_FILES))
+APP_OBJECTS = $(patsubst apps/ikigai/%.c,$(BUILDDIR)/apps/ikigai/%.o,$(APP_FILES))
+SHARED_OBJECTS = $(patsubst shared/%.c,$(BUILDDIR)/shared/%.o,$(SHARED_FILES))
 TOOL_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(TOOL_FILES))
 TEST_OBJECTS = $(patsubst tests/%.c,$(BUILDDIR)/tests/%.o,$(TEST_FILES))
-VENDOR_OBJECTS = $(patsubst src/vendor/%.c,$(BUILDDIR)/vendor/%.o,$(VENDOR_FILES))
+VENDOR_OBJECTS = $(patsubst vendor/%.c,$(BUILDDIR)/vendor/%.o,$(VENDOR_FILES))
+
+# Combined source objects (app + shared)
+SRC_OBJECTS = $(APP_OBJECTS) $(SHARED_OBJECTS)
 
 # All objects
 ALL_OBJECTS = $(SRC_OBJECTS) $(TOOL_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
@@ -139,7 +145,7 @@ VCR_STUBS = $(BUILDDIR)/tests/helpers/vcr_stubs_helper.o
 IKIGAI_OBJECTS = $(SRC_OBJECTS) $(VENDOR_OBJECTS) $(VCR_STUBS)
 
 # Module objects for tests and tools (all src objects + vendor, EXCEPT main.o)
-MODULE_OBJ = $(filter-out $(BUILDDIR)/main.o,$(SRC_OBJECTS)) $(VENDOR_OBJECTS)
+MODULE_OBJ = $(filter-out $(BUILDDIR)/apps/ikigai/main.o,$(SRC_OBJECTS)) $(VENDOR_OBJECTS)
 
 # Tool objects for tests (all tool objects EXCEPT main.o files)
 TOOL_MAIN_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(shell find tools -name 'main.c' 2>/dev/null))
@@ -162,8 +168,18 @@ MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
 MAKEFLAGS += --output-sync=line
 MAKEFLAGS += --no-print-directory
 
-# Pattern rule: compile source files from src/
-$(BUILDDIR)/%.o: src/%.c
+# Pattern rule: compile source files from apps/ikigai/
+$(BUILDDIR)/apps/ikigai/%.o: apps/ikigai/%.c
+	@mkdir -p $(dir $@)
+	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
+
+# Pattern rule: compile source files from shared/
+$(BUILDDIR)/shared/%.o: shared/%.c
 	@mkdir -p $(dir $@)
 	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
 		echo "🟢 $<"; \
@@ -183,7 +199,7 @@ $(BUILDDIR)/tests/%.o: tests/%.c
 	fi
 
 # Pattern rule: compile vendor files with relaxed warnings
-$(BUILDDIR)/vendor/%.o: src/vendor/%.c
+$(BUILDDIR)/vendor/%.o: vendor/%.c
 	@mkdir -p $(dir $@)
 	@if $(CC) $(VENDOR_CFLAGS) -c $< -o $@ 2>&1; then \
 		echo "🟢 $<"; \

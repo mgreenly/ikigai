@@ -1,14 +1,14 @@
 #include "web_search.h"
 
 #include "auth_error.h"
-#include "credentials.h"
+#include "shared/credentials.h"
 #include "domain_utils.h"
-#include "error.h"
-#include "json_allocator.h"
-#include "panic.h"
-#include "wrapper_posix.h"
-#include "wrapper_stdlib.h"
-#include "wrapper_web.h"
+#include "shared/error.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
+#include "shared/wrapper_posix.h"
+#include "shared/wrapper_stdlib.h"
+#include "shared/wrapper_web.h"
 
 #include <curl/curl.h>
 #include <inttypes.h>

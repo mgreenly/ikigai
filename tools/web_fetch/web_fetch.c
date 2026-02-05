@@ -1,9 +1,9 @@
 #include "web_fetch.h"
 
 #include "html_to_markdown.h"
-#include "json_allocator.h"
-#include "panic.h"
-#include "wrapper_web.h"
+#include "shared/json_allocator.h"
+#include "shared/panic.h"
+#include "shared/wrapper_web.h"
 
 #include <curl/curl.h>
 #include <inttypes.h>
