@@ -39,6 +39,10 @@ static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
                              (thinking_level == IK_THINKING_MED)  ? "med" : "high";
 
     if (strcmp(provider, "anthropic") == 0) {
+        if (ik_anthropic_is_adaptive_model(model_name)) {
+            return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s effort (adaptive)",
+                                   model_name, level_name);
+        }
         int32_t budget = ik_anthropic_thinking_budget(model_name, thinking_level);
         if (budget > 0) {
             return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s (%d tokens)",

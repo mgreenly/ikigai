@@ -56,6 +56,7 @@ static void add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
             return; // Omit thinking parameter
         }
 
+        // Adaptive thinking: {"thinking": {"type": "adaptive"}}
         yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
         if (!thinking_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
@@ -64,12 +65,21 @@ static void add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
             PANIC("Out of memory"); // LCOV_EXCL_LINE
         }
 
-        if (!yyjson_mut_obj_add_str(doc, thinking_obj, "effort", effort)) { // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             PANIC("Out of memory"); // LCOV_EXCL_LINE
         }
 
-        if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
+        // Effort goes in output_config, not inside thinking
+        yyjson_mut_val *output_config = yyjson_mut_obj(doc);
+        if (!output_config) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        if (!yyjson_mut_obj_add_str(doc, output_config, "effort", effort)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+
+        if (!yyjson_mut_obj_add_val(doc, root, "output_config", output_config)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             PANIC("Out of memory"); // LCOV_EXCL_LINE
         }
