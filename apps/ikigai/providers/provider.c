@@ -17,6 +17,7 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"claude-haiku-4-5", "anthropic", true, 32000},
     {"claude-sonnet-4-5", "anthropic", true, 64000},
     {"claude-opus-4-5", "anthropic", true, 64000},
+    {"claude-opus-4-6", "anthropic", true, 128000},
 
     // OpenAI GPT-5.x thinking models (effort-based, budget = 0)
     {"gpt-5", "openai", true, 0},
