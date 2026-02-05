@@ -32,7 +32,8 @@ end
 
 # Get all source files (excluding vendor)
 def get_source_files
-  Dir.glob('src/**/*.c').reject { |f| f.start_with?('src/vendor/') }.sort
+  (Dir.glob('apps/**/*.c') + Dir.glob('shared/**/*.c') + Dir.glob('tools/**/*.c'))
+    .reject { |f| f.include?('/vendor/') }.sort
 end
 
 # Get functions reachable from an entry point using cflow
@@ -41,8 +42,8 @@ def get_reachable_functions(entry_point, src_files)
   _, output = run_cmd(cmd)
 
   functions = Set.new
-  # Match: func_name() <...at src/...>
-  output.scan(/([a-zA-Z_][a-zA-Z0-9_]*)\(\) <[^>]+at src\/[^>]+>/) do |match|
+  # Match: func_name() <...at apps/|shared/|tools/...>
+  output.scan(/([a-zA-Z_][a-zA-Z0-9_]*)\(\) <[^>]+at (?:apps|shared|tools)\/[^>]+>/) do |match|
     functions.add(match[0])
   end
   functions
@@ -66,11 +67,11 @@ def get_defined_functions(src_files)
   functions
 end
 
-# Get command handlers from src/commands.c
+# Get command handlers from apps/ikigai/commands.c
 def get_command_handlers
-  return [] unless File.exist?('src/commands.c')
+  return [] unless File.exist?('apps/ikigai/commands.c')
 
-  content = File.read('src/commands.c')
+  content = File.read('apps/ikigai/commands.c')
   content.scan(/ik_cmd_[a-z_]+/).uniq
 end
 
