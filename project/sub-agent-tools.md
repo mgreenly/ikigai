@@ -1,6 +1,6 @@
 # Sub-Agent Tools
 
-**Status:** Design discussion, not finalized.
+**Status:** Design finalized. See `.claude/data/scratch.md` for full design decisions (rel-11).
 
 ## Philosophy
 
@@ -12,67 +12,76 @@ Design principles:
 - **Composable** - simple primitives combine into complex patterns
 - **Stupid simple** - if the LLM can get confused, simplify further
 
-## The Two-Path Model
+## Internal Tools
 
-LLM sees only two ways to take action:
+Each tool gets its own registry entry with a precise schema. The LLM sees them in a single alphabetized list alongside external tools — no distinction.
 
-| Path | Purpose |
-|------|---------|
-| `/bash` | Shell commands |
-| `/slash <command>` | Everything else |
+| Tool name (LLM sees) | Backed by command | Purpose |
+|---|---|---|
+| `fork` | `/fork` | Create a child agent |
+| `kill` | `/kill` | Terminate an agent |
+| `mail_send` | `/mail-send` | Send message to another agent |
+| `mail_check` | `/mail-check` | Check inbox |
+| `mail_read` | `/mail-read` | Read a specific message |
+| `mail_delete` | `/mail-delete` | Delete a message |
+| `mail_filter` | `/mail-filter` | Filter messages by criteria |
 
-Sub-agent operations (`fork`, `send`, `check-mail`, `kill`) are slash commands. Under the hood, some slash commands route to internal tool implementations, but the LLM doesn't know or care.
+## Human-Only Commands
 
-**Benefits:**
-- Minimal cognitive load ("is this a tool or command?" - doesn't matter)
-- Consistent syntax for all operations
-- Easy to extend (new commands, same pattern)
-- System prompt stays simple
+These are NOT internal tools. They never appear in the tool list.
 
-## Commands
+| Command | Purpose |
+|---|---|
+| `/capture` | Enter capture mode for composing sub-agent tasks |
+| `/cancel` | Exit capture mode without forking |
 
-### /slash fork [PROMPT]
+## Slash Command vs Tool Behavioral Differences
 
-Create a child agent.
+Slash commands are user-initiated on the main thread. Internal tools are agent-initiated on a worker thread.
 
-| Parameter | Behavior |
-|-----------|----------|
-| No prompt | Child inherits parent's full context |
-| With prompt | Child starts fresh with only that prompt |
+### fork
 
-**Returns:** Child's UUID
+**Slash command (human):**
+- `/fork` with active capture — creates child with captured content, switches UI to child
+- `/fork` without capture — creates idle child, switches UI to child
+- No prompt argument. Human provides the task via `/capture` ... `/fork` or by typing after switching.
 
-**Child receives:** Parent's UUID
+**Tool (agent):**
+- `fork(prompt: "...")` — creates child with full parent context + prompt, no UI switch
+- `prompt` is required. Agent must tell the child what to do.
 
-**Behavior:** Non-blocking. Parent continues immediately. Child runs concurrently.
+### kill
 
-### /slash send UUID MESSAGE
+**Slash command:** Kills target, switches UI away if it was the current agent.
 
-Send a message to another agent.
+**Tool:** Kills target, returns success/failure, no UI side effects.
 
-**Requirements:** Must know the recipient's UUID.
+### Mail commands
 
-**Primary uses:**
-- Child reporting to parent
-- Parent sending follow-up instructions
-- Sibling coordination (if UUIDs shared)
+Behavioral difference is only rendering (scrollback vs JSON return). No control flow divergence.
 
-### /slash check-mail
+## Capture Mode
 
-Check inbox for messages.
+**Problem**: When a human types a task for a sub-agent, the parent's LLM would execute it.
 
-**Returns:** Pending messages with sender UUIDs.
+**Solution**: `/capture` enters capture mode. User input is displayed in scrollback and persisted to DB but never sent to the parent's LLM. `/fork` ends capture and creates the child with the captured content. `/cancel` ends capture without forking.
 
-**Also:** System injects fake user message "got mail from UUID" when agent goes idle with pending mail. LLM can then decide whether to check.
+```
+/capture                          ← event rendered in scrollback
+Enumerate all the *.md files,     ← rendered in scrollback, not sent to LLM
+count their words and build       ← rendered in scrollback, not sent to LLM
+a summary table.                  ← rendered in scrollback, not sent to LLM
+/fork                             ← child created with captured content
+```
 
-### /slash kill UUID
-
-Terminate a child agent.
+- Each input persisted with `kind="capture"` — excluded from LLM conversation
+- `/cancel` ends capture without forking; captured text stays in scrollback
+- Captured content is immutable once rendered
 
 ## Child Lifecycle
 
 ```
-1. Parent: /slash fork "do X"
+1. Parent: fork(prompt: "do X")
    └─▶ Child starts, receives parent UUID
 
 2. Child works autonomously
@@ -83,106 +92,21 @@ Terminate a child agent.
 4. Child sits idle, awaiting instructions
 
 5. Parent either:
-   - /slash kill <UUID> to terminate
-   - /slash send <UUID> "do more" to continue
+   - kill(uuid) to terminate
+   - mail_send(uuid, "do more") to continue
 ```
 
 Child doesn't terminate on completion - it idles. This allows reuse without re-forking.
 
-## Structured Completion Message
-
-When a child completes its work, it sends:
-
-```json
-{
-  "status": "idle",
-  "success": true,
-  "summary": "What I accomplished and key findings..."
-}
-```
-
-On failure:
-
-```json
-{
-  "status": "idle",
-  "success": false,
-  "error": "What went wrong...",
-  "partial": "Any progress made before failure..."
-}
-```
-
-Parent knows from one message: completion state, outcome, and results.
-
-## System Prompt Guidance (Draft)
-
-The following should be included in agent system prompts:
-
----
-
-### Sub-Agents
-
-You can fork child agents to work in parallel.
-
-**Commands:**
-
-```
-/slash fork [PROMPT]     Create child (inherit context or fresh start)
-/slash send UUID MSG     Send message to any agent
-/slash check-mail        Check your inbox
-/slash kill UUID         Terminate a child
-```
-
-**When to fork:**
-- Task is self-contained, doesn't need ongoing collaboration
-- You want parallel exploration of multiple approaches
-- Work benefits from isolated context
-
-**When NOT to fork:**
-- Task requires back-and-forth with you
-- You need results immediately to continue
-- Task is simple enough to do yourself
-
-**Child lifecycle:**
-1. Fork creates child, returns UUID
-2. Child works, then sends completion message with status/summary
-3. Child idles until you kill it or send more work
-
-**Coordinating children:**
-- Track UUIDs and what each child is doing
-- Check mail when notified or periodically
-- Share sibling UUIDs in prompts if children need to coordinate
-
-**Example - parallel research:**
-```
-/slash fork "Research approach A for the auth system"
-/slash fork "Research approach B for the auth system"
-# Continue other work...
-# Later, check mail for results
-/slash check-mail
-```
-
-**Example - sibling coordination:**
-```
-/slash fork "Analyze the database schema. Sibling UUID for API analysis: <UUID>"
-```
-
----
-
 ## Open Questions
 
 1. **Prompt structure guidance** - Should we document what makes a good fork prompt?
-
 2. **Mail notification wording** - Exact format of the "got mail" fake user message?
-
 3. **Common patterns** - Document fan-out/gather, pipeline, etc.? Or keep minimal?
-
-4. **Error handling** - What happens if fork fails? If send targets invalid UUID?
-
+4. **Error handling** - What happens if fork fails? If kill targets invalid UUID?
 5. **Concurrency limits** - Maximum children? Resource management?
 
 ## Related
 
-- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture
-
-**Note:** The `opus/` folder contains earlier design explorations that have been superseded by ongoing work in the development branch.
+- [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture (unified registry)
+- `.claude/data/scratch.md` - Full rel-11 design decisions (threading, dispatch, DB, registry changes)

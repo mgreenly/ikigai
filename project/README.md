@@ -162,14 +162,15 @@ This documentation is primarily for AI agents and secondarily for humans.
 
 ### rel-11: Internal Tools (future)
 
-**Objective**: Expose slash commands as tools for agent self-management
+**Objective**: Expose slash commands as LLM-callable tools via in-process execution
 
 **Features**:
-- Agents can invoke `/fork`, `/kill` for spawning and terminating sub-agents
-- Agents can invoke `/send`, `/check-mail`, `/read-mail` for inter-agent communication
-- Agents can invoke `/pin`, `/unpin` for managing their own context
-- Tool wrappers translate slash commands to LLM-callable tool definitions
-- `!` prefix for user-defined prompt commands (distinct from `/` tools)
+- Internal tool type in unified registry (single alphabetized tool list, no LLM distinction)
+- 7 internal tools: `fork`, `kill`, `mail_send`, `mail_check`, `mail_read`, `mail_delete`, `mail_filter`
+- Two-phase execution: worker thread does real work, main thread handles `repl->agents[]` manipulation
+- `/capture` and `/cancel` human-only commands for composing sub-agent tasks without LLM seeing the content
+- New `kind="capture"` message kind (persisted, rendered in scrollback, excluded from LLM history)
+- Pending prompt mechanism for fork tool (worker creates child, main loop starts its LLM stream)
 
 
 ### rel-12: HTTP API for External Agents (future)

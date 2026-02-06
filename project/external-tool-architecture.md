@@ -4,7 +4,7 @@
 
 Provide a maximally useful small set of building blocks that enable powerful agent capabilities while remaining simple, maintainable, and extensible.
 
-**Core principle**: All tools are external tools. Maximize extensibility through JSON protocol and auto-discovery.
+**Core principle**: External tools provide user extensibility through JSON protocol and auto-discovery. Internal tools (rel-11) expose agent operations (fork, kill, mail) as in-process C functions in the same unified registry.
 
 **Implementation status**: The external tool system (rel-08) is fully implemented with tool discovery, registry, execution protocol, and 6 core tools.
 
@@ -16,7 +16,7 @@ Provide a maximally useful small set of building blocks that enable powerful age
 
 ## Tool Architecture
 
-All tools in ikigai are external tools. There are no internal tools.
+Tools in ikigai are either external or internal. External tools are separate executables discovered from the filesystem. Internal tools (rel-11) are C functions called in-process, exposing agent operations like fork, kill, and mail. Both types live in the same unified registry — the LLM sees a single alphabetized tool list with no distinction.
 
 External executables in 3 discoverable directories (see Discovery System section):
 
@@ -229,7 +229,7 @@ Leverage existing LLM excellence at bash commands, Unix output parsing, pipeline
 
 ### 3. Maintenance
 
-All tools are external (any language, isolated, self-contained, user-modifiable). No internal tools means lower maintenance burden for ikigai core.
+External tools are isolated, self-contained, and user-modifiable. Internal tools (rel-11) are minimal — only agent operations that require in-process access to shared state.
 
 ### 4. Portability
 
@@ -278,10 +278,9 @@ System prompt teaches idiomatic usage, composition patterns, and error handling.
 - Commands: /tool, /refresh
 - 6 core tools: bash, file_read, file_write, file_edit, glob, grep
 
-**Phase 2 (PLANNED):** Additional external tools
+**Phase 2 (COMPLETED - rel-09):** Web tools
 - web_fetch - Fetch URL content
 - web_search - Web search integration
-- Orchestration tools (fork, kill, send) - once ikigai has API for external tools
 
 **Phase 3 (PLANNED):** Skills integration
 - Markdown format for domain knowledge
@@ -352,13 +351,14 @@ See `external-tool-examples.md` for detailed examples of:
 - Commands: /tool (list/inspect), /refresh (reload registry)
 
 **Planned features:**
-- Additional external tools (web_fetch, web_search, orchestration commands)
+- Internal tools for agent operations: fork, kill, mail_send, mail_check, mail_read, mail_delete, mail_filter (rel-11)
 - Skills integration with tool references
 - Progressive discovery (load tools on demand, not upfront)
-- Ikigai API for external tools to access orchestration features
 
 **Architecture goals:**
-- All tools are external - zero internal tools
+- External tools for user-extensible capabilities (file ops, search, web, custom workflows)
+- Internal tools only for agent operations requiring in-process shared state access
+- Single unified registry — LLM sees one alphabetized tool list
 - Leverage model strengths (bash, Unix tools, JSON parsing)
 - User extensibility - external tools are trivial to add, first-class support
 - Simple, universal building blocks with minimal maintenance burden
