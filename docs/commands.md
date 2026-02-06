@@ -8,6 +8,8 @@ Slash commands are typed at the ikigai prompt and begin with `/`. They control a
 |---------|---------|
 | [/fork](commands/fork.md) | Create a child agent |
 | [/kill](commands/kill.md) | Terminate an agent |
+| [/capture](commands/capture.md) | Enter capture mode for composing a child's task |
+| [/cancel](commands/capture.md#cancel) | Exit capture mode without forking |
 
 ## Inter-Agent Mail
 

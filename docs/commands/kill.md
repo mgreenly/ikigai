@@ -9,7 +9,6 @@
 ```
 /kill
 /kill UUID
-/kill --cascade UUID
 ```
 
 ## DESCRIPTION
@@ -27,8 +26,21 @@ The root agent cannot be killed.
 **UUID**
 : The UUID (or unique prefix) of the agent to kill. Without this, the current agent is killed.
 
-**--cascade**
-: Kill the target agent and all of its descendants. Without this flag, only the specified agent is killed.
+## TOOL VARIANT
+
+Agents call `kill` as an internal tool with different behavior than the slash command:
+
+```json
+{"name": "kill", "arguments": {"uuid": "a1b2c3d4"}}
+```
+
+| | Slash command | Tool |
+|---|---|---|
+| Caller | Human | Agent |
+| UI switch | Yes — moves to parent if current agent killed | No — no UI side effects |
+| Return | None | JSON success/failure |
+
+The calling agent keeps running after issuing a kill.
 
 ## EXAMPLES
 
@@ -46,20 +58,11 @@ Kill a specific child by UUID prefix:
 Agent a1b2c3d4 killed.
 ```
 
-Kill an agent and all its children:
-
-```
-> /kill --cascade a1b2
-Agent a1b2c3d4 and 3 descendants killed.
-```
-
 ## NOTES
 
-Killing an agent that is the current agent automatically switches the terminal to its parent.
-
-Killing a non-current agent has no effect on the terminal view.
-
 If the target UUID prefix matches multiple agents, the command fails with an ambiguity error. Provide more characters to disambiguate.
+
+Killing an agent that is the current agent automatically switches the terminal to its parent. Killing a non-current agent has no effect on the terminal view.
 
 ## SEE ALSO
 
