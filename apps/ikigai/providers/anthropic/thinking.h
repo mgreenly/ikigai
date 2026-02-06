@@ -44,4 +44,33 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
  */
 bool ik_anthropic_supports_thinking(const char *model);
 
+/**
+ * Check if model uses adaptive thinking (effort-based)
+ *
+ * @param model Model identifier
+ * @return      true if model uses adaptive thinking, false otherwise
+ *
+ * Adaptive thinking models (claude-opus-4-6) use {"type": "adaptive"}
+ * with effort parameters. Budget-based models (sonnet-4-5, haiku-4-5,
+ * opus-4-5) use {"type": "enabled", "budget_tokens": N}.
+ */
+bool ik_anthropic_is_adaptive_model(const char *model);
+
+/**
+ * Get thinking effort string for adaptive models
+ *
+ * @param model Model identifier (e.g., "claude-opus-4-6")
+ * @param level Thinking level (NONE/LOW/MED/HIGH)
+ * @return      Effort string ("low"/"medium"/"high") or NULL
+ *
+ * Effort mapping for adaptive models:
+ * - NONE: NULL (omit thinking parameter)
+ * - LOW:  "low"
+ * - MED:  "medium"
+ * - HIGH: "high"
+ *
+ * Returns NULL for non-adaptive models (caller should use budget instead).
+ */
+const char *ik_anthropic_thinking_effort(const char *model, ik_thinking_level_t level);
+
 #endif /* IK_PROVIDERS_ANTHROPIC_THINKING_H */

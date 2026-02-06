@@ -22,6 +22,7 @@ typedef struct {
 /**
  * Budget table for known Claude models
  * All values are powers of 2
+ * Note: claude-opus-4-6 uses adaptive thinking, not budget-based
  */
 static const ik_anthropic_budget_t BUDGET_TABLE[] = {
     {"claude-sonnet-4-5", 1024, 65536},
@@ -63,6 +64,42 @@ bool ik_anthropic_supports_thinking(const char *model)
 
     // All Claude models support thinking
     return strncmp(model, "claude-", 7) == 0;
+}
+
+bool ik_anthropic_is_adaptive_model(const char *model)
+{
+    if (model == NULL) {
+        return false;
+    }
+
+    // claude-opus-4-6 uses adaptive thinking
+    return strncmp(model, "claude-opus-4-6", 15) == 0;
+}
+
+const char *ik_anthropic_thinking_effort(const char *model, ik_thinking_level_t level)
+{
+    if (model == NULL) {
+        return NULL;
+    }
+
+    // Only adaptive models return effort strings
+    if (!ik_anthropic_is_adaptive_model(model)) {
+        return NULL;
+    }
+
+    // Map thinking level to effort string
+    switch (level) { // LCOV_EXCL_BR_LINE
+        case IK_THINKING_NONE:
+            return NULL; // Omit thinking parameter
+        case IK_THINKING_LOW:
+            return "low";
+        case IK_THINKING_MED:
+            return "medium";
+        case IK_THINKING_HIGH:
+            return "high";
+        default: // LCOV_EXCL_LINE
+            PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
+    }
 }
 
 int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t level)
