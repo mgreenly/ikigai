@@ -10,6 +10,18 @@ Agents communicate through a simple mailbox system. Each agent has an inbox. Mes
 
 Mail is the primary coordination mechanism between parent and child agents. A parent forks a child with a task, the child sends results back via mail, and the parent reads them when ready.
 
+All mail commands are available both as slash commands (human-initiated) and as internal tools (agent-initiated). The only difference is rendering: slash commands display in the scrollback, tools return JSON.
+
+### Tool Names
+
+| Slash command | Tool name |
+|---|---|
+| `/mail-send` | `mail_send` |
+| `/mail-check` | `mail_check` |
+| `/mail-read` | `mail_read` |
+| `/mail-delete` | `mail_delete` |
+| `/mail-filter` | `mail_filter` |
+
 ---
 
 ## /mail-send
@@ -22,7 +34,7 @@ Mail is the primary coordination mechanism between parent and child agents. A pa
 
 ### DESCRIPTION
 
-Send a message to another agent. The recipient must exist and be running (not killed).
+Send a message to another agent. The recipient must exist and be running (not killed). The message body must be non-empty and enclosed in quotes.
 
 ### ARGUMENTS
 
@@ -30,7 +42,7 @@ Send a message to another agent. The recipient must exist and be running (not ki
 : The recipient agent's UUID or unique prefix.
 
 **MESSAGE**
-: The message body, enclosed in quotes. Must be non-empty.
+: The message body, enclosed in quotes.
 
 ### EXAMPLES
 
@@ -168,7 +180,10 @@ Inbox (2 messages from a1b2c3d4, 1 unread):
 A typical parent-child coordination:
 
 ```
-> /fork Analyze src/repl.c for memory leaks. Report findings via /mail-send.
+> /capture
+(capturing) > Analyze src/repl.c for memory leaks.
+(capturing) > Report findings via /mail-send when complete.
+> /fork
 Forked. Child: a1b2c3d4
 
   [parent continues other work...]
@@ -200,4 +215,4 @@ Agent a1b2c3d4 killed.
 
 ## SEE ALSO
 
-[/fork](fork.md), [/kill](kill.md), [Commands](../commands.md)
+[/fork](fork.md), [/kill](kill.md), [/capture](capture.md), [Commands](../commands.md)
