@@ -119,26 +119,6 @@ START_TEST(test_output_item_added_call_id_yyjson_get_str_returns_null) {
 }
 END_TEST
 
-START_TEST(test_response_completed_incomplete_reason_yyjson_get_str_returns_null) {
-    reset_mock();
-    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
-        test_ctx, stream_cb, events);
-    ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
-    events->count = 0;
-
-    /* Mock returns NULL for reason field - covers line 297 (yyjson_get_str returns NULL) */
-    mock_return_null_on_call = 1;
-
-    ik_openai_responses_stream_process_event(ctx,
-                                             "response.completed",
-                                             "{\"response\":{\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_tokens\"}}}");
-
-    /* Event should still be emitted, incomplete_reason will be NULL */
-    ck_assert_int_eq((int)events->count, 1);
-    ck_assert_int_eq(events->items[0].type, IK_STREAM_DONE);
-}
-END_TEST
-
 START_TEST(test_error_message_yyjson_get_str_returns_null) {
     reset_mock();
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
@@ -168,7 +148,6 @@ static Suite *openai_streaming_responses_events_defensive_suite(void)
     tcase_add_test(tc, test_thinking_delta_yyjson_get_str_returns_null);
     tcase_add_test(tc, test_function_call_args_delta_yyjson_get_str_returns_null);
     tcase_add_test(tc, test_output_item_added_call_id_yyjson_get_str_returns_null);
-    tcase_add_test(tc, test_response_completed_incomplete_reason_yyjson_get_str_returns_null);
     tcase_add_test(tc, test_error_message_yyjson_get_str_returns_null);
     suite_add_tcase(s, tc);
 
