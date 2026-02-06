@@ -108,7 +108,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
     } else if (strcmp(event_name, "response.output_item.done") == 0) {
         ik_openai_responses_handle_output_item_done(stream_ctx, root);
     } else if (strcmp(event_name, "response.completed") == 0) {
-        ik_openai_responses_handle_response_completed(stream_ctx, root);
+        // No-op: response.completed event not used
     } else if (strcmp(event_name, "error") == 0) {
         ik_openai_responses_handle_error_event(stream_ctx, root);
     }

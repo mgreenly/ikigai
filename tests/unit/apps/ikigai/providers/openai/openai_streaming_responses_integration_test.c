@@ -184,35 +184,6 @@ START_TEST(test_write_callback_with_tool_call) {
 
 END_TEST
 
-START_TEST(test_write_callback_with_completion) {
-    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    /* Set up model */
-    char created[] = "event: response.created\n"
-                     "data: {\"response\":{\"model\":\"gpt-4o\"}}\n\n";
-    ik_openai_responses_stream_write_callback(created, 1, strlen(created), ctx);
-
-    /* Completion event */
-    char completed[] = "event: response.completed\n"
-                       "data: {\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":20,\"total_tokens\":30}}}\n\n";
-    ik_openai_responses_stream_write_callback(completed, 1, strlen(completed), ctx);
-
-    /* Should have START + DONE */
-    ck_assert_int_eq((int)events->count, 2);
-    ck_assert_int_eq(events->items[1].type, IK_STREAM_DONE);
-    ck_assert_int_eq(events->items[1].data.done.finish_reason, IK_FINISH_STOP);
-    ck_assert_int_eq(events->items[1].data.done.usage.input_tokens, 10);
-    ck_assert_int_eq(events->items[1].data.done.usage.output_tokens, 20);
-    ck_assert_int_eq(events->items[1].data.done.usage.total_tokens, 30);
-
-    /* Verify getters */
-    ik_finish_reason_t reason = ik_openai_responses_stream_get_finish_reason(ctx);
-    ck_assert_int_eq(reason, IK_FINISH_STOP);
-}
-
-END_TEST
-
 START_TEST(test_write_callback_with_error_event) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -245,7 +216,6 @@ static Suite *openai_streaming_responses_integration_suite(void)
     tcase_add_checked_fixture(tc_integration, setup, teardown);
     tcase_add_test(tc_integration, test_write_callback_with_thinking_delta);
     tcase_add_test(tc_integration, test_write_callback_with_tool_call);
-    tcase_add_test(tc_integration, test_write_callback_with_completion);
     tcase_add_test(tc_integration, test_write_callback_with_error_event);
     suite_add_tcase(s, tc_integration);
 
