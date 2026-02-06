@@ -1,6 +1,6 @@
 ## Overview
 
-This module implements database operations for the mail system. It provides functions to insert mail messages into the database, retrieve a user's inbox with optional filtering by sender, mark messages as read, and delete messages. All operations are scoped to a specific session and validate that users can only access their own messages.
+This module implements database operations for the mail system. It provides functions to insert mail messages, consume (pop) the next message from an inbox with optional sender filtering, check agent liveness, and fire PG NOTIFY for wake-up. All operations are scoped to a specific session. Messages are consumed on read — no separate delete operation.
 
 ## Code
 
@@ -21,115 +21,70 @@ function insert_mail(db, session_id, message):
 
     parse the returned ID and store it in the message
 
+    // Wake any agent waiting for mail from this sender
+    execute: NOTIFY agent_event_<to_uuid>
+
     cleanup temporary memory
     return success
 
 
-function retrieve_inbox(db, context, session_id, to_uuid, output, count):
+function consume_next_message(db, context, session_id, to_uuid, from_uuid_filter):
+    // Atomically fetch and delete the oldest matching message
+    // from_uuid_filter may be NULL (match any sender)
     validate all inputs are provided
 
     create temporary memory context
 
-    prepare SELECT query to retrieve all mail for this session and recipient
-    order results by read status (unread first) then by timestamp (newest first)
-
-    execute query with parameters: session_id, to_uuid
+    if from_uuid_filter is not NULL:
+        prepare query:
+            DELETE FROM mail
+            WHERE id = (
+                SELECT id FROM mail
+                WHERE session_id = $1 AND to_uuid = $2 AND from_uuid = $3
+                ORDER BY timestamp ASC
+                LIMIT 1
+            )
+            RETURNING id, from_uuid, to_uuid, body, timestamp
+        execute with parameters: session_id, to_uuid, from_uuid_filter
+    else:
+        prepare query:
+            DELETE FROM mail
+            WHERE id = (
+                SELECT id FROM mail
+                WHERE session_id = $1 AND to_uuid = $2
+                ORDER BY timestamp ASC
+                LIMIT 1
+            )
+            RETURNING id, from_uuid, to_uuid, body, timestamp
+        execute with parameters: session_id, to_uuid
 
     if query execution fails:
         report error with database message
         return failure
-
-    get row count from results
 
     if no rows returned:
-        return empty result
+        return NULL (no message available)
 
-    allocate array of message pointers in caller's context
-
-    for each row in results:
-        create new message structure in the array
-
-        extract ID, from_uuid, to_uuid, body from query results
-        convert ID and timestamp from string to numeric values
-        parse read flag (1 = read, 0 = unread)
-
-        store message pointer in array
-
-    return array of messages and count
-    return success
-
-
-function mark_message_read(db, mail_id):
-    validate all inputs are provided
-
-    create temporary memory context
-
-    convert mail_id to string parameter
-
-    prepare UPDATE query to set read=1 for the message
-    execute query with parameter: mail_id
-
-    if query execution fails:
-        report error with database message
-        return failure
+    create message structure from returned row
+    extract ID, from_uuid, to_uuid, body, timestamp
 
     cleanup temporary memory
-    return success
+    return message
 
 
-function delete_message(db, mail_id, recipient_uuid):
-    validate all inputs are provided
+function check_agent_alive(db, session_id, agent_uuid):
+    // Check if an agent is alive (not dead)
+    // Used by wait to detect dead agents during fan-in
 
-    create temporary memory context
+    prepare query:
+        SELECT status FROM agents
+        WHERE uuid = $1 AND session_id = $2
 
-    convert mail_id to string parameter
-
-    prepare DELETE query scoped to both mail_id and recipient_uuid
-    execute query with parameters: mail_id, recipient_uuid
-
-    if query execution fails:
-        report error with database message
-        return failure
-
-    check how many rows were affected by the delete
-    if no rows were affected (message doesn't exist or doesn't belong to recipient):
-        report error "Mail not found or not yours"
-        return failure
-
-    cleanup temporary memory
-    return success
-
-
-function retrieve_inbox_filtered(db, context, session_id, to_uuid, from_uuid, output, count):
-    validate all inputs are provided
-
-    create temporary memory context
-
-    prepare SELECT query to retrieve mail for this session, recipient, AND sender
-    order results by read status (unread first) then by timestamp (newest first)
-
-    execute query with parameters: session_id, to_uuid, from_uuid
-
-    if query execution fails:
-        report error with database message
-        return failure
-
-    get row count from results
+    execute with parameters: agent_uuid, session_id
 
     if no rows returned:
-        return empty result
+        return false (agent not found = not alive)
 
-    allocate array of message pointers in caller's context
-
-    for each row in results:
-        create new message structure in the array
-
-        extract ID, from_uuid, to_uuid, body from query results
-        convert ID and timestamp from string to numeric values
-        parse read flag (1 = read, 0 = unread)
-
-        store message pointer in array
-
-    return array of messages and count
-    return success
+    extract status from result
+    return status == 'running'
 ```

@@ -72,7 +72,7 @@ Fork with a captured task:
 > /capture
 (capturing) > Research OAuth2 implementation patterns.
 (capturing) > Compare token-based vs session-based approaches.
-(capturing) > Report findings via /mail-send when complete.
+(capturing) > Report findings via /send when complete.
 > /fork
 Forked. Child: a1b2c3d4
 ```
@@ -90,7 +90,7 @@ Forked. Child: a1b2c3d4
 > /fork
 Forked. Child: e5f6g7h8
 
-> /mail-check
+> /wait 120 a1b2 e5f6
 ```
 
 ## NOTES
@@ -101,4 +101,4 @@ The child is a full agent with its own conversation, tools, and lifecycle. It ca
 
 ## SEE ALSO
 
-[/capture](capture.md), [/kill](kill.md), [/mail-send](mail.md#mail-send), [Commands](../commands.md)
+[/capture](capture.md), [/kill](kill.md), [/send](send.md), [/wait](wait.md), [Commands](../commands.md)

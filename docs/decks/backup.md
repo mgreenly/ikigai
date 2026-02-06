@@ -154,9 +154,11 @@ Parent keeps working. Children report back.
 /agents         - list all agents
 /switch 2       - jump to agent 2
 /send 1 "done"  - message another agent
+/wait 60 1 2    - wait for agents to respond
 /kill 3         - terminate an agent
+/reap           - clean up dead agents
 
-Agents are processes. Fork, message, signal, kill.
+Agents are processes. Fork, send, wait, kill, reap.
 
 ---
 

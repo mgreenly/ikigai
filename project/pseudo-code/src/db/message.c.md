@@ -6,7 +6,7 @@ This module manages message persistence and creation in the database. It provide
 
 ```
 constants:
-    VALID_KINDS = ["clear", "system", "user", "assistant", "tool_call", "tool_result", "mark", "rewind", "agent_killed", "command", "fork"]
+    VALID_KINDS = ["clear", "system", "user", "assistant", "tool_call", "tool_result", "mark", "rewind", "agent_killed", "command", "fork", "capture"]
 
 function is_valid_kind(kind):
     validate kind is not null

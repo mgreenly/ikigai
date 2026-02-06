@@ -1,6 +1,6 @@
 ## Overview
 
-This file implements the kill command handler for terminating agents in the REPL. It provides two main operations: self-kill (killing the current agent) and targeted kill (killing another agent with optional cascade deletion of descendants). The kill command maintains database consistency through transactional semantics and synchronization barriers.
+This file implements the kill and reap command handlers for terminating and cleaning up agents in the REPL. Kill marks agents (and all descendants) as dead but keeps them in the nav rotation for user review. Reap removes all dead agents. The kill command maintains database consistency through transactional semantics and synchronization barriers.
 
 ## Code
 
@@ -19,20 +19,32 @@ function kill_command(repl, args):
         if parent not found:
             return error "Parent agent not found"
 
-        // Record kill event in parent's history
-        create metadata JSON with target UUID
+        // Kill self + all descendants (always cascades)
+        victims = collect_descendants(repl, current_agent_uuid)
+        append current agent to victims
+
+        begin database transaction
+
+        for each victim in victims:
+            mark victim as dead in registry
+            NOTIFY agent_event_<victim_parent_uuid> (wake any waiting parent)
+
+        create metadata JSON with target UUID and victim list
         insert kill event message into database
 
-        mark current agent as dead in registry
+        commit transaction
+
+        // Mark dead in memory (keep in agents[] for /reap)
+        for each victim in victims:
+            set victim.dead = true
+
         switch navigation to parent agent
-        remove current agent from memory
-        update navigation context
         display "Agent terminated"
 
         return success
 
-    // Case 2: Targeted kill with optional --cascade flag
-    parse UUID and cascade flag from arguments
+    // Case 2: Targeted kill
+    parse UUID from arguments
 
     find target agent by UUID (partial match allowed)
     if target not found:
@@ -51,33 +63,49 @@ function kill_command(repl, args):
         recursively call kill with no args
         return
 
-    // If cascade flag set, kill target and all descendants
-    if cascade flag present:
-        begin database transaction
+    // Kill target + all descendants (always cascades)
+    victims = collect_descendants(repl, target_uuid)
+    append target to victims
 
-        collect all descendants in depth-first order
+    begin database transaction
 
-        mark all descendants as dead in registry
-        mark target agent as dead in registry
+    for each victim in victims:
+        mark victim as dead in registry
+        NOTIFY agent_event_<victim_parent_uuid> (wake any waiting parent)
 
-        create metadata JSON with cascade information
-        insert kill event with cascade metadata
+    create metadata JSON with cascade information
+    insert kill event with victim metadata
 
-        commit transaction
+    commit transaction
 
-        remove all victims from memory
-        update navigation context
-        display "Killed N agents"
+    // Mark dead in memory (keep in agents[] for /reap)
+    for each victim in victims:
+        set victim.dead = true
 
-        return success or rollback on error
+    display "Killed N agents"
 
-    // Standard kill: target only
-    record kill event in current agent's history
-    mark target agent as dead in registry
-    remove target from memory
-    update navigation context
-    display "Agent terminated"
+    return success
 
+function reap_command(repl, args):
+    // Remove all dead agents from nav rotation
+
+    count dead agents in repl->agents[]
+    if count is 0:
+        display "Nothing to reap"
+        return success
+
+    // If currently viewing a dead agent, switch first
+    if current agent is dead:
+        find first non-dead agent
+        switch navigation to it
+
+    // Remove all dead agents from array
+    for each agent in repl->agents[] (reverse order):
+        if agent.dead:
+            remove from array
+            free memory (talloc handles descendants)
+
+    display "Reaped N dead agents"
     return success
 
 function collect_descendants(repl, agent_uuid):

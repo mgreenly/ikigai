@@ -4,7 +4,7 @@
 
 Provide a maximally useful small set of building blocks that enable powerful agent capabilities while remaining simple, maintainable, and extensible.
 
-**Core principle**: External tools provide user extensibility through JSON protocol and auto-discovery. Internal tools (rel-11) expose agent operations (fork, kill, mail) as in-process C functions in the same unified registry.
+**Core principle**: External tools provide user extensibility through JSON protocol and auto-discovery. Internal tools (rel-11) expose agent operations (fork, kill, send, wait) as in-process C functions in the same unified registry.
 
 **Implementation status**: The external tool system (rel-08) is fully implemented with tool discovery, registry, execution protocol, and 6 core tools.
 
@@ -16,7 +16,7 @@ Provide a maximally useful small set of building blocks that enable powerful age
 
 ## Tool Architecture
 
-Tools in ikigai are either external or internal. External tools are separate executables discovered from the filesystem. Internal tools (rel-11) are C functions called in-process, exposing agent operations like fork, kill, and mail. Both types live in the same unified registry — the LLM sees a single alphabetized tool list with no distinction.
+Tools in ikigai are either external or internal. External tools are separate executables discovered from the filesystem. Internal tools (rel-11) are C functions called in-process, exposing agent operations (fork, kill, send, wait). Both types live in the same unified registry — the LLM sees a single alphabetized tool list with no distinction.
 
 External executables in 3 discoverable directories (see Discovery System section):
 
@@ -351,7 +351,7 @@ See `external-tool-examples.md` for detailed examples of:
 - Commands: /tool (list/inspect), /refresh (reload registry)
 
 **Planned features:**
-- Internal tools for agent operations: fork, kill, mail_send, mail_check, mail_read, mail_delete, mail_filter (rel-11)
+- Internal tools for agent operations: fork, kill, send, wait (rel-11)
 - Skills integration with tool references
 - Progressive discovery (load tools on demand, not upfront)
 
