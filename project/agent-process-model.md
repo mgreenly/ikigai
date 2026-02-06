@@ -90,34 +90,35 @@ Signals provide lifecycle control without switching to each agent.
 
 ```
 /kill                    # kill self (current agent)
-/kill <uuid>             # kill specific agent
-/kill <uuid> --cascade   # kill agent + all descendants
+/kill <uuid>             # kill agent + all descendants (always cascades)
+/reap                    # remove all dead agents from nav rotation
 ```
+
+Kill always cascades — killing an agent kills all its descendants. Dead agents are marked but not removed from `repl->agents[]`. They remain in the nav rotation with frozen scrollback and no edit input, allowing the user to review their output. `/reap` explicitly removes all dead agents.
 
 Future signals (if needed):
 - TERM: Graceful shutdown (finish current work, then die)
-- KILL: Immediate termination
 - STOP/CONT: Pause and resume execution
 
 Signals are system-level with limited vocabulary, distinct from application-level mailbox messages.
 
 ## Mailbox: Inter-Agent Communication
 
-Erlang-style message passing between agents.
+Erlang-style message passing between agents, simplified to two primitives.
 
 ```
-/send <uuid> "message"   # send to agent's mailbox
-/check-mail              # check for messages (pull model)
-/read-mail               # read messages
-/filter-mail --from <uuid>  # filter by sender
+/send <uuid> "message"                    # send to agent's mailbox
+/wait TIMEOUT [UUID1 UUID2 ...]           # wait for messages (blocking)
 ```
 
 Properties:
-- **Pull model**: Agents must explicitly check for mail
+- **Two primitives**: `send` and `wait` cover all communication
+- **Pull model**: Agents explicitly wait for mail
+- **Blocking wait**: `wait` blocks on worker thread using PG LISTEN/NOTIFY
+- **Fan-in**: `wait` with agent IDs waits for all listed agents to respond
+- **Consumed on read**: Messages are popped from inbox when received via `wait`
 - **UUID knowledge**: Parent knows children, children know parent
 - **UUID sharing**: Agents can share UUIDs via messages or shared docs
-
-Future consideration: Push notifications (inject mail arrival into agent context).
 
 ## Shared State: StoredAssets
 
@@ -165,7 +166,7 @@ On ikigai startup:
 | Depth limit | None (practical limits apply) |
 | Parent return | Child's UUID |
 | UI after fork | Auto-switch to child |
-| Communication | Mailbox (pull model) |
-| Lifecycle control | Signals (KILL, --cascade) |
+| Communication | send + wait (pull model, PG LISTEN/NOTIFY) |
+| Lifecycle control | kill (always cascades) + /reap (cleanup) |
 | Shared state | Memory documents |
 | Source of truth | Agent registry table |

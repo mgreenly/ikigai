@@ -19,12 +19,9 @@ Each tool gets its own registry entry with a precise schema. The LLM sees them i
 | Tool name (LLM sees) | Backed by command | Purpose |
 |---|---|---|
 | `fork` | `/fork` | Create a child agent |
-| `kill` | `/kill` | Terminate an agent |
-| `mail_send` | `/mail-send` | Send message to another agent |
-| `mail_check` | `/mail-check` | Check inbox |
-| `mail_read` | `/mail-read` | Read a specific message |
-| `mail_delete` | `/mail-delete` | Delete a message |
-| `mail_filter` | `/mail-filter` | Filter messages by criteria |
+| `kill` | `/kill` | Terminate an agent and its descendants |
+| `send` | `/send` | Send a message to another agent |
+| `wait` | `/wait` | Wait for messages (blocking, with fan-in support) |
 
 ## Human-Only Commands
 
@@ -34,6 +31,7 @@ These are NOT internal tools. They never appear in the tool list.
 |---|---|
 | `/capture` | Enter capture mode for composing sub-agent tasks |
 | `/cancel` | Exit capture mode without forking |
+| `/reap` | Remove all dead agents from nav rotation |
 
 ## Slash Command vs Tool Behavioral Differences
 
@@ -52,13 +50,94 @@ Slash commands are user-initiated on the main thread. Internal tools are agent-i
 
 ### kill
 
-**Slash command:** Kills target, switches UI away if it was the current agent.
+**Slash command (human):**
+- Kills target and all descendants (always cascades)
+- Dead agents stay in nav rotation with frozen scrollback and no edit input
+- Human can visit dead agents to review output before running `/reap`
 
-**Tool:** Kills target, returns success/failure, no UI side effects.
+**Tool (agent):**
+- Kills target and all descendants, returns JSON result
+- No UI side effects, calling agent keeps running
 
-### Mail commands
+### send
 
 Behavioral difference is only rendering (scrollback vs JSON return). No control flow divergence.
+
+### wait
+
+**Slash command (human):**
+- `/wait TIMEOUT [UUID1 UUID2 ...]` — puts current agent into tool-executing state
+- Spinner runs, main loop continues, other agents serviced
+- Escape interrupts (same as any tool execution)
+- Result renders to scrollback on completion
+
+**Tool (agent):**
+- `wait(timeout: N, from_agents: ["uuid1", "uuid2"])` — blocks on worker thread
+- Returns structured results as JSON tool result
+
+Both share the same core wait logic — identical mechanism.
+
+## Wait Semantics
+
+`wait` has two modes:
+
+### Mode 1 — Next message (no agent IDs)
+
+`wait(timeout: 30)` returns the first message from anyone. No status display. Useful for ad-hoc communication. `wait(timeout: 0)` is an instant non-blocking check.
+
+### Mode 2 — Fan-in (with agent IDs)
+
+`wait(timeout: 30, from_agents: ["uuid1", "uuid2", "uuid3"])` waits for ALL listed agents to respond.
+
+**Return value:**
+```json
+{
+  "results": [
+    {"agent_id": "uuid1", "name": "file-reader",    "status": "received", "message": "..."},
+    {"agent_id": "uuid2", "name": "code-analyzer",   "status": "received", "message": "..."},
+    {"agent_id": "uuid3", "name": "test-runner",     "status": "running"}
+  ]
+}
+```
+
+Three possible statuses per agent: `received`, `running`, `dead`.
+
+**Early termination:**
+- All agents responded — return immediately
+- All agents either responded or dead — return immediately
+- Timeout — return whatever state exists (partial results)
+
+The calling agent decides what to do with partial results — wait again, kill stragglers, proceed.
+
+**Messages are consumed on wait.** `wait` pops messages. No accumulation, no cleanup, no delete command.
+
+### Status Layer (human-visible)
+
+When the user views an agent executing a fan-in `wait`, a status layer renders between the scrollback and spinner:
+
+```
+Waiting for sub-agents:
+  file-reader      [checkmark] received
+  code-analyzer    [spinner] running
+  test-runner      [spinner] running
+```
+
+Updates live as notifications arrive. The human's dashboard for fan-in operations.
+
+### PG LISTEN/NOTIFY
+
+Wake-up uses PostgreSQL's async notification system. Single channel per agent: `agent_event_<uuid>`. Two event types trigger NOTIFY: mail insertion (from `send`) and agent death (from `kill`). Worker thread uses `select()` on the PG socket fd with remaining timeout.
+
+## Dead Agent Reaping
+
+Kill marks agents as dead but does NOT remove them from the nav rotation. Dead agents remain visitable — frozen scrollback, no edit input, kill event visible. The user can tour dead agents to review their output.
+
+`/reap` removes all dead agents at once:
+1. Switch user to first living agent
+2. Remove all dead agents from `repl->agents[]`
+3. Free memory
+
+`/reap` is human-only. Agents don't need it — from the agent's perspective, `kill` returned success.
 
 ## Capture Mode
 
@@ -67,11 +146,11 @@ Behavioral difference is only rendering (scrollback vs JSON return). No control 
 **Solution**: `/capture` enters capture mode. User input is displayed in scrollback and persisted to DB but never sent to the parent's LLM. `/fork` ends capture and creates the child with the captured content. `/cancel` ends capture without forking.
 
 ```
-/capture                          ← event rendered in scrollback
-Enumerate all the *.md files,     ← rendered in scrollback, not sent to LLM
-count their words and build       ← rendered in scrollback, not sent to LLM
-a summary table.                  ← rendered in scrollback, not sent to LLM
-/fork                             ← child created with captured content
+/capture                          <- event rendered in scrollback
+Enumerate all the *.md files,     <- rendered in scrollback, not sent to LLM
+count their words and build       <- rendered in scrollback, not sent to LLM
+a summary table.                  <- rendered in scrollback, not sent to LLM
+/fork                             <- child created with captured content
 ```
 
 - Each input persisted with `kind="capture"` — excluded from LLM conversation
@@ -82,29 +161,22 @@ a summary table.                  ← rendered in scrollback, not sent to LLM
 
 ```
 1. Parent: fork(prompt: "do X")
-   └─▶ Child starts, receives parent UUID
+   |-> Child starts, receives parent UUID
 
 2. Child works autonomously
 
-3. Child completes, sends structured message to parent:
-   {"status": "idle", "success": true/false, "summary": "..."}
+3. Child completes, sends result to parent:
+   send(to: parent_uuid, message: "done: ...")
 
-4. Child sits idle, awaiting instructions
+4. Parent: wait(timeout: 60, from_agents: [child_uuid])
+   |-> Receives structured result
 
 5. Parent either:
    - kill(uuid) to terminate
-   - mail_send(uuid, "do more") to continue
+   - send(uuid, "do more") to continue
 ```
 
 Child doesn't terminate on completion - it idles. This allows reuse without re-forking.
-
-## Open Questions
-
-1. **Prompt structure guidance** - Should we document what makes a good fork prompt?
-2. **Mail notification wording** - Exact format of the "got mail" fake user message?
-3. **Common patterns** - Document fan-out/gather, pipeline, etc.? Or keep minimal?
-4. **Error handling** - What happens if fork fails? If kill targets invalid UUID?
-5. **Concurrency limits** - Maximum children? Resource management?
 
 ## Related
 
