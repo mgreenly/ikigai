@@ -131,7 +131,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     const char *query =
         "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
         "created_at, COALESCE(ended_at, 0) as ended_at, "
-        "provider, model, thinking_level "
+        "provider, model, thinking_level, idle "
         "FROM agents WHERE uuid = $1";
 
     const char *param_values[1];
@@ -181,7 +181,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     const char *query =
         "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
         "created_at, COALESCE(ended_at, 0) as ended_at, "
-        "provider, model, thinking_level "
+        "provider, model, thinking_level, idle "
         "FROM agents WHERE status = 'running' ORDER BY created_at";
 
     ik_pg_result_wrapper_t *res_wrapper =
@@ -300,5 +300,34 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
     // as per the task specification
 
     talloc_free(tmp);  // Destructor automatically calls PQclear
+    return OK(NULL);
+}
+
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db_ctx, const char *uuid, bool idle)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    const char *query = "UPDATE agents SET idle = $1 WHERE uuid = $2";
+    const char *idle_str = idle ? "true" : "false";
+
+    const char *param_values[2];
+    param_values[0] = idle_str;
+    param_values[1] = uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 2, NULL,
+                                                  param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);
+        return ERR(db_ctx, IO, "Failed to set idle: %s", pq_err);
+    }
+
+    talloc_free(tmp);
     return OK(NULL);
 }

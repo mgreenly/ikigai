@@ -89,6 +89,10 @@ res_t ik_db_agent_parse_row(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
         row->thinking_level = NULL;
     }
 
+    // Parse idle (column 10)
+    const char *idle_str = PQgetvalue_(res, row_index, 10);
+    row->idle = (idle_str[0] == 't' || idle_str[0] == 'T');
+
     *out = row;
     return OK(NULL);
 }

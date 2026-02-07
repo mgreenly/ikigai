@@ -3,6 +3,7 @@
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/history.h"
 #include "apps/ikigai/history_io.h"
+#include "apps/ikigai/internal_tools.h"
 #include "shared/logger.h"
 #include "shared/panic.h"
 #include "apps/ikigai/paths.h"
@@ -111,8 +112,22 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         }
         // Steal db_ctx to shared for proper ownership
         talloc_steal(shared, shared->db_ctx);
+
+        // Create worker thread DB connection (same connection string)
+        result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->worker_db_ctx);
+        if (is_err(&result)) {
+            // Cleanup already-initialized resources
+            if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
+                ik_term_cleanup(shared->term);
+            }
+            talloc_free(shared);
+            return result;
+        }
+        // Steal worker_db_ctx to shared for proper ownership
+        talloc_steal(shared, shared->worker_db_ctx);
     } else {
         shared->db_ctx = NULL;
+        shared->worker_db_ctx = NULL;
     }
 
     // Initialize session_id to 0 (session creation stays in repl_init for now)
@@ -151,6 +166,12 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         ik_logger_warn_json(logger, log_doc);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     }
+
+    // Register internal tools (after external discovery, so internal tools overwrite on collision)
+    ik_internal_tools_register(shared->tool_registry);
+
+    // Sort registry after all tools are registered
+    ik_tool_registry_sort(shared->tool_registry);
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

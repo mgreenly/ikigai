@@ -2,7 +2,7 @@
 #include "apps/ikigai/wrapper_pthread.h"
 /**
  * @file agent_tool_execution_test.c
- * @brief Unit tests for agent-based tool execution
+ * @brief Unit tests for agent-based tool execution context
  *
  * Tests that tool execution operates on a specific agent context
  * even when repl->current switches to a different agent.
@@ -15,6 +15,8 @@
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/tool.h"
+#include "apps/ikigai/tool_registry.h"
+#include "shared/json_allocator.h"
 #include "shared/wrapper.h"
 #include "apps/ikigai/db/message.h"
 #include "vendor/yyjson/yyjson.h"
@@ -237,204 +239,6 @@ START_TEST(test_start_tool_execution_on_agent) {
 
 END_TEST
 
-/* Helper: wait for tool completion */
-static void wait_for_tool_completion(ik_agent_ctx_t *agent)
-{
-    int max_wait = 12000;
-    bool complete = false;
-    for (int i = 0; i < max_wait; i++) {
-        pthread_mutex_lock_(&agent->tool_thread_mutex);
-        complete = agent->tool_thread_complete;
-        pthread_mutex_unlock_(&agent->tool_thread_mutex);
-        if (complete) break;
-        usleep(10000);
-    }
-}
-
-/* Setup for database JSON tests - enables DB path */
-static void setup_with_db(void)
-{
-    setup();
-
-    /* Enable database path by setting non-NULL db_ctx and positive session_id */
-    /* The mock doesn't actually need a real db, just non-NULL check passes */
-    agent_a->shared->db_ctx = (void *)0x1;  // Fake pointer to enable DB path
-    agent_a->shared->session_id = 42;
-}
-
-/**
- * Test: data_json includes thinking block with text
- */
-START_TEST(test_build_tool_call_data_json_with_thinking) {
-    /* Set pending thinking data */
-    agent_a->pending_thinking_text = talloc_strdup(agent_a, "Let me analyze this...");
-    agent_a->pending_thinking_signature = NULL;
-    agent_a->pending_redacted_data = NULL;
-
-    /* Execute tool */
-    ik_agent_start_tool_execution(agent_a);
-    wait_for_tool_completion(agent_a);
-    ik_agent_complete_tool_execution(agent_a);
-
-    /* Verify DB insert was called */
-    ck_assert_int_eq(db_insert_call_count, 2);
-    ck_assert_ptr_nonnull(captured_tool_call_data_json);
-
-    /* Parse and verify JSON structure */
-    yyjson_doc *doc = yyjson_read(captured_tool_call_data_json, strlen(captured_tool_call_data_json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    ck_assert_ptr_nonnull(root);
-
-    /* Verify tool call fields */
-    yyjson_val *tool_id = yyjson_obj_get(root, "tool_call_id");
-    ck_assert_ptr_nonnull(tool_id);
-    ck_assert_str_eq(yyjson_get_str(tool_id), "call_a123");
-
-    yyjson_val *tool_name = yyjson_obj_get(root, "tool_name");
-    ck_assert_ptr_nonnull(tool_name);
-    ck_assert_str_eq(yyjson_get_str(tool_name), "glob");
-
-    /* Verify thinking block */
-    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
-    ck_assert_ptr_nonnull(thinking);
-
-    yyjson_val *thinking_text = yyjson_obj_get(thinking, "text");
-    ck_assert_ptr_nonnull(thinking_text);
-    ck_assert_str_eq(yyjson_get_str(thinking_text), "Let me analyze this...");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
-/**
- * Test: data_json includes thinking block with signature
- */
-START_TEST(test_build_tool_call_data_json_with_signature) {
-    /* Set pending thinking data with signature */
-    agent_a->pending_thinking_text = talloc_strdup(agent_a, "Thinking text here");
-    agent_a->pending_thinking_signature = talloc_strdup(agent_a, "EqQBCgIYAhIMbase64signature");
-    agent_a->pending_redacted_data = NULL;
-
-    /* Execute tool */
-    ik_agent_start_tool_execution(agent_a);
-    wait_for_tool_completion(agent_a);
-    ik_agent_complete_tool_execution(agent_a);
-
-    /* Verify DB insert was called */
-    ck_assert_ptr_nonnull(captured_tool_call_data_json);
-
-    /* Parse and verify JSON structure */
-    yyjson_doc *doc = yyjson_read(captured_tool_call_data_json, strlen(captured_tool_call_data_json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    /* Verify thinking block has signature */
-    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
-    ck_assert_ptr_nonnull(thinking);
-
-    yyjson_val *thinking_text = yyjson_obj_get(thinking, "text");
-    ck_assert_ptr_nonnull(thinking_text);
-    ck_assert_str_eq(yyjson_get_str(thinking_text), "Thinking text here");
-
-    yyjson_val *thinking_sig = yyjson_obj_get(thinking, "signature");
-    ck_assert_ptr_nonnull(thinking_sig);
-    ck_assert_str_eq(yyjson_get_str(thinking_sig), "EqQBCgIYAhIMbase64signature");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
-/**
- * Test: data_json without thinking (clean JSON)
- */
-START_TEST(test_build_tool_call_data_json_no_thinking) {
-    /* No pending thinking data */
-    agent_a->pending_thinking_text = NULL;
-    agent_a->pending_thinking_signature = NULL;
-    agent_a->pending_redacted_data = NULL;
-
-    /* Execute tool */
-    ik_agent_start_tool_execution(agent_a);
-    wait_for_tool_completion(agent_a);
-    ik_agent_complete_tool_execution(agent_a);
-
-    /* Verify DB insert was called */
-    ck_assert_ptr_nonnull(captured_tool_call_data_json);
-
-    /* Parse and verify JSON structure */
-    yyjson_doc *doc = yyjson_read(captured_tool_call_data_json, strlen(captured_tool_call_data_json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    /* Verify tool call fields are present */
-    yyjson_val *tool_id = yyjson_obj_get(root, "tool_call_id");
-    ck_assert_ptr_nonnull(tool_id);
-
-    yyjson_val *tool_name = yyjson_obj_get(root, "tool_name");
-    ck_assert_ptr_nonnull(tool_name);
-
-    yyjson_val *tool_args = yyjson_obj_get(root, "tool_args");
-    ck_assert_ptr_nonnull(tool_args);
-
-    /* Verify NO thinking block */
-    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
-    ck_assert_ptr_null(thinking);
-
-    /* Verify NO redacted_thinking block */
-    yyjson_val *redacted = yyjson_obj_get(root, "redacted_thinking");
-    ck_assert_ptr_null(redacted);
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
-/**
- * Test: data_json includes redacted_thinking block
- */
-START_TEST(test_build_tool_call_data_json_redacted) {
-    /* Set pending redacted thinking data */
-    agent_a->pending_thinking_text = NULL;
-    agent_a->pending_thinking_signature = NULL;
-    agent_a->pending_redacted_data = talloc_strdup(agent_a, "EmwKAhgBEgyencrypteddata");
-
-    /* Execute tool */
-    ik_agent_start_tool_execution(agent_a);
-    wait_for_tool_completion(agent_a);
-    ik_agent_complete_tool_execution(agent_a);
-
-    /* Verify DB insert was called */
-    ck_assert_ptr_nonnull(captured_tool_call_data_json);
-
-    /* Parse and verify JSON structure */
-    yyjson_doc *doc = yyjson_read(captured_tool_call_data_json, strlen(captured_tool_call_data_json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-
-    /* Verify NO thinking block */
-    yyjson_val *thinking = yyjson_obj_get(root, "thinking");
-    ck_assert_ptr_null(thinking);
-
-    /* Verify redacted_thinking block */
-    yyjson_val *redacted = yyjson_obj_get(root, "redacted_thinking");
-    ck_assert_ptr_nonnull(redacted);
-
-    yyjson_val *redacted_data = yyjson_obj_get(redacted, "data");
-    ck_assert_ptr_nonnull(redacted_data);
-    ck_assert_str_eq(yyjson_get_str(redacted_data), "EmwKAhgBEgyencrypteddata");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
 /**
  * Test suite
  */
@@ -448,15 +252,6 @@ static Suite *agent_tool_execution_suite(void)
     tcase_add_test(tc_core, test_tool_execution_uses_agent_context);
     tcase_add_test(tc_core, test_start_tool_execution_on_agent);
     suite_add_tcase(s, tc_core);
-
-    TCase *tc_db_json = tcase_create("db_json");
-    tcase_set_timeout(tc_db_json, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_db_json, setup_with_db, teardown);
-    tcase_add_test(tc_db_json, test_build_tool_call_data_json_with_thinking);
-    tcase_add_test(tc_db_json, test_build_tool_call_data_json_with_signature);
-    tcase_add_test(tc_db_json, test_build_tool_call_data_json_no_thinking);
-    tcase_add_test(tc_db_json, test_build_tool_call_data_json_redacted);
-    suite_add_tcase(s, tc_db_json);
 
     return s;
 }

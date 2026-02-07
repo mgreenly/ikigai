@@ -34,6 +34,21 @@ MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res)
     return PQresultStatus(res);
 }
 
+MOCKABLE int PQsocket_(const PGconn *conn)
+{
+    return PQsocket(conn);
+}
+
+MOCKABLE int PQconsumeInput_(PGconn *conn)
+{
+    return PQconsumeInput(conn);
+}
+
+MOCKABLE PGnotify *PQnotifies_(PGconn *conn)
+{
+    return PQnotifies(conn);
+}
+
 #else
 
 MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_number);
@@ -47,6 +62,9 @@ MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
                                    const int *paramFormats,
                                    int resultFormat);
 MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res);
+MOCKABLE int PQsocket_(const PGconn *conn);
+MOCKABLE int PQconsumeInput_(PGconn *conn);
+MOCKABLE PGnotify *PQnotifies_(PGconn *conn);
 
 #endif
 

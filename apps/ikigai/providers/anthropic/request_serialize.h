@@ -13,12 +13,12 @@
 /**
  * Serialize a single content block to Anthropic JSON format
  */
-bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr, const ik_content_block_t *block);
+bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr, const ik_content_block_t *block, size_t message_idx, size_t block_idx);
 
 /**
  * Serialize message content (handles both string and array formats)
  */
-bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj, const ik_message_t *message);
+bool ik_anthropic_serialize_message_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj, const ik_message_t *message, size_t message_idx);
 
 /**
  * Serialize messages array
