@@ -185,110 +185,6 @@ START_TEST(test_handle_error_no_error_object) {
 }
 
 END_TEST
-/* ================================================================
- * Retry-After Tests
- * ================================================================ */
-
-START_TEST(test_get_retry_after_60s) {
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"60s\"}";
-
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, 60);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_30s) {
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"30s\"}";
-
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, 30);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_not_present) {
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"}}";
-
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_invalid_json) {
-    const char *body = "not valid json";
-
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_null_body) {
-    int32_t retry = ik_google_get_retry_after(NULL);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_null_root_mock) {
-    // Mock yyjson_doc_get_root_ to return NULL
-    const char *body = "{\"retryDelay\":\"60s\"}";
-
-    mock_yyjson_doc_get_root_null = true;
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_not_string) {
-    // retryDelay present but not a string
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":123}";
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_null_string_mock) {
-    // Mock yyjson_get_str_ to return NULL
-    const char *body = "{\"retryDelay\":\"60s\"}";
-
-    mock_yyjson_get_str_null = true;
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_invalid_format) {
-    // retryDelay is a string but not parseable as a number
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"abc\"}";
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_negative) {
-    // retryDelay is negative (invalid)
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"-10s\"}";
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
-
-START_TEST(test_get_retry_after_zero) {
-    // retryDelay is zero (invalid per the check)
-    const char *body = "{\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"},\"retryDelay\":\"0s\"}";
-    int32_t retry = ik_google_get_retry_after(body);
-    ck_assert_int_eq(retry, -1);
-}
-
-END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -314,22 +210,6 @@ static Suite *google_error_suite(void)
     tcase_add_test(tc_error, test_handle_error_with_error_fields);
     tcase_add_test(tc_error, test_handle_error_no_error_object);
     suite_add_tcase(s, tc_error);
-
-    TCase *tc_retry = tcase_create("Retry After");
-    tcase_set_timeout(tc_retry, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_retry, setup, teardown);
-    tcase_add_test(tc_retry, test_get_retry_after_60s);
-    tcase_add_test(tc_retry, test_get_retry_after_30s);
-    tcase_add_test(tc_retry, test_get_retry_after_not_present);
-    tcase_add_test(tc_retry, test_get_retry_after_invalid_json);
-    tcase_add_test(tc_retry, test_get_retry_after_null_body);
-    tcase_add_test(tc_retry, test_get_retry_after_null_root_mock);
-    tcase_add_test(tc_retry, test_get_retry_after_not_string);
-    tcase_add_test(tc_retry, test_get_retry_after_null_string_mock);
-    tcase_add_test(tc_retry, test_get_retry_after_invalid_format);
-    tcase_add_test(tc_retry, test_get_retry_after_negative);
-    tcase_add_test(tc_retry, test_get_retry_after_zero);
-    suite_add_tcase(s, tc_retry);
 
     return s;
 }
