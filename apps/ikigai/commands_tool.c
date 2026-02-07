@@ -99,7 +99,7 @@ res_t ik_cmd_tool(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     for (size_t i = 0; i < registry->count; i++) {
         ik_tool_registry_entry_t *entry = &registry->entries[i];
-        const char *path_display = entry->path ? entry->path : "(internal)";
+        const char *path_display = entry->path ? entry->path : "internal";
         char *line = talloc_asprintf(ctx, "  %s (%s)\n", entry->name, path_display);
         if (line == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 

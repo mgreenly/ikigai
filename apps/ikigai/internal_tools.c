@@ -49,21 +49,21 @@ void ik_internal_tools_register(ik_tool_registry_t *registry)
                                 "No-op verification tool - proves internal tool infrastructure works"))
         PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    // input_schema (minimal - no required parameters)
-    yyjson_mut_val *input_schema = yyjson_mut_obj(doc);
-    if (input_schema == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, root, "input_schema", input_schema)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, input_schema, "type", "object")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    // parameters (minimal - no required parameters)
+    yyjson_mut_val *parameters = yyjson_mut_obj(doc);
+    if (parameters == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, root, "parameters", parameters)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, parameters, "type", "object")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // properties (empty object)
     yyjson_mut_val *properties = yyjson_mut_obj(doc);
     if (properties == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, input_schema, "properties", properties)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, parameters, "properties", properties)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // required (empty array)
     yyjson_mut_val *required = yyjson_mut_arr(doc);
     if (required == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_val(doc, input_schema, "required", required)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_val(doc, parameters, "required", required)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Convert mutable doc to immutable using talloc allocator
     yyjson_alc alc = ik_make_talloc_allocator(registry);
