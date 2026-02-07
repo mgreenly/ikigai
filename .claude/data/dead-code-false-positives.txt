@@ -27,3 +27,4 @@ parse_usage
 process_content_delta
 process_data_line
 process_function_call
+vcr_deliver_chunk_to_callback
