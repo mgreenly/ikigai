@@ -3,6 +3,7 @@
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/history.h"
 #include "apps/ikigai/history_io.h"
+#include "apps/ikigai/internal_tools.h"
 #include "shared/logger.h"
 #include "shared/panic.h"
 #include "apps/ikigai/paths.h"
@@ -165,6 +166,12 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         ik_logger_warn_json(logger, log_doc);  // LCOV_EXCL_LINE
         talloc_free(result.err);  // LCOV_EXCL_LINE
     }
+
+    // Register internal tools (after external discovery, so internal tools overwrite on collision)
+    ik_internal_tools_register(shared->tool_registry);
+
+    // Sort registry after all tools are registered
+    ik_tool_registry_sort(shared->tool_registry);
 
     // Set destructor for cleanup
     talloc_set_destructor(shared, shared_destructor);

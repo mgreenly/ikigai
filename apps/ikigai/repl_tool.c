@@ -39,20 +39,21 @@ static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
-    // Look up the tool in the registry to check its type
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(args->registry, args->tool_name);
+    // Lookup tool type
+    ik_tool_registry_entry_t *entry = args->registry ?
+        ik_tool_registry_lookup(args->registry, args->tool_name) : NULL;
     char *result_json = NULL;
 
-    if (entry != NULL && entry->type == IK_TOOL_INTERNAL) {
-        // Internal tool: call handler directly
+    if (entry && entry->type == IK_TOOL_INTERNAL) {
+        // Internal: call handler
         char *handler_result = entry->handler(args->ctx, args->agent, args->arguments);
         if (handler_result != NULL) {
             result_json = ik_tool_wrap_success(args->ctx, handler_result);
         } else {
-            result_json = ik_tool_wrap_failure(args->ctx, "Internal tool handler returned NULL", "INTERNAL_ERROR");
+            result_json = ik_tool_wrap_failure(args->ctx, "Handler returned NULL", "INTERNAL_ERROR");
         }
     } else {
-        // External tool: fork/exec via executor
+        // External: fork/exec
         result_json = ik_tool_execute_from_registry(args->ctx, args->registry, args->paths,
                                                     args->agent->uuid, args->tool_name, args->arguments,
                                                     &args->agent->tool_child_pid);
@@ -202,13 +203,10 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
 
     ik_tool_call_t *tc = agent->pending_tool_call;
 
-    // Look up tool in registry and stash on_complete hook
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(agent->shared->tool_registry, tc->name);
-    if (entry != NULL) {
-        agent->pending_on_complete = entry->on_complete;
-    } else {
-        agent->pending_on_complete = NULL;
-    }
+    // Stash on_complete hook
+    ik_tool_registry_t *reg = agent->shared->tool_registry;
+    ik_tool_registry_entry_t *ent = reg ? ik_tool_registry_lookup(reg, tc->name) : NULL;
+    agent->pending_on_complete = ent ? ent->on_complete : NULL;
 
     agent->tool_thread_ctx = talloc_new(agent);
     if (agent->tool_thread_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

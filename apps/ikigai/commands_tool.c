@@ -6,6 +6,7 @@
 #include "apps/ikigai/commands_tool.h"
 
 #include "apps/ikigai/doc_cache.h"
+#include "apps/ikigai/internal_tools.h"
 #include "shared/panic.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/repl.h"
@@ -64,8 +65,9 @@ res_t ik_cmd_tool(void *ctx, ik_repl_ctx_t *repl, const char *args)
             PANIC("Out of memory");  // LCOV_EXCL_LINE
         }
 
+        const char *path_display = entry->path ? entry->path : "(internal)";
         char *output = talloc_asprintf(ctx, "Tool: %s\nPath: %s\nSchema:\n%s\n",
-                                       entry->name, entry->path, schema_json);
+                                       entry->name, path_display, schema_json);
         free(schema_json);  // yyjson uses malloc, not talloc
         if (output == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -97,7 +99,8 @@ res_t ik_cmd_tool(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     for (size_t i = 0; i < registry->count; i++) {
         ik_tool_registry_entry_t *entry = &registry->entries[i];
-        char *line = talloc_asprintf(ctx, "  %s (%s)\n", entry->name, entry->path);
+        const char *path_display = entry->path ? entry->path : "(internal)";
+        char *line = talloc_asprintf(ctx, "  %s (%s)\n", entry->name, path_display);
         if (line == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         char *new_list = talloc_asprintf(ctx, "%s%s", list, line);
@@ -147,6 +150,12 @@ res_t ik_cmd_refresh(void *ctx, ik_repl_ctx_t *repl, const char *args)
     if (is_err(&result)) {  // LCOV_EXCL_BR_LINE - OOM or corruption in discovery
         return result;  // LCOV_EXCL_LINE
     }
+
+    // Register internal tools (after external discovery, so internal tools overwrite on collision)
+    ik_internal_tools_register(registry);
+
+    // Sort registry after all tools are registered
+    ik_tool_registry_sort(registry);
 
     // Report results
     char *msg = talloc_asprintf(ctx, "Tool registry refreshed: %zu tools loaded\n", registry->count);
