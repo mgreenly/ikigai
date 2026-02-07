@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+require 'google/apis/chat_v1'
+require 'googleauth'
+require 'fileutils'
+
+AGENT_USER = ENV.fetch('GOOGLE_CHAT_USER', 'ikigai@logic-refinery.com')
+SCOPE = 'https://www.googleapis.com/auth/chat.messages.readonly'
+KEY_FILE = ENV.fetch('GOOGLE_APPLICATION_CREDENTIALS', File.expand_path('~/.secrets/ikigai-dev-1982.iam.gserviceaccount.com'))
+SPACE_NAME = ENV['GOOGLE_CHAT_SPACE']
+CURSOR_DIR = '.claude/data'
+CURSOR_FILE = File.join(CURSOR_DIR, 'chat-read-cursor')
+
+USER_NAMES = {
+  'users/104273521804291358340' => 'michaelgreenly@logic-refinery.com',
+  'users/ikigai@logic-refinery.com' => 'ikigai@logic-refinery.com',
+}
+
+def read_cursor
+  return nil unless File.exist?(CURSOR_FILE)
+  File.read(CURSOR_FILE).strip
+end
+
+def write_cursor(message_name)
+  FileUtils.mkdir_p(CURSOR_DIR)
+  File.write(CURSOR_FILE, message_name)
+end
+
+credentials = Google::Auth::ServiceAccountCredentials.make_creds(
+  json_key_io: File.open(KEY_FILE),
+  scope: SCOPE
+)
+credentials.update!(sub: AGENT_USER)
+credentials.fetch_access_token!
+
+service = Google::Apis::ChatV1::HangoutsChatService.new
+service.authorization = credentials
+
+if SPACE_NAME.nil?
+  puts "Available spaces:"
+  service.list_spaces.spaces&.each do |space|
+    puts "  #{space.name}: #{space.display_name}"
+  end
+  puts "\nSet GOOGLE_CHAT_SPACE to read messages."
+  exit 0
+end
+
+messages = service.list_space_messages(SPACE_NAME)
+if messages.messages.nil? || messages.messages.empty?
+  exit 0
+end
+
+last_cursor = read_cursor
+new_messages = messages.messages.reverse
+
+# Filter to only messages after the cursor
+if last_cursor
+  cursor_idx = new_messages.find_index { |m| m.name == last_cursor }
+  if cursor_idx
+    new_messages = new_messages[(cursor_idx + 1)..]
+  end
+end
+
+exit 0 if new_messages.nil? || new_messages.empty?
+
+new_messages.each do |msg|
+  sender_id = msg.sender&.name
+  sender = msg.sender&.display_name || USER_NAMES[sender_id] || sender_id || 'Unknown'
+  time = msg.create_time.to_s[0, 16].tr('T', ' ') rescue ''
+  text = msg.text || '[no text]'
+  puts "[#{time}] #{sender}: #{text}"
+end
+
+# Update cursor to the last message we displayed
+write_cursor(new_messages.last.name)
