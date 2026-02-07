@@ -17,6 +17,145 @@
 
 
 #include "shared/poison.h"
+
+static bool serialize_text_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                  const ik_content_block_t *block,
+                                  size_t message_idx, size_t block_idx)
+{
+    if (!yyjson_mut_obj_add_str_(doc, obj, "type", "text")) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TEXT - failed to add type field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "text", block->data.text.text)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TEXT - failed to add text field (text=%s)",
+                  message_idx, block_idx, block->data.text.text ? "(non-NULL)" : "(NULL)");
+        return false;
+    }
+    return true;
+}
+
+static bool serialize_thinking_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                      const ik_content_block_t *block,
+                                      size_t message_idx, size_t block_idx)
+{
+    if (!yyjson_mut_obj_add_str_(doc, obj, "type", "thinking")) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add type field", message_idx, block_idx);
+        return false;
+    }
+    DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - text=%s signature=%s",
+              message_idx, block_idx,
+              block->data.thinking.text ? "(non-NULL)" : "(NULL)",
+              block->data.thinking.signature ? "(non-NULL)" : "(NULL)");
+    if (block->data.thinking.text == NULL || block->data.thinking.text[0] == '\0') {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - thinking text is NULL or empty",
+                  message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "thinking", block->data.thinking.text)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add thinking field (text=%s)",
+                  message_idx, block_idx, block->data.thinking.text ? "(non-NULL)" : "(NULL)");
+        return false;
+    }
+    if (block->data.thinking.signature != NULL) {
+        if (!yyjson_mut_obj_add_str_(doc, obj, "signature", block->data.thinking.signature)) {
+            DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add signature field", message_idx, block_idx);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool serialize_tool_call_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                       const ik_content_block_t *block,
+                                       size_t message_idx, size_t block_idx)
+{
+    if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_use")) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add type field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "id", block->data.tool_call.id)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add id field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "name", block->data.tool_call.name)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add name field", message_idx, block_idx);
+        return false;
+    }
+
+    const char *args_str = block->data.tool_call.arguments;
+    if (args_str == NULL || args_str[0] == '\0') {
+        args_str = "{}";
+    }
+    DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - arguments=%s",
+              message_idx, block_idx, args_str);
+    yyjson_doc *args_doc = yyjson_read(args_str, strlen(args_str), 0);
+    if (!args_doc) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to parse arguments JSON: '%s'",
+                  message_idx, block_idx, args_str);
+        return false;
+    }
+
+    yyjson_mut_val *args_mut = yyjson_val_mut_copy_(doc, yyjson_doc_get_root(args_doc));
+    yyjson_doc_free(args_doc);
+    if (!args_mut) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to copy arguments to mutable JSON", message_idx, block_idx);
+        return false;
+    }
+
+    if (!yyjson_mut_obj_add_val_(doc, obj, "input", args_mut)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add input field", message_idx, block_idx);
+        return false;
+    }
+    return true;
+}
+
+static bool serialize_tool_result_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                         const ik_content_block_t *block,
+                                         size_t message_idx, size_t block_idx)
+{
+    if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_result")) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add type field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "tool_use_id", block->data.tool_result.tool_call_id)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add tool_use_id field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "content", block->data.tool_result.content)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add content field", message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_bool_(doc, obj, "is_error", block->data.tool_result.is_error)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add is_error field", message_idx, block_idx);
+        return false;
+    }
+    return true;
+}
+
+static bool serialize_redacted_thinking_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
+                                               const ik_content_block_t *block,
+                                               size_t message_idx, size_t block_idx)
+{
+    if (!yyjson_mut_obj_add_str_(doc, obj, "type", "redacted_thinking")) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - failed to add type field", message_idx, block_idx);
+        return false;
+    }
+    DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - data=%s",
+              message_idx, block_idx,
+              block->data.redacted_thinking.data ? "(non-NULL)" : "(NULL)");
+    if (block->data.redacted_thinking.data == NULL || block->data.redacted_thinking.data[0] == '\0') {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - redacted data is NULL or empty",
+                  message_idx, block_idx);
+        return false;
+    }
+    if (!yyjson_mut_obj_add_str_(doc, obj, "data", block->data.redacted_thinking.data)) {
+        DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - failed to add data field (data=%s)",
+                  message_idx, block_idx, block->data.redacted_thinking.data ? "(non-NULL)" : "(NULL)");
+        return false;
+    }
+    return true;
+}
+
 /**
  * Serialize a single content block to Anthropic JSON format
  */
@@ -36,132 +175,30 @@ bool ik_anthropic_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *a
         return false;
     }
 
+    bool result = false;
     switch (block->type) {
         case IK_CONTENT_TEXT:
-            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "text")) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TEXT - failed to add type field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "text", block->data.text.text)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TEXT - failed to add text field (text=%s)",
-                          message_idx, block_idx, block->data.text.text ? "(non-NULL)" : "(NULL)");
-                return false;
-            }
+            result = serialize_text_block(doc, obj, block, message_idx, block_idx);
             break;
-
         case IK_CONTENT_THINKING:
-            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "thinking")) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add type field", message_idx, block_idx);
-                return false;
-            }
-            DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - text=%s signature=%s",
-                      message_idx, block_idx,
-                      block->data.thinking.text ? "(non-NULL)" : "(NULL)",
-                      block->data.thinking.signature ? "(non-NULL)" : "(NULL)");
-            // Thinking text must not be NULL or empty
-            if (block->data.thinking.text == NULL || block->data.thinking.text[0] == '\0') {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - thinking text is NULL or empty",
-                          message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "thinking", block->data.thinking.text)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add thinking field (text=%s)",
-                          message_idx, block_idx, block->data.thinking.text ? "(non-NULL)" : "(NULL)");
-                return false;
-            }
-            if (block->data.thinking.signature != NULL) {
-                if (!yyjson_mut_obj_add_str_(doc, obj, "signature", block->data.thinking.signature)) {
-                    DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] THINKING - failed to add signature field", message_idx, block_idx);
-                    return false;
-                }
-            }
+            result = serialize_thinking_block(doc, obj, block, message_idx, block_idx);
             break;
-
         case IK_CONTENT_TOOL_CALL:
-            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_use")) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add type field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "id", block->data.tool_call.id)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add id field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "name", block->data.tool_call.name)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add name field", message_idx, block_idx);
-                return false;
-            }
-
-            // Parse arguments JSON string and add as object
-            // If arguments is empty string, treat as empty object "{}"
-            const char *args_str = block->data.tool_call.arguments;
-            if (args_str == NULL || args_str[0] == '\0') {
-                args_str = "{}";
-            }
-            DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - arguments=%s",
-                      message_idx, block_idx, args_str);
-            yyjson_doc *args_doc = yyjson_read(args_str, strlen(args_str), 0);
-            if (!args_doc) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to parse arguments JSON: '%s'",
-                          message_idx, block_idx, args_str);
-                return false;
-            }
-
-            yyjson_mut_val *args_mut = yyjson_val_mut_copy_(doc, yyjson_doc_get_root(args_doc));
-            yyjson_doc_free(args_doc);
-            if (!args_mut) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to copy arguments to mutable JSON", message_idx, block_idx);
-                return false;
-            }
-
-            if (!yyjson_mut_obj_add_val_(doc, obj, "input", args_mut)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_CALL - failed to add input field", message_idx, block_idx);
-                return false;
-            }
+            result = serialize_tool_call_block(doc, obj, block, message_idx, block_idx);
             break;
-
         case IK_CONTENT_TOOL_RESULT:
-            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_result")) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add type field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "tool_use_id", block->data.tool_result.tool_call_id)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add tool_use_id field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "content", block->data.tool_result.content)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add content field", message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_bool_(doc, obj, "is_error", block->data.tool_result.is_error)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] TOOL_RESULT - failed to add is_error field", message_idx, block_idx);
-                return false;
-            }
+            result = serialize_tool_result_block(doc, obj, block, message_idx, block_idx);
             break;
-
         case IK_CONTENT_REDACTED_THINKING:
-            if (!yyjson_mut_obj_add_str_(doc, obj, "type", "redacted_thinking")) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - failed to add type field", message_idx, block_idx);
-                return false;
-            }
-            DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - data=%s",
-                      message_idx, block_idx,
-                      block->data.redacted_thinking.data ? "(non-NULL)" : "(NULL)");
-            // Redacted thinking data must not be NULL or empty
-            if (block->data.redacted_thinking.data == NULL || block->data.redacted_thinking.data[0] == '\0') {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - redacted data is NULL or empty",
-                          message_idx, block_idx);
-                return false;
-            }
-            if (!yyjson_mut_obj_add_str_(doc, obj, "data", block->data.redacted_thinking.data)) {
-                DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] REDACTED_THINKING - failed to add data field (data=%s)",
-                          message_idx, block_idx, block->data.redacted_thinking.data ? "(non-NULL)" : "(NULL)");
-                return false;
-            }
+            result = serialize_redacted_thinking_block(doc, obj, block, message_idx, block_idx);
             break;
-
         default: // LCOV_EXCL_LINE
             DEBUG_LOG("serialize_content_block: msg[%zu] block[%zu] - unknown block type %d", message_idx, block_idx, block->type); // LCOV_EXCL_LINE
             return false; // LCOV_EXCL_LINE
+    }
+
+    if (!result) {
+        return false;
     }
 
     if (!yyjson_mut_arr_add_val_(arr, obj)) {
