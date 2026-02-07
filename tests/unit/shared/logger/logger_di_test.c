@@ -347,30 +347,6 @@ START_TEST(test_logger_respects_env_var_override) {
 
 END_TEST
 
-#ifndef SKIP_SIGNAL_TESTS
-// Test: ik_logger_fatal_json exits process
-START_TEST(test_logger_fatal_exits) {
-    setup_test();
-
-    ik_logger_t *logger = ik_logger_create(test_ctx, test_dir);
-    ck_assert_ptr_nonnull(logger);
-
-    yyjson_mut_doc *doc = ik_log_create();
-    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-    yyjson_mut_obj_add_str(doc, root, "event", "fatal_error");
-
-    // This should exit(1) - test framework will catch it
-    ik_logger_fatal_json(logger, doc);
-
-    // Should not reach here
-    ck_abort_msg("Should have exited");
-
-    teardown_test();
-}
-
-END_TEST
-#endif
-
 // Suite-level setup: Set log directory
 static void suite_setup(void)
 {
@@ -396,9 +372,6 @@ static Suite *logger_di_suite(void)
     tcase_add_test(tc_core, test_logger_get_fd_returns_valid_fd);
     tcase_add_test(tc_core, test_logger_get_fd_null_logger);
     tcase_add_test(tc_core, test_logger_respects_env_var_override);
-#ifndef SKIP_SIGNAL_TESTS
-    tcase_add_exit_test(tc_core, test_logger_fatal_exits, 1);
-#endif
 
     suite_add_tcase(s, tc_core);
     return s;

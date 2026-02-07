@@ -400,12 +400,6 @@ void ik_logger_error_json(ik_logger_t *logger, yyjson_mut_doc *doc)
     ik_logger_write(logger, "error", doc);
 }
 
-void ik_logger_fatal_json(ik_logger_t *logger, yyjson_mut_doc *doc)
-{
-    ik_logger_write(logger, "fatal", doc);
-    exit(1);
-}
-
 int ik_logger_get_fd(ik_logger_t *logger)
 {
     if (logger == NULL || logger->file == NULL) {  // LCOV_EXCL_BR_LINE
