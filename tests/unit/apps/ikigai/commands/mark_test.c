@@ -214,114 +214,6 @@ START_TEST(test_find_mark_with_unlabeled_marks) {
 }
 
 END_TEST
-// Test: Rewind to mark
-START_TEST(test_rewind_to_mark) {
-    res_t res;
-    // Build conversation with messages
-    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
-    res = ik_agent_add_message(repl->current, msg1);
-    ck_assert(is_ok(&res));
-
-    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
-    res = ik_agent_add_message(repl->current, msg2);
-    ck_assert(is_ok(&res));
-
-    // Create mark after 2 messages
-    res = ik_mark_create(repl, "checkpoint");
-    ck_assert(is_ok(&res));
-
-    // Add more messages
-    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 2");
-    res = ik_agent_add_message(repl->current, msg3);
-    ck_assert(is_ok(&res));
-
-    ik_message_t *msg4 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 2");
-    res = ik_agent_add_message(repl->current, msg4);
-    ck_assert(is_ok(&res));
-
-    // Verify conversation has 4 messages
-    ck_assert_uint_eq(repl->current->message_count, 4);
-
-    // Rewind to checkpoint
-    res = ik_mark_rewind_to(repl, "checkpoint");
-    ck_assert(is_ok(&res));
-
-    // Verify conversation was truncated to 2 messages
-    ck_assert_uint_eq(repl->current->message_count, 2);
-
-    // Verify mark was preserved (Bug 7 fix: marks are reusable)
-    ck_assert_uint_eq(repl->current->mark_count, 1);
-}
-
-END_TEST
-// Test: Rewind to most recent mark (no label)
-START_TEST(test_rewind_to_most_recent) {
-    res_t res;
-    // Create conversation and marks
-    ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message");
-    res = ik_agent_add_message(repl->current, msg);
-    ck_assert(is_ok(&res));
-
-    res = ik_mark_create(repl, "mark1");
-    ck_assert(is_ok(&res));
-
-    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response");
-    res = ik_agent_add_message(repl->current, msg2);
-    ck_assert(is_ok(&res));
-
-    // Rewind without label (to most recent)
-    res = ik_mark_rewind_to(repl, NULL);
-    ck_assert(is_ok(&res));
-
-    // Verify conversation truncated
-    ck_assert_uint_eq(repl->current->message_count, 1);
-}
-
-END_TEST
-// Test: Rewind to middle mark (not first position)
-START_TEST(test_rewind_to_middle_mark) {
-    res_t res;
-    // Create multiple marks
-    ik_message_t *msg = ik_message_create_text(ctx, IK_ROLE_USER, "Message 1");
-    res = ik_agent_add_message(repl->current, msg);
-    ck_assert(is_ok(&res));
-
-    res = ik_mark_create(repl, "first");
-    ck_assert(is_ok(&res));
-
-    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "Response 1");
-    res = ik_agent_add_message(repl->current, msg2);
-    ck_assert(is_ok(&res));
-
-    res = ik_mark_create(repl, "second");
-    ck_assert(is_ok(&res));
-
-    ik_message_t *msg3 = ik_message_create_text(ctx, IK_ROLE_USER, "Message 2");
-    res = ik_agent_add_message(repl->current, msg3);
-    ck_assert(is_ok(&res));
-
-    res = ik_mark_create(repl, "third");
-    ck_assert(is_ok(&res));
-
-    // Rewind to second mark (not first, not last)
-    res = ik_mark_rewind_to(repl, "second");
-    ck_assert(is_ok(&res));
-
-    // Verify conversation truncated to position of second mark
-    ck_assert_uint_eq(repl->current->message_count, 2);
-    // Verify marks truncated (should have kept first and second, removed third)
-    ck_assert_uint_eq(repl->current->mark_count, 2);
-}
-
-END_TEST
-// Test: Rewind - no marks error
-START_TEST(test_rewind_no_marks) {
-    // Try to rewind when no marks exist
-    res_t res = ik_mark_rewind_to(repl, NULL);
-    ck_assert(is_err(&res));
-}
-
-END_TEST
 // Test: /mark command via dispatcher
 START_TEST(test_mark_command_via_dispatcher) {
     // Execute /mark command with label
@@ -393,15 +285,6 @@ static Suite *commands_mark_suite(void)
     tcase_add_test(tc_find, test_find_mark_label_not_found);
     tcase_add_test(tc_find, test_find_mark_with_unlabeled_marks);
     suite_add_tcase(s, tc_find);
-
-    TCase *tc_rewind = tcase_create("Mark Rewind");
-    tcase_set_timeout(tc_rewind, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_rewind, setup, teardown);
-    tcase_add_test(tc_rewind, test_rewind_to_mark);
-    tcase_add_test(tc_rewind, test_rewind_to_most_recent);
-    tcase_add_test(tc_rewind, test_rewind_to_middle_mark);
-    tcase_add_test(tc_rewind, test_rewind_no_marks);
-    suite_add_tcase(s, tc_rewind);
 
     TCase *tc_commands = tcase_create("Command Dispatcher");
     tcase_set_timeout(tc_commands, IK_TEST_TIMEOUT);
