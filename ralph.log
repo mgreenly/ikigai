@@ -66,3 +66,25 @@ The acceptance criteria are met: the file is deleted and no other files were mod
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 2
+  Assistant Messages: 17
+  Tool Uses: 8
+
+  Tokens:
+    Input: 229
+    Output: 47
+    Cache Read: 272,789
+    Cache Create: 36,286
+    Total: 309,351
+
+  Cost: $0.2193
+
+  Time:
+    LLM: 44s
+    Tools: 2s
+    Other: 2s
+    Total: 49s
+══════════════════════════════════════════════════════════════════════
+
