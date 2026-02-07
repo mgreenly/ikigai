@@ -36,7 +36,6 @@ void ik_logger_debug_json(ik_logger_t *logger, yyjson_mut_doc *doc);
 void ik_logger_info_json(ik_logger_t *logger, yyjson_mut_doc *doc);
 void ik_logger_warn_json(ik_logger_t *logger, yyjson_mut_doc *doc);
 void ik_logger_error_json(ik_logger_t *logger, yyjson_mut_doc *doc);
-void ik_logger_fatal_json(ik_logger_t *logger, yyjson_mut_doc *doc) __attribute__((noreturn));
 
 // Legacy log functions using global logger (for backward compatibility during migration)
 // Prefer ik_logger_*_json() with explicit logger context for new code
