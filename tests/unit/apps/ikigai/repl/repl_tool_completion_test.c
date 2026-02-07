@@ -4,8 +4,7 @@
  * @file repl_tool_completion_test.c
  * @brief Unit tests for repl_tool_completion functions
  *
- * Tests ik_repl_handle_tool_completion, ik_repl_handle_agent_tool_completion,
- * ik_repl_submit_tool_loop_continuation, and ik_repl_poll_tool_completions.
+ * Tests ik_repl_handle_agent_tool_completion and ik_repl_poll_tool_completions.
  */
 
 #include "apps/ikigai/agent.h"
@@ -288,56 +287,6 @@ START_TEST(test_poll_tool_completions_current_executing) {
 }
 END_TEST
 
-/* Test: submit with request build error */
-START_TEST(test_submit_tool_loop_continuation_request_error) {
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    mock_provider_should_fail = false;
-    mock_request_should_fail = true;
-    mock_stream_should_fail = false;
-    size_t initial_scrollback_count = agent->scrollback->count;
-    ik_repl_submit_tool_loop_continuation(repl, agent);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert(agent->scrollback->count > initial_scrollback_count);
-}
-END_TEST
-
-/* Test: submit with start_stream error */
-START_TEST(test_submit_tool_loop_continuation_stream_error) {
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    mock_provider_should_fail = false;
-    mock_request_should_fail = false;
-    mock_stream_should_fail = true;
-    size_t initial_scrollback_count = agent->scrollback->count;
-    ik_repl_submit_tool_loop_continuation(repl, agent);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert(agent->scrollback->count > initial_scrollback_count);
-}
-END_TEST
-
-/* Test: submit with success */
-START_TEST(test_submit_tool_loop_continuation_success) {
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    agent->response_finish_reason = talloc_strdup(agent, "tool_calls");
-    atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
-    agent->curl_still_running = 0;
-    mock_provider_should_fail = false;
-    mock_request_should_fail = false;
-    mock_stream_should_fail = false;
-    ik_repl_submit_tool_loop_continuation(repl, agent);
-    ck_assert_int_eq(agent->curl_still_running, 1);
-}
-END_TEST
-
 /* Test: poll with no agents */
 START_TEST(test_poll_tool_completions_no_agents) {
     repl->agent_count = 0;
@@ -454,9 +403,6 @@ static Suite *repl_tool_completion_suite(void)
     tcase_add_test(tc_core, test_poll_tool_completions_agents_array);
     tcase_add_test(tc_core, test_poll_tool_completions_current_not_executing);
     tcase_add_test(tc_core, test_poll_tool_completions_current_executing);
-    tcase_add_test(tc_core, test_submit_tool_loop_continuation_request_error);
-    tcase_add_test(tc_core, test_submit_tool_loop_continuation_stream_error);
-    tcase_add_test(tc_core, test_submit_tool_loop_continuation_success);
     tcase_add_test(tc_core, test_poll_tool_completions_no_agents);
     tcase_add_test(tc_core, test_poll_tool_completions_agent_not_complete);
     tcase_add_test(tc_core, test_poll_tool_completions_agent_wrong_state);
