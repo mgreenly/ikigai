@@ -334,6 +334,189 @@ START_TEST(test_sort_multiple) {
 
 END_TEST
 
+// Dummy handler for internal tool tests
+static char *dummy_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char *arguments_json)
+{
+    (void)agent;
+    (void)arguments_json;
+    return talloc_strdup(ctx, "{\"ok\": true}");
+}
+
+// Dummy on_complete for internal tool tests
+static void dummy_on_complete(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+{
+    (void)repl;
+    (void)agent;
+}
+
+// Test: Add internal tool - new entry
+START_TEST(test_add_internal_new) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    yyjson_doc *schema = create_test_schema("noop");
+
+    res_t result = ik_tool_registry_add_internal(registry, "noop", schema, dummy_handler, dummy_on_complete);
+
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(registry->count, 1);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->name, "noop");
+    ck_assert_ptr_null(entry->path);
+    ck_assert_ptr_nonnull(entry->schema_doc);
+    ck_assert_ptr_nonnull(entry->schema_root);
+    ck_assert_int_eq(entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_eq(entry->handler, dummy_handler);
+    ck_assert_ptr_eq(entry->on_complete, dummy_on_complete);
+}
+
+END_TEST
+
+// Test: Add internal tool - override existing external tool
+START_TEST(test_add_internal_override_external) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    yyjson_doc *schema1 = create_test_schema("mytool");
+    yyjson_doc *schema2 = create_test_schema("mytool_internal");
+
+    // First add as external
+    ik_tool_registry_add(registry, "mytool", "/usr/bin/mytool", schema1);
+    ck_assert_uint_eq(registry->count, 1);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "mytool");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_str_eq(entry->path, "/usr/bin/mytool");
+    ck_assert_int_eq(entry->type, IK_TOOL_EXTERNAL);
+
+    // Override with internal
+    res_t result = ik_tool_registry_add_internal(registry, "mytool", schema2, dummy_handler, dummy_on_complete);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(registry->count, 1);  // Count stays the same
+
+    entry = ik_tool_registry_lookup(registry, "mytool");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_ptr_null(entry->path);
+    ck_assert_int_eq(entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_eq(entry->handler, dummy_handler);
+    ck_assert_ptr_eq(entry->on_complete, dummy_on_complete);
+}
+
+END_TEST
+
+// Test: Add internal tool - override existing internal tool
+START_TEST(test_add_internal_override_internal) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    yyjson_doc *schema1 = create_test_schema("noop");
+    yyjson_doc *schema2 = create_test_schema("noop_v2");
+
+    // Add internal tool
+    ik_tool_registry_add_internal(registry, "noop", schema1, dummy_handler, NULL);
+    ck_assert_uint_eq(registry->count, 1);
+
+    // Override with another internal tool
+    res_t result = ik_tool_registry_add_internal(registry, "noop", schema2, dummy_handler, dummy_on_complete);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(registry->count, 1);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_ptr_null(entry->path);
+    ck_assert_int_eq(entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_eq(entry->on_complete, dummy_on_complete);
+}
+
+END_TEST
+
+// Test: Add internal tool with NULL on_complete
+START_TEST(test_add_internal_null_on_complete) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+    yyjson_doc *schema = create_test_schema("noop");
+
+    res_t result = ik_tool_registry_add_internal(registry, "noop", schema, dummy_handler, NULL);
+
+    ck_assert(!is_err(&result));
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ck_assert_ptr_nonnull(entry);
+    ck_assert_ptr_eq(entry->handler, dummy_handler);
+    ck_assert_ptr_null(entry->on_complete);
+}
+
+END_TEST
+
+// Test: Clear registry with internal tools (path==NULL)
+START_TEST(test_clear_with_internal_tools) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    yyjson_doc *schema1 = create_test_schema("bash");
+    yyjson_doc *schema2 = create_test_schema("noop");
+
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema1);
+    ik_tool_registry_add_internal(registry, "noop", schema2, dummy_handler, NULL);
+
+    ck_assert_uint_eq(registry->count, 2);
+
+    // This exercises the path==NULL branch on line 154 of tool_registry.c
+    ik_tool_registry_clear(registry);
+
+    ck_assert_uint_eq(registry->count, 0);
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "bash"));
+    ck_assert_ptr_null(ik_tool_registry_lookup(registry, "noop"));
+}
+
+END_TEST
+
+// Test: Sort with mixed external and internal tools
+START_TEST(test_sort_with_internal_tools) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    yyjson_doc *schema1 = create_test_schema("python");
+    yyjson_doc *schema2 = create_test_schema("noop");
+    yyjson_doc *schema3 = create_test_schema("bash");
+
+    ik_tool_registry_add(registry, "python", "/usr/bin/python", schema1);
+    ik_tool_registry_add_internal(registry, "noop", schema2, dummy_handler, NULL);
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema3);
+
+    ck_assert_uint_eq(registry->count, 3);
+
+    ik_tool_registry_sort(registry);
+
+    // Verify alphabetical order: bash, noop, python
+    ck_assert_str_eq(registry->entries[0].name, "bash");
+    ck_assert_str_eq(registry->entries[1].name, "noop");
+    ck_assert_str_eq(registry->entries[2].name, "python");
+
+    // Verify internal tool properties preserved after sort
+    ik_tool_registry_entry_t *noop = ik_tool_registry_lookup(registry, "noop");
+    ck_assert_ptr_nonnull(noop);
+    ck_assert_ptr_null(noop->path);
+    ck_assert_int_eq(noop->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_eq(noop->handler, dummy_handler);
+}
+
+END_TEST
+
+// Test: Build all tools array includes internal tools
+START_TEST(test_build_all_with_internal_tools) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    yyjson_doc *schema1 = create_test_schema("bash");
+    yyjson_doc *schema2 = create_test_schema("noop");
+
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema1);
+    ik_tool_registry_add_internal(registry, "noop", schema2, dummy_handler, NULL);
+
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    yyjson_mut_val *tools_array = ik_tool_registry_build_all(registry, doc);
+
+    ck_assert_ptr_nonnull(tools_array);
+    ck_assert(yyjson_mut_is_arr(tools_array));
+    ck_assert_uint_eq(yyjson_mut_arr_size(tools_array), 2);
+
+    yyjson_mut_doc_free(doc);
+}
+
+END_TEST
+
 // Test: Sort is idempotent
 START_TEST(test_sort_idempotent) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
@@ -385,6 +568,13 @@ static Suite *tool_registry_suite(void)
     tcase_add_test(tc_core, test_sort_single);
     tcase_add_test(tc_core, test_sort_multiple);
     tcase_add_test(tc_core, test_sort_idempotent);
+    tcase_add_test(tc_core, test_add_internal_new);
+    tcase_add_test(tc_core, test_add_internal_override_external);
+    tcase_add_test(tc_core, test_add_internal_override_internal);
+    tcase_add_test(tc_core, test_add_internal_null_on_complete);
+    tcase_add_test(tc_core, test_clear_with_internal_tools);
+    tcase_add_test(tc_core, test_sort_with_internal_tools);
+    tcase_add_test(tc_core, test_build_all_with_internal_tools);
 
     suite_add_tcase(s, tc_core);
 

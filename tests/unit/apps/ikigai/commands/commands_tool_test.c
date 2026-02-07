@@ -6,6 +6,7 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands_tool.h"
 #include "apps/ikigai/config.h"
+#include "apps/ikigai/internal_tools.h"
 #include "shared/error.h"
 #include "shared/json_allocator.h"
 #include "apps/ikigai/paths.h"
@@ -219,6 +220,49 @@ START_TEST(test_refresh_with_args) {
 
 END_TEST
 
+// Dummy handler for internal tool tests
+static char *test_internal_handler(TALLOC_CTX *handler_ctx, ik_agent_ctx_t *agent, const char *arguments_json)
+{
+    (void)agent;
+    (void)arguments_json;
+    return talloc_strdup(handler_ctx, "{\"ok\": true}");
+}
+
+// Test: /tool <name> with internal tool shows "(internal)" path
+START_TEST(test_tool_show_internal_tool) {
+    yyjson_doc *schema = create_test_schema("noop");
+    ik_tool_registry_add_internal(registry, "noop", schema, test_internal_handler, NULL);
+
+    res_t res = ik_cmd_tool(ctx, repl, "noop");
+    ck_assert(is_ok(&res));
+
+    const char *text = get_scrollback_text(repl->current->scrollback);
+    ck_assert_ptr_nonnull(strstr(text, "Tool: noop"));
+    ck_assert_ptr_nonnull(strstr(text, "Path: (internal)"));
+    ck_assert_ptr_nonnull(strstr(text, "Schema:"));
+}
+
+END_TEST
+
+// Test: /tool list with internal tool shows "(internal)" in listing
+START_TEST(test_tool_list_with_internal_tool) {
+    yyjson_doc *schema1 = create_test_schema("bash");
+    yyjson_doc *schema2 = create_test_schema("noop");
+
+    ik_tool_registry_add(registry, "bash", "/usr/bin/bash", schema1);
+    ik_tool_registry_add_internal(registry, "noop", schema2, test_internal_handler, NULL);
+
+    res_t res = ik_cmd_tool(ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    const char *text = get_scrollback_text(repl->current->scrollback);
+    ck_assert_ptr_nonnull(strstr(text, "Available tools:"));
+    ck_assert_ptr_nonnull(strstr(text, "bash (/usr/bin/bash)"));
+    ck_assert_ptr_nonnull(strstr(text, "noop (internal)"));
+}
+
+END_TEST
+
 static Suite *commands_tool_suite(void)
 {
     Suite *s = suite_create("Commands/Tool");
@@ -236,6 +280,8 @@ static Suite *commands_tool_suite(void)
     tcase_add_test(tc, test_tool_empty_string);
     tcase_add_test(tc, test_refresh_clears_registry);
     tcase_add_test(tc, test_refresh_with_args);
+    tcase_add_test(tc, test_tool_show_internal_tool);
+    tcase_add_test(tc, test_tool_list_with_internal_tool);
 
     suite_add_tcase(s, tc);
     return s;

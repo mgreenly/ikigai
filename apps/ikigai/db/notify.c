@@ -29,7 +29,7 @@ res_t ik_db_listen(ik_db_ctx_t *db_ctx, const char *channel)
         char *err_msg = talloc_asprintf(NULL, "LISTEN failed: %s", PQresultErrorMessage(res));
         if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         PQclear(res);
-        res_t result = ERR(NULL, DB_CONNECT, "%s", err_msg);
+        res_t result = ERR(db_ctx, DB_CONNECT, "%s", err_msg);
         talloc_free(err_msg);
         return result;
     }
@@ -56,7 +56,7 @@ res_t ik_db_unlisten(ik_db_ctx_t *db_ctx, const char *channel)
         char *err_msg = talloc_asprintf(NULL, "UNLISTEN failed: %s", PQresultErrorMessage(res));
         if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         PQclear(res);
-        res_t result = ERR(NULL, DB_CONNECT, "%s", err_msg);
+        res_t result = ERR(db_ctx, DB_CONNECT, "%s", err_msg);
         talloc_free(err_msg);
         return result;
     }
@@ -84,7 +84,7 @@ res_t ik_db_notify(ik_db_ctx_t *db_ctx, const char *channel, const char *payload
         char *err_msg = talloc_asprintf(NULL, "NOTIFY failed: %s", PQresultErrorMessage(res));
         if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         PQclear(res);
-        res_t result = ERR(NULL, DB_CONNECT, "%s", err_msg);
+        res_t result = ERR(db_ctx, DB_CONNECT, "%s", err_msg);
         talloc_free(err_msg);
         return result;
     }
@@ -106,7 +106,7 @@ res_t ik_db_consume_notifications(ik_db_ctx_t *db_ctx, ik_db_notify_callback_t c
 
     int consume_result = PQconsumeInput_(db_ctx->conn);
     if (consume_result == 0) {
-        return ERR(NULL, DB_CONNECT, "PQconsumeInput failed: %s", PQerrorMessage(db_ctx->conn));
+        return ERR(db_ctx, DB_CONNECT, "PQconsumeInput failed: %s", PQerrorMessage(db_ctx->conn));
     }
 
     size_t count = 0;

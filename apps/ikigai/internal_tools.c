@@ -45,9 +45,9 @@ void ik_internal_tools_register(ik_tool_registry_t *registry)
     if (!yyjson_mut_obj_add_str(doc, root, "name", "noop")) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // description
-    if (!yyjson_mut_obj_add_str(doc, root, "description",
+    if (!yyjson_mut_obj_add_str(doc, root, "description",  // LCOV_EXCL_BR_LINE
                                 "No-op verification tool - proves internal tool infrastructure works"))
-        PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");  // LCOV_EXCL_LINE
 
     // parameters (minimal - no required parameters)
     yyjson_mut_val *parameters = yyjson_mut_obj(doc);

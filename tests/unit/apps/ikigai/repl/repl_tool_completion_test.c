@@ -121,6 +121,18 @@ static void *dummy_thread_func(void *arg)
     return NULL;
 }
 
+/* Mock on_complete hook tracking */
+static bool on_complete_called = false;
+static ik_repl_ctx_t *on_complete_repl_arg = NULL;
+static ik_agent_ctx_t *on_complete_agent_arg = NULL;
+
+static void mock_on_complete(ik_repl_ctx_t *r, ik_agent_ctx_t *a)
+{
+    on_complete_called = true;
+    on_complete_repl_arg = r;
+    on_complete_agent_arg = a;
+}
+
 static void *ctx;
 static ik_repl_ctx_t *repl;
 static ik_agent_ctx_t *agent;
@@ -131,6 +143,9 @@ static void setup(void)
     mock_provider_should_fail = true;
     mock_request_should_fail = false;
     mock_stream_should_fail = false;
+    on_complete_called = false;
+    on_complete_repl_arg = NULL;
+    on_complete_agent_arg = NULL;
 
     ctx = talloc_new(NULL);
 
@@ -390,6 +405,39 @@ START_TEST(test_poll_tool_completions_current_executing_not_complete) {
 }
 END_TEST
 
+/* Test: on_complete hook is called and cleared */
+START_TEST(test_handle_agent_tool_completion_on_complete_hook) {
+    setup_tool_completion("stop");
+    agent->pending_on_complete = mock_on_complete;
+    agent->tool_deferred_data = (void *)0xDEADBEEF;
+    repl->current = NULL;
+    ik_repl_handle_agent_tool_completion(repl, agent);
+
+    /* Verify on_complete was called with correct arguments */
+    ck_assert(on_complete_called);
+    ck_assert_ptr_eq(on_complete_repl_arg, repl);
+    ck_assert_ptr_eq(on_complete_agent_arg, agent);
+
+    /* Verify pending_on_complete and tool_deferred_data were cleared */
+    ck_assert_ptr_null(agent->pending_on_complete);
+    ck_assert_ptr_null(agent->tool_deferred_data);
+
+    /* Verify agent transitioned to idle */
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    ck_assert_uint_eq(agent->message_count, 2);
+}
+END_TEST
+
+/* Test: renders when agent is current (covers the agent == repl->current branch) */
+START_TEST(test_handle_agent_tool_completion_renders_when_current) {
+    setup_tool_completion("stop");
+    repl->current = agent;  /* agent IS current - triggers render */
+    ik_repl_handle_agent_tool_completion(repl, agent);
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    ck_assert_uint_eq(agent->message_count, 2);
+}
+END_TEST
+
 /**
  * Test suite
  */
@@ -413,6 +461,8 @@ static Suite *repl_tool_completion_suite(void)
     tcase_add_test(tc_core, test_poll_tool_completions_agent_not_complete);
     tcase_add_test(tc_core, test_poll_tool_completions_agent_wrong_state);
     tcase_add_test(tc_core, test_poll_tool_completions_current_executing_not_complete);
+    tcase_add_test(tc_core, test_handle_agent_tool_completion_on_complete_hook);
+    tcase_add_test(tc_core, test_handle_agent_tool_completion_renders_when_current);
     suite_add_tcase(s, tc_core);
 
     return s;

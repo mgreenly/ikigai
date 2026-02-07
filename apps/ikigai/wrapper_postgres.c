@@ -44,5 +44,20 @@ MOCKABLE ExecStatusType PQresultStatus_(const PGresult *res)
     return PQresultStatus(res);
 }
 
+MOCKABLE int PQsocket_(const PGconn *conn)
+{
+    return PQsocket(conn);
+}
+
+MOCKABLE int PQconsumeInput_(PGconn *conn)
+{
+    return PQconsumeInput(conn);
+}
+
+MOCKABLE PGnotify *PQnotifies_(PGconn *conn)
+{
+    return PQnotifies(conn);
+}
+
 // LCOV_EXCL_STOP
 #endif
