@@ -1,0 +1,360 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/orchestrator/run - Pipeline orchestrator for concurrent goal execution
+#
+# Usage: orchestrator --max N [--model MODEL] [--reasoning LEVEL] [--duration DURATION]
+#
+# Picks up queued goals, spawns ralphs in isolated clones, collects results,
+# creates PRs on success, retries on failure, and notifies on spot-check.
+#
+# Arguments:
+#   --max N            Maximum concurrent ralphs (required)
+#   --model MODEL      Model for ralphs: haiku, sonnet, opus (default: sonnet)
+#   --reasoning LEVEL  Reasoning level: none, low, med, high (default: med)
+#   --duration DUR     Time budget per ralph (e.g., 4h, 200m)
+#
+# Exit code: 0 on clean shutdown, 130 on interrupt
+#
+
+require 'json'
+require 'optparse'
+require 'fileutils'
+
+SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
+PROJECT_ROOT = File.expand_path('../../..', SCRIPT_DIR)
+RALPHS_DIR = File.join(PROJECT_ROOT, '.ralphs')
+RALPH_SCRIPT = File.join(SCRIPT_DIR, '..', 'ralph', 'run')
+NOTIFY_SCRIPT = File.join(SCRIPT_DIR, '..', 'notify', 'run')
+GOAL_LIST_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-list', 'run')
+GOAL_GET_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-get', 'run')
+MAX_RETRIES = 3
+
+def log(message)
+  timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+  puts "[#{timestamp}] #{message}"
+  $stdout.flush
+end
+
+def run_script(script, *args)
+  cmd = [script] + args
+  stdout = IO.popen(cmd, err: '/dev/null', &:read)
+  return nil unless $?.exitstatus == 0
+
+  JSON.parse(stdout)
+rescue JSON::ParserError
+  nil
+end
+
+def get_remote_url
+  output = IO.popen(%w[jj git remote list], chdir: PROJECT_ROOT, err: '/dev/null', &:read)
+  return nil unless $?.exitstatus == 0
+
+  output.each_line do |line|
+    parts = line.strip.split(/\s+/)
+    return parts[1] if parts[0] == 'origin' && parts[1]
+  end
+  nil
+end
+
+def transition_label(number, from_label, to_label)
+  system('gh', 'issue', 'edit', number.to_s,
+         '--remove-label', from_label,
+         '--add-label', to_label,
+         out: '/dev/null', err: '/dev/null')
+end
+
+def clone_repo(remote_url, number)
+  dest = File.join(RALPHS_DIR, number.to_s)
+  FileUtils.mkdir_p(RALPHS_DIR)
+  system('git', 'clone', '--quiet', remote_url, dest, out: '/dev/null', err: '/dev/null')
+  $?.exitstatus == 0 ? dest : nil
+end
+
+def delete_clone(number)
+  dest = File.join(RALPHS_DIR, number.to_s)
+  FileUtils.rm_rf(dest) if Dir.exist?(dest)
+end
+
+def create_pr(number, title, clone_dir)
+  # Check if there are commits beyond main
+  diff = IO.popen(%w[git diff --stat origin/main HEAD], chdir: clone_dir, err: '/dev/null', &:read)
+  if diff.strip.empty?
+    log "Goal ##{number} no changes to push, skipping PR"
+    return nil
+  end
+
+  # Create branch and push
+  branch = "goal-#{number}"
+  system('git', 'checkout', '-b', branch, chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  system('git', 'push', '-u', 'origin', branch, chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+
+  unless $?.exitstatus == 0
+    log "Goal ##{number} failed to push branch"
+    return nil
+  end
+
+  # Create PR
+  body = "Closes ##{number}"
+  pr_output = IO.popen(
+    ['gh', 'pr', 'create', '--title', title, '--body', body, '--head', branch],
+    chdir: clone_dir, err: '/dev/null', &:read
+  )
+
+  if $?.exitstatus == 0
+    pr_url = pr_output.strip
+    # Extract PR number from URL
+    pr_num = pr_url.split('/').last
+    pr_num
+  else
+    log "Goal ##{number} failed to create PR"
+    nil
+  end
+end
+
+def notify(title, message)
+  payload = JSON.generate(title: title, message: message)
+  IO.popen(NOTIFY_SCRIPT, 'r+') do |io|
+    io.write(payload)
+    io.close_write
+    io.read
+  end
+rescue StandardError
+  # Notification failure is non-fatal
+end
+
+def format_elapsed(seconds)
+  hours, remainder = seconds.divmod(3600)
+  mins, secs = remainder.divmod(60)
+  if hours > 0
+    "#{hours}h#{mins}m#{secs}s"
+  elsif mins > 0
+    "#{mins}m#{secs}s"
+  else
+    "#{secs}s"
+  end
+end
+
+def main(options)
+  max_slots = options[:max]
+  model = options[:model]
+  reasoning = options[:reasoning]
+  duration = options[:duration]
+
+  remote_url = get_remote_url
+  unless remote_url
+    $stderr.puts 'Error: could not determine origin remote URL'
+    exit 1
+  end
+
+  log "Starting orchestrator (max #{max_slots} ralphs)"
+  log "Remote: #{remote_url}"
+  log "Model: #{model} | Reasoning: #{reasoning} | Duration: #{duration || 'unlimited'}"
+
+  # State tracking
+  running = {}      # pid => {number:, title:, spot_check:, dir:, started_at:}
+  retries = Hash.new(0)  # goal_number => retry count
+  last_queued_count = nil
+  @shutting_down = false
+
+  # Ctrl+C handler
+  trap('INT') do
+    @shutting_down = true
+  end
+
+  loop do
+    # ── Shutdown ──
+    if @shutting_down
+      log 'Shutting down...'
+      running.each do |pid, info|
+        Process.kill('INT', pid) rescue nil
+        Process.wait(pid) rescue nil
+        transition_label(info[:number], 'goal:running', 'goal:queued')
+        log "Goal ##{info[:number]} → re-queued (was running)"
+        delete_clone(info[:number])
+        log "Cleaned up .ralphs/#{info[:number]}/"
+      end
+      log 'Done'
+      break
+    end
+
+    # ── Collect finished ralphs ──
+    finished = []
+    running.each_key do |pid|
+      result = Process.wait2(pid, Process::WNOHANG) rescue nil
+      finished << [pid, result[1]] if result
+    end
+
+    finished.each do |pid, status|
+      info = running.delete(pid)
+      number = info[:number]
+      elapsed = format_elapsed((Time.now - info[:started_at]).to_i)
+
+      if status.exitstatus == 0
+        log "Goal ##{number} ralph finished (exit 0, #{elapsed})"
+
+        if info[:spot_check]
+          # Needs human spot-check
+          transition_label(number, 'goal:running', 'goal:spot-check')
+          notify("Goal ##{number} needs spot-check", "\"#{info[:title]}\" completed in #{elapsed}")
+          log "Goal ##{number} → spot-check"
+          # Keep clone for human review
+        else
+          # Success — create PR
+          pr_num = create_pr(number, info[:title], info[:dir])
+          if pr_num
+            log "Goal ##{number} PR created → ##{pr_num}"
+          end
+          transition_label(number, 'goal:running', 'goal:done')
+          log "Goal ##{number} → done"
+          delete_clone(number)
+        end
+      else
+        log "Goal ##{number} ralph finished (exit #{status.exitstatus}, #{elapsed})"
+        delete_clone(number)
+        log "Goal ##{number} cleaned up .ralphs/#{number}/"
+        retries[number] += 1
+
+        if retries[number] > MAX_RETRIES
+          transition_label(number, 'goal:running', 'goal:stuck')
+          log "Goal ##{number} → stuck (#{retries[number]} retries exhausted)"
+          notify("Goal ##{number} stuck", "\"#{info[:title]}\" failed #{retries[number]} times")
+        else
+          transition_label(number, 'goal:running', 'goal:queued')
+          log "Goal ##{number} failed → re-queued (retry #{retries[number]}/#{MAX_RETRIES})"
+        end
+      end
+    end
+
+    # ── Fill open slots ──
+    result = run_script(GOAL_LIST_SCRIPT, 'queued')
+    queued = (result && result['ok'] && result['items']) || []
+    queued_count = queued.size
+
+    if queued_count != last_queued_count
+      log "#{queued_count} queued goal#{queued_count == 1 ? '' : 's'}"
+      last_queued_count = queued_count
+    end
+
+    available_slots = max_slots - running.size
+
+    if available_slots > 0
+      queued.first(available_slots).each do |goal|
+        number = goal['number']
+        title = goal['title']
+        spot_check = goal['spot_check']
+
+        # Transition to running
+        transition_label(number, 'goal:queued', 'goal:running')
+        log "Goal ##{number} \"#{title}\" → running (slot #{running.size + 1}/#{max_slots})"
+
+        # Clone
+        clone_dir = clone_repo(remote_url, number)
+        unless clone_dir
+          log "Goal ##{number} clone failed, re-queuing"
+          transition_label(number, 'goal:running', 'goal:queued')
+          next
+        end
+        log "Goal ##{number} cloned to .ralphs/#{number}/"
+
+        # Write goal body
+        goal_data = run_script(GOAL_GET_SCRIPT, number.to_s)
+        if goal_data && goal_data['ok']
+          goal_file = File.join(clone_dir, 'goal.md')
+          File.write(goal_file, goal_data['body'])
+        else
+          log "Goal ##{number} failed to fetch goal body, re-queuing"
+          transition_label(number, 'goal:running', 'goal:queued')
+          delete_clone(number)
+          next
+        end
+
+        # Spawn ralph
+        ralph_log = File.join(clone_dir, 'ralph.log')
+        ralph_args = [
+          RALPH_SCRIPT,
+          "--goal=goal.md",
+          '--log-mode',
+          '--no-pull-request',
+          "--model=#{model}",
+          "--reasoning=#{reasoning}"
+        ]
+        ralph_args << "--duration=#{duration}" if duration
+
+        pid = Process.spawn(
+          *ralph_args,
+          chdir: clone_dir,
+          out: ralph_log,
+          err: ralph_log
+        )
+        Process.detach(pid)
+
+        log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/ralph.log)"
+
+        running[pid] = {
+          number: number,
+          title: title,
+          spot_check: spot_check,
+          dir: clone_dir,
+          started_at: Time.now
+        }
+      end
+    end
+
+    # ── Sleep ──
+    sleep 5
+  end
+end
+
+# ─────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────
+
+options = {
+  model: 'sonnet',
+  reasoning: 'med'
+}
+
+OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    Orchestrator - Pipeline coordinator for concurrent goal execution
+
+    Usage: orchestrator --max N [--model MODEL] [--reasoning LEVEL] [--duration DURATION]
+  BANNER
+
+  opts.on('--max=N', Integer, 'Maximum concurrent ralphs (required)') do |n|
+    options[:max] = n
+  end
+
+  opts.on('--model=MODEL', %w[haiku sonnet opus], 'Model: haiku, sonnet, opus (default: sonnet)') do |m|
+    options[:model] = m
+  end
+
+  opts.on('--reasoning=LEVEL', %w[none low med high], 'Reasoning: none, low, med, high (default: med)') do |r|
+    options[:reasoning] = r
+  end
+
+  opts.on('--duration=DURATION', 'Time budget per ralph (e.g., 4h, 200m)') do |d|
+    options[:duration] = d
+  end
+
+  opts.on('-h', '--help', 'Show this help') do
+    puts opts
+    exit
+  end
+end.parse!
+
+if options[:max].nil? || options[:max] < 1
+  $stderr.puts 'Error: --max=N is required (must be >= 1)'
+  $stderr.puts 'Usage: orchestrator --max N [--model MODEL] [--reasoning LEVEL] [--duration DURATION]'
+  exit 1
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main(options)
+  rescue Interrupt
+    exit 130
+  end
+end
