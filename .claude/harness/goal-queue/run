@@ -44,6 +44,17 @@ def main
     exit 1
   end
 
+  # Validate this is a real goal
+  goal_get = File.join(File.expand_path('../../..', File.dirname(File.realpath(__FILE__))),
+                       '.claude', 'scripts', 'goal-get')
+  goal_json = IO.popen([goal_get, number.to_s], err: '/dev/null', &:read)
+  goal = (JSON.parse(goal_json) rescue nil)
+
+  unless goal && goal['ok']
+    puts JSON.generate(ok: false, items: ["##{number} is not a goal"])
+    exit 1
+  end
+
   # Remove goal:draft
   system('gh', 'issue', 'edit', number.to_s,
          '--remove-label', 'goal:draft',

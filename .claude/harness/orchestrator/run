@@ -69,7 +69,11 @@ def clone_repo(remote_url, number)
   dest = File.join(RALPHS_DIR, number.to_s)
   FileUtils.mkdir_p(RALPHS_DIR)
   system('git', 'clone', '--quiet', remote_url, dest, out: '/dev/null', err: '/dev/null')
-  $?.exitstatus == 0 ? dest : nil
+  return nil unless $?.exitstatus == 0
+
+  # Initialize jj so ralph's commits work inside the clone
+  system('jj', 'git', 'init', chdir: dest, out: '/dev/null', err: '/dev/null')
+  dest
 end
 
 def delete_clone(number)
@@ -77,21 +81,31 @@ def delete_clone(number)
   FileUtils.rm_rf(dest) if Dir.exist?(dest)
 end
 
-def create_pr(number, title, clone_dir)
+def create_pr_from_clone(number, title, clone_dir)
+  branch = "goal-#{number}"
+
+  # Commit any uncommitted working copy changes
+  system('jj', 'commit', '-m', "Goal ##{number}: #{title}",
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+
   # Check if there are commits beyond main
-  diff = IO.popen(%w[git diff --stat origin/main HEAD], chdir: clone_dir, err: '/dev/null', &:read)
-  if diff.strip.empty?
+  jj_log = IO.popen(['jj', 'log', '-r', 'main@origin..@-', '--no-graph', '-T', 'change_id.short()'],
+                     chdir: clone_dir, err: '/dev/null', &:read)
+  if jj_log.strip.empty?
     log "Goal ##{number} no changes to push, skipping PR"
     return nil
   end
 
-  # Create branch and push
-  branch = "goal-#{number}"
-  system('git', 'checkout', '-b', branch, chdir: clone_dir, out: '/dev/null', err: '/dev/null')
-  system('git', 'push', '-u', 'origin', branch, chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  # Create bookmark on last commit, track, and push
+  system('jj', 'bookmark', 'create', branch, '-r', '@-',
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  system('jj', 'bookmark', 'track', "#{branch}@origin",
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  system('jj', 'git', 'push', '--bookmark', branch,
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
 
   unless $?.exitstatus == 0
-    log "Goal ##{number} failed to push branch"
+    log "Goal ##{number} failed to push"
     return nil
   end
 
@@ -103,9 +117,7 @@ def create_pr(number, title, clone_dir)
   )
 
   if $?.exitstatus == 0
-    pr_url = pr_output.strip
-    # Extract PR number from URL
-    pr_num = pr_url.split('/').last
+    pr_num = pr_output.strip.split('/').last
     pr_num
   else
     log "Goal ##{number} failed to create PR"
@@ -202,7 +214,7 @@ def main(options)
           # Keep clone for human review
         else
           # Success — create PR
-          pr_num = create_pr(number, info[:title], info[:dir])
+          pr_num = create_pr_from_clone(number, info[:title], info[:dir])
           if pr_num
             log "Goal ##{number} PR created → ##{pr_num}"
           end
