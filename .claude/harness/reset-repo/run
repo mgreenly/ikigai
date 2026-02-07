@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Reset jj working copy to fresh state from main@origin
+#
+# 1. Fetch latest from remote
+# 2. Create new working copy from main@origin
+# 3. Delete all bookmarks except main
+
+def run(cmd)
+  output = `#{cmd} 2>&1`
+  unless $?.success?
+    $stderr.puts "FAILED: #{cmd}"
+    $stderr.puts output
+    exit 1
+  end
+  output
+end
+
+def main
+  run('jj git fetch')
+  run('jj new main@origin')
+
+  bookmarks = `jj bookmark list --template 'name ++ "\\n"'`.lines.map(&:strip).reject(&:empty?)
+  bookmarks.each do |name|
+    next if name == 'main'
+    run("jj bookmark delete #{name}")
+  end
+
+  puts 'Reset complete.'
+end
+
+main
