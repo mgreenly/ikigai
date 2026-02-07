@@ -94,14 +94,4 @@ ik_sse_event_t *ik_sse_parser_next(ik_sse_parser_t *parser, TALLOC_CTX *ctx);
  */
 bool ik_sse_event_is_done(const ik_sse_event_t *event);
 
-/**
- * Reset parser state
- *
- * Clears internal buffer, sets length to 0.
- * Parser can be reused after reset.
- *
- * @param parser  Parser instance
- */
-void ik_sse_parser_reset(ik_sse_parser_t *parser);
-
 #endif /* IK_PROVIDERS_COMMON_SSE_PARSER_H */

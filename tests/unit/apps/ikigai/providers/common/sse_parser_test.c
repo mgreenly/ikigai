@@ -156,36 +156,7 @@ START_TEST(test_not_done) {
 }
 
 END_TEST
-/* Test: Reset parser */
-START_TEST(test_reset) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_sse_parser_t *parser = ik_sse_parser_create(ctx);
 
-    /* Feed some data */
-    const char *input1 = "data: first\n\n";
-    ik_sse_parser_feed(parser, input1, strlen(input1));
-
-    /* Extract event */
-    ik_sse_event_t *event1 = ik_sse_parser_next(parser, ctx);
-    ck_assert_ptr_nonnull(event1);
-    ck_assert_str_eq(event1->data, "first");
-
-    /* Reset parser */
-    ik_sse_parser_reset(parser);
-
-    /* Feed new data */
-    const char *input2 = "data: second\n\n";
-    ik_sse_parser_feed(parser, input2, strlen(input2));
-
-    /* Extract event */
-    ik_sse_event_t *event2 = ik_sse_parser_next(parser, ctx);
-    ck_assert_ptr_nonnull(event2);
-    ck_assert_str_eq(event2->data, "second");
-
-    talloc_free(ctx);
-}
-
-END_TEST
 /* Test: Multi-line data */
 START_TEST(test_multiline_data) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -480,7 +451,6 @@ static Suite *sse_parser_suite(void)
     tcase_add_test(tc_core, test_partial_feed);
     tcase_add_test(tc_core, test_done_marker);
     tcase_add_test(tc_core, test_not_done);
-    tcase_add_test(tc_core, test_reset);
     tcase_add_test(tc_core, test_multiline_data);
     tcase_add_test(tc_core, test_empty_data_field);
     tcase_add_test(tc_core, test_event_type_no_space);

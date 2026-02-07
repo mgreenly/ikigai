@@ -215,10 +215,3 @@ bool ik_sse_event_is_done(const ik_sse_event_t *event)
     return strcmp(event->data, "[DONE]") == 0;
 }
 
-void ik_sse_parser_reset(ik_sse_parser_t *parser)
-{
-    assert(parser != NULL); // LCOV_EXCL_BR_LINE
-
-    parser->len = 0;
-    parser->buffer[0] = '\0';
-}
