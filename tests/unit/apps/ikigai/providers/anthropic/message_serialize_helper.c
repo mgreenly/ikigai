@@ -42,7 +42,7 @@ START_TEST(test_serialize_message_content_single_text_success) {
     blocks[0].data.text.text = talloc_strdup(test_ctx, "Single text block");
     message.content_blocks = blocks;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(result);
 
@@ -69,7 +69,7 @@ START_TEST(test_serialize_message_content_multiple_blocks_success) {
     blocks[1].data.text.text = talloc_strdup(test_ctx, "Second block");
     message.content_blocks = blocks;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(result);
 
@@ -94,7 +94,7 @@ START_TEST(test_serialize_message_content_non_text_block) {
     blocks[0].data.thinking.text = talloc_strdup(test_ctx, "Thinking...");
     message.content_blocks = blocks;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(result);
 

@@ -38,7 +38,7 @@ START_TEST(test_serialize_content_block_text_success) {
     block.type = IK_CONTENT_TEXT;
     block.data.text.text = talloc_strdup(test_ctx, "Hello, world!");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -66,7 +66,7 @@ START_TEST(test_serialize_content_block_thinking_success) {
     block.data.thinking.text = talloc_strdup(test_ctx, "Let me think about this...");
     block.data.thinking.signature = NULL;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -94,7 +94,7 @@ START_TEST(test_serialize_thinking_with_signature) {
     block.data.thinking.text = talloc_strdup(test_ctx, "Deep analysis...");
     block.data.thinking.signature = talloc_strdup(test_ctx, "EqQBCgIYAhIM...");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -126,7 +126,7 @@ START_TEST(test_serialize_thinking_null_signature) {
     block.data.thinking.text = talloc_strdup(test_ctx, "Thinking without signature...");
     block.data.thinking.signature = NULL;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
 
@@ -149,7 +149,7 @@ START_TEST(test_serialize_redacted_thinking) {
     block.type = IK_CONTENT_REDACTED_THINKING;
     block.data.redacted_thinking.data = talloc_strdup(test_ctx, "EmwKAhgBEgy...");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -179,7 +179,7 @@ START_TEST(test_serialize_content_block_tool_call_success) {
     block.data.tool_call.name = talloc_strdup(test_ctx, "get_weather");
     block.data.tool_call.arguments = talloc_strdup(test_ctx, "{\"location\":\"San Francisco\"}");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -215,7 +215,7 @@ START_TEST(test_serialize_content_block_tool_call_invalid_json) {
     // Invalid JSON - missing closing brace
     block.data.tool_call.arguments = talloc_strdup(test_ctx, "{\"key\":\"value\"");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     // Should fail because arguments are invalid JSON
     ck_assert(!result);
@@ -234,7 +234,7 @@ START_TEST(test_serialize_content_block_tool_result_success) {
     block.data.tool_result.content = talloc_strdup(test_ctx, "Sunny, 72°F");
     block.data.tool_result.is_error = false;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
     ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
@@ -269,7 +269,7 @@ START_TEST(test_serialize_content_block_tool_result_with_error) {
     block.data.tool_result.content = talloc_strdup(test_ctx, "Location not found");
     block.data.tool_result.is_error = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(result);
 

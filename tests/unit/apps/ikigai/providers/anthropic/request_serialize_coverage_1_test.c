@@ -104,7 +104,7 @@ START_TEST(test_serialize_content_block_obj_alloc_fail) {
 
     mock_yyjson_mut_obj_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -124,7 +124,7 @@ START_TEST(test_serialize_content_block_text_type_fail) {
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -145,7 +145,7 @@ START_TEST(test_serialize_content_block_thinking_type_fail) {
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -167,7 +167,7 @@ START_TEST(test_serialize_content_block_tool_call_type_fail) {
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -189,7 +189,7 @@ START_TEST(test_serialize_content_block_tool_call_copy_fail) {
 
     mock_yyjson_val_mut_copy_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -211,7 +211,7 @@ START_TEST(test_serialize_content_block_tool_call_add_input_fail) {
 
     mock_yyjson_mut_obj_add_val_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -233,7 +233,7 @@ START_TEST(test_serialize_content_block_tool_result_type_fail) {
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -253,7 +253,7 @@ START_TEST(test_serialize_content_block_arr_add_fail) {
 
     mock_yyjson_mut_arr_add_val_fail = true;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 

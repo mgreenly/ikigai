@@ -84,7 +84,7 @@ START_TEST(test_serialize_content_block_text_text_field_fail) {
     // Fail on the 2nd call (adding "text" field, after "type" succeeds)
     mock_yyjson_mut_obj_add_str_fail_on_call = 2;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -105,7 +105,7 @@ START_TEST(test_serialize_content_block_thinking_thinking_field_fail) {
     // Fail on the 2nd call (adding "thinking" field, after "type" succeeds)
     mock_yyjson_mut_obj_add_str_fail_on_call = 2;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -128,7 +128,7 @@ START_TEST(test_serialize_content_block_tool_call_id_field_fail) {
     // Fail on the 2nd call (adding "id" field, after "type" succeeds)
     mock_yyjson_mut_obj_add_str_fail_on_call = 2;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -151,7 +151,7 @@ START_TEST(test_serialize_content_block_tool_call_name_field_fail) {
     // Fail on the 3rd call (adding "name" field, after "type" and "id" succeed)
     mock_yyjson_mut_obj_add_str_fail_on_call = 3;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -174,7 +174,7 @@ START_TEST(test_serialize_content_block_tool_result_tool_use_id_field_fail) {
     // Fail on the 2nd call (adding "tool_use_id" field, after "type" succeeds)
     mock_yyjson_mut_obj_add_str_fail_on_call = 2;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -197,7 +197,7 @@ START_TEST(test_serialize_content_block_tool_result_content_field_fail) {
     // Fail on the 3rd call (adding "content" field, after "type" and "tool_use_id" succeed)
     mock_yyjson_mut_obj_add_str_fail_on_call = 3;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -220,7 +220,7 @@ START_TEST(test_serialize_content_block_tool_result_is_error_field_fail) {
     // Fail on the 1st bool call (adding "is_error" field)
     mock_yyjson_mut_obj_add_bool_fail_on_call = 1;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -242,7 +242,7 @@ START_TEST(test_serialize_content_block_thinking_signature_field_fail) {
     // Fail on the 3rd call (adding "signature" field, after "type" and "thinking" succeed)
     mock_yyjson_mut_obj_add_str_fail_on_call = 3;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -263,7 +263,7 @@ START_TEST(test_serialize_content_block_redacted_thinking_type_field_fail) {
     // Fail on the 1st call (adding "type" field)
     mock_yyjson_mut_obj_add_str_fail_on_call = 1;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -284,7 +284,7 @@ START_TEST(test_serialize_content_block_redacted_thinking_data_field_fail) {
     // Fail on the 2nd call (adding "data" field, after "type" succeeds)
     mock_yyjson_mut_obj_add_str_fail_on_call = 2;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     ck_assert(!result);
 
@@ -305,7 +305,7 @@ START_TEST(test_serialize_content_block_tool_call_invalid_json) {
     // Invalid JSON - should fail to parse
     block.data.tool_call.arguments = talloc_strdup(test_ctx, "{invalid json");
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     // Should return false for invalid JSON
     ck_assert(!result);
@@ -324,7 +324,7 @@ START_TEST(test_serialize_content_block_invalid_type) {
     // Use an invalid type value outside the enum range
     block.type = (ik_content_type_t)999;
 
-    bool result = ik_anthropic_serialize_content_block(doc, arr, &block);
+    bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
     // Should return false for invalid type
     ck_assert(!result);
@@ -358,7 +358,7 @@ START_TEST(test_serialize_message_content_block_fail_in_loop) {
     // Calls: 1="type" for block[0], 2="text" for block[0], 3="type" for block[1], 4="text" for block[1] <- FAIL
     mock_yyjson_mut_obj_add_str_fail_on_call = 4;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(!result);
 

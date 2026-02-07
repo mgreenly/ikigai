@@ -107,7 +107,7 @@ START_TEST(test_serialize_message_content_single_text_fail) {
 
     mock_yyjson_mut_obj_add_str_fail = true;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(!result);
 
@@ -132,7 +132,7 @@ START_TEST(test_serialize_message_content_arr_alloc_fail) {
 
     mock_yyjson_mut_arr_fail = true;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(!result);
 
@@ -157,7 +157,7 @@ START_TEST(test_serialize_message_content_add_val_fail) {
 
     mock_yyjson_mut_obj_add_val_fail = true;
 
-    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message);
+    bool result = ik_anthropic_serialize_message_content(doc, msg_obj, &message, 0);
 
     ck_assert(!result);
 
