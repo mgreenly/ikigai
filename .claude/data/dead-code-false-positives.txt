@@ -6,6 +6,7 @@ cleanup_completed_request
 google_timeout
 ik_ansi_init
 ik_anthropic_handle_error
+ik_anthropic_process_content_block_delta
 ik_anthropic_process_error
 ik_anthropic_stream_process_event
 ik_db_messages_load
