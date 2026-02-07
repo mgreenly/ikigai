@@ -288,7 +288,6 @@ def main(options)
           out: ralph_log,
           err: ralph_log
         )
-        Process.detach(pid)
 
         log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/ralph.log)"
 
