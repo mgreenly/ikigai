@@ -24,7 +24,7 @@ def main
   bookmarks = `jj bookmark list --template 'name ++ "\\n"'`.lines.map(&:strip).reject(&:empty?)
   bookmarks.each do |name|
     next if name == 'main'
-    run("jj bookmark delete #{name}")
+    run("jj bookmark forget #{name}")
   end
 
   puts 'Reset complete.'
