@@ -111,8 +111,22 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         }
         // Steal db_ctx to shared for proper ownership
         talloc_steal(shared, shared->db_ctx);
+
+        // Create worker thread DB connection (same connection string)
+        result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->worker_db_ctx);
+        if (is_err(&result)) {
+            // Cleanup already-initialized resources
+            if (shared->term != NULL) {  // LCOV_EXCL_BR_LINE - Defensive: term always set before db init
+                ik_term_cleanup(shared->term);
+            }
+            talloc_free(shared);
+            return result;
+        }
+        // Steal worker_db_ctx to shared for proper ownership
+        talloc_steal(shared, shared->worker_db_ctx);
     } else {
         shared->db_ctx = NULL;
+        shared->worker_db_ctx = NULL;
     }
 
     // Initialize session_id to 0 (session creation stays in repl_init for now)

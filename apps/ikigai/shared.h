@@ -39,6 +39,7 @@ typedef struct ik_shared_ctx {
     ik_term_ctx_t *term;    // Terminal context
     ik_render_ctx_t *render; // Render context
     ik_db_ctx_t *db_ctx;     // Database connection (NULL if not configured)
+    ik_db_ctx_t *worker_db_ctx; // Worker thread database connection (NULL if not configured)
     int64_t session_id;       // Current session ID (0 if no database)
     ik_history_t *history;   // Command history (shared across all agents)
     atomic_bool fork_pending;             // Fork operation in progress (concurrency control)

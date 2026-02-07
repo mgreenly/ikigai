@@ -31,6 +31,19 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid);
 
 /**
+ * Set agent idle status
+ *
+ * Updates an agent's idle flag. Used by internal tools to signal when they've
+ * deferred work and the agent should not immediately continue the tool loop.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param uuid Agent UUID to update (must not be NULL)
+ * @param idle New idle status (true = idle, false = active)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db_ctx, const char *uuid, bool idle);
+
+/**
  * Agent row structure for query results
  *
  * Represents a single agent record from the database.
@@ -47,6 +60,7 @@ typedef struct {
     char *provider;        // LLM provider (nullable)
     char *model;           // Model identifier (nullable)
     char *thinking_level;  // Thinking budget/level (nullable)
+    bool idle;             // Agent is idle (waiting for external event)
 } ik_db_agent_row_t;
 
 /**

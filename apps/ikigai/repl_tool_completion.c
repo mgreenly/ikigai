@@ -24,6 +24,14 @@
 void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     ik_agent_complete_tool_execution(agent);
+
+    // Call on_complete hook if set (runs on main thread)
+    if (agent->pending_on_complete != NULL) {
+        agent->pending_on_complete(repl, agent);
+        agent->pending_on_complete = NULL;
+        agent->tool_deferred_data = NULL;
+    }
+
     if (ik_agent_should_continue_tool_loop(agent)) {
         agent->tool_iteration_count++;
         ik_repl_submit_tool_loop_continuation(repl, agent);

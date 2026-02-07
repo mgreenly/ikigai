@@ -5,6 +5,7 @@
 #include "apps/ikigai/layer_wrappers.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/tool.h"
+#include "apps/ikigai/tool_registry.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -139,6 +140,12 @@ typedef struct ik_agent_ctx {
     char *tool_thread_result;
     int32_t tool_iteration_count;
     pid_t tool_child_pid;               // Child process PID (for interrupt)
+
+    // Internal tool infrastructure (rel-11)
+    char *pending_prompt;               // Deferred prompt from internal tool handler
+    void *tool_deferred_data;           // Opaque data for on_complete hook
+    bool dead;                          // Agent marked dead, awaiting /reap
+    ik_tool_complete_fn pending_on_complete; // Completion hook for current tool
 
     // Interrupt state
     bool interrupt_requested;           // Set by ESC/Ctrl+C, checked before completion processing

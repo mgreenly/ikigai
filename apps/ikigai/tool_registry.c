@@ -53,6 +53,9 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
         existing->schema_doc = schema_doc;
         talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
         existing->schema_root = yyjson_doc_get_root(schema_doc);
+        existing->type = IK_TOOL_EXTERNAL;
+        existing->handler = NULL;
+        existing->on_complete = NULL;
 
         return OK(NULL);
     }
@@ -80,6 +83,66 @@ res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const
     entry->schema_doc = schema_doc;
     talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
     entry->schema_root = yyjson_doc_get_root(schema_doc);
+    entry->type = IK_TOOL_EXTERNAL;
+    entry->handler = NULL;
+    entry->on_complete = NULL;
+
+    return OK(NULL);
+}
+
+res_t ik_tool_registry_add_internal(ik_tool_registry_t *registry, const char *name, yyjson_doc *schema_doc,
+                                    ik_tool_internal_fn handler, ik_tool_complete_fn on_complete)
+{
+    // Check if tool already exists (override)
+    ik_tool_registry_entry_t *existing = ik_tool_registry_lookup(registry, name);
+    if (existing != NULL) {
+        // Replace existing entry
+        talloc_free(existing->name);
+        if (existing->path != NULL) {
+            talloc_free(existing->path);
+        }
+        if (existing->schema_doc != NULL) {  // LCOV_EXCL_BR_LINE - defensive: schema_doc never NULL in practice
+            talloc_free(existing->schema_doc);
+        }
+
+        existing->name = talloc_strdup(registry, name);
+        if (existing->name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        existing->path = NULL;
+        existing->schema_doc = schema_doc;
+        talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
+        existing->schema_root = yyjson_doc_get_root(schema_doc);
+        existing->type = IK_TOOL_INTERNAL;
+        existing->handler = handler;
+        existing->on_complete = on_complete;
+
+        return OK(NULL);
+    }
+
+    // Grow array if needed
+    if (registry->count >= registry->capacity) {
+        registry->capacity *= 2;
+        registry->entries = talloc_realloc(registry,
+                                           registry->entries,
+                                           ik_tool_registry_entry_t,
+                                           (unsigned int)registry->capacity);
+        if (registry->entries == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
+
+    // Add new entry
+    ik_tool_registry_entry_t *entry = &registry->entries[registry->count];
+    registry->count++;
+
+    entry->name = talloc_strdup(registry, name);
+    if (entry->name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    entry->path = NULL;
+    entry->schema_doc = schema_doc;
+    talloc_steal(registry, schema_doc);  // LCOV_EXCL_BR_LINE
+    entry->schema_root = yyjson_doc_get_root(schema_doc);
+    entry->type = IK_TOOL_INTERNAL;
+    entry->handler = handler;
+    entry->on_complete = on_complete;
 
     return OK(NULL);
 }

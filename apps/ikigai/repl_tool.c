@@ -12,6 +12,7 @@
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_executor.h"
 #include "apps/ikigai/tool_registry.h"
+#include "apps/ikigai/tool_wrapper.h"
 #include "shared/wrapper.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
@@ -38,9 +39,25 @@ static void *tool_thread_worker(void *arg)
 {
     tool_thread_args_t *args = (tool_thread_args_t *)arg;
 
-    char *result_json = ik_tool_execute_from_registry(args->ctx, args->registry, args->paths,
-                                                      args->agent->uuid, args->tool_name, args->arguments,
-                                                      &args->agent->tool_child_pid);
+    // Look up the tool in the registry to check its type
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(args->registry, args->tool_name);
+    char *result_json = NULL;
+
+    if (entry != NULL && entry->type == IK_TOOL_INTERNAL) {
+        // Internal tool: call handler directly
+        char *handler_result = entry->handler(args->ctx, args->agent, args->arguments);
+        if (handler_result != NULL) {
+            result_json = ik_tool_wrap_success(args->ctx, handler_result);
+        } else {
+            result_json = ik_tool_wrap_failure(args->ctx, "Internal tool handler returned NULL", "INTERNAL_ERROR");
+        }
+    } else {
+        // External tool: fork/exec via executor
+        result_json = ik_tool_execute_from_registry(args->ctx, args->registry, args->paths,
+                                                    args->agent->uuid, args->tool_name, args->arguments,
+                                                    &args->agent->tool_child_pid);
+    }
+
     args->agent->tool_thread_result = result_json;
     pthread_mutex_lock_(&args->agent->tool_thread_mutex);
     args->agent->tool_thread_complete = true;
@@ -184,6 +201,15 @@ void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
     assert(!agent->tool_thread_running);      // LCOV_EXCL_BR_LINE
 
     ik_tool_call_t *tc = agent->pending_tool_call;
+
+    // Look up tool in registry and stash on_complete hook
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(agent->shared->tool_registry, tc->name);
+    if (entry != NULL) {
+        agent->pending_on_complete = entry->on_complete;
+    } else {
+        agent->pending_on_complete = NULL;
+    }
+
     agent->tool_thread_ctx = talloc_new(agent);
     if (agent->tool_thread_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     tool_thread_args_t *args = talloc_zero(agent->tool_thread_ctx, tool_thread_args_t);
