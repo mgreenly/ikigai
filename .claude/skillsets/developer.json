@@ -4,6 +4,7 @@
     "coverage",
     "ctags",
     "errors",
+    "harness",
     "jj",
     "lcov",
     "debugger",
