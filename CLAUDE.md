@@ -16,6 +16,7 @@
   * BAD: `cd .claude/scripts && mv old new`
   * GOOD: `mv .claude/scripts/old .claude/scripts/new`
 * **Never run parallel make** - Different targets use incompatible flags
+* **Never run make check-\* directly** - Always use `.claude/scripts/check-<name>` instead; they wrap make targets with structured JSON output (`{"ok": true/false, "items": [...]}`)
 * **Never use AskUserQuestion tool** - Forbidden in this project
 * **Never use git commands** - This is a jj (Jujutsu) project; always use `jj` commands instead of `git`
 * **Never merge to main locally** - All merges to main happen via GitHub PRs only
