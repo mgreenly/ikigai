@@ -4,7 +4,7 @@
 
 **Implementation:** External tool (rel-12)
 
-**Dependencies:** Requires rel-11 (Shared Files) for `ik://` URI scheme
+**Dependencies:** Requires rel-10 (Pinned Documents, URI Mapping) for `ik://` URI scheme
 
 ## Problem
 
@@ -124,5 +124,5 @@ Typical workflow:
 ## Related
 
 - [shared-files.md](shared-files.md) - Shared file system (dependency)
-- [sub-agent-tools.md](sub-agent-tools.md) - Sub-agent fork/send/mail tools
+- [sub-agent-tools.md](sub-agent-tools.md) - Sub-agent fork/kill/send/wait tools
 - [external-tool-architecture.md](external-tool-architecture.md) - External tools architecture

@@ -113,7 +113,7 @@ Using `/fork` and `/kill`
 
 # Inter Agent Communication
 
-Using `/send`, `/list` and `/read`
+Using `/send` and `/wait`
 
 ---
 

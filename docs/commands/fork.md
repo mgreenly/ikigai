@@ -44,15 +44,18 @@ See [/capture](capture.md) for full details.
 Agents call `fork` as an internal tool with different behavior than the slash command:
 
 ```json
-{"name": "fork", "arguments": {"prompt": "Analyze test coverage gaps in src/repl.c"}}
+{"name": "fork", "arguments": {"name": "coverage-analyzer", "prompt": "Analyze test coverage gaps in src/repl.c"}}
 ```
 
 | | Slash command | Tool |
 |---|---|---|
 | Caller | Human | Agent |
+| Name | None (no label) | Required `name` parameter |
 | Prompt source | Capture mode or typed after switch | Required `prompt` parameter |
 | UI switch | Yes — terminal moves to child | No — parent keeps focus |
 | Child start | Immediate if captured, idle otherwise | Immediate with prompt |
+
+`name` is a short human-readable label for the child (e.g., `"file-reader"`, `"test-runner"`). It appears in the wait status layer and in fan-in results.
 
 The tool returns the child's UUID. Both parent and child run concurrently.
 

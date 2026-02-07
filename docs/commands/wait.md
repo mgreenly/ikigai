@@ -33,16 +33,16 @@ Wait up to 30 seconds for any message from any agent. Returns the first message 
 /wait 60 a1b2 e5f6 c3d4
 ```
 
-Wait for ALL listed agents to send a message. Returns structured results with per-agent status. A status layer renders between the scrollback and spinner showing progress:
+Wait for ALL listed agents to send a message. Returns structured results with per-agent status. A status layer renders just above the upper separator showing progress:
 
 ```
-Waiting for sub-agents:
-  file-reader      [checkmark] received
-  code-analyzer    [spinner] running
-  test-runner      [spinner] running
+  file-reader      ◐ running    22 calls  13k tokens
+  code-analyzer    ✓ received   13 calls  11k tokens
+  test-runner      ○ idle        9 calls  14k tokens
+────────────────────────────────────────────────────────
 ```
 
-Updates live as messages arrive. This is the primary workflow for fan-out/fan-in patterns.
+Each line shows: agent name (from fork's `name` parameter), status indicator + label, tool call count, and token usage. Updates live as notifications arrive. This is the primary workflow for fan-out/fan-in patterns.
 
 ## ARGUMENTS
 
@@ -66,21 +66,22 @@ Returns a structured result with one entry per agent:
 {
   "results": [
     {"agent_id": "uuid1", "name": "file-reader",    "status": "received", "message": "..."},
-    {"agent_id": "uuid2", "name": "code-analyzer",   "status": "received", "message": "..."},
+    {"agent_id": "uuid2", "name": "code-analyzer",   "status": "idle"},
     {"agent_id": "uuid3", "name": "test-runner",     "status": "running"}
   ]
 }
 ```
 
-Three possible statuses per agent:
-- **received** — message arrived, content included
-- **running** — agent is alive but hasn't sent a message yet
-- **dead** — agent was killed or died before sending
+Four possible statuses per agent:
+- **`◐ running`** — actively streaming or executing a tool
+- **`✓ received`** — message arrived, content included
+- **`○ idle`** — agent's turn ended without sending a message
+- **`✗ dead`** — agent was killed or died before sending
 
 ## EARLY TERMINATION
 
 - All agents responded — return immediately
-- All agents either responded or dead — return immediately (nothing left to wait for)
+- All agents either responded, idle, or dead — return immediately (nothing left to wait for)
 - Timeout — return whatever state exists (partial results)
 - Escape — interrupt, return current state
 
@@ -124,13 +125,15 @@ Forked. Child: a1b2c3d4
 Forked. Child: e5f6g7h8
 
 > /wait 120 a1b2 e5f6
-Waiting for sub-agents:
-  a1b2c3d4    [checkmark] received
-  e5f6g7h8    [checkmark] received
+  schema-analyzer  ◐ running    12 calls   8k tokens
+  error-reviewer   ◐ running     7 calls   5k tokens
+
+  schema-analyzer  ✓ received   22 calls  13k tokens
+  error-reviewer   ✓ received   15 calls  11k tokens
 
 Results:
-  a1b2c3d4: Found 12 FK relationships, 3 missing indexes...
-  e5f6g7h8: 2 unchecked returns in provider.c...
+  schema-analyzer: Found 12 FK relationships, 3 missing indexes...
+  error-reviewer: 2 unchecked returns in provider.c...
 ```
 
 Instant check (non-blocking):

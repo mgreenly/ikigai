@@ -20,7 +20,7 @@ Context never changes implicitly. You always know what's in the conversation and
 
 Most agents have dozens of internal tools. Every file operation, git command, and search pattern is a custom tool. Adding your own requires understanding their plugin system.
 
-Ikigai has no internal tools. Everything is external tools:
+Ikigai keeps internal tools minimal — only agent operations (fork, kill, send, wait) that require in-process access to shared state. Everything else is external tools:
 - 6 core external tools: `bash`, `file_read`, `file_write`, `file_edit`, `glob`, `grep`
 - Tools auto-discovered from directories (system, user, project)
 - JSON protocol for tool communication (stdin/stdout)
@@ -41,8 +41,8 @@ Ikigai treats agents as processes:
 - `/fork "task"` delegates work to the child
 - Fork without a prompt creates a divergence point - try two approaches
 - Both human-spawned and LLM-spawned agents
-- Mailbox for inter-agent messages
-- Signals for lifecycle control (`/kill`, `--cascade`)
+- Message passing via `send` and `wait`
+- Lifecycle control via `kill` (always cascades to descendants)
 - Registry tracks all agents across restarts
 
 Parent continues working while child handles its task. Agents coordinate through messages or shared StoredAssets. The database is the source of truth - agents survive restarts.
@@ -76,7 +76,7 @@ Optional. If you only want terminal work, you don't need it. But if you want age
 
 **Context management** - Long conversations are powerful but need management. Explicit control beats black-box limits.
 
-**Minimal tools** - LLMs already excel at bash and Unix tools. External extension lowers the barrier for users and reduces maintenance burden.
+**Minimal tools** - External tools for user-extensible capabilities. Internal tools only for agent operations requiring in-process shared state access.
 
 **Process model** - Parallelism and coordination enable complex workflows. Agents shouldn't be single-threaded in 2025.
 

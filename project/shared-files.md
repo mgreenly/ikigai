@@ -2,7 +2,7 @@
 
 ## Problem
 
-Agents need access to shared knowledge, templates, and reference material. The original rel-11 design proposed database-backed storage with `ikigai:///` URIs, but this approach has a critical flaw: URIs break bash tool compatibility.
+Agents need access to shared knowledge, templates, and reference material. An earlier design proposed database-backed storage with `ikigai:///` URIs, but this approach has a critical flaw: URIs break bash tool compatibility.
 
 Since ikigai heavily uses shell scripts (make, test runners, jj commands, etc.), those scripts need plain file paths. A database-backed URI scheme would force us to build adapters for every tool, creating unnecessary complexity and friction.
 

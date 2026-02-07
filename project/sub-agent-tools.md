@@ -45,7 +45,8 @@ Slash commands are user-initiated on the main thread. Internal tools are agent-i
 - No prompt argument. Human provides the task via `/capture` ... `/fork` or by typing after switching.
 
 **Tool (agent):**
-- `fork(prompt: "...")` — creates child with full parent context + prompt, no UI switch
+- `fork(name: "file-reader", prompt: "...")` — creates child with full parent context + prompt, no UI switch
+- `name` is required. Short human-readable label for the child (used in status layer, wait results).
 - `prompt` is required. Agent must tell the child what to do.
 
 ### kill
@@ -100,11 +101,11 @@ Both share the same core wait logic — identical mechanism.
 }
 ```
 
-Three possible statuses per agent: `received`, `running`, `dead`.
+Four possible statuses per agent: `received`, `running`, `idle`, `dead`.
 
 **Early termination:**
 - All agents responded — return immediately
-- All agents either responded or dead — return immediately
+- All agents either responded, idle, or dead — return immediately (nothing left to wait for)
 - Timeout — return whatever state exists (partial results)
 
 The calling agent decides what to do with partial results — wait again, kill stragglers, proceed.
@@ -116,11 +117,19 @@ The calling agent decides what to do with partial results — wait again, kill s
 When the user views an agent executing a fan-in `wait`, a status layer renders between the scrollback and spinner:
 
 ```
-Waiting for sub-agents:
-  file-reader      [checkmark] received
-  code-analyzer    [spinner] running
-  test-runner      [spinner] running
+  file-reader      ◐ running    22 calls  13k tokens
+  code-analyzer    ✓ received   13 calls  11k tokens
+  test-runner      ○ idle        9 calls  14k tokens
+────────────────────────────────────────────────────────
 ```
+
+Each line shows: agent name, status indicator + label, tool call count, token usage.
+
+Status indicators:
+- `◐ running` — actively streaming or executing a tool
+- `✓ received` — sent a message, consumed by wait
+- `○ idle` — turn ended without sending a message
+- `✗ dead` — killed
 
 Updates live as notifications arrive. The human's dashboard for fan-in operations.
 
