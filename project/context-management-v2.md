@@ -159,7 +159,7 @@ Forked. Child: abc123
 Forked. Child: def456
 
 > [continues other work while children research]
-> /check-mail
+> /wait 0
 ```
 
 Each child gets only its specific task. Parent coordinates results.
@@ -248,7 +248,7 @@ Alternative: child runs `/clear --before MARK` after fork. But this wastes token
 
 ## LLM Tool Interface
 
-Agent operations (fork, kill, mail) are exposed as internal tools — each with its own registry entry and schema. The LLM sees them in a single alphabetized list alongside external tools. See [sub-agent-tools.md](sub-agent-tools.md) for the full tool list and behavioral details.
+Agent operations (fork, kill, send, wait) are exposed as internal tools — each with its own registry entry and schema. The LLM sees them in a single alphabetized list alongside external tools. See [sub-agent-tools.md](sub-agent-tools.md) for the full tool list and behavioral details.
 
 ---
 
@@ -262,4 +262,4 @@ Agent operations (fork, kill, mail) are exposed as internal tools — each with 
 | Duplicate agent (explore two paths) | `/fork` |
 | Delegate to sub-agent | `/mark` + goal + `/fork MARK` |
 
-Three commands with optional mark arguments. LLM accesses via `slash` tool with enumerated command set. Each operation exists exactly once. No redundant paths.
+Three commands with optional mark arguments. Agent operations (fork, kill, send, wait) are exposed as internal tools with precise schemas. Each operation exists exactly once. No redundant paths.

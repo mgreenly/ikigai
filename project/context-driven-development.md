@@ -58,7 +58,7 @@ Unix/Erlang-inspired process model:
 |-----------|---------|
 | `/fork` | Create child agent |
 | `/send` | Message another agent |
-| `/check-mail` | Read incoming messages |
+| `/wait` | Wait for messages (blocking, with fan-in) |
 | `/kill` | Terminate agent |
 
 Agents coordinate through mailbox messaging and shared StoredAssets (`ikigai://` URIs).
@@ -72,7 +72,7 @@ The default mechanism. Any executable ikigai can access:
 
 If it's in the path, reference it in config. Extending capabilities is trivial - no special protocol, no registration, no restart.
 
-All tools are external tools - no internal tools. Leverage model strengths at bash and Unix patterns.
+External tools for user-extensible capabilities. Internal tools only for agent operations (fork, kill, send, wait) requiring in-process shared state access.
 
 ## Design Philosophy
 
