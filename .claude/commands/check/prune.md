@@ -2,7 +2,7 @@ Detect dead code candidates.
 
 **Usage:**
 - `/check:prune` - List all dead code candidates (JSON output)
-- `/check:prune --file src/foo.c` - Check specific file only
+- `/check:prune --file shared/foo.c` - Check specific file only
 
 **Output:** JSON with `ok` and `items` fields:
 ```json

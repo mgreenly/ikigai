@@ -16,7 +16,7 @@ These patterns mean a function can have ZERO direct callers but still execute at
 
 ### The Core Insight
 
-**For a function to be called via pointer, its name must appear somewhere in `src/` in a non-call context.**
+**For a function to be called via pointer, its name must appear somewhere in production code (`apps/`, `shared/`, `tools/`) in a non-call context.**
 
 Think about it: to store a function pointer, you write something like:
 ```c
@@ -29,7 +29,7 @@ In all cases, `function_name` appears WITHOUT parentheses (no `function_name(`).
 
 ### Default Assumption: It's Dead
 
-**If cflow says unreachable from main AND you find no pointer assignments in `src/`, the function is almost certainly dead.**
+**If cflow says unreachable from main AND you find no pointer assignments in production code, the function is almost certainly dead.**
 
 These two checks cover all the ways C code can invoke a function:
 1. Direct call → cflow would find it
@@ -41,7 +41,7 @@ When both checks say "not used", be skeptical of any argument that the function 
 
 Tests exist to verify production code works. A test calling a function doesn't make that function "used" - it just means someone wrote a test for it. If the function is dead in production, the test is dead too.
 
-**The question is always: does PRODUCTION code (`src/`) need this function?**
+**The question is always: does PRODUCTION code (`apps/`, `shared/`, `tools/`) need this function?**
 
 ### The Circular Dependency Trap
 
@@ -65,10 +65,10 @@ When you remove `foo()`:
 
 ### Level 1: Static Analysis (fastest)
 
-Search for the function name in `src/` in non-call contexts:
+Search for the function name in production code in non-call contexts:
 
 ```bash
-grep -rn '\b{{function}}\b' src/ | grep -v '{{function}}\s*('
+grep -rn '\b{{function}}\b' apps/ shared/ tools/ | grep -v '{{function}}\s*('
 ```
 
 **Interpreting results:**
@@ -78,10 +78,10 @@ grep -rn '\b{{function}}\b' src/ | grep -v '{{function}}\s*('
 
 **Example interpretations:**
 ```
-src/foo.c:10: void {{function}}(int x) {     → Definition, ignore
-src/foo.h:5:  void {{function}}(int x);      → Declaration, ignore
-src/bar.c:20: vtable->op = {{function}};     → POINTER USAGE - not dead!
-src/baz.c:30: {{function}}(42);              → Call (has parens), covered by cflow
+shared/foo.c:10: void {{function}}(int x) {     → Definition, ignore
+shared/foo.h:5:  void {{function}}(int x);      → Declaration, ignore
+apps/ikigai/bar.c:20: vtable->op = {{function}};     → POINTER USAGE - not dead!
+tools/baz.c:30: {{function}}(42);              → Call (has parens), covered by cflow
 ```
 
 ### Level 2: Build Test (medium cost)
@@ -125,7 +125,7 @@ The test is testing the dead function directly. Delete the test, re-run tests.
 This is the critical case - but DON'T assume it proves the function is live. You must dig deeper:
 
 1. **Identify the intermediary**: What production function does the test call that leads to `{{function}}`?
-2. **Verify the intermediary is reachable**: Run `cflow --main main src/*.c` and check if that intermediary function appears in the output. Also check command handlers.
+2. **Verify the intermediary is reachable**: Run `cflow --main main apps/**/*.c shared/*.c tools/*.c` and check if that intermediary function appears in the output. Also check command handlers.
 3. **Interpret the result**:
    - Intermediary IS reachable from main → `{{function}}` is NOT dead (genuine production path)
    - Intermediary is NOT reachable from main → Both are dead. Delete `{{function}}`, the intermediary, AND the test. Re-run tests.
@@ -135,7 +135,7 @@ This is the critical case - but DON'T assume it proves the function is live. You
 ### Decision Tree
 
 ```
-Can you find {{function}} assigned/passed in src/?
+Can you find {{function}} assigned/passed in production code?
 ├─ YES → NOT DEAD (pointer usage)
 └─ NO → Does production build without it?
          ├─ NO → NOT DEAD (direct dependency)
