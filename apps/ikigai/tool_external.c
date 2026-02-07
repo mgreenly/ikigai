@@ -91,17 +91,16 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     close(stderr_pipe[1]);
 
     // Write arguments to stdin
+    // Ignore SIGPIPE: child may exit without reading stdin (broken pipe)
+    struct sigaction sa_ignore = {.sa_handler = SIG_IGN};
+    struct sigaction sa_old;
+    sigaction(SIGPIPE, &sa_ignore, &sa_old);
+
     size_t args_len = strlen(arguments_json);
-    ssize_t written = write(stdin_pipe[1], arguments_json, args_len);
+    (void)write(stdin_pipe[1], arguments_json, args_len);
     close(stdin_pipe[1]);
 
-    if (written != (ssize_t)args_len) {  // LCOV_EXCL_BR_LINE
-        close(stdout_pipe[0]);  // LCOV_EXCL_LINE
-        close(stderr_pipe[0]);  // LCOV_EXCL_LINE
-        kill(pid, SIGKILL);  // LCOV_EXCL_LINE
-        waitpid(pid, NULL, 0);  // LCOV_EXCL_LINE
-        return ERR(ctx, IO, "Failed to write arguments to tool");  // LCOV_EXCL_LINE
-    }
+    sigaction(SIGPIPE, &sa_old, NULL);
 
     // Set 30 second timeout
     alarm(30);
