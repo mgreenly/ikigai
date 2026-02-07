@@ -55,18 +55,3 @@ res_t ik_mark_find(ik_repl_ctx_t *repl, const char *label, ik_mark_t **mark_out)
  */
 res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark);
 
-/**
- * Rewind conversation to a mark by label
- *
- * Finds the mark by label (or most recent if NULL), then rewinds to it.
- * Truncates conversation to the mark position and rebuilds scrollback.
- * Removes all marks after the target mark, but keeps the target mark itself.
- *
- * TODO(DI): This function violates DI principles by taking repl context.
- * It delegates to ik_mark_find and ik_mark_rewind_to_mark, both of which have DI violations.
- *
- * @param repl   REPL context
- * @param label  Label to rewind to (or NULL for most recent)
- * @return       OK(NULL) or ERR(...)
- */
-res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label);
