@@ -176,31 +176,6 @@ void ik_log_shutdown(void)
     pthread_mutex_unlock(&ik_log_mutex);
 }
 
-void ik_log_reinit(const char *working_dir)
-{
-    assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
-
-    char log_path[512];
-    ik_log_setup_directories(working_dir, log_path);
-
-    pthread_mutex_lock(&ik_log_mutex);
-    if (ik_log_file != NULL) {
-        if (fclose_(ik_log_file) != 0) {  // LCOV_EXCL_BR_LINE
-            pthread_mutex_unlock(&ik_log_mutex);  // LCOV_EXCL_LINE
-            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
-        }
-        ik_log_file = NULL;
-    }
-
-    ik_log_rotate_if_exists(log_path);
-    ik_log_file = fopen_(log_path, "w");
-    if (ik_log_file == NULL) {  // LCOV_EXCL_BR_LINE
-        pthread_mutex_unlock(&ik_log_mutex);  // LCOV_EXCL_LINE
-        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
-    }
-    pthread_mutex_unlock(&ik_log_mutex);
-}
-
 yyjson_mut_doc *ik_log_create(void)
 {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
