@@ -187,3 +187,25 @@ The implementation is complete, syntactically valid, and meets all acceptance cr
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 3
+  Assistant Messages: 52
+  Tool Uses: 18
+
+  Tokens:
+    Input: 376
+    Output: 120
+    Cache Read: 1,196,681
+    Cache Create: 112,126
+    Total: 1,309,303
+
+  Cost: $0.7824
+
+  Time:
+    LLM: 3m 2s
+    Tools: 7s
+    Other: 3s
+    Total: 3m 13s
+══════════════════════════════════════════════════════════════════════
+
