@@ -271,6 +271,29 @@ def main(options)
       end
     end
 
+    # ── Clean up approved spot-check clones ──
+    Dir.glob(File.join(RALPHS_DIR, '*')).each do |clone_path|
+      next unless File.directory?(clone_path)
+
+      number = File.basename(clone_path).to_i
+      next if number == 0  # Skip non-numeric directories
+
+      # Don't delete clones for currently running goals
+      next if running.values.any? { |info| info[:number] == number }
+
+      # Check if goal is no longer in spot-check state
+      goal_data = run_script(GOAL_GET_SCRIPT, number.to_s)
+      next unless goal_data && goal_data['ok']
+
+      labels = goal_data['labels'] || []
+
+      # If not in spot-check, delete the clone
+      unless labels.include?('goal:spot-check')
+        delete_clone(number)
+        log "Cleaned up .ralphs/#{number}/ (goal no longer in spot-check)"
+      end
+    end
+
     # ── Fill open slots ──
     result = run_script(GOAL_LIST_SCRIPT, 'queued')
     queued = (result && result['ok'] && result['items']) || []
