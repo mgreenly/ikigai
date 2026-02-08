@@ -1,24 +1,40 @@
-Story: #268
+Story: #280
 
 ## Objective
 
-Add null values for the four new fields to all existing records in `$HOME/.local/state/ralph/stats.jsonl`.
+Add an optional `--depends` flag to `goal-create` that appends a `Depends:` line to the goal body.
 
-## Steps
+## Changes to `.claude/harness/goal-create/run`
 
-1. Read each line of `stats.jsonl`
-2. Parse as JSON
-3. If the record lacks `commit_start`, `commit_end`, `lines_added`, or `lines_deleted`, set them to `null`
-4. Write the updated records back to the file
+### 1. Parse new flag
 
-## Implementation
+Add to the flag parsing loop:
+```ruby
+when '--depends'
+  depends = args.shift
+```
 
-A simple inline script (Ruby, Python, or shell+jq) run once. Can be done as a one-liner or small script.
+### 2. Append to body
+
+After the `Story: #N` prepend (line 87), if depends is present:
+```ruby
+if depends
+  dep_refs = depends.split(',').map(&:strip).map { |d| "##{d.delete('#')}" }.join(', ')
+  body = "#{body}\nDepends: #{dep_refs}"
+end
+```
+
+### 3. Update help text
+
+Add `--depends` to the usage and examples:
+```
+--depends "277,278"    Goal numbers this depends on (optional)
+```
 
 ## Acceptance Criteria
 
-- All existing records have the four new fields set to `null`
-- No data loss — all original fields preserved
-- New records (from goal 1) are not affected
+- `goal-create --story 15 --title "X" --depends 277` produces body with `Depends: #277`
+- `goal-create --story 15 --title "X" --depends "277,278"` produces body with `Depends: #277, #278`
+- Omitting `--depends` has no effect (backwards compatible)
 
-Story: #268
+Story: #280
