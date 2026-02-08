@@ -133,7 +133,7 @@ begin
       else
         entries.each do |entry|
           # Display ralph directory
-          print "  #{entry[:org]}/#{entry[:repo]}/#{entry[:number]}#{CLEAR_LINE}\n"
+          print "#{entry[:org]}/#{entry[:repo]}/#{entry[:number]}#{CLEAR_LINE}\n"
 
           # Display log tail
           log_lines = format_log_tail(entry[:org], entry[:repo], entry[:number], width)
