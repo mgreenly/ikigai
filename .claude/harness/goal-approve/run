@@ -36,7 +36,7 @@ def main
         number    GitHub Issue number (required)
 
       What it does:
-        1. Creates a PR from the clone at .ralphs/<number>/
+        1. Creates a PR from the clone at .ralphs/<org>/<repo>/<number>/
         2. Transitions goal:spot-check → goal:done
         3. Deletes the clone directory
 
@@ -55,10 +55,17 @@ def main
     fail!('issue number is required')
   end
 
-  clone_dir = File.join(RALPHS_DIR, number.to_s)
+  # Find clone in .ralphs/<org>/<repo>/<number>/ structure
+  clone_dir = nil
+  Dir.glob(File.join(RALPHS_DIR, '*', '*', number.to_s)).each do |path|
+    if File.directory?(path)
+      clone_dir = path
+      break
+    end
+  end
 
-  unless Dir.exist?(clone_dir)
-    fail!("clone not found at .ralphs/#{number}/")
+  unless clone_dir
+    fail!("clone not found in .ralphs/*/*/*/#{number}/")
   end
 
   # Fetch goal title
