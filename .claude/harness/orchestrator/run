@@ -22,6 +22,7 @@ require 'json'
 require 'optparse'
 require 'fileutils'
 require 'set'
+require 'open3'
 
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 PROJECT_ROOT = File.expand_path('../../..', SCRIPT_DIR)
@@ -195,7 +196,7 @@ def main(options)
   log "Model: #{model} | Reasoning: #{reasoning} | Duration: #{duration || 'unlimited'}"
 
   # State tracking
-  running = {}      # pid => {number:, title:, spot_check:, dir:, started_at:}
+  running = {}      # pid => {number:, title:, spot_check:, dir:, started_at:, stream_thread:, wait_thread:}
   retries = Hash.new(0)  # goal_number => retry count
   attempted = Set.new  # goal_number => attempted at least once this session
   last_queued_count = nil
@@ -226,9 +227,11 @@ def main(options)
 
     # ── Collect finished ralphs ──
     finished = []
-    running.each_key do |pid|
-      result = Process.wait2(pid, Process::WNOHANG) rescue nil
-      finished << [pid, result[1]] if result
+    running.each do |pid, info|
+      unless info[:wait_thread].alive?
+        status = info[:wait_thread].value
+        finished << [pid, status]
+      end
     end
 
     finished.each do |pid, status|
@@ -378,20 +381,21 @@ def main(options)
         ]
         ralph_args << "--duration=#{duration}" if duration
 
-        # Use IO.popen to stream output line-by-line
+        # Use Open3.popen2e to stream output with proper wait_thread handling
         log_file = File.open(ralph_log, 'w')
-        io = IO.popen(ralph_args, chdir: clone_dir, err: [:child, :out])
-        pid = io.pid
+        stdin, stdout_and_stderr, wait_thread = Open3.popen2e(*ralph_args, chdir: clone_dir)
+        stdin.close  # We don't need stdin
+        pid = wait_thread.pid
 
         # Stream output in a background thread
         stream_thread = Thread.new do
           begin
-            io.each_line do |line|
+            stdout_and_stderr.each_line do |line|
               log_file.puts(line)
               log_file.flush
             end
           ensure
-            io.close
+            stdout_and_stderr.close
             log_file.close
           end
         end
@@ -407,7 +411,8 @@ def main(options)
           spot_check: spot_check,
           dir: clone_dir,
           started_at: Time.now,
-          stream_thread: stream_thread
+          stream_thread: stream_thread,
+          wait_thread: wait_thread
         }
       end
     end
