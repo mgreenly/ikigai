@@ -1,0 +1,12 @@
+RALPH v0.4.0
+
+Braindead agentic loop. Just keep trying until it works.
+
+Params
+
+Model: sonnet | Reasoning: med | Max Duration: unlimited
+
+Goal
+
+Create a new file called `pipeline-test.txt` in the project root.
+
