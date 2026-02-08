@@ -38,33 +38,6 @@ res_t ik_db_listen(ik_db_ctx_t *db_ctx, const char *channel)
     return OK(NULL);
 }
 
-res_t ik_db_unlisten(ik_db_ctx_t *db_ctx, const char *channel)
-{
-    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
-    assert(channel != NULL);  // LCOV_EXCL_BR_LINE
-
-    char *query = talloc_asprintf(NULL, "UNLISTEN %s", channel);
-    if (query == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    PGresult *res = pq_exec_(db_ctx->conn, query);
-    talloc_free(query);
-
-    if (res == NULL) PANIC("PQexec returned NULL");  // LCOV_EXCL_BR_LINE
-
-    ExecStatusType status = PQresultStatus_(res);
-    if (status != PGRES_COMMAND_OK) {
-        char *err_msg = talloc_asprintf(NULL, "UNLISTEN failed: %s", PQresultErrorMessage(res));
-        if (err_msg == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        PQclear(res);
-        res_t result = ERR(db_ctx, DB_CONNECT, "%s", err_msg);
-        talloc_free(err_msg);
-        return result;
-    }
-
-    PQclear(res);
-    return OK(NULL);
-}
-
 res_t ik_db_notify(ik_db_ctx_t *db_ctx, const char *channel, const char *payload)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE

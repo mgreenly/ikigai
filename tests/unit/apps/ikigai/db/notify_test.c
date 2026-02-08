@@ -2,9 +2,8 @@
  * @file notify_test.c
  * @brief Tests for PostgreSQL LISTEN/NOTIFY infrastructure
  *
- * Covers all 5 functions in apps/ikigai/db/notify.c:
+ * Covers all 4 functions in apps/ikigai/db/notify.c:
  * - ik_db_listen
- * - ik_db_unlisten
  * - ik_db_notify
  * - ik_db_socket_fd
  * - ik_db_consume_notifications (with callback round-trip)
@@ -126,22 +125,6 @@ START_TEST(test_listen_succeeds) {
 
     res_t res = ik_db_listen(db, "test_channel");
     ck_assert(is_ok(&res));
-
-    // Clean up
-    ik_db_unlisten(db, "test_channel");
-}
-END_TEST
-
-// Test: ik_db_unlisten succeeds
-START_TEST(test_unlisten_succeeds) {
-    SKIP_IF_NO_DB();
-
-    // Listen first, then unlisten
-    res_t res = ik_db_listen(db, "test_channel_ul");
-    ck_assert(is_ok(&res));
-
-    res = ik_db_unlisten(db, "test_channel_ul");
-    ck_assert(is_ok(&res));
 }
 END_TEST
 
@@ -184,9 +167,6 @@ START_TEST(test_notify_round_trip) {
     ck_assert_int_eq(nctx.count, 1);
     ck_assert_str_eq(nctx.channel, "test_rt_channel");
     ck_assert_str_eq(nctx.payload, "test_payload");
-
-    // Clean up
-    ik_db_unlisten(db, "test_rt_channel");
 }
 END_TEST
 
@@ -219,9 +199,6 @@ START_TEST(test_multiple_notifications) {
     res = ik_db_consume_notifications(db, test_notify_callback, &nctx);
     ck_assert(is_ok(&res));
     ck_assert_int_eq(nctx.count, 2);
-
-    // Clean up
-    ik_db_unlisten(db, "test_multi_ch");
 }
 END_TEST
 
@@ -238,7 +215,6 @@ static Suite *notify_suite(void)
     tcase_add_checked_fixture(tc, test_setup, test_teardown);
 
     tcase_add_test(tc, test_listen_succeeds);
-    tcase_add_test(tc, test_unlisten_succeeds);
     tcase_add_test(tc, test_notify_succeeds);
     tcase_add_test(tc, test_socket_fd_valid);
     tcase_add_test(tc, test_notify_round_trip);
