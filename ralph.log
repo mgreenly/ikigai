@@ -169,3 +169,50 @@ Perfect! All changes are complete and verified. Let me create a summary of what 
   syntax validated for all four files. All acceptance criteria met.
 
 ──────────────────────────────────────────────────────────────────────
+Iteration 3
+
+? system (+6s / 3m 24s)
+
+? system (+0s / 3m 24s)
+
+? system (+0s / 3m 24s)
+
+I need to verify that the changes from iteration 2 are actually in place. Let me read the three target files to confirm the `story-try-close` calls were properly added. (+10s / 3m 35s) [8.6%]
+
+→ Read file_path=/home/ai4mgreenly/projects/ikigai-4/.ralphs/2... (+1s / 3m 36s)
+
+← Read type=text, file={"filePath":"/home/ai4mgreenly/projects/ikiga... (+0s / 3m 36s)
+
+→ Read file_path=/home/ai4mgreenly/projects/ikigai-4/.ralphs/2... (+0s / 3m 36s)
+
+← Read type=text, file={"filePath":"/home/ai4mgreenly/projects/ikiga... (+0s / 3m 37s)
+
+→ Read file_path=/home/ai4mgreenly/projects/ikigai-4/.ralphs/2... (+0s / 3m 37s)
+
+← Read type=text, file={"filePath":"/home/ai4mgreenly/projects/ikiga... (+0s / 3m 37s)
+
+Perfect! I can see all three system calls are in place. Let me verify the story-try-close script exists. (+8s / 3m 45s) [13.2%]
+
+→ Bash command="test -f /home/ai4mgreenly/projects/ikigai-4/....", description="Check if story-try-close script exists" (+2s / 3m 48s)
+
+← Bash stdout=EXISTS, stderr=, interrupted=false, isImage=false (+1s / 3m 49s)
+
+All three files have the `story-try-close` calls properly wired up, and the script exists. Let me verify the acceptance criteria:
+
+✓ **All three `goal:done` transitions trigger `story-try-close`**:
+  - orchestrator/run line 223 (after goal:done transition on line 222)
+  - goal-approve/run lines 122-123 (after goal:done label on line 119)
+  - goal-spot-check/run lines 91-92 (after goal:done label on approve at line 83)
+
+✓ **Failure of `story-try-close` is non-fatal**: All three calls use `out: '/dev/null', err: '/dev/null'` without checking the return status, making failures silent and non-fatal
+
+✓ **No other behavior changes**: Only the system calls were added, no other logic was modified
+
+All acceptance criteria met. (+8s / 3m 58s) [13.5%]
+
+→ StructuredOutput summary=DONE (+0s / 3m 58s)
+
+← StructuredOutput  (+0s / 3m 58s)
+
+
+✓ DONE
