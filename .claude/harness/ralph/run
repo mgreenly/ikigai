@@ -124,6 +124,10 @@ class Ralph
     handle_dirty_state
     summarize_if_needed if @continue_run
 
+    # Capture start commit hash
+    @start_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
+    @start_commit = nil if @start_commit.empty?
+
     @exit_reason = nil
     loop do
       if time_expired?
@@ -141,6 +145,10 @@ class Ralph
 
       summarize_if_needed
     end
+
+    # Capture end commit hash
+    @end_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
+    @end_commit = nil if @end_commit.empty?
 
     display_summary
     send_notification
@@ -981,6 +989,31 @@ class Ralph
   # Stats Logging
   # ─────────────────────────────────────────────────────────────
 
+  def compute_diff_stats(start_commit, end_commit)
+    # Default values
+    lines_added = 0
+    lines_deleted = 0
+
+    # Skip if commits are missing or identical
+    return [lines_added, lines_deleted] if start_commit.nil? || end_commit.nil?
+    return [lines_added, lines_deleted] if start_commit == end_commit
+
+    # Get diff stats
+    stat_output = `jj diff --stat --from #{start_commit} --to #{end_commit} 2>/dev/null`
+    return [lines_added, lines_deleted] if stat_output.empty?
+
+    # Parse summary line: "3 files changed, 40 insertions(+), 5 deletions(-)"
+    if stat_output =~ /(\d+) insertion/
+      lines_added = $1.to_i
+    end
+
+    if stat_output =~ /(\d+) deletion/
+      lines_deleted = $1.to_i
+    end
+
+    [lines_added, lines_deleted]
+  end
+
   def ensure_state_dirs
     FileUtils.mkdir_p(STATE_DIR)
     FileUtils.mkdir_p(GOALS_DIR)
@@ -1001,6 +1034,9 @@ class Ralph
     ensure_state_dirs
 
     other_time = [actual_elapsed - @total_llm_time - @total_tool_time, 0].max
+
+    # Compute diff stats
+    lines_added, lines_deleted = compute_diff_stats(@start_commit, @end_commit)
 
     record = {
       goal_file: "goals/#{@goal_copy_name}",
@@ -1023,7 +1059,11 @@ class Ralph
         tools: @total_tool_time.to_i,
         other: other_time.to_i,
         total: actual_elapsed
-      }
+      },
+      commit_start: @start_commit,
+      commit_end: @end_commit,
+      lines_added: lines_added,
+      lines_deleted: lines_deleted
     }
 
     File.open(STATS_FILE, 'a') { |f| f.puts(record.to_json) }
