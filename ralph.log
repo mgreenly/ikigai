@@ -98,3 +98,25 @@ Perfect! The implementation is complete and tested. Let me verify the current wo
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 2
+  Assistant Messages: 33
+  Tool Uses: 17
+
+  Tokens:
+    Input: 239
+    Output: 70
+    Cache Read: 759,339
+    Cache Create: 67,770
+    Total: 827,418
+
+  Cost: $0.4837
+
+  Time:
+    LLM: 1m 49s
+    Tools: 12s
+    Other: 3s
+    Total: 2m 5s
+══════════════════════════════════════════════════════════════════════
+
