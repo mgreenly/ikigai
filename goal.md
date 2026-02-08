@@ -1,38 +1,19 @@
-Story: #268
+Story: #273
 
 ## Objective
 
-Modify `.claude/harness/ralph/run` to capture commit hashes and diff stats, and include them in the `stats.jsonl` record.
+Fix Ralph's commit process to exclude its own runtime files (`goal-progress.jsonl`, `goal.md`, `ralph.log`) from commits.
 
-## Steps
+## Investigation Needed
 
-1. Before the main loop, capture the current commit hash:
-   ```ruby
-   start_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
-
-2. After the main loop exits, capture the end commit hash:
-   ```ruby
-   end_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
-
-3. Compute diff stats between the two commits:
-   ```ruby
-   stat_output = `jj diff --stat --from #{start_commit} --to #{end_commit} 2>/dev/null`
-   ```
-   Parse the summary line (e.g. `3 files changed, 40 insertions(+), 5 deletions(-)`) to extract `lines_added` and `lines_deleted`. If parsing fails or commits are identical, use 0.
-
-4. Add four fields to the JSON record in `write_stats_record`:
-   - `commit_start` (string or null)
-   - `commit_end` (string or null)
-   - `lines_added` (integer)
-   - `lines_deleted` (integer)
+1. Find how Ralph stages and commits files in `.claude/harness/ralph/run`
+2. Determine whether it uses `jj` track/untrack, `.gitignore`, or explicit file lists
+3. Fix the commit step to exclude runtime artifacts
 
 ## Acceptance Criteria
 
-- Stats record includes all four new fields
-- Values are correct when Ralph makes changes
-- Values are 0/identical hashes when Ralph makes no changes
-- Existing functionality is not affected
+- Ralph commits never include `goal-progress.jsonl`, `goal.md`, or `ralph.log`
+- Actual code changes are still committed normally
+- No impact on Ralph's ability to read/write these files during execution
 
-Story: #268
+Story: #273
