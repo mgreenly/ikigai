@@ -92,6 +92,8 @@ def main
     exit 1
   end
 
+  label_names = labels.map { |label| label.is_a?(Hash) ? label['name'] : label.to_s }
+
   puts JSON.generate(
     ok: true,
     number: issue['number'],
@@ -99,7 +101,8 @@ def main
     status: extract_status(labels),
     spot_check: has_label?(labels, 'spot-check'),
     story: parse_story_ref(issue['body']),
-    body: issue['body']
+    body: issue['body'],
+    labels: label_names
   )
   exit 0
 end

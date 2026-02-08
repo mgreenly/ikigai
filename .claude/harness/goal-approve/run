@@ -119,6 +119,9 @@ def main
          '--add-label', 'goal:done',
          out: '/dev/null', err: '/dev/null')
 
+  system(File.join(PROJECT_ROOT, '.claude', 'scripts', 'story-try-close'), number.to_s,
+         out: '/dev/null', err: '/dev/null')
+
   # Delete clone
   FileUtils.rm_rf(clone_dir)
 

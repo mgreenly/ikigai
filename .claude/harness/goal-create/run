@@ -25,6 +25,7 @@ def main
         --story <number>    Parent story issue number (required)
         --title "..."       Goal title (required)
         --spot-check        Flag goal for human smoke test before PR
+        --depends "N,M"     Goal numbers this depends on (optional)
 
       Output:
         JSON {"ok": true, "number": <issue-number>}
@@ -46,6 +47,7 @@ def main
   story = nil
   title = nil
   spot_check = false
+  depends = nil
 
   args = ARGV.dup
   while args.any?
@@ -57,6 +59,8 @@ def main
       title = args.shift
     when '--spot-check'
       spot_check = true
+    when '--depends'
+      depends = args.shift
     end
   end
 
@@ -85,6 +89,12 @@ def main
 
   # Prepend story reference
   body = "Story: ##{story}\n\n#{body}"
+
+  # Append depends reference if provided
+  if depends
+    dep_refs = depends.split(',').map(&:strip).map { |d| "##{d.delete('#')}" }.join(', ')
+    body = "#{body}\n\nDepends: #{dep_refs}"
+  end
 
   # Build labels
   labels = %w[pipeline goal goal:draft]
