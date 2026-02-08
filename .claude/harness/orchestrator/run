@@ -32,11 +32,21 @@ GOAL_LIST_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-list', 'run')
 GOAL_GET_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-get', 'run')
 STORY_TRY_CLOSE_SCRIPT = File.join(SCRIPT_DIR, '..', 'story-try-close', 'run')
 MAX_RETRIES = 3
+LOG_DIR = File.join(PROJECT_ROOT, '.pipeline', 'cache')
+LOG_FILE = File.join(LOG_DIR, 'orchestrator.log')
+
+def init_log
+  FileUtils.mkdir_p(LOG_DIR)
+  @log_file = File.open(LOG_FILE, 'w')
+end
 
 def log(message)
   timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-  puts "[#{timestamp}] #{message}"
+  line = "[#{timestamp}] #{message}"
+  puts line
   $stdout.flush
+  @log_file.puts(line)
+  @log_file.flush
 end
 
 def parse_depends(body)
@@ -166,6 +176,8 @@ def format_elapsed(seconds)
 end
 
 def main(options)
+  init_log
+
   max_slots = options[:max]
   model = options[:model]
   reasoning = options[:reasoning]

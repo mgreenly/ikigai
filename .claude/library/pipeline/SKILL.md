@@ -46,6 +46,11 @@ Scripts live in `.claude/harness/<name>/run` with symlinks in `.claude/scripts/`
 echo "## Objective\n..." | .claude/scripts/goal-create --story 15 --title "Add X"
 ```
 
+## Logs
+
+- **Orchestrator log**: `.pipeline/cache/orchestrator.log` — truncated on each orchestrator start
+- **Ralph logs**: `.ralphs/<number>/ralph.log` — per-goal execution log in each clone directory
+
 ## Key Rules
 
 - **Body via stdin** -- `goal-create` and `story-create` read body from stdin
