@@ -80,3 +80,25 @@ The goal is complete. All existing records in `$HOME/.local/state/ralph/stats.js
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 2
+  Assistant Messages: 21
+  Tool Uses: 10
+
+  Tokens:
+    Input: 157
+    Output: 49
+    Cache Read: 337,779
+    Cache Create: 51,015
+    Total: 389,000
+
+  Cost: $0.2938
+
+  Time:
+    LLM: 49s
+    Tools: 8s
+    Other: 2s
+    Total: 1m 0s
+══════════════════════════════════════════════════════════════════════
+
