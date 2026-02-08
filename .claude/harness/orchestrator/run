@@ -324,15 +324,17 @@ def main(options)
         end
         log "Goal ##{number} cloned to .ralphs/#{number}/"
 
-        # Write goal body (goal_data already fetched for dependency check)
-        goal_file = File.join(clone_dir, 'goal.md')
+        # Write goal body into .pipeline/cache/ (gitignored, keeps runtime files out of commits)
+        cache_dir = File.join(clone_dir, '.pipeline', 'cache')
+        FileUtils.mkdir_p(cache_dir)
+        goal_file = File.join(cache_dir, 'goal.md')
         File.write(goal_file, goal_data['body'])
 
         # Spawn ralph
         ralph_log = File.join(clone_dir, 'ralph.log')
         ralph_args = [
           RALPH_SCRIPT,
-          "--goal=goal.md",
+          "--goal=.pipeline/cache/goal.md",
           '--log-mode',
           '--no-pull-request',
           "--model=#{model}",
