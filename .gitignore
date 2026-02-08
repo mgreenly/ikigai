@@ -55,6 +55,9 @@ coverage_html/
 # Pipeline orchestrator clones
 .ralphs/
 
+# Pipeline runtime cache (goal files, logs, ralph runtime files)
+.pipeline/cache/
+
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
 
