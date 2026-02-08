@@ -331,7 +331,7 @@ def main(options)
         File.write(goal_file, goal_data['body'])
 
         # Spawn ralph
-        ralph_log = File.join(clone_dir, 'ralph.log')
+        ralph_log = File.join(cache_dir, 'ralph.log')
         ralph_args = [
           RALPH_SCRIPT,
           "--goal=.pipeline/cache/goal.md",
@@ -349,7 +349,7 @@ def main(options)
           err: ralph_log
         )
 
-        log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/ralph.log)"
+        log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/.pipeline/cache/ralph.log)"
 
         # Mark this goal as attempted for fairness tracking
         attempted.add(number)
