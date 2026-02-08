@@ -2,22 +2,23 @@
 # frozen_string_literal: true
 
 #
-# harness/prune/run - Automated dead code removal via Ralph
+# harness/prune/run - Create and queue a dead code removal goal
 #
 # 1. Runs check-prune to get candidates
 # 2. Picks a random candidate
-# 3. Generates a goal file
-# 4. Runs Ralph to remove the function
+# 3. Creates a GitHub issue goal
+# 4. Queues the goal for orchestrator pickup
 #
 
 require 'json'
 require 'optparse'
-require 'fileutils'
+require 'open3'
 
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 PROJECT_ROOT = File.expand_path('../../..', SCRIPT_DIR)
 CHECK_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/check-prune')
-RALPH_SCRIPT = File.join(PROJECT_ROOT, '.claude/harness/ralph/run')
+GOAL_CREATE_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/goal-create')
+GOAL_QUEUE_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/goal-queue')
 GOAL_TEMPLATE = File.join(SCRIPT_DIR, 'goal-template.md')
 
 def log(msg)
@@ -59,72 +60,84 @@ def run_check_prune
   candidates
 end
 
-def generate_goal_file(candidate)
+def render_goal_body(candidate)
   function = candidate[:function]
   file = candidate[:file]
   line = candidate[:line]
 
-  goal_filename = "pruning-#{function}-ralph-goal.md"
-  goal_path = File.join(PROJECT_ROOT, goal_filename)
-
   template = File.read(GOAL_TEMPLATE)
-  content = template
+  template
     .gsub('{{function}}', function)
     .gsub('{{file}}', file)
     .gsub('{{line}}', line)
-
-  File.write(goal_path, content)
-  log "Generated goal file: #{goal_filename}"
-
-  goal_path
 end
 
-def run_ralph(goal_path, options)
-  cmd = [RALPH_SCRIPT, "--goal=#{goal_path}"]
-  cmd << "--duration=#{options[:duration]}" if options[:duration]
-  cmd << "--model=#{options[:model]}" if options[:model]
-  cmd << "--reasoning=#{options[:reasoning]}" if options[:reasoning]
-  cmd << '--pull-request' if options[:pull_request]
-  cmd << '--no-spinner' if options[:no_spinner]
+def create_goal(candidate, story_number)
+  function = candidate[:function]
+  title = "Prune dead code: #{function}"
+  body = render_goal_body(candidate)
 
-  log "Running: #{cmd.join(' ')}"
-  log ''
+  log "Creating goal: #{title}"
 
-  # Exec replaces this process with ralph
-  exec(*cmd)
+  # Pipe body to goal-create
+  cmd = [GOAL_CREATE_SCRIPT, '--story', story_number.to_s, '--title', title]
+  stdout, status = Open3.capture2(*cmd, stdin_data: body, err: '/dev/null')
+
+  unless status.success?
+    log "ERROR: goal-create failed"
+    log "Output: #{stdout[0..500]}"
+    return nil
+  end
+
+  begin
+    result = JSON.parse(stdout)
+  rescue JSON::ParserError => e
+    log "ERROR: Failed to parse goal-create output: #{e.message}"
+    log "Output: #{stdout[0..500]}"
+    return nil
+  end
+
+  unless result['ok']
+    log "ERROR: goal-create returned error: #{result['items']}"
+    return nil
+  end
+
+  result['number']
+end
+
+def queue_goal(goal_number)
+  log "Queuing goal ##{goal_number}"
+
+  output = `#{GOAL_QUEUE_SCRIPT} #{goal_number} 2>&1`
+  exit_code = $?.exitstatus
+
+  unless exit_code == 0
+    log "ERROR: goal-queue failed"
+    log "Output: #{output[0..500]}"
+    return false
+  end
+
+  begin
+    result = JSON.parse(output)
+  rescue JSON::ParserError => e
+    log "ERROR: Failed to parse goal-queue output: #{e.message}"
+    log "Output: #{output[0..500]}"
+    return false
+  end
+
+  unless result['ok']
+    log "ERROR: goal-queue returned error: #{result['items']}"
+    return false
+  end
+
+  true
 end
 
 def main
-  options = {
-    duration: '2h',
-    model: 'sonnet',
-    reasoning: 'med',
-    pull_request: true,
-    no_spinner: false
-  }
+  options = {}
 
   OptionParser.new do |opts|
     opts.banner = 'Usage: fix-prune [options]'
-
-    opts.on('--duration DURATION', 'Time budget (default: 2h)') do |d|
-      options[:duration] = d
-    end
-
-    opts.on('--model MODEL', 'Model: haiku, sonnet, opus (default: sonnet)') do |m|
-      options[:model] = m
-    end
-
-    opts.on('--reasoning LEVEL', 'Reasoning: none, low, med, high (default: med)') do |r|
-      options[:reasoning] = r
-    end
-
-    opts.on('--no-pr', 'Skip pull request creation') do
-      options[:pull_request] = false
-    end
-
-    opts.on('--no-spinner', 'Disable spinner') do
-      options[:no_spinner] = true
-    end
 
     opts.on('--function NAME', 'Target specific function instead of random') do |f|
       options[:function] = f
@@ -150,11 +163,24 @@ def main
   candidate = candidates.sample
   log "Selected: #{candidate[:function]} at #{candidate[:file]}:#{candidate[:line]}"
 
-  # Generate goal file
-  goal_path = generate_goal_file(candidate)
+  # Create goal
+  goal_number = create_goal(candidate, 0)
+  unless goal_number
+    log 'ERROR: Failed to create goal'
+    exit 1
+  end
 
-  # Run ralph (exec replaces this process)
-  run_ralph(goal_path, options)
+  log "Created goal ##{goal_number}"
+
+  # Queue goal
+  unless queue_goal(goal_number)
+    log 'ERROR: Failed to queue goal'
+    exit 1
+  end
+
+  log "Goal ##{goal_number} queued successfully"
+  puts JSON.generate(ok: true, number: goal_number)
+  exit 0
 end
 
 if __FILE__ == $PROGRAM_NAME

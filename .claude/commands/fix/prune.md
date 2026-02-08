@@ -1,22 +1,20 @@
-Remove dead code via Ralph.
+Create and queue a dead code removal goal.
 
 **Usage:**
-- `/fix:prune` - Pick random candidate and run Ralph to verify/remove it
+- `/fix:prune` - Pick random candidate and create a goal
 - `/fix:prune --function NAME` - Target specific function
-- `/fix:prune --no-pr` - Skip pull request creation
-- `/fix:prune --duration 4h` - Set time budget (default: 2h)
-- `/fix:prune --model opus` - Use specific model (default: sonnet)
 
 **Process:**
 1. Runs check-prune to get candidates
 2. Picks a random candidate (or specified function)
-3. Generates `pruning-<function>-ralph-goal.md` in project root
-4. Runs Ralph to verify and remove the function (or mark as false positive)
+3. Creates a GitHub issue goal from the template
+4. Queues the goal for orchestrator pickup
 
 **Outcomes:**
-- Function removed: PR created with the change
-- False positive: Function added to whitelist, no changes
+- Goal created and queued with label `goal:queued`
+- Orchestrator will pick up and execute the goal
+- No ralph process spawned, no local goal file written
 
 ---
 
-Run `.claude/scripts/fix-prune --no-spinner {{args}}` - this will exec into Ralph.
+Run `.claude/scripts/fix-prune {{args}}`
