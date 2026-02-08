@@ -67,6 +67,10 @@ These scripts return terse JSON summaries - no output parsing required, minimal 
 
 # Guidance
 
+## Working Directory Constraint
+
+**You are running in an isolated clone.** Only read and modify files within your current working directory. Never use absolute paths that escape to parent directories. If you see paths like `/home/.../projects/...` that point outside your clone, you are escaping your sandbox - use relative paths instead.
+
 ## Steps
 A step involves: understand → act → verify. Complete the cycle before returning.
 
