@@ -86,6 +86,17 @@ def get_remote_url
   nil
 end
 
+def parse_org_repo(remote_url)
+  # Handle both git@github.com:org/repo.git and https://github.com/org/repo.git
+  if remote_url =~ %r{^git@github\.com:([^/]+)/(.+?)(?:\.git)?$}
+    [$1, $2.sub(/\.git$/, '')]
+  elsif remote_url =~ %r{^https://github\.com/([^/]+)/(.+?)(?:\.git)?$}
+    [$1, $2.sub(/\.git$/, '')]
+  else
+    nil
+  end
+end
+
 def transition_label(number, from_label, to_label)
   system('gh', 'issue', 'edit', number.to_s,
          '--remove-label', from_label,
@@ -93,9 +104,9 @@ def transition_label(number, from_label, to_label)
          out: '/dev/null', err: '/dev/null')
 end
 
-def clone_repo(remote_url, number)
-  dest = File.join(RALPHS_DIR, number.to_s)
-  FileUtils.mkdir_p(RALPHS_DIR)
+def clone_repo(remote_url, org, repo, number)
+  dest = File.join(RALPHS_DIR, org, repo, number.to_s)
+  FileUtils.mkdir_p(File.dirname(dest))
   system('git', 'clone', '--quiet', remote_url, dest, out: '/dev/null', err: '/dev/null')
   return nil unless $?.exitstatus == 0
 
@@ -104,8 +115,8 @@ def clone_repo(remote_url, number)
   dest
 end
 
-def delete_clone(number)
-  dest = File.join(RALPHS_DIR, number.to_s)
+def delete_clone(org, repo, number)
+  dest = File.join(RALPHS_DIR, org, repo, number.to_s)
   FileUtils.rm_rf(dest) if Dir.exist?(dest)
 end
 
@@ -190,8 +201,16 @@ def main(options)
     exit 1
   end
 
+  org_repo = parse_org_repo(remote_url)
+  unless org_repo
+    $stderr.puts 'Error: could not parse org/repo from remote URL'
+    exit 1
+  end
+  org, repo = org_repo
+
   log "Starting orchestrator (max #{max_slots} ralphs)"
   log "Remote: #{remote_url}"
+  log "Repo: #{org}/#{repo}"
   log "Model: #{model} | Reasoning: #{reasoning} | Duration: #{duration || 'unlimited'}"
 
   # State tracking
@@ -217,8 +236,8 @@ def main(options)
         info[:stream_thread]&.join rescue nil
         transition_label(info[:number], 'goal:running', 'goal:queued')
         log "Goal ##{info[:number]} → re-queued (was running)"
-        delete_clone(info[:number])
-        log "Cleaned up .ralphs/#{info[:number]}/"
+        delete_clone(org, repo, info[:number])
+        log "Cleaned up .ralphs/#{org}/#{repo}/#{info[:number]}/"
       end
       log 'Done'
       break
@@ -264,12 +283,12 @@ def main(options)
           transition_label(number, 'goal:running', 'goal:done')
           system(STORY_TRY_CLOSE_SCRIPT, number.to_s, out: '/dev/null', err: '/dev/null')
           log "Goal ##{number} → done"
-          delete_clone(number)
+          delete_clone(org, repo, number)
         end
       else
         log "Goal ##{number} ralph finished (exit #{status.exitstatus}, #{elapsed})"
-        delete_clone(number)
-        log "Goal ##{number} cleaned up .ralphs/#{number}/"
+        delete_clone(org, repo, number)
+        log "Goal ##{number} cleaned up .ralphs/#{org}/#{repo}/#{number}/"
         retries[number] += 1
 
         if retries[number] > MAX_RETRIES
@@ -284,7 +303,8 @@ def main(options)
     end
 
     # ── Clean up approved spot-check clones ──
-    Dir.glob(File.join(RALPHS_DIR, '*')).each do |clone_path|
+    # Traverse .ralphs/<org>/<repo>/<number>/ structure
+    Dir.glob(File.join(RALPHS_DIR, '*', '*', '*')).each do |clone_path|
       next unless File.directory?(clone_path)
 
       number = File.basename(clone_path).to_i
@@ -301,8 +321,8 @@ def main(options)
 
       # If not in spot-check, delete the clone
       unless labels.include?('goal:spot-check')
-        delete_clone(number)
-        log "Cleaned up .ralphs/#{number}/ (goal no longer in spot-check)"
+        delete_clone(org, repo, number)
+        log "Cleaned up .ralphs/#{org}/#{repo}/#{number}/ (goal no longer in spot-check)"
       end
     end
 
@@ -354,13 +374,13 @@ def main(options)
         log "Goal ##{number} \"#{title}\" → running (slot #{running.size + 1}/#{max_slots})"
 
         # Clone
-        clone_dir = clone_repo(remote_url, number)
+        clone_dir = clone_repo(remote_url, org, repo, number)
         unless clone_dir
           log "Goal ##{number} clone failed, re-queuing"
           transition_label(number, 'goal:running', 'goal:queued')
           next
         end
-        log "Goal ##{number} cloned to .ralphs/#{number}/"
+        log "Goal ##{number} cloned to .ralphs/#{org}/#{repo}/#{number}/"
 
         # Write goal body into .pipeline/cache/ (gitignored, keeps runtime files out of commits)
         cache_dir = File.join(clone_dir, '.pipeline', 'cache')
@@ -399,7 +419,7 @@ def main(options)
           end
         end
 
-        log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/.pipeline/cache/ralph.log)"
+        log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{org}/#{repo}/#{number}/.pipeline/cache/ralph.log)"
 
         # Mark this goal as attempted for fairness tracking
         attempted.add(number)

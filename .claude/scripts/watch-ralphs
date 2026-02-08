@@ -37,16 +37,26 @@ begin
 
     # Check if .ralphs directory exists
     if Dir.exist?(RALPHS_DIR)
-      # Get subdirectories (just the names, sorted numerically)
-      entries = Dir.entries(RALPHS_DIR)
-                   .select { |e| File.directory?(File.join(RALPHS_DIR, e)) && e != '.' && e != '..' }
-                   .sort_by(&:to_i)
+      # Traverse .ralphs/<org>/<repo>/<number>/ structure
+      entries = []
+      Dir.glob(File.join(RALPHS_DIR, '*', '*', '*')).each do |path|
+        next unless File.directory?(path)
+        parts = path.split(File::SEPARATOR)
+        next unless parts.length >= 3
+        org = parts[-3]
+        repo = parts[-2]
+        number = parts[-1]
+        entries << { org: org, repo: repo, number: number.to_i }
+      end
+
+      # Sort by number
+      entries.sort_by! { |e| e[:number] }
 
       if entries.empty?
         print "No active ralphs#{CLEAR_LINE}\n"
       else
-        entries.each do |dir|
-          print "  #{dir}#{CLEAR_LINE}\n"
+        entries.each do |entry|
+          print "  #{entry[:org]}/#{entry[:repo]}/#{entry[:number]}#{CLEAR_LINE}\n"
         end
       end
     else

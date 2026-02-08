@@ -55,7 +55,7 @@ echo "## Objective\n..." | .claude/scripts/goal-create --story 0 --title "Add X"
 ## Logs
 
 - **Orchestrator log**: `.pipeline/cache/orchestrator.log` — truncated on each orchestrator start
-- **Ralph logs**: `.ralphs/<number>/ralph.log` — per-goal execution log in each clone directory
+- **Ralph logs**: `.ralphs/<org>/<repo>/<number>/.pipeline/cache/ralph.log` — per-goal execution log in each clone directory
 
 ## Goal Authoring
 
