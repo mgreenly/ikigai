@@ -189,3 +189,25 @@ All acceptance criteria are met. Ruby syntax validated successfully. No existing
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 3
+  Assistant Messages: 44
+  Tool Uses: 20
+
+  Tokens:
+    Input: 320
+    Output: 83
+    Cache Read: 1,231,662
+    Cache Create: 264,453
+    Total: 1,496,518
+
+  Cost: $1.3634
+
+  Time:
+    LLM: 2m 41s
+    Tools: 6s
+    Other: 3s
+    Total: 2m 52s
+══════════════════════════════════════════════════════════════════════
+
