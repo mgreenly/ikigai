@@ -4,7 +4,6 @@
  *
  * Tests error handling branches:
  * - ik_db_listen when PQresultStatus_ returns error
- * - ik_db_unlisten when PQresultStatus_ returns error
  * - ik_db_notify when PQresultStatus_ returns error
  * - ik_db_consume_notifications when PQconsumeInput_ fails
  */
@@ -110,19 +109,6 @@ START_TEST(test_listen_error) {
 }
 END_TEST
 
-// Test: ik_db_unlisten error path
-START_TEST(test_unlisten_error) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ik_db_ctx_t *mock_db = create_mock_db_ctx(ctx);
-
-    res_t res = ik_db_unlisten(mock_db, "test_channel");
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_DB_CONNECT);
-
-    talloc_free(ctx);
-}
-END_TEST
-
 // Test: ik_db_notify error path
 START_TEST(test_notify_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -161,7 +147,6 @@ static Suite *notify_errors_suite(void)
     TCase *tc = tcase_create("Errors");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_test(tc, test_listen_error);
-    tcase_add_test(tc, test_unlisten_error);
     tcase_add_test(tc, test_notify_error);
     tcase_add_test(tc, test_consume_input_failure);
 

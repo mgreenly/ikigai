@@ -16,10 +16,6 @@ typedef void (*ik_db_notify_callback_t)(void *ctx, const char *channel, const ch
 // Executes LISTEN <channel> synchronously
 res_t ik_db_listen(ik_db_ctx_t *db_ctx, const char *channel);
 
-// Stop listening on a PostgreSQL NOTIFY channel
-// Executes UNLISTEN <channel> synchronously
-res_t ik_db_unlisten(ik_db_ctx_t *db_ctx, const char *channel);
-
 // Send a notification on a PostgreSQL NOTIFY channel
 // Executes NOTIFY <channel>, '<payload>' synchronously
 res_t ik_db_notify(ik_db_ctx_t *db_ctx, const char *channel, const char *payload);
