@@ -74,6 +74,9 @@ class Ralph
     @debug = debug
     @pull_request = pull_request
 
+    # Disable output buffering in log mode
+    $stdout.sync = true if @log_mode
+
     @start_time = Time.now
     @iteration = 0
     @spinner_thread = nil

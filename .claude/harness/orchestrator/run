@@ -214,6 +214,7 @@ def main(options)
       running.each do |pid, info|
         Process.kill('INT', pid) rescue nil
         Process.wait(pid) rescue nil
+        info[:stream_thread]&.join rescue nil
         transition_label(info[:number], 'goal:running', 'goal:queued')
         log "Goal ##{info[:number]} → re-queued (was running)"
         delete_clone(info[:number])
@@ -234,6 +235,9 @@ def main(options)
       info = running.delete(pid)
       number = info[:number]
       elapsed = format_elapsed((Time.now - info[:started_at]).to_i)
+
+      # Wait for stream thread to finish writing all output
+      info[:stream_thread]&.join
 
       if status.exitstatus == 0
         log "Goal ##{number} ralph finished (exit 0, #{elapsed})"
@@ -362,7 +366,7 @@ def main(options)
         goal_file = File.join(cache_dir, 'goal.md')
         File.write(goal_file, goal_data['body'])
 
-        # Spawn ralph
+        # Spawn ralph with real-time log streaming
         ralph_log = File.join(cache_dir, 'ralph.log')
         ralph_args = [
           RALPH_SCRIPT,
@@ -374,12 +378,23 @@ def main(options)
         ]
         ralph_args << "--duration=#{duration}" if duration
 
-        pid = Process.spawn(
-          *ralph_args,
-          chdir: clone_dir,
-          out: ralph_log,
-          err: ralph_log
-        )
+        # Use IO.popen to stream output line-by-line
+        log_file = File.open(ralph_log, 'w')
+        io = IO.popen(ralph_args, chdir: clone_dir, err: [:child, :out])
+        pid = io.pid
+
+        # Stream output in a background thread
+        stream_thread = Thread.new do
+          begin
+            io.each_line do |line|
+              log_file.puts(line)
+              log_file.flush
+            end
+          ensure
+            io.close
+            log_file.close
+          end
+        end
 
         log "Goal ##{number} ralph started (pid #{pid}, log: .ralphs/#{number}/.pipeline/cache/ralph.log)"
 
@@ -391,7 +406,8 @@ def main(options)
           title: title,
           spot_check: spot_check,
           dir: clone_dir,
-          started_at: Time.now
+          started_at: Time.now,
+          stream_thread: stream_thread
         }
       end
     end
