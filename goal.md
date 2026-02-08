@@ -1,38 +1,43 @@
-Story: #268
+Story: #276
 
 ## Objective
 
-Modify `.claude/harness/ralph/run` to capture commit hashes and diff stats, and include them in the `stats.jsonl` record.
+Wire up the `story-try-close` helper into the three places that transition goals to `goal:done`.
 
-## Steps
+## Changes
 
-1. Before the main loop, capture the current commit hash:
-   ```ruby
-   start_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
+### 1. `.claude/harness/orchestrator/run`
 
-2. After the main loop exits, capture the end commit hash:
-   ```ruby
-   end_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
+After line 221 (`transition_label(number, 'goal:running', 'goal:done')`), call:
+```ruby
+system(STORY_TRY_CLOSE_SCRIPT, number.to_s, out: '/dev/null', err: '/dev/null')
+```
 
-3. Compute diff stats between the two commits:
-   ```ruby
-   stat_output = `jj diff --stat --from #{start_commit} --to #{end_commit} 2>/dev/null`
-   ```
-   Parse the summary line (e.g. `3 files changed, 40 insertions(+), 5 deletions(-)`) to extract `lines_added` and `lines_deleted`. If parsing fails or commits are identical, use 0.
+Add the constant:
+```ruby
+STORY_TRY_CLOSE_SCRIPT = File.join(SCRIPT_DIR, '..', 'story-try-close', 'run')
+```
 
-4. Add four fields to the JSON record in `write_stats_record`:
-   - `commit_start` (string or null)
-   - `commit_end` (string or null)
-   - `lines_added` (integer)
-   - `lines_deleted` (integer)
+### 2. `.claude/harness/goal-approve/run`
+
+After line 119 (where it adds `goal:done` label), call:
+```ruby
+system(File.join(PROJECT_ROOT, '.claude', 'scripts', 'story-try-close'), number.to_s,
+       out: '/dev/null', err: '/dev/null')
+```
+
+### 3. `.claude/harness/goal-spot-check/run`
+
+After line 83 (where it adds `goal:done` label on approve), call:
+```ruby
+system(File.join(File.dirname(File.realpath(__FILE__)), '..', 'story-try-close', 'run'),
+       number.to_s, out: '/dev/null', err: '/dev/null')
+```
 
 ## Acceptance Criteria
 
-- Stats record includes all four new fields
-- Values are correct when Ralph makes changes
-- Values are 0/identical hashes when Ralph makes no changes
-- Existing functionality is not affected
+- All three `goal:done` transitions trigger `story-try-close`
+- Failure of `story-try-close` is non-fatal (goal still completes)
+- No other behavior changes
 
-Story: #268
+Story: #276
