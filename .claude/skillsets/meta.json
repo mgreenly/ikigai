@@ -4,7 +4,8 @@
     "align",
     "jj",
     "principles",
-    "scratch"
+    "scratch",
+    "pipeline"
   ],
   "advertise": [
     {"skill": "harness", "description": "Automated quality check loops with escalation"},
