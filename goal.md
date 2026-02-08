@@ -1,38 +1,28 @@
-Story: #268
+Story: #276
 
 ## Objective
 
-Modify `.claude/harness/ralph/run` to capture commit hashes and diff stats, and include them in the `stats.jsonl` record.
+Create a new harness script `story-try-close` that checks if a story should be closed after a goal completes.
 
-## Steps
+## Behavior
 
-1. Before the main loop, capture the current commit hash:
-   ```ruby
-   start_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
+1. Accept a goal number as argument
+2. Fetch the goal issue body via `goal-get`
+3. Parse `Story: #N` from the body to find the parent story number
+4. List all goals linked to that story (search for issues with `goal` label whose body contains `Story: #N`)
+5. If every linked goal has the `goal:done` label, close the story issue via `gh issue close`
+6. If not all done, do nothing
+7. Return JSON: `{"ok": true, "closed": true/false, "story": N}`
 
-2. After the main loop exits, capture the end commit hash:
-   ```ruby
-   end_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
-   ```
+## File Structure
 
-3. Compute diff stats between the two commits:
-   ```ruby
-   stat_output = `jj diff --stat --from #{start_commit} --to #{end_commit} 2>/dev/null`
-   ```
-   Parse the summary line (e.g. `3 files changed, 40 insertions(+), 5 deletions(-)`) to extract `lines_added` and `lines_deleted`. If parsing fails or commits are identical, use 0.
+- Script: `.claude/harness/story-try-close/run` (Ruby, matching existing harness conventions)
+- Symlink: `.claude/scripts/story-try-close` → `../harness/story-try-close/run`
 
-4. Add four fields to the JSON record in `write_stats_record`:
-   - `commit_start` (string or null)
-   - `commit_end` (string or null)
-   - `lines_added` (integer)
-   - `lines_deleted` (integer)
+## Edge Cases
 
-## Acceptance Criteria
+- Goal has no `Story: #N` reference → return ok with closed: false
+- Story has no goals → don't close (shouldn't happen but be safe)
+- Story is already closed → return ok with closed: false
 
-- Stats record includes all four new fields
-- Values are correct when Ralph makes changes
-- Values are 0/identical hashes when Ralph makes no changes
-- Existing functionality is not affected
-
-Story: #268
+Story: #276

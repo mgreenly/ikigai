@@ -1,3 +1,1 @@
-{"iteration":1,"timestamp":"2026-02-07T18:31:48-06:00","progress":"Dirty working copy detected and committed, use `jj diff -r vsxzxokysznn` to see the changes."}
-{"iteration":2,"timestamp":"2026-02-07T18:33:10-06:00","progress":"Modified `.claude/harness/ralph/run` to capture commit hashes before/after the main loop and compute diff stats. Added `compute_diff_stats` method that parses `jj diff --stat` output to extract lines_added and lines_deleted. Added four new fields to stats.jsonl record: commit_start, commit_end, lines_added, and lines_deleted. All fields default to sensible values (null/0) when commits are identical or invalid. Ruby syntax validated successfully. All acceptance criteria met."}
-{"iteration":3,"timestamp":"2026-02-07T18:34:38-06:00","progress":"DONE"}
+{"iteration":1,"timestamp":"2026-02-07T18:48:56-06:00","progress":"Dirty working copy detected and committed, use `jj diff -r xkppzuokstrn` to see the changes."}
