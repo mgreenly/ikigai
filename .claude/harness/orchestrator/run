@@ -198,6 +198,7 @@ def main(options)
   retries = Hash.new(0)  # goal_number => retry count
   attempted = Set.new  # goal_number => attempted at least once this session
   last_queued_count = nil
+  last_running_count = nil
   @shutting_down = false
 
   # Ctrl+C handler
@@ -274,10 +275,12 @@ def main(options)
     result = run_script(GOAL_LIST_SCRIPT, 'queued')
     queued = (result && result['ok'] && result['items']) || []
     queued_count = queued.size
+    running_count = running.size
 
-    if queued_count != last_queued_count
-      log "#{queued_count} queued goal#{queued_count == 1 ? '' : 's'}"
+    if queued_count != last_queued_count || running_count != last_running_count
+      log "#{queued_count} queued, #{running_count} running"
       last_queued_count = queued_count
+      last_running_count = running_count
     end
 
     available_slots = max_slots - running.size
