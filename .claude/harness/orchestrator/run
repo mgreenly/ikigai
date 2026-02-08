@@ -248,6 +248,11 @@ def main(options)
           pr_num = create_pr_from_clone(number, info[:title], info[:dir])
           if pr_num
             log "Goal ##{number} PR created → ##{pr_num}"
+            if system('gh', 'pr', 'merge', '--auto', '--squash', pr_num.to_s, out: '/dev/null', err: '/dev/null')
+              log "Goal ##{number} auto-merge enabled on PR ##{pr_num}"
+            else
+              log "Goal ##{number} auto-merge failed on PR ##{pr_num} (non-fatal)"
+            end
           end
           transition_label(number, 'goal:running', 'goal:done')
           system(STORY_TRY_CLOSE_SCRIPT, number.to_s, out: '/dev/null', err: '/dev/null')
