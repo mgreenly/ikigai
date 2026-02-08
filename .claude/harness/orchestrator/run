@@ -29,6 +29,7 @@ RALPH_SCRIPT = File.join(SCRIPT_DIR, '..', 'ralph', 'run')
 NOTIFY_SCRIPT = File.join(SCRIPT_DIR, '..', 'notify', 'run')
 GOAL_LIST_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-list', 'run')
 GOAL_GET_SCRIPT = File.join(SCRIPT_DIR, '..', 'goal-get', 'run')
+STORY_TRY_CLOSE_SCRIPT = File.join(SCRIPT_DIR, '..', 'story-try-close', 'run')
 MAX_RETRIES = 3
 
 def log(message)
@@ -219,6 +220,7 @@ def main(options)
             log "Goal ##{number} PR created → ##{pr_num}"
           end
           transition_label(number, 'goal:running', 'goal:done')
+          system(STORY_TRY_CLOSE_SCRIPT, number.to_s, out: '/dev/null', err: '/dev/null')
           log "Goal ##{number} → done"
           delete_clone(number)
         end

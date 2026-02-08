@@ -1,0 +1,122 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/story-try-close - Close a story if all linked goals are done
+#
+# Usage: story-try-close <goal-number>
+#
+# Looks up the parent story for the given goal, checks if all goals
+# linked to that story have goal:done label, and closes the story if so.
+#
+# Output: JSON {"ok": true} or {"ok": false, "items": ["error"]}
+# Exit code: 0 on success (including no-op), 1 on failure
+#
+
+require 'json'
+
+def main
+  if ARGV.include?('--help') || ARGV.include?('-h')
+    puts <<~HELP
+      Usage: story-try-close <goal-number>
+
+      Close a story if all linked goals are done.
+
+      Arguments:
+        goal-number    GitHub Issue number of a goal (required)
+
+      What it does:
+        1. Looks up the parent story from the goal's body (Story: #N)
+        2. Lists all goals linked to that story
+        3. If every goal has goal:done label, closes the story
+        4. Returns success (no-op) if story is already closed
+
+      Output:
+        JSON {"ok": true} or {"ok": false, "items": ["error"]}
+
+      Examples:
+        story-try-close 275
+    HELP
+    exit 0
+  end
+
+  goal_number = ARGV[0]&.to_i
+
+  unless goal_number && goal_number > 0
+    puts JSON.generate(ok: false, items: ['goal number is required'])
+    exit 1
+  end
+
+  # Fetch goal to find parent story
+  goal_json = `gh issue view #{goal_number} --json body 2>/dev/null`
+  unless $?.exitstatus == 0
+    puts JSON.generate(ok: false, items: ["could not fetch goal ##{goal_number}"])
+    exit 1
+  end
+
+  goal = JSON.parse(goal_json) rescue nil
+  unless goal && goal['body']
+    puts JSON.generate(ok: false, items: ["invalid goal data for ##{goal_number}"])
+    exit 1
+  end
+
+  # Parse Story: #N from goal body
+  story_match = goal['body'].match(/^Story:\s*#(\d+)/m)
+  unless story_match
+    puts JSON.generate(ok: false, items: ["no parent story found in goal ##{goal_number}"])
+    exit 1
+  end
+
+  story_number = story_match[1].to_i
+
+  # Check if story is already closed
+  story_json = `gh issue view #{story_number} --json state 2>/dev/null`
+  unless $?.exitstatus == 0
+    puts JSON.generate(ok: false, items: ["could not fetch story ##{story_number}"])
+    exit 1
+  end
+
+  story = JSON.parse(story_json) rescue nil
+  if story && story['state'] == 'CLOSED'
+    # Already closed, this is fine
+    puts JSON.generate(ok: true)
+    exit 0
+  end
+
+  # Find all goals linked to this story
+  goals_json = `gh issue list --search "Story: ##{story_number} in:body" --label goal --json number,labels --limit 1000 2>/dev/null`
+  unless $?.exitstatus == 0
+    puts JSON.generate(ok: false, items: ["could not list goals for story ##{story_number}"])
+    exit 1
+  end
+
+  goals = JSON.parse(goals_json) rescue []
+
+  # Check if all goals have goal:done label
+  all_done = goals.all? do |goal|
+    goal['labels']&.any? { |label| label['name'] == 'goal:done' }
+  end
+
+  if all_done && !goals.empty?
+    # Close the story
+    success = system('gh', 'issue', 'close', story_number.to_s,
+                     '--comment', "All goals completed. Auto-closing story.",
+                     out: '/dev/null', err: '/dev/null')
+
+    unless success
+      puts JSON.generate(ok: false, items: ["failed to close story ##{story_number}"])
+      exit 1
+    end
+  end
+
+  puts JSON.generate(ok: true)
+  exit 0
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

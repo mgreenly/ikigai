@@ -87,6 +87,9 @@ def main
       puts JSON.generate(ok: false, items: ["failed to update labels on ##{number}"])
       exit 1
     end
+
+    system(File.join(File.dirname(File.realpath(__FILE__)), '..', 'story-try-close', 'run'),
+           number.to_s, out: '/dev/null', err: '/dev/null')
   else
     # Re-queue
     ok = system('gh', 'issue', 'edit', number.to_s,
