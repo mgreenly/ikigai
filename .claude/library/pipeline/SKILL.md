@@ -17,6 +17,32 @@ Story (human writes) → Goals (decomposed) → Queue → Ralph executes → PR 
 
 **Current:** Goals bypass story mechanism (`--story 0`) during trial/debug phase.
 
+## Default Workflow: Goals-First
+
+**The goals-first workflow is the default for all work.** Local changes are rare exceptions that require explicit user instruction.
+
+**Standard workflow:**
+
+1. **Discuss** - User and Claude discuss the change and approach
+2. **Create goal** - Claude creates the goal with clear acceptance criteria
+3. **Queue immediately** - Goal is queued right after creation (default behavior)
+4. **Ralph executes** - User runs Ralph to execute the goal autonomously
+5. **PR merges** - Completed work is merged via PR
+
+**Default behaviors:**
+
+- **Always queue after creation** - No manual testing or "trying it first" unless user explicitly requests it
+- **No spot-check** - Goals do not use `--spot-check` flag unless user explicitly requests it during goal preparation
+- **No local changes** - Claude does not make local changes directly; work goes through Ralph
+
+**When to make local changes (exceptions only):**
+
+- User explicitly requests direct changes: "make this change now", "edit this file", "fix this directly"
+- User explicitly says: "don't create a goal for this", "do this locally", "make this change here"
+- User specifies exceptions during goal preparation phase
+
+**If unsure:** Default to creating and queuing a goal. The user will specify if they want an exception.
+
 ## Goal Statuses
 
 `draft` → `queued` → `running` → `spot-check` or `done` (or `stuck`)
