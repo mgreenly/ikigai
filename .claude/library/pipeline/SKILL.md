@@ -51,6 +51,16 @@ echo "## Objective\n..." | .claude/scripts/goal-create --story 15 --title "Add X
 - **Orchestrator log**: `.pipeline/cache/orchestrator.log` — truncated on each orchestrator start
 - **Ralph logs**: `.ralphs/<number>/ralph.log` — per-goal execution log in each clone directory
 
+## Goal Authoring
+
+Goal bodies **must** follow the `goal-authoring` skill guidelines (`/load goal-authoring`). Key rules:
+
+- Specify **WHAT**, never **HOW** — outcomes, not steps
+- Reference relevant files — Ralph reads them across iterations
+- Include measurable **acceptance criteria**
+- Never pre-discover work (no specific line numbers or code snippets)
+- Trust Ralph to iterate and discover the path
+
 ## Key Rules
 
 - **Body via stdin** -- `goal-create` and `story-create` read body from stdin
