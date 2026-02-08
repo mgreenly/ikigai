@@ -87,3 +87,25 @@ The implementation correctly splits comma-separated values, strips whitespace, n
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 2
+  Assistant Messages: 20
+  Tool Uses: 9
+
+  Tokens:
+    Input: 146
+    Output: 32
+    Cache Read: 354,386
+    Cache Create: 43,874
+    Total: 398,438
+
+  Cost: $0.2718
+
+  Time:
+    LLM: 58s
+    Tools: 1s
+    Other: 3s
+    Total: 1m 3s
+══════════════════════════════════════════════════════════════════════
+
