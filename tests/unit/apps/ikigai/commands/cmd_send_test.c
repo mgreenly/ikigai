@@ -37,7 +37,7 @@ static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 
 // Helper: Create minimal REPL for testing
-static void setup_repl(void)
+static void setup_repl(int64_t session_id)
 {
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
@@ -63,7 +63,7 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
     shared->db_ctx = db;
-    shared->session_id = 1;
+    shared->session_id = session_id;
     repl->shared = shared;
     agent->shared = shared;
 
@@ -129,10 +129,7 @@ static void setup(void)
         ck_abort_msg("Session creation failed");
     }
 
-    setup_repl();
-
-    // Update shared context with actual session_id
-    repl->shared->session_id = session_id;
+    setup_repl(session_id);
 }
 
 static void teardown(void)
@@ -169,6 +166,7 @@ START_TEST(test_send_creates_mail) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -200,6 +198,7 @@ START_TEST(test_send_correct_uuids) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -234,6 +233,7 @@ START_TEST(test_send_body_stored) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -277,6 +277,7 @@ START_TEST(test_send_dead_recipient_error) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -310,6 +311,7 @@ START_TEST(test_send_dead_recipient_no_mail) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -364,6 +366,7 @@ START_TEST(test_send_empty_body) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);
@@ -393,6 +396,7 @@ START_TEST(test_send_confirmation) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = recipient;
+    recipient->shared = repl->shared;
 
     // Insert recipient into registry
     res_t res = ik_db_agent_insert(db, recipient);

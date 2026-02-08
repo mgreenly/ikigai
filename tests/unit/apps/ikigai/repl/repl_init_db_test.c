@@ -1,6 +1,6 @@
 /**
  * @file repl_init_db_test.c
- * @brief Unit tests for REPL database initialization (db_init and agent_zero)
+ * @brief Unit tests for REPL database initialization
  */
 
 #include <check.h>
@@ -44,7 +44,7 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 typedef struct ik_paths_t ik_paths_t;
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
@@ -54,6 +54,7 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
                                   const char *model,
                                   const char *thinking_level);
 res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx);
 
 // Forward declaration for suite function
 static Suite *repl_init_db_suite(void);
@@ -64,7 +65,7 @@ static void suite_setup(void)
     ik_test_set_log_dir(__FILE__);
 }
 
-// Mock ik_db_init_ to test database connection failure
+// Mock ik_db_init_ for connection failures
 res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx)
 {
     (void)conn_str;
@@ -84,9 +85,27 @@ res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_di
     return OK(dummy_ctx);
 }
 
-// Mock ik_db_ensure_agent_zero (needed because repl_init calls it)
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
+res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, ik_db_ctx_t **out_ctx)
 {
+    (void)conn_str;
+    (void)data_dir;
+
+    if (mock_db_init_should_fail) {
+        return ERR(mem_ctx, DB_CONNECT, "Mock database connection failure");
+    }
+
+    ik_db_ctx_t *dummy_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
+    if (dummy_ctx == NULL) {
+        return ERR(mem_ctx, IO, "Out of memory");
+    }
+    *out_ctx = dummy_ctx;
+    return OK(dummy_ctx);
+}
+
+// Mock ik_db_ensure_agent_zero
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid)
+{
+    (void)session_id;  // Unused in mock
     (void)paths;  // Unused in mock
 
     if (mock_ensure_agent_zero_should_fail) {
@@ -167,6 +186,13 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
 res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
 {
     (void)repl;
+    (void)db_ctx;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_reap_all_dead (needed because repl_init calls it)
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx)
+{
     (void)db_ctx;
     return OK(NULL);
 }

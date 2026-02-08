@@ -2,6 +2,7 @@
 
 #include "apps/ikigai/db/agent_row.h"
 #include "apps/ikigai/db/pg_result.h"
+#include "apps/ikigai/shared.h"
 
 #include "shared/error.h"
 #include "apps/ikigai/tmp_ctx.h"
@@ -25,23 +26,22 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
     assert(db_ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(agent != NULL);         // LCOV_EXCL_BR_LINE
     assert(agent->uuid != NULL);   // LCOV_EXCL_BR_LINE
+    assert(agent->shared != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query result
     TALLOC_CTX *tmp = tmp_ctx_create();
 
-    // Insert agent into registry with status='running'
     const char *query =
-        "INSERT INTO agents (uuid, name, parent_uuid, status, created_at, fork_message_id, "
+        "INSERT INTO agents (session_id, uuid, name, parent_uuid, status, created_at, fork_message_id, "
         "provider, model, thinking_level) "
-        "VALUES ($1, $2, $3, 'running', $4, $5, $6, $7, $8)";
+        "VALUES ($1, $2, $3, $4, 'running', $5, $6, $7, $8, $9)";
 
-    // Convert created_at and fork_message_id to strings for parameters
+    char session_id_str[32];
     char created_at_str[32];
     char fork_message_id_str[32];
+    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, agent->shared->session_id);
     snprintf(created_at_str, sizeof(created_at_str), "%" PRId64, agent->created_at);
     snprintf(fork_message_id_str, sizeof(fork_message_id_str), "%" PRId64, agent->fork_message_id);
 
-    // Convert thinking_level to string if set
     const char *thinking_level_param = NULL;
     if (agent->thinking_level != 0) {
         switch (agent->thinking_level) {
@@ -52,29 +52,29 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
         }
     }
 
-    const char *param_values[8];
-    param_values[0] = agent->uuid;
-    param_values[1] = agent->name;            // Can be NULL
-    param_values[2] = agent->parent_uuid;     // Can be NULL for root agent
-    param_values[3] = created_at_str;
-    param_values[4] = fork_message_id_str;
-    param_values[5] = agent->provider;        // Can be NULL
-    param_values[6] = agent->model;           // Can be NULL
-    param_values[7] = thinking_level_param;   // Can be NULL
+    const char *param_values[9];
+    param_values[0] = session_id_str;
+    param_values[1] = agent->uuid;
+    param_values[2] = agent->name;
+    param_values[3] = agent->parent_uuid;
+    param_values[4] = created_at_str;
+    param_values[5] = fork_message_id_str;
+    param_values[6] = agent->provider;
+    param_values[7] = agent->model;
+    param_values[8] = thinking_level_param;
 
     ik_pg_result_wrapper_t *res_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 8, NULL,
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 9, NULL,
                                                   param_values, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
-    // Check query execution status
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         const char *pq_err = PQerrorMessage(db_ctx->conn);
-        talloc_free(tmp);  // Destructor automatically calls PQclear
+        talloc_free(tmp);
         return ERR(db_ctx, IO, "Failed to insert agent: %s", pq_err);
     }
 
-    talloc_free(tmp);  // Destructor automatically calls PQclear
+    talloc_free(tmp);
     return OK(NULL);
 }
 
@@ -83,7 +83,6 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query result
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Update agent status to 'dead' and set ended_at timestamp
@@ -108,11 +107,11 @@ res_t ik_db_agent_mark_dead(ik_db_ctx_t *db_ctx, const char *uuid)
     // Check query execution status
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         const char *pq_err = PQerrorMessage(db_ctx->conn);
-        talloc_free(tmp);  // Destructor automatically calls PQclear
+        talloc_free(tmp);
         return ERR(db_ctx, IO, "Failed to mark agent as dead: %s", pq_err);
     }
 
-    talloc_free(tmp);  // Destructor automatically calls PQclear
+    talloc_free(tmp);
     return OK(NULL);
 }
 
@@ -124,7 +123,6 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
     assert(out != NULL);     // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for agent by UUID
@@ -174,7 +172,6 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     assert(out != NULL);     // LCOV_EXCL_BR_LINE
     assert(count != NULL);   // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for all running agents
@@ -224,6 +221,70 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
     return OK(NULL);
 }
 
+res_t ik_db_agent_list_active(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, int64_t session_id,
+                               ik_db_agent_row_t ***out, size_t *count)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
+    assert(out != NULL);     // LCOV_EXCL_BR_LINE
+    assert(count != NULL);   // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Query for all active agents (running and dead) for this session
+    const char *query =
+        "SELECT uuid, name, parent_uuid, fork_message_id, status::text, "
+        "created_at, COALESCE(ended_at, 0) as ended_at, "
+        "provider, model, thinking_level, idle "
+        "FROM agents WHERE session_id = $1 AND status IN ('running', 'dead') ORDER BY created_at";
+
+    // Convert session_id to string for parameter
+    char session_id_str[32];
+    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
+
+    const char *param_values[1];
+    param_values[0] = session_id_str;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
+                                                  param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    // Check query execution status
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);
+        return ERR(db_ctx, IO, "Failed to list active agents: %s", pq_err);
+    }
+
+    // Get number of rows
+    int num_rows = PQntuples(res);
+    *count = (size_t)num_rows;
+
+    if (num_rows == 0) {
+        *out = NULL;
+        talloc_free(tmp);
+        return OK(NULL);
+    }
+
+    // Allocate array of pointers
+    ik_db_agent_row_t **rows = talloc_zero_array(ctx, ik_db_agent_row_t *, (unsigned int)num_rows);
+    if (rows == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    // Process each row
+    for (int i = 0; i < num_rows; i++) {
+        res_t parse_result = ik_db_agent_parse_row(db_ctx, rows, res, i, &rows[i]);
+        if (is_err(&parse_result)) {
+            talloc_free(tmp);
+            return parse_result;
+        }
+    }
+
+    *out = rows;
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uuid,
                                       int64_t *out_message_id)
 {
@@ -231,7 +292,6 @@ res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db_ctx, const char *agent_uui
     assert(agent_uuid != NULL);      // LCOV_EXCL_BR_LINE
     assert(out_message_id != NULL);  // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query result
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Query for maximum message ID for this agent
@@ -270,7 +330,6 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
 
-    // Create temporary context for query result
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Update provider configuration for agent
@@ -292,14 +351,14 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx, const char *uuid,
     // Check query execution status
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
         const char *pq_err = PQerrorMessage(db_ctx->conn);
-        talloc_free(tmp);  // Destructor automatically calls PQclear
+        talloc_free(tmp);
         return ERR(db_ctx, IO, "Failed to update agent provider: %s", pq_err);
     }
 
     // Note: UPDATE affecting 0 rows (agent not found) is not an error
     // as per the task specification
 
-    talloc_free(tmp);  // Destructor automatically calls PQclear
+    talloc_free(tmp);
     return OK(NULL);
 }
 
@@ -326,6 +385,55 @@ res_t ik_db_agent_set_idle(ik_db_ctx_t *db_ctx, const char *uuid, bool idle)
         const char *pq_err = PQerrorMessage(db_ctx->conn);
         talloc_free(tmp);
         return ERR(db_ctx, IO, "Failed to set idle: %s", pq_err);
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
+res_t ik_db_agent_mark_reaped(ik_db_ctx_t *db_ctx, const char *uuid)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+    assert(uuid != NULL);    // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    const char *query = "UPDATE agents SET status = 'reaped' WHERE uuid = $1";
+
+    const char *param_values[1];
+    param_values[0] = uuid;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db_ctx->conn, query, 1, NULL,
+                                                  param_values, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);
+        return ERR(db_ctx, IO, "Failed to mark agent as reaped: %s", pq_err);
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx)
+{
+    assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    const char *query = "UPDATE agents SET status = 'reaped' WHERE status = 'dead'";
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_(db_ctx->conn, query));
+    PGresult *res = res_wrapper->pg_result;
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db_ctx->conn);
+        talloc_free(tmp);
+        return ERR(db_ctx, IO, "Failed to reap dead agents: %s", pq_err);
     }
 
     talloc_free(tmp);

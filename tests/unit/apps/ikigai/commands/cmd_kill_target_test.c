@@ -32,6 +32,7 @@ static const char *DB_NAME;
 static ik_db_ctx_t *db;
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
+static int64_t session_id;
 
 // Helper: Create minimal REPL for testing
 static void setup_repl(void)
@@ -61,7 +62,7 @@ static void setup_repl(void)
     shared->cfg = cfg;
     shared->db_ctx = db;
     atomic_init(&shared->fork_pending, false);
-    shared->session_id = 0;
+    shared->session_id = session_id;
     repl->shared = shared;
     agent->shared = shared;
 
@@ -111,7 +112,6 @@ static void setup(void)
     ck_assert_ptr_nonnull(db->conn);
 
     ik_test_db_truncate_all(db);
-    setup_repl();
 
     const char *session_query = "INSERT INTO sessions DEFAULT VALUES RETURNING id";
     PGresult *session_res = PQexec(db->conn, session_query);
@@ -121,8 +121,10 @@ static void setup(void)
         ck_abort_msg("Session creation failed");
     }
     const char *session_id_str = PQgetvalue(session_res, 0, 0);
-    repl->shared->session_id = (int64_t)atoll(session_id_str);
+    session_id = (int64_t)atoll(session_id_str);
     PQclear(session_res);
+
+    setup_repl();
 }
 
 static void teardown(void)
@@ -142,7 +144,7 @@ static void suite_teardown(void)
     ik_test_db_destroy(DB_NAME);
 }
 
-// Test: /kill <uuid> terminates specific agent
+// Test: /kill <uuid> marks specific agent as dead
 START_TEST(test_kill_target_terminates_specific_agent) {
     ik_agent_ctx_t *parent = repl->current;
 
@@ -160,17 +162,14 @@ START_TEST(test_kill_target_terminates_specific_agent) {
     res = ik_cmd_kill(test_ctx, repl, child_uuid);
     ck_assert(is_ok(&res));
 
+    // Agent remains in array, but marked as dead
     ck_assert_ptr_eq(repl->current, parent);
-    ck_assert_uint_eq(repl->agent_count, initial_count - 1);
+    ck_assert_uint_eq(repl->agent_count, initial_count);
 
-    bool found = false;
-    for (size_t i = 0; i < repl->agent_count; i++) {
-        if (strcmp(repl->agents[i]->uuid, child_uuid) == 0) {
-            found = true;
-            break;
-        }
-    }
-    ck_assert(!found);
+    // Agent should still be in array
+    ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
+    ck_assert_ptr_nonnull(found);
+    ck_assert(found->dead);
 }
 END_TEST
 // Test: partial UUID matching works
@@ -193,8 +192,10 @@ START_TEST(test_kill_target_partial_uuid_match) {
     res = ik_cmd_kill(test_ctx, repl, partial);
     ck_assert(is_ok(&res));
 
+    // Agent should still be found in array, but marked as dead
     ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
-    ck_assert_ptr_null(found);
+    ck_assert_ptr_nonnull(found);
+    ck_assert(found->dead);
 }
 
 END_TEST

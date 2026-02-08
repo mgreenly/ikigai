@@ -10,6 +10,7 @@
 #include "apps/ikigai/db/agent_replay.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/db/session.h"
+#include "apps/ikigai/shared.h"
 #include "shared/error.h"
 #include "tests/helpers/test_utils_helper.h"
 #include <check.h>
@@ -25,6 +26,7 @@ static bool db_available = false;
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -94,7 +96,11 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and disconnect
@@ -127,6 +133,7 @@ static void insert_agent(const char *uuid, const char *parent_uuid,
     agent.parent_uuid = parent_uuid ? talloc_strdup(test_ctx, parent_uuid) : NULL;
     agent.created_at = created_at;
     agent.fork_message_id = fork_message_id;
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));

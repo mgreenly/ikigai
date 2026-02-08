@@ -18,10 +18,11 @@ typedef struct ik_paths_t ik_paths_t;
  * On upgrade: If messages exist but no agents, creates Agent 0 and adopts orphan messages
  *
  * @param db Database context (must not be NULL)
+ * @param session_id Session ID for the agent (must be > 0)
  * @param paths Paths context for system.md location (must not be NULL)
  * @param out_uuid Output parameter for Agent 0's UUID (must not be NULL)
  * @return OK with UUID on success, ERR on failure
  */
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid);
 
 #endif // IK_DB_AGENT_ZERO_H

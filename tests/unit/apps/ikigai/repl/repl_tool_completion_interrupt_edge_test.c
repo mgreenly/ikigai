@@ -1,9 +1,5 @@
 #include "tests/test_constants.h"
 #include "apps/ikigai/wrapper_pthread.h"
-/**
- * @file repl_tool_completion_interrupt_test.c
- * @brief Unit tests for tool completion interrupt handling
- */
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/config.h"
@@ -26,12 +22,10 @@
 #include <stdatomic.h>
 #include <talloc.h>
 
-/* Forward declarations for mocks */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
                             const char *kind, const char *content, const char *data_json);
 res_t ik_repl_render_frame_(void *repl);
 
-/* Mock db message insert */
 res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
                             const char *kind, const char *content, const char *data_json)
 {
@@ -40,14 +34,12 @@ res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid
     return OK(NULL);
 }
 
-/* Mock render frame */
 res_t ik_repl_render_frame_(void *repl)
 {
     (void)repl;
     return OK(NULL);
 }
 
-/* Dummy thread function */
 static void *dummy_thread_func(void *arg)
 {
     (void)arg;
@@ -106,194 +98,6 @@ static void teardown(void)
 {
     talloc_free(ctx);
 }
-
-START_TEST(test_poll_interrupt_basic) {
-    repl->agent_count = 0;
-    repl->current = agent;
-    agent->interrupt_requested = true;
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
-    agent->tool_thread_running = true;
-
-    agent->message_capacity = 2;
-    agent->message_count = 1;
-    agent->messages = talloc_array(agent, ik_message_t *, 2);
-    ik_message_t *msg = talloc_zero(agent, ik_message_t);
-    msg->role = IK_ROLE_USER;
-    msg->content_count = 1;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
-    msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "test");
-    msg->interrupted = false;
-    agent->messages[0] = msg;
-
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    agent->tool_thread_complete = true;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    res_t result = ik_repl_poll_tool_completions(repl);
-    ck_assert(is_ok(&result));
-    ck_assert(!agent->interrupt_requested);
-    ck_assert(agent->messages[0]->interrupted);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!agent->tool_thread_running);
-}
-END_TEST
-
-START_TEST(test_poll_interrupt_multi_types) {
-    repl->agent_count = 0;
-    repl->current = agent;
-    agent->interrupt_requested = true;
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
-    agent->tool_thread_running = true;
-
-    agent->message_capacity = 4;
-    agent->message_count = 3;
-    agent->messages = talloc_array(agent, ik_message_t *, 4);
-
-    ik_message_t *user_msg = talloc_zero(agent, ik_message_t);
-    user_msg->role = IK_ROLE_USER;
-    user_msg->content_count = 1;
-    user_msg->content_blocks = talloc_array(user_msg, ik_content_block_t, 1);
-    user_msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    user_msg->content_blocks[0].data.text.text = talloc_strdup(user_msg, "user message");
-    user_msg->interrupted = false;
-    agent->messages[0] = user_msg;
-
-    ik_message_t *asst_msg = talloc_zero(agent, ik_message_t);
-    asst_msg->role = IK_ROLE_ASSISTANT;
-    asst_msg->content_count = 1;
-    asst_msg->content_blocks = talloc_array(asst_msg, ik_content_block_t, 1);
-    asst_msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    asst_msg->content_blocks[0].data.text.text = talloc_strdup(asst_msg, "assistant message");
-    asst_msg->interrupted = false;
-    agent->messages[1] = asst_msg;
-
-    ik_message_t *tool_msg = talloc_zero(agent, ik_message_t);
-    tool_msg->role = IK_ROLE_TOOL;
-    tool_msg->content_count = 1;
-    tool_msg->content_blocks = talloc_array(tool_msg, ik_content_block_t, 1);
-    tool_msg->content_blocks[0].type = IK_CONTENT_TOOL_RESULT;
-    tool_msg->content_blocks[0].data.tool_result.content = talloc_strdup(tool_msg, "tool result");
-    tool_msg->interrupted = false;
-    agent->messages[2] = tool_msg;
-
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    agent->tool_thread_complete = true;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    res_t result = ik_repl_poll_tool_completions(repl);
-    ck_assert(is_ok(&result));
-    ck_assert(!agent->interrupt_requested);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-}
-END_TEST
-
-START_TEST(test_poll_interrupt_with_db) {
-    repl->agent_count = 0;
-    repl->current = agent;
-    agent->interrupt_requested = true;
-    repl->shared->db_ctx = talloc_zero(ctx, ik_db_ctx_t);
-    repl->shared->session_id = 123;
-
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
-    agent->tool_thread_running = true;
-
-    agent->message_capacity = 2;
-    agent->message_count = 1;
-    agent->messages = talloc_array(agent, ik_message_t *, 2);
-    ik_message_t *msg = talloc_zero(agent, ik_message_t);
-    msg->role = IK_ROLE_USER;
-    msg->content_count = 1;
-    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
-    msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "message");
-    msg->interrupted = false;
-    agent->messages[0] = msg;
-
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    agent->tool_thread_complete = true;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    res_t result = ik_repl_poll_tool_completions(repl);
-    ck_assert(is_ok(&result));
-    ck_assert(!agent->interrupt_requested);
-    ck_assert(agent->messages[0]->interrupted);
-}
-END_TEST
-
-START_TEST(test_poll_interrupt_edge_cases) {
-    repl->agent_count = 0;
-    repl->current = agent;
-    agent->interrupt_requested = true;
-    agent->tool_thread_ctx = talloc_new(agent);
-    agent->tool_thread_result = talloc_strdup(agent->tool_thread_ctx, "result");
-    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
-    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
-    agent->tool_thread_running = true;
-
-    agent->message_capacity = 6;
-    agent->message_count = 5;
-    agent->messages = talloc_array(agent, ik_message_t *, 6);
-
-    ik_message_t *user_msg = talloc_zero(agent, ik_message_t);
-    user_msg->role = IK_ROLE_USER;
-    user_msg->content_count = 1;
-    user_msg->content_blocks = talloc_array(user_msg, ik_content_block_t, 1);
-    user_msg->content_blocks[0].type = IK_CONTENT_TEXT;
-    user_msg->content_blocks[0].data.text.text = talloc_strdup(user_msg, "user");
-    user_msg->interrupted = false;
-    agent->messages[0] = user_msg;
-
-    agent->messages[1] = NULL;
-
-    ik_message_t *empty_msg = talloc_zero(agent, ik_message_t);
-    empty_msg->role = IK_ROLE_ASSISTANT;
-    empty_msg->content_count = 0;
-    empty_msg->content_blocks = NULL;
-    empty_msg->interrupted = false;
-    agent->messages[2] = empty_msg;
-
-    ik_message_t *wrong_type_user = talloc_zero(agent, ik_message_t);
-    wrong_type_user->role = IK_ROLE_USER;
-    wrong_type_user->content_count = 1;
-    wrong_type_user->content_blocks = talloc_array(wrong_type_user, ik_content_block_t, 1);
-    wrong_type_user->content_blocks[0].type = IK_CONTENT_TOOL_RESULT;
-    wrong_type_user->content_blocks[0].data.tool_result.content = talloc_strdup(wrong_type_user, "x");
-    wrong_type_user->interrupted = false;
-    agent->messages[3] = wrong_type_user;
-
-    ik_message_t *wrong_type_asst = talloc_zero(agent, ik_message_t);
-    wrong_type_asst->role = IK_ROLE_ASSISTANT;
-    wrong_type_asst->content_count = 1;
-    wrong_type_asst->content_blocks = talloc_array(wrong_type_asst, ik_content_block_t, 1);
-    wrong_type_asst->content_blocks[0].type = IK_CONTENT_TOOL_RESULT;
-    wrong_type_asst->content_blocks[0].data.tool_result.content = talloc_strdup(wrong_type_asst, "y");
-    wrong_type_asst->interrupted = false;
-    agent->messages[4] = wrong_type_asst;
-
-    pthread_mutex_lock_(&agent->tool_thread_mutex);
-    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
-    agent->tool_thread_complete = true;
-    pthread_mutex_unlock_(&agent->tool_thread_mutex);
-
-    res_t result = ik_repl_poll_tool_completions(repl);
-    ck_assert(is_ok(&result));
-    ck_assert(!agent->interrupt_requested);
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-}
-END_TEST
 
 START_TEST(test_poll_interrupt_no_user) {
     repl->agent_count = 0;
@@ -375,18 +179,89 @@ START_TEST(test_poll_interrupt_tool_wrong_type) {
 }
 END_TEST
 
+START_TEST(test_poll_interrupt_null_thread_ctx) {
+    repl->agent_count = 0;
+    repl->current = agent;
+    agent->interrupt_requested = true;
+    agent->tool_thread_ctx = NULL;
+    agent->tool_thread_result = NULL;
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
+    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
+    agent->tool_thread_running = true;
+
+    agent->message_capacity = 2;
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 2);
+    ik_message_t *msg = talloc_zero(agent, ik_message_t);
+    msg->role = IK_ROLE_USER;
+    msg->content_count = 1;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks[0].type = IK_CONTENT_TEXT;
+    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "test");
+    msg->interrupted = false;
+    agent->messages[0] = msg;
+
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+    agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    res_t result = ik_repl_poll_tool_completions(repl);
+    ck_assert(is_ok(&result));
+    ck_assert(!agent->interrupt_requested);
+    ck_assert(agent->messages[0]->interrupted);
+    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
+    ck_assert(!agent->tool_thread_running);
+    ck_assert(agent->tool_thread_ctx == NULL);
+}
+END_TEST
+
+START_TEST(test_poll_interrupt_no_db) {
+    repl->agent_count = 0;
+    repl->current = agent;
+    agent->interrupt_requested = true;
+    agent->tool_thread_ctx = talloc_new(agent);
+    agent->pending_tool_call = ik_tool_call_create(agent, "call_1", "bash", "{}");
+    pthread_create_(&agent->tool_thread, NULL, dummy_thread_func, NULL);
+    agent->tool_thread_running = true;
+
+    repl->shared->db_ctx = NULL;
+    repl->shared->session_id = 0;
+
+    agent->message_capacity = 2;
+    agent->message_count = 1;
+    agent->messages = talloc_array(agent, ik_message_t *, 2);
+    ik_message_t *msg = talloc_zero(agent, ik_message_t);
+    msg->role = IK_ROLE_USER;
+    msg->content_count = 1;
+    msg->content_blocks = talloc_array(msg, ik_content_block_t, 1);
+    msg->content_blocks[0].type = IK_CONTENT_TEXT;
+    msg->content_blocks[0].data.text.text = talloc_strdup(msg, "test");
+    msg->interrupted = false;
+    agent->messages[0] = msg;
+
+    pthread_mutex_lock_(&agent->tool_thread_mutex);
+    atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
+    agent->tool_thread_complete = true;
+    pthread_mutex_unlock_(&agent->tool_thread_mutex);
+
+    res_t result = ik_repl_poll_tool_completions(repl);
+    ck_assert(is_ok(&result));
+    ck_assert(!agent->interrupt_requested);
+    ck_assert(agent->messages[0]->interrupted);
+}
+END_TEST
+
 static Suite *repl_tool_completion_interrupt_suite(void)
 {
-    Suite *s = suite_create("repl_tool_completion_interrupt");
-    TCase *tc = tcase_create("interrupt");
+    Suite *s = suite_create("repl_tool_completion_interrupt_edge");
+    TCase *tc = tcase_create("interrupt_edge");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
-    tcase_add_test(tc, test_poll_interrupt_basic);
-    tcase_add_test(tc, test_poll_interrupt_multi_types);
-    tcase_add_test(tc, test_poll_interrupt_with_db);
-    tcase_add_test(tc, test_poll_interrupt_edge_cases);
     tcase_add_test(tc, test_poll_interrupt_no_user);
     tcase_add_test(tc, test_poll_interrupt_tool_wrong_type);
+    tcase_add_test(tc, test_poll_interrupt_null_thread_ctx);
+    tcase_add_test(tc, test_poll_interrupt_no_db);
     suite_add_tcase(s, tc);
     return s;
 }
@@ -395,7 +270,7 @@ int main(void)
 {
     Suite *s = repl_tool_completion_interrupt_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/repl/repl_tool_completion_interrupt_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/repl/repl_tool_completion_interrupt_edge_test.xml");
     srunner_run_all(sr, CK_VERBOSE);
     int number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

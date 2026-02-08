@@ -9,7 +9,10 @@
 #ifndef IK_COMMANDS_H
 #define IK_COMMANDS_H
 
+#include "apps/ikigai/db/connection.h"
 #include "shared/error.h"
+
+#include <inttypes.h>
 
 // Forward declarations
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
@@ -87,10 +90,34 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
- * Send command handler - sends mail to another agent
+ * Core send logic - reusable by both slash command and internal tool
  *
- * Sends a mail message to another agent's mailbox. Format: /send <uuid> "message"
+ * Validates recipient, inserts mail into database, and fires PG NOTIFY
+ * to wake up the recipient agent.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param db_ctx Database context to use (main or worker thread)
+ * @param session_id Current session ID
+ * @param sender_uuid UUID of the sending agent
+ * @param recipient_uuid UUID of the recipient agent (must be running)
+ * @param body Message body (must be non-empty)
+ * @param error_msg_out Optional pointer to receive error message on failure (allocated on ctx)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_send_core(void *ctx,
+                   ik_db_ctx_t *db_ctx,
+                   int64_t session_id,
+                   const char *sender_uuid,
+                   const char *recipient_uuid,
+                   const char *body,
+                   char **error_msg_out);
+
+/**
+ * Send command handler - sends message to another agent
+ *
+ * Sends a message to another agent's mailbox. Format: /send <uuid> "message"
  * Validates recipient exists and is running before sending.
+ * Fires PG NOTIFY to wake up the recipient.
  *
  * @param ctx Parent context for talloc allocations
  * @param repl REPL context
@@ -100,56 +127,36 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
- * Check mail command handler - lists inbox contents
+ * Reap command handler - removes dead agents from memory
  *
- * Displays the current agent's inbox with unread markers, message previews,
- * and relative timestamps. Unread messages are shown first.
+ * Removes dead agents from the agent array and frees their memory.
+ * Two modes:
+ * - Bulk (no args): Removes all dead agents
+ * - Targeted (/reap <uuid>): Removes specified dead agent and all its children
+ * Switches to first living agent if current agent is affected.
  *
  * @param ctx Parent context for talloc allocations
  * @param repl REPL context
- * @param args Command arguments (unused)
+ * @param args Command arguments: NULL for bulk, "<uuid>" for targeted
  * @return OK on success, ERR on failure
  */
-res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_reap(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
- * Read mail command handler - displays full message and marks as read
+ * Wait command handler - waits for messages from other agents
  *
- * Displays the full content of a specific message identified by its inbox
- * index (1-based). Marks the message as read after display.
- *
- * @param ctx Parent context for talloc allocations
- * @param repl REPL context
- * @param args Command arguments (message index)
- * @return OK on success, ERR on failure
- */
-res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
-
-/**
- * Delete mail command handler - permanently removes a message
- *
- * Deletes a message from the mailbox by its ID. Only the recipient can
- * delete their messages. Deletion is permanent.
+ * Two modes:
+ * - Next message (/wait TIMEOUT): Wait for first message from any agent
+ * - Fan-in (/wait TIMEOUT UUID1 UUID2...): Wait for all listed agents to respond
+ * Uses PG LISTEN/NOTIFY for reactive wake-up. Runs on worker thread.
+ * Puts agent into EXECUTING_TOOL state, spinner runs, escape interrupts.
  *
  * @param ctx Parent context for talloc allocations
  * @param repl REPL context
- * @param args Command arguments (mail ID)
+ * @param args Command arguments: "TIMEOUT [UUID1 UUID2...]"
  * @return OK on success, ERR on failure
  */
-res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
-
-/**
- * Filter mail command handler - filters inbox by sender UUID
- *
- * Displays messages from a specific sender in the current agent's inbox.
- * Messages are ordered with unread first, then by timestamp descending.
- *
- * @param ctx Parent context for talloc allocations
- * @param repl REPL context
- * @param args Command arguments: "--from <uuid>"
- * @return OK on success, ERR on failure
- */
-res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_wait(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Agents command handler - displays agent hierarchy tree

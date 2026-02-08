@@ -8,6 +8,7 @@
 #include "shared/logger.h"
 #include "apps/ikigai/message.h"
 #include "shared/panic.h"
+#include "apps/ikigai/repl_tool_json.h"
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_executor.h"
@@ -45,10 +46,10 @@ static void *tool_thread_worker(void *arg)
     char *result_json = NULL;
 
     if (entry && entry->type == IK_TOOL_INTERNAL) {
-        // Internal: call handler
+        // Internal: call handler (handlers return pre-wrapped JSON)
         char *handler_result = entry->handler(args->ctx, args->agent, args->arguments);
         if (handler_result != NULL) {
-            result_json = ik_tool_wrap_success(args->ctx, handler_result);
+            result_json = handler_result;
         } else {
             result_json = ik_tool_wrap_failure(args->ctx, "Handler returned NULL", "INTERNAL_ERROR");
         }
@@ -67,83 +68,55 @@ static void *tool_thread_worker(void *arg)
     return NULL;
 }
 
-// Build tool_call data_json for database with thinking/redacted blocks.
-static char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
-                                          const ik_tool_call_t *tc,
-                                          const char *thinking_text,
-                                          const char *thinking_signature,
-                                          const char *redacted_data)
+// Execute pending tool call and add messages to conversation (synchronous).
+void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
 {
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    yyjson_mut_doc_set_root(doc, root);
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_call_id", tc->id)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_name", tc->name)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_args", tc->arguments)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (thinking_text != NULL) {
-        yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
-        if (thinking_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(doc, thinking_obj, "text", thinking_text)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (thinking_signature != NULL) {
-            if (!yyjson_mut_obj_add_str(doc, thinking_obj, "signature", thinking_signature)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        }
-        if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    }
-    if (redacted_data != NULL) {
-        yyjson_mut_val *redacted_obj = yyjson_mut_obj(doc);
-        if (redacted_obj == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_str(doc, redacted_obj, "data", redacted_data)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-        if (!yyjson_mut_obj_add_val(doc, root, "redacted_thinking", redacted_obj)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    }
+    assert(repl != NULL);               // LCOV_EXCL_BR_LINE
+    assert(repl->current->pending_tool_call != NULL);  // LCOV_EXCL_BR_LINE
 
-    char *json = yyjson_mut_write(doc, 0, NULL);
-    char *data_json = talloc_strdup(ctx, json);
-    free(json);
-    yyjson_mut_doc_free(doc);
-    if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    return data_json;
+    ik_tool_call_t *tc = repl->current->pending_tool_call;
+    char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
+    if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    ik_message_t *tc_msg = ik_message_create_tool_call(repl->current, tc->id, tc->name, tc->arguments);
+    res_t result = ik_agent_add_message(repl->current, tc_msg);
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
+    }
+    char *result_json = ik_tool_execute_from_registry(repl, repl->shared->tool_registry, repl->shared->paths,
+                                                      repl->current->uuid, tc->name, tc->arguments, NULL);
+    ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
+    result = ik_agent_add_message(repl->current, result_msg);
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    {
+        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");  // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);  // LCOV_EXCL_LINE
+        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
+    }
+    const char *formatted_call = ik_format_tool_call(repl, tc);
+    ik_event_render(repl->current->scrollback, "tool_call", formatted_call, "{}", false);
+    const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
+    ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}", false);
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL);
+        char *tool_result_data_json = ik_build_tool_result_data_json(repl, tc->id, tc->name, result_json);
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                              repl->current->uuid, "tool_call", formatted_call, tool_call_data_json);
+        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
+                              repl->current->uuid, "tool_result", formatted_result, tool_result_data_json);
+        talloc_free(tool_call_data_json);
+        talloc_free(tool_result_data_json);
+    }
+    talloc_free(summary);
+    talloc_free(repl->current->pending_tool_call);
+    repl->current->pending_tool_call = NULL;
 }
-
-// Build tool_result data_json for database.
-static char *ik_build_tool_result_data_json(TALLOC_CTX *ctx,
-                                            const char *tool_call_id,
-                                            const char *tool_name,
-                                            const char *result_json)
-{
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    yyjson_mut_val *root = yyjson_mut_obj(doc);
-    if (root == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    yyjson_mut_doc_set_root(doc, root);
-    if (!yyjson_mut_obj_add_str(doc, root, "tool_call_id", tool_call_id)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, root, "name", tool_name)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-    if (!yyjson_mut_obj_add_str(doc, root, "output", result_json)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    bool success = false;
-    yyjson_doc *result_doc = yyjson_read(result_json, strlen(result_json), 0);
-    if (result_doc != NULL) {
-        yyjson_val *result_root = yyjson_doc_get_root_(result_doc);
-        yyjson_val *success_val = yyjson_obj_get_(result_root, "tool_success");
-        if (success_val != NULL) {
-            success = yyjson_get_bool(success_val);
-        }
-        yyjson_doc_free(result_doc);
-    }
-
-    if (!yyjson_mut_obj_add_bool(doc, root, "success", success)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    char *json = yyjson_mut_write(doc, 0, NULL);
-    char *data_json = talloc_strdup(ctx, json);
-    free(json);
-    yyjson_mut_doc_free(doc);
-    if (data_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    return data_json;
-}
-
 
 // Start async tool execution - spawns thread, returns immediately.
 void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)
@@ -258,8 +231,12 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     talloc_free(summary);
     talloc_free(agent->pending_tool_call);
     agent->pending_tool_call = NULL;
-    talloc_free(agent->tool_thread_ctx);
-    agent->tool_thread_ctx = NULL;
+    // Only free tool_thread_ctx if no on_complete will run (on_complete may
+    // reference data allocated on tool_thread_ctx, e.g. fork's child agent)
+    if (agent->pending_on_complete == NULL) {
+        talloc_free(agent->tool_thread_ctx);
+        agent->tool_thread_ctx = NULL;
+    }
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     agent->tool_thread_running = false;
     agent->tool_thread_complete = false;

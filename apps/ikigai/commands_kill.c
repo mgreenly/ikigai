@@ -9,6 +9,7 @@
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/notify.h"
 #include "shared/panic.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
@@ -17,8 +18,8 @@
 #include "shared/wrapper.h"
 
 #include <assert.h>
-#include <ctype.h>
 #include <inttypes.h>
+#include <libpq-fe.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -108,28 +109,90 @@ static res_t cmd_kill_cascade(void *ctx, ik_repl_ctx_t *repl, const char *uuid)
         return res;     // LCOV_EXCL_LINE
     }
 
-    // Remove from memory (after DB commit succeeds)
+    // Check if we're in a transaction (NOTIFY requires autocommit)
+    bool can_notify = (PQtransactionStatus(repl->shared->db_ctx->conn) == PQTRANS_IDLE);
+
+    // Mark as dead in memory and fire NOTIFY for each victim
+    ik_agent_ctx_t *target_agent = ik_repl_find_agent(repl, uuid);
+    bool killing_current = (target_agent == repl->current);
+
+    if (target_agent != NULL) {     // LCOV_EXCL_BR_LINE
+        target_agent->dead = true;
+
+        // Render kill event to target's scrollback
+        char msg[64];
+        int32_t written = snprintf(msg, sizeof(msg), "Agent killed (cascade, %zu total)", count + 1);
+        if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
+            PANIC("snprintf failed");     // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(target_agent->scrollback, msg, (size_t)written);
+
+        // Fire NOTIFY to wake waiting parent
+        if (can_notify && target_agent->parent_uuid != NULL) {     // LCOV_EXCL_BR_LINE
+            char channel[128];
+            written = snprintf(channel, sizeof(channel), "agent_event_%s", target_agent->parent_uuid);
+            if (written < 0 || (size_t)written >= sizeof(channel)) {     // LCOV_EXCL_BR_LINE
+                PANIC("snprintf failed");     // LCOV_EXCL_LINE
+            }
+            res = ik_db_notify(repl->shared->db_ctx, channel, "dead");
+            if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+                return res;     // LCOV_EXCL_LINE
+            }
+        }
+    }
+
     for (size_t i = 0; i < count; i++) {
-        res = ik_repl_remove_agent(repl, victims[i]->uuid);
+        victims[i]->dead = true;
+
+        // Render kill event to descendant's scrollback
+        char msg[64];
+        int32_t written = snprintf(msg, sizeof(msg), "Agent killed (cascade)");
+        if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
+            PANIC("snprintf failed");     // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(victims[i]->scrollback, msg, (size_t)written);
+
+        // Fire NOTIFY to wake waiting parent
+        if (can_notify && victims[i]->parent_uuid != NULL) {     // LCOV_EXCL_BR_LINE
+            char channel[128];
+            written = snprintf(channel, sizeof(channel), "agent_event_%s", victims[i]->parent_uuid);
+            if (written < 0 || (size_t)written >= sizeof(channel)) {     // LCOV_EXCL_BR_LINE
+                PANIC("snprintf failed");     // LCOV_EXCL_LINE
+            }
+            res = ik_db_notify(repl->shared->db_ctx, channel, "dead");
+            if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+                return res;     // LCOV_EXCL_LINE
+            }
+        }
+    }
+
+    // If killing current agent, switch to parent
+    if (killing_current && target_agent != NULL && target_agent->parent_uuid != NULL) {     // LCOV_EXCL_BR_LINE
+        ik_agent_ctx_t *parent = ik_repl_find_agent(repl, target_agent->parent_uuid);
+        if (parent == NULL) {     // LCOV_EXCL_BR_LINE
+            return ERR(ctx, INVALID_ARG, "Parent agent not found");     // LCOV_EXCL_LINE
+        }
+        res = ik_repl_switch_agent(repl, parent);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             return res;     // LCOV_EXCL_LINE
         }
-    }
-    res = ik_repl_remove_agent(repl, uuid);
-    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        return res;     // LCOV_EXCL_LINE
-    }
 
-    // Update navigation context after removal
-    ik_repl_update_nav_context(repl);
-
-    // Report
-    char msg[64];
-    int32_t written = snprintf(msg, sizeof(msg), "Killed %zu agents", count + 1);
-    if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
-        PANIC("snprintf failed");     // LCOV_EXCL_LINE
+        // Report to parent's scrollback
+        char msg[64];
+        int32_t written = snprintf(msg, sizeof(msg), "Agent %.22s terminated", uuid);
+        if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
+            PANIC("snprintf failed");     // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(parent->scrollback, msg, (size_t)written);
+    } else {
+        // Report to current agent's scrollback
+        char msg[64];
+        int32_t written = snprintf(msg, sizeof(msg), "Killed %zu agents", count + 1);
+        if (written < 0 || (size_t)written >= sizeof(msg)) {     // LCOV_EXCL_BR_LINE
+            PANIC("snprintf failed");     // LCOV_EXCL_LINE
+        }
+        ik_scrollback_append_line(repl->current->scrollback, msg, (size_t)written);
     }
-    ik_scrollback_append_line(repl->current->scrollback, msg, (size_t)written);
 
     return OK(NULL);
 }
@@ -158,84 +221,12 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
 
         const char *uuid = repl->current->uuid;
-        ik_agent_ctx_t *parent = ik_repl_find_agent(repl,
-                                                    repl->current->parent_uuid);
-
-        if (parent == NULL) {
-            return ERR(ctx, INVALID_ARG, "Parent agent not found");
-        }
-
-        // Record kill event in parent's history (Q20)
-        char *metadata_json = talloc_asprintf(ctx,
-                                              "{\"killed_by\": \"user\", \"target\": \"%s\"}", uuid);
-        if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
-            PANIC("Out of memory");  // LCOV_EXCL_LINE
-        }
-
-        res_t res = ik_db_message_insert(repl->shared->db_ctx,
-                                         repl->shared->session_id,
-                                         parent->uuid,
-                                         "agent_killed",
-                                         NULL,
-                                         metadata_json);
-        talloc_free(metadata_json);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }     // LCOV_EXCL_LINE
-
-        // Mark dead in registry (sets status='dead', ended_at=now)
-        res = ik_db_agent_mark_dead(repl->shared->db_ctx, uuid);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }     // LCOV_EXCL_LINE
-
-        // Switch to parent first (saves state), then remove dead agent
-        res = ik_repl_switch_agent(repl, parent);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }     // LCOV_EXCL_LINE
-
-        res = ik_repl_remove_agent(repl, uuid);
-        if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-            return res;     // LCOV_EXCL_LINE
-        }     // LCOV_EXCL_LINE
-
-        // Update navigation context after removal
-        ik_repl_update_nav_context(repl);
-
-        // Notify
-        char msg[64];
-        int32_t written = snprintf(msg, sizeof(msg), "Agent %.22s terminated", uuid);
-        if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
-            PANIC("snprintf failed");  // LCOV_EXCL_LINE
-        }
-        ik_scrollback_append_line(parent->scrollback, msg, (size_t)written);
-
-        return OK(NULL);
+        // Self-kill always uses cascade logic
+        return cmd_kill_cascade(ctx, repl, uuid);
     }
 
-    // Handle targeted kill
-    // Parse UUID and --cascade flag
+    // Handle targeted kill - parse UUID
     const char *uuid_arg = args;
-    bool cascade = false;
-
-    // Check for --cascade flag
-    const char *cascade_flag = strstr(args, "--cascade");
-    char *uuid_copy = NULL;
-    if (cascade_flag != NULL) {
-        cascade = true;
-        // Extract UUID (everything before --cascade)
-        size_t uuid_len = (size_t)(cascade_flag - args);
-        // Trim trailing whitespace
-        while (uuid_len > 0 && isspace((unsigned char)args[uuid_len - 1])) {     // LCOV_EXCL_BR_LINE
-            uuid_len--;
-        }
-        uuid_copy = talloc_strndup(ctx, args, uuid_len);
-        if (!uuid_copy) {     // LCOV_EXCL_BR_LINE
-            PANIC("OOM");     // LCOV_EXCL_LINE
-        }
-        uuid_arg = uuid_copy;
-    }
 
     // Find target agent by UUID (partial match allowed)
     ik_agent_ctx_t *target = ik_repl_find_agent(repl, uuid_arg);
@@ -259,58 +250,6 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return OK(NULL);
     }
 
-    // If killing current, use self-kill logic
-    if (target == repl->current) {
-        return ik_cmd_kill(ctx, repl, NULL);
-    }
-
-    const char *target_uuid = target->uuid;
-
-    // If cascade flag is set, use cascade kill
-    if (cascade) {
-        return cmd_kill_cascade(ctx, repl, target_uuid);
-    }
-
-    // Record kill event in current agent's history (Q20)
-    char *metadata_json = talloc_asprintf(ctx,
-                                          "{\"killed_by\": \"user\", \"target\": \"%s\"}", target_uuid);
-    if (metadata_json == NULL) {  // LCOV_EXCL_BR_LINE
-        PANIC("Out of memory");  // LCOV_EXCL_LINE
-    }
-
-    res_t res = ik_db_message_insert(repl->shared->db_ctx,
-                                     repl->shared->session_id,
-                                     repl->current->uuid,
-                                     "agent_killed",
-                                     NULL,
-                                     metadata_json);
-    talloc_free(metadata_json);
-    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        return res;     // LCOV_EXCL_LINE
-    }     // LCOV_EXCL_LINE
-
-    // Mark dead in registry (sets status='dead', ended_at=now)
-    res = ik_db_agent_mark_dead(repl->shared->db_ctx, target_uuid);
-    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        return res;     // LCOV_EXCL_LINE
-    }     // LCOV_EXCL_LINE
-
-    // Remove from agents array and free agent context
-    res = ik_repl_remove_agent(repl, target_uuid);
-    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
-        return res;     // LCOV_EXCL_LINE
-    }     // LCOV_EXCL_LINE
-
-    // Update navigation context after removal
-    ik_repl_update_nav_context(repl);
-
-    // Notify
-    char msg[64];
-    int32_t written = snprintf(msg, sizeof(msg), "Agent %.22s terminated", target_uuid);
-    if (written < 0 || (size_t)written >= sizeof(msg)) {  // LCOV_EXCL_BR_LINE
-        PANIC("snprintf failed");  // LCOV_EXCL_LINE
-    }
-    ik_scrollback_append_line(repl->current->scrollback, msg, (size_t)written);
-
-    return OK(NULL);
+    // Always use cascade kill (Run 2 design)
+    return cmd_kill_cascade(ctx, repl, target->uuid);
 }

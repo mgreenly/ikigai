@@ -41,3 +41,9 @@ void ik_repl_handle_interrupt_request(ik_repl_ctx_t *repl);
 
 // ESC key handling
 res_t ik_repl_handle_escape_action(ik_repl_ctx_t *repl);
+
+// Forward declarations for agent actions
+typedef struct ik_agent_ctx ik_agent_ctx_t;
+
+// Send user message to LLM for specific agent
+void send_to_llm_for_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent, const char *message_text);

@@ -15,60 +15,6 @@
 #include "apps/ikigai/providers/provider.h"
 
 /**
- * OpenAI model configuration entry
- *
- * Single source of truth for all OpenAI model properties.
- */
-typedef struct {
-    const char *model;           /* Model name (exact match) */
-    bool uses_responses_api;     /* true if Responses API, false if Chat Completions API */
-    const char *effort[4];       /* Effort strings indexed by ik_thinking_level_t (NONE/LOW/MED/HIGH) */
-} ik_openai_model_entry_t;
-
-/**
- * OpenAI model lookup table
- *
- * Unified table containing all OpenAI models with their API type and effort mappings.
- * A model is a "reasoning model" if it has any non-NULL effort entry.
- *
- * Effort mapping strategies:
- * 1. o-series (o1, o3): Use "low" for both NONE and LOW, "medium" for MED, "high" for HIGH
- * 2. gpt-5-pro: Always "high" (no thinking granularity)
- * 3. gpt-5, gpt-5.1: NULL for NONE (omit param), "low"/"medium"/"high" for LOW/MED/HIGH
- * 4. gpt-5.2, gpt-5.3-codex: Shifted mapping spanning "low"/"medium"/"high"/"xhigh" (xhigh support)
- */
-static const ik_openai_model_entry_t OPENAI_MODELS[] = {
-    // o-series reasoning models (Responses API)
-    {"o1",         true,  {"low", "low", "medium", "high"}},
-    {"o1-mini",    true,  {"low", "low", "medium", "high"}},
-    {"o1-preview", true,  {"low", "low", "medium", "high"}},
-    {"o3",         true,  {"low", "low", "medium", "high"}},
-    {"o3-mini",    true,  {"low", "low", "medium", "high"}},
-
-    // GPT-5 base models (Responses API)
-    {"gpt-5",      true,  {NULL, "low", "medium", "high"}},
-    {"gpt-5-mini", true,  {NULL, "low", "medium", "high"}},
-    {"gpt-5-nano", true,  {NULL, "low", "medium", "high"}},
-    {"gpt-5-pro",  true,  {"high", "high", "high", "high"}},
-
-    // GPT-5.1 models (Responses API)
-    {"gpt-5.1",              true,  {NULL, "low", "medium", "high"}},
-    {"gpt-5.1-chat-latest",  true,  {NULL, "low", "medium", "high"}},
-    {"gpt-5.1-codex",        true,  {NULL, "low", "medium", "high"}},
-
-    // GPT-5.2 models with xhigh support (Responses API, shifted mapping)
-    {"gpt-5.2",              true,  {"low", "medium", "high", "xhigh"}},
-    {"gpt-5.2-chat-latest",  true,  {"low", "medium", "high", "xhigh"}},
-    {"gpt-5.2-codex",        true,  {"low", "medium", "high", "xhigh"}},
-
-    // GPT-5.3 models with xhigh support (Responses API, shifted mapping)
-    {"gpt-5.3-codex",        true,  {"low", "medium", "high", "xhigh"}},
-
-    // Sentinel
-    {NULL, false, {NULL, NULL, NULL, NULL}}
-};
-
-/**
  * Check if model is a reasoning model
  *
  * @param model Model identifier (e.g., "o1", "o3-mini", "gpt-4o")

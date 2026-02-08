@@ -3,7 +3,6 @@
     "align",
     "di",
     "errors",
-    "harness",
     "naming",
     "patterns/context-struct",
     "patterns/result-type",

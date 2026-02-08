@@ -10,7 +10,9 @@
 
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/session.h"
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/shared.h"
 #include "shared/error.h"
 #include "tests/helpers/test_utils_helper.h"
 #include "tests/test_constants.h"
@@ -28,6 +30,7 @@ static bool db_available = false;
 // Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -88,7 +91,21 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Create session for agent foreign key
+    int64_t session_id = 0;
+    res = ik_db_session_create(db, &session_id);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and cleanup
@@ -120,6 +137,7 @@ static void insert_test_agent(const char *uuid, int thinking_level)
     agent.thinking_level = thinking_level;
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert_msg(is_ok(&res), "Failed to insert test agent");

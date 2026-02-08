@@ -39,15 +39,11 @@ res_t ik_cmd_kill(void *ctx, ik_repl_ctx_t *repl, const char *args);
 // Public declaration for ik_cmd_send (non-static, declared in commands.h)
 res_t ik_cmd_send(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for ik_cmd_check_mail (non-static, declared in commands.h)
-res_t ik_cmd_check_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_reap (non-static, declared in commands.h)
+res_t ik_cmd_reap(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
-// Public declaration for ik_cmd_read_mail (non-static, declared in commands.h)
-res_t ik_cmd_read_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
-res_t ik_cmd_delete_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
-
-// Public declaration for ik_cmd_filter_mail (non-static, declared in commands.h)
-res_t ik_cmd_filter_mail(void *ctx, ik_repl_ctx_t *repl, const char *args);
+// Public declaration for ik_cmd_wait (non-static, declared in commands.h)
+res_t ik_cmd_wait(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 // Public declaration for ik_cmd_agents (non-static, declared in commands.h)
 res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args);
@@ -60,11 +56,9 @@ static const ik_command_t commands[] = {
     {"rewind", "Rollback to a checkpoint (usage: /rewind [label])", ik_cmd_rewind},
     {"fork", "Create a child agent (usage: /fork)", ik_cmd_fork},
     {"kill", "Terminate agent (usage: /kill [uuid])", ik_cmd_kill},
-    {"mail-send", "Send mail to agent (usage: /mail-send <uuid> \"message\")", ik_cmd_send},
-    {"mail-check", "Check inbox for messages", ik_cmd_check_mail},
-    {"mail-read", "Read a message (usage: /mail-read <id>)", ik_cmd_read_mail},
-    {"mail-delete", "Delete a message (usage: /mail-delete <id>)", ik_cmd_delete_mail},
-    {"mail-filter", "Filter inbox by sender (usage: /mail-filter --from <uuid>)", ik_cmd_filter_mail},
+    {"send", "Send message to agent (usage: /send <uuid> \"message\")", ik_cmd_send},
+    {"wait", "Wait for messages (usage: /wait TIMEOUT [UUID...])", ik_cmd_wait},
+    {"reap", "Remove dead agents (usage: /reap [uuid])", ik_cmd_reap},
     {"agents", "Display agent hierarchy tree", ik_cmd_agents},
     {"help", "Show available commands", ik_cmd_help},
     {"model", "Switch LLM model (usage: /model <name>)", ik_cmd_model},

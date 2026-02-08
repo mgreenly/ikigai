@@ -1,6 +1,5 @@
 {
   "preload": [
-    "harness",
     "jj",
     "errors",
     "style",

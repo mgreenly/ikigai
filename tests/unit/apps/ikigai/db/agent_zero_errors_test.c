@@ -89,7 +89,7 @@ static void teardown(void)
 
 START_TEST(test_ensure_agent_zero_query_error) {
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(mock_db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(mock_db, 1, paths, &uuid);
 
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);

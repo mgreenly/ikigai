@@ -283,7 +283,7 @@ START_TEST(test_ensure_agent_zero_root_query_failure) {
     mock_parse_fail = false;
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, 1, paths, &uuid);
 
     ck_assert(is_err(&res));
     ck_assert_int_eq(error_code(res.err), ERR_IO);
@@ -332,6 +332,59 @@ START_TEST(test_agent_get_last_message_id_parse_failure) {
 
 END_TEST
 
+START_TEST(test_agent_list_active_query_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
+
+    mock_query_fail = true;
+
+    ik_db_agent_row_t **agents = NULL;
+    size_t count = 0;
+    res_t res = ik_db_agent_list_active(db, ctx, 123, &agents, &count);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert(strstr(res.err->msg, "Failed to list active agents") != NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_agent_set_idle_query_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
+
+    mock_query_fail = true;
+
+    res_t res = ik_db_agent_set_idle(db, "test-uuid", true);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert(strstr(res.err->msg, "Failed to set idle") != NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_agent_mark_reaped_query_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
+
+    mock_query_fail = true;
+
+    res_t res = ik_db_agent_mark_reaped(db, "test-uuid");
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert(strstr(res.err->msg, "Failed to mark agent as reaped") != NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Setup function to reset mock state before each test
 static void setup(void)
 {
@@ -359,6 +412,9 @@ static Suite *db_agent_errors_suite(void)
     tcase_add_test(tc_errors, test_ensure_agent_zero_root_query_failure);
     tcase_add_test(tc_errors, test_agent_get_last_message_id_query_failure);
     tcase_add_test(tc_errors, test_agent_get_last_message_id_parse_failure);
+    tcase_add_test(tc_errors, test_agent_list_active_query_failure);
+    tcase_add_test(tc_errors, test_agent_set_idle_query_failure);
+    tcase_add_test(tc_errors, test_agent_mark_reaped_query_failure);
 
     suite_add_tcase(s, tc_errors);
     return s;

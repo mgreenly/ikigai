@@ -1,5 +1,4 @@
 /**
-#include "apps/ikigai/wrapper_pthread.h"
  * @file provider_switching_fork_test.c
  * @brief Integration tests for fork inheritance
  *
@@ -21,6 +20,7 @@
 #include "apps/ikigai/commands.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/session.h"
 #include "shared/error.h"
 #include "apps/ikigai/paths.h"
 #include "shared/credentials.h"
@@ -378,6 +378,9 @@ START_TEST(test_database_records_fork_hierarchy) {
     r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
+    int64_t session_id;
+    r = ik_db_session_create(g_db, &session_id); ck_assert(is_ok(&r));
+    shared->session_id = session_id;
     ik_agent_ctx_t *parent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &parent); ck_assert(is_ok(&r));
     parent->provider = talloc_strdup(parent, "anthropic");

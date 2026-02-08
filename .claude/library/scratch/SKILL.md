@@ -19,7 +19,7 @@ Common use cases:
 ## Behavior
 
 - Always **overwrite** (never append)
-- **Do not read before writing** — use Bash `truncate -s 0` to empty the file first, then Write. Reading a file you're about to overwrite wastes context and tokens.
+- Use the **Write** tool directly — do NOT read the file first (wastes tokens)
 - The file may not exist - create it when needed
 - Content format is freeform markdown
 - The file is gitignored - contents won't be committed

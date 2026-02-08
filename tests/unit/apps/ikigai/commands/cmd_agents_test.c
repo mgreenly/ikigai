@@ -34,8 +34,8 @@ static ik_db_ctx_t *db;
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 
-// Helper: Create minimal REPL for testing
-static void setup_repl(void)
+// Helper: Create minimal REPL for testing (must be called after session is created)
+static void setup_repl(int64_t session_id)
 {
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
@@ -61,7 +61,7 @@ static void setup_repl(void)
     ck_assert_ptr_nonnull(shared);
     shared->cfg = cfg;
     shared->db_ctx = db;
-    shared->session_id = 1;
+    shared->session_id = session_id;
     repl->shared = shared;
     agent->shared = shared;
 
@@ -127,10 +127,7 @@ static void setup(void)
         ck_abort_msg("Session creation failed");
     }
 
-    setup_repl();
-
-    // Update shared context with actual session_id
-    repl->shared->session_id = session_id;
+    setup_repl(session_id);
 }
 
 static void teardown(void)
@@ -206,6 +203,7 @@ START_TEST(test_agents_indentation_depth) {
 
     // Add to agent array
     repl->agents[repl->agent_count++] = child;
+    child->shared = repl->shared;
 
     // Insert into registry
     res_t res = ik_db_agent_insert(db, child);
@@ -288,6 +286,7 @@ START_TEST(test_agents_grandchild_indentation) {
     child->created_at = 1234567891;
     child->fork_message_id = 1;
     repl->agents[repl->agent_count++] = child;
+    child->shared = repl->shared;
 
     res_t res = ik_db_agent_insert(db, child);
     ck_assert(is_ok(&res));
@@ -301,6 +300,7 @@ START_TEST(test_agents_grandchild_indentation) {
     grandchild->created_at = 1234567892;
     grandchild->fork_message_id = 2;
     repl->agents[repl->agent_count++] = grandchild;
+    grandchild->shared = repl->shared;
 
     res = ik_db_agent_insert(db, grandchild);
     ck_assert(is_ok(&res));
@@ -333,6 +333,7 @@ START_TEST(test_agents_summary_count) {
     child1->created_at = 1234567892;
     child1->fork_message_id = 2;
     repl->agents[repl->agent_count++] = child1;
+    child1->shared = repl->shared;
 
     res_t res = ik_db_agent_insert(db, child1);
     ck_assert(is_ok(&res));
@@ -345,6 +346,7 @@ START_TEST(test_agents_summary_count) {
     child2->created_at = 1234567893;
     child2->fork_message_id = 3;
     repl->agents[repl->agent_count++] = child2;
+    child2->shared = repl->shared;
 
     res = ik_db_agent_insert(db, child2);
     ck_assert(is_ok(&res));

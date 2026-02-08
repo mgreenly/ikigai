@@ -8,6 +8,8 @@
 
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/session.h"
+#include "apps/ikigai/shared.h"
 #include "shared/error.h"
 #include "apps/ikigai/agent.h"
 #include "tests/helpers/test_utils_helper.h"
@@ -25,6 +27,8 @@ static bool db_available = false;
 // Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
+static int64_t session_id;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -84,7 +88,20 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Create session for agent foreign key
+    res = ik_db_session_create(db, &session_id);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and disconnect
@@ -121,6 +138,7 @@ START_TEST(test_get_returns_correct_row) {
     agent.created_at = 1234567890;
     agent.fork_message_id = 42;
 
+    agent.shared = &shared_ctx;
     res_t insert_res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&insert_res));
 
@@ -162,6 +180,7 @@ START_TEST(test_list_running_only_running) {
     running.created_at = time(NULL);
     running.fork_message_id = 0;
 
+    running.shared = &shared_ctx;
     res_t running_res = ik_db_agent_insert(db, &running);
     ck_assert(is_ok(&running_res));
 
@@ -172,6 +191,7 @@ START_TEST(test_list_running_only_running) {
     running2.parent_uuid = NULL;
     running2.created_at = time(NULL);
     running2.fork_message_id = 0;
+    running2.shared = &shared_ctx;
 
     res_t running2_res = ik_db_agent_insert(db, &running2);
     ck_assert(is_ok(&running2_res));
@@ -184,6 +204,7 @@ START_TEST(test_list_running_only_running) {
     dead.created_at = time(NULL);
     dead.fork_message_id = 0;
 
+    dead.shared = &shared_ctx;
     res_t dead_res = ik_db_agent_insert(db, &dead);
     ck_assert(is_ok(&dead_res));
 
@@ -228,6 +249,7 @@ START_TEST(test_list_running_excludes_dead) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t insert_res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&insert_res));
 

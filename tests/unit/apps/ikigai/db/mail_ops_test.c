@@ -263,6 +263,52 @@ START_TEST(test_db_mail_mark_read_updates_flag) {
 
 END_TEST
 
+START_TEST(test_db_mail_inbox_filtered_by_sender) {
+    SKIP_IF_NO_DB();
+
+    // Insert messages from different senders to same recipient
+    ik_mail_msg_t *msg1 = ik_mail_msg_create(test_ctx, "agent-1", "recipient", "From agent-1");
+    ik_mail_msg_t *msg2 = ik_mail_msg_create(test_ctx, "agent-2", "recipient", "From agent-2");
+    ik_mail_msg_t *msg3 = ik_mail_msg_create(test_ctx, "agent-1", "recipient", "Another from agent-1");
+
+    ik_db_mail_insert(db, session_id, msg1);
+    ik_db_mail_insert(db, session_id, msg2);
+    ik_db_mail_insert(db, session_id, msg3);
+
+    // Query inbox_filtered for recipient, filtering by agent-1
+    ik_mail_msg_t **inbox;
+    size_t count;
+    res_t res = ik_db_mail_inbox_filtered(db, test_ctx, session_id, "recipient", "agent-1", &inbox, &count);
+    ck_assert(is_ok(&res));
+
+    // Should only get messages from agent-1
+    ck_assert_int_eq((int)count, 2);
+    ck_assert_str_eq(inbox[0]->from_uuid, "agent-1");
+    ck_assert_str_eq(inbox[1]->from_uuid, "agent-1");
+}
+
+END_TEST
+
+START_TEST(test_db_mail_inbox_filtered_no_matches) {
+    SKIP_IF_NO_DB();
+
+    // Insert message from agent-1
+    ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, "agent-1", "recipient", "Test");
+    ik_db_mail_insert(db, session_id, msg);
+
+    // Query inbox_filtered for messages from agent-2 (should be empty)
+    ik_mail_msg_t **inbox;
+    size_t count;
+    res_t res = ik_db_mail_inbox_filtered(db, test_ctx, session_id, "recipient", "agent-2", &inbox, &count);
+    ck_assert(is_ok(&res));
+
+    // Should get zero messages
+    ck_assert_int_eq((int)count, 0);
+    ck_assert_ptr_null(inbox);
+}
+
+END_TEST
+
 // ========== Suite Configuration ==========
 
 static Suite *mail_ops_suite(void)
@@ -284,6 +330,8 @@ static Suite *mail_ops_suite(void)
     tcase_add_test(tc_inbox, test_db_mail_inbox_filters_by_recipient);
     tcase_add_test(tc_inbox, test_db_mail_inbox_orders_unread_first);
     tcase_add_test(tc_inbox, test_db_mail_inbox_orders_by_timestamp_desc);
+    tcase_add_test(tc_inbox, test_db_mail_inbox_filtered_by_sender);
+    tcase_add_test(tc_inbox, test_db_mail_inbox_filtered_no_matches);
     suite_add_tcase(s, tc_inbox);
 
     TCase *tc_mark = tcase_create("Mark Read");

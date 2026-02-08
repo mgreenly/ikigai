@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/error.h"
+#include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/layer.h"
 #include "apps/ikigai/layer_wrappers.h"
 #include "apps/ikigai/scrollback.h"
@@ -69,6 +70,9 @@ typedef struct ik_agent_ctx {
 
     // Reference to shared infrastructure
     ik_shared_ctx_t *shared;
+
+    // Per-agent worker DB connection (each agent gets its own to avoid concurrent access)
+    ik_db_ctx_t *worker_db_ctx;
 
     // Backpointer to REPL context (set after agent creation)
     struct ik_repl_ctx_t *repl;

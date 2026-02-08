@@ -32,6 +32,7 @@ static const char *DB_NAME;
 static ik_db_ctx_t *db;
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
+static int64_t session_id;
 
 // Helper: Create minimal REPL for testing
 static void setup_repl(void)
@@ -61,7 +62,7 @@ static void setup_repl(void)
     shared->cfg = cfg;
     shared->db_ctx = db;
     atomic_init(&shared->fork_pending, false);
-    shared->session_id = 0;  // Will be set in setup()
+    shared->session_id = session_id;
     repl->shared = shared;
     agent->shared = shared;
 
@@ -115,8 +116,6 @@ static void setup(void)
     // Truncate all tables before setup to ensure clean slate
     ik_test_db_truncate_all(db);
 
-    setup_repl();
-
     // Create a session for the tests
     const char *session_query = "INSERT INTO sessions DEFAULT VALUES RETURNING id";
     PGresult *session_res = PQexec(db->conn, session_query);
@@ -126,8 +125,10 @@ static void setup(void)
         ck_abort_msg("Session creation failed");
     }
     const char *session_id_str = PQgetvalue(session_res, 0, 0);
-    repl->shared->session_id = (int64_t)atoll(session_id_str);
+    session_id = (int64_t)atoll(session_id_str);
     PQclear(session_res);
+
+    setup_repl();
 }
 
 static void teardown(void)
@@ -173,18 +174,13 @@ START_TEST(test_kill_terminates_non_root) {
     // Should switch to parent
     ck_assert_ptr_eq(repl->current, parent);
 
-    // Agent count should decrease
-    ck_assert_uint_eq(repl->agent_count, initial_count - 1);
+    // Agent count should remain the same
+    ck_assert_uint_eq(repl->agent_count, initial_count);
 
-    // Child should not be in array
-    bool found = false;
-    for (size_t i = 0; i < repl->agent_count; i++) {
-        if (strcmp(repl->agents[i]->uuid, child_uuid) == 0) {
-            found = true;
-            break;
-        }
-    }
-    ck_assert(!found);
+    // Child should still be in array but marked dead
+    ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
+    ck_assert_ptr_nonnull(found);
+    ck_assert(found->dead);
 }
 END_TEST
 // Test: Registry updated to status='dead'
@@ -236,8 +232,8 @@ START_TEST(test_kill_sets_ended_at) {
 }
 
 END_TEST
-// Test: Agent removed from array
-START_TEST(test_kill_removes_from_array) {
+// Test: Agent remains in array but marked dead
+START_TEST(test_kill_marks_dead_in_array) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
@@ -249,13 +245,13 @@ START_TEST(test_kill_removes_from_array) {
     res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    // Verify count decreased
-    ck_assert_uint_eq(repl->agent_count, initial_count - 1);
+    // Verify count remains the same
+    ck_assert_uint_eq(repl->agent_count, initial_count);
 
-    // Verify child not in array
-    for (size_t i = 0; i < repl->agent_count; i++) {
-        ck_assert_str_ne(repl->agents[i]->uuid, child_uuid);
-    }
+    // Verify child still in array but marked dead
+    ik_agent_ctx_t *found = ik_repl_find_agent(repl, child_uuid);
+    ck_assert_ptr_nonnull(found);
+    ck_assert(found->dead);
 }
 
 END_TEST
@@ -345,21 +341,21 @@ START_TEST(test_kill_waits_for_fork_pending) {
 }
 
 END_TEST
-// Test: agent_killed event recorded in parent's history
-START_TEST(test_kill_records_event_in_parent_history) {
+// Test: agent_killed event recorded in current (child's) history
+START_TEST(test_kill_records_event_in_child_history) {
     // Create child agent
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    const char *parent_uuid = repl->current->parent_uuid;
+    const char *child_uuid = repl->current->uuid;
 
     // Kill child
     res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    // Query database for agent_killed event in parent's message history
+    // Query database for agent_killed event in child's message history
     const char *query = "SELECT kind, data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";
-    const char *params[1] = {parent_uuid};
+    const char *params[1] = {child_uuid};
 
     TALLOC_CTX *tmp = talloc_new(NULL);
     PGresult *pg_res = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
@@ -385,15 +381,15 @@ START_TEST(test_kill_event_has_killed_by_user) {
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    const char *parent_uuid = repl->current->parent_uuid;
+    const char *child_uuid = repl->current->uuid;
 
     // Kill child
     res = ik_cmd_kill(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    // Query database for agent_killed event
+    // Query database for agent_killed event in child's history
     const char *query = "SELECT data FROM messages WHERE agent_uuid = $1 AND kind = 'agent_killed'";
-    const char *params[1] = {parent_uuid};
+    const char *params[1] = {child_uuid};
 
     PGresult *pg_res = PQexecParams(db->conn, query, 1, NULL, params, NULL, NULL, 0);
     ck_assert_ptr_nonnull(pg_res);
@@ -424,12 +420,12 @@ static Suite *cmd_kill_suite(void)
     tcase_add_test(tc, test_kill_terminates_non_root);
     tcase_add_test(tc, test_kill_marks_dead_in_registry);
     tcase_add_test(tc, test_kill_sets_ended_at);
-    tcase_add_test(tc, test_kill_removes_from_array);
+    tcase_add_test(tc, test_kill_marks_dead_in_array);
     tcase_add_test(tc, test_kill_switches_to_parent);
     tcase_add_test(tc, test_kill_root_shows_error);
     tcase_add_test(tc, test_kill_root_not_modified);
     tcase_add_test(tc, test_kill_waits_for_fork_pending);
-    tcase_add_test(tc, test_kill_records_event_in_parent_history);
+    tcase_add_test(tc, test_kill_records_event_in_child_history);
     tcase_add_test(tc, test_kill_event_has_killed_by_user);
 
     suite_add_tcase(s, tc);

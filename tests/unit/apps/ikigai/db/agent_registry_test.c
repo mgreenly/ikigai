@@ -1,14 +1,9 @@
-/**
- * @file agent_registry_test.c
- * @brief Agent registry database tests for insert and mark_dead operations
- *
- * Tests for ik_db_agent_insert() and ik_db_agent_mark_dead() functions.
- * Query tests (get, list_running, etc.) are in agent_registry_queries_test.c.
- * Follows the unified test utilities pattern for database tests.
- */
+// Agent registry insert and mark_dead tests
 
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/session.h"
+#include "apps/ikigai/shared.h"
 #include "shared/error.h"
 #include "apps/ikigai/agent.h"
 #include "tests/helpers/test_utils_helper.h"
@@ -18,14 +13,13 @@
 #include <string.h>
 #include <time.h>
 
-// ========== Test Database Setup ==========
-
+// Test Database Setup
 static const char *DB_NAME;
 static bool db_available = false;
-
-// Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
+static int64_t session_id;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -85,7 +79,20 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Create session for agent foreign key
+    res = ik_db_session_create(db, &session_id);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and cleanup
@@ -101,10 +108,7 @@ static void test_teardown(void)
     }
 }
 
-// Helper macro to skip test if DB not available
 #define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
-
-// ========== Insert Tests ==========
 
 // Test: Insert root agent (parent_uuid = NULL) succeeds
 START_TEST(test_insert_root_agent_success) {
@@ -118,6 +122,7 @@ START_TEST(test_insert_root_agent_success) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 }
@@ -134,6 +139,7 @@ START_TEST(test_insert_child_agent_success) {
     parent.created_at = time(NULL);
     parent.fork_message_id = 0;
 
+    parent.shared = &shared_ctx;
     res_t parent_res = ik_db_agent_insert(db, &parent);
     ck_assert(is_ok(&parent_res));
 
@@ -145,10 +151,10 @@ START_TEST(test_insert_child_agent_success) {
     child.created_at = time(NULL);
     child.fork_message_id = 42;
 
+    child.shared = &shared_ctx;
     res_t child_res = ik_db_agent_insert(db, &child);
     ck_assert(is_ok(&child_res));
 }
-
 END_TEST
 // Test: Inserted record has status = 'running'
 START_TEST(test_insert_agent_status_running) {
@@ -161,6 +167,7 @@ START_TEST(test_insert_agent_status_running) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -177,7 +184,6 @@ START_TEST(test_insert_agent_status_running) {
 
     PQclear(result);
 }
-
 END_TEST
 // Test: Inserted record has correct created_at
 START_TEST(test_insert_agent_created_at) {
@@ -192,6 +198,7 @@ START_TEST(test_insert_agent_created_at) {
     agent.created_at = expected_timestamp;
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -212,7 +219,6 @@ START_TEST(test_insert_agent_created_at) {
 
     PQclear(result);
 }
-
 END_TEST
 // Test: Duplicate uuid fails (PRIMARY KEY violation)
 START_TEST(test_insert_duplicate_uuid_fails) {
@@ -224,6 +230,7 @@ START_TEST(test_insert_duplicate_uuid_fails) {
     agent1.parent_uuid = NULL;
     agent1.created_at = time(NULL);
     agent1.fork_message_id = 0;
+    agent1.shared = &shared_ctx;
 
     res_t res1 = ik_db_agent_insert(db, &agent1);
     ck_assert(is_ok(&res1));
@@ -235,11 +242,11 @@ START_TEST(test_insert_duplicate_uuid_fails) {
     agent2.parent_uuid = NULL;
     agent2.created_at = time(NULL);
     agent2.fork_message_id = 0;
+    agent2.shared = &shared_ctx;
 
     res_t res2 = ik_db_agent_insert(db, &agent2);
     ck_assert(is_err(&res2));
 }
-
 END_TEST
 // Test: Agent with NULL name succeeds (name is optional)
 START_TEST(test_insert_agent_null_name) {
@@ -252,6 +259,7 @@ START_TEST(test_insert_agent_null_name) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -266,7 +274,6 @@ START_TEST(test_insert_agent_null_name) {
 
     PQclear(result);
 }
-
 END_TEST
 // Test: fork_message_id is correctly stored
 START_TEST(test_insert_agent_fork_message_id) {
@@ -280,6 +287,7 @@ START_TEST(test_insert_agent_fork_message_id) {
     parent.created_at = time(NULL);
     parent.fork_message_id = 0;
 
+    parent.shared = &shared_ctx;
     res_t parent_res = ik_db_agent_insert(db, &parent);
     ck_assert(is_ok(&parent_res));
 
@@ -291,6 +299,7 @@ START_TEST(test_insert_agent_fork_message_id) {
     child.created_at = time(NULL);
     child.fork_message_id = 123456;
 
+    child.shared = &shared_ctx;
     res_t child_res = ik_db_agent_insert(db, &child);
     ck_assert(is_ok(&child_res));
 
@@ -308,10 +317,7 @@ START_TEST(test_insert_agent_fork_message_id) {
 
     PQclear(result);
 }
-
 END_TEST
-// ========== Mark Dead Tests ==========
-
 // Test: mark_dead updates status to 'dead'
 START_TEST(test_mark_dead_updates_status) {
     SKIP_IF_NO_DB();
@@ -324,6 +330,7 @@ START_TEST(test_mark_dead_updates_status) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -344,7 +351,6 @@ START_TEST(test_mark_dead_updates_status) {
 
     PQclear(result);
 }
-
 END_TEST
 // Test: mark_dead sets ended_at timestamp
 START_TEST(test_mark_dead_sets_ended_at) {
@@ -358,6 +364,7 @@ START_TEST(test_mark_dead_sets_ended_at) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -391,7 +398,6 @@ START_TEST(test_mark_dead_sets_ended_at) {
 
     PQclear(result);
 }
-
 END_TEST
 // Test: mark_dead on already-dead agent is no-op (idempotent)
 START_TEST(test_mark_dead_idempotent) {
@@ -405,6 +411,7 @@ START_TEST(test_mark_dead_idempotent) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
 
+    agent.shared = &shared_ctx;
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
@@ -443,7 +450,6 @@ START_TEST(test_mark_dead_idempotent) {
     ck_assert_str_eq(status, "dead");
     PQclear(result3);
 }
-
 END_TEST
 // Test: mark_dead on non-existent uuid returns error
 START_TEST(test_mark_dead_nonexistent_uuid) {

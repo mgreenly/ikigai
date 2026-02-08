@@ -7,6 +7,7 @@
 
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/repl.h"
+#include "apps/ikigai/shared.h"
 #include <talloc.h>
 #include <stdint.h>
 
@@ -14,6 +15,7 @@
 extern TALLOC_CTX *test_ctx;
 extern ik_db_ctx_t *db;
 extern int64_t session_id;
+extern ik_shared_ctx_t shared_ctx;
 
 /**
  * Insert an agent into the database registry

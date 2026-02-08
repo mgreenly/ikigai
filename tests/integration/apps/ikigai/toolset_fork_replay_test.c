@@ -69,6 +69,12 @@ static void setup(void)
     shared->cfg = cfg;
     shared->db_ctx = db;
     atomic_init(&shared->fork_pending, false);
+
+    int64_t session_id;
+    res_t sess_res = ik_db_session_create(db, &session_id);
+    ck_assert(is_ok(&sess_res));
+    shared->session_id = session_id;
+
     repl->shared = shared;
 
     repl->agents = talloc_zero_array(repl, ik_agent_ctx_t *, 16);

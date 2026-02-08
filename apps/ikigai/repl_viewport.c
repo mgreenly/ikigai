@@ -191,8 +191,14 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     // State-based visibility (Phase 1.6 Task 6.4)
     ik_agent_state_t current_state = atomic_load(&repl->current->state);
 
-    if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-        // When waiting for LLM: hide input, show spinner
+    // Dead agents: suppress both input and spinner (scrollback only)
+    if (repl->current->dead) {
+        repl->current->spinner_state.visible = false;
+        repl->current->input_buffer_visible = false;
+        input_buffer_visible = false;
+    } else if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM ||
+               current_state == IK_AGENT_STATE_EXECUTING_TOOL) {
+        // When waiting for LLM or executing tool: hide input, show spinner
         repl->current->spinner_state.visible = true;
         repl->current->input_buffer_visible = false;
         input_buffer_visible = false;  // Update local variable for cursor control

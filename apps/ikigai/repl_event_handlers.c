@@ -1,16 +1,13 @@
 #include "apps/ikigai/repl_event_handlers.h"
 
 #include "apps/ikigai/agent.h"
-
-#include <errno.h>
-#include <string.h>
+#include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/notify.h"
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/input.h"
 #include "apps/ikigai/layer_wrappers.h"
-#include "shared/logger.h"
 #include "apps/ikigai/message.h"
-#include "shared/panic.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/providers/request.h"
 #include "apps/ikigai/repl.h"
@@ -20,6 +17,8 @@
 #include "apps/ikigai/repl_tool_completion.h"
 #include "apps/ikigai/scroll_detector.h"
 #include "apps/ikigai/shared.h"
+#include "shared/logger.h"
+#include "shared/panic.h"
 #include "shared/wrapper.h"
 
 #include <assert.h>
@@ -34,7 +33,19 @@
 
 #include "shared/poison.h"
 // Forward declarations
-static void persist_assistant_msg(ik_repl_ctx_t *repl);
+static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
+
+// Helper: mark agent idle and notify waiters
+static void mark_idle_and_notify(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
+{
+    if (repl->shared->db_ctx == NULL) return;
+    res_t idle_res = ik_db_agent_set_idle(repl->shared->db_ctx, agent->uuid, true);
+    if (is_err(&idle_res)) talloc_free(idle_res.err);  // LCOV_EXCL_LINE
+    char *channel = talloc_asprintf(repl, "agent_event_%s", agent->uuid);
+    res_t notify_res = ik_db_notify(repl->shared->db_ctx, channel, "idle");
+    if (is_err(&notify_res)) talloc_free(notify_res.err);  // LCOV_EXCL_LINE
+    talloc_free(channel);
+}
 
 long ik_repl_calculate_select_timeout_ms(ik_repl_ctx_t *repl, long curl_timeout_ms)
 {
@@ -129,67 +140,58 @@ res_t ik_repl_handle_terminal_input(ik_repl_ctx_t *repl, int terminal_fd, bool *
 }
 
 // Persist assistant message to database
-static void persist_assistant_msg(ik_repl_ctx_t *repl)
+static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (repl->shared->db_ctx == NULL || repl->shared->session_id <= 0) return;
 
     char *data_json = talloc_strdup(repl, "{");
     bool first = true;
 
-    // Store provider information
-    if (repl->current->provider != NULL) {
-        data_json = talloc_asprintf_append(data_json, "\"provider\":\"%s\"", repl->current->provider);
+    if (agent->provider != NULL) {
+        data_json = talloc_asprintf_append(data_json, "\"provider\":\"%s\"", agent->provider);
         first = false;
     }
-
-    // Store model information
-    if (repl->current->response_model != NULL) {
+    if (agent->response_model != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"model\":\"%s\"",
-                                           first ? "" : ",", repl->current->response_model);
+                                           first ? "" : ",", agent->response_model);
         first = false;
     }
 
-    // Store thinking level if set (not NONE)
-    if (repl->current->thinking_level > 0) {
-        const char *level_str = "unknown";
-        switch (repl->current->thinking_level) {
-            case 1: level_str = "low"; break;
-            case 2: level_str = "med"; break;
-            case 3: level_str = "high"; break;
-        }
+    if (agent->thinking_level > 0) {
+        const char *levels[] = {"unknown", "low", "med", "high"};
+        const char *level_str = (agent->thinking_level <= 3) ?
+            levels[agent->thinking_level] : levels[0];
         data_json = talloc_asprintf_append(data_json, "%s\"thinking_level\":\"%s\"",
                                            first ? "" : ",", level_str);
         first = false;
     }
 
-    // Store finish reason
-    if (repl->current->response_finish_reason != NULL) {
+    if (agent->response_finish_reason != NULL) {
         data_json = talloc_asprintf_append(data_json, "%s\"finish_reason\":\"%s\"",
-                                           first ? "" : ",", repl->current->response_finish_reason);
+                                           first ? "" : ",", agent->response_finish_reason);
     }
 
     data_json = talloc_strdup_append(data_json, "}");
 
     res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                         repl->current->uuid, "assistant", repl->current->assistant_response,
+                                         agent->uuid, "assistant", agent->assistant_response,
                                          data_json);
     if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
         talloc_free(db_res.err);  // LCOV_EXCL_LINE
     }
     talloc_free(data_json);
 
-    // Persist usage event separately (for token display on replay)
-    int32_t total = repl->current->response_input_tokens +
-                    repl->current->response_output_tokens +
-                    repl->current->response_thinking_tokens;
+    int32_t total = agent->response_input_tokens +
+                    agent->response_output_tokens +
+                    agent->response_thinking_tokens;
     if (total > 0) {
         char *usage_json = talloc_asprintf(repl,
                                            "{\"input_tokens\":%d,\"output_tokens\":%d,\"thinking_tokens\":%d}",
-                                           repl->current->response_input_tokens,
-                                           repl->current->response_output_tokens,
-                                           repl->current->response_thinking_tokens);
+                                           agent->response_input_tokens,
+                                           agent->response_output_tokens,
+                                           agent->response_thinking_tokens);
         db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                                       repl->current->uuid, "usage", NULL, usage_json);
+                                       agent->uuid, "usage", NULL, usage_json);
         if (is_err(&db_res)) {  // LCOV_EXCL_BR_LINE
             talloc_free(db_res.err);  // LCOV_EXCL_LINE
         }
@@ -223,7 +225,7 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
         ik_message_t *assistant_msg = ik_message_create_text(agent, IK_ROLE_ASSISTANT, agent->assistant_response);
         res_t result = ik_agent_add_message_(agent, assistant_msg);
         if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
-        persist_assistant_msg(repl);
+        persist_assistant_msg(repl, agent);
     }
     if (agent->assistant_response != NULL) {
         talloc_free(agent->assistant_response);
@@ -251,7 +253,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         agent->assistant_response = NULL;
     }
 
-    // Find the most recent user message (start of the interrupted turn)
+    // Find most recent user message (start of interrupted turn)
     size_t turn_start = 0;
     bool found_user = false;
     for (size_t i = agent->message_count; i > 0; i--) {
@@ -263,7 +265,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         }
     }
 
-    // Mark all messages from the interrupted turn as interrupted (don't remove)
+    // Mark interrupted turn messages (don't remove)
     if (found_user && turn_start < agent->message_count) {
         for (size_t i = turn_start; i < agent->message_count; i++) {
             if (agent->messages[i] != NULL) {
@@ -272,13 +274,11 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         }
     }
 
-    // Clear scrollback and re-render all messages with interrupted styling
     ik_scrollback_clear(agent->scrollback);
     for (size_t i = 0; i < agent->message_count; i++) {
         ik_message_t *m = agent->messages[i];
         if (m == NULL || m->content_count == 0) continue;
 
-        // Render first content block (simplified for interrupt recovery)
         ik_content_block_t *block = &m->content_blocks[0];
         const char *kind = NULL;
         const char *content = NULL;
@@ -311,6 +311,8 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         }
     }
     ik_agent_transition_to_idle_(agent);
+    mark_idle_and_notify(repl, agent);
+
     if (agent == repl->current) {
         res_t result = ik_repl_render_frame_(repl);
         if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
@@ -325,7 +327,6 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
         agent->provider_instance->vt->info_read(agent->provider_instance->ctx, repl->shared->logger);
         ik_agent_state_t current_state = atomic_load(&agent->state);
         if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
-            // Check interrupt flag before processing completion
             if (agent->interrupt_requested) {
                 ik_repl_handle_interrupted_llm_completion(repl, agent);
             } else {
@@ -337,6 +338,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
                 current_state = atomic_load(&agent->state);
                 if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
                     ik_agent_transition_to_idle_(agent);
+                    mark_idle_and_notify(repl, agent);
                 }
                 if (agent == repl->current) {
                     CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error

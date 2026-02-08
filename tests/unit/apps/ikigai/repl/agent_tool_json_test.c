@@ -9,6 +9,7 @@
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_registry.h"
+#include "apps/ikigai/tool_wrapper.h"
 #include "apps/ikigai/wrapper_pthread.h"
 #include "apps/ikigai/db/message.h"
 #include "shared/json_allocator.h"
@@ -313,7 +314,8 @@ static char *mock_internal_handler_success(TALLOC_CTX *handler_ctx, ik_agent_ctx
 {
     (void)agent;
     (void)arguments_json;
-    return talloc_strdup(handler_ctx, "{\"ok\": true}");
+    char *result = talloc_strdup(handler_ctx, "{\"ok\": true}");
+    return ik_tool_wrap_success(handler_ctx, result);
 }
 
 static char *mock_internal_handler_null(TALLOC_CTX *handler_ctx, ik_agent_ctx_t *agent, const char *arguments_json)

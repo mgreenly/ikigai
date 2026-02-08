@@ -91,17 +91,8 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
     // Initialize layer-based rendering (Phase 1.3)
     // Note: completion initialization removed - now in agent context (repl->current->completion)
 
-    // Ensure Agent 0 exists in registry if database is configured
+    // Get or create session if database is configured
     if (shared->db_ctx != NULL) {
-        char *agent_zero_uuid = NULL;
-        result = ik_db_ensure_agent_zero(shared->db_ctx, shared->paths, &agent_zero_uuid);
-        if (is_err(&result)) {
-            talloc_free(repl);
-            return result;
-        }
-        repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
-
-        // Get or create session
         int64_t session_id = 0;
         result = ik_db_session_get_active(shared->db_ctx, &session_id);
         if (is_err(&result)) {
@@ -120,6 +111,22 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
         // Store session_id in shared context
         shared->session_id = session_id;
+
+        // Sweep dead agents from previous sessions
+        result = ik_db_agent_reap_all_dead(shared->db_ctx);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+
+        // Ensure Agent 0 exists in registry
+        char *agent_zero_uuid = NULL;
+        result = ik_db_ensure_agent_zero(shared->db_ctx, session_id, shared->paths, &agent_zero_uuid);
+        if (is_err(&result)) {
+            talloc_free(repl);
+            return result;
+        }
+        repl->current->uuid = talloc_steal(repl->current, agent_zero_uuid);
 
         // Restore all running agents from database (including Agent 0)
         result = ik_repl_restore_agents(repl, shared->db_ctx);

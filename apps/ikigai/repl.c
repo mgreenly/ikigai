@@ -102,6 +102,18 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Poll for tool thread completion - check ALL agents
         CHECK(ik_repl_poll_tool_completions(repl));  // LCOV_EXCL_BR_LINE
+
+        // Poll for pending prompts - check all agents for deferred fork prompts
+        for (size_t i = 0; i < repl->agent_count; i++) {
+            ik_agent_ctx_t *agent = repl->agents[i];
+            if (agent->pending_prompt != NULL) {
+                char *prompt = agent->pending_prompt;
+                agent->pending_prompt = NULL;  // Clear before sending to prevent re-processing
+                ik_event_render(agent->scrollback, "user", prompt, "{}", false);
+                send_to_llm_for_agent(repl, agent, prompt);
+                talloc_free(prompt);
+            }
+        }
     }
 
     return OK(NULL);
@@ -110,6 +122,11 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Reject submission if current agent is dead
+    if (repl->current->dead) {
+        return OK(NULL);  // Silent rejection - dead agents cannot submit input
+    }
 
     // Get current input buffer text
     const uint8_t *text_data = repl->current->input_buffer->text->data;

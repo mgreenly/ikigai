@@ -46,6 +46,10 @@ static bool start_tool_execution_called = false;
 /* Global context for mock error creation */
 static TALLOC_CTX *error_ctx = NULL;
 
+/* Forward declarations for mocks */
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle);
+res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload);
+
 /* Mock database insert that succeeds */
 res_t ik_db_message_insert_(void *db,
                             int64_t session_id,
@@ -60,6 +64,24 @@ res_t ik_db_message_insert_(void *db,
     (void)kind;
     (void)content;
     (void)data_json;
+    return OK(NULL);
+}
+
+/* Mock agent set idle that succeeds */
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle)
+{
+    (void)db;
+    (void)uuid;
+    (void)idle;
+    return OK(NULL);
+}
+
+/* Mock notify that succeeds */
+res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload)
+{
+    (void)db;
+    (void)channel;
+    (void)payload;
     return OK(NULL);
 }
 

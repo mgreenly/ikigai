@@ -9,8 +9,10 @@
 
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
+#include "apps/ikigai/db/session.h"
 #include "shared/error.h"
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/shared.h"
 #include "shared/wrapper.h"
 #include "tests/helpers/test_utils_helper.h"
 #include <check.h>
@@ -27,6 +29,7 @@ static bool db_available = false;
 // Per-test state
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -86,7 +89,21 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Create session for agent foreign key
+    int64_t session_id = 0;
+    res = ik_db_session_create(db, &session_id);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        return;
+    }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and cleanup
@@ -118,6 +135,7 @@ START_TEST(test_insert_agent_thinking_level_low) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
     agent.thinking_level = 1;  // Low
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
@@ -147,6 +165,7 @@ START_TEST(test_insert_agent_thinking_level_default) {
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
     agent.thinking_level = 99;  // Invalid value -> default case
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
@@ -179,6 +198,7 @@ START_TEST(test_update_provider_success) {
     agent.parent_uuid = NULL;
     agent.created_at = time(NULL);
     agent.fork_message_id = 0;
+    agent.shared = &shared_ctx;
 
     res_t insert_res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&insert_res));
