@@ -105,9 +105,8 @@ def clone_repo(remote_url, number)
 end
 
 def delete_clone(number)
-  # Disabled for debugging — keep clones to inspect ralph logs
-  # dest = File.join(RALPHS_DIR, number.to_s)
-  # FileUtils.rm_rf(dest) if Dir.exist?(dest)
+  dest = File.join(RALPHS_DIR, number.to_s)
+  FileUtils.rm_rf(dest) if Dir.exist?(dest)
 end
 
 def create_pr_from_clone(number, title, clone_dir)
