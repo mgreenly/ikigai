@@ -23,13 +23,30 @@
 #include "shared/poison.h"
 void ik_repl_handle_agent_tool_completion(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    ik_agent_complete_tool_execution(agent);
+    if (agent->pending_tool_call != NULL) {
+        ik_agent_complete_tool_execution(agent);
+    } else {
+        // Deferred command (e.g. /wait) - no pending_tool_call, just cleanup thread
+        pthread_join_(agent->tool_thread, NULL);
+        pthread_mutex_lock_(&agent->tool_thread_mutex);
+        agent->tool_thread_running = false;
+        agent->tool_thread_complete = false;
+        agent->tool_thread_result = NULL;
+        pthread_mutex_unlock_(&agent->tool_thread_mutex);
+        agent->tool_child_pid = 0;
+        ik_agent_transition_from_executing_tool(agent);
+    }
 
     // Call on_complete hook if set (runs on main thread)
     if (agent->pending_on_complete != NULL) {
         agent->pending_on_complete(repl, agent);
         agent->pending_on_complete = NULL;
         agent->tool_deferred_data = NULL;
+        // Free tool_thread_ctx now that on_complete has stolen what it needs
+        if (agent->tool_thread_ctx != NULL) {
+            talloc_free(agent->tool_thread_ctx);
+            agent->tool_thread_ctx = NULL;
+        }
     }
 
     if (ik_agent_should_continue_tool_loop(agent)) {
@@ -48,14 +65,39 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
 {
     agent->interrupt_requested = false;
     pthread_join_(agent->tool_thread, NULL);
+
+    // Deferred command (e.g. /wait) - minimal cleanup, preserve scrollback
+    if (agent->pending_tool_call == NULL) {
+        pthread_mutex_lock_(&agent->tool_thread_mutex);
+        agent->tool_thread_running = false;
+        agent->tool_thread_complete = false;
+        agent->tool_thread_result = NULL;
+        pthread_mutex_unlock_(&agent->tool_thread_mutex);
+        agent->tool_child_pid = 0;
+        ik_agent_transition_from_executing_tool(agent);
+
+        if (agent->pending_on_complete != NULL) {
+            agent->pending_on_complete(repl, agent);
+            agent->pending_on_complete = NULL;
+            agent->tool_deferred_data = NULL;
+            agent->tool_thread_ctx = NULL;
+        }
+
+        ik_agent_transition_to_idle_(agent);
+        if (agent == repl->current) {
+            res_t result = ik_repl_render_frame_(repl);
+            if (is_err(&result)) PANIC("render failed"); // LCOV_EXCL_BR_LINE
+        }
+        return;
+    }
+
+    // Standard tool call interruption - clear and re-render scrollback
     if (agent->tool_thread_ctx != NULL) {
         talloc_free(agent->tool_thread_ctx);
         agent->tool_thread_ctx = NULL;
     }
-    if (agent->pending_tool_call != NULL) {
-        talloc_free(agent->pending_tool_call);
-        agent->pending_tool_call = NULL;
-    }
+    talloc_free(agent->pending_tool_call);
+    agent->pending_tool_call = NULL;
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     agent->tool_thread_running = false;
     agent->tool_thread_complete = false;

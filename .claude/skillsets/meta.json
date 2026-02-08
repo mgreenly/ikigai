@@ -2,12 +2,12 @@
   "preload": [
     "meta",
     "align",
-    "harness",
     "jj",
     "principles",
     "scratch"
   ],
   "advertise": [
+    {"skill": "harness", "description": "Automated quality check loops with escalation"},
     {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
     {"skill": "ralph", "description": "Iterative goal execution harness"},
     {"skill": "goal-authoring", "description": "Writing effective goal files for Ralph"}

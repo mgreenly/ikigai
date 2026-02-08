@@ -186,9 +186,10 @@ START_TEST(test_message_insert_with_agent_uuid) {
     SKIP_IF_NO_DB();
 
     // First insert an agent into agents table
-    const char *insert_agent =
-        "INSERT INTO agents (uuid, status, created_at) "
-        "VALUES ('test-agent-uuid-12345', 'running', 1234567890)";
+    char *insert_agent = talloc_asprintf(test_ctx,
+        "INSERT INTO agents (uuid, status, created_at, session_id) "
+        "VALUES ('test-agent-uuid-12345', 'running', 1234567890, %lld)",
+        (long long)session_id);
 
     PGresult *agent_result = PQexec(db->conn, insert_agent);
     ck_assert_int_eq(PQresultStatus(agent_result), PGRES_COMMAND_OK);
@@ -241,15 +242,19 @@ START_TEST(test_query_by_agent_uuid) {
     SKIP_IF_NO_DB();
 
     // Insert two agents
-    PGresult *r1 = PQexec(db->conn,
-                          "INSERT INTO agents (uuid, status, created_at) "
-                          "VALUES ('agent-1', 'running', 1234567890)");
+    char *sql1 = talloc_asprintf(test_ctx,
+                                 "INSERT INTO agents (uuid, status, created_at, session_id) "
+                                 "VALUES ('agent-1', 'running', 1234567890, %lld)",
+                                 (long long)session_id);
+    PGresult *r1 = PQexec(db->conn, sql1);
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 
-    PGresult *r2 = PQexec(db->conn,
-                          "INSERT INTO agents (uuid, status, created_at) "
-                          "VALUES ('agent-2', 'running', 1234567890)");
+    char *sql2 = talloc_asprintf(test_ctx,
+                                 "INSERT INTO agents (uuid, status, created_at, session_id) "
+                                 "VALUES ('agent-2', 'running', 1234567890, %lld)",
+                                 (long long)session_id);
+    PGresult *r2 = PQexec(db->conn, sql2);
     ck_assert_int_eq(PQresultStatus(r2), PGRES_COMMAND_OK);
     PQclear(r2);
 
@@ -283,9 +288,11 @@ START_TEST(test_query_agent_uuid_with_range) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
-    PGresult *r1 = PQexec(db->conn,
-                          "INSERT INTO agents (uuid, status, created_at) "
-                          "VALUES ('range-agent', 'running', 1234567890)");
+    char *sql = talloc_asprintf(test_ctx,
+                                "INSERT INTO agents (uuid, status, created_at, session_id) "
+                                "VALUES ('range-agent', 'running', 1234567890, %lld)",
+                                (long long)session_id);
+    PGresult *r1 = PQexec(db->conn, sql);
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 
@@ -350,9 +357,11 @@ START_TEST(test_message_insert_agent_killed) {
     SKIP_IF_NO_DB();
 
     // Insert an agent
-    PGresult *r1 = PQexec(db->conn,
-                          "INSERT INTO agents (uuid, status, created_at) "
-                          "VALUES ('killed-agent', 'running', 1234567890)");
+    char *sql = talloc_asprintf(test_ctx,
+                                "INSERT INTO agents (uuid, status, created_at, session_id) "
+                                "VALUES ('killed-agent', 'running', 1234567890, %lld)",
+                                (long long)session_id);
+    PGresult *r1 = PQexec(db->conn, sql);
     ck_assert_int_eq(PQresultStatus(r1), PGRES_COMMAND_OK);
     PQclear(r1);
 

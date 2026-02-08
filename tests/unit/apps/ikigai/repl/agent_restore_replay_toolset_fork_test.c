@@ -21,6 +21,7 @@ static bool db_available = false;
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static int64_t session_id;
+static ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup
 static void suite_setup(void)
@@ -90,7 +91,11 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown
@@ -137,6 +142,7 @@ static void insert_agent(const char *uuid)
     agent.parent_uuid = NULL;
     agent.created_at = 1000;
     agent.fork_message_id = 0;
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));

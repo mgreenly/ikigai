@@ -155,6 +155,28 @@ int PQgetisnull(const PGresult *res, int row_number, int column_number)
     return 0;
 }
 
+// Override PQtransactionStatus - return IDLE (not in transaction) so NOTIFY is attempted
+PGTransactionStatusType PQtransactionStatus(const PGconn *conn)
+{
+    (void)conn;
+    return PQTRANS_IDLE;
+}
+
+// Override pq_exec_ for NOTIFY command - always succeed
+PGresult *pq_exec_(PGconn *conn, const char *command)
+{
+    (void)conn;
+    (void)command;
+    return mock_success_result;
+}
+
+// Override PQresultStatus_ for NOTIFY command
+ExecStatusType PQresultStatus_(const PGresult *res)
+{
+    (void)res;
+    return PGRES_COMMAND_OK;
+}
+
 // Helper: Create minimal REPL for testing
 static void setup_repl(void)
 {
@@ -231,32 +253,32 @@ static void teardown(void)
     repl = NULL;
 }
 
-// Test: /send propagates ik_db_agent_get error (line 110)
+// Test: /send shows ik_db_agent_get error in scrollback
 START_TEST(test_send_db_agent_get_error) {
     // Enable agent_get failure
     mock_agent_get_fail = true;
 
+    size_t initial_lines = ik_scrollback_get_line_count(repl->current->scrollback);
     res_t res = ik_cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
 
-    // Should propagate the error
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-
-    talloc_free(res.err);
+    // Slash commands always return OK, error shown in scrollback
+    ck_assert(is_ok(&res));
+    size_t final_lines = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_gt(final_lines, initial_lines);
 }
 END_TEST
-// Test: /send propagates ik_db_mail_insert error (line 136)
+// Test: /send shows ik_db_mail_insert error in scrollback
 START_TEST(test_send_db_mail_insert_error) {
     // Enable mail_insert failure
     mock_mail_insert_fail = true;
 
+    size_t initial_lines = ik_scrollback_get_line_count(repl->current->scrollback);
     res_t res = ik_cmd_send(test_ctx, repl, "recipient-uuid-456 \"Test message\"");
 
-    // Should propagate the error
-    ck_assert(is_err(&res));
-    ck_assert_int_eq(error_code(res.err), ERR_IO);
-
-    talloc_free(res.err);
+    // Slash commands always return OK, error shown in scrollback
+    ck_assert(is_ok(&res));
+    size_t final_lines = ik_scrollback_get_line_count(repl->current->scrollback);
+    ck_assert_uint_gt(final_lines, initial_lines);
 }
 
 END_TEST

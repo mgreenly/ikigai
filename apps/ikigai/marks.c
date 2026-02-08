@@ -216,3 +216,19 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 
     return OK(NULL);
 }
+
+res_t ik_mark_rewind_to(ik_repl_ctx_t *repl, const char *label)
+{
+    assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
+    // label can be NULL to rewind to most recent mark
+
+    // TODO(DI): This function violates DI principles - see marks.h for details.
+
+    // Find the target mark
+    ik_mark_t *target_mark;
+    res_t result = ik_mark_find(repl, label, &target_mark);
+    if (is_err(&result)) return result;
+
+    // Rewind to the found mark
+    return ik_mark_rewind_to_mark(repl, target_mark);
+}

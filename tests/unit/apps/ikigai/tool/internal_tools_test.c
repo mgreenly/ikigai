@@ -1,6 +1,6 @@
 /**
  * @file internal_tools_test.c
- * @brief Unit tests for internal tool registration and noop handler
+ * @brief Unit tests for internal tool registration (fork, kill, send, wait)
  */
 
 #include "tests/test_constants.h"
@@ -26,63 +26,65 @@ static void teardown(void)
     talloc_free(test_ctx);
 }
 
-// Test: ik_internal_tools_register registers the noop tool
-START_TEST(test_register_noop_tool) {
+// Test: ik_internal_tools_register registers all four internal tools
+START_TEST(test_register_all_tools) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
 
     ik_internal_tools_register(registry);
 
-    ck_assert_uint_eq(registry->count, 1);
+    ck_assert_uint_eq(registry->count, 4);
 
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
-    ck_assert_ptr_nonnull(entry);
-    ck_assert_str_eq(entry->name, "noop");
-    ck_assert_ptr_null(entry->path);
-    ck_assert_int_eq(entry->type, IK_TOOL_INTERNAL);
-    ck_assert_ptr_nonnull(entry->handler);
-    ck_assert_ptr_null(entry->on_complete);
-    ck_assert_ptr_nonnull(entry->schema_doc);
-    ck_assert_ptr_nonnull(entry->schema_root);
+    // Verify fork tool
+    ik_tool_registry_entry_t *fork_entry = ik_tool_registry_lookup(registry, "fork");
+    ck_assert_ptr_nonnull(fork_entry);
+    ck_assert_str_eq(fork_entry->name, "fork");
+    ck_assert_ptr_null(fork_entry->path);
+    ck_assert_int_eq(fork_entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_nonnull(fork_entry->handler);
+    ck_assert_ptr_nonnull(fork_entry->on_complete);
+    ck_assert_ptr_nonnull(fork_entry->schema_doc);
+    ck_assert_ptr_nonnull(fork_entry->schema_root);
+
+    // Verify kill tool
+    ik_tool_registry_entry_t *kill_entry = ik_tool_registry_lookup(registry, "kill");
+    ck_assert_ptr_nonnull(kill_entry);
+    ck_assert_str_eq(kill_entry->name, "kill");
+    ck_assert_int_eq(kill_entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_nonnull(kill_entry->handler);
+    ck_assert_ptr_nonnull(kill_entry->on_complete);
+
+    // Verify send tool
+    ik_tool_registry_entry_t *send_entry = ik_tool_registry_lookup(registry, "send");
+    ck_assert_ptr_nonnull(send_entry);
+    ck_assert_str_eq(send_entry->name, "send");
+    ck_assert_int_eq(send_entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_nonnull(send_entry->handler);
+    ck_assert_ptr_null(send_entry->on_complete);
+
+    // Verify wait tool
+    ik_tool_registry_entry_t *wait_entry = ik_tool_registry_lookup(registry, "wait");
+    ck_assert_ptr_nonnull(wait_entry);
+    ck_assert_str_eq(wait_entry->name, "wait");
+    ck_assert_int_eq(wait_entry->type, IK_TOOL_INTERNAL);
+    ck_assert_ptr_nonnull(wait_entry->handler);
+    ck_assert_ptr_null(wait_entry->on_complete);
 }
 
 END_TEST
 
-// Test: noop handler returns correct JSON
-START_TEST(test_noop_handler_returns_ok) {
+// Test: fork schema contains expected fields
+START_TEST(test_fork_schema_fields) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
 
     ik_internal_tools_register(registry);
 
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
-    ck_assert_ptr_nonnull(entry);
-    ck_assert_ptr_nonnull(entry->handler);
-
-    // Create a minimal agent context
-    ik_agent_ctx_t agent = {0};
-
-    // Call the handler directly
-    char *result = entry->handler(test_ctx, &agent, "{}");
-    ck_assert_ptr_nonnull(result);
-    ck_assert_str_eq(result, "{\"ok\": true}");
-
-    talloc_free(result);
-}
-
-END_TEST
-
-// Test: noop schema contains expected fields
-START_TEST(test_noop_schema_fields) {
-    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
-
-    ik_internal_tools_register(registry);
-
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "fork");
     ck_assert_ptr_nonnull(entry);
 
     // Verify schema has name field
     yyjson_val *name_val = yyjson_obj_get(entry->schema_root, "name");
     ck_assert_ptr_nonnull(name_val);
-    ck_assert_str_eq(yyjson_get_str(name_val), "noop");
+    ck_assert_str_eq(yyjson_get_str(name_val), "fork");
 
     // Verify schema has description field
     yyjson_val *desc_val = yyjson_obj_get(entry->schema_root, "description");
@@ -91,27 +93,87 @@ START_TEST(test_noop_schema_fields) {
     // Verify schema has parameters field
     yyjson_val *params_val = yyjson_obj_get(entry->schema_root, "parameters");
     ck_assert_ptr_nonnull(params_val);
+
+    // Verify required parameters
+    yyjson_val *required_val = yyjson_obj_get(params_val, "required");
+    ck_assert_ptr_nonnull(required_val);
+    ck_assert(yyjson_is_arr(required_val));
+    ck_assert_uint_eq(yyjson_arr_size(required_val), 2);
 }
 
 END_TEST
 
-// Test: noop handler with different arguments (ignored)
-START_TEST(test_noop_handler_ignores_arguments) {
+// Test: kill schema contains expected fields
+START_TEST(test_kill_schema_fields) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
 
     ik_internal_tools_register(registry);
 
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "kill");
     ck_assert_ptr_nonnull(entry);
 
-    ik_agent_ctx_t agent = {0};
+    // Verify schema has name field
+    yyjson_val *name_val = yyjson_obj_get(entry->schema_root, "name");
+    ck_assert_ptr_nonnull(name_val);
+    ck_assert_str_eq(yyjson_get_str(name_val), "kill");
 
-    // Call with different arguments - should still return ok
-    char *result = entry->handler(test_ctx, &agent, "{\"foo\": \"bar\"}");
-    ck_assert_ptr_nonnull(result);
-    ck_assert_str_eq(result, "{\"ok\": true}");
+    // Verify required parameters
+    yyjson_val *params_val = yyjson_obj_get(entry->schema_root, "parameters");
+    ck_assert_ptr_nonnull(params_val);
+    yyjson_val *required_val = yyjson_obj_get(params_val, "required");
+    ck_assert_ptr_nonnull(required_val);
+    ck_assert(yyjson_is_arr(required_val));
+    ck_assert_uint_eq(yyjson_arr_size(required_val), 1);
+}
 
-    talloc_free(result);
+END_TEST
+
+// Test: send schema contains expected fields
+START_TEST(test_send_schema_fields) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    ik_internal_tools_register(registry);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "send");
+    ck_assert_ptr_nonnull(entry);
+
+    // Verify schema has name field
+    yyjson_val *name_val = yyjson_obj_get(entry->schema_root, "name");
+    ck_assert_ptr_nonnull(name_val);
+    ck_assert_str_eq(yyjson_get_str(name_val), "send");
+
+    // Verify required parameters
+    yyjson_val *params_val = yyjson_obj_get(entry->schema_root, "parameters");
+    ck_assert_ptr_nonnull(params_val);
+    yyjson_val *required_val = yyjson_obj_get(params_val, "required");
+    ck_assert_ptr_nonnull(required_val);
+    ck_assert(yyjson_is_arr(required_val));
+    ck_assert_uint_eq(yyjson_arr_size(required_val), 2);
+}
+
+END_TEST
+
+// Test: wait schema contains expected fields
+START_TEST(test_wait_schema_fields) {
+    ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
+
+    ik_internal_tools_register(registry);
+
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "wait");
+    ck_assert_ptr_nonnull(entry);
+
+    // Verify schema has name field
+    yyjson_val *name_val = yyjson_obj_get(entry->schema_root, "name");
+    ck_assert_ptr_nonnull(name_val);
+    ck_assert_str_eq(yyjson_get_str(name_val), "wait");
+
+    // Verify required parameters
+    yyjson_val *params_val = yyjson_obj_get(entry->schema_root, "parameters");
+    ck_assert_ptr_nonnull(params_val);
+    yyjson_val *required_val = yyjson_obj_get(params_val, "required");
+    ck_assert_ptr_nonnull(required_val);
+    ck_assert(yyjson_is_arr(required_val));
+    ck_assert_uint_eq(yyjson_arr_size(required_val), 1);
 }
 
 END_TEST
@@ -121,13 +183,13 @@ START_TEST(test_register_twice_overwrites) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
 
     ik_internal_tools_register(registry);
-    ck_assert_uint_eq(registry->count, 1);
+    ck_assert_uint_eq(registry->count, 4);
 
     // Register again - should override, not duplicate
     ik_internal_tools_register(registry);
-    ck_assert_uint_eq(registry->count, 1);
+    ck_assert_uint_eq(registry->count, 4);
 
-    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "noop");
+    ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "fork");
     ck_assert_ptr_nonnull(entry);
     ck_assert_int_eq(entry->type, IK_TOOL_INTERNAL);
 }
@@ -142,10 +204,11 @@ static Suite *internal_tools_suite(void)
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
-    tcase_add_test(tc_core, test_register_noop_tool);
-    tcase_add_test(tc_core, test_noop_handler_returns_ok);
-    tcase_add_test(tc_core, test_noop_schema_fields);
-    tcase_add_test(tc_core, test_noop_handler_ignores_arguments);
+    tcase_add_test(tc_core, test_register_all_tools);
+    tcase_add_test(tc_core, test_fork_schema_fields);
+    tcase_add_test(tc_core, test_kill_schema_fields);
+    tcase_add_test(tc_core, test_send_schema_fields);
+    tcase_add_test(tc_core, test_wait_schema_fields);
     tcase_add_test(tc_core, test_register_twice_overwrites);
 
     suite_add_tcase(s, tc_core);

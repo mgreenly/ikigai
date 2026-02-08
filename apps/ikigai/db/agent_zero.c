@@ -19,9 +19,10 @@
 #include <stdio.h>
 #include <talloc.h>
 #include <time.h>
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid)
 {
     assert(db != NULL);         // LCOV_EXCL_BR_LINE
+    assert(session_id > 0);     // LCOV_EXCL_BR_LINE
     assert(paths != NULL);      // LCOV_EXCL_BR_LINE
     assert(out_uuid != NULL);   // LCOV_EXCL_BR_LINE
 
@@ -91,18 +92,22 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uui
     // Insert Agent 0 with parent_uuid=NULL, status='running'
     // Note: No explicit transaction handling - caller should ensure proper transaction context
     const char *insert_query =
-        "INSERT INTO agents (uuid, name, parent_uuid, status, created_at, fork_message_id) "
-        "VALUES ($1, NULL, NULL, 'running', $2, 0)";
+        "INSERT INTO agents (uuid, name, parent_uuid, status, created_at, fork_message_id, session_id) "
+        "VALUES ($1, NULL, NULL, 'running', $2, 0, $3)";
 
     char created_at_str[32];
     snprintf(created_at_str, sizeof(created_at_str), "%" PRId64, time(NULL));
 
-    const char *insert_params[2];
+    char session_id_str[32];
+    snprintf(session_id_str, sizeof(session_id_str), "%" PRId64, session_id);
+
+    const char *insert_params[3];
     insert_params[0] = uuid;
     insert_params[1] = created_at_str;
+    insert_params[2] = session_id_str;
 
     ik_pg_result_wrapper_t *insert_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, insert_query, 2, NULL,
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, insert_query, 3, NULL,
                                                   insert_params, NULL, NULL, 0));
     PGresult *insert_res = insert_wrapper->pg_result;
 
@@ -130,44 +135,29 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uui
     }
 
     // Create initial pin event for system.md (only on fresh agent creation)
-    // Only create if a session exists (tests may not have sessions)
-    // Check if session_id=1 exists
-    const char *check_session = "SELECT 1 FROM sessions WHERE id = 1";
-    ik_pg_result_wrapper_t *session_wrapper =
-        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, check_session, 0, NULL,
-                                                  NULL, NULL, NULL, 0));
-    PGresult *session_res = session_wrapper->pg_result;
-
-    bool has_session = false;
-    if (PQresultStatus(session_res) == PGRES_TUPLES_OK && PQntuples(session_res) > 0) {
-        has_session = true;
+    // Build path to system.md
+    const char *data_dir = ik_paths_get_data_dir(paths);
+    char *system_md_path = talloc_asprintf(tmp, "%s/system/prompt.md", data_dir);
+    if (system_md_path == NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return ERR(db, OUT_OF_MEMORY, "Failed to allocate system.md path");     // LCOV_EXCL_LINE
     }
 
-    if (has_session) {
-        // Build path to system.md
-        const char *data_dir = ik_paths_get_data_dir(paths);
-        char *system_md_path = talloc_asprintf(tmp, "%s/system/prompt.md", data_dir);
-        if (system_md_path == NULL) {     // LCOV_EXCL_BR_LINE
-            talloc_free(tmp);     // LCOV_EXCL_LINE
-            return ERR(db, OUT_OF_MEMORY, "Failed to allocate system.md path");     // LCOV_EXCL_LINE
-        }
+    // Create fork event with role="child" and pinned_paths array
+    // This allows replay_fork_event() to populate the agent's pinned_paths
+    char *fork_data = talloc_asprintf(tmp,
+        "{\"role\":\"child\",\"pinned_paths\":[\"%s\"]}",
+        system_md_path);
+    if (fork_data == NULL) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return ERR(db, OUT_OF_MEMORY, "Failed to allocate fork event data");     // LCOV_EXCL_LINE
+    }
 
-        // Create fork event with role="child" and pinned_paths array
-        // This allows replay_fork_event() to populate the agent's pinned_paths
-        char *fork_data = talloc_asprintf(tmp,
-            "{\"role\":\"child\",\"pinned_paths\":[\"%s\"]}",
-            system_md_path);
-        if (fork_data == NULL) {     // LCOV_EXCL_BR_LINE
-            talloc_free(tmp);     // LCOV_EXCL_LINE
-            return ERR(db, OUT_OF_MEMORY, "Failed to allocate fork event data");     // LCOV_EXCL_LINE
-        }
-
-        res_t msg_res = ik_db_message_insert(db, 1, uuid, "fork",
-                                             "Agent 0 created with system prompt", fork_data);
-        if (is_err(&msg_res)) {     // LCOV_EXCL_BR_LINE
-            talloc_free(tmp);     // LCOV_EXCL_LINE
-            return msg_res;     // LCOV_EXCL_LINE
-        }
+    res_t msg_res = ik_db_message_insert(db, session_id, uuid, "fork",
+                                         "Agent 0 created with system prompt", fork_data);
+    if (is_err(&msg_res)) {     // LCOV_EXCL_BR_LINE
+        talloc_free(tmp);     // LCOV_EXCL_LINE
+        return msg_res;     // LCOV_EXCL_LINE
     }
 
     *out_uuid = uuid;

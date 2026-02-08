@@ -101,6 +101,11 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
 
     if (db_connection_string != NULL) {
         const char *data_dir = ik_paths_get_data_dir(paths);
+
+        // Store connection string for per-agent worker connections
+        shared->db_conn_str = talloc_strdup(shared, db_connection_string);
+        if (shared->db_conn_str == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
         result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->db_ctx);
         if (is_err(&result)) {
             // Cleanup already-initialized resources
@@ -113,7 +118,7 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
         // Steal db_ctx to shared for proper ownership
         talloc_steal(shared, shared->db_ctx);
 
-        // Create worker thread DB connection (same connection string)
+        // Create worker thread DB connection for /wait command (main thread commands)
         result = ik_db_init_(ctx, db_connection_string, data_dir, (void **)&shared->worker_db_ctx);
         if (is_err(&result)) {
             // Cleanup already-initialized resources
@@ -128,6 +133,7 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     } else {
         shared->db_ctx = NULL;
         shared->worker_db_ctx = NULL;
+        shared->db_conn_str = NULL;
     }
 
     // Initialize session_id to 0 (session creation stays in repl_init for now)

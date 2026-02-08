@@ -45,7 +45,7 @@ res_t ik_db_message_insert(ik_db_ctx_t *db_ctx,
 res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 res_t ik_db_session_get_active(ik_db_ctx_t *db_ctx, int64_t *session_id_out);
 typedef struct ik_paths_t ik_paths_t;
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid);
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid);
 res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent);
 res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
                                   const char *uuid,
@@ -55,6 +55,7 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
 res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik_db_agent_row_t **out);
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *mem_ctx, ik_db_agent_row_t ***out, size_t *count);
 res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx);
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx);
 
 // Forward declaration for suite function
 static Suite *repl_session_suite(void);
@@ -84,9 +85,22 @@ res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_di
     return OK(dummy_ctx);
 }
 
-// Mock ik_db_ensure_agent_zero - always succeeds in session tests
-res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, ik_paths_t *paths, char **out_uuid)
+res_t ik_db_init(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, ik_db_ctx_t **out_ctx)
 {
+    (void)conn_str;
+    (void)data_dir;
+    ik_db_ctx_t *dummy_ctx = talloc_zero(mem_ctx, ik_db_ctx_t);
+    if (dummy_ctx == NULL) {
+        return ERR(mem_ctx, IO, "Out of memory");
+    }
+    *out_ctx = dummy_ctx;
+    return OK(dummy_ctx);
+}
+
+// Mock ik_db_ensure_agent_zero - always succeeds in session tests
+res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *paths, char **out_uuid)
+{
+    (void)session_id;  // Unused in mock
     (void)paths;  // Unused in mock
 
     *out_uuid = talloc_strdup(db, "agent-zero-uuid");
@@ -165,6 +179,13 @@ res_t ik_repl_restore_agents(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
         return ERR(repl, IO, "Mock restore agents failure");
     }
     (void)repl;
+    (void)db_ctx;
+    return OK(NULL);
+}
+
+// Mock ik_db_agent_reap_all_dead (needed because repl_init calls it)
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx)
+{
     (void)db_ctx;
     return OK(NULL);
 }

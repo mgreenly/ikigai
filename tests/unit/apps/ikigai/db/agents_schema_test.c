@@ -101,9 +101,10 @@ START_TEST(test_agent_status_enum) {
                                "ORDER BY enumsortorder");
 
     ck_assert(PQresultStatus(res) == PGRES_TUPLES_OK);
-    ck_assert_int_eq(PQntuples(res), 2);
+    ck_assert_int_eq(PQntuples(res), 3);
     ck_assert_str_eq(PQgetvalue(res, 0, 0), "running");
     ck_assert_str_eq(PQgetvalue(res, 1, 0), "dead");
+    ck_assert_str_eq(PQgetvalue(res, 2, 0), "reaped");
     PQclear(res);
     talloc_free(ctx);
 }

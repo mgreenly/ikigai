@@ -90,6 +90,46 @@ res_t ik_db_agent_get(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, const char *uuid, ik
 res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, ik_db_agent_row_t ***out, size_t *count);
 
 /**
+ * List all active agents (running and dead) for a session
+ *
+ * Returns all agents with status in ('running', 'dead') for a given session,
+ * ordered by created_at. Used by /agents command to show both running and dead agents.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
+ * @param session_id Session ID to filter by
+ * @param out Output parameter for array of agent row pointers (must not be NULL)
+ * @param count Output parameter for array size (must not be NULL)
+ * @return OK with agent rows on success, ERR on failure
+ */
+res_t ik_db_agent_list_active(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, int64_t session_id, ik_db_agent_row_t ***out, size_t *count);
+
+/**
+ * Mark agent as reaped
+ *
+ * Updates an agent's status from 'dead' to 'reaped'. Used by /reap command
+ * to hide reaped agents from /agents list while preserving the row for
+ * audit trail and foreign key integrity.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param uuid Agent UUID to update (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_agent_mark_reaped(ik_db_ctx_t *db_ctx, const char *uuid);
+
+/**
+ * Reap all dead agents at startup
+ *
+ * Marks all agents with status='dead' as 'reaped'. Called once during
+ * initialization to sweep dead agents from previous sessions so they
+ * don't clutter /agents output.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_db_agent_reap_all_dead(ik_db_ctx_t *db_ctx);
+
+/**
  * Get the last message ID for an agent
  *
  * Returns the maximum message ID for an agent. Used during fork to record

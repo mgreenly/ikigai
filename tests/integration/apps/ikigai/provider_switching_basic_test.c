@@ -1,5 +1,4 @@
 /**
-#include "apps/ikigai/wrapper_pthread.h"
  * @file provider_switching_basic_test.c
  * @brief Integration tests for basic provider switching
  *
@@ -21,6 +20,7 @@
 #include "apps/ikigai/commands.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/session.h"
 #include "shared/error.h"
 #include "apps/ikigai/paths.h"
 #include "shared/credentials.h"
@@ -344,6 +344,9 @@ START_TEST(test_database_update_on_switch) {
     r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&r));
     shared->db_ctx = g_db;
+    int64_t session_id;
+    r = ik_db_session_create(g_db, &session_id); ck_assert(is_ok(&r));
+    shared->session_id = session_id;
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
     agent->provider = talloc_strdup(agent, "anthropic");

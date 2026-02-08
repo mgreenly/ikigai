@@ -26,6 +26,10 @@
 
 // Note: ik_db_ensure_agent_zero is no longer mocked - using real implementation from db/agent.c
 
+/* Forward declarations for mocks */
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle);
+res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload);
+
 // Mock state for ik_db_message_insert
 static bool mock_message_insert_should_fail = false;
 static TALLOC_CTX *mock_err_ctx = NULL;
@@ -66,6 +70,24 @@ res_t ik_db_session_create(ik_db_ctx_t *db_ctx, int64_t *session_id_out)
 {
     (void)db_ctx;
     (void)session_id_out;
+    return OK(NULL);
+}
+
+/* Mock agent set idle that succeeds */
+res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle)
+{
+    (void)db;
+    (void)uuid;
+    (void)idle;
+    return OK(NULL);
+}
+
+/* Mock notify that succeeds */
+res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload)
+{
+    (void)db;
+    (void)channel;
+    (void)payload;
     return OK(NULL);
 }
 

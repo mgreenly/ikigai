@@ -27,6 +27,7 @@ void insert_agent(const char *uuid, const char *parent_uuid,
     agent.parent_uuid = parent_uuid ? talloc_strdup(test_ctx, parent_uuid) : NULL;
     agent.created_at = created_at;
     agent.fork_message_id = fork_message_id;
+    agent.shared = &shared_ctx;
 
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));

@@ -56,6 +56,8 @@ int pthread_mutex_unlock_(pthread_mutex_t *mutex);
 int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
 int pthread_join_(pthread_t thread, void **retval);
 res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_uuid, const char *role, const char *content, const char *data);
+res_t ik_db_agent_set_idle(void *db_ctx, const char *uuid, bool idle);
+res_t ik_db_notify(void *db_ctx, const char *channel, const char *payload);
 
 // Mock render function
 res_t ik_repl_render_frame_(void *repl);
@@ -265,6 +267,22 @@ res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_
     (void)role;
     (void)content;
     (void)data;
+    return OK(NULL);
+}
+
+res_t ik_db_agent_set_idle(void *db_ctx, const char *uuid, bool idle)
+{
+    (void)db_ctx;
+    (void)uuid;
+    (void)idle;
+    return OK(NULL);
+}
+
+res_t ik_db_notify(void *db_ctx, const char *channel, const char *payload)
+{
+    (void)db_ctx;
+    (void)channel;
+    (void)payload;
     return OK(NULL);
 }
 

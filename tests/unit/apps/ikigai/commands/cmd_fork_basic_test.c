@@ -63,7 +63,7 @@ static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 
 // Helper: Create minimal REPL for testing
-static void setup_repl(void)
+static void setup_repl(int64_t session_id)
 {
     ik_scrollback_t *sb = ik_scrollback_create(test_ctx, 80);
     ck_assert_ptr_nonnull(sb);
@@ -91,6 +91,7 @@ static void setup_repl(void)
     shared->cfg = cfg;
     shared->db_ctx = db;
     atomic_init(&shared->fork_pending, false);
+    shared->session_id = session_id;
     repl->shared = shared;
     agent->shared = shared;
 
@@ -142,7 +143,20 @@ static void setup(void)
     ck_assert_ptr_nonnull(db->conn);
     // Don't call ik_test_db_begin - ik_cmd_fork manages its own transactions
 
-    setup_repl();
+    ik_test_db_truncate_all(db);
+
+    const char *session_query = "INSERT INTO sessions DEFAULT VALUES RETURNING id";
+    PGresult *session_res = PQexec(db->conn, session_query);
+    if (PQresultStatus(session_res) != PGRES_TUPLES_OK) {
+        fprintf(stderr, "Failed to create session: %s\n", PQerrorMessage(db->conn));
+        PQclear(session_res);
+        ck_abort_msg("Session creation failed");
+    }
+    const char *session_id_str = PQgetvalue(session_res, 0, 0);
+    int64_t session_id = (int64_t)atoll(session_id_str);
+    PQclear(session_res);
+
+    setup_repl(session_id);
 }
 
 static void teardown(void)

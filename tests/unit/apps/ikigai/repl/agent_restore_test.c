@@ -36,6 +36,7 @@ static bool db_available = false;
 TALLOC_CTX *test_ctx;
 ik_db_ctx_t *db;
 int64_t session_id;
+ik_shared_ctx_t shared_ctx;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -107,7 +108,11 @@ static void test_setup(void)
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
+        return;
     }
+
+    // Initialize minimal shared context with session_id
+    shared_ctx.session_id = session_id;
 }
 
 // Per-test teardown: Rollback and cleanup

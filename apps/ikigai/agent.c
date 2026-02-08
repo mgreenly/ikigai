@@ -3,6 +3,7 @@
 #include "apps/ikigai/config_defaults.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/agent_row.h"
+#include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/file_utils.h"
 #include "apps/ikigai/input_buffer/core.h"
@@ -106,6 +107,18 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
+    // Create per-agent worker DB connection (avoids concurrent PG access across agents)
+    if (shared->db_conn_str != NULL) {
+        const char *data_dir = ik_paths_get_data_dir(shared->paths);
+        result = ik_db_init(agent, shared->db_conn_str, data_dir, &agent->worker_db_ctx);
+        if (is_err(&result)) {
+            talloc_steal(ctx, result.err);
+            talloc_free(agent);
+            *out = NULL;
+            return result;
+        }
+    }
+
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
         // Free agent without calling destructor (mutex not initialized yet)
@@ -195,6 +208,18 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
+
+    // Create per-agent worker DB connection (avoids concurrent PG access across agents)
+    if (shared->db_conn_str != NULL) {
+        const char *data_dir = ik_paths_get_data_dir(shared->paths);
+        res_t db_result = ik_db_init(agent, shared->db_conn_str, data_dir, &agent->worker_db_ctx);
+        if (is_err(&db_result)) {
+            talloc_steal(ctx, db_result.err);
+            talloc_free(agent);
+            *out = NULL;
+            return db_result;
+        }
+    }
 
     int mutex_result = pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
     if (mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests

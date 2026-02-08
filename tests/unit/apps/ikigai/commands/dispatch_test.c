@@ -94,7 +94,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 20);     // clear, mark, rewind, fork, kill, mail-send, mail-check, mail-read, mail-delete, mail-filter, agents, help, model, system, tool, refresh, pin, unpin, toolset, exit
+    ck_assert_uint_eq(count, 18);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, exit
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -102,21 +102,19 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[2].name, "rewind");
     ck_assert_str_eq(cmds[3].name, "fork");
     ck_assert_str_eq(cmds[4].name, "kill");
-    ck_assert_str_eq(cmds[5].name, "mail-send");
-    ck_assert_str_eq(cmds[6].name, "mail-check");
-    ck_assert_str_eq(cmds[7].name, "mail-read");
-    ck_assert_str_eq(cmds[8].name, "mail-delete");
-    ck_assert_str_eq(cmds[9].name, "mail-filter");
-    ck_assert_str_eq(cmds[10].name, "agents");
-    ck_assert_str_eq(cmds[11].name, "help");
-    ck_assert_str_eq(cmds[12].name, "model");
-    ck_assert_str_eq(cmds[13].name, "system");
-    ck_assert_str_eq(cmds[14].name, "tool");
-    ck_assert_str_eq(cmds[15].name, "refresh");
-    ck_assert_str_eq(cmds[16].name, "pin");
-    ck_assert_str_eq(cmds[17].name, "unpin");
-    ck_assert_str_eq(cmds[18].name, "toolset");
-    ck_assert_str_eq(cmds[19].name, "exit");
+    ck_assert_str_eq(cmds[5].name, "send");
+    ck_assert_str_eq(cmds[6].name, "wait");
+    ck_assert_str_eq(cmds[7].name, "reap");
+    ck_assert_str_eq(cmds[8].name, "agents");
+    ck_assert_str_eq(cmds[9].name, "help");
+    ck_assert_str_eq(cmds[10].name, "model");
+    ck_assert_str_eq(cmds[11].name, "system");
+    ck_assert_str_eq(cmds[12].name, "tool");
+    ck_assert_str_eq(cmds[13].name, "refresh");
+    ck_assert_str_eq(cmds[14].name, "pin");
+    ck_assert_str_eq(cmds[15].name, "unpin");
+    ck_assert_str_eq(cmds[16].name, "toolset");
+    ck_assert_str_eq(cmds[17].name, "exit");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);

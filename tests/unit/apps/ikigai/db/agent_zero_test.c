@@ -28,6 +28,7 @@ static bool db_available = false;
 static TALLOC_CTX *test_ctx;
 static ik_db_ctx_t *db;
 static ik_paths_t *paths;
+static int64_t session_id;
 
 // Suite-level setup: Create and migrate database (runs once)
 static void suite_setup(void)
@@ -101,6 +102,18 @@ static void test_setup(void)
         test_ctx = NULL;
         db = NULL;
         paths = NULL;
+        return;
+    }
+
+    // Create session for tests
+    session_id = 0;
+    res = ik_db_session_create(db, &session_id);
+    if (is_err(&res)) {
+        talloc_free(test_ctx);
+        test_ctx = NULL;
+        db = NULL;
+        paths = NULL;
+        session_id = 0;
     }
 }
 
@@ -127,7 +140,7 @@ START_TEST(test_ensure_agent_zero_creates_on_empty) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, session_id, paths, &uuid);
     if (is_err(&res)) {
         fprintf(stderr, "ERROR in test_ensure_agent_zero_creates_on_empty: %s\n", res.err->msg);
     }
@@ -142,13 +155,13 @@ START_TEST(test_ensure_agent_zero_returns_existing) {
 
     // First call creates Agent 0
     char *uuid1 = NULL;
-    res_t res1 = ik_db_ensure_agent_zero(db, paths, &uuid1);
+    res_t res1 = ik_db_ensure_agent_zero(db, session_id, paths, &uuid1);
     ck_assert(is_ok(&res1));
     ck_assert(uuid1 != NULL);
 
     // Second call returns same UUID
     char *uuid2 = NULL;
-    res_t res2 = ik_db_ensure_agent_zero(db, paths, &uuid2);
+    res_t res2 = ik_db_ensure_agent_zero(db, session_id, paths, &uuid2);
     ck_assert(is_ok(&res2));
     ck_assert(uuid2 != NULL);
     ck_assert_str_eq(uuid1, uuid2);
@@ -160,7 +173,7 @@ START_TEST(test_agent_zero_has_null_parent) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, session_id, paths, &uuid);
     ck_assert(is_ok(&res));
 
     // Query to verify parent_uuid is NULL
@@ -181,7 +194,7 @@ START_TEST(test_agent_zero_status_running) {
     SKIP_IF_NO_DB();
 
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, session_id, paths, &uuid);
     ck_assert(is_ok(&res));
 
     // Query to verify status
@@ -216,13 +229,8 @@ START_TEST(test_ensure_agent_zero_adopts_orphans) {
         return;
     }
 
-    // Create a session first (messages FK requires valid session_id)
-    int64_t session_id = 0;
-    res_t sess_res = ik_db_session_create(db, &session_id);
-    ck_assert(is_ok(&sess_res));
-    ck_assert(session_id > 0);
-
     // Insert orphan messages (messages with no agent_uuid)
+    // Uses session_id created in test_setup
     char insert_orphan[512];
     snprintf(insert_orphan, sizeof(insert_orphan),
              "INSERT INTO messages (session_id, kind, content, created_at, agent_uuid) "
@@ -237,7 +245,7 @@ START_TEST(test_ensure_agent_zero_adopts_orphans) {
 
     // Ensure Agent 0 (should adopt orphans)
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, session_id, paths, &uuid);
     ck_assert(is_ok(&res));
     ck_assert(uuid != NULL);
 
@@ -269,15 +277,15 @@ START_TEST(test_ensure_agent_zero_idempotent) {
 
     // Call three times
     char *uuid1 = NULL;
-    res_t res1 = ik_db_ensure_agent_zero(db, paths, &uuid1);
+    res_t res1 = ik_db_ensure_agent_zero(db, session_id, paths, &uuid1);
     ck_assert(is_ok(&res1));
 
     char *uuid2 = NULL;
-    res_t res2 = ik_db_ensure_agent_zero(db, paths, &uuid2);
+    res_t res2 = ik_db_ensure_agent_zero(db, session_id, paths, &uuid2);
     ck_assert(is_ok(&res2));
 
     char *uuid3 = NULL;
-    res_t res3 = ik_db_ensure_agent_zero(db, paths, &uuid3);
+    res_t res3 = ik_db_ensure_agent_zero(db, session_id, paths, &uuid3);
     ck_assert(is_ok(&res3));
 
     // All should return same UUID
@@ -315,7 +323,7 @@ START_TEST(test_ensure_agent_zero_with_session_creates_fork_event) {
 
     // Ensure Agent 0 (should create fork event with pinned_paths)
     char *uuid = NULL;
-    res_t res = ik_db_ensure_agent_zero(db, paths, &uuid);
+    res_t res = ik_db_ensure_agent_zero(db, session_id, paths, &uuid);
     ck_assert(is_ok(&res));
     ck_assert(uuid != NULL);
 

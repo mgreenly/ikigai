@@ -47,10 +47,11 @@ res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
         return res;     // LCOV_EXCL_LINE
     }     // LCOV_EXCL_LINE
 
-    // Get all running agents from database
+    // Get all active agents (running and dead) from database for this session
     ik_db_agent_row_t **all_agents = NULL;
     size_t all_count = 0;
-    res = ik_db_agent_list_running(repl->shared->db_ctx, tmp_ctx, &all_agents, &all_count);
+    res = ik_db_agent_list_active(repl->shared->db_ctx, tmp_ctx, repl->shared->session_id,
+                                   &all_agents, &all_count);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE
@@ -122,13 +123,11 @@ res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
         memcpy(&line[offset], agent->uuid, uuid_len);
         offset += uuid_len;
 
-        // Add status
-        line[offset++] = ' ';
-        line[offset++] = '(';
-        size_t status_len = strlen(agent->status);
-        memcpy(&line[offset], agent->status, status_len);
-        offset += status_len;
-        line[offset++] = ')';
+        // Add [dead] indicator for dead agents
+        if (strcmp(agent->status, "dead") == 0) {
+            memcpy(&line[offset], " [dead]", 7);
+            offset += 7;
+        }
 
         // Add root label if parent is NULL
         if (agent->parent_uuid == NULL) {

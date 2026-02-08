@@ -10,6 +10,7 @@
 #include "shared/wrapper.h"
 #include "apps/ikigai/format.h"
 #include "apps/ikigai/commands.h"
+#include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/input_buffer/core.h"
 #include "apps/ikigai/message.h"
@@ -78,14 +79,20 @@ static void handle_slash_cmd_(ik_repl_ctx_t *repl, char *command_text)
 }
 
 /**
- * @brief Send user message to LLM
+ * @brief Send user message to LLM for specific agent
+ *
+ * Creates a user message on the specified agent, builds the LLM request,
+ * and starts the async stream. Works with any agent, not just repl->current.
  *
  * @param repl REPL context
+ * @param agent Target agent to send message for
  * @param message_text User message (null-terminated)
  */
-static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
+void send_to_llm_for_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent, const char *message_text)
 {
-    ik_agent_ctx_t *agent = repl->current;
+    assert(repl != NULL);  // LCOV_EXCL_BR_LINE
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(message_text != NULL);  // LCOV_EXCL_BR_LINE
 
     // Check if model is configured
     if (agent->model == NULL || strlen(agent->model) == 0) {
@@ -132,6 +139,15 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     }
 
     agent->tool_iteration_count = 0;
+
+    // Mark agent as active (no longer idle)
+    if (repl->shared->db_ctx != NULL) {
+        res_t idle_res = ik_db_agent_set_idle(repl->shared->db_ctx, agent->uuid, false);
+        if (is_err(&idle_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(idle_res.err);  // LCOV_EXCL_LINE
+        }
+    }
+
     ik_agent_transition_to_waiting_for_llm(agent);
 
     // Get or create provider (lazy initialization)
@@ -168,6 +184,17 @@ static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
     } else {
         agent->curl_still_running = 1;
     }
+}
+
+/**
+ * @brief Send user message to LLM (uses current agent)
+ *
+ * @param repl REPL context
+ * @param message_text User message (null-terminated)
+ */
+static void send_to_llm_(ik_repl_ctx_t *repl, char *message_text)
+{
+    send_to_llm_for_agent(repl, repl->current, message_text);
 }
 
 /**
