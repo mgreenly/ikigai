@@ -1,28 +1,40 @@
-Story: #276
+Story: #0
 
 ## Objective
 
-Create a new harness script `story-try-close` that checks if a story should be closed after a goal completes.
+Update the orchestrator (`.claude/harness/orchestrator/run`) so that:
 
-## Behavior
+1. **FIFO ordering** — queued goals are dispatched oldest-first (lowest issue number first).
+2. **Fairness** — all queued goals get at least one attempt before any failed goal is retried.
 
-1. Accept a goal number as argument
-2. Fetch the goal issue body via `goal-get`
-3. Parse `Story: #N` from the body to find the parent story number
-4. List all goals linked to that story (search for issues with `goal` label whose body contains `Story: #N`)
-5. If every linked goal has the `goal:done` label, close the story issue via `gh issue close`
-6. If not all done, do nothing
-7. Return JSON: `{"ok": true, "closed": true/false, "story": N}`
+## Current Behavior
 
-## File Structure
+The orchestrator calls `goal-list queued` and fills slots from whatever order the API returns (typically newest-first). Failed goals are immediately re-queued with the same priority as untried goals, so a repeatedly-failing goal can starve others.
 
-- Script: `.claude/harness/story-try-close/run` (Ruby, matching existing harness conventions)
-- Symlink: `.claude/scripts/story-try-close` → `../harness/story-try-close/run`
+## Required Changes
 
-## Edge Cases
+### 1. Sort by issue number ascending
 
-- Goal has no `Story: #N` reference → return ok with closed: false
-- Story has no goals → don't close (shouldn't happen but be safe)
-- Story is already closed → return ok with closed: false
+After fetching queued goals, sort the list by `number` ascending before selecting which goal to dispatch.
 
-Story: #276
+### 2. In-memory attempted-set for fairness
+
+- Maintain a Ruby `Set` of goal numbers that have been attempted (spawned at least once) in this orchestrator session.
+- When selecting the next goal to dispatch, partition queued goals into two groups:
+  - **Untried**: not in the attempted set
+  - **Retried**: in the attempted set
+- Always prefer untried goals (oldest first). Only dispatch retried goals (oldest first) when no untried goals remain.
+- Add a goal's number to the attempted set when it is spawned.
+- The set is purely in-memory — lost on orchestrator restart, which is acceptable.
+
+### 3. No other changes
+
+- Do not change retry logic, label transitions, dependency checking, or any other behavior.
+- Do not change CLI arguments or output format.
+
+## Acceptance Criteria
+
+- Queued goals are dispatched in ascending issue-number order.
+- A goal that fails and re-queues is not retried until all other queued goals have been attempted at least once.
+- Existing retry count / MAX_RETRIES / stuck logic is unchanged.
+- Existing dependency checking is unchanged.
