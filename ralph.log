@@ -8,8 +8,5 @@ Model: sonnet | Reasoning: med | Max Duration: unlimited
 
 Goal
 
-Update the orchestrator (`.claude/harness/orchestrator/run`) so that:
-
-1. **FIFO ordering** — queued goals are dispatched oldest-first (lowest issue number first).
-2. **Fairness** — all queued goals get at least one attempt before any failed goal is retried.
+Prevent merge conflicts caused by ralph runtime files being committed into PRs. All runtime files that ralph and the orchestrator write into clone directories must go into `.pipeline/cache/`, which is gitignored.
 
