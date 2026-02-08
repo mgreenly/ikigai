@@ -4,8 +4,11 @@
 # Terminal watcher for .ralphs/ directory
 # Shows current ralph clone directories with flicker-free updates
 
+require 'io/console'
+
 RALPHS_DIR = '.ralphs'
 REFRESH_INTERVAL = 1.5 # seconds
+LOG_LINES = 10 # Maximum rendered terminal lines per ralph
 
 # ANSI escape codes
 HIDE_CURSOR = "\e[?25l"
@@ -14,6 +17,76 @@ MOVE_HOME = "\e[H"
 CLEAR_SCREEN = "\e[2J"
 CLEAR_TO_END = "\e[J"
 CLEAR_LINE = "\e[K"
+
+# Get terminal width
+def terminal_width
+  IO.console&.winsize&.[](1) || 80
+end
+
+# Wrap a line to fit terminal width with indentation
+# Returns array of wrapped line segments
+def wrap_line(line, width, indent)
+  return [] if line.nil? || line.empty?
+
+  # Available width after indent
+  available = width - indent
+  return [line] if available <= 0 || line.length <= available
+
+  # Split into chunks of available width
+  result = []
+  pos = 0
+  while pos < line.length
+    chunk = line[pos, available]
+    result << chunk
+    pos += available
+  end
+  result
+end
+
+# Read and format log tail for a ralph
+# Returns array of formatted lines (up to LOG_LINES rendered lines)
+def format_log_tail(org, repo, number, width)
+  log_path = File.join(RALPHS_DIR, org, repo, number.to_s, '.pipeline', 'cache', 'ralph.log')
+  return [] unless File.exist?(log_path)
+
+  # Read entire log file
+  begin
+    content = File.read(log_path)
+  rescue
+    return []
+  end
+  lines = content.lines.map(&:chomp)
+
+  # Process from end, collecting up to LOG_LINES rendered lines
+  rendered = []
+  lines.reverse_each do |line|
+    wrapped = wrap_line(line, width, 2)
+
+    # Check if adding this line would exceed budget
+    needed = wrapped.length
+    available = LOG_LINES - rendered.length
+
+    if needed <= available
+      # Add all segments in reverse order (will be reversed again at end)
+      rendered.concat(wrapped.reverse)
+    elsif available > 0
+      # Partial fit - add what we can with "..." suffix
+      to_add = wrapped.reverse.take(available)
+      if to_add.any?
+        # Add "..." to the first element (last segment we'll show after final reverse)
+        to_add[0] = to_add[0] + "..."
+      end
+      rendered.concat(to_add)
+      break
+    else
+      # Budget exhausted
+      break
+    end
+  end
+
+  # Return in correct order (oldest first) with 2-space indent
+  rendered.reverse.map { |line| "  #{line}#{CLEAR_LINE}\n" }
+end
 
 # Trap Ctrl+C for clean exit
 trap('INT') do
@@ -30,6 +103,9 @@ begin
   loop do
     # Move cursor to top-left
     print MOVE_HOME
+
+    # Get terminal width
+    width = terminal_width
 
     # Display header with timestamp
     timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
@@ -56,7 +132,15 @@ begin
         print "No active ralphs#{CLEAR_LINE}\n"
       else
         entries.each do |entry|
+          # Display ralph directory
           print "  #{entry[:org]}/#{entry[:repo]}/#{entry[:number]}#{CLEAR_LINE}\n"
+
+          # Display log tail
+          log_lines = format_log_tail(entry[:org], entry[:repo], entry[:number], width)
+          log_lines.each { |line| print line }
+
+          # Blank line between ralph sections
+          print "\n"
         end
       end
     else
