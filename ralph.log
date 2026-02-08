@@ -70,3 +70,25 @@ Now I understand the structure. I need to create a new pipeline skill file based
 
 
 ✓ DONE
+
+══════════════════════════════════════════════════════════════════════
+  Iterations: 2
+  Assistant Messages: 23
+  Tool Uses: 10
+
+  Tokens:
+    Input: 167
+    Output: 53
+    Cache Read: 465,252
+    Cache Create: 58,230
+    Total: 523,702
+
+  Cost: $0.3592
+
+  Time:
+    LLM: 1m 13s
+    Tools: 2s
+    Other: 2s
+    Total: 1m 19s
+══════════════════════════════════════════════════════════════════════
+
