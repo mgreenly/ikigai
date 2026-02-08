@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Terminal watcher for .ralphs/ directory
+# Shows current ralph clone directories with flicker-free updates
+
+RALPHS_DIR = '.ralphs'
+REFRESH_INTERVAL = 1.5 # seconds
+
+# ANSI escape codes
+HIDE_CURSOR = "\e[?25l"
+SHOW_CURSOR = "\e[?25h"
+MOVE_HOME = "\e[H"
+CLEAR_SCREEN = "\e[2J"
+CLEAR_TO_END = "\e[J"
+
+# Trap Ctrl+C for clean exit
+trap('INT') do
+  print SHOW_CURSOR
+  puts "\nExiting..."
+  exit 0
+end
+
+# Initialize: clear screen and hide cursor
+print CLEAR_SCREEN
+print HIDE_CURSOR
+
+begin
+  loop do
+    # Move cursor to top-left
+    print MOVE_HOME
+
+    # Display header with timestamp
+    timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+    puts "=== Active Ralphs (#{timestamp}) ===\n\n"
+
+    # Check if .ralphs directory exists
+    if Dir.exist?(RALPHS_DIR)
+      # Get subdirectories (just the names, sorted numerically)
+      entries = Dir.entries(RALPHS_DIR)
+                   .select { |e| File.directory?(File.join(RALPHS_DIR, e)) && e != '.' && e != '..' }
+                   .sort_by(&:to_i)
+
+      if entries.empty?
+        puts "No active ralphs"
+      else
+        entries.each do |dir|
+          puts "  #{dir}"
+        end
+      end
+    else
+      puts "No active ralphs"
+    end
+
+    # Clear any remaining lines from previous display
+    print CLEAR_TO_END
+
+    # Wait before next refresh
+    sleep REFRESH_INTERVAL
+  end
+ensure
+  # Restore cursor on exit
+  print SHOW_CURSOR
+end
