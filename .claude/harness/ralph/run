@@ -59,16 +59,17 @@ class Ralph
     'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
   }.freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:, log_mode:)
     @goal_file = goal_file
     @duration_seconds = parse_duration(duration)
     @model = model
     @reasoning = reasoning
     @thinking_budget = calculate_thinking_budget(model, reasoning)
     @summarizer_budget = calculate_thinking_budget('haiku', 'high')
-    @no_spinner = no_spinner
-    @no_art = no_art
-    @no_quotes = no_quotes
+    @log_mode = log_mode
+    @no_spinner = log_mode ? true : no_spinner
+    @no_art = log_mode ? true : no_art
+    @no_quotes = log_mode ? true : no_quotes
     @continue_run = continue_run
     @debug = debug
     @pull_request = pull_request
@@ -123,6 +124,10 @@ class Ralph
     handle_dirty_state
     summarize_if_needed if @continue_run
 
+    # Capture start commit hash
+    @start_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
+    @start_commit = nil if @start_commit.empty?
+
     @exit_reason = nil
     loop do
       if time_expired?
@@ -140,6 +145,10 @@ class Ralph
 
       summarize_if_needed
     end
+
+    # Capture end commit hash
+    @end_commit = `jj log -r @ --no-graph -T 'commit_id' 2>/dev/null`.strip
+    @end_commit = nil if @end_commit.empty?
 
     display_summary
     send_notification
@@ -194,8 +203,8 @@ class Ralph
   def display_continue_status
     return unless @continue_run && @iteration.positive?
 
-    puts "Continuing from iteration #{@iteration}"
-    puts
+    emit_line "Continuing from iteration #{@iteration}"
+    emit_line
   end
 
   def count_progress_entries
@@ -218,10 +227,10 @@ class Ralph
     commit_iteration("dirty state recovery")
 
     # Display as proper iteration
-    puts "\e[1mIteration #{@iteration}\e[0m"
-    puts
-    puts "#{progress}"
-    puts
+    emit_line "\e[1mIteration #{@iteration}\e[0m"
+    emit_line
+    emit_line "#{progress}"
+    emit_line
 
     summarize_if_needed
   end
@@ -288,11 +297,11 @@ class Ralph
     new_summary = parse_summary(result)
     if new_summary
       save_summary(new_summary)
-      puts 'Summary updated'
-      puts
+      emit_line 'Summary updated'
+      emit_line
     else
-      puts 'Summary generation failed'
-      puts
+      emit_line 'Summary generation failed'
+      emit_line
     end
   end
 
@@ -561,8 +570,8 @@ class Ralph
         # Unknown message type - output in subdued style
         reset_waiting_timer
         suffix = format_timing_suffix
-        puts "\e[90m? #{event['type']} #{suffix}\e[0m"
-        puts
+        emit_line "\e[90m? #{event['type']} #{suffix}\e[0m"
+        emit_line
       end
     end
 
@@ -654,15 +663,15 @@ class Ralph
     suffix = "\e[90m#{format_timing_suffix(context_pct)}\e[0m"
     lines = text.lines
     if lines.empty?
-      puts suffix
+      emit_line suffix
     elsif lines.length == 1
-      puts "#{lines.first.chomp} #{suffix}"
+      emit_line "#{lines.first.chomp} #{suffix}"
     else
-      puts lines.first
-      lines[1...-1].each { |l| puts l }
-      puts "#{lines.last.chomp} #{suffix}"
+      emit_line lines.first
+      lines[1...-1].each { |l| emit_line l }
+      emit_line "#{lines.last.chomp} #{suffix}"
     end
-    puts
+    emit_line
   end
 
   def output_tool_use(tool_use, iteration_start)
@@ -670,8 +679,8 @@ class Ralph
     suffix = format_timing_suffix
     name = tool_use['name']
     params = format_params(tool_use['input'] || {})
-    puts "\e[90m→ #{name} #{params} #{suffix}\e[0m"
-    puts
+    emit_line "\e[90m→ #{name} #{params} #{suffix}\e[0m"
+    emit_line
   end
 
   def output_tool_result(name, tool_result, tool_use_result, iteration_start)
@@ -680,8 +689,8 @@ class Ralph
     # Prefer structured tool_use_result, fall back to content
     data = tool_use_result || { 'content' => tool_result['content'] }
     params = format_params(data)
-    puts "\e[90m← #{name} #{params} #{suffix}\e[0m"
-    puts
+    emit_line "\e[90m← #{name} #{params} #{suffix}\e[0m"
+    emit_line
   end
 
   def format_params(hash)
@@ -812,19 +821,19 @@ class Ralph
     unless @no_art
       ascii_file = File.join(SCRIPT_DIR, 'ralph.ascii')
       if File.exist?(ascii_file)
-        print File.read(ascii_file).chomp
-        puts '─' * 70
-        puts
+        emit File.read(ascii_file).chomp
+        emit_line '─' * 70
+        emit_line
       end
     end
-    puts "\e[1mRALPH v#{VERSION}\e[0m"
-    puts
-    puts "Braindead agentic loop. Just keep trying until it works."
-    puts
-    puts "\e[1mParams\e[0m"
-    puts
-    puts "Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
-    puts
+    emit_line "\e[1mRALPH v#{VERSION}\e[0m"
+    emit_line
+    emit_line "Braindead agentic loop. Just keep trying until it works."
+    emit_line
+    emit_line "\e[1mParams\e[0m"
+    emit_line
+    emit_line "Model: #{@model} | Reasoning: #{@reasoning} | Max Duration: #{duration_str}"
+    emit_line
   end
 
   def display_goal
@@ -833,10 +842,10 @@ class Ralph
     # Extract just the objective section
     objective = extract_objective(goal_content)
 
-    puts "\e[1mGoal\e[0m"
-    puts
-    puts objective
-    puts
+    emit_line "\e[1mGoal\e[0m"
+    emit_line
+    emit_line objective
+    emit_line
   end
 
   def extract_objective(content)
@@ -850,43 +859,43 @@ class Ralph
   end
 
   def display_iteration_header
-    puts "\e[1mIteration #{@iteration}\e[0m"
-    puts
+    emit_line "\e[1mIteration #{@iteration}\e[0m"
+    emit_line
   end
 
   def maybe_ralph_says
     return if @no_quotes
     return unless rand < 0.03  # 3% chance
 
-    puts "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
-    puts
+    emit_line "\e[33mRalph:\e[0m #{RALPH_QUOTES.sample}"
+    emit_line
   end
 
   def display_progress(progress)
-    puts
+    emit_line
     if progress == 'DONE'
-      puts "\e[32m✓ DONE\e[0m"
+      emit_line "\e[32m✓ DONE\e[0m"
     else
       # Word wrap and indent
       wrapped = word_wrap(progress, 66)
       wrapped.each_line do |line|
-        puts "  #{line}"
+        emit_line "  #{line}"
       end
-      puts
-      puts '─' * 70
+      emit_line
+      emit_line '─' * 70
     end
   end
 
   def display_error(message)
-    puts
-    puts "\e[31m  ✗ #{message}\e[0m"
-    puts
-    puts '─' * 70
+    emit_line
+    emit_line "\e[31m  ✗ #{message}\e[0m"
+    emit_line
+    emit_line '─' * 70
   end
 
   def display_summarizing
-    puts "\e[33mSummarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
-    puts
+    emit_line "\e[33mSummarizing progress (every #{MAX_RECENT} iterations)...\e[0m"
+    emit_line
     $stdout.flush
   end
 
@@ -895,33 +904,33 @@ class Ralph
     actual_elapsed = (Time.now - @start_time).to_i
     elapsed = format_elapsed(actual_elapsed)
 
-    puts
-    puts "\e[1m" + '═' * 70 + "\e[0m"
-    puts "  Iterations: #{@total_iterations}"
-    puts "  Assistant Messages: #{@total_assistant_messages}"
-    puts "  Tool Uses: #{@total_tool_uses}"
-    puts
+    emit_line
+    emit_line "\e[1m" + '═' * 70 + "\e[0m"
+    emit_line "  Iterations: #{@total_iterations}"
+    emit_line "  Assistant Messages: #{@total_assistant_messages}"
+    emit_line "  Tool Uses: #{@total_tool_uses}"
+    emit_line
 
-    puts "  Tokens:"
-    puts "    Input: #{format_number(@total_tokens[:input])}"
-    puts "    Output: #{format_number(@total_tokens[:output])}"
-    puts "    Cache Read: #{format_number(@total_tokens[:cache_read])}"
-    puts "    Cache Create: #{format_number(@total_tokens[:cache_create])}"
+    emit_line "  Tokens:"
+    emit_line "    Input: #{format_number(@total_tokens[:input])}"
+    emit_line "    Output: #{format_number(@total_tokens[:output])}"
+    emit_line "    Cache Read: #{format_number(@total_tokens[:cache_read])}"
+    emit_line "    Cache Create: #{format_number(@total_tokens[:cache_create])}"
     total_tokens = @total_tokens.values.sum
-    puts "    Total: #{format_number(total_tokens)}"
-    puts
+    emit_line "    Total: #{format_number(total_tokens)}"
+    emit_line
 
-    puts "  Cost: $#{format('%.4f', @total_cost)}"
-    puts
+    emit_line "  Cost: $#{format('%.4f', @total_cost)}"
+    emit_line
     other_time = [actual_elapsed - @total_llm_time - @total_tool_time, 0].max
-    puts "  Time:"
-    puts "    LLM: #{format_elapsed(@total_llm_time.to_i)}"
-    puts "    Tools: #{format_elapsed(@total_tool_time.to_i)}"
-    puts "    Other: #{format_elapsed(other_time.to_i)}"
-    puts "    Total: #{elapsed}"
+    emit_line "  Time:"
+    emit_line "    LLM: #{format_elapsed(@total_llm_time.to_i)}"
+    emit_line "    Tools: #{format_elapsed(@total_tool_time.to_i)}"
+    emit_line "    Other: #{format_elapsed(other_time.to_i)}"
+    emit_line "    Total: #{elapsed}"
 
-    puts "\e[1m" + '═' * 70 + "\e[0m"
-    puts
+    emit_line "\e[1m" + '═' * 70 + "\e[0m"
+    emit_line
 
     write_stats_record(actual_elapsed)
   end
@@ -980,6 +989,31 @@ class Ralph
   # Stats Logging
   # ─────────────────────────────────────────────────────────────
 
+  def compute_diff_stats(start_commit, end_commit)
+    # Default values
+    lines_added = 0
+    lines_deleted = 0
+
+    # Skip if commits are missing or identical
+    return [lines_added, lines_deleted] if start_commit.nil? || end_commit.nil?
+    return [lines_added, lines_deleted] if start_commit == end_commit
+
+    # Get diff stats
+    stat_output = `jj diff --stat --from #{start_commit} --to #{end_commit} 2>/dev/null`
+    return [lines_added, lines_deleted] if stat_output.empty?
+
+    # Parse summary line: "3 files changed, 40 insertions(+), 5 deletions(-)"
+    if stat_output =~ /(\d+) insertion/
+      lines_added = $1.to_i
+    end
+
+    if stat_output =~ /(\d+) deletion/
+      lines_deleted = $1.to_i
+    end
+
+    [lines_added, lines_deleted]
+  end
+
   def ensure_state_dirs
     FileUtils.mkdir_p(STATE_DIR)
     FileUtils.mkdir_p(GOALS_DIR)
@@ -1000,6 +1034,9 @@ class Ralph
     ensure_state_dirs
 
     other_time = [actual_elapsed - @total_llm_time - @total_tool_time, 0].max
+
+    # Compute diff stats
+    lines_added, lines_deleted = compute_diff_stats(@start_commit, @end_commit)
 
     record = {
       goal_file: "goals/#{@goal_copy_name}",
@@ -1022,7 +1059,11 @@ class Ralph
         tools: @total_tool_time.to_i,
         other: other_time.to_i,
         total: actual_elapsed
-      }
+      },
+      commit_start: @start_commit,
+      commit_end: @end_commit,
+      lines_added: lines_added,
+      lines_deleted: lines_deleted
     }
 
     File.open(STATS_FILE, 'a') { |f| f.puts(record.to_json) }
@@ -1032,19 +1073,47 @@ class Ralph
   # Utilities
   # ─────────────────────────────────────────────────────────────
 
+  def emit(text)
+    if @log_mode
+      clean = text.gsub(/\e\[[0-9;]*m/, '')
+      clean = clean.gsub("\r", "\n")
+      print clean
+    else
+      print text
+    end
+    $stdout.flush
+  end
+
+  def emit_line(text = '')
+    if @log_mode
+      clean = text.gsub(/\e\[[0-9;]*m/, '')
+      puts clean
+    else
+      puts text
+    end
+  end
+
   def log(message)
     timestamp = Time.now.strftime('%H:%M:%S')
-    puts "  \e[90m[#{timestamp}]\e[0m #{message}"
+    emit_line "  \e[90m[#{timestamp}]\e[0m #{message}"
   end
 
   def debug(message)
     return unless @debug
 
-    $stderr.puts "\e[33m[DEBUG] #{message}\e[0m"
+    if @log_mode
+      $stderr.puts "[DEBUG] #{message}"
+    else
+      $stderr.puts "\e[33m[DEBUG] #{message}\e[0m"
+    end
   end
 
   def fatal(message)
-    $stderr.puts "\e[31mError: #{message}\e[0m"
+    if @log_mode
+      $stderr.puts "Error: #{message}"
+    else
+      $stderr.puts "\e[31mError: #{message}\e[0m"
+    end
     exit 1
   end
 
@@ -1130,6 +1199,8 @@ class Ralph
   # ─────────────────────────────────────────────────────────────
 
   def start_waiting_timer(iteration_start)
+    return if @log_mode
+
     @waiting_timer_running = true
     @waiting_timer_displayed = false
     @last_output_time = Time.now
@@ -1182,7 +1253,8 @@ options = {
   no_quotes: false,
   continue: false,
   debug: false,
-  pull_request: true
+  pull_request: true,
+  log_mode: false
 }
 
 OptionParser.new do |opts|
@@ -1228,6 +1300,10 @@ OptionParser.new do |opts|
     options[:debug] = true
   end
 
+  opts.on('--log-mode', 'Non-interactive output (no spinner, no ANSI, no \\r)') do
+    options[:log_mode] = true
+  end
+
   opts.on('--[no-]pull-request', 'Create pull request when goal complete (default: enabled)') do |pr|
     options[:pull_request] = pr
   end
@@ -1259,7 +1335,8 @@ ralph = Ralph.new(
   no_quotes: options[:no_quotes],
   continue_run: options[:continue],
   debug: options[:debug],
-  pull_request: options[:pull_request]
+  pull_request: options[:pull_request],
+  log_mode: options[:log_mode]
 )
 
 begin

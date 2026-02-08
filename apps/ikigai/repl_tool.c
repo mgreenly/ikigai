@@ -144,55 +144,6 @@ static char *ik_build_tool_result_data_json(TALLOC_CTX *ctx,
     return data_json;
 }
 
-// Execute pending tool call and add messages to conversation (synchronous).
-void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL);               // LCOV_EXCL_BR_LINE
-    assert(repl->current->pending_tool_call != NULL);  // LCOV_EXCL_BR_LINE
-
-    ik_tool_call_t *tc = repl->current->pending_tool_call;
-    char *summary = talloc_asprintf(repl, "%s(%s)", tc->name, tc->arguments);
-    if (summary == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    ik_message_t *tc_msg = ik_message_create_tool_call(repl->current, tc->id, tc->name, tc->arguments);
-    res_t result = ik_agent_add_message(repl->current, tc_msg);
-    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
-    {
-        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_call");  // LCOV_EXCL_LINE
-        yyjson_mut_obj_add_str(log_doc, log_root, "summary", summary);  // LCOV_EXCL_LINE
-        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
-    }
-    char *result_json = ik_tool_execute_from_registry(repl, repl->shared->tool_registry, repl->shared->paths,
-                                                      repl->current->uuid, tc->name, tc->arguments, NULL);
-    ik_message_t *result_msg = ik_message_create_tool_result(repl->current, tc->id, result_json, false);
-    result = ik_agent_add_message(repl->current, result_msg);
-    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
-    {
-        yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
-        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
-        yyjson_mut_obj_add_str(log_doc, log_root, "event", "tool_result");  // LCOV_EXCL_LINE
-        yyjson_mut_obj_add_str(log_doc, log_root, "result", result_json);  // LCOV_EXCL_LINE
-        ik_log_debug_json(log_doc);  // LCOV_EXCL_LINE
-    }
-    const char *formatted_call = ik_format_tool_call(repl, tc);
-    ik_event_render(repl->current->scrollback, "tool_call", formatted_call, "{}", false);
-    const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
-    ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}", false);
-    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-        char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL);
-        char *tool_result_data_json = ik_build_tool_result_data_json(repl, tc->id, tc->name, result_json);
-        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_call", formatted_call, tool_call_data_json);
-        ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
-                              repl->current->uuid, "tool_result", formatted_result, tool_result_data_json);
-        talloc_free(tool_call_data_json);
-        talloc_free(tool_result_data_json);
-    }
-    talloc_free(summary);
-    talloc_free(repl->current->pending_tool_call);
-    repl->current->pending_tool_call = NULL;
-}
 
 // Start async tool execution - spawns thread, returns immediately.
 void ik_agent_start_tool_execution(ik_agent_ctx_t *agent)

@@ -52,6 +52,9 @@ coverage_html/
 **/harness-ruby-summary.md
 **/harness-ruby-summary-meta.json
 
+# Pipeline orchestrator clones
+.ralphs/
+
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
 

@@ -1,0 +1,83 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# scripts/goal-queue - Move a goal from draft to queued
+#
+# Usage: goal-queue <number>
+#
+# Swaps labels: removes goal:draft, adds goal:queued.
+#
+# Output: JSON {"ok": true, "number": <number>}
+# Exit code: 0 on success, 1 on failure
+#
+
+require 'json'
+
+def main
+  if ARGV.include?('--help') || ARGV.include?('-h')
+    puts <<~HELP
+      Usage: goal-queue <number>
+
+      Move a pipeline goal from draft to queued.
+
+      Arguments:
+        number    GitHub Issue number (required)
+
+      What it does:
+        Removes the goal:draft label, adds goal:queued.
+        The orchestrator picks up goals labeled goal:queued.
+
+      Output:
+        JSON {"ok": true, "number": <number>}
+
+      Examples:
+        goal-queue 42
+    HELP
+    exit 0
+  end
+
+  number = ARGV[0]&.to_i
+
+  unless number && number > 0
+    puts JSON.generate(ok: false, items: ['issue number is required'])
+    exit 1
+  end
+
+  # Validate this is a real goal
+  goal_get = File.join(File.expand_path('../../..', File.dirname(File.realpath(__FILE__))),
+                       '.claude', 'scripts', 'goal-get')
+  goal_json = IO.popen([goal_get, number.to_s], err: '/dev/null', &:read)
+  goal = (JSON.parse(goal_json) rescue nil)
+
+  unless goal && goal['ok']
+    puts JSON.generate(ok: false, items: ["##{number} is not a goal"])
+    exit 1
+  end
+
+  # Remove goal:draft
+  system('gh', 'issue', 'edit', number.to_s,
+         '--remove-label', 'goal:draft',
+         out: '/dev/null', err: '/dev/null')
+
+  # Add goal:queued
+  ok = system('gh', 'issue', 'edit', number.to_s,
+              '--add-label', 'goal:queued',
+              out: '/dev/null', err: '/dev/null')
+
+  unless ok
+    puts JSON.generate(ok: false, items: ["failed to update labels on ##{number}"])
+    exit 1
+  end
+
+  puts JSON.generate(ok: true, number: number)
+  exit 0
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

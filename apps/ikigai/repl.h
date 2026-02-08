@@ -102,10 +102,7 @@ res_t ik_repl_handle_resize(ik_repl_ctx_t *repl);
 // State transition functions (Phase 1.6)
 // Internal helper functions moved to repl_event_handlers.h
 
-// Tool execution helper (exposed to reduce complexity in handle_request_success)
-void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl);
-
-// Async tool execution (replaces synchronous ik_repl_execute_pending_tool)
+// Async tool execution
 void ik_repl_start_tool_execution(ik_repl_ctx_t *repl);
 void ik_repl_complete_tool_execution(ik_repl_ctx_t *repl);
 

@@ -43,20 +43,4 @@
  */
 res_t ik_google_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category);
 
-/**
- * Extract retryDelay from response body
- *
- * @param body Response body (JSON)
- * @return     Retry delay in seconds, or -1 if not present
- *
- * Rate limit response format:
- * {
- *   "error": { ... },
- *   "retryDelay": "60s"
- * }
- *
- * Parses retryDelay string ("60s" format), extracts integer seconds.
- */
-int32_t ik_google_get_retry_after(const char *body);
-
 #endif /* IK_PROVIDERS_GOOGLE_ERROR_H */
