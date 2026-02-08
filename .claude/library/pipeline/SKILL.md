@@ -7,11 +7,15 @@ description: Pipeline commands for managing stories and goals
 
 Continuous development pipeline. Stories describe features, goals are executable units of work. All scripts return JSON (`{"ok": true/false, ...}`).
 
+**Trial/Debug Mode:** Currently all goals use `--story 0` to disable story tracking. Goals are standalone during this phase.
+
 ## Flow
 
 ```
 Story (human writes) → Goals (decomposed) → Queue → Ralph executes → PR merges
 ```
+
+**Current:** Goals bypass story mechanism (`--story 0`) during trial/debug phase.
 
 ## Goal Statuses
 
@@ -43,8 +47,10 @@ Scripts live in `.claude/harness/<name>/run` with symlinks in `.claude/scripts/`
 ```bash
 .claude/scripts/goal-list queued
 .claude/scripts/goal-get 42
-echo "## Objective\n..." | .claude/scripts/goal-create --story 15 --title "Add X"
+echo "## Objective\n..." | .claude/scripts/goal-create --story 0 --title "Add X"
 ```
+
+**Note:** During trial/debug phase, always use `--story 0` when creating goals.
 
 ## Logs
 
@@ -64,6 +70,7 @@ Goal bodies **must** follow the `goal-authoring` skill guidelines (`/load goal-a
 ## Key Rules
 
 - **Body via stdin** -- `goal-create` and `story-create` read body from stdin
-- Goals reference parent story via `Story: #<number>` in body
+- **Trial/debug mode** -- Use `--story 0` for all goals during trial/debug phase; stories are disabled
+- Goals reference parent story via `Story: #<number>` in body (currently `Story: #0` for all goals)
 - **Dependencies** -- Goals can declare `Depends: #N, #M` in body; orchestrator waits for dependencies to reach `goal:done` before picking up the goal
-- **Story auto-close** -- When all goals for a story reach `goal:done`, the story is automatically closed
+- **Story auto-close** -- When all goals for a story reach `goal:done`, the story is automatically closed (inactive during trial/debug phase)
