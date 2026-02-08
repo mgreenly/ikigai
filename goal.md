@@ -1,28 +1,26 @@
-Story: #276
+Story: #0
 
 ## Objective
 
-Create a new harness script `story-try-close` that checks if a story should be closed after a goal completes.
+After the orchestrator creates a PR via `gh pr create`, it should immediately enable auto-merge on that PR so it merges automatically once CI passes, without relying on the "Auto-merge Bot PRs" GitHub Actions workflow.
 
-## Behavior
+## Current Behavior
 
-1. Accept a goal number as argument
-2. Fetch the goal issue body via `goal-get`
-3. Parse `Story: #N` from the body to find the parent story number
-4. List all goals linked to that story (search for issues with `goal` label whose body contains `Story: #N`)
-5. If every linked goal has the `goal:done` label, close the story issue via `gh issue close`
-6. If not all done, do nothing
-7. Return JSON: `{"ok": true, "closed": true/false, "story": N}`
+In `.claude/harness/orchestrator/run`, the `create_pr_from_clone` method creates a PR and returns the PR number. Auto-merge is not enabled — it relies on a separate GitHub Actions workflow which is unreliable.
 
-## File Structure
+## Required Change
 
-- Script: `.claude/harness/story-try-close/run` (Ruby, matching existing harness conventions)
-- Symlink: `.claude/scripts/story-try-close` → `../harness/story-try-close/run`
+In the `create_pr_from_clone` method, after the PR is successfully created (after extracting `pr_num` from the `gh pr create` output), add a call to enable auto-merge:
 
-## Edge Cases
+```ruby
+system('gh', 'pr', 'merge', pr_num, '--auto', '--squash',
+       chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+```
 
-- Goal has no `Story: #N` reference → return ok with closed: false
-- Story has no goals → don't close (shouldn't happen but be safe)
-- Story is already closed → return ok with closed: false
+This should go right after `pr_num = pr_output.strip.split('/').last` and before the method returns `pr_num`.
 
-Story: #276
+## Acceptance Criteria
+
+- After `gh pr create` succeeds, `gh pr merge --auto --squash` is called on the new PR.
+- Failure of the auto-merge command is non-fatal (the PR still exists, just won't auto-merge).
+- No other behavior changes.
