@@ -1,19 +1,28 @@
-Story: #273
+Story: #280
 
 ## Objective
 
-Fix Ralph's commit process to exclude its own runtime files (`goal-progress.jsonl`, `goal.md`, `ralph.log`) from commits.
+Update `.claude/library/pipeline/SKILL.md` to document the dependency feature.
 
-## Investigation Needed
+## Changes
 
-1. Find how Ralph stages and commits files in `.claude/harness/ralph/run`
-2. Determine whether it uses `jj` track/untrack, `.gitignore`, or explicit file lists
-3. Fix the commit step to exclude runtime artifacts
+### Goal Commands table
+
+Add `--depends` to `goal-create` usage:
+```
+| `goal-create` | `--story <N> --title "..." [--spot-check] [--depends "N,M"] < body.md` | Create goal (draft) |
+```
+
+### Key Rules section
+
+Add:
+```
+- **Dependencies** -- Goals can declare `Depends: #N, #M` in body; orchestrator waits for dependencies to reach `goal:done` before picking up the goal
+```
 
 ## Acceptance Criteria
 
-- Ralph commits never include `goal-progress.jsonl`, `goal.md`, or `ralph.log`
-- Actual code changes are still committed normally
-- No impact on Ralph's ability to read/write these files during execution
+- Pipeline skill accurately reflects the new `--depends` flag
+- Dependency behavior is documented
 
-Story: #273
+Story: #280
