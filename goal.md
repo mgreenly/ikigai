@@ -1,19 +1,24 @@
-Story: #273
+Story: #268
 
 ## Objective
 
-Fix Ralph's commit process to exclude its own runtime files (`goal-progress.jsonl`, `goal.md`, `ralph.log`) from commits.
+Add null values for the four new fields to all existing records in `$HOME/.local/state/ralph/stats.jsonl`.
 
-## Investigation Needed
+## Steps
 
-1. Find how Ralph stages and commits files in `.claude/harness/ralph/run`
-2. Determine whether it uses `jj` track/untrack, `.gitignore`, or explicit file lists
-3. Fix the commit step to exclude runtime artifacts
+1. Read each line of `stats.jsonl`
+2. Parse as JSON
+3. If the record lacks `commit_start`, `commit_end`, `lines_added`, or `lines_deleted`, set them to `null`
+4. Write the updated records back to the file
+
+## Implementation
+
+A simple inline script (Ruby, Python, or shell+jq) run once. Can be done as a one-liner or small script.
 
 ## Acceptance Criteria
 
-- Ralph commits never include `goal-progress.jsonl`, `goal.md`, or `ralph.log`
-- Actual code changes are still committed normally
-- No impact on Ralph's ability to read/write these files during execution
+- All existing records have the four new fields set to `null`
+- No data loss — all original fields preserved
+- New records (from goal 1) are not affected
 
-Story: #273
+Story: #268
