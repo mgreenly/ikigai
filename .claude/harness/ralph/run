@@ -809,7 +809,25 @@ class Ralph
       #{short_progress}
     MSG
 
+    # Save current content of Ralph's runtime files
+    runtime_files = [@progress_file, @summary_file, @summary_meta_file, @goal_file, 'ralph.log']
+    saved_content = {}
+    runtime_files.each do |f|
+      saved_content[f] = File.read(f) if File.exist?(f)
+    end
+
+    # Restore runtime files to their pre-modification state (exclude from commit)
+    runtime_files.each do |f|
+      system("jj restore #{f.shellescape} 2>/dev/null") if File.exist?(f)
+    end
+
+    # Commit only code changes
     system("jj commit -m #{msg.shellescape} >/dev/null 2>&1")
+
+    # Restore runtime files to their current state in new working copy
+    saved_content.each do |f, content|
+      File.write(f, content)
+    end
   end
 
   # ─────────────────────────────────────────────────────────────
