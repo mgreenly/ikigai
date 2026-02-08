@@ -1,24 +1,28 @@
-Story: #268
+Story: #276
 
 ## Objective
 
-Add null values for the four new fields to all existing records in `$HOME/.local/state/ralph/stats.jsonl`.
+Create a new harness script `story-try-close` that checks if a story should be closed after a goal completes.
 
-## Steps
+## Behavior
 
-1. Read each line of `stats.jsonl`
-2. Parse as JSON
-3. If the record lacks `commit_start`, `commit_end`, `lines_added`, or `lines_deleted`, set them to `null`
-4. Write the updated records back to the file
+1. Accept a goal number as argument
+2. Fetch the goal issue body via `goal-get`
+3. Parse `Story: #N` from the body to find the parent story number
+4. List all goals linked to that story (search for issues with `goal` label whose body contains `Story: #N`)
+5. If every linked goal has the `goal:done` label, close the story issue via `gh issue close`
+6. If not all done, do nothing
+7. Return JSON: `{"ok": true, "closed": true/false, "story": N}`
 
-## Implementation
+## File Structure
 
-A simple inline script (Ruby, Python, or shell+jq) run once. Can be done as a one-liner or small script.
+- Script: `.claude/harness/story-try-close/run` (Ruby, matching existing harness conventions)
+- Symlink: `.claude/scripts/story-try-close` → `../harness/story-try-close/run`
 
-## Acceptance Criteria
+## Edge Cases
 
-- All existing records have the four new fields set to `null`
-- No data loss — all original fields preserved
-- New records (from goal 1) are not affected
+- Goal has no `Story: #N` reference → return ok with closed: false
+- Story has no goals → don't close (shouldn't happen but be safe)
+- Story is already closed → return ok with closed: false
 
-Story: #268
+Story: #276
