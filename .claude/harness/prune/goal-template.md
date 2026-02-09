@@ -160,7 +160,6 @@ Can you find {{function}} assigned/passed in production code?
 4. If you found a dead cluster (intermediary functions that only exist to call `{{function}}`), delete those too along with their tests
 5. Clean up empty TCases and test files
 6. Run all quality checks (they must all pass).
-7. **Create a pull request** - The task is NOT complete until changes are committed and a PR is created. Use jj to commit, push, and gh to create the PR.
 
 ### If Function Is NOT Dead
 
@@ -171,7 +170,6 @@ Can you find {{function}} assigned/passed in production code?
    - Sort all lines alphabetically
    - Write the sorted content back to the file
 3. Commit the whitelist update: `jj commit -m "Add {{function}} to dead-code false positives"`
-4. **Create a pull request** - Use jj to push and gh to create the PR. This documents the false positive finding for review.
 
 ## Confidence Calibration
 
@@ -197,7 +195,5 @@ A failing test is not evidence the function is live. It's evidence that *somethi
 ## Acceptance
 
 DONE when either:
-1. **Function confirmed dead**: removed, all quality checks pass, **AND pull request created**
-2. **Function confirmed NOT dead**: added to whitelist, **AND pull request created**
-
-**IMPORTANT**: Both outcomes require a pull request. The task is NOT complete without a PR.
+1. **Function confirmed dead**: removed, all quality checks pass
+2. **Function confirmed NOT dead**: added to whitelist
