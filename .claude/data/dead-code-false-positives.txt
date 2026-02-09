@@ -25,6 +25,7 @@ ik_openai_responses_stream_process_event
 ik_openai_stream_completion_handler
 ik_openai_stream_write_callback
 openai_cancel
+openai_info_read
 openai_perform
 openai_start_request
 openai_start_stream
