@@ -5,6 +5,7 @@ anthropic_cleanup
 anthropic_fdset
 build_completion_for_error
 cleanup_completed_request
+extract_error_strings
 extract_model_if_needed
 google_timeout
 ik_ansi_init
