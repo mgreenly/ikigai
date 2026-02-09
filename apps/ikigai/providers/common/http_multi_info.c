@@ -78,16 +78,6 @@ static void invoke_completion_callback(active_request_t *completed, ik_http_comp
     }
 }
 
-static void cleanup_completion_resources(ik_http_completion_t *completion)
-{
-    if (completion->error_message != NULL) {
-        talloc_free(completion->error_message);
-    }
-    if (completion->response_body != NULL) {
-        talloc_free(completion->response_body);
-    }
-}
-
 static void process_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
                                        CURLcode curl_result, size_t index)
 {
@@ -105,7 +95,6 @@ static void process_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
     }
 
     invoke_completion_callback(completed, &completion);
-    cleanup_completion_resources(&completion);
     cleanup_completed_request(multi, easy_handle, completed);
     remove_from_active_array(multi, index);
 }
