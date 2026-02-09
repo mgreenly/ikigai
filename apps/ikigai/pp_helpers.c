@@ -35,15 +35,6 @@ void ik_pp_size_t(ik_format_buffer_t *buf, int32_t indent, const char *name, siz
     ik_format_appendf(buf, "%s: %zu\n", name, value);
 }
 
-void ik_pp_int32(ik_format_buffer_t *buf, int32_t indent, const char *name, int32_t value)
-{
-    assert(buf != NULL); /* LCOV_EXCL_BR_LINE */
-    assert(name != NULL); /* LCOV_EXCL_BR_LINE */
-
-    ik_format_indent(buf, indent);
-    ik_format_appendf(buf, "%s: %" PRId32 "\n", name, value);
-}
-
 void ik_pp_uint32(ik_format_buffer_t *buf, int32_t indent, const char *name, uint32_t value)
 {
     assert(buf != NULL); /* LCOV_EXCL_BR_LINE */
