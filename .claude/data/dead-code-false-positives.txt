@@ -2,6 +2,7 @@ add_tool_calls_content
 add_tool_call_to_array
 anthropic_cancel
 anthropic_cleanup
+anthropic_fdset
 build_completion_for_error
 cleanup_completed_request
 extract_model_if_needed
