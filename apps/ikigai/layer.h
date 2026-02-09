@@ -67,9 +67,6 @@ ik_layer_cake_t *ik_layer_cake_create(TALLOC_CTX *ctx, size_t viewport_height);
 // Add layer to cake (appends to end)
 res_t ik_layer_cake_add_layer(ik_layer_cake_t *cake, ik_layer_t *layer);
 
-// Calculate total visible height of all layers
-size_t ik_layer_cake_get_total_height(const ik_layer_cake_t *cake, size_t width);
-
 // Render visible portion of cake to output buffer
 void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width);
 
