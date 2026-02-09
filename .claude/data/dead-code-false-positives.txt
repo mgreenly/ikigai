@@ -3,6 +3,7 @@ add_tool_call_to_array
 anthropic_cancel
 build_completion_for_error
 cleanup_completed_request
+extract_model_if_needed
 google_timeout
 ik_ansi_init
 ik_anthropic_handle_error
