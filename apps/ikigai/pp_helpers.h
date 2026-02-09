@@ -51,18 +51,6 @@ void ik_pp_pointer(ik_format_buffer_t *buf, int32_t indent, const char *name, co
 void ik_pp_size_t(ik_format_buffer_t *buf, int32_t indent, const char *name, size_t value);
 
 /**
- * Print named int32_t field.
- *
- * Format: "  field_name: 42\n"
- *
- * @param buf Format buffer
- * @param indent Indentation level
- * @param name Field name
- * @param value int32_t value
- */
-void ik_pp_int32(ik_format_buffer_t *buf, int32_t indent, const char *name, int32_t value);
-
-/**
  * Print named uint32_t field.
  *
  * Format: "  field_name: 42\n"

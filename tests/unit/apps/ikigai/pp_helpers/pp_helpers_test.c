@@ -80,22 +80,7 @@ START_TEST(test_pp_size_t_values) {
 }
 
 END_TEST
-// Test: ik_pp_int32 with positive and negative values
-START_TEST(test_pp_int32_values) {
-    void *tmp_ctx = talloc_new(NULL);
-    ik_format_buffer_t *buf = ik_format_buffer_create(tmp_ctx);
 
-    ik_pp_int32(buf, 0, "zero", 0);
-    ik_pp_int32(buf, 0, "positive", 12345);
-    ik_pp_int32(buf, 0, "negative", -9876);
-
-    const char *output = ik_format_get_string(buf);
-    ck_assert_str_eq(output, "zero: 0\npositive: 12345\nnegative: -9876\n");
-
-    talloc_free(tmp_ctx);
-}
-
-END_TEST
 // Test: ik_pp_uint32 with various values
 START_TEST(test_pp_uint32_values) {
     void *tmp_ctx = talloc_new(NULL);
@@ -244,7 +229,6 @@ static Suite *pp_helpers_suite(void)
     TCase *tc_numeric = tcase_create("numeric");
     tcase_set_timeout(tc_numeric, IK_TEST_TIMEOUT);
     tcase_add_test(tc_numeric, test_pp_size_t_values);
-    tcase_add_test(tc_numeric, test_pp_int32_values);
     tcase_add_test(tc_numeric, test_pp_uint32_values);
     suite_add_tcase(s, tc_numeric);
 
