@@ -165,25 +165,6 @@ START_TEST(test_parse_content_delta) {
 
 END_TEST
 
-START_TEST(test_parse_finish_reason) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    /* Set model first */
-    const char *init_data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}";
-    ik_openai_chat_stream_process_data(sctx, init_data);
-
-    /* Process finish_reason */
-    const char *finish_data = "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
-    ik_openai_chat_stream_process_data(sctx, finish_data);
-
-    /* Finish reason updates internal state but doesn't emit event yet */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_STOP);
-}
-
-END_TEST
-
 START_TEST(test_handle_done_marker) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -288,7 +269,6 @@ static Suite *openai_streaming_basic_suite(void)
     tcase_add_checked_fixture(tc_basic, setup, teardown);
     tcase_add_test(tc_basic, test_parse_initial_role_delta);
     tcase_add_test(tc_basic, test_parse_content_delta);
-    tcase_add_test(tc_basic, test_parse_finish_reason);
     tcase_add_test(tc_basic, test_handle_done_marker);
     suite_add_tcase(s, tc_basic);
 

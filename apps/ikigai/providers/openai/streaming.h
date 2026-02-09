@@ -82,17 +82,6 @@ void ik_openai_chat_stream_process_data(ik_openai_chat_stream_ctx_t *stream_ctx,
 ik_usage_t ik_openai_chat_stream_get_usage(ik_openai_chat_stream_ctx_t *stream_ctx);
 
 /**
- * Get finish reason from stream
- *
- * @param stream_ctx Streaming context
- * @return           Finish reason
- *
- * Returns finish reason extracted from choice.finish_reason field.
- * IK_FINISH_UNKNOWN until finish_reason is provided.
- */
-ik_finish_reason_t ik_openai_chat_stream_get_finish_reason(ik_openai_chat_stream_ctx_t *stream_ctx);
-
-/**
  * Build response from accumulated streaming data
  *
  * @param ctx  Talloc context for allocation

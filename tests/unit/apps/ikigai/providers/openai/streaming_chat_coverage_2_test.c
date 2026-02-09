@@ -89,22 +89,6 @@ START_TEST(test_model_extraction) {
 
 END_TEST
 
-START_TEST(test_finish_reason_extraction) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, capturing_stream_cb, NULL);
-
-    /* Process data with string finish_reason - this exercises line 163 where finish_reason_str is extracted */
-    const char *data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Verify getter works */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-    /* Should be STOP (0) if mapping works, otherwise UNKNOWN (5) */
-    ck_assert(reason == IK_FINISH_STOP || reason == IK_FINISH_UNKNOWN);
-}
-
-END_TEST
-
 START_TEST(test_usage_with_reasoning_tokens) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
         test_ctx, dummy_stream_cb, NULL);
@@ -347,7 +331,6 @@ static Suite *streaming_chat_coverage_suite_2(void)
     tcase_set_timeout(tc_extraction, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_extraction, setup, teardown);
     tcase_add_test(tc_extraction, test_model_extraction);
-    tcase_add_test(tc_extraction, test_finish_reason_extraction);
     suite_add_tcase(s, tc_extraction);
 
     TCase *tc_usage = tcase_create("UsageExtraction");

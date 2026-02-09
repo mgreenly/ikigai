@@ -108,12 +108,6 @@ ik_usage_t ik_openai_chat_stream_get_usage(ik_openai_chat_stream_ctx_t *stream_c
     return stream_ctx->usage;
 }
 
-ik_finish_reason_t ik_openai_chat_stream_get_finish_reason(ik_openai_chat_stream_ctx_t *stream_ctx)
-{
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    return stream_ctx->finish_reason;
-}
-
 /* ================================================================
  * Data Processing Helpers
  * ================================================================ */
