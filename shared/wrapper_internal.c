@@ -22,6 +22,7 @@
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/repl_tool_completion.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/template.h"
 #include "apps/ikigai/tool_external.h"
 #include "apps/ikigai/tool_registry.h"
 
@@ -118,6 +119,15 @@ MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg)
 MOCKABLE void ik_agent_transition_to_idle_(void *agent)
 {
     ik_agent_transition_to_idle((ik_agent_ctx_t *)agent);
+}
+
+MOCKABLE res_t ik_template_process_(TALLOC_CTX *ctx,
+                                    const char *text,
+                                    void *agent,
+                                    void *config,
+                                    void **out)
+{
+    return ik_template_process(ctx, text, (ik_agent_ctx_t *)agent, (ik_config_t *)config, (ik_template_result_t **)out);
 }
 
 // LCOV_EXCL_STOP

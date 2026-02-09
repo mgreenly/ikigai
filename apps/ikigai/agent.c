@@ -13,7 +13,9 @@
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/scrollback_utils.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/template.h"
 #include "apps/ikigai/uuid.h"
 #include "shared/wrapper.h"
 #include "apps/ikigai/wrapper_pthread.h"
@@ -247,6 +249,45 @@ res_t ik_agent_copy_conversation(ik_agent_ctx_t *child, const ik_agent_ctx_t *pa
 // Provider and configuration functions moved to agent_provider.c
 // Message management functions moved to agent_messages.c
 
+static void display_template_warnings(ik_agent_ctx_t *agent, ik_template_result_t *template_result)
+{
+    if (template_result->unresolved_count == 0 || agent->scrollback == NULL) {
+        return;
+    }
+
+    for (size_t j = 0; j < template_result->unresolved_count; j++) {
+        char *warning_text = talloc_asprintf(agent, "Unknown template variable: %s",
+                                            template_result->unresolved[j]);
+        if (warning_text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+        char *formatted_warning = ik_scrollback_format_warning(agent, warning_text);
+        ik_scrollback_append_line(agent->scrollback, formatted_warning, strlen(formatted_warning));
+
+        talloc_free(warning_text);
+        talloc_free(formatted_warning);
+    }
+}
+
+static char *process_pinned_content(ik_agent_ctx_t *agent, const char *content)
+{
+    ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;
+    ik_template_result_t *template_result = NULL;
+    res_t template_res = ik_template_process_(agent, content, agent, config, (void **)&template_result);
+
+    const char *processed_content = content;
+    if (is_ok(&template_res) && template_result != NULL) {
+        processed_content = template_result->processed;
+        display_template_warnings(agent, template_result);
+    }
+
+    char *result = talloc_strdup(agent, processed_content);
+    if (template_result != NULL) {
+        talloc_free(template_result);
+    }
+
+    return result;
+}
+
 res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
 {
     assert(agent != NULL);  // LCOV_EXCL_BR_LINE
@@ -265,10 +306,12 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
             res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
 
             if (is_ok(&doc_res) && content != NULL) {
-                char *new_assembled = talloc_asprintf(agent, "%s%s", assembled, content);
+                char *processed_content = process_pinned_content(agent, content);
+                char *new_assembled = talloc_asprintf(agent, "%s%s", assembled, processed_content);
                 if (new_assembled == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 talloc_free(assembled);
                 assembled = new_assembled;
+                talloc_free(processed_content);
             }
         }
 

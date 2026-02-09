@@ -18,6 +18,7 @@
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/repl.h"
+#include "apps/ikigai/template.h"
 #include "shared/logger.h"
 #include "apps/ikigai/tool_external.h"
 
@@ -110,6 +111,15 @@ MOCKABLE void ik_agent_transition_to_idle_(void *agent)
     ik_agent_transition_to_idle((ik_agent_ctx_t *)agent);
 }
 
+MOCKABLE res_t ik_template_process_(TALLOC_CTX *ctx,
+                                    const char *text,
+                                    void *agent,
+                                    void *config,
+                                    void **out)
+{
+    return ik_template_process(ctx, text, (ik_agent_ctx_t *)agent, (ik_config_t *)config, (ik_template_result_t **)out);
+}
+
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
@@ -136,6 +146,11 @@ MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent);
 MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent);
 MOCKABLE res_t ik_agent_add_message_(void *agent, void *msg);
 MOCKABLE void ik_agent_transition_to_idle_(void *agent);
+MOCKABLE res_t ik_template_process_(TALLOC_CTX *ctx,
+                                    const char *text,
+                                    void *agent,
+                                    void *config,
+                                    void **out);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H
