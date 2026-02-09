@@ -60,19 +60,4 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
  */
 bool ik_openai_use_responses_api(const char *model);
 
-/**
- * Validate thinking level for model
- *
- * @param ctx   Talloc context for error allocation
- * @param model Model identifier
- * @param level Thinking level to validate
- * @return      OK if valid, ERR with message if invalid
- *
- * Validation rules:
- * - NULL model: ERR(INVALID_ARG)
- * - Reasoning models (o1/o3): All levels valid (NONE/LOW/MED/HIGH)
- * - Non-reasoning models (gpt-*): Only NONE is valid, others return ERR
- */
-res_t ik_openai_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level);
-
 #endif /* IK_PROVIDERS_OPENAI_REASONING_H */

@@ -220,112 +220,6 @@ START_TEST(test_use_responses_api_edge_cases) {
 }
 
 END_TEST
-/* ================================================================
- * ik_openai_validate_thinking Tests
- * ================================================================ */
-
-START_TEST(test_validate_thinking_null_model) {
-    res_t r = ik_openai_validate_thinking(test_ctx, NULL, IK_THINKING_LOW);
-    ck_assert(is_err(&r));
-    ck_assert_ptr_nonnull(r.err);
-    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
-    ck_assert(strstr(r.err->msg, "Model cannot be NULL") != NULL);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_none_always_valid) {
-    // NONE is valid for any model
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4", IK_THINKING_NONE);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_none_reasoning_model) {
-    // NONE is valid for reasoning models too
-    res_t r = ik_openai_validate_thinking(test_ctx, "o1", IK_THINKING_NONE);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_low_non_reasoning) {
-    // LOW is invalid for non-reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4", IK_THINKING_LOW);
-    ck_assert(is_err(&r));
-    ck_assert_ptr_nonnull(r.err);
-    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
-    ck_assert(strstr(r.err->msg, "does not support thinking") != NULL);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_med_non_reasoning) {
-    // MED is invalid for non-reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4o", IK_THINKING_MED);
-    ck_assert(is_err(&r));
-    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_high_non_reasoning) {
-    // HIGH is invalid for non-reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-4o-mini", IK_THINKING_HIGH);
-    ck_assert(is_err(&r));
-    ck_assert_int_eq(r.err->code, ERR_INVALID_ARG);
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_low_reasoning) {
-    // LOW is valid for reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "o1", IK_THINKING_LOW);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_med_reasoning) {
-    // MED is valid for reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "o3-mini", IK_THINKING_MED);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_high_reasoning) {
-    // HIGH is valid for reasoning models
-    res_t r = ik_openai_validate_thinking(test_ctx, "o1-preview", IK_THINKING_HIGH);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_gpt5_low) {
-    // GPT-5 models support thinking
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-5", IK_THINKING_LOW);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_gpt52_med) {
-    // GPT-5.2 models support thinking
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-5.2", IK_THINKING_MED);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
-
-START_TEST(test_validate_thinking_gpt5_pro_high) {
-    // GPT-5-pro supports thinking
-    res_t r = ik_openai_validate_thinking(test_ctx, "gpt-5-pro", IK_THINKING_HIGH);
-    ck_assert(!is_err(&r));
-}
-
-END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -371,23 +265,6 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_responses, test_use_responses_api_responses);
     tcase_add_test(tc_responses, test_use_responses_api_edge_cases);
     suite_add_tcase(s, tc_responses);
-
-    TCase *tc_validate = tcase_create("validate_thinking");
-    tcase_set_timeout(tc_validate, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_validate, setup, teardown);
-    tcase_add_test(tc_validate, test_validate_thinking_null_model);
-    tcase_add_test(tc_validate, test_validate_thinking_none_always_valid);
-    tcase_add_test(tc_validate, test_validate_thinking_none_reasoning_model);
-    tcase_add_test(tc_validate, test_validate_thinking_low_non_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_med_non_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_high_non_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_low_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_med_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_high_reasoning);
-    tcase_add_test(tc_validate, test_validate_thinking_gpt5_low);
-    tcase_add_test(tc_validate, test_validate_thinking_gpt52_med);
-    tcase_add_test(tc_validate, test_validate_thinking_gpt5_pro_high);
-    suite_add_tcase(s, tc_validate);
 
     return s;
 }
