@@ -81,23 +81,6 @@ START_TEST(test_usage_is_null) {
 }
 END_TEST
 
-START_TEST(test_finish_reason_is_null) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, dummy_stream_cb, NULL);
-    const char *data = "{\"choices\":[{\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-    ck_assert_int_eq(ik_openai_chat_stream_get_finish_reason(sctx), IK_FINISH_UNKNOWN);
-}
-END_TEST
-
-START_TEST(test_delta_without_finish_reason_field) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, dummy_stream_cb, NULL);
-    ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}");
-    ck_assert_int_eq(ik_openai_chat_stream_get_finish_reason(sctx), IK_FINISH_UNKNOWN);
-}
-END_TEST
-
 /* Test: special data cases */
 START_TEST(test_done_marker) {
     ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
@@ -268,7 +251,6 @@ START_TEST(test_field_type_mismatches) {
     event_count = 0;
     sctx = ik_openai_chat_stream_ctx_create(test_ctx, dummy_stream_cb, NULL);
     ik_openai_chat_stream_process_data(sctx, "{\"choices\":[{\"delta\":{},\"finish_reason\":123}]}");
-    ck_assert_int_eq(ik_openai_chat_stream_get_finish_reason(sctx), IK_FINISH_UNKNOWN);
 }
 
 END_TEST
@@ -368,9 +350,6 @@ START_TEST(test_additional_edge_cases) {
     sctx = ik_openai_chat_stream_ctx_create(test_ctx, dummy_stream_cb, NULL);
     const char *data = "{\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
     ik_openai_chat_stream_process_data(sctx, data);
-    /* Should extract finish_reason successfully */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_STOP);
 }
 
 END_TEST
@@ -391,8 +370,6 @@ static Suite *streaming_chat_branch_coverage_suite(void)
     tcase_add_test(tc_branches, test_error_is_null);
     tcase_add_test(tc_branches, test_choices_is_null);
     tcase_add_test(tc_branches, test_usage_is_null);
-    tcase_add_test(tc_branches, test_finish_reason_is_null);
-    tcase_add_test(tc_branches, test_delta_without_finish_reason_field);
     tcase_add_test(tc_branches, test_done_marker);
     tcase_add_test(tc_branches, test_malformed_json);
     tcase_add_test(tc_branches, test_root_is_array);

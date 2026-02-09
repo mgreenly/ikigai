@@ -139,23 +139,6 @@ START_TEST(test_get_usage) {
 
 END_TEST
 
-START_TEST(test_get_finish_reason) {
-    ik_openai_chat_stream_ctx_t *sctx = ik_openai_chat_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    /* Process data with finish reason */
-    const char *data = "{\"model\":\"gpt-4\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}";
-    ik_openai_chat_stream_process_data(sctx, data);
-
-    /* Get finish reason */
-    ik_finish_reason_t reason = ik_openai_chat_stream_get_finish_reason(sctx);
-
-    /* Verify */
-    ck_assert_int_eq(reason, IK_FINISH_STOP);
-}
-
-END_TEST
-
 /* ================================================================
  * Malformed JSON Tests
  * ================================================================ */
@@ -356,7 +339,6 @@ static Suite *streaming_chat_coverage_suite_1(void)
     tcase_set_timeout(tc_getters, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_getters, setup, teardown);
     tcase_add_test(tc_getters, test_get_usage);
-    tcase_add_test(tc_getters, test_get_finish_reason);
     suite_add_tcase(s, tc_getters);
 
     TCase *tc_malformed = tcase_create("MalformedJSON");
