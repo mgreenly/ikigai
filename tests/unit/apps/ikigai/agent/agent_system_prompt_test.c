@@ -8,10 +8,12 @@
 #include "apps/ikigai/config_defaults.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/template.h"
 #include "shared/error.h"
 #include "apps/ikigai/file_utils.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/shared.h"
+#include "shared/wrapper.h"
 #include "tests/helpers/test_utils_helper.h"
 
 #include <check.h>
@@ -25,8 +27,35 @@ static TALLOC_CTX *test_ctx;
 static ik_shared_ctx_t *shared_ctx;
 static char temp_dir[256];
 
+// Mock control flags
+static int mock_template_return_error = 0;
+static int mock_template_return_null = 0;
+
+// Mock implementation of ik_template_process for testing error paths
+res_t ik_template_process_(TALLOC_CTX *ctx,
+                          const char *text,
+                          void *agent,
+                          void *config,
+                          void **out)
+{
+    if (mock_template_return_error) {
+        *out = NULL;
+        return ERR(ctx, PARSE, "Mock template error");
+    }
+    if (mock_template_return_null) {
+        *out = NULL;
+        return OK(NULL);
+    }
+    // Default: call the real implementation
+    return ik_template_process(ctx, text, (ik_agent_ctx_t *)agent, (ik_config_t *)config, (ik_template_result_t **)out);
+}
+
 static void setup(void)
 {
+    // Reset mock flags
+    mock_template_return_error = 0;
+    mock_template_return_null = 0;
+
     test_ctx = talloc_new(NULL);
     shared_ctx = talloc_zero(test_ctx, ik_shared_ctx_t);
     shared_ctx->cfg = ik_test_create_config(shared_ctx);
@@ -348,6 +377,62 @@ START_TEST(test_effective_prompt_template_null_shared) {
 }
 END_TEST
 
+START_TEST(test_effective_prompt_template_error) {
+    mock_template_return_error = 1;
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->uuid = talloc_strdup(agent, "test-uuid-error");
+    agent->doc_cache = ik_doc_cache_create(agent, agent->shared->paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    char *test_file = talloc_asprintf(test_ctx, "%s/error_test.md", temp_dir);
+    FILE *f = fopen(test_file, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "Content: ${agent.uuid}\n");
+    fclose(f);
+
+    agent->pinned_count = 1;
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, test_file);
+    talloc_free(test_file);
+
+    char *prompt = NULL;
+    res_t res = ik_agent_get_effective_system_prompt(agent, &prompt);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(prompt);
+    ck_assert(strstr(prompt, "${agent.uuid}") != NULL);
+    talloc_free(prompt);
+}
+END_TEST
+
+START_TEST(test_effective_prompt_template_null_result) {
+    mock_template_return_null = 1;
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->uuid = talloc_strdup(agent, "test-uuid-null");
+    agent->doc_cache = ik_doc_cache_create(agent, agent->shared->paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    char *test_file = talloc_asprintf(test_ctx, "%s/null_test.md", temp_dir);
+    FILE *f = fopen(test_file, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "Content: ${config.openai_model}\n");
+    fclose(f);
+
+    agent->pinned_count = 1;
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, test_file);
+    talloc_free(test_file);
+
+    char *prompt = NULL;
+    res_t res = ik_agent_get_effective_system_prompt(agent, &prompt);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(prompt);
+    ck_assert(strstr(prompt, "${config.openai_model}") != NULL);
+    talloc_free(prompt);
+}
+END_TEST
+
 static Suite *agent_system_prompt_suite(void)
 {
     Suite *s = suite_create("Agent System Prompt");
@@ -363,6 +448,8 @@ static Suite *agent_system_prompt_suite(void)
     tcase_add_test(tc, test_effective_prompt_with_unresolved_template_variables);
     tcase_add_test(tc, test_effective_prompt_unresolved_no_scrollback);
     tcase_add_test(tc, test_effective_prompt_template_null_shared);
+    tcase_add_test(tc, test_effective_prompt_template_error);
+    tcase_add_test(tc, test_effective_prompt_template_null_result);
     suite_add_tcase(s, tc);
 
     return s;

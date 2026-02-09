@@ -272,7 +272,7 @@ static char *process_pinned_content(ik_agent_ctx_t *agent, const char *content)
 {
     ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;
     ik_template_result_t *template_result = NULL;
-    res_t template_res = ik_template_process(agent, content, agent, config, &template_result);
+    res_t template_res = ik_template_process_(agent, content, agent, config, (void **)&template_result);
 
     const char *processed_content = content;
     if (is_ok(&template_res) && template_result != NULL) {
