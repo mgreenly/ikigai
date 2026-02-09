@@ -59,7 +59,7 @@ class Ralph
     'opus' => { input: 15.00, output: 75.00, cache_read: 1.50, cache_create: 18.75 }
   }.freeze
 
-  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:, log_mode:)
+  def initialize(goal_file:, duration:, model:, reasoning:, no_spinner:, no_art:, continue_run:, no_quotes:, debug:, pull_request:, log_mode:, name:)
     @goal_file = goal_file
     @duration_seconds = parse_duration(duration)
     @model = model
@@ -73,6 +73,7 @@ class Ralph
     @continue_run = continue_run
     @debug = debug
     @pull_request = pull_request
+    @name = name
 
     # Disable output buffering in log mode
     $stdout.sync = true if @log_mode
@@ -1084,7 +1085,8 @@ class Ralph
       commit_start: @start_commit,
       commit_end: @end_commit,
       lines_added: lines_added,
-      lines_deleted: lines_deleted
+      lines_deleted: lines_deleted,
+      name: @name
     }
 
     File.open(STATS_FILE, 'a') { |f| f.puts(record.to_json) }
@@ -1275,7 +1277,8 @@ options = {
   continue: false,
   debug: false,
   pull_request: true,
-  log_mode: false
+  log_mode: false,
+  name: nil
 }
 
 OptionParser.new do |opts|
@@ -1329,6 +1332,10 @@ OptionParser.new do |opts|
     options[:pull_request] = pr
   end
 
+  opts.on('--name=NAME', 'Human-readable goal name for stats tracking') do |n|
+    options[:name] = n
+  end
+
   opts.on('-h', '--help', 'Show this help') do
     puts opts
     exit
@@ -1357,7 +1364,8 @@ ralph = Ralph.new(
   continue_run: options[:continue],
   debug: options[:debug],
   pull_request: options[:pull_request],
-  log_mode: options[:log_mode]
+  log_mode: options[:log_mode],
+  name: options[:name]
 )
 
 begin

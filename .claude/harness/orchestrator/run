@@ -400,7 +400,8 @@ def main(options)
           '--log-mode',
           '--no-pull-request',
           "--model=#{model}",
-          "--reasoning=#{reasoning}"
+          "--reasoning=#{reasoning}",
+          "--name=#{title}"
         ]
         ralph_args << "--duration=#{duration}" if duration
 
