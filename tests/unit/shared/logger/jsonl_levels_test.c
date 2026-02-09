@@ -102,34 +102,6 @@ START_TEST(test_log_warn_has_warn_level) {
 }
 
 END_TEST
-// Test: ik_log_error_json writes "error" level
-START_TEST(test_log_error_has_error_level) {
-    setup_logger();
-
-    yyjson_mut_doc *doc = ik_log_create();
-    yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
-    yyjson_mut_obj_add_str(doc, root, "event", "test");
-
-    ik_log_error_json(doc);
-
-    char *output = read_log_file();
-    ck_assert_ptr_nonnull(output);
-
-    // Parse the output as JSON
-    yyjson_doc *parsed = yyjson_read(output, strlen(output), 0);
-    ck_assert_ptr_nonnull(parsed);
-
-    yyjson_val *parsed_root = yyjson_doc_get_root(parsed);
-    yyjson_val *level = yyjson_obj_get(parsed_root, "level");
-    ck_assert_ptr_nonnull(level);
-    ck_assert(yyjson_is_str(level));
-    ck_assert_str_eq(yyjson_get_str(level), "error");
-
-    yyjson_doc_free(parsed);
-    teardown_logger();
-}
-
-END_TEST
 
 static Suite *logger_jsonl_levels_suite(void)
 {
@@ -141,7 +113,6 @@ static Suite *logger_jsonl_levels_suite(void)
 
     tcase_add_test(tc_core, test_log_info_has_info_level);
     tcase_add_test(tc_core, test_log_warn_has_warn_level);
-    tcase_add_test(tc_core, test_log_error_has_error_level);
 
     suite_add_tcase(s, tc_core);
     return s;

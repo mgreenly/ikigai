@@ -41,7 +41,6 @@ void ik_logger_error_json(ik_logger_t *logger, yyjson_mut_doc *doc);
 void ik_log_debug_json(yyjson_mut_doc *doc);
 void ik_log_info_json(yyjson_mut_doc *doc);
 void ik_log_warn_json(yyjson_mut_doc *doc);
-void ik_log_error_json(yyjson_mut_doc *doc);
 
 // Get file descriptor for low-level writes (panic handler)
 // Returns -1 if logger or file is NULL
