@@ -7,6 +7,7 @@
 #include "apps/ikigai/config.h"
 #include "apps/ikigai/config_defaults.h"
 #include "apps/ikigai/doc_cache.h"
+#include "apps/ikigai/scrollback.h"
 #include "shared/error.h"
 #include "apps/ikigai/file_utils.h"
 #include "apps/ikigai/paths.h"
@@ -205,6 +206,148 @@ START_TEST(test_effective_prompt_file_missing) {
 }
 END_TEST
 
+// Test template variables with unresolved fields trigger warnings
+START_TEST(test_effective_prompt_with_unresolved_template_variables) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->uuid = talloc_strdup(agent, "test-uuid-123");
+    agent->name = talloc_strdup(agent, "TestAgent");
+
+    // Create scrollback to capture warnings
+    agent->scrollback = ik_scrollback_create(agent, 80);
+    ck_assert_ptr_nonnull(agent->scrollback);
+
+    // Create doc_cache
+    agent->doc_cache = ik_doc_cache_create(agent, agent->shared->paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    // Create a test file with unresolved template variables
+    char *test_file = talloc_asprintf(test_ctx, "%s/template_test.md", temp_dir);
+    ck_assert_ptr_nonnull(test_file);
+    FILE *f = fopen(test_file, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "Agent UUID: ${agent.uuid}\n");
+    fprintf(f, "Bad field: ${agent.uuuid}\n");
+    fprintf(f, "Another bad: ${config.nonexistent}\n");
+    fclose(f);
+
+    // Pin the file
+    agent->pinned_count = 1;
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, test_file);
+    talloc_free(test_file);
+
+    // Get effective prompt
+    char *prompt = NULL;
+    res_t res = ik_agent_get_effective_system_prompt(agent, &prompt);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(prompt);
+
+    // Verify the resolved variable appears in the prompt
+    ck_assert(strstr(prompt, "test-uuid-123") != NULL);
+
+    // Verify the unresolved variables remain as-is
+    ck_assert(strstr(prompt, "${agent.uuuid}") != NULL);
+    ck_assert(strstr(prompt, "${config.nonexistent}") != NULL);
+
+    // Verify warnings were added to scrollback
+    ik_scrollback_t *sb = agent->scrollback;
+    ck_assert(sb->count >= 2);
+
+    // Check that warnings were added by looking at the text buffer
+    bool found_uuuid_warning = false;
+    bool found_nonexistent_warning = false;
+    for (size_t i = 0; i < sb->count; i++) {
+        const char *line = &sb->text_buffer[sb->text_offsets[i]];
+        if (strstr(line, "${agent.uuuid}") != NULL) {
+            found_uuuid_warning = true;
+        }
+        if (strstr(line, "${config.nonexistent}") != NULL) {
+            found_nonexistent_warning = true;
+        }
+    }
+    ck_assert(found_uuuid_warning);
+    ck_assert(found_nonexistent_warning);
+
+    talloc_free(prompt);
+}
+END_TEST
+
+// Test unresolved variables without scrollback (no warnings displayed)
+START_TEST(test_effective_prompt_unresolved_no_scrollback) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = shared_ctx;
+    agent->uuid = talloc_strdup(agent, "test-uuid-123");
+    agent->name = talloc_strdup(agent, "TestAgent");
+    agent->scrollback = NULL;  // No scrollback
+
+    // Create doc_cache
+    agent->doc_cache = ik_doc_cache_create(agent, agent->shared->paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    // Create a test file with unresolved template variables
+    char *test_file = talloc_asprintf(test_ctx, "%s/template_test2.md", temp_dir);
+    ck_assert_ptr_nonnull(test_file);
+    FILE *f = fopen(test_file, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "Bad: ${agent.uuuid}\n");
+    fclose(f);
+
+    // Pin the file
+    agent->pinned_count = 1;
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, test_file);
+    talloc_free(test_file);
+
+    // Get effective prompt - should succeed without warnings
+    char *prompt = NULL;
+    res_t res = ik_agent_get_effective_system_prompt(agent, &prompt);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(prompt);
+    ck_assert(strstr(prompt, "${agent.uuuid}") != NULL);
+
+    talloc_free(prompt);
+}
+END_TEST
+
+// Test template processing with NULL shared context
+START_TEST(test_effective_prompt_template_null_shared) {
+    ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
+    agent->shared = NULL;  // NULL shared context
+    agent->uuid = talloc_strdup(agent, "test-uuid-456");
+
+    // Create doc_cache with NULL shared - need paths from test setup
+    agent->doc_cache = ik_doc_cache_create(agent, shared_ctx->paths);
+    ck_assert_ptr_nonnull(agent->doc_cache);
+
+    // Create a test file with template variables
+    char *test_file = talloc_asprintf(test_ctx, "%s/template_test3.md", temp_dir);
+    ck_assert_ptr_nonnull(test_file);
+    FILE *f = fopen(test_file, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "UUID: ${agent.uuid}\n");
+    fclose(f);
+
+    // Pin the file
+    agent->pinned_count = 1;
+    agent->pinned_paths = talloc_array(agent, char *, 1);
+    agent->pinned_paths[0] = talloc_strdup(agent, test_file);
+    talloc_free(test_file);
+
+    // Get effective prompt - template processing with NULL config
+    char *prompt = NULL;
+    res_t res = ik_agent_get_effective_system_prompt(agent, &prompt);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(prompt);
+    ck_assert(strstr(prompt, "test-uuid-456") != NULL);
+
+    talloc_free(prompt);
+}
+END_TEST
+
 static Suite *agent_system_prompt_suite(void)
 {
     Suite *s = suite_create("Agent System Prompt");
@@ -217,6 +360,9 @@ static Suite *agent_system_prompt_suite(void)
     tcase_add_test(tc, test_effective_prompt_from_file);
     tcase_add_test(tc, test_effective_prompt_file_empty);
     tcase_add_test(tc, test_effective_prompt_file_missing);
+    tcase_add_test(tc, test_effective_prompt_with_unresolved_template_variables);
+    tcase_add_test(tc, test_effective_prompt_unresolved_no_scrollback);
+    tcase_add_test(tc, test_effective_prompt_template_null_shared);
     suite_add_tcase(s, tc);
 
     return s;
