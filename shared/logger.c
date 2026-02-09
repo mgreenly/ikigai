@@ -255,11 +255,6 @@ void ik_log_warn_json(yyjson_mut_doc *doc)
     ik_log_write("warn", doc);
 }
 
-void ik_log_error_json(yyjson_mut_doc *doc)
-{
-    ik_log_write("error", doc);
-}
-
 static int logger_destructor(ik_logger_t *logger)
 {
     pthread_mutex_lock(&logger->mutex);
