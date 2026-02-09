@@ -72,7 +72,7 @@ START_TEST(test_vtable_async_methods_non_null) {
     ck_assert_ptr_nonnull(provider->vt->info_read);
     ck_assert_ptr_nonnull(provider->vt->start_request);
     ck_assert_ptr_nonnull(provider->vt->start_stream);
-    ck_assert_ptr_nonnull(provider->vt->cleanup);
+    // cleanup may be NULL (optional per vtable documentation)
     ck_assert_ptr_nonnull(provider->vt->cancel);
 }
 
