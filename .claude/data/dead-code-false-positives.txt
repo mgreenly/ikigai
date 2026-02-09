@@ -23,6 +23,7 @@ ik_openai_stream_write_callback
 openai_cancel
 openai_start_request
 openai_start_stream
+parse_chat_usage
 parse_usage
 process_content_delta
 process_data_line
