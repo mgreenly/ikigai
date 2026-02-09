@@ -78,17 +78,6 @@ END_TEST
  * Vtable Method Tests
  * ================================================================ */
 
-START_TEST(test_cleanup_method) {
-    // cleanup is a void function that currently does nothing
-    // but we should still call it to ensure coverage
-    provider->vt->cleanup(provider->ctx);
-
-    // If we get here without crashing, the test passed
-    ck_assert(1);
-}
-
-END_TEST
-
 START_TEST(test_cancel_method) {
     // cancel is a void function that currently does nothing
     // but we should still call it to ensure coverage
@@ -165,7 +154,6 @@ static Suite *openai_vtable_suite(void)
     TCase *tc_vtable = tcase_create("Vtable Methods");
     tcase_set_timeout(tc_vtable, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_vtable, setup_provider, teardown_provider);
-    tcase_add_test(tc_vtable, test_cleanup_method);
     tcase_add_test(tc_vtable, test_cancel_method);
     tcase_add_test(tc_vtable, test_fdset_method);
     tcase_add_test(tc_vtable, test_perform_method);

@@ -36,7 +36,6 @@ static res_t openai_start_stream(void *ctx,
                                  void *stream_ctx,
                                  ik_provider_completion_cb_t completion_cb,
                                  void *completion_ctx);
-static void openai_cleanup(void *ctx);
 static void openai_cancel(void *ctx);
 
 /* ================================================================
@@ -50,7 +49,7 @@ static const ik_provider_vtable_t OPENAI_VTABLE = {
     .info_read = openai_info_read,
     .start_request = openai_start_request,
     .start_stream = openai_start_stream,
-    .cleanup = openai_cleanup,
+    .cleanup = NULL,
     .cancel = openai_cancel,
 };
 
@@ -405,16 +404,6 @@ res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out
 }
 
 #endif
-
-static void openai_cleanup(void *ctx)
-{
-    assert(ctx != NULL); // LCOV_EXCL_BR_LINE
-
-    (void)ctx;
-
-    // Stub: Cleanup will be implemented when curl_multi is added
-    // Currently, talloc handles all cleanup automatically
-}
 
 static void openai_cancel(void *ctx)
 {
