@@ -10,55 +10,6 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/scrollback.h"
 
-// Test: ik_event_renders_visible - user events are visible
-START_TEST(test_renders_visible_user) {
-    ck_assert(ik_event_renders_visible("user"));
-}
-END_TEST
-// Test: ik_event_renders_visible - assistant events are visible
-START_TEST(test_renders_visible_assistant) {
-    ck_assert(ik_event_renders_visible("assistant"));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - system events are not visible (stored for LLM but not shown)
-START_TEST(test_renders_visible_system) {
-    ck_assert(!ik_event_renders_visible("system"));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - mark events are visible
-START_TEST(test_renders_visible_mark) {
-    ck_assert(ik_event_renders_visible("mark"));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - rewind events are not visible
-START_TEST(test_renders_visible_rewind) {
-    ck_assert(!ik_event_renders_visible("rewind"));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - clear events are not visible
-START_TEST(test_renders_visible_clear) {
-    ck_assert(!ik_event_renders_visible("clear"));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - NULL returns false
-START_TEST(test_renders_visible_null) {
-    ck_assert(!ik_event_renders_visible(NULL));
-}
-
-END_TEST
-// Test: ik_event_renders_visible - unknown kinds return false
-START_TEST(test_renders_visible_unknown) {
-    ck_assert(!ik_event_renders_visible("unknown"));
-    ck_assert(!ik_event_renders_visible(""));
-    ck_assert(!ik_event_renders_visible("USER"));  // Case sensitive
-}
-
-END_TEST
 // Test: Render user event
 START_TEST(test_render_user_event) {
     void *ctx = talloc_new(NULL);
@@ -362,18 +313,6 @@ END_TEST
 static Suite *event_render_basic_suite(void)
 {
     Suite *s = suite_create("Event Render Basic");
-
-    TCase *tc_visible = tcase_create("Visibility");
-    tcase_set_timeout(tc_visible, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_visible, test_renders_visible_user);
-    tcase_add_test(tc_visible, test_renders_visible_assistant);
-    tcase_add_test(tc_visible, test_renders_visible_system);
-    tcase_add_test(tc_visible, test_renders_visible_mark);
-    tcase_add_test(tc_visible, test_renders_visible_rewind);
-    tcase_add_test(tc_visible, test_renders_visible_clear);
-    tcase_add_test(tc_visible, test_renders_visible_null);
-    tcase_add_test(tc_visible, test_renders_visible_unknown);
-    suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
     tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);

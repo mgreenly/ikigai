@@ -10,17 +10,6 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/scrollback.h"
 
-// Test: ik_event_renders_visible - command events are visible
-START_TEST(test_renders_visible_command) {
-    ck_assert(ik_event_renders_visible("command"));
-}
-END_TEST
-// Test: ik_event_renders_visible - fork events are visible
-START_TEST(test_renders_visible_fork) {
-    ck_assert(ik_event_renders_visible("fork"));
-}
-
-END_TEST
 // Test: Render command event with echo and output
 START_TEST(test_render_command_event) {
     void *ctx = talloc_new(NULL);
@@ -239,12 +228,6 @@ END_TEST
 static Suite *event_render_command_fork_suite(void)
 {
     Suite *s = suite_create("Event Render Command/Fork");
-
-    TCase *tc_visible = tcase_create("Visibility");
-    tcase_set_timeout(tc_visible, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_visible, test_renders_visible_command);
-    tcase_add_test(tc_visible, test_renders_visible_fork);
-    suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
     tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);

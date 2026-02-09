@@ -21,28 +21,6 @@
 
 
 #include "shared/poison.h"
-bool ik_event_renders_visible(const char *kind)
-{
-    if (kind == NULL) {
-        return false;
-    }
-
-    // These kinds render visible content
-    if (strcmp(kind, "user") == 0 ||
-        strcmp(kind, "assistant") == 0 ||
-        strcmp(kind, "mark") == 0 ||
-        strcmp(kind, "command") == 0 ||
-        strcmp(kind, "fork") == 0 ||
-        strcmp(kind, "usage") == 0) {
-        return true;
-    }
-
-    // These kinds do not render visible content
-    // system: stored for LLM context but not shown in UI
-    // rewind: action is handled separately (truncation)
-    // clear: action is handled separately (clear scrollback)
-    return false;
-}
 
 // Helper: apply color styling to content based on color code
 // Applies color per-line so each line is self-contained for scrollback

@@ -11,12 +11,6 @@
 #include "apps/ikigai/scrollback.h"
 #include "shared/wrapper.h"
 
-// Test: ik_event_renders_visible - usage events are visible
-START_TEST(test_renders_visible_usage) {
-    ck_assert(ik_event_renders_visible("usage"));
-}
-
-END_TEST
 // Test: Render usage event with all token types
 START_TEST(test_render_usage_event_all_tokens) {
     void *ctx = talloc_new(NULL);
@@ -284,11 +278,6 @@ END_TEST
 static Suite *event_render_usage_suite(void)
 {
     Suite *s = suite_create("Event Render Usage");
-
-    TCase *tc_visible = tcase_create("Visibility");
-    tcase_set_timeout(tc_visible, IK_TEST_TIMEOUT);
-    tcase_add_test(tc_visible, test_renders_visible_usage);
-    suite_add_tcase(s, tc_visible);
 
     TCase *tc_render = tcase_create("Render");
     tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
