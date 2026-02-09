@@ -135,27 +135,3 @@ bool ik_openai_use_responses_api(const char *model)
     // Unknown models default to Chat Completions API
     return false;
 }
-
-res_t ik_openai_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level)
-{
-    assert(ctx != NULL);  // LCOV_EXCL_BR_LINE
-
-    if (model == NULL) {
-        return ERR(ctx, INVALID_ARG, "Model cannot be NULL");
-    }
-
-    // NONE is always valid for any model
-    if (level == IK_THINKING_NONE) {
-        return OK(NULL);
-    }
-
-    // Non-NONE levels require reasoning support
-    if (!ik_openai_is_reasoning_model(model)) {
-        return ERR(ctx, INVALID_ARG,
-                   "Model %s does not support thinking (only o1/o3 reasoning models support thinking)",
-                   model);
-    }
-
-    // Reasoning models support all levels
-    return OK(NULL);
-}
