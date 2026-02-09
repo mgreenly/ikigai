@@ -96,7 +96,7 @@ Comment out the function and build production:
 
 Also comment out header declaration if present.
 
-Build the production binary (check-compile, check-link) for early evaluation.
+Verify the production build succeeds.
 
 **Interpreting results:**
 - Build fails → Direct dependency exists that cflow missed, NOT dead
@@ -104,7 +104,7 @@ Build the production binary (check-compile, check-link) for early evaluation.
 
 ### Level 3: Test Execution (highest cost, most definitive)
 
-Run tests (check-unit, check-integration) for early evaluation.
+Run tests to verify behavior.
 
 **Interpreting results:**
 
