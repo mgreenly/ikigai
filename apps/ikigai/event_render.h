@@ -45,15 +45,4 @@
  */
 res_t ik_event_render(ik_scrollback_t *scrollback, const char *kind, const char *content, const char *data_json, bool interrupted);
 
-/**
- * Check if an event kind should render visible output
- *
- * Returns true for kinds that produce visible scrollback content.
- * Used to determine if scrollback append is needed.
- *
- * @param kind  Event kind string
- * @return      true if kind renders visible output, false otherwise
- */
-bool ik_event_renders_visible(const char *kind);
-
 #endif // IK_EVENT_RENDER_H
