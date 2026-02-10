@@ -55,4 +55,5 @@ process_output_text
 process_refusal
 process_text_part
 process_thinking_delta
+replay_unpin_command
 vcr_deliver_chunk_to_callback
