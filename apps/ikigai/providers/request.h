@@ -102,21 +102,6 @@ res_t ik_request_set_system(ik_request_t *req, const char *text);
 res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text);
 
 /**
- * Add message with content blocks
- *
- * Creates a message with the provided content blocks and appends
- * it to the request's message array. The content blocks are owned
- * by the caller or the request after this call.
- *
- * @param req    Request to modify
- * @param role   Message role (USER, ASSISTANT, TOOL)
- * @param blocks Array of content blocks
- * @param count  Number of content blocks
- * @return       OK on success, ERR on allocation failure
- */
-res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role, ik_content_block_t *blocks, size_t count);
-
-/**
  * Configure thinking level
  *
  * Sets the thinking level and summary inclusion flag for the entire

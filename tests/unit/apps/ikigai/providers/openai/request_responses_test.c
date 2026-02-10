@@ -214,78 +214,6 @@ START_TEST(test_serialize_multi_turn_conversation) {
 
 END_TEST
 
-START_TEST(test_serialize_single_user_message_with_multiple_text_blocks) {
-    ik_request_t *req = NULL;
-    res_t create_result = ik_request_create(test_ctx, "o1", &req);
-    ck_assert(!is_err(&create_result));
-
-    // Create content blocks
-    ik_content_block_t blocks[2];
-    blocks[0].type = IK_CONTENT_TEXT;
-    blocks[0].data.text.text = talloc_strdup(test_ctx, "First block");
-    blocks[1].type = IK_CONTENT_TEXT;
-    blocks[1].data.text.text = talloc_strdup(test_ctx, "Second block");
-
-    ik_request_add_message_blocks(req, IK_ROLE_USER, blocks, 2);
-
-    char *json = NULL;
-    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *input = yyjson_obj_get(root, "input");
-    ck_assert_ptr_nonnull(input);
-
-    // Single user message should use string format with blocks concatenated
-    ck_assert(yyjson_is_str(input));
-    ck_assert_str_eq(yyjson_get_str(input), "First block\n\nSecond block");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
-START_TEST(test_serialize_single_user_message_no_text_blocks) {
-    ik_request_t *req = NULL;
-    res_t create_result = ik_request_create(test_ctx, "o1", &req);
-    ck_assert(!is_err(&create_result));
-
-    // Create content blocks with non-text type (tool call)
-    ik_content_block_t blocks[1];
-    blocks[0].type = IK_CONTENT_TOOL_CALL;
-    blocks[0].data.tool_call.id = talloc_strdup(test_ctx, "call_123");
-    blocks[0].data.tool_call.name = talloc_strdup(test_ctx, "test");
-    blocks[0].data.tool_call.arguments = talloc_strdup(test_ctx, "{}");
-
-    ik_request_add_message_blocks(req, IK_ROLE_USER, blocks, 1);
-
-    char *json = NULL;
-    res_t result = ik_openai_serialize_responses_request(test_ctx, req, false, &json);
-
-    ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(json);
-
-    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
-    ck_assert_ptr_nonnull(doc);
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    yyjson_val *input = yyjson_obj_get(root, "input");
-    ck_assert_ptr_nonnull(input);
-
-    // Single user message with no text content should still use string input (empty)
-    ck_assert(yyjson_is_str(input));
-    ck_assert_str_eq(yyjson_get_str(input), "");
-
-    yyjson_doc_free(doc);
-}
-
-END_TEST
-
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -314,8 +242,6 @@ static Suite *request_responses_suite(void)
     tcase_set_timeout(tc_messages, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_messages, setup, teardown);
     tcase_add_test(tc_messages, test_serialize_multi_turn_conversation);
-    tcase_add_test(tc_messages, test_serialize_single_user_message_with_multiple_text_blocks);
-    tcase_add_test(tc_messages, test_serialize_single_user_message_no_text_blocks);
     suite_add_tcase(s, tc_messages);
 
     return s;

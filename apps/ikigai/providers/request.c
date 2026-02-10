@@ -163,38 +163,6 @@ res_t ik_request_add_message(ik_request_t *req, ik_role_t role, const char *text
     return OK(NULL);
 }
 
-res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role,
-                                    ik_content_block_t *blocks, size_t count)
-{
-    assert(req != NULL);    // LCOV_EXCL_BR_LINE
-    assert(blocks != NULL); // LCOV_EXCL_BR_LINE
-    assert(count > 0);      // LCOV_EXCL_BR_LINE
-
-    ik_message_t *msg = talloc_zero(req, ik_message_t);
-    if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    msg->role = role;
-    msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, (unsigned int)count);
-    if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    for (size_t i = 0; i < count; i++) {
-        msg->content_blocks[i] = blocks[i];
-    }
-    msg->content_count = count;
-    msg->provider_metadata = NULL;
-
-    size_t new_msg_count = req->message_count + 1;
-    req->messages = talloc_realloc(req, req->messages, ik_message_t, (unsigned int)new_msg_count);
-    if (!req->messages) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    req->messages[req->message_count] = *msg;
-    req->message_count = new_msg_count;
-
-    talloc_steal(req, msg);
-
-    return OK(NULL);
-}
-
 void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level,
                              bool include_summary)
 {
