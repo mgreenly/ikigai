@@ -28,7 +28,6 @@ res_t ik_array_insert(ik_array_t *array, size_t index, const void *element);
 
 // Modification operations (No IO - Direct return with asserts)
 void ik_array_delete(ik_array_t *array, size_t index);
-void ik_array_set(ik_array_t *array, size_t index, const void *element);
 void ik_array_clear(ik_array_t *array);
 
 // Access operations (No IO - Direct return with asserts)
