@@ -45,4 +45,5 @@ process_function_call
 process_message_content
 process_output_text
 process_thinking_delta
+process_text_part
 vcr_deliver_chunk_to_callback
