@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/goal-retry - Mark a PR for retry
+#
+# Usage: goal-retry <pr-number>
+#
+# Applies goal:retry label to a PR, triggering the orchestrator to
+# re-process the goal with retry context (CI results + PR comments).
+#
+# Output: JSON {"ok": true, "number": <pr-number>}
+# Exit code: 0 on success, 1 on failure
+#
+
+require 'json'
+
+def main
+  if ARGV.include?('--help') || ARGV.include?('-h')
+    puts <<~HELP
+      Usage: goal-retry <pr-number>
+
+      Mark a PR for retry in the pipeline.
+
+      Arguments:
+        pr-number    GitHub Pull Request number (required)
+
+      What it does:
+        Applies the goal:retry label to the PR.
+        The orchestrator will pick it up, clone the PR branch,
+        augment the goal with CI results and PR comments,
+        and re-run ralph with the retry context.
+
+      Output:
+        JSON {"ok": true, "number": <pr-number>}
+
+      Examples:
+        goal-retry 123
+    HELP
+    exit 0
+  end
+
+  pr_number = ARGV[0]&.to_i
+
+  unless pr_number && pr_number > 0
+    puts JSON.generate(ok: false, items: ['PR number is required'])
+    exit 1
+  end
+
+  # Add goal:retry label
+  ok = system('gh', 'pr', 'edit', pr_number.to_s,
+              '--add-label', 'goal:retry',
+              out: '/dev/null', err: '/dev/null')
+
+  unless ok
+    puts JSON.generate(ok: false, items: ["failed to add goal:retry label to PR ##{pr_number}"])
+    exit 1
+  end
+
+  puts JSON.generate(ok: true, number: pr_number)
+  exit 0
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end
