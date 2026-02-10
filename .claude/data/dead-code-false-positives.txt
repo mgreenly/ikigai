@@ -54,6 +54,7 @@ openai_timeout
 parse_chat_usage
 parse_usage
 process_choices_array
+process_completed_request
 process_content_delta
 process_data_line
 process_function_call
