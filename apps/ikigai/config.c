@@ -134,22 +134,3 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     *out = cfg;
     return OK(NULL);
 }
-
-const char *ik_config_get_default_provider(ik_config_t *config)
-{
-    assert(config != NULL); // LCOV_EXCL_BR_LINE
-
-    // Check environment variable first
-    const char *env_provider = getenv("IKIGAI_DEFAULT_PROVIDER");
-    if (env_provider && env_provider[0] != '\0') {
-        return env_provider;
-    }
-
-    // Use config file value
-    if (config->default_provider && config->default_provider[0] != '\0') {
-        return config->default_provider;
-    }
-
-    // Fall back to compiled default
-    return IK_DEFAULT_PROVIDER;
-}

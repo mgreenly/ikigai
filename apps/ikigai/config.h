@@ -25,7 +25,4 @@ typedef struct {
 
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out);
 
-// Get default provider name with env var override support
-const char *ik_config_get_default_provider(ik_config_t *config);
-
 #endif // IK_CONFIG_H
