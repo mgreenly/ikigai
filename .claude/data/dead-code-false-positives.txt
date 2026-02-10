@@ -22,6 +22,7 @@ ik_anthropic_process_message_start
 ik_anthropic_stream_process_event
 ik_db_messages_load
 ik_debug_log_write
+ik_google_stream_completion_cb
 ik_google_stream_process_parts
 ik_google_stream_process_usage
 ik_openai_chat_maybe_emit_start
