@@ -12,6 +12,7 @@ cleanup_completed_request
 extract_basic_fields
 extract_error_strings
 extract_model_if_needed
+find_and_process_completed_request
 google_cancel
 google_timeout
 ik_ansi_init
