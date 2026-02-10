@@ -93,9 +93,7 @@ void ik_openai_responses_stream_process_event(ik_openai_responses_stream_ctx_t *
         return;
     }
 
-    if (strcmp(event_name, "response.created") == 0) {
-        ik_openai_responses_handle_response_created(stream_ctx, root);
-    } else if (strcmp(event_name, "response.output_text.delta") == 0) {
+    if (strcmp(event_name, "response.output_text.delta") == 0) {
         ik_openai_responses_handle_output_text_delta(stream_ctx, root);
     } else if (strcmp(event_name, "response.reasoning_summary_text.delta") == 0) {
         ik_openai_responses_handle_reasoning_summary_text_delta(stream_ctx, root);
