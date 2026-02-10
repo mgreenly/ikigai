@@ -7,7 +7,6 @@
 #include <check.h>
 #include <talloc.h>
 #include <string.h>
-#include "apps/ikigai/providers/google/error.h"
 #include "apps/ikigai/providers/google/response.h"
 #include "apps/ikigai/providers/provider.h"
 

@@ -14,7 +14,6 @@
 #include "apps/ikigai/providers/google/request.h"
 #include "apps/ikigai/providers/google/request_helpers.h"
 #include "apps/ikigai/providers/google/thinking.h"
-#include "apps/ikigai/providers/google/error.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
