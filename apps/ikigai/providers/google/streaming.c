@@ -117,12 +117,6 @@ res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_c
  * Getters
  * ================================================================ */
 
-ik_usage_t ik_google_stream_get_usage(ik_google_stream_ctx_t *stream_ctx)
-{
-    assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
-    return stream_ctx->usage;
-}
-
 ik_finish_reason_t ik_google_stream_get_finish_reason(ik_google_stream_ctx_t *stream_ctx)
 {
     assert(stream_ctx != NULL); // LCOV_EXCL_BR_LINE
