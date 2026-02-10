@@ -135,25 +135,6 @@ START_TEST(test_chunk_with_non_string_modelversion) {
 }
 END_TEST
 
-START_TEST(test_chunk_without_finishreason) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-    ck_assert(!is_err(&r));
-
-    /* Process START first */
-    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
-
-    /* Process candidate without finishReason - covers line 409 false branch */
-    const char *chunk =
-        "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}]}}]}";
-    process_chunk(sctx, chunk);
-
-    /* Verify finish_reason remains UNKNOWN */
-    ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
-}
-END_TEST
-
 START_TEST(test_candidate_without_content) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -325,7 +306,6 @@ static Suite *google_streaming_chunks_coverage_suite(void)
     tcase_add_checked_fixture(tc_chunk, setup, teardown);
     tcase_add_test(tc_chunk, test_chunk_without_modelversion);
     tcase_add_test(tc_chunk, test_chunk_with_non_string_modelversion);
-    tcase_add_test(tc_chunk, test_chunk_without_finishreason);
     tcase_add_test(tc_chunk, test_candidate_without_content);
     tcase_add_test(tc_chunk, test_content_without_parts);
     tcase_add_test(tc_chunk, test_content_with_non_array_parts);

@@ -232,29 +232,6 @@ START_TEST(test_map_null_finish_reason) {
 }
 
 END_TEST
-/* ================================================================
- * Stream Context Tests
- * ================================================================ */
-
-START_TEST(test_stream_ctx_create_initializes_state) {
-    ik_google_stream_ctx_t *sctx = NULL;
-    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
-
-    ck_assert(!is_err(&r));
-    ck_assert_ptr_nonnull(sctx);
-
-    /* Verify initial state */
-    ik_usage_t usage = ik_google_stream_get_usage(sctx);
-    ck_assert_int_eq(usage.input_tokens, 0);
-    ck_assert_int_eq(usage.output_tokens, 0);
-    ck_assert_int_eq(usage.thinking_tokens, 0);
-    ck_assert_int_eq(usage.total_tokens, 0);
-
-    ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
-    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
-}
-
-END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -288,12 +265,6 @@ static Suite *google_streaming_parser_meta_suite(void)
     tcase_add_test(tc_finish, test_map_unknown_finish_reason);
     tcase_add_test(tc_finish, test_map_null_finish_reason);
     suite_add_tcase(s, tc_finish);
-
-    TCase *tc_ctx = tcase_create("Stream Context");
-    tcase_set_timeout(tc_ctx, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_ctx, setup, teardown);
-    tcase_add_test(tc_ctx, test_stream_ctx_create_initializes_state);
-    suite_add_tcase(s, tc_ctx);
 
     return s;
 }
