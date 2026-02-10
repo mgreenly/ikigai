@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/goal-comment - Append a comment to a goal's GitHub issue
+#
+# Usage: echo "comment text" | goal-comment <number>
+#
+# Output: JSON {"ok": true, "number": <number>}
+# Exit code: 0 on success, 1 on failure
+#
+
+require 'json'
+
+def main
+  if ARGV.include?('--help') || ARGV.include?('-h')
+    puts <<~HELP
+      Usage: echo "comment text" | goal-comment <number>
+
+      Append a comment to a goal's GitHub issue.
+
+      Arguments:
+        number    GitHub Issue number (required)
+
+      Input:
+        Comment body is read from stdin.
+
+      What it does:
+        Validates the goal exists, then adds a comment to the issue.
+
+      Output:
+        JSON {"ok": true, "number": <number>}
+
+      Examples:
+        echo "Analysis complete" | goal-comment 42
+        cat report.md | goal-comment 42
+    HELP
+    exit 0
+  end
+
+  number = ARGV[0]&.to_i
+
+  unless number && number > 0
+    puts JSON.generate(ok: false, items: ['issue number is required'])
+    exit 1
+  end
+
+  # Read comment body from stdin
+  body = $stdin.read.strip
+
+  if body.empty?
+    puts JSON.generate(ok: false, items: ['comment body cannot be empty'])
+    exit 1
+  end
+
+  # Validate this is a real goal
+  goal_get = File.join(File.expand_path('../../..', File.dirname(File.realpath(__FILE__))),
+                       '.claude', 'scripts', 'goal-get')
+  goal_json = IO.popen([goal_get, number.to_s], err: '/dev/null', &:read)
+  goal = (JSON.parse(goal_json) rescue nil)
+
+  unless goal && goal['ok']
+    puts JSON.generate(ok: false, items: ["##{number} is not a goal"])
+    exit 1
+  end
+
+  # Add comment to the issue
+  ok = system('gh', 'issue', 'comment', number.to_s,
+              '--body', body,
+              out: '/dev/null', err: '/dev/null')
+
+  unless ok
+    puts JSON.generate(ok: false, items: ["failed to add comment to ##{number}"])
+    exit 1
+  end
+
+  puts JSON.generate(ok: true, number: number)
+  exit 0
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end
