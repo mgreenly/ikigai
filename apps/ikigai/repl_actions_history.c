@@ -101,49 +101,6 @@ res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl)
  * @param repl REPL context
  * @return res_t Result
  */
-// LCOV_EXCL_START - Reserved for future Ctrl+R implementation
-res_t ik_repl_handle_history_prev_action(ik_repl_ctx_t *repl)
-{
-    assert(repl != NULL); /* LCOV_EXCL_BR_LINE */
-
-    if (repl->shared->history == NULL) {  // LCOV_EXCL_BR_LINE
-        return OK(NULL);  // LCOV_EXCL_LINE
-    }
-
-    size_t text_len = 0;
-    const char *text = ik_input_buffer_get_text(repl->current->input_buffer, &text_len);
-
-    const char *entry = NULL;
-    if (!ik_history_is_browsing(repl->shared->history)) {
-        // Start browsing with current input as pending
-        char *pending = talloc_zero_size(repl, text_len + 1);
-        if (pending == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        if (text_len > 0) {
-            memcpy(pending, text, text_len);
-        }
-        pending[text_len] = '\0';
-
-        res_t res = ik_history_start_browsing(repl->shared->history, pending);
-        if (is_err(&res)) {  // LCOV_EXCL_BR_LINE - OOM in history_start_browsing
-            talloc_free(pending);  // LCOV_EXCL_LINE
-            return res;  // LCOV_EXCL_LINE
-        }
-        talloc_free(pending);
-
-        entry = ik_history_get_current(repl->shared->history);
-    } else {
-        // Already browsing, move to previous
-        entry = ik_history_prev(repl->shared->history);
-    }
-
-    if (entry == NULL) {
-        return OK(NULL);
-    }
-
-    return load_history_entry_(repl, entry);
-}
-// LCOV_EXCL_STOP
-
 /**
  * @brief Handle Ctrl+N - history next (currently disabled)
  *
