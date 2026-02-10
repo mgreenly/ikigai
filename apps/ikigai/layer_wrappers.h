@@ -20,14 +20,6 @@ ik_layer_t *ik_scrollback_layer_create(TALLOC_CTX *ctx, const char *name, ik_scr
 // The layer renders a separator line of dashes across the terminal width
 ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx, const char *name, bool *visible_ptr);
 
-// Set debug info pointers on separator layer (optional - for debugging viewport issues)
-void ik_separator_layer_set_debug(ik_layer_t *layer,
-                                  size_t *viewport_offset,
-                                  size_t *viewport_row,
-                                  size_t *viewport_height,
-                                  size_t *document_height,
-                                  uint64_t *render_elapsed_us);
-
 // Set navigation context on separator layer (for agent tree navigation)
 void ik_separator_layer_set_nav_context(ik_layer_t *layer,
                                         const char *parent_uuid,
