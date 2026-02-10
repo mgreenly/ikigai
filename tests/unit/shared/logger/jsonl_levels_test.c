@@ -24,7 +24,6 @@ static void setup_logger(void)
 
 static void teardown_logger(void)
 {
-    ik_log_shutdown();
     unlink(log_file_path);
     char logs_dir[512];
     snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);

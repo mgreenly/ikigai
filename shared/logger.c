@@ -163,19 +163,6 @@ void ik_log_init(const char *working_dir)
     pthread_mutex_unlock(&ik_log_mutex);
 }
 
-void ik_log_shutdown(void)
-{
-    pthread_mutex_lock(&ik_log_mutex);
-    if (ik_log_file != NULL) {
-        if (fclose_(ik_log_file) != 0) {  // LCOV_EXCL_BR_LINE
-            pthread_mutex_unlock(&ik_log_mutex);  // LCOV_EXCL_LINE
-            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
-        }
-        ik_log_file = NULL;
-    }
-    pthread_mutex_unlock(&ik_log_mutex);
-}
-
 yyjson_mut_doc *ik_log_create(void)
 {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);

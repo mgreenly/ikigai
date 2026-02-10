@@ -22,7 +22,6 @@ void ik_logger_reinit(ik_logger_t *logger, const char *working_dir);
 // Legacy global logger initialization (for backward compatibility during migration)
 // Prefer ik_logger_create() for new code
 void ik_log_init(const char *working_dir);
-void ik_log_shutdown(void);
 
 // New JSONL logging API
 // Create a log document (returns doc with empty root object)

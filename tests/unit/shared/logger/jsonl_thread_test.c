@@ -122,7 +122,6 @@ START_TEST(test_concurrent_logging_no_corruption) {
     ck_assert_int_eq(line_count, expected_lines);
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     char logs_dir[512];
     snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);

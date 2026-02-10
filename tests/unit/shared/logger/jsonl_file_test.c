@@ -33,7 +33,6 @@ START_TEST(test_log_init_creates_log_file) {
     ck_assert(S_ISREG(st.st_mode));
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     rmdir(logs_dir);
     char ikigai_dir[512];
@@ -78,7 +77,6 @@ START_TEST(test_log_writes_to_file) {
     ck_assert_ptr_nonnull(strstr(line, "\"value\":42"));
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     char logs_dir[512];
     snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
@@ -130,37 +128,6 @@ START_TEST(test_multiple_log_entries_append) {
     ck_assert_ptr_nonnull(strstr(line2, "\"event\":\"second\""));
 
     // Cleanup
-    ik_log_shutdown();
-    unlink(log_file);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
-    rmdir(test_dir);
-}
-
-END_TEST
-// Test: ik_log_shutdown closes file
-START_TEST(test_log_shutdown_closes_file) {
-    char test_dir[256];
-    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
-
-    // Create test directory
-    mkdir(test_dir, 0755);
-
-    // Initialize and shutdown logger
-    ik_log_init(test_dir);
-    ik_log_shutdown();
-
-    // The file should exist after shutdown
-    char log_file[512];
-    snprintf(log_file, sizeof(log_file), "%s/.ikigai/logs/current.log", test_dir);
-    struct stat st;
-    ck_assert_int_eq(stat(log_file, &st), 0);
-
-    // Cleanup
     unlink(log_file);
     char logs_dir[512];
     snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
@@ -184,7 +151,6 @@ static Suite *logger_jsonl_file_suite(void)
     tcase_add_test(tc_core, test_log_init_creates_log_file);
     tcase_add_test(tc_core, test_log_writes_to_file);
     tcase_add_test(tc_core, test_multiple_log_entries_append);
-    tcase_add_test(tc_core, test_log_shutdown_closes_file);
 
     suite_add_tcase(s, tc_core);
     return s;

@@ -206,7 +206,6 @@ static void teardown(void)
     talloc_free(test_ctx);
 
     // Cleanup logger
-    ik_log_shutdown();
     unlink(log_file_path);
     char logs_dir[512];
     snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
