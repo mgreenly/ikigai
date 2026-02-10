@@ -22,6 +22,7 @@ ik_db_messages_load
 ik_debug_log_write
 ik_google_stream_process_parts
 ik_google_stream_process_usage
+ik_openai_chat_maybe_emit_start
 ik_openai_chat_maybe_end_tool_call
 ik_openai_chat_stream_ctx_create
 ik_openai_maybe_emit_start
