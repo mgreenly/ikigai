@@ -40,23 +40,3 @@ res_t ik_response_create(TALLOC_CTX *ctx, ik_response_t **out)
     return OK(*out);
 }
 
-res_t ik_response_add_content(ik_response_t *resp, ik_content_block_t *block)
-{
-    assert(resp != NULL);  // LCOV_EXCL_BR_LINE
-    assert(block != NULL); // LCOV_EXCL_BR_LINE
-
-    /* Grow content blocks array */
-    size_t new_count = resp->content_count + 1;
-    resp->content_blocks = talloc_realloc(resp, resp->content_blocks,
-                                          ik_content_block_t, (unsigned int)new_count);
-    if (!resp->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    /* Copy block contents */
-    resp->content_blocks[resp->content_count] = *block;
-    resp->content_count = new_count;
-
-    /* Steal block to response (becomes child of response) */
-    talloc_steal(resp, block);
-
-    return OK(NULL);
-}
