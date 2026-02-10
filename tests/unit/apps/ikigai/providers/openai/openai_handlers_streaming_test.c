@@ -9,7 +9,6 @@
 #include <talloc.h>
 
 #include "apps/ikigai/providers/common/http_multi.h"
-#include "apps/ikigai/providers/openai/error.h"
 #include "apps/ikigai/providers/openai/openai.h"
 #include "apps/ikigai/providers/openai/openai_handlers.h"
 #include "apps/ikigai/providers/openai/response.h"

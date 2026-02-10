@@ -14,7 +14,6 @@
 #include "apps/ikigai/providers/openai/request.h"
 #include "apps/ikigai/providers/openai/serialize.h"
 #include "apps/ikigai/providers/openai/reasoning.h"
-#include "apps/ikigai/providers/openai/error.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>

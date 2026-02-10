@@ -5,7 +5,6 @@
 
 #include "apps/ikigai/providers/openai/streaming_responses_internal.h"
 
-#include "apps/ikigai/providers/openai/error.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/openai/response.h"
 #include "shared/wrapper_json.h"

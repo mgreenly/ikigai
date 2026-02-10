@@ -4,7 +4,6 @@
  */
 
 #include "apps/ikigai/providers/openai/streaming_chat_internal.h"
-#include "apps/ikigai/providers/openai/error.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include <assert.h>

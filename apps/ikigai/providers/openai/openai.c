@@ -6,7 +6,6 @@
 #include "apps/ikigai/providers/openai/openai.h"
 #include "apps/ikigai/providers/openai/openai_handlers.h"
 #include "apps/ikigai/providers/openai/openai_internal.h"
-#include "apps/ikigai/providers/openai/error.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/common/http_multi.h"
 #include "apps/ikigai/providers/openai/reasoning.h"

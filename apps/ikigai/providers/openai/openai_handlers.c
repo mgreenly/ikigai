@@ -4,7 +4,6 @@
  */
 
 #include "apps/ikigai/providers/openai/openai_handlers.h"
-#include "apps/ikigai/providers/openai/error.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/openai/response.h"
 #include "apps/ikigai/providers/openai/streaming.h"
