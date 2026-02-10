@@ -40,6 +40,7 @@ openai_info_read
 openai_perform
 openai_start_request
 openai_start_stream
+openai_timeout
 parse_chat_usage
 parse_usage
 process_choices_array
