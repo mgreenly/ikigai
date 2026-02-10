@@ -19,10 +19,6 @@ ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir);
 // Reinitialize logger for a new working directory
 void ik_logger_reinit(ik_logger_t *logger, const char *working_dir);
 
-// Legacy global logger initialization (for backward compatibility during migration)
-// Prefer ik_logger_create() for new code
-void ik_log_init(const char *working_dir);
-
 // New JSONL logging API
 // Create a log document (returns doc with empty root object)
 yyjson_mut_doc *ik_log_create(void);
