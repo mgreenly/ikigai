@@ -1,6 +1,7 @@
 add_text_content
 add_tool_calls_content
 add_tool_call_to_array
+add_tool_result_content
 anthropic_cancel
 anthropic_cleanup
 anthropic_fdset
@@ -48,6 +49,6 @@ process_function_call
 process_input_json_delta
 process_message_content
 process_output_text
-process_thinking_delta
 process_text_part
+process_thinking_delta
 vcr_deliver_chunk_to_callback
