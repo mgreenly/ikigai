@@ -125,21 +125,6 @@ res_t ik_layer_cake_add_layer(ik_layer_cake_t *cake, ik_layer_t *layer)
     return OK(cake);
 }
 
-// Calculate total visible height of all layers
-size_t ik_layer_cake_get_total_height(const ik_layer_cake_t *cake, size_t width)
-{
-    assert(cake != NULL);  // LCOV_EXCL_BR_LINE
-
-    size_t total = 0;
-    for (size_t i = 0; i < cake->layer_count; i++) {
-        ik_layer_t *layer = cake->layers[i];
-        if (layer->is_visible(layer)) {
-            total += layer->get_height(layer, width);
-        }
-    }
-    return total;
-}
-
 // Render visible portion of cake to output buffer
 void ik_layer_cake_render(const ik_layer_cake_t *cake, ik_output_buffer_t *output, size_t width)
 {
