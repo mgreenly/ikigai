@@ -414,17 +414,16 @@ def main(options)
             log "Goal ##{number} (PR ##{info[:retry_pr]}) force-push failed (keeping retry label)"
           end
           delete_clone(org, repo, number)
-        elsif info[:spot_check]
-          # Needs human spot-check
-          transition_label(number, 'goal:running', 'goal:spot-check')
-          notify("Goal ##{number} needs spot-check", "\"#{info[:title]}\" completed in #{elapsed}")
-          log "Goal ##{number} → spot-check"
-          # Keep clone for human review
         else
-          # Success — create PR
+          # Success — create PR (including spot-check goals)
           pr_num = create_pr_from_clone(number, info[:title], info[:dir])
           if pr_num
             log "Goal ##{number} PR created → ##{pr_num}"
+            # Add goal:spot-check label if this is a spot-check goal
+            if info[:spot_check]
+              add_pr_label(pr_num, 'goal:spot-check')
+              log "Goal ##{number} PR ##{pr_num} labeled goal:spot-check"
+            end
             if system('gh', 'pr', 'merge', '--auto', '--squash', pr_num.to_s, out: '/dev/null', err: '/dev/null')
               log "Goal ##{number} auto-merge enabled on PR ##{pr_num}"
             else
