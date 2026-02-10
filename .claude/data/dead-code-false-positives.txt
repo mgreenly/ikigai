@@ -15,6 +15,7 @@ extract_model_if_needed
 find_and_process_completed_request
 google_cancel
 google_timeout
+http_write_callback
 ik_ansi_init
 ik_anthropic_handle_error
 ik_anthropic_process_content_block_delta
