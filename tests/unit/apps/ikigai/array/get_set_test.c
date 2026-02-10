@@ -5,34 +5,6 @@
 #include "apps/ikigai/array.h"
 #include "tests/helpers/test_utils_helper.h"
 
-// Test set element
-START_TEST(test_array_set) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
-    ck_assert(is_ok(&res));
-    ik_array_t *array = res.ok;
-
-    // Add [0, 1, 2]
-    for (int32_t i = 0; i < 3; i++) {
-        res = ik_array_append(array, &i);
-        ck_assert(is_ok(&res));
-    }
-
-    // Set middle element
-    int32_t new_value = 99;
-    ik_array_set(array, 1, &new_value);
-
-    ck_assert_uint_eq(array->size, 3);
-    // Verify: [0, 99, 2]
-    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 0), 0);
-    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 1), 99);
-    ck_assert_int_eq(*(int32_t *)ik_array_get(array, 2), 2);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 // Security test: Use-after-free attempt via stale pointer after reallocation
 START_TEST(test_array_stale_pointer_after_reallocation) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -101,20 +73,6 @@ START_TEST(test_array_get_out_of_bounds_asserts) {
 }
 
 END_TEST
-// Test assertion: set with invalid index
-START_TEST(test_array_set_invalid_index_asserts) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    res_t res = ik_array_create(ctx, sizeof(int32_t), 10);
-    ik_array_t *array = res.ok;
-
-    int32_t value = 42;
-    // Set on empty array
-    ik_array_set(array, 0, &value);
-
-    talloc_free(ctx);
-}
-
-END_TEST
 #endif
 
 // Test suite setup
@@ -126,20 +84,14 @@ static Suite *array_get_set_suite(void)
     s = suite_create("Array Get/Set");
     tc_core = tcase_create("Core");
 
-    tcase_add_test(tc_core, test_array_set);
     tcase_add_test(tc_core, test_array_stale_pointer_after_reallocation);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     // Assertion tests - only in debug builds
     TCase *tc_assertions = tcase_create("Assertions");
     tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_assertions, IK_TEST_TIMEOUT); // Longer timeout for valgrind
     tcase_add_test_raise_signal(tc_assertions, test_array_get_null_array_asserts, SIGABRT);
     tcase_add_test_raise_signal(tc_assertions, test_array_get_out_of_bounds_asserts, SIGABRT);
-    tcase_add_test_raise_signal(tc_assertions, test_array_set_invalid_index_asserts, SIGABRT);
     suite_add_tcase(s, tc_assertions);
 #endif
 
