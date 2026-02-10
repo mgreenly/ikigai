@@ -44,6 +44,7 @@ process_choices_array
 process_content_delta
 process_data_line
 process_function_call
+process_input_json_delta
 process_message_content
 process_output_text
 process_thinking_delta
