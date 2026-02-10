@@ -237,6 +237,25 @@ START_TEST(test_part_with_null_thought_field) {
 }
 END_TEST
 
+START_TEST(test_candidate_with_null_finish_reason) {
+    ik_google_stream_ctx_t *sctx = NULL;
+    res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
+    ck_assert(!is_err(&r));
+
+    /* Process START first */
+    process_chunk(sctx, "{\"modelVersion\":\"gemini-2.5-flash\"}");
+
+    /* Process candidate with null finishReason value - covers line 411 branch */
+    const char *chunk =
+        "{\"candidates\":[{\"finishReason\":null,\"content\":{\"parts\":[{\"text\":\"Hi\"}]}}]}";
+    process_chunk(sctx, chunk);
+
+    /* Verify finish_reason remains UNKNOWN */
+    ik_finish_reason_t reason = ik_google_stream_get_finish_reason(sctx);
+    ck_assert_int_eq(reason, IK_FINISH_UNKNOWN);
+}
+END_TEST
+
 START_TEST(test_multiple_text_deltas_without_thinking) {
     ik_google_stream_ctx_t *sctx = NULL;
     res_t r = ik_google_stream_ctx_create(test_ctx, test_stream_cb, NULL, &sctx);
@@ -311,6 +330,7 @@ static Suite *google_streaming_missing_branches_suite(void)
     tcase_add_test(tc_main, test_process_data_with_empty_string);
     tcase_add_test(tc_main, test_usage_with_null_total_tokens);
     tcase_add_test(tc_main, test_part_with_null_thought_field);
+    tcase_add_test(tc_main, test_candidate_with_null_finish_reason);
     tcase_add_test(tc_main, test_multiple_text_deltas_without_thinking);
     tcase_add_test(tc_main, test_tool_call_ended_by_thinking);
     suite_add_tcase(s, tc_main);

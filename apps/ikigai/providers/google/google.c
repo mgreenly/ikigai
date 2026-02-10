@@ -5,6 +5,7 @@
 
 #include "apps/ikigai/providers/google/google.h"
 
+#include "apps/ikigai/providers/google/error.h"
 #include "apps/ikigai/providers/google/google_internal.h"
 #include "shared/logger.h"
 #include "shared/panic.h"

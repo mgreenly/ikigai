@@ -25,9 +25,29 @@ typedef struct {
 // @return Pointer to new tool call struct (owned by ctx), or NULL on OOM
 ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments);
 
+// Extract string argument from tool call JSON arguments.
+//
+// Parses the arguments_json string as JSON, looks up the specified key,
+// and returns its string value if found and of correct type.
+//
+// @param parent Parent talloc context for result string allocation
+// @param arguments_json JSON string containing tool arguments (e.g., "{\"pattern\": \"*.c\"}")
+// @param key Key to extract (e.g., "pattern")
+// @return Allocated string value (owned by parent) if key found and is string type,
+//         NULL if key not found, arguments_json is NULL, JSON is malformed, or value is wrong type
+char *ik_tool_arg_get_string(void *parent, const char *arguments_json, const char *key);
+
 // Extract integer argument from tool call JSON arguments.
 //
 // Parses the arguments_json string as JSON, looks up the specified key,
 // and returns its integer value if found and of correct type.
 //
+// @param arguments_json JSON string containing tool arguments (e.g., "{\"timeout\": 30}")
+// @param key Key to extract (e.g., "timeout")
+// @param out_value Pointer to int where value will be stored on success
+// @return true if key found and value extracted successfully,
+//         false if key not found, arguments_json is NULL, out_value is NULL,
+//         JSON is malformed, or value is wrong type
+bool ik_tool_arg_get_int(const char *arguments_json, const char *key, int *out_value);
+
 #endif // IK_TOOL_H

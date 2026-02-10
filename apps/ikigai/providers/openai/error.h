@@ -43,5 +43,6 @@
  * - 503 service_unavailable -> IK_ERR_CAT_SERVER
  * - content_filter (any code/type) -> IK_ERR_CAT_CONTENT_FILTER
  */
+res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body, ik_error_category_t *out_category);
 
 #endif /* IK_PROVIDERS_OPENAI_ERROR_H */

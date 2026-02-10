@@ -20,6 +20,8 @@ struct ik_logger {
     pthread_mutex_t mutex;
 };
 
+static pthread_mutex_t ik_log_mutex = PTHREAD_MUTEX_INITIALIZER;
+static FILE *ik_log_file = NULL;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 static void ik_log_format_timestamp_impl(char *buf, size_t buf_len, const char *fmt)
@@ -143,6 +145,37 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
     }
 }
 
+void ik_log_init(const char *working_dir)
+{
+    assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
+
+    char log_path[512];
+    ik_log_setup_directories(working_dir, log_path);
+
+    pthread_mutex_lock(&ik_log_mutex);
+    ik_log_rotate_if_exists(log_path);
+
+    ik_log_file = fopen_(log_path, "w");
+    if (ik_log_file == NULL) {  // LCOV_EXCL_BR_LINE
+        pthread_mutex_unlock(&ik_log_mutex);  // LCOV_EXCL_LINE
+        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
+    }
+    pthread_mutex_unlock(&ik_log_mutex);
+}
+
+void ik_log_shutdown(void)
+{
+    pthread_mutex_lock(&ik_log_mutex);
+    if (ik_log_file != NULL) {
+        if (fclose_(ik_log_file) != 0) {  // LCOV_EXCL_BR_LINE
+            pthread_mutex_unlock(&ik_log_mutex);  // LCOV_EXCL_LINE
+            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
+        }
+        ik_log_file = NULL;
+    }
+    pthread_mutex_unlock(&ik_log_mutex);
+}
+
 yyjson_mut_doc *ik_log_create(void)
 {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
@@ -187,7 +220,23 @@ static char *ik_log_create_jsonl(const char *level, yyjson_mut_doc *doc)
 
 static void ik_log_write(const char *level, yyjson_mut_doc *doc)
 {
-    (void)level;
+    if (ik_log_file == NULL) {
+        yyjson_mut_doc_free(doc);
+        return;
+    }
+
+    char *json_str = ik_log_create_jsonl(level, doc);
+
+    pthread_mutex_lock(&ik_log_mutex);
+    if (fprintf(ik_log_file, "%s\n", json_str) < 0) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to write to log file");  // LCOV_EXCL_LINE
+    }
+    if (fflush(ik_log_file) != 0) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to flush log file");  // LCOV_EXCL_LINE
+    }
+    pthread_mutex_unlock(&ik_log_mutex);
+
+    free(json_str);
     yyjson_mut_doc_free(doc);
 }
 

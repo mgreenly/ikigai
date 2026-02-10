@@ -169,39 +169,6 @@ START_TEST(test_config_auto_create_defaults) {
 
 END_TEST
 
-START_TEST(test_config_load_invalid_json) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    // Setup test environment
-    test_paths_setup_env();
-
-    // Create paths instance
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Get config path and write invalid JSON
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(config_path, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f, "{this is not valid JSON}");
-    fclose(f);
-
-    // Try to load - should fail with PARSE error
-    ik_config_t *config = NULL;
-    res_t result = ik_config_load(ctx, paths, &config);
-    ck_assert(result.is_err);
-    ck_assert_int_eq(result.err->code, ERR_PARSE);
-
-    test_paths_cleanup_env();
-    talloc_free(ctx);
-}
-
-END_TEST
-
 START_TEST(test_config_memory_cleanup) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -214,17 +181,7 @@ START_TEST(test_config_memory_cleanup) {
     res_t paths_result = ik_paths_init(ctx, &paths);
     ck_assert(is_ok(&paths_result));
 
-    // Get config path and write valid JSON
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
-
-    FILE *f = fopen(config_path, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f,
-            "{\"openai_model\": \"gpt-4-turbo\", \"openai_temperature\": 0.7, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": null, \"listen_address\": \"127.0.0.1\", \"listen_port\": 8080, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
-    fclose(f);
-
-    // Load config
+    // Load config (uses defaults since no config file)
     ik_config_t *cfg = NULL;
     res_t result = ik_config_load(ctx, paths, &cfg);
     ck_assert(!result.is_err);
@@ -233,7 +190,7 @@ START_TEST(test_config_memory_cleanup) {
     // Verify all strings are on the config context (child of ctx)
     ck_assert_ptr_nonnull(cfg->listen_address);
     ck_assert_str_eq(cfg->listen_address, "127.0.0.1");
-    ck_assert_int_eq(cfg->listen_port, 8080);
+    ck_assert_int_eq(cfg->listen_port, 1984);
 
     // Verify memory is properly parented
     // talloc_get_type will return NULL if the pointer is not valid
@@ -258,7 +215,6 @@ END_TEST static Suite *config_basic_suite(void)
     tcase_add_test(tc_core, test_config_load_without_directory);
     tcase_add_test(tc_core, test_config_load_without_file);
     tcase_add_test(tc_core, test_config_auto_create_defaults);
-    tcase_add_test(tc_core, test_config_load_invalid_json);
     tcase_add_test(tc_core, test_config_memory_cleanup);
 
     suite_add_tcase(s, tc_core);

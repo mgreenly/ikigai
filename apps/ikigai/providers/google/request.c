@@ -14,6 +14,7 @@
 #include "apps/ikigai/providers/google/request.h"
 #include "apps/ikigai/providers/google/request_helpers.h"
 #include "apps/ikigai/providers/google/thinking.h"
+#include "apps/ikigai/providers/google/error.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
@@ -405,4 +406,27 @@ res_t ik_google_build_url(TALLOC_CTX *ctx, const char *base_url, const char *mod
 
     *out_url = url;
     return OK(url);
+}
+
+res_t ik_google_build_headers(TALLOC_CTX *ctx, bool streaming, char ***out_headers)
+{
+    assert(ctx != NULL);         // LCOV_EXCL_BR_LINE
+    assert(out_headers != NULL); // LCOV_EXCL_BR_LINE
+
+    char **headers = talloc_zero_array(ctx, char *, streaming ? 3U : 2U);
+    if (!headers) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    headers[0] = talloc_strdup(headers, "Content-Type: application/json");
+    if (!headers[0]) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    if (streaming) {
+        headers[1] = talloc_strdup(headers, "Accept: text/event-stream");
+        if (!headers[1]) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        headers[2] = NULL;
+    } else {
+        headers[1] = NULL;
+    }
+
+    *out_headers = headers;
+    return OK(headers);
 }

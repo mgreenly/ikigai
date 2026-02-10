@@ -104,12 +104,16 @@ START_TEST(test_thinking_gemini_versions) {
 END_TEST
 
 START_TEST(test_build_url_and_headers) {
-    char *url = NULL; res_t r;
+    char *url = NULL; char **headers = NULL; res_t r;
     r = ik_google_build_url(test_ctx, "https://a.com", "gemini-2.0-flash", "k", false, &url);
     ck_assert(is_ok(&r)); ck_assert_str_eq(url, "https://a.com/models/gemini-2.0-flash:generateContent?key=k");
+    r = ik_google_build_headers(test_ctx, false, &headers);
+    ck_assert(is_ok(&r)); ck_assert_ptr_null(headers[1]);
     r = ik_google_build_url(test_ctx, "https://a.com", "gemini-2.0-flash", "k", true, &url);
     ck_assert(is_ok(&r)); ck_assert_str_eq(url,
                                            "https://a.com/models/gemini-2.0-flash:streamGenerateContent?key=k&alt=sse");
+    r = ik_google_build_headers(test_ctx, true, &headers);
+    ck_assert(is_ok(&r)); ck_assert_ptr_null(headers[2]);
 }
 END_TEST
 

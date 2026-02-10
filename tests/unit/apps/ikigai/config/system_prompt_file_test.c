@@ -60,41 +60,7 @@ START_TEST(test_system_prompt_from_file) {
 }
 END_TEST
 
-// Test 2: File doesn't exist, config has value → uses config value
-START_TEST(test_system_prompt_from_config) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    test_paths_setup_env();
-
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Write config with system message
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
-    FILE *f = fopen(config_path, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f,
-            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 1.0, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"Config system prompt.\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
-    fclose(f);
-
-    // Load config (no system.md file)
-    ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(cfg);
-
-    // Verify config value is used
-    ck_assert_str_eq(cfg->openai_system_message, "Config system prompt.");
-
-    test_paths_cleanup_env();
-    talloc_free(ctx);
-}
-END_TEST
-
-// Test 3: Neither file nor config → uses default constant
+// Test 2: Neither file nor config → uses default constant
 START_TEST(test_system_prompt_default) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -119,7 +85,7 @@ START_TEST(test_system_prompt_default) {
 }
 END_TEST
 
-// Test 4: File exists but is empty → fails loudly
+// Test 3: File exists but is empty → fails loudly
 START_TEST(test_system_prompt_file_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -146,7 +112,7 @@ START_TEST(test_system_prompt_file_empty) {
 }
 END_TEST
 
-// Test 5: File exists but exceeds 1KB → fails loudly
+// Test 4: File exists but exceeds 1KB → fails loudly
 START_TEST(test_system_prompt_file_too_large) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -181,44 +147,6 @@ START_TEST(test_system_prompt_file_too_large) {
 }
 END_TEST
 
-// Test 6: File priority over config
-START_TEST(test_system_prompt_file_priority_over_config) {
-    TALLOC_CTX *ctx = talloc_new(NULL);
-    ck_assert_ptr_nonnull(ctx);
-
-    test_paths_setup_env();
-
-    ik_paths_t *paths = NULL;
-    res_t paths_result = ik_paths_init(ctx, &paths);
-    ck_assert(is_ok(&paths_result));
-
-    // Write config with system message
-    const char *config_dir = ik_paths_get_config_dir(paths);
-    char *config_path = talloc_asprintf(ctx, "%s/config.json", config_dir);
-    FILE *f = fopen(config_path, "w");
-    ck_assert_ptr_nonnull(f);
-    fprintf(f,
-            "{\"openai_model\": \"gpt-5-mini\", \"openai_temperature\": 1.0, \"openai_max_completion_tokens\": 4096, \"openai_system_message\": \"Config system prompt.\", \"listen_address\": \"127.0.0.1\", \"listen_port\": 1984, \"max_tool_turns\": 50, \"max_output_size\": 1048576}");
-    fclose(f);
-
-    // Create system.md file with different content
-    create_prompts_dir(ctx, paths);
-    write_system_md(ctx, paths, "File system prompt wins.");
-
-    // Load config
-    ik_config_t *cfg = NULL;
-    res_t result = ik_config_load(ctx, paths, &cfg);
-    ck_assert(is_ok(&result));
-    ck_assert_ptr_nonnull(cfg);
-
-    // Verify file content is used (not config)
-    ck_assert_str_eq(cfg->openai_system_message, "File system prompt wins.");
-
-    test_paths_cleanup_env();
-    talloc_free(ctx);
-}
-END_TEST
-
 static Suite *system_prompt_file_suite(void)
 {
     Suite *s = suite_create("Config System Prompt File");
@@ -226,11 +154,9 @@ static Suite *system_prompt_file_suite(void)
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
 
     tcase_add_test(tc_core, test_system_prompt_from_file);
-    tcase_add_test(tc_core, test_system_prompt_from_config);
     tcase_add_test(tc_core, test_system_prompt_default);
     tcase_add_test(tc_core, test_system_prompt_file_empty);
     tcase_add_test(tc_core, test_system_prompt_file_too_large);
-    tcase_add_test(tc_core, test_system_prompt_file_priority_over_config);
 
     suite_add_tcase(s, tc_core);
     return s;

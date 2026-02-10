@@ -140,6 +140,37 @@ res_t ik_db_mail_inbox(ik_db_ctx_t *db, TALLOC_CTX *ctx,
     return OK(NULL);
 }
 
+res_t ik_db_mail_mark_read(ik_db_ctx_t *db, int64_t mail_id)
+{
+    assert(db != NULL);        // LCOV_EXCL_BR_LINE
+    assert(db->conn != NULL);  // LCOV_EXCL_BR_LINE
+    assert(mail_id > 0);       // LCOV_EXCL_BR_LINE
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    const char *query = "UPDATE mail SET read = 1 WHERE id = $1";
+
+    char *mail_id_str = talloc_asprintf(tmp, "%lld", (long long)mail_id);
+    if (mail_id_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    const char *params[1];
+    params[0] = mail_id_str;
+
+    ik_pg_result_wrapper_t *res_wrapper =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query, 1, NULL, params, NULL, NULL, 0));
+    PGresult *res = res_wrapper->pg_result;
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        const char *pq_err = PQerrorMessage(db->conn);
+        res_t error_res = ERR(db, IO, "Mail mark read failed: %s", pq_err);
+        talloc_free(tmp);
+        return error_res;
+    }
+
+    talloc_free(tmp);
+    return OK(NULL);
+}
+
 res_t ik_db_mail_delete(ik_db_ctx_t *db, int64_t mail_id,
                         const char *recipient_uuid)
 {

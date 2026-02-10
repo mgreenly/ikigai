@@ -8,6 +8,7 @@
 
 #include "apps/ikigai/providers/google/request_helpers.h"
 #include "apps/ikigai/providers/google/thinking.h"
+#include "apps/ikigai/providers/google/error.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include "shared/wrapper_json.h"

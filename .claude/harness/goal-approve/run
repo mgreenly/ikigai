@@ -1,0 +1,145 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# harness/goal-approve - Approve a spot-checked goal
+#
+# Usage: goal-approve <number>
+#
+# Creates a PR from the clone at .ralphs/<number>/, transitions the
+# goal from goal:spot-check to goal:done, and deletes the clone.
+#
+# Output: JSON {"ok": true, "number": <number>, "pr": <pr-number>}
+# Exit code: 0 on success, 1 on failure
+#
+
+require 'json'
+require 'fileutils'
+
+PROJECT_ROOT = File.expand_path('../../..', File.dirname(File.realpath(__FILE__)))
+RALPHS_DIR = File.join(PROJECT_ROOT, '.ralphs')
+GOAL_GET_SCRIPT = File.join(PROJECT_ROOT, '.claude', 'scripts', 'goal-get')
+
+def fail!(message)
+  puts JSON.generate(ok: false, items: [message])
+  exit 1
+end
+
+def main
+  if ARGV.include?('--help') || ARGV.include?('-h')
+    puts <<~HELP
+      Usage: goal-approve <number>
+
+      Approve a spot-checked goal: create PR, label done, clean up clone.
+
+      Arguments:
+        number    GitHub Issue number (required)
+
+      What it does:
+        1. Creates a PR from the clone at .ralphs/<org>/<repo>/<number>/
+        2. Transitions goal:spot-check → goal:done
+        3. Deletes the clone directory
+
+      Output:
+        JSON {"ok": true, "number": <number>, "pr": <pr-number>}
+
+      Examples:
+        goal-approve 260
+    HELP
+    exit 0
+  end
+
+  number = ARGV[0]&.to_i
+
+  unless number && number > 0
+    fail!('issue number is required')
+  end
+
+  # Find clone in .ralphs/<org>/<repo>/<number>/ structure
+  clone_dir = nil
+  Dir.glob(File.join(RALPHS_DIR, '*', '*', number.to_s)).each do |path|
+    if File.directory?(path)
+      clone_dir = path
+      break
+    end
+  end
+
+  unless clone_dir
+    fail!("clone not found in .ralphs/*/*/*/#{number}/")
+  end
+
+  # Fetch goal title
+  goal_json = IO.popen([GOAL_GET_SCRIPT, number.to_s], err: '/dev/null', &:read)
+  goal = (JSON.parse(goal_json) rescue nil)
+
+  unless goal && goal['ok']
+    fail!("could not fetch goal ##{number}")
+  end
+
+  title = goal['title']
+  branch = "goal-#{number}"
+
+  # Initialize jj if not already (handles clones from before jj init was added)
+  unless Dir.exist?(File.join(clone_dir, '.jj'))
+    system('jj', 'git', 'init', chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  end
+
+  # Commit any uncommitted working copy changes
+  system('jj', 'commit', '-m', "Goal ##{number}: #{title}",
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+
+  # Check if there are commits beyond main
+  jj_log = IO.popen(['jj', 'log', '-r', 'main@origin..@-', '--no-graph', '-T', 'change_id.short()'],
+                     chdir: clone_dir, err: '/dev/null', &:read)
+  if jj_log.strip.empty?
+    fail!("no changes in clone for ##{number}")
+  end
+
+  # Create bookmark on last commit, track, and push
+  system('jj', 'bookmark', 'create', branch, '-r', '@-',
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  system('jj', 'bookmark', 'track', "#{branch}@origin",
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+  system('jj', 'git', 'push', '--bookmark', branch,
+         chdir: clone_dir, out: '/dev/null', err: '/dev/null')
+
+  unless $?.exitstatus == 0
+    fail!("failed to push for ##{number}")
+  end
+
+  # Create PR
+  body = "Closes ##{number}"
+  pr_output = IO.popen(
+    ['gh', 'pr', 'create', '--title', title, '--body', body, '--head', branch],
+    chdir: clone_dir, err: '/dev/null', &:read
+  )
+
+  unless $?.exitstatus == 0
+    fail!("failed to create PR for ##{number}")
+  end
+
+  pr_num = pr_output.strip.split('/').last.to_i
+
+  # Transition label
+  system('gh', 'issue', 'edit', number.to_s,
+         '--remove-label', 'goal:spot-check',
+         '--add-label', 'goal:done',
+         out: '/dev/null', err: '/dev/null')
+
+  system(File.join(PROJECT_ROOT, '.claude', 'scripts', 'story-try-close'), number.to_s,
+         out: '/dev/null', err: '/dev/null')
+
+  # Delete clone
+  FileUtils.rm_rf(clone_dir)
+
+  puts JSON.generate(ok: true, number: number, pr: pr_num)
+  exit 0
+end
+
+if __FILE__ == $PROGRAM_NAME
+  begin
+    main
+  rescue Interrupt
+    exit 130
+  end
+end

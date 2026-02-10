@@ -4,6 +4,7 @@
  */
 
 #include "apps/ikigai/providers/google/thinking.h"
+#include "apps/ikigai/providers/google/error.h"
 #include "shared/panic.h"
 #include <string.h>
 
