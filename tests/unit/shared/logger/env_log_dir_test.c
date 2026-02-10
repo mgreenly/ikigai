@@ -34,7 +34,6 @@ static void setup_with_env(void)
 
 static void teardown_with_env(void)
 {
-    ik_log_shutdown();
 
     // Unset environment variable
     unsetenv("IKIGAI_LOG_DIR");
@@ -64,7 +63,6 @@ static void setup_without_env(void)
 
 static void teardown_without_env(void)
 {
-    ik_log_shutdown();
     unlink(log_file_path);
 
     char logs_dir[512];
@@ -162,7 +160,6 @@ START_TEST(test_empty_env_uses_default_location) {
     ck_assert(strlen(output) > 0);
 
     // Cleanup
-    ik_log_shutdown();
     unsetenv("IKIGAI_LOG_DIR");
     unlink(log_file_path);
 

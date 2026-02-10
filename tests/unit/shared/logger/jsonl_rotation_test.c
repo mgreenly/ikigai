@@ -73,7 +73,6 @@ START_TEST(test_init_no_existing_log_no_rotation) {
     ck_assert_int_eq(count_log_archives(logs_dir), 0);
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     rmdir(logs_dir);
     char ikigai_dir[512];
@@ -128,7 +127,6 @@ START_TEST(test_init_rotates_existing_log) {
     fclose(f);
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     unlink(archive_path);
     rmdir(logs_dir);
@@ -157,7 +155,6 @@ START_TEST(test_multiple_rotations_create_multiple_archives) {
     yyjson_mut_val *root1 = yyjson_mut_doc_get_root(doc1);
     yyjson_mut_obj_add_str(doc1, root1, "event", "first");
     ik_log_debug_json(doc1);
-    ik_log_shutdown();
 
     // Sleep briefly to ensure different timestamp
     usleep(10000); // 10ms
@@ -168,7 +165,6 @@ START_TEST(test_multiple_rotations_create_multiple_archives) {
     yyjson_mut_val *root2 = yyjson_mut_doc_get_root(doc2);
     yyjson_mut_obj_add_str(doc2, root2, "event", "second");
     ik_log_debug_json(doc2);
-    ik_log_shutdown();
 
     // Sleep briefly to ensure different timestamp
     usleep(10000); // 10ms
@@ -179,7 +175,6 @@ START_TEST(test_multiple_rotations_create_multiple_archives) {
     yyjson_mut_val *root3 = yyjson_mut_doc_get_root(doc3);
     yyjson_mut_obj_add_str(doc3, root3, "event", "third");
     ik_log_debug_json(doc3);
-    ik_log_shutdown();
 
     // Should have 2 archives (first and second logs were rotated)
     ck_assert_int_eq(count_log_archives(logs_dir), 2);
@@ -256,7 +251,6 @@ START_TEST(test_archive_filename_format) {
     ck_assert_int_eq(filename[7], '-');
 
     // Cleanup
-    ik_log_shutdown();
     unlink(log_file);
     unlink(archive_path);
     rmdir(logs_dir);
