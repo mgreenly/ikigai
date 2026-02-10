@@ -1,3 +1,4 @@
+add_text_content
 add_tool_calls_content
 add_tool_call_to_array
 anthropic_cancel
