@@ -2,6 +2,7 @@ add_text_content
 add_tool_calls_content
 add_tool_call_to_array
 add_tool_result_content
+anthropic_timeout
 anthropic_cancel
 anthropic_cleanup
 anthropic_fdset
