@@ -25,18 +25,6 @@ typedef struct {
 // @return Pointer to new tool call struct (owned by ctx), or NULL on OOM
 ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx, const char *id, const char *name, const char *arguments);
 
-// Extract string argument from tool call JSON arguments.
-//
-// Parses the arguments_json string as JSON, looks up the specified key,
-// and returns its string value if found and of correct type.
-//
-// @param parent Parent talloc context for result string allocation
-// @param arguments_json JSON string containing tool arguments (e.g., "{\"pattern\": \"*.c\"}")
-// @param key Key to extract (e.g., "pattern")
-// @return Allocated string value (owned by parent) if key found and is string type,
-//         NULL if key not found, arguments_json is NULL, JSON is malformed, or value is wrong type
-char *ik_tool_arg_get_string(void *parent, const char *arguments_json, const char *key);
-
 // Extract integer argument from tool call JSON arguments.
 //
 // Parses the arguments_json string as JSON, looks up the specified key,
