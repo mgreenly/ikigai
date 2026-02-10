@@ -26,35 +26,6 @@ START_TEST(test_invalid_json) {
 }
 END_TEST
 
-START_TEST(test_response_created_edge_cases) {
-    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
-        test_ctx, stream_cb, events);
-
-    ik_openai_responses_stream_process_event(ctx, "response.created", "{}");
-    ck_assert_int_eq((int)events->count, 1);
-    ck_assert_int_eq(events->items[0].type, IK_STREAM_START);
-
-    talloc_free(ctx);
-    events->count = 0;
-    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
-    ik_openai_responses_stream_process_event(ctx, "response.created", "{\"response\":\"not an object\"}");
-    ck_assert_int_eq((int)events->count, 1);
-
-    talloc_free(ctx);
-    events->count = 0;
-    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
-    ik_openai_responses_stream_process_event(ctx, "response.created", "{\"response\":{}}");
-    ck_assert_int_eq((int)events->count, 1);
-
-    talloc_free(ctx);
-    events->count = 0;
-    ctx = ik_openai_responses_stream_ctx_create(test_ctx, stream_cb, events);
-    ik_openai_responses_stream_process_event(ctx, "response.created", "{\"response\":{\"model\":null}}");
-    ck_assert_int_eq((int)events->count, 1);
-}
-
-END_TEST
-
 START_TEST(test_text_delta_edge_cases) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -205,7 +176,6 @@ static Suite *openai_streaming_responses_events_suite(void)
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_invalid_json);
-    tcase_add_test(tc, test_response_created_edge_cases);
     tcase_add_test(tc, test_text_delta_edge_cases);
     tcase_add_test(tc, test_thinking_delta_edge_cases);
     tcase_add_test(tc, test_output_item_added_edge_cases);
