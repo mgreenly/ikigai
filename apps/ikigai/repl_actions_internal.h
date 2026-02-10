@@ -17,7 +17,6 @@ res_t ik_repl_handle_completion_space_commit(ik_repl_ctx_t *repl);
 // History navigation actions
 res_t ik_repl_handle_arrow_up_action(ik_repl_ctx_t *repl);
 res_t ik_repl_handle_arrow_down_action(ik_repl_ctx_t *repl);
-res_t ik_repl_handle_history_prev_action(ik_repl_ctx_t *repl);  // Ctrl+P (rel-05)
 res_t ik_repl_handle_history_next_action(ik_repl_ctx_t *repl);  // Ctrl+N (rel-05)
 
 // Viewport/scrolling actions
