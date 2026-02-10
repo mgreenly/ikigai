@@ -4,6 +4,7 @@ anthropic_cancel
 anthropic_cleanup
 anthropic_fdset
 build_completion_for_error
+build_completion_for_success
 cleanup_completed_request
 extract_error_strings
 extract_model_if_needed
