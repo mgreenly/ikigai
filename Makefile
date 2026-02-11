@@ -291,10 +291,8 @@ endif
 	@chmod 755 $(DESTDIR)$(bindir)/ikigai
 	# Install config files
 ifeq ($(FORCE),1)
-	install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
 	install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
 else
-	@test -f $(DESTDIR)$(configdir)/config.json || install -m 644 etc/ikigai/config.json $(DESTDIR)$(configdir)/config.json
 	@test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
 endif
 	# Install database migrations
@@ -317,7 +315,6 @@ uninstall:
 	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
 	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
 ifeq ($(PURGE),1)
-	rm -f $(DESTDIR)$(configdir)/config.json
 	rm -f $(DESTDIR)$(configdir)/credentials.json
 	rm -f $(DESTDIR)$(configdir)/credentials.example.json
 endif

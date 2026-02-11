@@ -180,6 +180,24 @@ START_TEST(test_write_callback_returns_total_bytes) {
 
 END_TEST
 
+START_TEST(test_write_callback_processes_complete_event) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Complete SSE event for response.created */
+    char data[] = "event: response.created\n"
+                  "data: {\"response\":{\"model\":\"gpt-4o\"}}\n\n";
+
+    ik_openai_responses_stream_write_callback(data, 1, strlen(data), ctx);
+
+    /* Should emit START event */
+    ck_assert_int_eq((int)events->count, 1);
+    ck_assert_int_eq(events->items[0].type, IK_STREAM_START);
+    ck_assert_str_eq(events->items[0].data.start.model, "gpt-4o");
+}
+
+END_TEST
+
 START_TEST(test_write_callback_processes_text_delta) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);
@@ -199,6 +217,26 @@ START_TEST(test_write_callback_processes_text_delta) {
     ck_assert_int_eq(events->items[1].type, IK_STREAM_TEXT_DELTA);
     ck_assert_str_eq(events->items[1].data.delta.text, "Hello");
     ck_assert_int_eq(events->items[1].index, 0);
+}
+
+END_TEST
+
+START_TEST(test_write_callback_handles_chunked_data) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    /* Send event in chunks */
+    char chunk1[] = "event: response.created\n";
+    char chunk2[] = "data: {\"response\":{\"model\":\"gpt-4o\"}}\n";
+    char chunk3[] = "\n";
+
+    ik_openai_responses_stream_write_callback(chunk1, 1, strlen(chunk1), ctx);
+    ik_openai_responses_stream_write_callback(chunk2, 1, strlen(chunk2), ctx);
+    ik_openai_responses_stream_write_callback(chunk3, 1, strlen(chunk3), ctx);
+
+    /* Should emit START event once complete event is parsed */
+    ck_assert_int_eq((int)events->count, 1);
+    ck_assert_int_eq(events->items[0].type, IK_STREAM_START);
 }
 
 END_TEST
@@ -292,7 +330,9 @@ static Suite *openai_streaming_responses_suite(void)
     tcase_set_timeout(tc_write, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_write, setup, teardown);
     tcase_add_test(tc_write, test_write_callback_returns_total_bytes);
+    tcase_add_test(tc_write, test_write_callback_processes_complete_event);
     tcase_add_test(tc_write, test_write_callback_processes_text_delta);
+    tcase_add_test(tc_write, test_write_callback_handles_chunked_data);
     tcase_add_test(tc_write, test_write_callback_handles_multiple_events);
     tcase_add_test(tc_write, test_write_callback_skips_event_with_null_event_name);
     tcase_add_test(tc_write, test_write_callback_skips_event_with_null_data);

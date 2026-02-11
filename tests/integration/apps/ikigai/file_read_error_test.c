@@ -23,7 +23,6 @@
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/db/session.h"
-#include "apps/ikigai/repl_tool_json.h"
 #include "shared/error.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/tool.h"
@@ -184,13 +183,21 @@ START_TEST(test_file_read_error_end_to_end) {
     ck_assert(strstr(error_str, "Tool system not yet implemented") != NULL);
     ck_assert(strstr(error_str, tool_name) != NULL);
 
-    // Step 4: Build tool_result message data using production code
-    const char *tool_result_content = "Tool system not yet implemented. Tool 'file_read' unavailable.";
-    char *data_json = ik_build_tool_result_data_json(test_ctx, tool_call_id, tool_name, tool_result_json);
-    ck_assert_ptr_nonnull(data_json);
+    // Step 4: Create tool_result message
+    ik_msg_t *tool_result_msg = ik_msg_create_tool_result(
+        test_ctx,
+        tool_call_id,
+        tool_name,
+        tool_result_json,
+        false,  // success = false
+        "Tool system not yet implemented. Tool 'file_read' unavailable."
+        );
+    ck_assert_ptr_nonnull(tool_result_msg);
 
     // Step 5: Persist tool_result message to database
-    res = ik_db_message_insert(db, session_id, NULL, "tool_result", tool_result_content, data_json);
+    res = ik_db_message_insert(db, session_id, NULL, "tool_result",
+                               tool_result_msg->content,
+                               tool_result_msg->data_json);
     ck_assert(!res.is_err);
 
     // Step 6: Verify conversation structure in database

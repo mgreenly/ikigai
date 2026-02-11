@@ -54,6 +54,34 @@ START_TEST(test_build_url_streaming) {
 }
 
 END_TEST
+/* ================================================================
+ * Header Building Tests
+ * ================================================================ */
+
+START_TEST(test_build_headers_non_streaming) {
+    char **headers = NULL;
+    res_t r = ik_google_build_headers(test_ctx, false, &headers);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(headers);
+    ck_assert_str_eq(headers[0], "Content-Type: application/json");
+    ck_assert_ptr_null(headers[1]);
+}
+
+END_TEST
+
+START_TEST(test_build_headers_streaming) {
+    char **headers = NULL;
+    res_t r = ik_google_build_headers(test_ctx, true, &headers);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(headers);
+    ck_assert_str_eq(headers[0], "Content-Type: application/json");
+    ck_assert_str_eq(headers[1], "Accept: text/event-stream");
+    ck_assert_ptr_null(headers[2]);
+}
+
+END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -69,6 +97,13 @@ static Suite *request_suite(void)
     tcase_add_test(tc_url, test_build_url_non_streaming);
     tcase_add_test(tc_url, test_build_url_streaming);
     suite_add_tcase(s, tc_url);
+
+    TCase *tc_headers = tcase_create("Header Building");
+    tcase_set_timeout(tc_headers, IK_TEST_TIMEOUT);
+    tcase_add_checked_fixture(tc_headers, setup, teardown);
+    tcase_add_test(tc_headers, test_build_headers_non_streaming);
+    tcase_add_test(tc_headers, test_build_headers_streaming);
+    suite_add_tcase(s, tc_headers);
 
     return s;
 }

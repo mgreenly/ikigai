@@ -134,6 +134,17 @@ void ik_array_delete(ik_array_t *array, size_t index)
     array->size--;
 }
 
+// Set element at index
+void ik_array_set(ik_array_t *array, size_t index, const void *element)
+{
+    assert(array != NULL); // LCOV_EXCL_BR_LINE
+    assert(element != NULL); // LCOV_EXCL_BR_LINE
+    assert(index < array->size); // LCOV_EXCL_BR_LINE
+
+    void *dest = (char *)array->data + (index * array->element_size);
+    memcpy(dest, element, array->element_size);
+}
+
 // Clear all elements
 void ik_array_clear(ik_array_t *array)
 {

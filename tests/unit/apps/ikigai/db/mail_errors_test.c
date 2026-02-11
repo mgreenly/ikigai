@@ -133,7 +133,21 @@ START_TEST(test_db_mail_inbox_query_failure) {
 }
 
 END_TEST
+// Test: ik_db_mail_mark_read handles query failure
+START_TEST(test_db_mail_mark_read_query_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_db_ctx_t *db = create_mock_db_ctx(ctx);
 
+    res_t res = ik_db_mail_mark_read(db, 1);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert(strstr(res.err->msg, "Mail mark read failed") != NULL);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 // Test: ik_db_mail_delete handles query failure
 START_TEST(test_db_mail_delete_query_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -177,6 +191,7 @@ static Suite *db_mail_errors_suite(void)
     tcase_set_timeout(tc_errors, IK_TEST_TIMEOUT);
     tcase_add_test(tc_errors, test_db_mail_insert_query_failure);
     tcase_add_test(tc_errors, test_db_mail_inbox_query_failure);
+    tcase_add_test(tc_errors, test_db_mail_mark_read_query_failure);
     tcase_add_test(tc_errors, test_db_mail_delete_query_failure);
     tcase_add_test(tc_errors, test_db_mail_inbox_filtered_query_failure);
 

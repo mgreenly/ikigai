@@ -45,6 +45,7 @@ void ik_openai_maybe_end_tool_call(ik_openai_responses_stream_ctx_t *sctx);
 /**
  * Event handler functions
  */
+void ik_openai_responses_handle_response_created(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
 void ik_openai_responses_handle_output_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
 void ik_openai_responses_handle_reasoning_summary_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);
 void ik_openai_responses_handle_output_item_added(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root);

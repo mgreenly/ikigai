@@ -71,6 +71,17 @@ jj bookmark set feature-name
 jj git push --bookmark feature-name
 ```
 
+## Rebasing a Remote Branch onto main
+
+Remote commits are **immutable** — `jj rebase` will fail on them. To rebase a remote branch's changes onto main@origin, use `jj restore`:
+
+```bash
+jj new main@origin
+jj restore --from <bookmark>@origin
+```
+
+This creates a new working copy on main and applies all the branch's changes on top. **Never use `jj rebase` on remote commits.**
+
 ## Prohibited Operations
 
 - Modifying `main` bookmark locally

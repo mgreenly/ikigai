@@ -157,6 +157,35 @@ START_TEST(test_request_add_multiple_messages) {
 
 END_TEST
 
+START_TEST(test_request_add_message_blocks) {
+    ik_request_t *req = NULL;
+    ik_request_create(test_ctx, "gpt-5", &req);
+
+    /* Create multiple content blocks */
+    ik_content_block_t *blocks = talloc_array(test_ctx, ik_content_block_t, 2);
+
+    /* Inline thinking block creation (instead of calling ik_content_block_thinking) */
+    ik_content_block_t *thinking_block = talloc_zero(test_ctx, ik_content_block_t);
+    thinking_block->type = IK_CONTENT_THINKING;
+    thinking_block->data.thinking.text = talloc_strdup(thinking_block, "Thinking...");
+    thinking_block->data.thinking.signature = NULL;
+    blocks[0] = *thinking_block;
+
+    blocks[1] = *ik_content_block_text(test_ctx, "Answer");
+
+    res_t result = ik_request_add_message_blocks(req, IK_ROLE_ASSISTANT, blocks, 2);
+    ck_assert(!is_err(&result));
+    ck_assert_int_eq((int)req->message_count, 1);
+    ck_assert_int_eq(req->messages[0].role, IK_ROLE_ASSISTANT);
+    ck_assert_int_eq((int)req->messages[0].content_count, 2);
+    ck_assert_int_eq(req->messages[0].content_blocks[0].type, IK_CONTENT_THINKING);
+    ck_assert_str_eq(req->messages[0].content_blocks[0].data.thinking.text, "Thinking...");
+    ck_assert_int_eq(req->messages[0].content_blocks[1].type, IK_CONTENT_TEXT);
+    ck_assert_str_eq(req->messages[0].content_blocks[1].data.text.text, "Answer");
+}
+
+END_TEST
+
 START_TEST(test_request_set_thinking) {
     ik_request_t *req = NULL;
     ik_request_create(test_ctx, "claude-sonnet-4-5", &req);
@@ -250,6 +279,7 @@ static Suite *request_suite(void)
     tcase_add_test(tc_request, test_request_set_system_replace);
     tcase_add_test(tc_request, test_request_add_message);
     tcase_add_test(tc_request, test_request_add_multiple_messages);
+    tcase_add_test(tc_request, test_request_add_message_blocks);
     tcase_add_test(tc_request, test_request_set_thinking);
     tcase_add_test(tc_request, test_request_add_tool);
     tcase_add_test(tc_request, test_request_add_multiple_tools);

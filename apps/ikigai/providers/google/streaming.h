@@ -73,6 +73,31 @@ res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx,
 void ik_google_stream_process_data(ik_google_stream_ctx_t *stream_ctx, const char *data);
 
 /**
+ * Get accumulated usage statistics
+ *
+ * @param stream_ctx Streaming context
+ * @return           Usage statistics
+ *
+ * Returns accumulated token counts from final chunk with usageMetadata:
+ * - input_tokens from promptTokenCount
+ * - output_tokens = candidatesTokenCount - thoughtsTokenCount
+ * - thinking_tokens from thoughtsTokenCount
+ * - total_tokens from totalTokenCount
+ */
+ik_usage_t ik_google_stream_get_usage(ik_google_stream_ctx_t *stream_ctx);
+
+/**
+ * Get finish reason from stream
+ *
+ * @param stream_ctx Streaming context
+ * @return           Finish reason
+ *
+ * Returns finish reason extracted from chunk with finishReason field.
+ * IK_FINISH_UNKNOWN until finishReason is provided.
+ */
+ik_finish_reason_t ik_google_stream_get_finish_reason(ik_google_stream_ctx_t *stream_ctx);
+
+/**
  * Build response from accumulated streaming data
  *
  * @param ctx        Talloc context for response allocation

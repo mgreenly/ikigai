@@ -28,6 +28,29 @@ void ik_openai_maybe_end_tool_call(ik_openai_responses_stream_ctx_t *sctx);
  * ================================================================ */
 
 /**
+ * Handle response.created event
+ */
+void ik_openai_responses_handle_response_created(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root)
+{
+    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(root != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *response_val = yyjson_obj_get(root, "response");
+    if (response_val != NULL && yyjson_is_obj(response_val)) {
+        yyjson_val *model_val = yyjson_obj_get(response_val, "model");
+        if (model_val != NULL) {
+            const char *model = yyjson_get_str_(model_val);
+            if (model != NULL) {
+                sctx->model = talloc_strdup(sctx, model);
+                if (sctx->model == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        }
+    }
+
+    ik_openai_maybe_emit_start(sctx);
+}
+
+/**
  * Handle response.output_text.delta event
  */
 void ik_openai_responses_handle_output_text_delta(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root)

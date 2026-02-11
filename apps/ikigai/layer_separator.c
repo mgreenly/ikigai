@@ -24,6 +24,15 @@
 #define ARROW_LEFT "\xE2\x86\x90"    // ← U+2190
 #define ARROW_RIGHT "\xE2\x86\x92"   // → U+2192
 
+// Debug info pointers (optional - can be NULL)
+typedef struct {
+    size_t *viewport_offset;     // Scroll offset
+    size_t *viewport_row;        // First visible row
+    size_t *viewport_height;     // Terminal rows
+    size_t *document_height;     // Total document height
+    uint64_t *render_elapsed_us; // Elapsed time from previous render
+} ik_separator_debug_t;
+
 // Navigation context (for agent tree navigation)
 typedef struct {
     const char *parent_uuid;        // Parent agent UUID (NULL if root)
@@ -36,6 +45,7 @@ typedef struct {
 // Separator layer data
 typedef struct {
     bool *visible_ptr;                  // Raw pointer to visibility flag
+    ik_separator_debug_t debug;         // Debug info pointers (all can be NULL)
     ik_separator_nav_context_t nav_ctx; // Navigation context
 } ik_separator_layer_data_t;
 
@@ -116,12 +126,54 @@ static void separator_render(const ik_layer_t *layer,
                                    parent_str, prev_str, curr_str, next_str, child_str);
     }
 
-    // Calculate VISUAL width of nav string (excluding ANSI escape codes)
-    // nav_str contains ANSI escape codes that consume bytes but don't contribute
-    // to visual width. Use ik_scrollback_calculate_display_width to get the
-    // actual terminal column count.
+    // Build debug string if debug info available
+    char debug_str[128] = "";
+    size_t debug_len = 0;
+
+    if (data->debug.viewport_offset != NULL) {
+        // Calculate scrollback rows from doc height: doc = sb + 1 + input(1) + 1
+        size_t sb_rows = 0;
+        if (data->debug.document_height && *data->debug.document_height >= 3) {
+            sb_rows = *data->debug.document_height - 3;
+        }
+        // Get elapsed time from previous render
+        uint64_t render_us = 0;
+        if (data->debug.render_elapsed_us) {
+            render_us = *data->debug.render_elapsed_us;
+        }
+        // Format render time: show in ms if >= 1000us, otherwise us
+        if (render_us >= 1000) {
+            // LCOV_EXCL_BR_START - Defensive: these pointers set together with viewport_offset
+            debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
+                                         " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%.1fms ",
+                                         data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                                         data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                                         data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                                         data->debug.document_height ? *data->debug.document_height : 0,
+                                         sb_rows,
+                                         (double)render_us / 1000.0);
+            // LCOV_EXCL_BR_STOP
+        } else {
+            // LCOV_EXCL_BR_START - Defensive: these pointers set together with viewport_offset
+            debug_len = (size_t)snprintf(debug_str, sizeof(debug_str),
+                                         " off=%zu row=%zu h=%zu doc=%zu sb=%zu t=%" PRIu64 "us ",
+                                         data->debug.viewport_offset ? *data->debug.viewport_offset : 0,
+                                         data->debug.viewport_row ? *data->debug.viewport_row : 0,
+                                         data->debug.viewport_height ? *data->debug.viewport_height : 0,
+                                         data->debug.document_height ? *data->debug.document_height : 0,
+                                         sb_rows,
+                                         render_us);
+            // LCOV_EXCL_BR_STOP
+        }
+    }
+
+    // Calculate VISUAL width of info strings (excluding ANSI escape codes)
+    // nav_str and debug_str contain ANSI escape codes that consume bytes but
+    // don't contribute to visual width. Use ik_scrollback_calculate_display_width
+    // to get the actual terminal column count.
     size_t nav_visual = ik_scrollback_calculate_display_width(nav_str, nav_len);
-    size_t info_visual = nav_visual;
+    size_t debug_visual = ik_scrollback_calculate_display_width(debug_str, debug_len);
+    size_t info_visual = nav_visual + debug_visual;
 
     // Calculate how many separator chars to draw (leave room for visual width)
     size_t sep_chars = width;
@@ -139,6 +191,11 @@ static void separator_render(const ik_layer_t *layer,
     // Append navigation context if present
     if (nav_len > 0) {
         ik_output_buffer_append(output, nav_str, nav_len);
+    }
+
+    // Append debug string if present
+    if (debug_len > 0) {
+        ik_output_buffer_append(output, debug_str, debug_len);
     }
 
     // Add \x1b[K\r\n at end of line (clear to end of line before newline)
@@ -159,6 +216,12 @@ ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx,
     if (data == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     data->visible_ptr = visible_ptr;
+    // Initialize debug pointers to NULL (no debug info by default)
+    data->debug.viewport_offset = NULL;
+    data->debug.viewport_row = NULL;
+    data->debug.viewport_height = NULL;
+    data->debug.document_height = NULL;
+    data->debug.render_elapsed_us = NULL;
     // Initialize navigation context to NULL (no nav context by default)
     data->nav_ctx.parent_uuid = NULL;
     data->nav_ctx.prev_sibling_uuid = NULL;
@@ -171,6 +234,25 @@ ik_layer_t *ik_separator_layer_create(TALLOC_CTX *ctx,
                            separator_is_visible,
                            separator_get_height,
                            separator_render);
+}
+
+// Set debug info pointers on separator layer
+void ik_separator_layer_set_debug(ik_layer_t *layer,
+                                  size_t *viewport_offset,
+                                  size_t *viewport_row,
+                                  size_t *viewport_height,
+                                  size_t *document_height,
+                                  uint64_t *render_elapsed_us)
+{
+    assert(layer != NULL);       // LCOV_EXCL_BR_LINE
+    assert(layer->data != NULL); // LCOV_EXCL_BR_LINE
+
+    ik_separator_layer_data_t *data = (ik_separator_layer_data_t *)layer->data;
+    data->debug.viewport_offset = viewport_offset;
+    data->debug.viewport_row = viewport_row;
+    data->debug.viewport_height = viewport_height;
+    data->debug.document_height = document_height;
+    data->debug.render_elapsed_us = render_elapsed_us;
 }
 
 // Set navigation context on separator layer

@@ -31,5 +31,16 @@
  */
 res_t ik_response_create(TALLOC_CTX *ctx, ik_response_t **out);
 
+/**
+ * Add content block to response
+ *
+ * Appends a content block to the response's content array. The block
+ * is owned by the response after adding.
+ *
+ * @param resp  Response to modify
+ * @param block Content block to add (will be copied)
+ * @return      OK on success, ERR on allocation failure
+ */
+res_t ik_response_add_content(ik_response_t *resp, ik_content_block_t *block);
 
 #endif /* IK_PROVIDERS_RESPONSE_H */

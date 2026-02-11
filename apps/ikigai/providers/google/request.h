@@ -82,4 +82,6 @@ res_t ik_google_build_url(TALLOC_CTX *ctx,
  * - Non-streaming: ["Content-Type: application/json", NULL]
  * - Streaming: ["Content-Type: application/json", "Accept: text/event-stream", NULL]
  */
+res_t ik_google_build_headers(TALLOC_CTX *ctx, bool streaming, char ***out_headers);
+
 #endif /* IK_PROVIDERS_GOOGLE_REQUEST_H */

@@ -120,6 +120,62 @@ START_TEST(test_layer_cake_add_layer_grows_array) {
 
 END_TEST
 
+START_TEST(test_layer_cake_get_total_height_all_visible) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_layer_cake_t *cake;
+    cake = ik_layer_cake_create(ctx, 24);
+
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, always_visible, fixed_height_10, render_simple);
+
+    ik_layer_cake_add_layer(cake, layer1);
+    ik_layer_cake_add_layer(cake, layer2);
+
+    size_t total = ik_layer_cake_get_total_height(cake, 80);
+    ck_assert_uint_eq(total, 15); // 5 + 10
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_layer_cake_get_total_height_some_invisible) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_layer_cake_t *cake;
+    cake = ik_layer_cake_create(ctx, 24);
+
+    ik_layer_t *layer1 = ik_layer_create(cake, "layer1", NULL, always_visible, fixed_height_5, render_simple);
+    ik_layer_t *layer2 = ik_layer_create(cake, "layer2", NULL, never_visible, fixed_height_10, render_simple);
+    ik_layer_t *layer3 = ik_layer_create(cake, "layer3", NULL, always_visible, fixed_height_5, render_simple);
+
+    ik_layer_cake_add_layer(cake, layer1);
+    ik_layer_cake_add_layer(cake, layer2);
+    ik_layer_cake_add_layer(cake, layer3);
+
+    size_t total = ik_layer_cake_get_total_height(cake, 80);
+    ck_assert_uint_eq(total, 10); // 5 + 0 (invisible) + 5
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_layer_cake_get_total_height_empty) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_layer_cake_t *cake;
+    cake = ik_layer_cake_create(ctx, 24);
+
+    size_t total = ik_layer_cake_get_total_height(cake, 80);
+    ck_assert_uint_eq(total, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 START_TEST(test_layer_cake_render_simple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -323,6 +379,13 @@ static Suite *layer_cake_suite(void)
     tcase_add_test(tc_add, test_layer_cake_add_layer_multiple);
     tcase_add_test(tc_add, test_layer_cake_add_layer_grows_array);
     suite_add_tcase(s, tc_add);
+
+    TCase *tc_height = tcase_create("Total Height");
+    tcase_set_timeout(tc_height, IK_TEST_TIMEOUT);
+    tcase_add_test(tc_height, test_layer_cake_get_total_height_all_visible);
+    tcase_add_test(tc_height, test_layer_cake_get_total_height_some_invisible);
+    tcase_add_test(tc_height, test_layer_cake_get_total_height_empty);
+    suite_add_tcase(s, tc_height);
 
     TCase *tc_render = tcase_create("Render");
     tcase_set_timeout(tc_render, IK_TEST_TIMEOUT);
