@@ -2,28 +2,7 @@
 
 Linux coding agent with terminal UI. Written in C, runs on Linux, uses PostgreSQL for persistence and direct terminal rendering for the UI.
 
-## Architecture
-
-Part of a multi-service system:
-
-| Service | Language | Port | Purpose |
-|---------|----------|------|---------|
-| **ralph-plans** | Go + SQLite | 5001 | Goal storage and state machine |
-| **ralph-runs** | Ruby | 5002 | Orchestrator + agent loop |
-| **ralph-logs** | Go | 5003 | Real-time log streaming |
-| **ralph-shows** | Deno + Preact | 5000 | Web UI dashboard |
-| **ralph-counts** | Python | 5004 | Metrics dashboard |
-
-## Critical Rules
-
-- **Never change directories** - Always stay in root, use relative paths
-- **Never run parallel make** - Different targets use incompatible flags
-- **Never use AskUserQuestion tool** - Forbidden in this project
-- **Never use git commands** - This is a jj (Jujutsu) project; always use `jj` commands instead of `git`
-- **Never merge to main locally** - All merges to main happen via GitHub PRs only
-- **Never use background tasks** - Always run tasks in foreground unless explicitly asked
-
-## Source Layout
+## Project Layout
 
 ```
 ikigai/
@@ -51,10 +30,7 @@ ikigai/
 
 ## Skills
 
-Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
-
-- **Load a skill**: `/load <name>` reads the skill into context
-- **Load multiple**: `/load name1 name2`
+Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 
 | Skill | Description |
 |-------|-------------|
@@ -90,7 +66,6 @@ Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
 | `goal-authoring` | Writing effective goal files for Ralph |
 | `ralph` | External goal execution service |
 | `pull-request` | Creating PRs with concise descriptions |
-| `notify` | Send push notifications via ntfy.sh |
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
 | `event-log` | JSONL event stream for external integrations |
@@ -103,17 +78,7 @@ Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
 
 ### Skillsets
 
-Composite bundles in `.claude/skillsets/<name>.json`. Load with `/skillset <name>`.
-
-```json
-{
-  "preload": ["skill-a"],
-  "advertise": [{"skill": "skill-b", "description": "When to use"}]
-}
-```
-
-- `preload` — loaded immediately when skillset is activated
-- `advertise` — shown as available, loaded on demand with `/load`
+Use `/skillset <name>` to load a skillset.
 
 | Skillset | Purpose |
 |----------|---------|
@@ -122,18 +87,13 @@ Composite bundles in `.claude/skillsets/<name>.json`. Load with `/skillset <name
 | `architect` | Architectural decisions (DDD, DI, patterns, naming) |
 | `refactor` | Behavior-preserving code improvements |
 | `debugger` | Debugging and troubleshooting |
-| `coverage` | Achieving and maintaining 90% test coverage |
 | `security` | Discovering security flaws |
 | `orchestrator` | Running task execution loops (lean, no preloaded skills) |
 | `meta` | Improving the .claude/ system |
 
-### For Ralph
-
-When Ralph executes a goal in this repo, it receives only `AGENTS.md` as project context. This file is responsible for getting Ralph everything it needs. Ralph uses `/load <skill>` to pull in deeper context on demand.
-
 ## Quality Harnesses
 
-Check scripts detect issues; fix scripts attempt automated repair. All available on PATH via `.claude/scripts/`.
+Run `/load harness` before using any harness scripts. Never run `make` targets directly. Use the check scripts instead. All check scripts accept `--file=PATH` to check a single file instead of the whole project. All scripts are on PATH via `.claude/scripts/`.
 
 | Check | Fix | What it verifies |
 |-------|-----|------------------|
@@ -151,72 +111,17 @@ Check scripts detect issues; fix scripts attempt automated repair. All available
 | `check-quality` | — | All checks combined |
 | `check-prune` | `fix-prune` | Dead code detection |
 
-Additional scripts: `notify` (push notifications), `pluribus` (parallel check runner), `reset-repo` (reset jj working copy).
-
-Full guide: `/load harness`
-
-## Goal Scripts
-
-Goal management scripts live in `scripts/goal-*/run` (Ruby, return JSON). Symlinked from `scripts/bin/` and available on PATH via `.envrc`.
-
-| Script | Purpose |
-|--------|---------|
-| `goal-create` | Create a new goal (draft). Requires `--org`/`--repo`. Body via stdin. |
-| `goal-list` | List goals, optionally filtered by `--status` |
-| `goal-get` | Get a single goal by ID |
-| `goal-queue` | Queue a draft goal for execution |
-| `goal-start` | Mark a goal as running |
-| `goal-done` | Mark a goal as done |
-| `goal-stuck` | Mark a goal as stuck |
-| `goal-retry` | Retry a stuck goal |
-| `goal-cancel` | Cancel a goal |
-| `goal-comment` | Add a comment to a goal (body via stdin) |
-| `goal-comments` | List comments on a goal |
-
-### Creating a Goal
-
-```bash
-echo "## Objective
-Implement feature X per project/plan/feature-x.md.
-
-## Reference
-- project/plan/feature-x.md
-
-## Outcomes
-- Feature X working
-- Tests pass
-
-## Acceptance
-- All quality checks pass" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Implement feature X"
-```
-
-Then queue immediately: `goal-queue <id>`
-
-### Goal Statuses
-
-`draft` → `queued` → `running` → `done` (or `stuck` or `cancelled`)
-
-Full guide: `/load goal-authoring`
 
 ## Development
+
+Before modifying any `.c` or `.h` files, run `/load memory errors style naming ctags`.
 
 ### Tech Stack
 
 - **C** (C11) with headers co-located alongside source
 - **PostgreSQL** for persistence
 - **talloc** for hierarchical memory management
-- **Makefile** build system
 - **jj** (Jujutsu) for version control
-
-### Build & Test
-
-```sh
-make              # Build
-make test-unit    # Run unit tests
-make test-int     # Run integration tests
-```
-
-Full build reference: `/load makefile`
 
 ### Version Control
 
