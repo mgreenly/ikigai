@@ -198,10 +198,30 @@ void ik_wait_core_fanin(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id
 
     for (size_t i = 0; i < target_count; i++) {
         result->entries[i].agent_uuid = talloc_strdup(ctx, target_uuids[i]);
-        result->entries[i].agent_name = talloc_strdup(ctx, "unknown");
+        result->entries[i].agent_name = talloc_strdup(ctx, "undefined");
         result->entries[i].status = talloc_strdup(ctx, "running");
         result->entries[i].message = NULL;
     }
+
+    ik_db_agent_name_entry_t *name_entries = NULL;
+    size_t name_count = 0;
+    res_t name_res = ik_db_agent_get_names_batch(db_ctx, ctx, target_uuids, target_count,
+                                                   &name_entries, &name_count);
+    if (is_err(&name_res) || name_entries == NULL) {
+        goto skip_name_lookup;
+    }
+
+    for (size_t i = 0; i < target_count; i++) {
+        for (size_t j = 0; j < name_count; j++) {
+            bool match = strcmp(result->entries[i].agent_uuid, name_entries[j].uuid) == 0;
+            if (!match) continue;
+            if (name_entries[j].name == NULL) break;
+            result->entries[i].agent_name = talloc_strdup(ctx, name_entries[j].name);
+            break;
+        }
+    }
+
+skip_name_lookup:
 
     int32_t sock_fd = ik_db_socket_fd(db_ctx);
     if (sock_fd < 0) {  // LCOV_EXCL_BR_LINE - Bug B fix; tested in integration

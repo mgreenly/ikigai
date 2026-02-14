@@ -141,22 +141,6 @@ void ik_anthropic_process_content_block_start(ik_anthropic_stream_ctx_t *sctx, y
     }
 }
 
-static void process_text_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj, int32_t index)
-{
-    yyjson_val *text_val = yyjson_obj_get(delta_obj, "text");
-    if (text_val == NULL) return;
-
-    const char *text = yyjson_get_str(text_val);
-    if (text == NULL) return;
-
-    ik_stream_event_t event = {
-        .type = IK_STREAM_TEXT_DELTA,
-        .index = index,
-        .data.delta.text = text
-    };
-    sctx->stream_cb(&event, sctx->stream_ctx);
-}
-
 static void process_thinking_delta(ik_anthropic_stream_ctx_t *sctx, yyjson_val *delta_obj, int32_t index)
 {
     yyjson_val *thinking_val = yyjson_obj_get(delta_obj, "thinking");
@@ -245,9 +229,7 @@ void ik_anthropic_process_content_block_delta(ik_anthropic_stream_ctx_t *sctx, y
         return;
     }
 
-    if (strcmp(type_str, "text_delta") == 0) {
-        process_text_delta(sctx, delta_obj, index);
-    } else if (strcmp(type_str, "thinking_delta") == 0) {
+    if (strcmp(type_str, "thinking_delta") == 0) {
         process_thinking_delta(sctx, delta_obj, index);
     } else if (strcmp(type_str, "signature_delta") == 0) {
         process_signature_delta(sctx, delta_obj);

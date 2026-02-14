@@ -95,10 +95,6 @@ Use `/skillset <name>` to load a skillset.
 | `orchestrator` | Running task execution loops (lean, no preloaded skills) |
 | `meta` | Improving the .claude/ system |
 
-### Goal Authoring for This Repo
-
-When creating goals targeting this repository, use `--org mgreenly --repo ikigai`.
-
 ## Quality Harnesses
 
 Run `/load harness` before using any harness scripts. Never run `make` targets directly — the check scripts are the only interface. All check scripts accept `--file=PATH` to check a single file. All scripts are on PATH via `.claude/scripts/`.
