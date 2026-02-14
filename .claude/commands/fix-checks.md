@@ -1,28 +1,22 @@
 ---
-description: Generate a ralph goal file for fixing quality checks
+description: Create and queue a goal for fixing quality checks
 ---
 
-Generate a ralph goal file for fixing all quality checks.
+Create and queue a ralph-plans goal for fixing all quality checks.
 
 {{#if args}}
-**Branch name provided:** `{{args}}`
-
-Use `{{args}}` as the goal file name.
-
-**Steps:**
-1. Copy `.claude/library/fix-checks/ralph-goal.md` to `{{args}}-ralph-goal.md` in project root
-
+**Title provided:** `{{args}}`
 {{else}}
-**No branch name provided - auto-detect from commits.**
+**No title provided — auto-detect from commits.**
 
-**Steps:**
-1. Run `jj log -r 'main..@' --no-graph` to see all commits from main to current
-2. Run `jj diff` to see uncommitted changes in working copy
-3. Analyze the changes to determine a descriptive name that reflects the primary purpose (e.g., "add-user-auth", "fix-memory-leak", "refactor-parser")
-4. Copy `.claude/library/fix-checks/ralph-goal.md` to `<name>-ralph-goal.md` in project root
-
+Run `jj log -r 'main..@' --no-graph` and `jj diff` to determine a descriptive title.
 {{/if}}
 
-**Output:** Report the generated filename so the user can run ralph with it.
+**Steps:**
+1. Read `.claude/library/fix-checks/ralph-goal.md` for the goal body
+2. Create goal: pipe body to `goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "<title>"`
+3. Queue goal: `goal-queue <id>`
+
+**Output:** Report the goal number so the user knows it's queued.
 
 Execute now.

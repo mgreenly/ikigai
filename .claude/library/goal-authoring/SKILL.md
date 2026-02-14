@@ -7,15 +7,13 @@ description: Writing effective goal files for Ralph execution
 
 Writing effective goal files for Ralph loop execution.
 
-## File Naming Convention
+## Creating Goals
 
-Goal files MUST be named: `<name>-ralph-goal.md`
+Goals are created via the ralph-plans API:
 
-**Examples:**
-- `list-tool-ralph-goal.md` ✓
-- `web-fetch-ralph-goal.md` ✓
-- `list-tool-goal.md` ✗ (missing "ralph")
-- `list-tool.md` ✗ (missing "ralph-goal")
+```bash
+echo "<body>" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Title"
+```
 
 ## Core Principle
 

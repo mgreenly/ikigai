@@ -17,8 +17,8 @@ require 'open3'
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 PROJECT_ROOT = File.expand_path('../../..', SCRIPT_DIR)
 CHECK_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/check-prune')
-GOAL_CREATE_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/goal-create')
-GOAL_QUEUE_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/goal-queue')
+GOAL_CREATE_SCRIPT = File.join(PROJECT_ROOT, 'scripts/bin/goal-create')
+GOAL_QUEUE_SCRIPT = File.join(PROJECT_ROOT, 'scripts/bin/goal-queue')
 GOAL_TEMPLATE = File.join(SCRIPT_DIR, 'goal-template.md')
 
 def log(msg)
@@ -72,15 +72,18 @@ def render_goal_body(candidate)
     .gsub('{{line}}', line)
 end
 
-def create_goal(candidate, story_number)
+def create_goal(candidate)
   function = candidate[:function]
   title = "Prune dead code: #{function}"
   body = render_goal_body(candidate)
 
+  org = ENV.fetch('RALPH_ORG')
+  repo = ENV.fetch('RALPH_REPO')
+
   log "Creating goal: #{title}"
 
   # Pipe body to goal-create
-  cmd = [GOAL_CREATE_SCRIPT, '--story', story_number.to_s, '--title', title]
+  cmd = [GOAL_CREATE_SCRIPT, '--org', org, '--repo', repo, '--title', title]
   stdout, status = Open3.capture2(*cmd, stdin_data: body, err: '/dev/null')
 
   unless status.success?
@@ -102,7 +105,7 @@ def create_goal(candidate, story_number)
     return nil
   end
 
-  result['number']
+  result['id']
 end
 
 def queue_goal(goal_number)
@@ -164,7 +167,7 @@ def main
   log "Selected: #{candidate[:function]} at #{candidate[:file]}:#{candidate[:line]}"
 
   # Create goal
-  goal_number = create_goal(candidate, 0)
+  goal_number = create_goal(candidate)
   unless goal_number
     log 'ERROR: Failed to create goal'
     exit 1
