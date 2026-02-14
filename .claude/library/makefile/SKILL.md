@@ -1,13 +1,15 @@
 ---
 name: makefile
-description: Makefile skill for the ikigai project
+description: Reference for modifying the Makefile, not for running make targets
 ---
 
 # Makefile
 
-## Description
+## Purpose
 
-Build system for ikigai Linux coding agent with comprehensive testing, dynamic analysis, code quality, and multi-distribution packaging support.
+Reference documentation for making changes to the Makefile itself. This is not a guide for running make targets.
+
+**Autonomous agents must never run `make` directly.** Use the check-* scripts (e.g. `check-compile`, `check-unit`, `check-quality`) instead.
 
 ## Check Target Requirements
 

@@ -1,29 +1,10 @@
 # ikigai
 
-Linux coding agent with terminal UI. Written in C, runs on Linux, uses PostgreSQL for persistence and direct terminal rendering for the UI.
+Ikigai is a terminal-based coding agent written in C for Linux, similar in purpose to Claude Code but designed as a modular, experimental platform. It supports multiple AI providers (Anthropic, OpenAI, Google) and records all user and LLM messages as events in PostgreSQL, creating a permanent conversation history that outlives any single context window. Agents are organized in an unbounded process tree — users create long-lived agents with custom system prompts built from stacked pinned documents, and those agents can spawn temporary child agents as needed. The flagship feature, currently in development, is a sliding context window: you set a token budget, old messages fall off the back, and a reserved portion is filled with automatically generated summaries drawn from the complete database history. The codebase is built to production standards but structured for experimentation — modular and plug-and-play so new ideas can be tested without destabilizing what works.
 
-## Architecture
+> **This file is an index, not an encyclopedia.** It tells you where to find information, not the information itself. Each skill listed below is a self-contained document you load on demand with `/load <name>`. If you need to understand the database schema, load `database`. If you need error handling patterns, load `errors`. Don't assume information is missing just because it isn't inlined here — check the skill table first, then load what you need. Resist the urge to front-load everything; load skills relevant to your current task and trust that the detail is there when you follow the pointer.
 
-Part of a multi-service system:
-
-| Service | Language | Port | Purpose |
-|---------|----------|------|---------|
-| **ralph-plans** | Go + SQLite | 5001 | Goal storage and state machine |
-| **ralph-runs** | Ruby | 5002 | Orchestrator + agent loop |
-| **ralph-logs** | Go | 5003 | Real-time log streaming |
-| **ralph-shows** | Deno + Preact | 5000 | Web UI dashboard |
-| **ralph-counts** | Python | 5004 | Metrics dashboard |
-
-## Critical Rules
-
-- **Never change directories** - Always stay in root, use relative paths
-- **Never run parallel make** - Different targets use incompatible flags
-- **Never use AskUserQuestion tool** - Forbidden in this project
-- **Never use git commands** - This is a jj (Jujutsu) project; always use `jj` commands instead of `git`
-- **Never merge to main locally** - All merges to main happen via GitHub PRs only
-- **Never use background tasks** - Always run tasks in foreground unless explicitly asked
-
-## Source Layout
+## Project Layout
 
 ```
 ikigai/
@@ -51,10 +32,7 @@ ikigai/
 
 ## Skills
 
-Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
-
-- **Load a skill**: `/load <name>` reads the skill into context
-- **Load multiple**: `/load name1 name2`
+Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 
 | Skill | Description |
 |-------|-------------|
@@ -74,7 +52,7 @@ Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
 | `quality-strict` | Strict quality enforcement |
 | `zero-debt` | Zero technical debt policy |
 | `di` | Dependency injection patterns |
-| `ddd` | Domain-Driven Design |
+| `ddd` | Domain vocabulary, bounded contexts, core entities and invariants |
 | `mocking` | Wrapper functions for test mocking |
 | `testability` | Refactoring patterns for hard-to-test code |
 | `debugger` | Debugging strategy and constraints |
@@ -85,12 +63,13 @@ Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
 | `debug-log` | Printf-style debug logging |
 | `dev-dump` | Debug buffer dumps for terminal rendering state |
 | `harness` | Automated quality check loops with escalation |
-| `fix-checks` | Fix all quality check failures using ralph |
+| `fix-checks` | Fix all quality check failures using Ralph |
 | `pipeline` | Goal creation and management via ralph-plans API |
 | `goal-authoring` | Writing effective goal files for Ralph |
-| `ralph` | External goal execution service |
+| `ralph` | Ralph agent loop and configuration |
+
+> **Ralph** is a simple autonomous agent loop: run a prompt, inspect progress, repeat until the goal is complete. Each iteration's progress output and file changes carry context forward. The `ralph-runs` service orchestrates multiple Ralph instances, distributing goals written via `goal-authoring` and submitted through `pipeline`. Load `ralph` before interacting with any of these.
 | `pull-request` | Creating PRs with concise descriptions |
-| `notify` | Send push notifications via ntfy.sh |
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
 | `event-log` | JSONL event stream for external integrations |
@@ -103,17 +82,7 @@ Skills are modular instruction sets in `.claude/library/<name>/SKILL.md`.
 
 ### Skillsets
 
-Composite bundles in `.claude/skillsets/<name>.json`. Load with `/skillset <name>`.
-
-```json
-{
-  "preload": ["skill-a"],
-  "advertise": [{"skill": "skill-b", "description": "When to use"}]
-}
-```
-
-- `preload` — loaded immediately when skillset is activated
-- `advertise` — shown as available, loaded on demand with `/load`
+Use `/skillset <name>` to load a skillset.
 
 | Skillset | Purpose |
 |----------|---------|
@@ -122,18 +91,13 @@ Composite bundles in `.claude/skillsets/<name>.json`. Load with `/skillset <name
 | `architect` | Architectural decisions (DDD, DI, patterns, naming) |
 | `refactor` | Behavior-preserving code improvements |
 | `debugger` | Debugging and troubleshooting |
-| `coverage` | Achieving and maintaining 90% test coverage |
 | `security` | Discovering security flaws |
 | `orchestrator` | Running task execution loops (lean, no preloaded skills) |
 | `meta` | Improving the .claude/ system |
 
-### For Ralph
-
-When Ralph executes a goal in this repo, it receives only `AGENTS.md` as project context. This file is responsible for getting Ralph everything it needs. Ralph uses `/load <skill>` to pull in deeper context on demand.
-
 ## Quality Harnesses
 
-Check scripts detect issues; fix scripts attempt automated repair. All available on PATH via `.claude/scripts/`.
+Run `/load harness` before using any harness scripts. Never run `make` targets directly. Use the check scripts instead. All check scripts accept `--file=PATH` to check a single file instead of the whole project. All scripts are on PATH via `.claude/scripts/`.
 
 | Check | Fix | What it verifies |
 |-------|-----|------------------|
@@ -151,72 +115,21 @@ Check scripts detect issues; fix scripts attempt automated repair. All available
 | `check-quality` | — | All checks combined |
 | `check-prune` | `fix-prune` | Dead code detection |
 
-Additional scripts: `notify` (push notifications), `pluribus` (parallel check runner), `reset-repo` (reset jj working copy).
 
-Full guide: `/load harness`
+## Running the Application
 
-## Goal Scripts
-
-Goal management scripts live in `scripts/goal-*/run` (Ruby, return JSON). Symlinked from `scripts/bin/` and available on PATH via `.envrc`.
-
-| Script | Purpose |
-|--------|---------|
-| `goal-create` | Create a new goal (draft). Requires `--org`/`--repo`. Body via stdin. |
-| `goal-list` | List goals, optionally filtered by `--status` |
-| `goal-get` | Get a single goal by ID |
-| `goal-queue` | Queue a draft goal for execution |
-| `goal-start` | Mark a goal as running |
-| `goal-done` | Mark a goal as done |
-| `goal-stuck` | Mark a goal as stuck |
-| `goal-retry` | Retry a stuck goal |
-| `goal-cancel` | Cancel a goal |
-| `goal-comment` | Add a comment to a goal (body via stdin) |
-| `goal-comments` | List comments on a goal |
-
-### Creating a Goal
-
-```bash
-echo "## Objective
-Implement feature X per project/plan/feature-x.md.
-
-## Reference
-- project/plan/feature-x.md
-
-## Outcomes
-- Feature X working
-- Tests pass
-
-## Acceptance
-- All quality checks pass" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Implement feature X"
-```
-
-Then queue immediately: `goal-queue <id>`
-
-### Goal Statuses
-
-`draft` → `queued` → `running` → `done` (or `stuck` or `cancelled`)
-
-Full guide: `/load goal-authoring`
+You cannot usefully run ikigai from within an agent session. It renders to the alternate terminal buffer (no visible output in your terminal), requires a TTY, and provides no stdout/stderr you can inspect. Do not attempt to run it to verify changes. Instead, rely on the quality harnesses (`check-*` scripts) and `/load debug-log` for runtime debugging.
 
 ## Development
+
+Before modifying any `.c` or `.h` files, run `/load memory errors style naming ctags`.
 
 ### Tech Stack
 
 - **C** (C11) with headers co-located alongside source
 - **PostgreSQL** for persistence
 - **talloc** for hierarchical memory management
-- **Makefile** build system
 - **jj** (Jujutsu) for version control
-
-### Build & Test
-
-```sh
-make              # Build
-make test-unit    # Run unit tests
-make test-int     # Run integration tests
-```
-
-Full build reference: `/load makefile`
 
 ### Version Control
 

@@ -1,5 +1,6 @@
 {
   "preload": [
+    "rules",
     "meta",
     "align",
     "jj",
