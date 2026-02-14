@@ -59,7 +59,7 @@ else
 		-name '*_test' -type f -executable 2>/dev/null | \
 	xargs -P$(MAKE_JOBS) -I{} sh -c ' \
 		tmpdir="$$1"; bin="$$2"; \
-		output="$$tmpdir/$$(basename $$bin).out"; \
+		output="$$tmpdir/$$(echo $$bin | tr / _).out"; \
 		valgrind --tool=helgrind --suppressions=.suppressions/helgrind.supp \
 			"$$bin" >"$$output" 2>&1; \
 		exitcode=$$?; \
