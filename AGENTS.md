@@ -1,6 +1,8 @@
 # ikigai
 
-Linux coding agent with terminal UI. Written in C, runs on Linux, uses PostgreSQL for persistence and direct terminal rendering for the UI.
+Ikigai is a terminal-based coding agent written in C for Linux, similar in purpose to Claude Code but designed as a modular, experimental platform. It supports multiple AI providers (Anthropic, OpenAI, Google) and records all user and LLM messages as events in PostgreSQL, creating a permanent conversation history that outlives any single context window. Agents are organized in an unbounded process tree — users create long-lived agents with custom system prompts built from stacked pinned documents, and those agents can spawn temporary child agents as needed. The flagship feature, currently in development, is a sliding context window: you set a token budget, old messages fall off the back, and a reserved portion is filled with automatically generated summaries drawn from the complete database history. The codebase is built to production standards but structured for experimentation — modular and plug-and-play so new ideas can be tested without destabilizing what works.
+
+> **This file is an index, not an encyclopedia.** It tells you where to find information, not the information itself. Each skill listed below is a self-contained document you load on demand with `/load <name>`. If you need to understand the database schema, load `database`. If you need error handling patterns, load `errors`. Don't assume information is missing just because it isn't inlined here — check the skill table first, then load what you need. Resist the urge to front-load everything; load skills relevant to your current task and trust that the detail is there when you follow the pointer.
 
 ## Project Layout
 
@@ -50,7 +52,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `quality-strict` | Strict quality enforcement |
 | `zero-debt` | Zero technical debt policy |
 | `di` | Dependency injection patterns |
-| `ddd` | Domain-Driven Design |
+| `ddd` | Domain vocabulary, bounded contexts, core entities and invariants |
 | `mocking` | Wrapper functions for test mocking |
 | `testability` | Refactoring patterns for hard-to-test code |
 | `debugger` | Debugging strategy and constraints |
@@ -61,10 +63,12 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `debug-log` | Printf-style debug logging |
 | `dev-dump` | Debug buffer dumps for terminal rendering state |
 | `harness` | Automated quality check loops with escalation |
-| `fix-checks` | Fix all quality check failures using ralph |
+| `fix-checks` | Fix all quality check failures using Ralph |
 | `pipeline` | Goal creation and management via ralph-plans API |
 | `goal-authoring` | Writing effective goal files for Ralph |
-| `ralph` | External goal execution service |
+| `ralph` | Ralph agent loop and configuration |
+
+> **Ralph** is a simple autonomous agent loop: run a prompt, inspect progress, repeat until the goal is complete. Each iteration's progress output and file changes carry context forward. The `ralph-runs` service orchestrates multiple Ralph instances, distributing goals written via `goal-authoring` and submitted through `pipeline`. Load `ralph` before interacting with any of these.
 | `pull-request` | Creating PRs with concise descriptions |
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
@@ -111,6 +115,10 @@ Run `/load harness` before using any harness scripts. Never run `make` targets d
 | `check-quality` | — | All checks combined |
 | `check-prune` | `fix-prune` | Dead code detection |
 
+
+## Running the Application
+
+You cannot usefully run ikigai from within an agent session. It renders to the alternate terminal buffer (no visible output in your terminal), requires a TTY, and provides no stdout/stderr you can inspect. Do not attempt to run it to verify changes. Instead, rely on the quality harnesses (`check-*` scripts) and `/load debug-log` for runtime debugging.
 
 ## Development
 
