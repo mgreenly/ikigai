@@ -119,6 +119,10 @@ static void test_setup(void)
 static void test_teardown(void)
 {
     if (test_ctx != NULL) {
+        if (db != NULL) {
+            PGresult *res = PQexec(db->conn, "TRUNCATE TABLE agents CASCADE");
+            PQclear(res);
+        }
         talloc_free(test_ctx);
         test_ctx = NULL;
         db = NULL;
@@ -253,6 +257,7 @@ int main(void)
     int number_failed;
     Suite *s = wait_agent_names_suite();
     SRunner *sr = srunner_create(s);
+    srunner_set_xml(sr, "reports/check/integration/apps/ikigai/wait_agent_names_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
