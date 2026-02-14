@@ -30,16 +30,30 @@ static bool mock_db_agent_get_fail = false;
 static bool mock_db_mark_dead_fail = false;
 static bool mock_agent_already_dead = false;
 static bool mock_yyjson_read_fail = false;
+static bool mock_target_is_root = false;
+static bool mock_killing_parent = false;
 
 // Mock: get agent
 res_t ik_db_agent_get(ik_db_ctx_t *db, void *ctx, const char *uuid, ik_db_agent_row_t **out)
 {
-    (void)uuid;
     if (mock_db_agent_get_fail) {
         return ERR(db, DB_CONNECT, "Mock agent get failure");
     }
     ik_db_agent_row_t *row = talloc_zero(ctx, ik_db_agent_row_t);
     row->status = talloc_strdup(row, mock_agent_already_dead ? "dead" : "running");
+
+    // For target agent (when testing root protection)
+    if (strcmp(uuid, "target-uuid") == 0) {
+        row->parent_uuid = mock_target_is_root ? NULL : talloc_strdup(row, "some-parent");
+    }
+    // For caller agent (when testing parent kill protection)
+    else if (strcmp(uuid, "parent-uuid") == 0) {
+        row->parent_uuid = mock_killing_parent ? talloc_strdup(row, "target-uuid") : NULL;
+    }
+    else {
+        row->parent_uuid = talloc_strdup(row, "default-parent");
+    }
+
     *out = row;
     return OK(NULL);
 }
@@ -75,6 +89,8 @@ static void setup(void)
     mock_db_mark_dead_fail = false;
     mock_agent_already_dead = false;
     mock_yyjson_read_fail = false;
+    mock_target_is_root = false;
+    mock_killing_parent = false;
 
     test_ctx = talloc_new(NULL);
     shared = talloc_zero(test_ctx, ik_shared_ctx_t);
@@ -98,6 +114,8 @@ static void teardown(void)
     mock_db_mark_dead_fail = false;
     mock_agent_already_dead = false;
     mock_yyjson_read_fail = false;
+    mock_target_is_root = false;
+    mock_killing_parent = false;
 }
 
 // Kill handler tests
@@ -232,6 +250,26 @@ START_TEST(test_kill_on_complete_with_agents) {
 }
 END_TEST
 
+START_TEST(test_kill_handler_cannot_kill_root) {
+    mock_target_is_root = true;
+    const char *args = "{\"uuid\":\"target-uuid\"}";
+    char *result = ik_internal_tool_kill_handler(test_ctx, agent, args);
+    ck_assert_ptr_nonnull(result);
+    ck_assert(strstr(result, "CANNOT_KILL_ROOT") != NULL);
+    ck_assert(strstr(result, "Cannot kill root agent") != NULL);
+}
+END_TEST
+
+START_TEST(test_kill_handler_cannot_kill_parent) {
+    mock_killing_parent = true;
+    const char *args = "{\"uuid\":\"target-uuid\"}";
+    char *result = ik_internal_tool_kill_handler(test_ctx, agent, args);
+    ck_assert_ptr_nonnull(result);
+    ck_assert(strstr(result, "CANNOT_KILL_PARENT") != NULL);
+    ck_assert(strstr(result, "Cannot kill parent agent") != NULL);
+}
+END_TEST
+
 static Suite *internal_tool_kill_suite(void)
 {
     Suite *s = suite_create("InternalToolKill");
@@ -245,6 +283,8 @@ static Suite *internal_tool_kill_suite(void)
     tcase_add_test(tc, test_kill_handler_db_mark_dead_fail);
     tcase_add_test(tc, test_kill_handler_invalid_json);
     tcase_add_test(tc, test_kill_handler_agent_already_dead);
+    tcase_add_test(tc, test_kill_handler_cannot_kill_root);
+    tcase_add_test(tc, test_kill_handler_cannot_kill_parent);
     tcase_add_test(tc, test_kill_on_complete_null_data);
     tcase_add_test(tc, test_kill_on_complete_with_agents);
     suite_add_tcase(s, tc);

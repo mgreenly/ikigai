@@ -149,6 +149,25 @@ char *ik_internal_tool_kill_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, cons
         return ik_tool_wrap_failure(ctx, "Agent is already dead", "ALREADY_DEAD");
     }
 
+    // Check if target is root agent (parent_uuid == NULL)
+    if (target_row->parent_uuid == NULL) {
+        return ik_tool_wrap_failure(ctx, "Cannot kill root agent", "CANNOT_KILL_ROOT");
+    }
+
+    // Get caller's agent row to check for parent kill attempt
+    ik_db_agent_row_t *caller_row = NULL;
+    res = ik_db_agent_get(worker_db_ctx, ctx, agent->uuid, &caller_row);
+    if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
+        char *err_msg = talloc_asprintf(ctx, "Failed to get caller agent: %s", error_message(res.err));
+        talloc_free(res.err);
+        return ik_tool_wrap_failure(ctx, err_msg, "DB_ERROR");
+    }
+
+    // Check if caller is trying to kill their parent
+    if (caller_row->parent_uuid != NULL && strcmp(caller_row->parent_uuid, target_uuid_copy) == 0) {
+        return ik_tool_wrap_failure(ctx, "Cannot kill parent agent", "CANNOT_KILL_PARENT");
+    }
+
     // Mark target as dead in database
     res = ik_db_agent_mark_dead(worker_db_ctx, target_uuid_copy);
     if (is_err(&res)) {  // LCOV_EXCL_BR_LINE
