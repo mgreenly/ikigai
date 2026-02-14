@@ -163,4 +163,31 @@ res_t ik_db_agent_update_provider(ik_db_ctx_t *db_ctx,
                                   const char *model,
                                   const char *thinking_level);
 
+/**
+ * Name mapping entry for batch name lookup
+ */
+typedef struct {
+    char *uuid;
+    char *name;  // NULL if agent has no name in DB
+} ik_db_agent_name_entry_t;
+
+/**
+ * Batch lookup agent names by UUIDs
+ *
+ * Retrieves agent names for multiple UUIDs in a single query.
+ * Returns one entry per UUID found in database. UUIDs not found in database
+ * will not have entries in the result array.
+ *
+ * @param db_ctx Database context (must not be NULL)
+ * @param ctx Talloc context for result allocation (must not be NULL)
+ * @param uuids Array of UUID strings to lookup (must not be NULL)
+ * @param uuid_count Number of UUIDs in array
+ * @param out Output parameter for array of name entries (must not be NULL)
+ * @param out_count Output parameter for result array size (must not be NULL)
+ * @return OK with name entries on success, ERR on failure
+ */
+res_t ik_db_agent_get_names_batch(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
+                                   char **uuids, size_t uuid_count,
+                                   ik_db_agent_name_entry_t **out, size_t *out_count);
+
 #endif // IK_DB_AGENT_H
