@@ -1,21 +1,19 @@
 ---
 name: pipeline
-description: Pipeline commands for managing stories and goals
+description: Pipeline commands for managing goals via ralph-plans API
 ---
 
 # Pipeline
 
-Continuous development pipeline. Stories describe features, goals are executable units of work. All scripts return JSON (`{"ok": true/false, ...}`).
+Continuous development pipeline. Goals are executable units of work, managed via the ralph-plans API service.
 
-**Trial/Debug Mode:** Currently all goals use `--story 0` to disable story tracking. Goals are standalone during this phase.
+All scripts return JSON (`{"ok": true/false, ...}`).
 
 ## Flow
 
 ```
-Story (human writes) → Goals (decomposed) → Queue → Ralph executes → PR merges
+Goal (created via API) → Queue → Ralph executes → PR merges
 ```
-
-**Current:** Goals bypass story mechanism (`--story 0`) during trial/debug phase.
 
 ## Default Workflow: Goals-First
 
@@ -23,80 +21,85 @@ Story (human writes) → Goals (decomposed) → Queue → Ralph executes → PR 
 
 **Standard workflow:**
 
-1. **Discuss** - User and Claude discuss the change and approach
-2. **Create goal** - Claude creates the goal with clear acceptance criteria
-3. **Queue immediately** - Goal is queued right after creation (default behavior)
-4. **Ralph executes** - User runs Ralph to execute the goal autonomously
-5. **PR merges** - Completed work is merged via PR
+1. **Discuss** — User and Claude discuss the change and approach
+2. **Create goal** — Claude creates the goal with clear acceptance criteria
+3. **Queue immediately** — Goal is queued right after creation (default behavior)
+4. **Ralph executes** — Ralph service picks up and executes the goal autonomously
+5. **PR merges** — Completed work is merged via PR
 
 **Default behaviors:**
 
-- **Always queue after creation** - No manual testing or "trying it first" unless user explicitly requests it
-- **No spot-check** - Goals do not use `--spot-check` flag unless user explicitly requests it during goal preparation
-- **No local changes** - Claude does not make local changes directly; work goes through Ralph
+- **Always queue after creation** — No manual testing or "trying it first" unless user explicitly requests it
+- **No local changes** — Claude does not make local changes directly; work goes through Ralph
 
 **When to make local changes (exceptions only):**
 
 - User explicitly requests direct changes: "make this change now", "edit this file", "fix this directly"
 - User explicitly says: "don't create a goal for this", "do this locally", "make this change here"
-- User specifies exceptions during goal preparation phase
 
-**If unsure:** Default to creating and queuing a goal. The user will specify if they want an exception.
+**If unsure:** Default to creating and queuing a goal.
 
 ## Goal Statuses
 
-`draft` → `queued` → `running` → `spot-check` or `done` (or `stuck`)
-
-## Story Commands
-
-| Command | Usage | Does |
-|---------|-------|------|
-| `story-create` | `--title "..." < body.md` | Create story |
-| `story-list` | `[--state open\|closed\|all]` | List stories |
-| `story-get` | `<number>` | Read story + linked goals |
+`draft` → `queued` → `running` → `done` (or `stuck` or `cancelled`)
 
 ## Goal Commands
 
+Scripts live in `scripts/goal-*/run` with symlinks in `scripts/bin/`.
+
+Flags `--org` and `--repo` are required on every call. Set `$RALPH_ORG` and `$RALPH_REPO` in `.envrc` for convenience.
+
 | Command | Usage | Does |
 |---------|-------|------|
-| `goal-create` | `--story <N> --title "..." [--spot-check] [--depends "N,M"] < body.md` | Create goal (draft) |
-| `goal-list` | `[status]` | List goals, optionally by status |
-| `goal-get` | `<number>` | Read goal body + status |
-| `goal-queue` | `<number>` | Transition draft → queued |
-| `goal-approve` | `<number>` | Approve spot-check: create PR, clean up clone |
-| `goal-spot-check` | `<number> approve\|reject [--feedback "..."]` | Approve/reject after smoke test |
+| `goal-create` | `--org ORG --repo REPO --title "..." < body.md` | Create goal (draft) |
+| `goal-list` | `[--status STATUS] [--org ORG] [--repo REPO]` | List goals, optionally filtered |
+| `goal-get` | `<id>` | Read goal body + status |
+| `goal-queue` | `<id>` | Transition draft → queued |
+| `goal-start` | `<id>` | Mark goal as running |
+| `goal-done` | `<id>` | Mark goal as done |
+| `goal-stuck` | `<id>` | Mark goal as stuck |
+| `goal-retry` | `<id>` | Retry a stuck goal |
+| `goal-cancel` | `<id>` | Cancel a goal |
+| `goal-comment` | `<id> < comment.md` | Add comment to goal |
+| `goal-comments` | `<id>` | List comments on goal |
 
-## Invocation
-
-Scripts live in `.claude/harness/<name>/run` with symlinks in `.claude/scripts/`:
+## Creating a Goal
 
 ```bash
-.claude/scripts/goal-list queued
-.claude/scripts/goal-get 42
-echo "## Objective\n..." | .claude/scripts/goal-create --story 0 --title "Add X"
+echo "## Objective
+Implement feature X per project/plan/feature-x.md.
+
+## Reference
+- project/plan/feature-x.md
+
+## Outcomes
+- Feature X working
+- Tests pass
+
+## Acceptance
+- All quality checks pass" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Implement feature X"
 ```
 
-**Note:** During trial/debug phase, always use `--story 0` when creating goals.
+Then queue immediately:
 
-## Logs
+```bash
+goal-queue <id>
+```
 
-- **Orchestrator log**: `.pipeline/cache/orchestrator.log` — truncated on each orchestrator start
-- **Ralph logs**: `.ralphs/<org>/<repo>/<number>/.pipeline/cache/ralph.log` — per-goal execution log in each clone directory
+## Environment
 
-## Goal Authoring
+Set in `.envrc`:
 
-Goal bodies **must** follow the `goal-authoring` skill guidelines (`/load goal-authoring`). Key rules:
-
-- Specify **WHAT**, never **HOW** — outcomes, not steps
-- Reference relevant files — Ralph reads them across iterations
-- Include measurable **acceptance criteria**
-- Never pre-discover work (no specific line numbers or code snippets)
-- Trust Ralph to iterate and discover the path
+```bash
+export RALPH_PLANS_HOST="localhost"
+export RALPH_PLANS_PORT="5001"
+export RALPH_ORG="mgreenly"
+export RALPH_REPO="ikigai"
+PATH_add scripts/bin
+```
 
 ## Key Rules
 
-- **Body via stdin** -- `goal-create` and `story-create` read body from stdin
-- **Trial/debug mode** -- Use `--story 0` for all goals during trial/debug phase; stories are disabled
-- Goals reference parent story via `Story: #<number>` in body (currently `Story: #0` for all goals)
-- **Dependencies** -- Goals can declare `Depends: #N, #M` in body; orchestrator waits for dependencies to reach `goal:done` before picking up the goal
-- **Story auto-close** -- When all goals for a story reach `goal:done`, the story is automatically closed (inactive during trial/debug phase)
+- **Body via stdin** — `goal-create` reads body from stdin
+- **--org/--repo on create** — `goal-create` requires `--org`/`--repo`; other commands use goal ID
+- Goals can declare `Depends: #N, #M` in body; service waits for dependencies

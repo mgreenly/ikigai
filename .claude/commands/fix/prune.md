@@ -7,13 +7,12 @@ Create and queue a dead code removal goal.
 **Process:**
 1. Runs check-prune to get candidates
 2. Picks a random candidate (or specified function)
-3. Creates a GitHub issue goal from the template
-4. Queues the goal for orchestrator pickup
+3. Creates a goal via ralph-plans API
+4. Queues the goal
 
 **Outcomes:**
-- Goal created and queued with label `goal:queued`
-- Orchestrator will pick up and execute the goal
-- No ralph process spawned, no local goal file written
+- Goal created and queued via ralph-plans
+- Ralph service will pick up and execute the goal
 
 ---
 
