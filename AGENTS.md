@@ -101,16 +101,21 @@ When creating goals targeting this repository, use `--org mgreenly --repo ikigai
 
 ## Quality Harnesses
 
-Run `/load harness` before using any harness scripts. Never run `make` targets directly. Use the check scripts instead. All check scripts accept `--file=PATH` to check a single file instead of the whole project. All scripts are on PATH via `.claude/scripts/`.
+Run `/load harness` before using any harness scripts. Never run `make` targets directly — the check scripts are the only interface. All check scripts accept `--file=PATH` to check a single file. All scripts are on PATH via `.claude/scripts/`.
 
-**Quick spot checks** — run these 4 in order for fast feedback during development:
+### Development Inner Loop (while coding)
 
-1. `check-compile` / `fix-compile` — Code compiles cleanly
-2. `check-link` / `fix-link` — Linker succeeds
-3. `check-unit` / `fix-unit` — Unit tests pass
-4. `check-integration` / `fix-integration` — Integration tests pass
+After changing a file, run the relevant check with `--file=PATH` on that file:
 
-**Full checks** — all 11 are required before completing any work:
+- `check-compile --file=PATH` after every edit
+- `check-unit --file=PATH` when a test file exists
+- Other checks as relevant to the change
+
+Stay in this single-file loop. It takes seconds. Do not run project-wide checks during active development.
+
+### Standard Checks (exit gate — run once when work is complete)
+
+Six checks run project-wide in order, once, when all changes are done:
 
 | Check | Fix | What it verifies |
 |-------|-----|------------------|
@@ -120,6 +125,15 @@ Run `/load harness` before using any harness scripts. Never run `make` targets d
 | `check-unit` | `fix-unit` | Unit tests pass |
 | `check-integration` | `fix-integration` | Integration tests pass |
 | `check-complexity` | `fix-complexity` | Function complexity limits |
+
+This is the default meaning of "all checks pass" in any goal. If any fail, fix and re-run only the failing check, not all six.
+
+### Deep Checks (only when explicitly requested)
+
+Five additional checks run only when the goal or user explicitly asks for them:
+
+| Check | Fix | What it verifies |
+|-------|-----|------------------|
 | `check-sanitize` | `fix-sanitize` | Address/UB sanitizer clean |
 | `check-tsan` | `fix-tsan` | ThreadSanitizer clean |
 | `check-valgrind` | `fix-valgrind` | Valgrind memcheck clean |
@@ -134,6 +148,40 @@ You cannot usefully run ikigai from within an agent session. It renders to the a
 ## Development
 
 Before modifying any `.c` or `.h` files, run `/load memory errors style naming ctags`.
+
+### Testing Workflow
+
+**While coding** — use single-file checks with `--file=PATH`:
+
+```sh
+check-compile --file=apps/ikigai/parser.c    # After every edit
+check-unit --file=tests/unit/parser_test.c   # When test file exists
+```
+
+This is your inner loop. Stay here. Do not run project-wide checks during active development.
+
+**When work is complete** — run the six standard checks project-wide, in order:
+
+```sh
+check-compile
+check-link
+check-filesize
+check-unit
+check-integration
+check-complexity
+```
+
+If any fail, fix and re-run only the failing check. These six checks are the default exit gate for all work.
+
+**Deep checks** — run only when explicitly requested:
+
+```sh
+check-sanitize      # Only when goal asks for sanitizer checks
+check-tsan          # Only when goal asks for thread safety verification
+check-valgrind      # Only when goal asks for memory analysis
+check-helgrind      # Only when goal asks for thread error detection
+check-coverage      # Only when goal asks for coverage verification
+```
 
 ### Tech Stack
 

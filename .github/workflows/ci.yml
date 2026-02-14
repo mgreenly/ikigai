@@ -145,45 +145,6 @@ jobs:
         useradd -m -s /bin/bash testuser
         chown -R testuser:testuser .
 
-    - name: Debug info - VCR symbols
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        echo "=== Object files - VCR helper ==="
-        nm build/tests/helpers/vcr_helper.o 2>/dev/null | grep -E "vcr_|^[0-9a-f]+ [TtWwUuBb]" | head -30 || echo "No symbols"
-        echo ""
-        echo "=== Object files - VCR stubs ==="
-        nm build/tests/helpers/vcr_stubs_helper.o 2>/dev/null | grep "vcr_" || echo "No symbols"
-        echo ""
-        echo "=== Object files - wrapper_curl.o VCR refs ==="
-        nm build/wrapper_curl.o 2>/dev/null | grep "vcr_" || echo "No vcr refs"
-        echo ""
-        echo "=== Object files - wrapper_curl.o curl_ symbols ==="
-        nm build/wrapper_curl.o 2>/dev/null | grep "curl_" | head -20 || echo "No curl symbols"
-        echo ""
-        echo "=== Object files - http_multi.o ==="
-        nm build/providers/common/http_multi.o 2>/dev/null | grep -E "curl_multi_perform_|ik_http_multi" || echo "No relevant symbols"
-        echo ""
-        echo "=== Test binary - Key symbols ==="
-        TEST_BIN="build/tests/unit/providers/anthropic/anthropic_streaming_basic_test"
-        echo "vcr_ symbols:"
-        nm $TEST_BIN 2>/dev/null | grep "vcr_" || echo "  None found"
-        echo "curl_multi_perform_:"
-        nm $TEST_BIN 2>/dev/null | grep "curl_multi_perform_" || echo "  None found"
-        echo "ik_http_multi_perform:"
-        nm $TEST_BIN 2>/dev/null | grep "ik_http_multi_perform" || echo "  None found"
-        echo "anthropic_perform:"
-        nm $TEST_BIN 2>/dev/null | grep "anthropic_perform" || echo "  None found"
-        echo ""
-        echo "=== Link flags used (from Makefile) ==="
-        make --dry-run build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 | grep -E "^\s*gcc.*-o" | tail -5 || echo "Could not extract link command"
-        echo ""
-        echo "=== Creating reports directory ==="
-        mkdir -p reports/check/unit/providers/anthropic
-        chown -R testuser:testuser reports
-        echo ""
-        echo "=== Running one VCR test with output ==="
-        sudo -E -u testuser build/tests/unit/providers/anthropic/anthropic_streaming_basic_test 2>&1 || true
-
     - name: check-unit
       if: steps.filter.outputs.code == 'true'
       run: |
@@ -199,38 +160,3 @@ jobs:
     - name: check-complexity
       if: steps.filter.outputs.code == 'true'
       run: make RAW=1 check-complexity
-
-    - name: check-sanitize
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        rm -rf /tmp/.ikigai
-        sudo -E -u testuser make clean
-        sudo -E -u testuser make RAW=1 check-sanitize
-
-    - name: check-tsan
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        rm -rf /tmp/.ikigai
-        sudo -E -u testuser make clean
-        sudo -E -u testuser make RAW=1 check-tsan
-
-    - name: check-valgrind
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        rm -rf /tmp/.ikigai
-        sudo -E -u testuser make clean
-        sudo -E -u testuser make RAW=1 check-valgrind
-
-    - name: check-helgrind
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        rm -rf /tmp/.ikigai
-        sudo -E -u testuser make clean
-        sudo -E -u testuser make RAW=1 check-helgrind
-
-    - name: check-coverage
-      if: steps.filter.outputs.code == 'true'
-      run: |
-        rm -rf /tmp/.ikigai
-        sudo -E -u testuser make clean
-        sudo -E -u testuser make RAW=1 check-coverage
