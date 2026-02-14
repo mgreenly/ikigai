@@ -99,21 +99,28 @@ Use `/skillset <name>` to load a skillset.
 
 Run `/load harness` before using any harness scripts. Never run `make` targets directly. Use the check scripts instead. All check scripts accept `--file=PATH` to check a single file instead of the whole project. All scripts are on PATH via `.claude/scripts/`.
 
+**Quick spot checks** — run these 4 in order for fast feedback during development:
+
+1. `check-compile` / `fix-compile` — Code compiles cleanly
+2. `check-link` / `fix-link` — Linker succeeds
+3. `check-unit` / `fix-unit` — Unit tests pass
+4. `check-integration` / `fix-integration` — Integration tests pass
+
+**Full checks** — all 11 are required before completing any work:
+
 | Check | Fix | What it verifies |
 |-------|-----|------------------|
 | `check-compile` | `fix-compile` | Code compiles cleanly |
 | `check-link` | `fix-link` | Linker succeeds |
+| `check-filesize` | `fix-filesize` | File size under 16KB |
 | `check-unit` | `fix-unit` | Unit tests pass |
 | `check-integration` | `fix-integration` | Integration tests pass |
+| `check-complexity` | `fix-complexity` | Function complexity limits |
 | `check-sanitize` | `fix-sanitize` | Address/UB sanitizer clean |
 | `check-tsan` | `fix-tsan` | ThreadSanitizer clean |
 | `check-valgrind` | `fix-valgrind` | Valgrind memcheck clean |
 | `check-helgrind` | `fix-helgrind` | Valgrind helgrind clean |
 | `check-coverage` | `fix-coverage` | 90% line coverage met |
-| `check-complexity` | `fix-complexity` | Function complexity limits |
-| `check-filesize` | `fix-filesize` | File size under 16KB |
-| `check-quality` | — | All checks combined |
-| `check-prune` | `fix-prune` | Dead code detection |
 
 
 ## Running the Application
