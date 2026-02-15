@@ -51,7 +51,7 @@ Flags `--org` and `--repo` are required on every call. Set `$RALPH_ORG` and `$RA
 
 | Command | Usage | Does |
 |---------|-------|------|
-| `goal-create` | `--org ORG --repo REPO --title "..." < body.md` | Create goal (draft) |
+| `goal-create` | `--org ORG --repo REPO --title "..." [--model MODEL] [--reasoning LEVEL] < body.md` | Create goal (draft) |
 | `goal-list` | `[--status STATUS] [--org ORG] [--repo REPO]` | List goals, optionally filtered |
 | `goal-get` | `<id>` | Read goal body + status |
 | `goal-queue` | `<id>` | Transition draft → queued |
@@ -78,6 +78,16 @@ Implement feature X per project/plan/feature-x.md.
 
 ## Acceptance
 - All quality checks pass" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Implement feature X"
+```
+
+**Optional flags:**
+
+- `--model MODEL` — Override default model (haiku, sonnet, opus). Use for tasks requiring higher capability.
+- `--reasoning LEVEL` — Set reasoning level (none, low, med, high). Use for complex architectural or debugging work.
+
+```bash
+# Complex architectural work
+echo "..." | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Redesign module X" --model opus --reasoning high
 ```
 
 Then queue immediately:
