@@ -1,6 +1,7 @@
 #include "apps/ikigai/repl_event_handlers.h"
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/control_socket.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/db/notify.h"
@@ -95,6 +96,9 @@ res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
     int32_t terminal_fd = repl->shared->term->tty_fd;
     FD_SET(terminal_fd, read_fds);
     int max_fd = terminal_fd;
+    if (repl->control_socket != NULL) {
+        ik_control_socket_add_to_fd_sets(repl->control_socket, read_fds, &max_fd);
+    }
     for (size_t i = 0; i < repl->agent_count; i++) {
         ik_agent_ctx_t *agent = repl->agents[i];
         if (agent->provider_instance != NULL) {

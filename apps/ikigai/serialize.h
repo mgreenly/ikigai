@@ -1,5 +1,4 @@
-#ifndef IK_SERIALIZE_H
-#define IK_SERIALIZE_H
+#pragma once
 
 #include "shared/error.h"
 
@@ -18,5 +17,3 @@ res_t ik_serialize_framebuffer(TALLOC_CTX *ctx,
                                 int32_t cursor_row,
                                 int32_t cursor_col,
                                 bool cursor_visible);
-
-#endif // IK_SERIALIZE_H
