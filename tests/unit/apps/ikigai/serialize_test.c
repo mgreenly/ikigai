@@ -41,6 +41,12 @@ START_TEST(test_serialize_plain_text) {
     ck_assert(strstr(json, "Hello") != NULL);
     ck_assert(strstr(json, "World") != NULL);
 
+    // Verify row distribution: Hello on row 0, World on row 1
+    ck_assert_msg(strstr(json, "\"row\":0,\"spans\":[{\"text\":\"Hello\"") != NULL,
+                  "Hello should be on row 0, got: %s", json);
+    ck_assert_msg(strstr(json, "\"row\":1,\"spans\":[{\"text\":\"World\"") != NULL,
+                  "World should be on row 1, got: %s", json);
+
     talloc_free(ctx);
 }
 END_TEST
@@ -138,6 +144,64 @@ START_TEST(test_serialize_with_reverse) {
 }
 END_TEST
 
+START_TEST(test_serialize_erase_line_breaks) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    // Real framebuffer uses \x1b[K\r\n (erase-to-end-of-line + CRLF) as line breaks
+    const char *fb = "\x1b[?25l\x1b[H"
+                     "Line1\x1b[K\r\n"
+                     "Line2\x1b[K\r\n"
+                     "Line3"
+                     "\x1b[J\x1b[?25h\x1b[1;1H";
+    size_t fb_len = strlen(fb);
+
+    res_t res = ik_serialize_framebuffer(ctx, (const uint8_t *)fb, fb_len, 3, 10, 0, 0, true);
+    ck_assert(is_ok(&res));
+
+    const char *json = (const char *)res.ok;
+    ck_assert(json != NULL);
+
+    // Each line should be on its own row
+    ck_assert_msg(strstr(json, "\"row\":0,\"spans\":[{\"text\":\"Line1\"") != NULL,
+                  "Line1 should be on row 0, got: %s", json);
+    ck_assert_msg(strstr(json, "\"row\":1,\"spans\":[{\"text\":\"Line2\"") != NULL,
+                  "Line2 should be on row 1, got: %s", json);
+    ck_assert_msg(strstr(json, "\"row\":2,\"spans\":[{\"text\":\"Line3\"") != NULL,
+                  "Line3 should be on row 2, got: %s", json);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_serialize_empty_rows_between_content) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    // Content with an empty row between lines
+    const char *fb = "\x1b[?25l\x1b[H"
+                     "First\x1b[K\r\n"
+                     "\x1b[K\r\n"
+                     "Third"
+                     "\x1b[J\x1b[?25h\x1b[1;1H";
+    size_t fb_len = strlen(fb);
+
+    res_t res = ik_serialize_framebuffer(ctx, (const uint8_t *)fb, fb_len, 3, 10, 0, 0, true);
+    ck_assert(is_ok(&res));
+
+    const char *json = (const char *)res.ok;
+    ck_assert(json != NULL);
+
+    // First on row 0, empty row 1, Third on row 2
+    ck_assert_msg(strstr(json, "\"row\":0,\"spans\":[{\"text\":\"First\"") != NULL,
+                  "First should be on row 0, got: %s", json);
+    ck_assert_msg(strstr(json, "\"row\":1,\"spans\":[{\"text\":\"\"") != NULL,
+                  "Row 1 should be empty, got: %s", json);
+    ck_assert_msg(strstr(json, "\"row\":2,\"spans\":[{\"text\":\"Third\"") != NULL,
+                  "Third should be on row 2, got: %s", json);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 START_TEST(test_serialize_cursor_position) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -169,6 +233,8 @@ static Suite *serialize_suite(void)
     tcase_add_test(tc_framebuffer, test_serialize_with_bold);
     tcase_add_test(tc_framebuffer, test_serialize_with_dim);
     tcase_add_test(tc_framebuffer, test_serialize_with_reverse);
+    tcase_add_test(tc_framebuffer, test_serialize_erase_line_breaks);
+    tcase_add_test(tc_framebuffer, test_serialize_empty_rows_between_content);
     tcase_add_test(tc_framebuffer, test_serialize_cursor_position);
     suite_add_tcase(s, tc_framebuffer);
 
