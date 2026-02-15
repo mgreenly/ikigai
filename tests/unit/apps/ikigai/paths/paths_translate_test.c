@@ -20,6 +20,7 @@ static void setup(void)
     setenv("IKIGAI_LIBEXEC_DIR", "/usr/local/libexec/ikigai", 1);
     setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("IKIGAI_STATE_DIR", "/home/user/projects/ikigai/state", 1);
+    setenv("IKIGAI_RUNTIME_DIR", "/run/user/1000", 1);
     setenv("HOME", "/home/testuser", 1);
 
     res_t result = ik_paths_init(test_ctx, &paths);

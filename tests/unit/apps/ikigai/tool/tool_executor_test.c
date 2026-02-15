@@ -35,6 +35,7 @@ static void setup(void)
     setenv("IKIGAI_LIBEXEC_DIR", "/tmp/libexec/ikigai", 1);
     setenv("IKIGAI_CACHE_DIR", "/tmp/cache", 1);
     setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
+    setenv("IKIGAI_RUNTIME_DIR", "/run/user/1000", 1);
 
     res_t paths_result = ik_paths_init(test_ctx, &paths);
     ck_assert(!is_err(&paths_result));

@@ -401,6 +401,11 @@ const char *test_paths_setup_env(void)
     mkdir(buf, 0755);
     setenv("IKIGAI_STATE_DIR", buf, 1);
 
+    // runtime directory
+    snprintf(buf, sizeof(buf), "%s/run", test_path_prefix);
+    mkdir(buf, 0755);
+    setenv("IKIGAI_RUNTIME_DIR", buf, 1);
+
     return test_path_prefix;
 }
 
@@ -413,6 +418,7 @@ void test_paths_cleanup_env(void)
     unsetenv("IKIGAI_LIBEXEC_DIR");
     unsetenv("IKIGAI_CACHE_DIR");
     unsetenv("IKIGAI_STATE_DIR");
+    unsetenv("IKIGAI_RUNTIME_DIR");
     unsetenv("IKIGAI_DB_HOST");
     unsetenv("IKIGAI_DB_PORT");
     unsetenv("IKIGAI_DB_NAME");
