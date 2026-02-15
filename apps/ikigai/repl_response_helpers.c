@@ -61,17 +61,10 @@ void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
     } else {
         // Empty line (just a newline)
         if (prefix_bytes > 0) {
-            size_t total_len = prefix_bytes;
-            char *line = talloc_size(agent, total_len + 1);
-            if (line == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            memcpy(line, model_prefix, prefix_bytes - 1);
-            line[prefix_bytes - 1] = ' ';
-            line[total_len] = '\0';
-            ik_scrollback_append_line(agent->scrollback, line, total_len);
-            talloc_free(line);
-        } else {
-            ik_scrollback_append_line(agent->scrollback, "", 0);
+            // First line is empty — defer prefix to next non-empty line
+            return;
         }
+        ik_scrollback_append_line(agent->scrollback, "", 0);
     }
 
     agent->streaming_first_line = false;
@@ -79,6 +72,9 @@ void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
 
 void ik_repl_handle_text_delta(ik_agent_ctx_t *agent, const char *chunk, size_t chunk_len)
 {
+    // Skip empty text deltas (e.g. Anthropic sends empty text blocks before tool use)
+    if (chunk_len == 0) return;
+
     // Accumulate complete response for adding to conversation later
     if (agent->assistant_response == NULL) {
         agent->assistant_response = talloc_strdup(agent, chunk);

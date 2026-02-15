@@ -112,7 +112,16 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
     DEBUG_LOG("completion_callback: after logging");
 
     // Flush any remaining buffered line content (with prefix if first line)
-    bool had_response_content = (agent->assistant_response != NULL);
+    // Check for non-whitespace content (empty/whitespace-only responses are not displayed)
+    bool had_response_content = false;
+    if (agent->assistant_response != NULL) {
+        for (const char *p = agent->assistant_response; *p != '\0'; p++) {
+            if (*p != ' ' && *p != '\t' && *p != '\n' && *p != '\r') {
+                had_response_content = true;
+                break;
+            }
+        }
+    }
     if (agent->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(agent->streaming_line_buffer);
         const char *model_prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);

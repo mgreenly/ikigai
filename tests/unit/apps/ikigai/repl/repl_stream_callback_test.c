@@ -216,10 +216,10 @@ START_TEST(test_text_delta_first_line_prefix_empty_line) {
     res_t result = ik_repl_stream_callback(&event, agent);
     ck_assert(is_ok(&result));
 
-    /* Verify line was flushed (empty line with prefix) */
-    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 1);
-    /* streaming_first_line should be false now */
-    ck_assert(!agent->streaming_first_line);
+    /* Empty first line defers prefix — nothing rendered yet */
+    ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(agent->scrollback), 0);
+    /* streaming_first_line stays true so prefix attaches to next real content */
+    ck_assert(agent->streaming_first_line);
 }
 
 END_TEST
