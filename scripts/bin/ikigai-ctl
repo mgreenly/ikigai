@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+#
+# ikigai-ctl - Send requests to the ikigai control socket
+#
+# Usage: ikigai-ctl <message-type> [--socket PATH]
+#
+# Examples:
+#   ikigai-ctl read_framebuffer
+#   ikigai-ctl read_framebuffer --socket /tmp/ikigai-1234.sock
+#
+
+set -euo pipefail
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+usage() {
+  echo "Usage: ikigai-ctl <message-type> [--socket PATH]" >&2
+  echo "" >&2
+  echo "Examples:" >&2
+  echo "  ikigai-ctl read_framebuffer" >&2
+  echo "  ikigai-ctl read_framebuffer --socket /path/to/ikigai-1234.sock" >&2
+  exit 1
+}
+
+# Parse arguments
+message_type=""
+socket_path=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --socket)
+      [[ $# -lt 2 ]] && die "--socket requires a path argument"
+      socket_path="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      ;;
+    -*)
+      die "unknown option: $1"
+      ;;
+    *)
+      [[ -n "$message_type" ]] && die "unexpected argument: $1"
+      message_type="$1"
+      shift
+      ;;
+  esac
+done
+
+[[ -z "$message_type" ]] && usage
+
+# Auto-discover socket if not specified
+if [[ -z "$socket_path" ]]; then
+  runtime_dir="${IKIGAI_RUNTIME_DIR:-}"
+  [[ -z "$runtime_dir" ]] && die "IKIGAI_RUNTIME_DIR is not set and --socket not specified"
+
+  sockets=()
+  for f in "$runtime_dir"/ikigai-*.sock; do
+    [[ -S "$f" ]] && sockets+=("$f")
+  done
+
+  case "${#sockets[@]}" in
+    0)
+      die "ikigai is not running (no sockets found in $runtime_dir)"
+      ;;
+    1)
+      socket_path="${sockets[0]}"
+      ;;
+    *)
+      echo "error: multiple ikigai instances found:" >&2
+      for s in "${sockets[@]}"; do
+        echo "  $s" >&2
+      done
+      echo "" >&2
+      echo "Specify one with: ikigai-ctl $message_type --socket PATH" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+[[ -S "$socket_path" ]] || die "socket not found: $socket_path"
+
+command -v socat >/dev/null 2>&1 || die "socat is required but not installed"
+
+# Send request, print response
+request="{\"type\":\"$message_type\"}"
+response=$(echo "$request" | socat - "UNIX-CONNECT:$socket_path") || die "failed to connect to $socket_path"
+
+echo "$response"
