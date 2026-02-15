@@ -4,6 +4,136 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [rel-11] - 2026-02-15
+
+### Added
+
+#### Agent Orchestration Primitives (Complete)
+- **Internal tool infrastructure**: Tool registry supports both external (fork/exec) and internal (in-process C function) tools
+- **fork internal tool**: Extract fork logic into standalone internal tool for programmatic agent creation
+- **send internal tool**: Direct inter-agent message delivery, replacing mail-based messaging
+- **wait internal tool**: Fan-in semantics — wait for multiple sub-agents with structured per-agent results, PG LISTEN/NOTIFY wake-up, and status layer in UI
+- **kill internal tool**: Agent termination with protection against killing root agents or own parent
+- **/reap command**: Human-only command for explicit dead agent cleanup (kill marks dead, reap removes)
+- **Agent name resolution**: Wait fan-in results display actual agent names from database instead of hardcoded placeholders
+- **Sub-agent lifecycle**: System prompt guidance ensures children complete work, send results, and go idle — parents manage lifecycle through fork/wait/kill
+- **PostgreSQL NOTIFY/LISTEN**: Event-driven agent communication via `db/notify.c`
+- **Idle tracking**: `idle` column in agents table (migration 006) to track agents waiting for external events
+- **Session ID tracking**: Agent session tracking and reaped status (migrations 007, 008)
+
+#### Template Processing for Pinned Documents
+- **Template processor module**: `${variable}` syntax in pinned documents (`apps/ikigai/template.c`)
+- **Namespace support**: `${agent.*}`, `${config.*}`, `${env.*}`, `${func.*}` variable namespaces
+- **Unresolved variable warnings**: Display `IK_OUTPUT_WARNING` for unresolved variables (preserved as literal text)
+- **System prompt integration**: Template processing integrated with `ik_agent_get_effective_system_prompt()`
+
+#### Source Tree Reorganization
+- **New directory structure**: Reorganized source into `apps/ikigai/`, `shared/`, and `tests/` mirroring structure
+- **Include path update**: All includes use full paths from project root with `-I.`
+
+#### Claude Opus 4.6 Support
+- **Model registration**: claude-opus-4-6 with 128K thinking budget
+- **Adaptive thinking**: `{"thinking": {"type": "adaptive"}}` with effort parameters in output_config
+
+#### Ralph Pipeline (External Service Migration)
+- **ralph-plans API integration**: 11 goal scripts (`scripts/goal-*/run`) backed by external ralph-plans service
+- **Goal commands**: goal-create, goal-list, goal-get, goal-queue, goal-start, goal-done, goal-stuck, goal-retry, goal-cancel, goal-comment, goal-comments
+- **FIFO scheduling**: Fair scheduling with priority for untried goals
+- **Goal dependencies**: Goals can declare `Depends: #N, #M` for ordered execution
+- **Story auto-close**: Automatic story completion when all goals finish
+- **Orchestrator improvements**: Completed count in status line, queued/running counts, clone cleanup, directory restructuring to org/repo/goal-num
+- **watch-ralphs**: Terminal watcher script with wrap-aware log tail display and flicker-free rendering
+- **Goal approval workflow**: goal-approve harness and goal-queue validation
+- **Ralph stats**: Commit hashes and diff stats in stats records, --name flag for tracking
+
+#### UI Improvements
+- **Interrupted message styling**: Render interrupted/cancelled messages with `✗` prefix and gray color, excluded from LLM context
+- **Streaming display fix**: Skip empty/whitespace-only text blocks in streaming display
+
+#### Documentation
+- **AGENTS.md**: Canonical project context document with agent guidance
+- **Config system design**: Architecture design document for future config system
+- **rel-11 internal tools design**: Design documentation and command reference
+
+### Changed
+
+#### Inter-Agent Communication
+- **Mail system replaced**: Removed 5 mail commands (mail_send, mail_check, mail_read, mail_delete, mail_filter) in favor of 2 primitives (send, wait) — total internal tools reduced from 7 to 4
+
+#### Configuration
+- **Config file loading removed**: Removed config file loading infrastructure; configuration via environment variables only
+- **OpenAI model config**: Refactored into unified table
+
+#### Testing Strategy
+- **Three-tier checks**: Restructured into inner loop (`--file=PATH`), standard checks (exit gate), and deep checks (on request)
+- **/reset-repo**: Renamed from /jj-reset, moved to deterministic Ruby script
+
+#### Pipeline Infrastructure
+- **Goals-first workflow**: Default workflow creates and queues goals via ralph-plans API; local changes are rare exceptions
+- **Spot-check workflow**: Moved to PR-based verification with clone cleanup
+
+### Fixed
+
+- **text_delta handling**: Restored Anthropic text_delta handling dropped by dead code pruning and PR merge
+- **Quality checks**: Added wrappers and resolved valgrind failures
+- **Orchestrator process exit**: Fixed detection with Open3.popen2e
+- **Ralph log buffering**: Fixed buffering in log-mode
+- **watch-ralphs flicker**: Clear to end of line and screen
+
+### Removed
+
+#### Config File Infrastructure
+- Config file loading and parsing code
+
+#### Mail Commands
+- /check-mail, /read-mail, /delete-mail, /filter-mail (replaced by /send and /wait)
+
+#### Pipeline (Old Internal Infrastructure)
+- Old internal pipeline scripts (harness goal/story/orchestrator/ralph scripts)
+- Auto-merge GitHub workflow
+- Trigger-ci-on-merge workflow
+- project/pseudo-code directory
+
+#### Dead Code Pruning (73 functions)
+- anthropic_cleanup, anthropic_fdset, anthropic_timeout
+- build_completion_for_success, categorize_http_response
+- extract_basic_fields, extract_error_strings, extract_model_if_needed
+- find_and_process_completed_request, http_write_callback
+- ik_anthropic_process_content_block_start, ik_anthropic_process_content_block_stop
+- ik_anthropic_process_message_delta, ik_anthropic_process_message_start
+- ik_array_set, ik_config_get_default_provider
+- ik_db_mail_mark_read, ik_debug_log_write
+- ik_error_is_retryable, ik_event_renders_visible
+- ik_google_build_headers, ik_google_extract_thought_signature_from_response
+- ik_google_handle_error, ik_google_parse_error
+- ik_google_stream_completion_cb, ik_google_stream_end_tool_call_if_needed
+- ik_google_stream_get_finish_reason, ik_google_stream_get_usage
+- ik_layer_cake_get_total_height, ik_log_error_json, ik_log_init, ik_log_shutdown
+- ik_msg_create_tool_result, ik_openai_chat_maybe_emit_start
+- ik_openai_chat_process_delta, ik_openai_chat_stream_get_finish_reason
+- ik_openai_handle_error, ik_openai_http_completion_handler
+- ik_openai_maybe_emit_start, ik_openai_responses_handle_reasoning_summary_text_delta
+- ik_openai_responses_handle_response_created, ik_openai_responses_stream_ctx_create
+- ik_openai_stream_completion_handler, ik_openai_validate_thinking
+- ik_pp_int32, ik_render_scrollback, ik_repl_handle_history_prev_action
+- ik_request_add_message_blocks, ik_response_add_content
+- ik_separator_layer_set_debug, ik_tool_arg_get_int, ik_tool_arg_get_string
+- openai_cleanup, openai_info_read, openai_perform, openai_timeout
+- parse_chat_usage, process_choices_array, process_completed_request
+- process_input_json_delta, process_message_content, process_output_text
+- process_refusal, process_text_delta, process_text_part
+- process_thinking_delta, replay_unpin_command
+- add_text_content, add_tool_result_content, google_cancel
+
+### Technical Metrics
+- **Changes**: 2,101 files changed, +218,138/-230,106 lines
+- **Commits**: 217 commits over development cycle
+- **New files**: 969 files added
+- **Removed files**: 1,021 files deleted
+- **Dead code pruned**: 73 functions removed
+- **Quality gates**: All 11 checks pass (compile, link, filesize, unit, integration, complexity, sanitize, tsan, valgrind, helgrind, coverage)
+- **Test coverage**: 90%+ lines, functions, and branches
+
 ## [rel-10] - 2026-02-01
 
 ### Added
@@ -962,6 +1092,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-11]: https://github.com/mgreenly/ikigai/releases/tag/rel-11
 [rel-10]: https://github.com/mgreenly/ikigai/releases/tag/rel-10
 [rel-09]: https://github.com/mgreenly/ikigai/releases/tag/rel-09
 [rel-08]: https://github.com/mgreenly/ikigai/releases/tag/rel-08
