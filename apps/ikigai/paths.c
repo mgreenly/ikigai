@@ -15,6 +15,7 @@ struct ik_paths_t {
     char *libexec_dir;
     char *cache_dir;
     char *state_dir;
+    char *runtime_dir;
     char *tools_user_dir;
     char *tools_project_dir;
 };
@@ -67,6 +68,7 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
     const char *libexec_dir = getenv("IKIGAI_LIBEXEC_DIR");
     const char *cache_dir = getenv("IKIGAI_CACHE_DIR");
     const char *state_dir = getenv("IKIGAI_STATE_DIR");
+    const char *runtime_dir = getenv("IKIGAI_RUNTIME_DIR");
 
     // Check if all required environment variables are set and non-empty
     if (bin_dir == NULL || bin_dir[0] == '\0' ||
@@ -74,7 +76,8 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
         data_dir == NULL || data_dir[0] == '\0' ||
         libexec_dir == NULL || libexec_dir[0] == '\0' ||
         cache_dir == NULL || cache_dir[0] == '\0' ||
-        state_dir == NULL || state_dir[0] == '\0') {
+        state_dir == NULL || state_dir[0] == '\0' ||
+        runtime_dir == NULL || runtime_dir[0] == '\0') {
         return ERR(ctx, INVALID_ARG, "Missing required environment variable IKIGAI_*_DIR");
     }
 
@@ -100,6 +103,9 @@ res_t ik_paths_init(TALLOC_CTX *ctx, ik_paths_t **out)
 
     paths->state_dir = talloc_strdup(paths, state_dir);
     if (paths->state_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    paths->runtime_dir = talloc_strdup(paths, runtime_dir);
+    if (paths->runtime_dir == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     // Expand tilde for user tools directory
     char *expanded_user_dir = NULL;
@@ -134,6 +140,12 @@ const char *ik_paths_get_state_dir(ik_paths_t *paths)
 {
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
     return paths->state_dir;
+}
+
+const char *ik_paths_get_runtime_dir(ik_paths_t *paths)
+{
+    assert(paths != NULL);  // LCOV_EXCL_BR_LINE
+    return paths->runtime_dir;
 }
 
 const char *ik_paths_get_tools_system_dir(ik_paths_t *paths)

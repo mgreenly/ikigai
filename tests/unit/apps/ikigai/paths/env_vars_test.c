@@ -26,6 +26,7 @@ START_TEST(test_env_all_vars_set) {
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
     setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
+    setenv("IKIGAI_RUNTIME_DIR", "/run/user/1000", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -157,6 +158,35 @@ START_TEST(test_env_missing_libexec_dir) {
 }
 END_TEST
 
+START_TEST(test_env_missing_runtime_dir) {
+    // Setup (missing IKIGAI_RUNTIME_DIR)
+    setenv("IKIGAI_BIN_DIR", "/test/bin", 1);
+    setenv("IKIGAI_CONFIG_DIR", "/test/config", 1);
+    setenv("IKIGAI_DATA_DIR", "/test/data", 1);
+    setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
+    setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
+    setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
+    unsetenv("IKIGAI_RUNTIME_DIR");
+
+    // Execute
+    ik_paths_t *paths = NULL;
+    res_t result = ik_paths_init(test_ctx, &paths);
+
+    // Assert
+    ck_assert(is_err(&result));
+    ck_assert_int_eq(result.err->code, ERR_INVALID_ARG);
+    ck_assert_ptr_null(paths);
+
+    // Cleanup
+    unsetenv("IKIGAI_BIN_DIR");
+    unsetenv("IKIGAI_CONFIG_DIR");
+    unsetenv("IKIGAI_DATA_DIR");
+    unsetenv("IKIGAI_LIBEXEC_DIR");
+    unsetenv("IKIGAI_CACHE_DIR");
+    unsetenv("IKIGAI_STATE_DIR");
+}
+END_TEST
+
 START_TEST(test_env_empty_string) {
     // Setup (IKIGAI_BIN_DIR set to empty string)
     setenv("IKIGAI_BIN_DIR", "", 1);
@@ -193,6 +223,7 @@ START_TEST(test_env_with_spaces) {
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache", 1);
     setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
+    setenv("IKIGAI_RUNTIME_DIR", "/run/user/1000", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -222,6 +253,7 @@ START_TEST(test_env_with_trailing_slash) {
     setenv("IKIGAI_LIBEXEC_DIR", "/test/libexec/", 1);
     setenv("IKIGAI_CACHE_DIR", "/test/cache/", 1);
     setenv("IKIGAI_STATE_DIR", "/tmp/state", 1);
+    setenv("IKIGAI_RUNTIME_DIR", "/run/user/1000", 1);
     setenv("HOME", "/home/testuser", 1);
 
     // Execute
@@ -255,6 +287,7 @@ static Suite *paths_env_vars_suite(void)
     tcase_add_test(tc, test_env_missing_config_dir);
     tcase_add_test(tc, test_env_missing_data_dir);
     tcase_add_test(tc, test_env_missing_libexec_dir);
+    tcase_add_test(tc, test_env_missing_runtime_dir);
     tcase_add_test(tc, test_env_empty_string);
     tcase_add_test(tc, test_env_with_spaces);
     tcase_add_test(tc, test_env_with_trailing_slash);
