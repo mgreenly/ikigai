@@ -106,6 +106,32 @@ Discover all hardcoded ~/.config/ikigai path references in tests/ directory and 
 
 Why explicit discovery matters: Objective starts with "Discover", first outcome confirms discovery happened. Ralph won't skip the grep step.
 
+## Model and Reasoning Selection
+
+Goals can optionally specify `--model` and `--reasoning` when created:
+
+```bash
+echo "..." | goal-create --title "..." --org ORG --repo REPO --model opus --reasoning high < body.md
+```
+
+**When to specify:**
+
+- **Default (no flags):** Most goals use server defaults. Don't specify unless there's a clear reason.
+- **--model opus:** Complex architectural decisions, multi-file refactors, unfamiliar domain
+- **--model haiku:** Simple, well-defined tasks (rare; server usually picks correctly)
+- **--reasoning high:** Deep debugging, architectural design, security analysis, complex tradeoffs
+- **--reasoning med:** Moderate complexity requiring multi-step planning
+- **--reasoning low/none:** Simple implementation tasks
+
+**Example:**
+```bash
+# Architectural redesign - needs high capability and reasoning
+echo "..." | goal-create --title "Redesign authentication module" --org "$RALPH_ORG" --repo "$RALPH_REPO" --model opus --reasoning high
+
+# Standard implementation - use defaults
+echo "..." | goal-create --title "Add validation to parse_input" --org "$RALPH_ORG" --repo "$RALPH_REPO"
+```
+
 ## Anti-Patterns
 
 ❌ **Step-by-step instructions** - "First do X, then Y" (Ralph discovers path)
