@@ -73,6 +73,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
 | `event-log` | JSONL event stream for external integrations |
+| `ikigai-ctl` | Control socket client for programmatic interaction with running ikigai |
 | `docs` | User documentation authoring guidelines |
 | `bugs` | Known bugs and quirks in dependencies |
 | `meta` | Agent system infrastructure (.claude/ directory) |
