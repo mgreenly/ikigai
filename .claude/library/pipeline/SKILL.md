@@ -80,13 +80,15 @@ Implement feature X per project/plan/feature-x.md.
 - All quality checks pass" | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Implement feature X"
 ```
 
-**Optional flags:**
+**Optional flags (only when explicitly requested):**
 
-- `--model MODEL` — Override default model (haiku, sonnet, opus). Use for tasks requiring higher capability.
-- `--reasoning LEVEL` — Set reasoning level (none, low, med, high). Use for complex architectural or debugging work.
+**Default behavior:** Omit `--model` and `--reasoning` flags entirely. The orchestrator will use its configured defaults. Only add these flags when the user explicitly requests them for a specific goal.
+
+- `--model MODEL` — Override default model (haiku, sonnet, opus). Only use when the user explicitly specifies a model for this particular goal.
+- `--reasoning LEVEL` — Set reasoning level (none, low, med, high). Only use when the user explicitly requests a reasoning level for this particular goal.
 
 ```bash
-# Complex architectural work
+# Only when user explicitly requests: "use opus with high reasoning for this goal"
 echo "..." | goal-create --org "$RALPH_ORG" --repo "$RALPH_REPO" --title "Redesign module X" --model opus --reasoning high
 ```
 
