@@ -1,6 +1,7 @@
 #include "apps/ikigai/repl.h"
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/control_socket.h"
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/history_io.h"
 #include "apps/ikigai/input_buffer/core.h"
@@ -29,13 +30,44 @@
 
 
 #include "shared/poison.h"
+static void handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
+{
+    if (repl->control_socket == NULL) {
+        return;
+    }
+    if (ik_control_socket_listen_ready(repl->control_socket, read_fds)) {
+        res_t accept_result = ik_control_socket_accept(repl->control_socket);
+        if (is_err(&accept_result)) {
+            talloc_free(accept_result.err);
+        }
+    }
+    if (ik_control_socket_client_ready(repl->control_socket, read_fds)) {
+        res_t client_result = ik_control_socket_handle_client(repl->control_socket, repl);
+        if (is_err(&client_result)) {
+            talloc_free(client_result.err);
+        }
+    }
+}
+
 res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
 
+    // Initialize control socket
+    if (repl->shared->paths != NULL) {
+        res_t socket_result = ik_control_socket_init(repl, repl->shared->paths, &repl->control_socket);
+        if (is_err(&socket_result)) {
+            talloc_free(socket_result.err);
+            repl->control_socket = NULL;
+        }
+    }
+
     // Initial render
     res_t result = ik_repl_render_frame(repl);
     if (is_err(&result)) {
+        if (repl->control_socket != NULL) {
+            ik_control_socket_destroy(repl->control_socket);
+        }
         return result;
     }
 
@@ -87,6 +119,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             if (should_exit) break;
         }
 
+        handle_control_socket_events(repl, &read_fds);
+
         // Handle curl_multi events
         CHECK(ik_repl_handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
@@ -114,6 +148,12 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
                 talloc_free(prompt);
             }
         }
+    }
+
+    // Destroy control socket
+    if (repl->control_socket != NULL) {
+        ik_control_socket_destroy(repl->control_socket);
+        repl->control_socket = NULL;
     }
 
     return OK(NULL);

@@ -323,7 +323,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
 #ifdef IKIGAI_DEV
-    // Save framebuffer for dev dump (before freeing)
+    // Save framebuffer for dev dump and control socket (before freeing)
+    // Always save when control socket is active (for read_framebuffer requests)
     talloc_free(repl->dev_framebuffer);
     repl->dev_framebuffer = talloc_memdup(repl, framebuffer, offset);
     repl->dev_framebuffer_len = offset;

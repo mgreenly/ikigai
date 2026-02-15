@@ -21,6 +21,7 @@
 
 // Forward declarations
 typedef struct ik_shared_ctx ik_shared_ctx_t;
+typedef struct ik_control_socket_t ik_control_socket_t;
 
 // Viewport boundaries for rendering (Phase 4)
 typedef struct {
@@ -49,6 +50,7 @@ typedef struct ik_repl_ctx_t {
     ik_input_parser_t *input_parser;  // Input parser
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
+    ik_control_socket_t *control_socket;  // Control socket (NULL if disabled)
 
     // Layer-based rendering (Phase 1.3)
 
