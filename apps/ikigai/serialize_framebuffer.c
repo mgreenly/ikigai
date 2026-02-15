@@ -249,7 +249,7 @@ void ik_serialize_handle_escape_sequence(parse_state_t *state, const uint8_t *fb
         return;
     }
 
-    while (*i < len && fb[*i] != 'm' && fb[*i] != 'H' && fb[*i] != 'J') {
+    while (*i < len && (fb[*i] < 0x40 || fb[*i] > 0x7E)) {
         (*i)++;
     }
     if (*i < len) (*i)++;
