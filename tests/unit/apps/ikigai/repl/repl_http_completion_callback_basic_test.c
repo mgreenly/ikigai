@@ -352,40 +352,24 @@ START_TEST(test_completion_text_content_no_tool_call) {
 
 END_TEST
 
-/* Test: Whitespace-only assistant_response does not add blank line separator */
+/* Test: Whitespace-only response produces no blank line separator */
 START_TEST(test_completion_no_blank_line_for_whitespace_response) {
-    /* Simulate response with only whitespace (newlines, spaces, tabs, CR) */
     repl->current->assistant_response = talloc_strdup(repl, "\n \t\r\n");
-
-    /* Create successful completion without response */
     ik_provider_completion_t completion = make_success_completion();
-
-    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
-
-    /* No blank line separator should have been added */
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
-
 END_TEST
 
-/* Test: Empty string assistant_response does not add blank line separator */
+/* Test: Empty string response produces no blank line separator */
 START_TEST(test_completion_no_blank_line_for_empty_response) {
-    /* Simulate empty response (loop body never executes) */
     repl->current->assistant_response = talloc_strdup(repl, "");
-
-    /* Create successful completion without response */
     ik_provider_completion_t completion = make_success_completion();
-
-    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
-
-    /* No blank line separator should have been added */
     ck_assert_uint_eq((unsigned int)ik_scrollback_get_line_count(repl->current->scrollback), 0);
 }
-
 END_TEST
 
 /*
@@ -397,10 +381,6 @@ static Suite *repl_http_completion_callback_basic_suite(void)
     Suite *s = suite_create("repl_http_completion_callback_basic");
 
     TCase *tc_core = tcase_create("callback_behavior");
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_set_timeout(tc_core, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_completion_flushes_streaming_buffer);
