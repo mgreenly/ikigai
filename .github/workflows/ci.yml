@@ -58,9 +58,9 @@ jobs:
       with:
         filters: |
           code:
-            - 'src/**'
+            - 'apps/**'
+            - 'shared/**'
             - 'tests/**'
-            - 'tools/**'
             - 'Makefile'
 
     - name: Install build dependencies
