@@ -2,10 +2,11 @@
 #
 # ikigai-ctl - Send requests to the ikigai control socket
 #
-# Usage: ikigai-ctl <message-type> [--socket PATH]
+# Usage: ikigai-ctl <message-type> [args...] [--socket PATH]
 #
 # Examples:
 #   ikigai-ctl read_framebuffer
+#   ikigai-ctl send_keys "hello world\r"
 #   ikigai-ctl read_framebuffer --socket /tmp/ikigai-1234.sock
 #
 
@@ -17,16 +18,18 @@ die() {
 }
 
 usage() {
-  echo "Usage: ikigai-ctl <message-type> [--socket PATH]" >&2
+  echo "Usage: ikigai-ctl <message-type> [args...] [--socket PATH]" >&2
   echo "" >&2
   echo "Examples:" >&2
   echo "  ikigai-ctl read_framebuffer" >&2
+  echo "  ikigai-ctl send_keys \"hello world\r\"" >&2
   echo "  ikigai-ctl read_framebuffer --socket /path/to/ikigai-1234.sock" >&2
   exit 1
 }
 
 # Parse arguments
 message_type=""
+message_arg=""
 socket_path=""
 
 while [[ $# -gt 0 ]]; do
@@ -43,14 +46,25 @@ while [[ $# -gt 0 ]]; do
       die "unknown option: $1"
       ;;
     *)
-      [[ -n "$message_type" ]] && die "unexpected argument: $1"
-      message_type="$1"
-      shift
+      if [[ -z "$message_type" ]]; then
+        message_type="$1"
+        shift
+      elif [[ -z "$message_arg" ]]; then
+        message_arg="$1"
+        shift
+      else
+        die "unexpected argument: $1"
+      fi
       ;;
   esac
 done
 
 [[ -z "$message_type" ]] && usage
+
+# Validate arguments for message types
+if [[ "$message_type" == "send_keys" ]]; then
+  [[ -z "$message_arg" ]] && die "send_keys requires a keys argument"
+fi
 
 # Auto-discover socket if not specified
 if [[ -z "$socket_path" ]]; then
@@ -84,9 +98,17 @@ fi
 [[ -S "$socket_path" ]] || die "socket not found: $socket_path"
 
 command -v socat >/dev/null 2>&1 || die "socat is required but not installed"
+command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
+
+# Build request based on message type
+if [[ "$message_type" == "send_keys" ]]; then
+  # Use jq to properly escape the keys string
+  request=$(jq -n --arg keys "$message_arg" '{"type":"send_keys","keys":$keys}')
+else
+  request="{\"type\":\"$message_type\"}"
+fi
 
 # Send request, print response
-request="{\"type\":\"$message_type\"}"
 response=$(echo "$request" | socat - "UNIX-CONNECT:$socket_path") || die "failed to connect to $socket_path"
 
 echo "$response"
