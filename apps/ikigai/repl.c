@@ -1,4 +1,5 @@
 #include "apps/ikigai/repl.h"
+#include "apps/ikigai/repl_internal.h"
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/control_socket.h"
@@ -30,7 +31,7 @@
 
 
 #include "shared/poison.h"
-static void handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
+void ik_repl_handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
 {
     if (repl->control_socket == NULL) {
         return;
@@ -49,7 +50,7 @@ static void handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
     }
 }
 
-static res_t handle_key_injection(ik_repl_ctx_t *repl, bool *handled)
+res_t ik_repl_handle_key_injection(ik_repl_ctx_t *repl, bool *handled)
 {
     *handled = false;
     if (repl->key_inject_buf == NULL || ik_key_inject_pending(repl->key_inject_buf) == 0) {
@@ -103,7 +104,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Drain one byte from key injection buffer if available
         // This prevents interleaving injected and real input through the stateful parser
         bool handled = false;
-        CHECK(handle_key_injection(repl, &handled));
+        CHECK(ik_repl_handle_key_injection(repl, &handled));
         if (handled) {
             continue;  // Skip select() and tty read - drain buffer first
         }
@@ -150,7 +151,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
             if (should_exit) break;
         }
 
-        handle_control_socket_events(repl, &read_fds);
+        ik_repl_handle_control_socket_events(repl, &read_fds);
 
         // Handle curl_multi events
         CHECK(ik_repl_handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE

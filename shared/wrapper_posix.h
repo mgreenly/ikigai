@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -20,6 +21,21 @@
 #include "shared/wrapper_base.h"
 
 #ifdef NDEBUG
+
+MOCKABLE int posix_socket_(int domain, int type, int protocol)
+{
+    return socket(domain, type, protocol);
+}
+
+MOCKABLE int posix_bind_(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    return bind(sockfd, addr, addrlen);
+}
+
+MOCKABLE int posix_listen_(int sockfd, int backlog)
+{
+    return listen(sockfd, backlog);
+}
 
 MOCKABLE int posix_open_(const char *pathname, int flags)
 {
@@ -193,6 +209,9 @@ MOCKABLE int usleep_(useconds_t usec)
 
 #else
 
+MOCKABLE int posix_socket_(int domain, int type, int protocol);
+MOCKABLE int posix_bind_(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+MOCKABLE int posix_listen_(int sockfd, int backlog);
 MOCKABLE int posix_open_(const char *pathname, int flags);
 MOCKABLE int posix_close_(int fd);
 MOCKABLE int posix_stat_(const char *pathname, struct stat *statbuf);
