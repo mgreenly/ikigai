@@ -66,7 +66,7 @@ res_t ik_control_socket_init(TALLOC_CTX *ctx, ik_paths_t *paths,
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock", runtime_dir, pid);
     if (socket_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-    int32_t fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    int32_t fd = posix_socket_(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
         return ERR(ctx, IO, "Failed to create socket: %s", strerror(errno));
     }
@@ -85,12 +85,12 @@ res_t ik_control_socket_init(TALLOC_CTX *ctx, ik_paths_t *paths,
 
     unlink(socket_path);
 
-    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (posix_bind_(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         close(fd);
         return ERR(ctx, IO, "Failed to bind socket: %s", strerror(errno));
     }
 
-    if (listen(fd, 1) < 0) {
+    if (posix_listen_(fd, 1) < 0) {
         close(fd);
         unlink(socket_path);
         return ERR(ctx, IO, "Failed to listen on socket: %s", strerror(errno));
@@ -282,14 +282,13 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
         response = talloc_strdup(socket, "{\"error\":\"Unknown message type\"}\n");
     }
 
-    if (response != NULL) {
-        size_t response_len = strlen(response);
-        if (response[response_len - 1] != '\n') {
-            response = talloc_strdup_append(response, "\n");
-        }
-        posix_write_(socket->client_fd, response, strlen(response));
-        talloc_free(response);
+    if (response == NULL) PANIC("response must be set");  // LCOV_EXCL_BR_LINE
+    size_t response_len = strlen(response);
+    if (response[response_len - 1] != '\n') {
+        response = talloc_strdup_append(response, "\n");
     }
+    posix_write_(socket->client_fd, response, strlen(response));
+    talloc_free(response);
 
     yyjson_doc_free(doc);
     return OK(NULL);

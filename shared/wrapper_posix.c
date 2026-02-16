@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -75,6 +76,21 @@ static const char *format_bytes(const void *buf, size_t count)
 // ============================================================================
 // POSIX system call wrappers - debug/test builds only
 // ============================================================================
+
+MOCKABLE int posix_socket_(int domain, int type, int protocol)
+{
+    return socket(domain, type, protocol);
+}
+
+MOCKABLE int posix_bind_(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    return bind(sockfd, addr, addrlen);
+}
+
+MOCKABLE int posix_listen_(int sockfd, int backlog)
+{
+    return listen(sockfd, backlog);
+}
 
 MOCKABLE int posix_open_(const char *pathname, int flags)
 {
