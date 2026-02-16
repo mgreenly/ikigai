@@ -259,11 +259,11 @@ void ik_serialize_parse_framebuffer(parse_state_t *state, const uint8_t *fb, siz
 {
     size_t i = 0;
     while (i < len) {
-        if (i < 6 && memcmp(&fb[i], "\x1b[?25l", 6) == 0) {
+        if (i + 6 <= len && memcmp(&fb[i], "\x1b[?25l", 6) == 0) {
             i += 6;
             continue;
         }
-        if (i < 3 && memcmp(&fb[i], "\x1b[H", 3) == 0) {
+        if (i + 3 <= len && memcmp(&fb[i], "\x1b[H", 3) == 0) {
             i += 3;
             continue;
         }

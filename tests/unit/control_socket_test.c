@@ -10,12 +10,8 @@
 #include <unistd.h>
 
 #include "apps/ikigai/control_socket.h"
-#include "apps/ikigai/key_inject.h"
 #include "apps/ikigai/paths.h"
-#include "apps/ikigai/repl.h"
-#include "apps/ikigai/shared.h"
 #include "shared/error.h"
-#include "shared/terminal.h"
 
 // NULL paths returns ERR_INVALID_ARG
 START_TEST(test_init_null_paths)
@@ -79,34 +75,6 @@ static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
     ck_assert(is_ok(&res));
 
     return client_fd;
-}
-
-// Helper: create minimal repl context for handle_client
-static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
-{
-    ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-
-    ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
-    ik_term_ctx_t *term = talloc_zero(shared, ik_term_ctx_t);
-    term->screen_rows = 24;
-    term->screen_cols = 80;
-    shared->term = term;
-    repl->shared = shared;
-
-    ik_agent_ctx_t *agent = talloc_zero(repl, ik_agent_ctx_t);
-    agent->input_buffer_visible = true;
-    repl->current = agent;
-
-    repl->key_inject_buf = ik_key_inject_init(repl);
-
-#ifdef IKIGAI_DEV
-    repl->dev_framebuffer = talloc_strdup(repl, "Hello\r\n");
-    repl->dev_framebuffer_len = 7;
-    repl->dev_cursor_row = 0;
-    repl->dev_cursor_col = 5;
-#endif
-
-    return repl;
 }
 
 // Init and destroy lifecycle with real socket
