@@ -102,8 +102,9 @@ command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
 
 # Build request based on message type
 if [[ "$message_type" == "send_keys" ]]; then
-  # Use jq to properly escape the keys string
-  request=$(jq -n --arg keys "$message_arg" '{"type":"send_keys","keys":$keys}')
+  # Interpret C-style escape sequences before passing to jq
+  interpreted=$(printf "%b" "$message_arg")
+  request=$(jq -n --arg keys "$interpreted" '{"type":"send_keys","keys":$keys}')
 else
   request="{\"type\":\"$message_type\"}"
 fi
