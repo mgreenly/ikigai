@@ -6,6 +6,7 @@
 #include "apps/ikigai/db/agent_zero.h"
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/session.h"
+#include "apps/ikigai/key_inject.h"
 #include "shared/logger.h"
 #include "shared/panic.h"
 #include "apps/ikigai/repl/agent_restore.h"
@@ -84,6 +85,9 @@ res_t ik_repl_init(void *parent, ik_shared_ctx_t *shared, ik_repl_ctx_t **repl_o
 
     // Initialize scroll detector (rel-05)
     repl->scroll_det = ik_scroll_detector_create(repl);
+
+    // Initialize key injection buffer
+    repl->key_inject_buf = ik_key_inject_init(repl);
 
     // Set quit flag to false
     repl->quit = false;

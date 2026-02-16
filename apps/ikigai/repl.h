@@ -5,6 +5,7 @@
 #include "apps/ikigai/render.h"
 #include "apps/ikigai/input_buffer/core.h"
 #include "apps/ikigai/input.h"
+#include "apps/ikigai/key_inject.h"
 #include "apps/ikigai/scroll_detector.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/layer.h"
@@ -51,6 +52,7 @@ typedef struct ik_repl_ctx_t {
     atomic_bool quit;           // Exit flag (atomic for thread safety)
     ik_scroll_detector_t *scroll_det;  // Scroll detector (rel-05)
     ik_control_socket_t *control_socket;  // Control socket (NULL if disabled)
+    ik_key_inject_buf_t *key_inject_buf;  // Key injection buffer
 
     // Layer-based rendering (Phase 1.3)
 

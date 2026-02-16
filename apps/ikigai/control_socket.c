@@ -1,5 +1,6 @@
 #include "control_socket.h"
 
+#include "apps/ikigai/key_inject.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/serialize.h"
@@ -251,6 +252,32 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
 #else
         response = talloc_strdup(socket, "{\"error\":\"Framebuffer not available (not compiled with IKIGAI_DEV)\"}\n");
 #endif
+    } else if (type != NULL && strcmp(type, "send_keys") == 0) {
+        yyjson_val *keys_val = yyjson_obj_get(root, "keys");
+        const char *keys = yyjson_get_str(keys_val);
+
+        if (keys == NULL) {
+            response = talloc_strdup(socket, "{\"error\":\"Missing keys field\"}\n");
+        } else {
+            char *raw_bytes = NULL;
+            size_t raw_len = 0;
+            res_t unescape_result = ik_key_inject_unescape(socket, keys, strlen(keys), &raw_bytes, &raw_len);
+
+            if (is_err(&unescape_result)) {
+                response = talloc_strdup(socket, "{\"error\":\"Failed to unescape keys\"}\n");
+                talloc_free(unescape_result.err);
+            } else {
+                res_t append_result = ik_key_inject_append(repl->key_inject_buf, raw_bytes, raw_len);
+                talloc_free(raw_bytes);
+
+                if (is_err(&append_result)) {
+                    response = talloc_strdup(socket, "{\"error\":\"Failed to append keys\"}\n");
+                    talloc_free(append_result.err);
+                } else {
+                    response = talloc_strdup(socket, "{\"type\":\"ok\"}\n");
+                }
+            }
+        }
     } else {
         response = talloc_strdup(socket, "{\"error\":\"Unknown message type\"}\n");
     }
