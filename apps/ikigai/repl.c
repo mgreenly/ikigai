@@ -49,6 +49,29 @@ static void handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
     }
 }
 
+static res_t handle_key_injection(ik_repl_ctx_t *repl, bool *handled)
+{
+    *handled = false;
+    if (repl->key_inject_buf == NULL || ik_key_inject_pending(repl->key_inject_buf) == 0) {
+        return OK(NULL);
+    }
+    char byte;
+    if (!ik_key_inject_drain(repl->key_inject_buf, &byte)) {
+        return OK(NULL);
+    }
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    repl->render_start_us = (uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000;
+    ik_input_action_t action;
+    ik_input_parse_byte(repl->input_parser, byte, &action);
+    CHECK(ik_repl_process_action(repl, &action));
+    if (action.type != IK_INPUT_UNKNOWN) {
+        CHECK(ik_repl_render_frame(repl));
+    }
+    *handled = true;
+    return OK(NULL);
+}
+
 res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -76,6 +99,14 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
     while (!repl->quit && !should_exit) {  // LCOV_EXCL_BR_LINE
         // Check for pending resize
         CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
+
+        // Drain one byte from key injection buffer if available
+        // This prevents interleaving injected and real input through the stateful parser
+        bool handled = false;
+        CHECK(handle_key_injection(repl, &handled));
+        if (handled) {
+            continue;  // Skip select() and tty read - drain buffer first
+        }
 
         // Set up fd_sets
         fd_set read_fds, write_fds, exc_fds;
