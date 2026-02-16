@@ -104,7 +104,7 @@ command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
 if [[ "$message_type" == "send_keys" ]]; then
   # Interpret C-style escape sequences before passing to jq
   interpreted=$(printf "%b" "$message_arg")
-  request=$(jq -n --arg keys "$interpreted" '{"type":"send_keys","keys":$keys}')
+  request=$(jq -cn --arg keys "$interpreted" '{"type":"send_keys","keys":$keys}')
 else
   request="{\"type\":\"$message_type\"}"
 fi
