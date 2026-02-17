@@ -322,19 +322,15 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
         talloc_free(cursor_escape);
     }
 
-#ifdef IKIGAI_DEV
-    // Save framebuffer for dev dump and control socket (before freeing)
-    // Always save when control socket is active (for read_framebuffer requests)
-    talloc_free(repl->dev_framebuffer);
-    repl->dev_framebuffer = talloc_memdup(repl, framebuffer, offset);
-    repl->dev_framebuffer_len = offset;
-    repl->dev_cursor_row = final_cursor_row;
-    repl->dev_cursor_col = final_cursor_col;
-#endif
-
     // Single atomic write
     ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
-    talloc_free(framebuffer);
+
+    // Store framebuffer for control socket read_framebuffer (replaces previous)
+    talloc_free(repl->framebuffer);
+    repl->framebuffer = framebuffer;
+    repl->framebuffer_len = offset;
+    repl->cursor_row = final_cursor_row;
+    repl->cursor_col = final_cursor_col;
 
     if (bytes_written < 0) {
         return ERR(repl, IO, "Failed to write frame to terminal");
