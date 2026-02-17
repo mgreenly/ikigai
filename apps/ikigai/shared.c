@@ -35,6 +35,7 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_credentials_t *creds,
                          ik_paths_t *paths,
                          ik_logger_t *logger,
+                         bool headless,
                          ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
@@ -55,11 +56,17 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     assert(logger != NULL);  // LCOV_EXCL_BR_LINE
     shared->logger = logger;
 
-    // Initialize terminal (raw mode + alternate screen)
-    res_t result = ik_term_init(shared, shared->logger, &shared->term);
-    if (is_err(&result)) {
-        talloc_free(shared);
-        return result;
+    // Initialize terminal
+    res_t result;
+    if (headless) {
+        shared->term = ik_term_init_headless(shared);
+        result = OK(shared->term);
+    } else {
+        result = ik_term_init(shared, shared->logger, &shared->term);
+        if (is_err(&result)) {
+            talloc_free(shared);
+            return result;
+        }
     }
 
     // Redirect stdout and stderr to /dev/null to prevent any library output

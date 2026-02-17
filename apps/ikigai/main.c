@@ -46,8 +46,16 @@ static void log_error_and_cleanup(ik_logger_t *logger,
 }
 
 /* LCOV_EXCL_START */
-int main(void)
+int main(int argc, char *argv[])
 {
+    // Parse --headless flag
+    bool headless = false;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--headless") == 0) {
+            headless = true;
+        }
+    }
+
     // Initialize random number generator for UUID generation
     // Mix time and PID to reduce collision probability across concurrent processes
     srand((unsigned int)(time(NULL) ^ (unsigned int)getpid()));
@@ -118,7 +126,7 @@ int main(void)
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, &shared);
+    result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, headless, &shared);
     if (is_err(&result)) {
         log_error_and_cleanup(logger, "shared_ctx_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;

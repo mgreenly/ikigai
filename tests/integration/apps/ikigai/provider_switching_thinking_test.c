@@ -268,7 +268,7 @@ START_TEST(test_thinking_level_preserved_on_switch) {
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
@@ -299,7 +299,7 @@ START_TEST(test_thinking_level_change_after_switch) {
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    r = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&r));
     ik_agent_ctx_t *agent = NULL;
     r = ik_agent_create(ctx, shared, NULL, &agent); ck_assert(is_ok(&r));
