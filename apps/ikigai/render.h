@@ -1,5 +1,5 @@
-#ifndef IKIGAI_RENDER_H
-#define IKIGAI_RENDER_H
+#ifndef IK_RENDER_H
+#define IK_RENDER_H
 
 #include "shared/error.h"
 #include "apps/ikigai/scrollback.h"
@@ -31,4 +31,4 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
                          bool render_separator,
                          bool render_input_buffer);
 
-#endif /* IKIGAI_RENDER_H */
+#endif /* IK_RENDER_H */

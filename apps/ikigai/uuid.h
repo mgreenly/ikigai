@@ -1,5 +1,5 @@
-#ifndef UUID_H
-#define UUID_H
+#ifndef IK_UUID_H
+#define IK_UUID_H
 
 #include <talloc.h>
 

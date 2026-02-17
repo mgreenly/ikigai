@@ -1,6 +1,6 @@
 // XKB keyboard layout support for input parser
-#ifndef IKIGAI_INPUT_XKB_H
-#define IKIGAI_INPUT_XKB_H
+#ifndef IK_INPUT_XKB_H
+#define IK_INPUT_XKB_H
 
 #include "apps/ikigai/input.h"
 
@@ -21,4 +21,4 @@ int ik_input_xkb_cleanup_destructor(ik_input_parser_t *parser);
 // Returns the shifted character, or the original codepoint if translation fails
 uint32_t ik_input_xkb_translate_shifted_key(const ik_input_parser_t *parser, uint32_t codepoint);
 
-#endif // IKIGAI_INPUT_XKB_H
+#endif // IK_INPUT_XKB_H
