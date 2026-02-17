@@ -83,12 +83,10 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
 
     repl->key_inject_buf = ik_key_inject_init(repl);
 
-#ifdef IKIGAI_DEV
-    repl->dev_framebuffer = talloc_strdup(repl, "Hello\r\n");
-    repl->dev_framebuffer_len = 7;
-    repl->dev_cursor_row = 0;
-    repl->dev_cursor_col = 5;
-#endif
+    repl->framebuffer = talloc_strdup(repl, "Hello\r\n");
+    repl->framebuffer_len = 7;
+    repl->cursor_row = 0;
+    repl->cursor_col = 5;
 
     return repl;
 }
@@ -261,11 +259,7 @@ START_TEST(test_handle_client_read_framebuffer)
     ssize_t n = read(client_fd, buf, sizeof(buf) - 1);
     ck_assert_int_gt(n, 0);
     buf[n] = '\0';
-#ifdef IKIGAI_DEV
     ck_assert(strstr(buf, "framebuffer") != NULL);
-#else
-    ck_assert(strstr(buf, "not compiled with IKIGAI_DEV") != NULL);
-#endif
 
     close(client_fd);
     ik_control_socket_destroy(ctl);
@@ -284,11 +278,9 @@ START_TEST(test_handle_client_read_framebuffer_null)
     int32_t client_fd = setup_connected_socket(ctx, tmpdir, &ctl);
     ik_repl_ctx_t *repl = create_test_repl(ctx);
 
-#ifdef IKIGAI_DEV
-    talloc_free(repl->dev_framebuffer);
-    repl->dev_framebuffer = NULL;
-    repl->dev_framebuffer_len = 0;
-#endif
+    talloc_free(repl->framebuffer);
+    repl->framebuffer = NULL;
+    repl->framebuffer_len = 0;
 
     write(client_fd, "{\"type\":\"read_framebuffer\"}\n", 27);
     usleep(10000);
@@ -300,11 +292,7 @@ START_TEST(test_handle_client_read_framebuffer_null)
     ssize_t n = read(client_fd, buf, sizeof(buf) - 1);
     ck_assert_int_gt(n, 0);
     buf[n] = '\0';
-#ifdef IKIGAI_DEV
     ck_assert(strstr(buf, "No framebuffer available") != NULL);
-#else
-    ck_assert(strstr(buf, "not compiled with IKIGAI_DEV") != NULL);
-#endif
 
     close(client_fd);
     ik_control_socket_destroy(ctl);

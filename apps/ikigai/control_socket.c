@@ -228,16 +228,15 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
 
     char *response = NULL;
     if (type != NULL && strcmp(type, "read_framebuffer") == 0) {
-#ifdef IKIGAI_DEV
-        if (repl->dev_framebuffer != NULL) {
+        if (repl->framebuffer != NULL) {
             res_t ser_result = ik_serialize_framebuffer(
                 socket,
-                (const uint8_t *)repl->dev_framebuffer,
-                repl->dev_framebuffer_len,
+                (const uint8_t *)repl->framebuffer,
+                repl->framebuffer_len,
                 repl->shared->term->screen_rows,
                 repl->shared->term->screen_cols,
-                repl->dev_cursor_row,
-                repl->dev_cursor_col,
+                repl->cursor_row,
+                repl->cursor_col,
                 repl->current->input_buffer_visible
             );
             if (is_ok(&ser_result)) {
@@ -249,9 +248,6 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
         } else {
             response = talloc_strdup(socket, "{\"error\":\"No framebuffer available\"}\n");
         }
-#else
-        response = talloc_strdup(socket, "{\"error\":\"Framebuffer not available (not compiled with IKIGAI_DEV)\"}\n");
-#endif
     } else if (type != NULL && strcmp(type, "send_keys") == 0) {
         yyjson_val *keys_val = yyjson_obj_get(root, "keys");
         const char *keys = yyjson_get_str(keys_val);

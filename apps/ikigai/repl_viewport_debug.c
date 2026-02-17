@@ -10,13 +10,12 @@
 
 
 #include "shared/poison.h"
-#ifdef IKIGAI_DEV
 void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);  /* LCOV_EXCL_BR_LINE */
 
     // Skip if no framebuffer saved
-    if (repl->dev_framebuffer == NULL || repl->dev_framebuffer_len == 0) {
+    if (repl->framebuffer == NULL || repl->framebuffer_len == 0) {
         return;
     }
 
@@ -39,17 +38,16 @@ void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
                               "# rows=%d cols=%d cursor=%d,%d len=%zu\n",
                               repl->shared->term->screen_rows,
                               repl->shared->term->screen_cols,
-                              repl->dev_cursor_row,
-                              repl->dev_cursor_col,
-                              repl->dev_framebuffer_len);
+                              repl->cursor_row,
+                              repl->cursor_col,
+                              repl->framebuffer_len);
 
     ssize_t written = write(fd, header, (size_t)header_len);
     (void)written;  // Ignore write errors for debug feature
 
     // Write raw framebuffer bytes
-    written = write(fd, repl->dev_framebuffer, repl->dev_framebuffer_len);
+    written = write(fd, repl->framebuffer, repl->framebuffer_len);
     (void)written;
 
     close(fd);
 }
-#endif

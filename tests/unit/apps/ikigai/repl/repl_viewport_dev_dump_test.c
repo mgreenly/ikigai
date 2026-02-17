@@ -1,6 +1,6 @@
 /**
  * @file repl_viewport_dev_dump_test.c
- * @brief Unit tests for REPL viewport dev framebuffer dump (IKIGAI_DEV only)
+ * @brief Unit tests for REPL viewport dev framebuffer dump
  */
 
 #include <check.h>
@@ -10,7 +10,6 @@
 #include "apps/ikigai/repl.h"
 #include "tests/helpers/test_utils_helper.h"
 
-#ifdef IKIGAI_DEV
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -22,8 +21,8 @@ START_TEST(test_dev_dump_null_framebuffer) {
 
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
-    repl->dev_framebuffer = NULL;
-    repl->dev_framebuffer_len = 0;
+    repl->framebuffer = NULL;
+    repl->framebuffer_len = 0;
 
     // Should return early without crashing
     ik_repl_dev_dump_framebuffer(repl);
@@ -39,8 +38,8 @@ START_TEST(test_dev_dump_empty_framebuffer) {
     // Create minimal repl context
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     char buffer[100];
-    repl->dev_framebuffer = buffer;
-    repl->dev_framebuffer_len = 0;  // Empty
+    repl->framebuffer = buffer;
+    repl->framebuffer_len = 0;  // Empty
 
     // Should return early without crashing
     ik_repl_dev_dump_framebuffer(repl);
@@ -67,10 +66,10 @@ START_TEST(test_dev_dump_no_debug_dir) {
     term->screen_cols = 80;
 
     char buffer[100] = "test data";
-    repl->dev_framebuffer = buffer;
-    repl->dev_framebuffer_len = 9;
-    repl->dev_cursor_row = 0;
-    repl->dev_cursor_col = 0;
+    repl->framebuffer = buffer;
+    repl->framebuffer_len = 9;
+    repl->cursor_row = 0;
+    repl->cursor_col = 0;
 
     // Should return early without crashing (no debug dir)
     ik_repl_dev_dump_framebuffer(repl);
@@ -103,10 +102,10 @@ START_TEST(test_dev_dump_debug_is_file) {
     term->screen_cols = 80;
 
     char buffer[100] = "test data";
-    repl->dev_framebuffer = buffer;
-    repl->dev_framebuffer_len = 9;
-    repl->dev_cursor_row = 0;
-    repl->dev_cursor_col = 0;
+    repl->framebuffer = buffer;
+    repl->framebuffer_len = 9;
+    repl->cursor_row = 0;
+    repl->cursor_col = 0;
 
     // Should return early without crashing (.ikigai/debug is not a directory)
     ik_repl_dev_dump_framebuffer(repl);
@@ -137,10 +136,10 @@ START_TEST(test_dev_dump_success) {
     term->screen_cols = 80;
 
     char buffer[100] = "test framebuffer data";
-    repl->dev_framebuffer = buffer;
-    repl->dev_framebuffer_len = 21;
-    repl->dev_cursor_row = 5;
-    repl->dev_cursor_col = 10;
+    repl->framebuffer = buffer;
+    repl->framebuffer_len = 21;
+    repl->cursor_row = 5;
+    repl->cursor_col = 10;
 
     // Should write the file
     ik_repl_dev_dump_framebuffer(repl);
@@ -181,10 +180,10 @@ START_TEST(test_dev_dump_readonly_dir) {
     term->screen_cols = 80;
 
     char buffer[100] = "test data";
-    repl->dev_framebuffer = buffer;
-    repl->dev_framebuffer_len = 9;
-    repl->dev_cursor_row = 0;
-    repl->dev_cursor_col = 0;
+    repl->framebuffer = buffer;
+    repl->framebuffer_len = 9;
+    repl->cursor_row = 0;
+    repl->cursor_col = 0;
 
     // Should return early without crashing (can't open file)
     ik_repl_dev_dump_framebuffer(repl);
@@ -197,14 +196,12 @@ START_TEST(test_dev_dump_readonly_dir) {
     talloc_free(ctx);
 }
 END_TEST
-#endif
 
 /* Create test suite */
 static Suite *repl_viewport_dev_dump_suite(void)
 {
     Suite *s = suite_create("REPL Viewport Dev Framebuffer Dump");
 
-#ifdef IKIGAI_DEV
     TCase *tc_dev_dump = tcase_create("Dev Framebuffer Dump");
     tcase_set_timeout(tc_dev_dump, IK_TEST_TIMEOUT);
     tcase_add_test(tc_dev_dump, test_dev_dump_null_framebuffer);
@@ -214,7 +211,6 @@ static Suite *repl_viewport_dev_dump_suite(void)
     tcase_add_test(tc_dev_dump, test_dev_dump_success);
     tcase_add_test(tc_dev_dump, test_dev_dump_readonly_dir);
     suite_add_tcase(s, tc_dev_dump);
-#endif
 
     return s;
 }
