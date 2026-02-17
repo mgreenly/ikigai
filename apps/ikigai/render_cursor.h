@@ -3,8 +3,8 @@
  * @brief Cursor screen position calculation for rendering
  */
 
-#ifndef IKIGAI_RENDER_CURSOR_H
-#define IKIGAI_RENDER_CURSOR_H
+#ifndef IK_RENDER_CURSOR_H
+#define IK_RENDER_CURSOR_H
 
 #include "shared/error.h"
 #include <inttypes.h>
@@ -37,4 +37,4 @@ res_t calculate_cursor_screen_position(void *ctx,
                                        int32_t terminal_width,
                                        cursor_screen_pos_t *pos_out);
 
-#endif // IKIGAI_RENDER_CURSOR_H
+#endif // IK_RENDER_CURSOR_H

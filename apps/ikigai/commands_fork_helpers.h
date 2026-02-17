@@ -3,8 +3,8 @@
  * @brief Fork command utility helpers
  */
 
-#ifndef COMMANDS_FORK_HELPERS_H
-#define COMMANDS_FORK_HELPERS_H
+#ifndef IK_COMMANDS_FORK_HELPERS_H
+#define IK_COMMANDS_FORK_HELPERS_H
 
 #include "apps/ikigai/agent.h"
 #include "shared/error.h"
@@ -33,4 +33,4 @@ res_t insert_fork_events(TALLOC_CTX *ctx,
                          ik_agent_ctx_t *child,
                          int64_t fork_message_id);
 
-#endif // COMMANDS_FORK_HELPERS_H
+#endif // IK_COMMANDS_FORK_HELPERS_H

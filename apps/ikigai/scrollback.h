@@ -12,8 +12,8 @@
  * - Single contiguous text buffer for cache locality
  */
 
-#ifndef IKIGAI_SCROLLBACK_H
-#define IKIGAI_SCROLLBACK_H
+#ifndef IK_SCROLLBACK_H
+#define IK_SCROLLBACK_H
 
 #include "shared/error.h"
 #include <inttypes.h>
@@ -309,4 +309,4 @@ void ik_scrollback_calc_byte_range_for_rows(ik_scrollback_t *scrollback,
                                             size_t *end_byte_out,
                                             bool *is_line_end_out);
 
-#endif // IKIGAI_SCROLLBACK_H
+#endif // IK_SCROLLBACK_H

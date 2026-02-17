@@ -3,8 +3,8 @@
  * @brief Utility functions for scrollback text analysis
  */
 
-#ifndef IKIGAI_SCROLLBACK_UTILS_H
-#define IKIGAI_SCROLLBACK_UTILS_H
+#ifndef IK_SCROLLBACK_UTILS_H
+#define IK_SCROLLBACK_UTILS_H
 
 #include <stddef.h>
 
@@ -59,4 +59,4 @@ char *ik_scrollback_trim_trailing(void *parent, const char *text, size_t length)
  */
 char *ik_scrollback_format_warning(void *parent, const char *text);
 
-#endif // IKIGAI_SCROLLBACK_UTILS_H
+#endif // IK_SCROLLBACK_UTILS_H

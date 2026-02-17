@@ -3,8 +3,8 @@
  * @brief Layout calculation for scrollback lines
  */
 
-#ifndef IKIGAI_SCROLLBACK_LAYOUT_H
-#define IKIGAI_SCROLLBACK_LAYOUT_H
+#ifndef IK_SCROLLBACK_LAYOUT_H
+#define IK_SCROLLBACK_LAYOUT_H
 
 #include "shared/error.h"
 #include "apps/ikigai/scrollback.h"
@@ -36,4 +36,4 @@ res_t ik_scrollback_calculate_layout(void *parent,
                                      int32_t terminal_width,
                                      ik_line_layout_t *layout_out);
 
-#endif // IKIGAI_SCROLLBACK_LAYOUT_H
+#endif // IK_SCROLLBACK_LAYOUT_H

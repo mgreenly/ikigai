@@ -10,8 +10,8 @@
  * Uses libutf8proc for proper grapheme cluster detection.
  */
 
-#ifndef IKIGAI_INPUT_BUFFER_CURSOR_H
-#define IKIGAI_INPUT_BUFFER_CURSOR_H
+#ifndef IK_INPUT_BUFFER_CURSOR_H
+#define IK_INPUT_BUFFER_CURSOR_H
 
 #include "shared/error.h"
 
@@ -108,4 +108,4 @@ void ik_input_buffer_cursor_get_position(ik_input_buffer_cursor_t *cursor,
  */
 void ik_pp_input_buffer_cursor(const ik_input_buffer_cursor_t *cursor, struct ik_format_buffer_t *buf, int32_t indent);
 
-#endif /* IKIGAI_INPUT_BUFFER_CURSOR_H */
+#endif /* IK_INPUT_BUFFER_CURSOR_H */

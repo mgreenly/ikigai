@@ -6,8 +6,8 @@
  * Uses ik_byte_array_t for UTF-8 text storage and tracks cursor position.
  */
 
-#ifndef IKIGAI_INPUT_BUFFER_CORE_H
-#define IKIGAI_INPUT_BUFFER_CORE_H
+#ifndef IK_INPUT_BUFFER_CORE_H
+#define IK_INPUT_BUFFER_CORE_H
 
 #include "apps/ikigai/byte_array.h"
 #include "apps/ikigai/input_buffer/cursor.h"
@@ -290,4 +290,4 @@ typedef struct ik_format_buffer_t ik_format_buffer_t;
  */
 void ik_pp_input_buffer(const ik_input_buffer_t *input_buffer, ik_format_buffer_t *buf, int32_t indent);
 
-#endif /* IKIGAI_INPUT_BUFFER_CORE_H */
+#endif /* IK_INPUT_BUFFER_CORE_H */

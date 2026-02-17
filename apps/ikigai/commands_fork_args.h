@@ -3,8 +3,8 @@
  * @brief Fork command argument parsing and model override helpers
  */
 
-#ifndef COMMANDS_FORK_ARGS_H
-#define COMMANDS_FORK_ARGS_H
+#ifndef IK_COMMANDS_FORK_ARGS_H
+#define IK_COMMANDS_FORK_ARGS_H
 
 #include "apps/ikigai/agent.h"
 #include "shared/error.h"
@@ -38,4 +38,4 @@ res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec);
  */
 res_t cmd_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
 
-#endif // COMMANDS_FORK_ARGS_H
+#endif // IK_COMMANDS_FORK_ARGS_H
