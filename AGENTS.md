@@ -140,7 +140,15 @@ Five additional checks run only when the goal or user explicitly asks for them:
 
 ## Running the Application
 
-You cannot usefully run ikigai from within an agent session. It renders to the alternate terminal buffer (no visible output in your terminal), requires a TTY, and provides no stdout/stderr you can inspect. Do not attempt to run it to verify changes. Instead, rely on the quality harnesses (`check-*` scripts) and `/load debug-log` for runtime debugging.
+**You must use `--headless` mode.** Without it, ikigai renders to the alternate terminal buffer — no visible output, no way to interact from an agent session.
+
+```bash
+bin/ikigai --headless &          # Start in background (no TTY required)
+ikigai-ctl read_framebuffer      # Read screen contents
+ikigai-ctl send_keys "hello\r"   # Send keystrokes (\r = Enter)
+```
+
+See `/load ikigai-ctl` for full protocol. Socket auto-discovered from `run/`. Kill the process when done.
 
 ## Development
 
