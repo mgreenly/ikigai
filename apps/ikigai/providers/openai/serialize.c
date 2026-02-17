@@ -144,16 +144,16 @@ static void add_text_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
             PANIC("Out of memory");  // LCOV_EXCL_LINE
         }
     } else {
-        char *content = malloc(total_len + 1);
+        char *content = talloc_zero_size(NULL, total_len + 1);
         if (content == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         concatenate_text_blocks(msg, content);
 
         if (!yyjson_mut_obj_add_strcpy(doc, msg_obj, "content", content)) {  // LCOV_EXCL_BR_LINE
-            free(content);  // LCOV_EXCL_LINE
+            talloc_free(content);  // LCOV_EXCL_LINE
             PANIC("Out of memory");  // LCOV_EXCL_LINE
         }
-        free(content);
+        talloc_free(content);
     }
 }
 
