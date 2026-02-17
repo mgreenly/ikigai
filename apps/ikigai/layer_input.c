@@ -69,7 +69,7 @@ static void input_render(const ik_layer_t *layer,
     assert(output != NULL);      // LCOV_EXCL_BR_LINE
 
     (void)width;
-    (void)start_row; // TODO: Handle partial rendering
+    (void)start_row;
     (void)row_count;
 
     ik_input_layer_data_t *data = (ik_input_layer_data_t *)layer->data;
