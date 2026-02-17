@@ -14,8 +14,6 @@ ikigai-ctl <message-type>                        # Auto-discover socket
 ikigai-ctl <message-type> --socket PATH           # Explicit socket path
 ```
 
-Requires `socat` to be installed.
-
 ## Socket Auto-Discovery
 
 When `--socket` is not specified, the script looks in `$IKIGAI_RUNTIME_DIR` for socket files matching `ikigai-*.sock`:
@@ -57,10 +55,28 @@ Style attributes (only present when set): `fg` (0-255), `bg` (0-255), `bold`, `d
 
 Every screen row is represented. Empty rows have a single span with empty text.
 
+### send_keys
+
+Injects keystrokes into the running ikigai instance as if typed by the user.
+
+```bash
+ikigai-ctl send_keys "hello world\r"
+ikigai-ctl send_keys "test\x1b"              # Supports C-style escape sequences
+```
+
+The keys argument supports C-style escape sequences:
+- `\r` — carriage return (Enter)
+- `\n` — newline
+- `\x1b` or `\e` — escape
+- `\t` — tab
+
+Response fields:
+- `type` — `"ok"` on success
+- `error` — error message on failure
+
 ### Future Messages
 
 Additional request types planned (same request/response pattern):
-- `send_keys` — inject keystrokes
 - `read_scrollback` — scrollback buffer contents
 - `read_input_buffer` — current input line
 - `read_completion` — active completion state
