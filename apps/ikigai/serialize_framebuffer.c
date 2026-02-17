@@ -146,7 +146,7 @@ void ik_serialize_handle_reverse(parse_state_t *state, size_t *i)
 
 char *ik_serialize_escape_text(TALLOC_CTX *ctx, const char *text, uint32_t len)
 {
-    char *escaped = talloc_array(ctx, char, len * 2 + 1);
+    char *escaped = talloc_zero_array(ctx, char, len * 2 + 1);
     if (escaped == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     size_t escaped_len = 0;
     for (size_t j = 0; j < len; j++) {
