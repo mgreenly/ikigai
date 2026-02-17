@@ -323,7 +323,13 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     }
 
     // Single atomic write
-    ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
+    if (repl->shared->term->tty_fd >= 0) {
+        ssize_t bytes_written = posix_write_(repl->shared->term->tty_fd, framebuffer, offset);
+        if (bytes_written < 0) {
+            talloc_free(framebuffer);
+            return ERR(repl, IO, "Failed to write frame to terminal");
+        }
+    }
 
     // Store framebuffer for control socket read_framebuffer (replaces previous)
     talloc_free(repl->framebuffer);
@@ -331,10 +337,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->framebuffer_len = offset;
     repl->cursor_row = final_cursor_row;
     repl->cursor_col = final_cursor_col;
-
-    if (bytes_written < 0) {
-        return ERR(repl, IO, "Failed to write frame to terminal");
-    }
 
     // Compute elapsed render time (for next frame's debug display)
     // LCOV_EXCL_START - Debug timing code requires precise control of render timing

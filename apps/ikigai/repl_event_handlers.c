@@ -33,10 +33,8 @@
 
 
 #include "shared/poison.h"
-// Forward declarations
 static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
-// Helper: mark agent idle and notify waiters
 static void mark_idle_and_notify(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (repl->shared->db_ctx == NULL) return;
@@ -94,8 +92,11 @@ res_t ik_repl_setup_fd_sets(ik_repl_ctx_t *repl,
     FD_ZERO(write_fds);
     FD_ZERO(exc_fds);
     int32_t terminal_fd = repl->shared->term->tty_fd;
-    FD_SET(terminal_fd, read_fds);
-    int max_fd = terminal_fd;
+    int max_fd = -1;
+    if (terminal_fd >= 0) {
+        FD_SET(terminal_fd, read_fds);
+        max_fd = terminal_fd;
+    }
     if (repl->control_socket != NULL) {
         ik_control_socket_add_to_fd_sets(repl->control_socket, read_fds, &max_fd);
     }

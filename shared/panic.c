@@ -101,7 +101,7 @@ static inline void write_ignore(int fd, const void *buf, size_t count)
 void ik_panic_impl(const char *msg, const char *file, int32_t line)
 {
     // Restore terminal state if available
-    if (g_term_ctx_for_panic != NULL) {
+    if (g_term_ctx_for_panic != NULL && g_term_ctx_for_panic->tty_fd >= 0) {
         // Full terminal reset sequence:
         // - Show cursor (may be hidden in scrollback mode)
         // - Reset text attributes (future-proof for colors)
