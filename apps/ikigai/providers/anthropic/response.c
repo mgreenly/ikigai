@@ -59,6 +59,5 @@ res_t ik_anthropic_start_request(void *impl_ctx, const ik_request_t *req,
     (void)cb_ctx;
 
     // Stub: Will be implemented when HTTP multi layer is ready
-    // TODO: Serialize request, build headers, start HTTP POST
     return OK(NULL);
 }
