@@ -28,7 +28,7 @@
  * @param prompt Output: prompt string (NULL if no prompt)
  * @return OK on success, ERR on malformed input
  */
-res_t cmd_fork_parse_args(void *ctx, const char *input, char **model, char **prompt)
+res_t ik_commands_fork_parse_args(void *ctx, const char *input, char **model, char **prompt)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(model != NULL);    // LCOV_EXCL_BR_LINE
@@ -114,7 +114,7 @@ res_t cmd_fork_parse_args(void *ctx, const char *input, char **model, char **pro
  * @param model_spec Model specification (e.g., "gpt-5" or "gpt-5-mini/high")
  * @return OK on success, ERR on invalid model or provider
  */
-res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec)
+res_t ik_commands_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec)
 {
     assert(child != NULL);      // LCOV_EXCL_BR_LINE
     assert(model_spec != NULL); // LCOV_EXCL_BR_LINE
@@ -122,7 +122,7 @@ res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec)
     // Parse MODEL/THINKING syntax (reuse existing parser)
     char *model_name = NULL;
     char *thinking_str = NULL;
-    res_t parse_res = cmd_model_parse(child, model_spec, &model_name, &thinking_str);
+    res_t parse_res = ik_commands_model_parse(child, model_spec, &model_name, &thinking_str);
     if (is_err(&parse_res)) {
         return parse_res;
     }
@@ -180,7 +180,7 @@ res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec)
  * @param parent Parent agent to copy from
  * @return OK on success, ERR on memory allocation failure
  */
-res_t cmd_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+res_t ik_commands_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
 {
     assert(child != NULL);  // LCOV_EXCL_BR_LINE
     assert(parent != NULL); // LCOV_EXCL_BR_LINE

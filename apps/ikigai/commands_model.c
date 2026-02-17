@@ -91,7 +91,7 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse MODEL/THINKING syntax
     char *model_name = NULL;
     char *thinking_str = NULL;
-    res_t parse_res = cmd_model_parse(ctx, args, &model_name, &thinking_str);
+    res_t parse_res = ik_commands_model_parse(ctx, args, &model_name, &thinking_str);
     if (is_err(&parse_res)) {
         char *msg = talloc_asprintf(ctx, "Error: %s", error_message(parse_res.err));
         if (!msg) {     // LCOV_EXCL_BR_LINE
@@ -250,7 +250,7 @@ res_t ik_cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-res_t cmd_model_parse(void *ctx, const char *input, char **model, char **thinking)
+res_t ik_commands_model_parse(void *ctx, const char *input, char **model, char **thinking)
 {
     assert(ctx != NULL);     // LCOV_EXCL_BR_LINE
     assert(input != NULL);   // LCOV_EXCL_BR_LINE

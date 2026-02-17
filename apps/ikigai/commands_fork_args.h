@@ -18,7 +18,7 @@
  * @param prompt Output: prompt string (NULL if no prompt)
  * @return OK on success, ERR on malformed input
  */
-res_t cmd_fork_parse_args(void *ctx, const char *input, char **model, char **prompt);
+res_t ik_commands_fork_parse_args(void *ctx, const char *input, char **model, char **prompt);
 
 /**
  * Apply model override to child agent
@@ -27,7 +27,7 @@ res_t cmd_fork_parse_args(void *ctx, const char *input, char **model, char **pro
  * @param model_spec Model specification (e.g., "gpt-5" or "gpt-5-mini/high")
  * @return OK on success, ERR on invalid model or provider
  */
-res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec);
+res_t ik_commands_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec);
 
 /**
  * Copy parent's provider config to child agent
@@ -36,6 +36,6 @@ res_t cmd_fork_apply_override(ik_agent_ctx_t *child, const char *model_spec);
  * @param parent Parent agent to copy from
  * @return OK on success, ERR on memory allocation failure
  */
-res_t cmd_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
+res_t ik_commands_fork_inherit_config(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
 
 #endif // IK_COMMANDS_FORK_ARGS_H

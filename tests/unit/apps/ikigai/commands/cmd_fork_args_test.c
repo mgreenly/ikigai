@@ -35,12 +35,12 @@ START_TEST(test_parse_args_empty_input) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, NULL, &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, NULL, &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(model);
     ck_assert_ptr_null(prompt);
 
-    res = cmd_fork_parse_args(test_ctx, "", &model, &prompt);
+    res = ik_commands_fork_parse_args(test_ctx, "", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(model);
     ck_assert_ptr_null(prompt);
@@ -51,7 +51,7 @@ START_TEST(test_parse_args_quoted_prompt) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "\"Hello World\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "\"Hello World\"", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(model);
     ck_assert_ptr_nonnull(prompt);
@@ -64,7 +64,7 @@ START_TEST(test_parse_args_model_only) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "--model gpt-4o", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model gpt-4o", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(model);
     ck_assert_str_eq(model, "gpt-4o");
@@ -77,7 +77,7 @@ START_TEST(test_parse_args_model_then_prompt) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "--model gpt-4o \"Test prompt\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model gpt-4o \"Test prompt\"", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(model);
     ck_assert_str_eq(model, "gpt-4o");
@@ -91,7 +91,7 @@ START_TEST(test_parse_args_prompt_then_model) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "\"Test prompt\" --model gpt-4o", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "\"Test prompt\" --model gpt-4o", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(model);
     ck_assert_str_eq(model, "gpt-4o");
@@ -105,7 +105,7 @@ START_TEST(test_parse_args_model_no_arg) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "--model", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model", &model, &prompt);
     ck_assert(is_err(&res));
 }
 
@@ -115,7 +115,7 @@ START_TEST(test_parse_args_model_whitespace_only) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "--model   ", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model   ", &model, &prompt);
     ck_assert(is_err(&res));
 }
 
@@ -125,7 +125,7 @@ START_TEST(test_parse_args_unterminated_quote) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "\"unterminated", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "\"unterminated", &model, &prompt);
     ck_assert(is_err(&res));
 }
 
@@ -135,7 +135,7 @@ START_TEST(test_parse_args_unquoted_text) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "unquoted", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "unquoted", &model, &prompt);
     ck_assert(is_err(&res));
 }
 
@@ -145,7 +145,7 @@ START_TEST(test_parse_args_leading_whitespace) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "   \"prompt\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "   \"prompt\"", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(model);
     ck_assert_ptr_nonnull(prompt);
@@ -158,7 +158,7 @@ START_TEST(test_parse_args_with_tabs) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "\t--model\tgpt-4o\t\"prompt\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "\t--model\tgpt-4o\t\"prompt\"", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(model);
     ck_assert_str_eq(model, "gpt-4o");
@@ -172,7 +172,7 @@ START_TEST(test_parse_args_empty_quoted) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "\"\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "\"\"", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(model);
     ck_assert_ptr_nonnull(prompt);
@@ -185,7 +185,7 @@ START_TEST(test_parse_args_model_with_slash) {
     char *model = NULL;
     char *prompt = NULL;
 
-    res_t res = cmd_fork_parse_args(test_ctx, "--model gpt-4o/high", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model gpt-4o/high", &model, &prompt);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(model);
     ck_assert_str_eq(model, "gpt-4o/high");
@@ -200,7 +200,7 @@ START_TEST(test_parse_args_model_followed_by_quote) {
 
     // This tests the edge case where --model is followed immediately by a quote
     // which should be caught by the model_len == 0 check
-    res_t res = cmd_fork_parse_args(test_ctx, "--model \"prompt\"", &model, &prompt);
+    res_t res = ik_commands_fork_parse_args(test_ctx, "--model \"prompt\"", &model, &prompt);
     ck_assert(is_err(&res));
 }
 

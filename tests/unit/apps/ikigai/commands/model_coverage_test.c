@@ -207,11 +207,11 @@ START_TEST(test_model_thinking_none) {
 
 END_TEST
 
-// Test: cmd_model_parse with trailing slash (line 276)
+// Test: ik_commands_model_parse with trailing slash (line 276)
 START_TEST(test_parse_trailing_slash) {
     char *model = NULL;
     char *thinking = NULL;
-    res_t res = cmd_model_parse(ctx, "gpt-4/", &model, &thinking);
+    res_t res = ik_commands_model_parse(ctx, "gpt-4/", &model, &thinking);
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
     ck_assert_str_eq(error_message(res.err), "Malformed input: trailing '/' with no thinking level");
@@ -220,11 +220,11 @@ START_TEST(test_parse_trailing_slash) {
 
 END_TEST
 
-// Test: cmd_model_parse with empty model name (line 282)
+// Test: ik_commands_model_parse with empty model name (line 282)
 START_TEST(test_parse_empty_model) {
     char *model = NULL;
     char *thinking = NULL;
-    res_t res = cmd_model_parse(ctx, "/low", &model, &thinking);
+    res_t res = ik_commands_model_parse(ctx, "/low", &model, &thinking);
     ck_assert(is_err(&res));
     ck_assert_ptr_nonnull(res.err);
     ck_assert_str_eq(error_message(res.err), "Malformed input: empty model name");

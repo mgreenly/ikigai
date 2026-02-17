@@ -201,18 +201,18 @@ START_TEST(test_fork_warning_no_thinking_support) {
     ck_assert(found_warning);
 }
 END_TEST
-// Test: thinking_level_to_string handles all enum values
-START_TEST(test_thinking_level_to_string_all_values) {
-    ck_assert_str_eq(thinking_level_to_string(IK_THINKING_NONE), "none");
-    ck_assert_str_eq(thinking_level_to_string(IK_THINKING_LOW), "low");
-    ck_assert_str_eq(thinking_level_to_string(IK_THINKING_MED), "medium");
-    ck_assert_str_eq(thinking_level_to_string(IK_THINKING_HIGH), "high");
-    ck_assert_str_eq(thinking_level_to_string((ik_thinking_level_t)999), "unknown");
+// Test: ik_commands_thinking_level_to_string handles all enum values
+START_TEST(test_ik_commands_thinking_level_to_string_all_values) {
+    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_NONE), "none");
+    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_LOW), "low");
+    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_MED), "medium");
+    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_HIGH), "high");
+    ck_assert_str_eq(ik_commands_thinking_level_to_string((ik_thinking_level_t)999), "unknown");
 }
 
 END_TEST
-// Test: build_fork_feedback with override=true
-START_TEST(test_build_fork_feedback_override) {
+// Test: ik_commands_build_fork_feedback with override=true
+START_TEST(test_ik_commands_build_fork_feedback_override) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->uuid = talloc_strdup(agent, "test-uuid-12345");
@@ -220,14 +220,14 @@ START_TEST(test_build_fork_feedback_override) {
     agent->model = talloc_strdup(agent, "gpt-4o");
     agent->thinking_level = IK_THINKING_MED;
 
-    char *feedback = build_fork_feedback(test_ctx, agent, true);
+    char *feedback = ik_commands_build_fork_feedback(test_ctx, agent, true);
     ck_assert_ptr_nonnull(feedback);
     ck_assert(strstr(feedback, "Forked child test-uuid-12345 (openai/gpt-4o/medium)") != NULL);
 }
 
 END_TEST
-// Test: build_fork_feedback with override=false
-START_TEST(test_build_fork_feedback_inherit) {
+// Test: ik_commands_build_fork_feedback with override=false
+START_TEST(test_ik_commands_build_fork_feedback_inherit) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
     agent->uuid = talloc_strdup(agent, "test-uuid-67890");
@@ -235,14 +235,14 @@ START_TEST(test_build_fork_feedback_inherit) {
     agent->model = talloc_strdup(agent, "claude-3-5-sonnet-20241022");
     agent->thinking_level = IK_THINKING_LOW;
 
-    char *feedback = build_fork_feedback(test_ctx, agent, false);
+    char *feedback = ik_commands_build_fork_feedback(test_ctx, agent, false);
     ck_assert_ptr_nonnull(feedback);
     ck_assert(strstr(feedback, "Forked child test-uuid-67890 (anthropic/claude-3-5-sonnet-20241022/low)") != NULL);
 }
 
 END_TEST
-// Test: insert_fork_events with no session_id
-START_TEST(test_insert_fork_events_no_session) {
+// Test: ik_commands_insert_fork_events with no session_id
+START_TEST(test_ik_commands_insert_fork_events_no_session) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->uuid = talloc_strdup(parent, "parent-uuid");
@@ -258,13 +258,13 @@ START_TEST(test_insert_fork_events_no_session) {
     shared->db_ctx = db;
     test_repl->shared = shared;
 
-    res_t res = insert_fork_events(test_ctx, test_repl, parent, child, 123);
+    res_t res = ik_commands_insert_fork_events(test_ctx, test_repl, parent, child, 123);
     ck_assert(is_ok(&res));  // Should return OK without inserting
 }
 
 END_TEST
-// Test: insert_fork_events with database error on parent insert
-START_TEST(test_insert_fork_events_db_error_parent) {
+// Test: ik_commands_insert_fork_events with database error on parent insert
+START_TEST(test_ik_commands_insert_fork_events_db_error_parent) {
     ik_agent_ctx_t *parent = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(parent);
     parent->uuid = talloc_strdup(parent, "parent-uuid-nonexistent");
@@ -281,7 +281,7 @@ START_TEST(test_insert_fork_events_db_error_parent) {
     test_repl->shared = shared;
 
     // This will fail because parent agent doesn't exist in registry
-    res_t res = insert_fork_events(test_ctx, test_repl, parent, child, 123);
+    res_t res = ik_commands_insert_fork_events(test_ctx, test_repl, parent, child, 123);
     ck_assert(is_err(&res));
 }
 
@@ -299,11 +299,11 @@ static Suite *cmd_fork_error_suite(void)
     tcase_add_checked_fixture(tc_helpers, setup, teardown);
 
     tcase_add_test(tc_errors, test_fork_warning_no_thinking_support);
-    tcase_add_test(tc_helpers, test_thinking_level_to_string_all_values);
-    tcase_add_test(tc_helpers, test_build_fork_feedback_override);
-    tcase_add_test(tc_helpers, test_build_fork_feedback_inherit);
-    tcase_add_test(tc_helpers, test_insert_fork_events_no_session);
-    tcase_add_test(tc_helpers, test_insert_fork_events_db_error_parent);
+    tcase_add_test(tc_helpers, test_ik_commands_thinking_level_to_string_all_values);
+    tcase_add_test(tc_helpers, test_ik_commands_build_fork_feedback_override);
+    tcase_add_test(tc_helpers, test_ik_commands_build_fork_feedback_inherit);
+    tcase_add_test(tc_helpers, test_ik_commands_insert_fork_events_no_session);
+    tcase_add_test(tc_helpers, test_ik_commands_insert_fork_events_db_error_parent);
 
     suite_add_tcase(s, tc_errors);
     suite_add_tcase(s, tc_helpers);

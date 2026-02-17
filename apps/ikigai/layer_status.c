@@ -83,7 +83,7 @@ static void status_render(const ik_layer_t *layer,
         ik_output_buffer_append(output, IK_ANSI_RESET, 4);
     } else {
         // Display model/thinking
-        const char *thinking_str = thinking_level_to_string(thinking_level);
+        const char *thinking_str = ik_commands_thinking_level_to_string(thinking_level);
 
         // Append colored model/thinking text
         ik_output_buffer_append(output, color_seq, color_len);

@@ -35,7 +35,7 @@ START_TEST(test_apply_override_basic_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "openai");
@@ -49,7 +49,7 @@ START_TEST(test_apply_override_thinking_none) {
     ck_assert_ptr_nonnull(child);
     child->thinking_level = IK_THINKING_HIGH;
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/none");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/none");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_NONE);
 }
@@ -60,7 +60,7 @@ START_TEST(test_apply_override_thinking_low) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/low");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/low");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_LOW);
 }
@@ -71,7 +71,7 @@ START_TEST(test_apply_override_thinking_med) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/med");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/med");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_MED);
 }
@@ -82,7 +82,7 @@ START_TEST(test_apply_override_thinking_high) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/high");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/high");
     ck_assert(is_ok(&res));
     ck_assert_int_eq(child->thinking_level, IK_THINKING_HIGH);
 }
@@ -93,7 +93,7 @@ START_TEST(test_apply_override_invalid_thinking) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/invalid");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/invalid");
     ck_assert(is_err(&res));
 }
 
@@ -103,7 +103,7 @@ START_TEST(test_apply_override_unknown_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "unknown-model-xyz");
+    res_t res = ik_commands_fork_apply_override(child, "unknown-model-xyz");
     ck_assert(is_err(&res));
 }
 
@@ -115,7 +115,7 @@ START_TEST(test_apply_override_replaces_provider) {
     child->provider = talloc_strdup(child, "anthropic");
     child->model = talloc_strdup(child, "claude-3-5-sonnet-20241022");
 
-    res_t res = cmd_fork_apply_override(child, "gpt-4o");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "openai");
@@ -129,7 +129,7 @@ START_TEST(test_apply_override_anthropic_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "claude-3-5-sonnet-20241022");
+    res_t res = ik_commands_fork_apply_override(child, "claude-3-5-sonnet-20241022");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "anthropic");
@@ -143,7 +143,7 @@ START_TEST(test_apply_override_google_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_apply_override(child, "gemini-2.0-flash-exp");
+    res_t res = ik_commands_fork_apply_override(child, "gemini-2.0-flash-exp");
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "google");
@@ -157,8 +157,8 @@ START_TEST(test_apply_override_invalid_parse) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    // Test with trailing slash which should trigger cmd_model_parse error
-    res_t res = cmd_fork_apply_override(child, "gpt-4o/");
+    // Test with trailing slash which should trigger ik_commands_model_parse error
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/");
     ck_assert(is_err(&res));
 }
 
@@ -174,7 +174,7 @@ START_TEST(test_inherit_config_basic) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_inherit_config(child, parent);
+    res_t res = ik_commands_fork_inherit_config(child, parent);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "openai");
@@ -198,7 +198,7 @@ START_TEST(test_inherit_config_replaces_existing) {
     child->model = talloc_strdup(child, "claude-3-5-sonnet-20241022");
     child->thinking_level = IK_THINKING_HIGH;
 
-    res_t res = cmd_fork_inherit_config(child, parent);
+    res_t res = ik_commands_fork_inherit_config(child, parent);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "openai");
@@ -219,7 +219,7 @@ START_TEST(test_inherit_config_null_parent_provider) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_inherit_config(child, parent);
+    res_t res = ik_commands_fork_inherit_config(child, parent);
     ck_assert(is_ok(&res));
     ck_assert_ptr_null(child->provider);
     ck_assert_ptr_nonnull(child->model);
@@ -239,7 +239,7 @@ START_TEST(test_inherit_config_null_parent_model) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
 
-    res_t res = cmd_fork_inherit_config(child, parent);
+    res_t res = ik_commands_fork_inherit_config(child, parent);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(child->provider);
     ck_assert_str_eq(child->provider, "openai");
