@@ -234,7 +234,7 @@ static ik_repl_ctx_t *create_repl(TALLOC_CTX *ctx)
     if (creds == NULL) return NULL;
 
     ik_shared_ctx_t *shared = NULL;
-    res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     if (is_err(&res)) { talloc_free(res.err); return NULL; }
 
     res = ik_repl_init(ctx, shared, &repl);

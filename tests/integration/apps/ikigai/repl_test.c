@@ -299,7 +299,7 @@ START_TEST(test_repl_init) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -352,7 +352,7 @@ START_TEST(test_repl_run) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -383,7 +383,7 @@ START_TEST(test_thread_infrastructure_init) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -417,7 +417,7 @@ START_TEST(test_mutex_init_failure) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_err(&result));
@@ -446,7 +446,7 @@ START_TEST(test_transition_to_executing_tool) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -482,7 +482,7 @@ START_TEST(test_transition_from_executing_tool) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     result = ik_repl_init(ctx, shared, &repl);
     ck_assert(is_ok(&result));
@@ -521,7 +521,7 @@ START_TEST(test_repl_init_null_out) {
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
     (void)ik_repl_init(ctx, shared, NULL);
     talloc_free(ctx);

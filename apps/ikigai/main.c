@@ -10,6 +10,7 @@
 #include "shared/terminal.h"
 
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -126,7 +127,8 @@ int main(int argc, char *argv[])
 
     // Create shared context
     ik_shared_ctx_t *shared = NULL;
-    result = ik_shared_ctx_init(root_ctx, cfg, creds, paths, logger, headless, &shared);
+    ik_term_ctx_t *term = headless ? ik_term_init_headless(root_ctx) : NULL;
+    result = ik_shared_ctx_init_with_term(root_ctx, cfg, creds, paths, logger, term, &shared);
     if (is_err(&result)) {
         log_error_and_cleanup(logger, "shared_ctx_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;

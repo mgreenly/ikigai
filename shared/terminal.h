@@ -22,8 +22,8 @@ res_t ik_term_init(TALLOC_CTX *ctx, ik_logger_t *logger, ik_term_ctx_t **ctx_out
 // Initialize terminal with pre-opened file descriptor (for testing with PTY)
 res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int fd, ik_term_ctx_t **ctx_out);
 
-// Initialize headless terminal (no real TTY, canned values)
-// Infallible: PANICs on OOM, never fails otherwise
+// Initialize headless terminal (no TTY, no I/O, canned 100x50 dimensions)
+// Infallible — only talloc_zero which PANICs on OOM
 ik_term_ctx_t *ik_term_init_headless(TALLOC_CTX *ctx);
 
 // Cleanup terminal (restore state)

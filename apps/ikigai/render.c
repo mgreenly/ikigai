@@ -116,14 +116,12 @@ res_t ik_render_input_buffer(ik_render_ctx_t *ctx,
     talloc_free(cursor_escape);
 
     // Single write to terminal
-    if (ctx->tty_fd >= 0) {
-        ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
-        if (bytes_written < 0) {
-            talloc_free(framebuffer);
-            return ERR(ctx, IO, "Failed to write to terminal");
-        }
-    }
+    ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
+
+    if (bytes_written < 0) {
+        return ERR(ctx, IO, "Failed to write to terminal");
+    }
 
     return OK(ctx);
 }
@@ -299,14 +297,12 @@ res_t ik_render_combined(ik_render_ctx_t *ctx,
     }
 
     // Single atomic write
-    if (ctx->tty_fd >= 0) {
-        ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
-        if (bytes_written < 0) {
-            talloc_free(framebuffer);
-            return ERR(ctx, IO, "Failed to write combined frame to terminal");
-        }
-    }
+    ssize_t bytes_written = posix_write_(ctx->tty_fd, framebuffer, offset);
     talloc_free(framebuffer);
+
+    if (bytes_written < 0) {
+        return ERR(ctx, IO, "Failed to write combined frame to terminal");
+    }
 
     return OK(ctx);
 }

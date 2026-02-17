@@ -145,7 +145,7 @@ START_TEST(test_shared_ctx_database_unconfigured) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -189,7 +189,7 @@ START_TEST(test_shared_ctx_database_configured) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Database connection will fail since testhost doesn't exist
     // This test exercises the connection string building code path
@@ -232,7 +232,7 @@ START_TEST(test_shared_ctx_database_no_password) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Database connection will fail since nonexistent_test_db_12345 doesn't exist
     // This test exercises the empty password code path
@@ -269,7 +269,7 @@ START_TEST(test_shared_ctx_database_partial_null_host) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -307,7 +307,7 @@ START_TEST(test_shared_ctx_database_partial_null_name) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -345,7 +345,7 @@ START_TEST(test_shared_ctx_database_partial_null_user) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);

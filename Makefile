@@ -158,7 +158,8 @@ TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(subst _,-,$(TOOL_NAMES)))
 # Discover all test binaries (exclude helpers/ - those are test suite helpers, not standalone tests)
 UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
 INTEGRATION_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/integration -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
-TEST_BINARIES = $(UNIT_TEST_BINARIES) $(INTEGRATION_TEST_BINARIES)
+FUNCTIONAL_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/functional -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
+TEST_BINARIES = $(UNIT_TEST_BINARIES) $(INTEGRATION_TEST_BINARIES) $(FUNCTIONAL_TEST_BINARIES)
 
 # All binaries
 ALL_BINARIES = bin/ikigai $(TOOL_BINARIES) $(TEST_BINARIES)
@@ -226,6 +227,7 @@ include .make/check-compile.mk
 include .make/check-link.mk
 include .make/check-unit.mk
 include .make/check-integration.mk
+include .make/check-functional.mk
 include .make/check-filesize.mk
 include .make/check-complexity.mk
 include .make/check-sanitize.mk

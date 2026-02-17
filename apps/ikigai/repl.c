@@ -143,7 +143,8 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         }
 
         // Handle terminal input
-        if (repl->shared->term->tty_fd >= 0 && FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
+        if (repl->shared->term->tty_fd >= 0 &&
+            FD_ISSET(repl->shared->term->tty_fd, &read_fds)) {  // LCOV_EXCL_BR_LINE
             CHECK(ik_repl_handle_terminal_input(repl, repl->shared->term->tty_fd, &should_exit));
             if (should_exit) break;
         }

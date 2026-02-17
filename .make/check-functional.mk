@@ -1,0 +1,67 @@
+# check-functional: Run functional tests and parse XML results
+# Tests output XML to reports/check/, which is parsed for structured output
+
+.PHONY: check-functional
+
+check-functional:
+ifdef FILE
+	@# Single test mode - run one test binary and show detailed per-assertion results
+	@mkdir -p reports/check/$$(dirname $(FILE) | sed 's|^$(BUILDDIR)/tests/||')
+	@xml_path=$$(echo $(FILE) | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
+	if [ ! -x "$(FILE)" ]; then \
+		echo "🔴 $(FILE): binary not found (run make check-link first)"; \
+		exit 1; \
+	fi; \
+	$(FILE) >/dev/null 2>&1 || true; \
+	if [ ! -f "$$xml_path" ]; then \
+		echo "🔴 $(FILE): no XML output generated"; \
+		exit 1; \
+	fi; \
+	.make/parse-check-xml.sh "$$xml_path"; \
+	if grep 'result="' "$$xml_path" | grep -qv 'result="success"'; then \
+		exit 1; \
+	fi
+else ifdef RAW
+	@# RAW mode - run tests with full output visible
+	$(MAKE) check-link
+	@mkdir -p reports/check
+	@find tests/functional -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
+	@for bin in $(FUNCTIONAL_TEST_BINARIES); do \
+		echo "=== $$bin ==="; \
+		$$bin || exit 1; \
+	done
+else
+	@# Bulk mode - run all functional tests in parallel, one line per binary
+	@# Phase 1: Ensure binaries are built
+	@if ! $(MAKE) -s check-link >/dev/null 2>&1; then \
+		echo "🔴 Pre-existing build failures - fix compilation/linking before running functional tests"; \
+		exit 1; \
+	fi
+	@# Phase 2: Create output directories
+	@mkdir -p reports/check
+	@find tests/functional -type d | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
+	@# Phase 3: Run all tests in parallel (each writes XML, suppress console output)
+	@echo $(FUNCTIONAL_TEST_BINARIES) | tr ' ' '\n' | xargs -P$(MAKE_JOBS) -I{} sh -c '{} >/dev/null 2>&1 || true'
+	@# Phase 4: Check each binary's XML for pass/fail, one line per binary
+	@passed=0; failed=0; \
+	for bin in $(FUNCTIONAL_TEST_BINARIES); do \
+		xml=$$(echo $$bin | sed 's|^$(BUILDDIR)/tests/|reports/check/|').xml; \
+		if [ ! -f "$$xml" ]; then \
+			echo "🔴 $$bin"; \
+			failed=$$((failed + 1)); \
+		elif grep 'result="' "$$xml" | grep -qv 'result="success"'; then \
+			echo "🔴 $$bin"; \
+			failed=$$((failed + 1)); \
+		else \
+			echo "🟢 $$bin"; \
+			passed=$$((passed + 1)); \
+		fi; \
+	done; \
+	total=$$((passed + failed)); \
+	if [ $$failed -eq 0 ]; then \
+		echo "✅ All $$total functional tests passed"; \
+	else \
+		echo "❌ $$failed/$$total functional tests failed"; \
+		exit 1; \
+	fi
+endif

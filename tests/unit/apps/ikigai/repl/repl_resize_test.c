@@ -132,7 +132,7 @@ START_TEST(test_resize_updates_terminal_dimensions) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -182,7 +182,7 @@ START_TEST(test_resize_invalidates_scrollback_layout) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -239,7 +239,7 @@ START_TEST(test_resize_handles_ioctl_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
@@ -283,7 +283,7 @@ START_TEST(test_sigwinch_handler_installed) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t result = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&result));
 
     // Create REPL context
