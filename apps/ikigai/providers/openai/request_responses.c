@@ -222,7 +222,7 @@ static char *build_string_input(const ik_message_t *msg)
         return NULL;
     }
 
-    char *input_text = malloc(total_len + 1);
+    char *input_text = talloc_zero_size(NULL, total_len + 1);
     if (!input_text) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     char *dest = input_text;
@@ -257,7 +257,7 @@ static bool add_string_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 
     bool result = yyjson_mut_obj_add_strcpy(doc, root, "input", input_text); // LCOV_EXCL_BR_LINE
-    free(input_text);
+    talloc_free(input_text);
     return result;
 }
 
