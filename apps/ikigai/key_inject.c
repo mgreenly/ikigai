@@ -98,7 +98,7 @@ res_t ik_key_inject_unescape(TALLOC_CTX *ctx, const char *input, size_t input_le
     }
 
     // Allocate output buffer (worst case: same size as input)
-    char *result = talloc_array(ctx, char, (unsigned int)input_len);
+    char *result = talloc_zero_array(ctx, char, (unsigned int)input_len);
     if (!result) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t out_pos = 0;
