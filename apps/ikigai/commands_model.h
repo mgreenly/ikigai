@@ -43,6 +43,6 @@ res_t ik_cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @param thinking Output: thinking level string or NULL (talloc'd if not NULL)
  * @return         OK on success, ERR on malformed input
  */
-res_t cmd_model_parse(void *ctx, const char *input, char **model, char **thinking);
+res_t ik_commands_model_parse(void *ctx, const char *input, char **model, char **thinking);
 
 #endif // IK_COMMANDS_MODEL_H

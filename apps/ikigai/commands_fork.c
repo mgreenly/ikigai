@@ -192,7 +192,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse arguments for --model flag and prompt
     char *model_spec = NULL;
     char *prompt = NULL;
-    res_t parse_res = cmd_fork_parse_args(ctx, args, &model_spec, &prompt);
+    res_t parse_res = ik_commands_fork_parse_args(ctx, args, &model_spec, &prompt);
     if (is_err(&parse_res)) {
         const char *err_msg = error_message(parse_res.err);
         char *styled_msg = ik_scrollback_format_warning(ctx, err_msg);
@@ -244,7 +244,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Configure child's provider/model/thinking (either inherit or override)
     if (model_spec != NULL) {
         // Apply model override
-        res = cmd_fork_apply_override(child, model_spec);
+        res = ik_commands_fork_apply_override(child, model_spec);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
             atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
@@ -255,7 +255,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
         }
     } else {
         // Inherit parent's configuration
-        res = cmd_fork_inherit_config(child, parent);
+        res = ik_commands_fork_inherit_config(child, parent);
         if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
             ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
             atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
@@ -302,7 +302,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }     // LCOV_EXCL_LINE
 
     // Insert fork events into database
-    res = insert_fork_events(ctx, repl, parent, child, fork_message_id);
+    res = ik_commands_insert_fork_events(ctx, repl, parent, child, fork_message_id);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         ik_db_rollback(repl->shared->db_ctx);     // LCOV_EXCL_LINE
         atomic_store(&repl->shared->fork_pending, false);     // LCOV_EXCL_LINE
@@ -325,7 +325,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     atomic_store(&repl->shared->fork_pending, false);
 
     // Display confirmation with model information
-    char *feedback = build_fork_feedback(ctx, child, model_spec != NULL);
+    char *feedback = ik_commands_build_fork_feedback(ctx, child, model_spec != NULL);
     if (feedback == NULL) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
     }
