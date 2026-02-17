@@ -41,7 +41,7 @@ START_TEST(test_page_down_scrolling) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -88,7 +88,7 @@ START_TEST(test_page_down_at_bottom) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -135,7 +135,7 @@ START_TEST(test_page_down_small_offset) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -182,7 +182,7 @@ START_TEST(test_page_up_scrolling) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -237,7 +237,7 @@ START_TEST(test_page_up_empty_scrollback) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -287,7 +287,7 @@ START_TEST(test_page_up_clamping) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context

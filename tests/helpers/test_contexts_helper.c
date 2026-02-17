@@ -49,7 +49,7 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out)
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
 
-    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, out);
+    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, out);
 }
 
 res_t test_repl_create(TALLOC_CTX *ctx,
@@ -89,5 +89,5 @@ res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
 
-    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, out);
+    return ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, out);
 }

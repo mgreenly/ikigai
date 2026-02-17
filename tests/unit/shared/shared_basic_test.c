@@ -171,7 +171,7 @@ START_TEST(test_shared_ctx_init_and_memory) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     // Test init success
     ck_assert(is_ok(&res));
@@ -213,7 +213,7 @@ START_TEST(test_shared_ctx_config) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -251,7 +251,7 @@ START_TEST(test_shared_ctx_terminal_and_render) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -291,7 +291,7 @@ START_TEST(test_shared_ctx_history) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -328,7 +328,7 @@ START_TEST(test_shared_ctx_debug) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(shared);
@@ -378,7 +378,7 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
     ck_assert_ptr_nonnull(creds);
 
     ik_shared_ctx_t *shared = NULL;
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     // Should still succeed despite history load failure (graceful degradation)
     ck_assert(is_ok(&res));

@@ -247,10 +247,31 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
     return OK(term_ctx);
 }
 
+// Initialize headless terminal (no real TTY, canned values)
+ik_term_ctx_t *ik_term_init_headless(TALLOC_CTX *ctx)
+{
+    assert(ctx != NULL);
+
+    ik_term_ctx_t *term_ctx = talloc_zero_(ctx, sizeof(ik_term_ctx_t));
+    if (term_ctx == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    term_ctx->tty_fd = -1;
+    term_ctx->screen_rows = 50;
+    term_ctx->screen_cols = 100;
+    term_ctx->csi_u_supported = false;
+
+    return term_ctx;
+}
+
 // Cleanup terminal (restore state)
 void ik_term_cleanup(ik_term_ctx_t *ctx)
 {
     if (ctx == NULL) {
+        return;
+    }
+
+    // Headless mode: no terminal state to restore
+    if (ctx->tty_fd < 0) {
         return;
     }
 
@@ -280,6 +301,13 @@ res_t ik_term_get_size(ik_term_ctx_t *ctx, int *rows_out, int *cols_out)
     assert(ctx != NULL);        // LCOV_EXCL_BR_LINE
     assert(rows_out != NULL);   // LCOV_EXCL_BR_LINE
     assert(cols_out != NULL);   // LCOV_EXCL_BR_LINE
+
+    // Headless mode: return stored values without ioctl
+    if (ctx->tty_fd < 0) {
+        *rows_out = ctx->screen_rows;
+        *cols_out = ctx->screen_cols;
+        return OK(NULL);
+    }
 
     struct winsize ws;
     if (posix_ioctl_(ctx->tty_fd, TIOCGWINSZ, &ws) < 0) {

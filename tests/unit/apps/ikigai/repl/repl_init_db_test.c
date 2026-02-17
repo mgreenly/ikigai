@@ -1,7 +1,4 @@
-/**
- * @file repl_init_db_test.c
- * @brief Unit tests for REPL database initialization
- */
+// Unit tests for REPL database initialization
 
 #include <check.h>
 #include <talloc.h>
@@ -333,7 +330,7 @@ START_TEST(test_repl_init_db_init_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
 
     // Verify failure at shared_ctx_init level
     ck_assert(is_err(&res));
@@ -374,7 +371,7 @@ START_TEST(test_repl_init_ensure_agent_zero_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -417,7 +414,7 @@ START_TEST(test_repl_init_db_success) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -462,7 +459,7 @@ START_TEST(test_repl_init_signal_handler_failure_with_db) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
