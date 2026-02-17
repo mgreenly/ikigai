@@ -160,7 +160,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Complete readline/editline control key support (Ctrl+K kill-to-end, etc.)
 
 
-### rel-11: Internal Tools (future)
+### rel-11: Internal Tools (complete)
 
 **Objective**: Expose agent operations as LLM-callable tools via in-process execution
 
@@ -169,10 +169,8 @@ This documentation is primarily for AI agents and secondarily for humans.
 - 4 internal tools: `fork`, `kill`, `send`, `wait`
 - Two-phase execution: worker thread does real work, main thread handles `repl->agents[]` manipulation
 - `wait` tool with fan-in semantics: wait for multiple sub-agents, structured per-agent results, PG LISTEN/NOTIFY wake-up
-- `wait` status layer in the UI layer cake showing per-agent progress during fan-in operations
 - `/capture` and `/cancel` human-only commands for composing sub-agent tasks without LLM seeing the content
 - `/reap` human-only command for removing dead agents from nav rotation (kill marks dead, reap cleans up)
-- New `kind="capture"` message kind (persisted, rendered in scrollback, excluded from LLM history)
 - Pending prompt mechanism for fork tool (worker creates child, main loop starts its LLM stream)
 
 
