@@ -59,7 +59,7 @@ START_TEST(test_render_frame_empty_scrollback) {
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 24;
     term->screen_cols = 80;
-    term->tty_fd = 999;  // Dummy fd (mock intercepts posix_write_)
+    term->tty_fd = -1;  // Not actually writing
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);
@@ -113,7 +113,7 @@ START_TEST(test_render_frame_with_scrollback) {
     ik_term_ctx_t *term = talloc_zero(ctx, ik_term_ctx_t);
     term->screen_rows = 24;
     term->screen_cols = 80;
-    term->tty_fd = 999;  // Dummy fd (mock intercepts posix_write_)
+    term->tty_fd = -1;
 
     ik_render_ctx_t *render = NULL;
     res = ik_render_create(ctx, term->screen_rows, term->screen_cols, term->tty_fd, &render);

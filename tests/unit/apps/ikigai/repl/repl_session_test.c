@@ -329,7 +329,7 @@ START_TEST(test_repl_init_session_get_active_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_get_active
@@ -372,7 +372,7 @@ START_TEST(test_repl_init_session_create_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on session_create
@@ -416,7 +416,7 @@ START_TEST(test_repl_init_restore_agents_failure) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Attempt to initialize REPL - should fail on restore_agents
@@ -460,7 +460,7 @@ START_TEST(test_repl_init_existing_session) {
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Initialize REPL - should use existing session

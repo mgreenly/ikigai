@@ -81,6 +81,18 @@ $(BUILDDIR)/tests/integration/%_test: $(BUILDDIR)/tests/integration/%_test.o $(M
 		exit 1; \
 	fi
 
+# Pattern rule for functional tests
+# Same mock-first linking as integration tests
+$(BUILDDIR)/tests/functional/%_test: $(BUILDDIR)/tests/functional/%_test.o $(MODULE_OBJ) $(VCR_STUBS)
+	@mkdir -p $(dir $@)
+	@deps=$$($(call deps_from_d_file_script,$(<:.o=.d))); \
+	if $(CC) $(LDFLAGS) -Wl,--allow-multiple-definition -o $@ $< $$deps $(MODULE_OBJ) $(VCR_STUBS) -lcheck -lm -lsubunit $(LDLIBS) 2>&1; then \
+		echo "🟢 $@"; \
+	else \
+		echo "🔴 $@"; \
+		exit 1; \
+	fi
+
 # =============================================================================
 # check-link target
 # =============================================================================

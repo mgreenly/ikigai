@@ -31,10 +31,11 @@
 #include <talloc.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
+// Forward declarations
 static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
+// Helper: mark agent idle and notify waiters
 static void mark_idle_and_notify(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (repl->shared->db_ctx == NULL) return;
@@ -346,7 +347,7 @@ static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
                     mark_idle_and_notify(repl, agent);
                 }
                 if (agent == repl->current) {
-                    CHECK(ik_repl_render_frame(repl)); // LCOV_EXCL_BR_LINE - render only fails on terminal write error
+                    CHECK(ik_repl_render_frame(repl));
                 }
             }
         }

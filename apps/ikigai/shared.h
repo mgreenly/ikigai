@@ -53,12 +53,20 @@ typedef struct ik_shared_ctx {
 // creds: credentials pointer (borrowed)
 // paths: paths instance (borrowed)
 // logger: pre-created logger instance (ownership transferred)
-// headless: if true, use headless terminal (no TTY)
 // out: receives allocated shared context
 res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_config_t *cfg,
                          ik_credentials_t *creds,
                          ik_paths_t *paths,
                          ik_logger_t *logger,
-                         bool headless,
                          ik_shared_ctx_t **out);
+
+// Create shared context with pre-created terminal (for headless mode)
+// term: pre-created terminal context (NULL = create internally via ik_term_init)
+res_t ik_shared_ctx_init_with_term(TALLOC_CTX *ctx,
+                                    ik_config_t *cfg,
+                                    ik_credentials_t *creds,
+                                    ik_paths_t *paths,
+                                    ik_logger_t *logger,
+                                    ik_term_ctx_t *term,
+                                    ik_shared_ctx_t **out);

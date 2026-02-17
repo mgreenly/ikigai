@@ -35,8 +35,18 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
                          ik_credentials_t *creds,
                          ik_paths_t *paths,
                          ik_logger_t *logger,
-                         bool headless,
                          ik_shared_ctx_t **out)
+{
+    return ik_shared_ctx_init_with_term(ctx, cfg, creds, paths, logger, NULL, out);
+}
+
+res_t ik_shared_ctx_init_with_term(TALLOC_CTX *ctx,
+                                    ik_config_t *cfg,
+                                    ik_credentials_t *creds,
+                                    ik_paths_t *paths,
+                                    ik_logger_t *logger,
+                                    ik_term_ctx_t *term,
+                                    ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE
@@ -56,27 +66,28 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
     assert(logger != NULL);  // LCOV_EXCL_BR_LINE
     shared->logger = logger;
 
-    // Initialize terminal
     res_t result;
-    if (headless) {
-        shared->term = ik_term_init_headless(shared);
-        result = OK(shared->term);
+
+    if (term != NULL) {
+        // Use pre-created terminal (headless mode)
+        shared->term = talloc_steal(shared, term);
     } else {
+        // Initialize terminal (raw mode + alternate screen)
         result = ik_term_init(shared, shared->logger, &shared->term);
         if (is_err(&result)) {
             talloc_free(shared);
             return result;
         }
-    }
 
-    // Redirect stdout and stderr to /dev/null to prevent any library output
-    // from bypassing the alternate screen buffer and causing screen flicker.
-    // We use /dev/tty for all rendering, and logs go to files.
-    int null_fd = open("/dev/null", O_WRONLY);
-    if (null_fd >= 0) {
-        dup2(null_fd, STDOUT_FILENO);  // Redirect stdout (fd 1)
-        dup2(null_fd, STDERR_FILENO);  // Redirect stderr (fd 2)
-        close(null_fd);
+        // Redirect stdout and stderr to /dev/null to prevent any library output
+        // from bypassing the alternate screen buffer and causing screen flicker.
+        // We use /dev/tty for all rendering, and logs go to files.
+        int null_fd = open("/dev/null", O_WRONLY);
+        if (null_fd >= 0) {
+            dup2(null_fd, STDOUT_FILENO);  // Redirect stdout (fd 1)
+            dup2(null_fd, STDERR_FILENO);  // Redirect stderr (fd 2)
+            close(null_fd);
+        }
     }
 
     // Initialize render

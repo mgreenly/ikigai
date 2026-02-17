@@ -184,7 +184,7 @@ START_TEST(test_repl_init_success_debug_manager) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -221,7 +221,7 @@ START_TEST(test_repl_init_creates_agent) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -269,7 +269,7 @@ START_TEST(test_repl_init_agent_in_array) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);
@@ -308,7 +308,7 @@ START_TEST(test_repl_find_agent_found) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);
@@ -346,7 +346,7 @@ START_TEST(test_repl_find_agent_not_found) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     res = ik_repl_init(ctx, shared, &repl);

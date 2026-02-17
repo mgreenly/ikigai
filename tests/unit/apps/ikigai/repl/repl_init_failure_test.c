@@ -201,7 +201,7 @@ START_TEST(test_repl_init_terminal_open_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (terminal init failed)
     ck_assert(is_err(&res));
@@ -236,7 +236,7 @@ START_TEST(test_repl_init_render_invalid_dimensions) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
 
     // Verify failure (render init failed)
     ck_assert(is_err(&res));
@@ -274,7 +274,7 @@ START_TEST(test_repl_init_signal_handler_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Create REPL context
@@ -313,7 +313,7 @@ START_TEST(test_repl_init_history_load_failure) {
         ck_assert(is_ok(&paths_res));
     }
 
-    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, false, &shared);
+    res_t res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
     ck_assert(is_ok(&res));
 
     // Enable mock failure for stat/mkdir (history directory creation)
