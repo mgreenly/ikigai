@@ -18,7 +18,8 @@ The mock exposes two interfaces:
 
 - **Control interface** (`/_mock/*`) — configure response scenarios before each test
 - **API interfaces** — provider-specific routes that serve pre-scripted responses to ikigai
-  - `/v1/chat/completions` (OpenAI)
+  - `/v1/chat/completions` (OpenAI Chat Completions API)
+  - `/v1/responses` (OpenAI Responses API — used by gpt-5-*, o1, o3 models)
   - `/v1/messages` (Anthropic)
   - `/v1/models/*/generateContent` (Gemini)
 
@@ -105,11 +106,11 @@ When set, the provider module uses the override instead of the real API. All thr
 
 ## Manual Test Integration
 
-Test files in `tests/manual/` gain a setup step to configure the mock before each interaction:
+Test files in `tests/manual/` gain a setup step to configure the mock before each interaction. Use `127.0.0.1` (not `localhost`) to avoid IPv6 resolution issues — the mock server binds IPv4 only.
 
 ```markdown
 ### Steps
-1. Configure mock: `curl -s localhost:9100/_mock/expect -d '{"responses": [{"content": "Hello! How can I help?"}]}'`
+1. Configure mock: `curl -s 127.0.0.1:9100/_mock/expect -d '{"responses": [{"content": "Hello! How can I help?"}]}'`
 2. `ikigai-ctl send_keys "Hello\r"`
 3. Wait for response, then `ikigai-ctl read_framebuffer`
 
@@ -123,24 +124,26 @@ The mock-provider binary lives in `apps/mock-provider/` and is built as part of 
 
 ## Implementation Plan
 
-### Phase 1: Mock server with OpenAI support
+### Phase 1: Mock server with OpenAI support ✅
 
 1. HTTP server that listens on a port and routes requests
 2. `/_mock/expect` — accepts the JSON payload, stores the response queue
 3. `/_mock/reset` — clears the queue
-4. `/v1/chat/completions` — pops next response, streams it as OpenAI SSE
+4. `/v1/chat/completions` — pops next response, streams it as OpenAI Chat Completions SSE
 
 Each step is independently testable via `curl` before ikigai is involved.
 
 5. Wire into Makefile as `apps/mock-provider/`
 
-### Phase 2: Environment variable overrides
+### Phase 2: Environment variable overrides ✅
 
 6. OpenAI provider module reads `OPENAI_BASE_URL` and uses it when set
 
-### Phase 3: End-to-end validation
+### Phase 3: End-to-end validation ✅
 
 7. Start mock-provider, start ikigai with `OPENAI_BASE_URL` pointing at mock, run manual tests, verify deterministic results
+8. Added `/v1/responses` route — current OpenAI models (gpt-5-\*, o1, o3) use the Responses API, not Chat Completions. The mock now serves both endpoints with format-appropriate SSE serializers. The Responses API serializer emits named SSE events (`event: response.created`, `event: response.output_text.delta`, etc.) matching the wire format ikigai's streaming parser expects.
+9. Manual test: `tests/manual/mock-provider-openai-test.md`
 
 ### Future phases
 
