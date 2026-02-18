@@ -98,8 +98,9 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
     // Main event loop
     bool should_exit = false;
     while (!repl->quit && !should_exit) {  // LCOV_EXCL_BR_LINE
-        // Check for pending resize
+        // Check for pending signals
         CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
+        ik_signal_check_quit(repl);
 
         // Drain one byte from key injection buffer if available
         // This prevents interleaving injected and real input through the stateful parser
@@ -131,6 +132,7 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         if (ready < 0) {
             if (errno == EINTR) {
                 CHECK(ik_signal_check_resize(repl));  // LCOV_EXCL_BR_LINE
+                ik_signal_check_quit(repl);
                 continue;
             }
             break;
