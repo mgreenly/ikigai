@@ -30,6 +30,23 @@ bin/ikigai: $(IKIGAI_OBJECTS)
 	fi
 
 # =============================================================================
+# Mock provider binary
+# =============================================================================
+
+# Mock provider links with: mock objects + shared objects + vendor objects
+# Only needs talloc (no curl, pq, xkbcommon, xml2)
+MOCK_LDLIBS = -ltalloc
+
+bin/mock-provider: $(MOCK_OBJECTS) $(SHARED_OBJECTS) $(VENDOR_OBJECTS)
+	@mkdir -p $(dir $@)
+	@if $(CC) $(LDFLAGS) -o $@ $(MOCK_OBJECTS) $(SHARED_OBJECTS) $(VENDOR_OBJECTS) $(MOCK_LDLIBS) 2>&1; then \
+		echo "🟢 $@"; \
+	else \
+		echo "🔴 $@"; \
+		exit 1; \
+	fi
+
+# =============================================================================
 # Tool binaries
 # =============================================================================
 

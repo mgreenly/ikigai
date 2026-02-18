@@ -121,6 +121,7 @@ VENDOR_CFLAGS = $(BASE_FLAGS) $(SECURITY_FLAGS) $(MODE_FLAGS) $(DEP_FLAGS) $(DIA
 
 # Discover all source files
 APP_FILES = $(shell find apps/ikigai -name '*.c' 2>/dev/null)
+MOCK_FILES = $(shell find apps/mock-provider -name '*.c' 2>/dev/null)
 SHARED_FILES = $(shell find shared -name '*.c' 2>/dev/null)
 SRC_FILES = $(APP_FILES) $(SHARED_FILES)
 TOOL_FILES = $(shell find tools -name '*.c' 2>/dev/null)
@@ -129,6 +130,7 @@ VENDOR_FILES = $(shell find vendor -name '*.c' 2>/dev/null)
 
 # Convert to object files
 APP_OBJECTS = $(patsubst apps/ikigai/%.c,$(BUILDDIR)/apps/ikigai/%.o,$(APP_FILES))
+MOCK_OBJECTS = $(patsubst apps/mock-provider/%.c,$(BUILDDIR)/apps/mock-provider/%.o,$(MOCK_FILES))
 SHARED_OBJECTS = $(patsubst shared/%.c,$(BUILDDIR)/shared/%.o,$(SHARED_FILES))
 TOOL_OBJECTS = $(patsubst tools/%.c,$(BUILDDIR)/tools/%.o,$(TOOL_FILES))
 TEST_OBJECTS = $(patsubst tests/%.c,$(BUILDDIR)/tests/%.o,$(TEST_FILES))
@@ -138,7 +140,7 @@ VENDOR_OBJECTS = $(patsubst vendor/%.c,$(BUILDDIR)/vendor/%.o,$(VENDOR_FILES))
 SRC_OBJECTS = $(APP_OBJECTS) $(SHARED_OBJECTS)
 
 # All objects
-ALL_OBJECTS = $(SRC_OBJECTS) $(TOOL_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
+ALL_OBJECTS = $(SRC_OBJECTS) $(MOCK_OBJECTS) $(TOOL_OBJECTS) $(TEST_OBJECTS) $(VENDOR_OBJECTS)
 
 # Binary-specific objects
 VCR_STUBS = $(BUILDDIR)/tests/helpers/vcr_stubs_helper.o
@@ -162,7 +164,7 @@ FUNCTIONAL_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find
 TEST_BINARIES = $(UNIT_TEST_BINARIES) $(INTEGRATION_TEST_BINARIES) $(FUNCTIONAL_TEST_BINARIES)
 
 # All binaries
-ALL_BINARIES = bin/ikigai $(TOOL_BINARIES) $(TEST_BINARIES)
+ALL_BINARIES = bin/ikigai bin/mock-provider $(TOOL_BINARIES) $(TEST_BINARIES)
 
 # Parallel execution settings
 MAKE_JOBS ?= $(shell nproc=$(shell nproc); echo $$((nproc / 2)))
@@ -171,6 +173,16 @@ MAKEFLAGS += --no-print-directory
 
 # Pattern rule: compile source files from apps/ikigai/
 $(BUILDDIR)/apps/ikigai/%.o: apps/ikigai/%.c
+	@mkdir -p $(dir $@)
+	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
+		echo "🟢 $<"; \
+	else \
+		echo "🔴 $<"; \
+		exit 1; \
+	fi
+
+# Pattern rule: compile source files from apps/mock-provider/
+$(BUILDDIR)/apps/mock-provider/%.o: apps/mock-provider/%.c
 	@mkdir -p $(dir $@)
 	@if $(CC) $(CFLAGS) -c $< -o $@ 2>&1; then \
 		echo "🟢 $<"; \
@@ -239,12 +251,12 @@ include .make/check-coverage.mk
 # all: Build main binary and tools
 all:
 	@# Phase 1: Compile all required objects in parallel
-	@$(MAKE) -k -j$(MAKE_JOBS) $(SRC_OBJECTS) $(VENDOR_OBJECTS) $(TOOL_OBJECTS) $(VCR_STUBS) 2>&1 | grep -E "^(🟢|🔴)" || true
+	@$(MAKE) -k -j$(MAKE_JOBS) $(SRC_OBJECTS) $(MOCK_OBJECTS) $(VENDOR_OBJECTS) $(TOOL_OBJECTS) $(VCR_STUBS) 2>&1 | grep -E "^(🟢|🔴)" || true
 	@# Phase 2: Link binaries in parallel
-	@$(MAKE) -k -j$(MAKE_JOBS) bin/ikigai $(TOOL_BINARIES) 2>&1 | grep -E "^(🟢|🔴)" || true
+	@$(MAKE) -k -j$(MAKE_JOBS) bin/ikigai bin/mock-provider $(TOOL_BINARIES) 2>&1 | grep -E "^(🟢|🔴)" || true
 	@# Check for failures
 	@failed=0; \
-	for bin in bin/ikigai $(TOOL_BINARIES); do \
+	for bin in bin/ikigai bin/mock-provider $(TOOL_BINARIES); do \
 		[ ! -f "$$bin" ] && failed=$$((failed + 1)); \
 	done; \
 	if [ $$failed -eq 0 ]; then \
