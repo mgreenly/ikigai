@@ -1,0 +1,27 @@
+{
+  "name": "set model to gemini-3-flash-preview with low reasoning",
+  "steps": [
+    {"send_keys": "/clear"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 1},
+    {"send_keys": "/model gemini-3-flash-preview/low"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 1},
+    {"mock_expect": {"responses": [{"content": "Mock response from gemini-3-flash-preview."}]}},
+    {"send_keys": "Hello"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 5},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "gemini-3-flash-preview/low"},
+    {"contains": "Thinking: low"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": [
+    {"contains": "Mock response from gemini-3-flash-preview."}
+  ]
+}

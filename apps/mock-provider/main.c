@@ -9,6 +9,8 @@
 
 #include "apps/mock-provider/http_server.h"
 #include "apps/mock-provider/mock_queue.h"
+#include "apps/mock-provider/anthropic_serializer.h"
+#include "apps/mock-provider/google_serializer.h"
 #include "apps/mock-provider/openai_serializer.h"
 
 #include <assert.h>
@@ -232,6 +234,58 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
             openai_responses_serialize_tool_calls(tmp, resp->tool_calls,
                                                   resp->tool_call_count,
                                                   client_fd);
+        }
+
+        talloc_free(resp);
+        talloc_free(tmp);
+        return;
+    }
+
+    /* Route: /v1/messages (Anthropic Messages API) */
+    if (strcmp(req->path, "/v1/messages") == 0) {
+        mock_response_t *resp = mock_queue_pop(queue);
+        if (resp == NULL) {
+            http_respond_error(client_fd, 503,
+                "Response queue empty - load responses with "
+                "/_mock/expect first");
+            talloc_free(tmp);
+            return;
+        }
+
+        http_respond_sse_start(client_fd);
+
+        if (resp->type == MOCK_TEXT) {
+            anthropic_serialize_text(tmp, resp->content, client_fd);
+        } else if (resp->type == MOCK_TOOL_CALLS) {
+            anthropic_serialize_tool_calls(tmp, resp->tool_calls,
+                                           resp->tool_call_count,
+                                           client_fd);
+        }
+
+        talloc_free(resp);
+        talloc_free(tmp);
+        return;
+    }
+
+    /* Route: /models/ (Google Gemini API) */
+    if (strncmp(req->path, "/models/", 8) == 0) {
+        mock_response_t *resp = mock_queue_pop(queue);
+        if (resp == NULL) {
+            http_respond_error(client_fd, 503,
+                "Response queue empty - load responses with "
+                "/_mock/expect first");
+            talloc_free(tmp);
+            return;
+        }
+
+        http_respond_sse_start(client_fd);
+
+        if (resp->type == MOCK_TEXT) {
+            google_serialize_text(tmp, resp->content, client_fd);
+        } else if (resp->type == MOCK_TOOL_CALLS) {
+            google_serialize_tool_calls(tmp, resp->tool_calls,
+                                        resp->tool_call_count,
+                                        client_fd);
         }
 
         talloc_free(resp);
