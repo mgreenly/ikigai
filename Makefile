@@ -269,6 +269,7 @@ all:
 # clean: Remove build artifacts
 clean:
 	@rm -rf $(BUILDDIR) build-sanitize build-tsan build-valgrind build-helgrind build-coverage $(COVERAGE_DIR) IKIGAI_DEBUG.LOG reports/ bin/ libexec/
+	@find apps/ tests/ shared/ tools/ vendor/ -name '*.d' -delete 2>/dev/null || true
 	@echo "✨ Cleaned"
 
 # install: Install binaries to PREFIX

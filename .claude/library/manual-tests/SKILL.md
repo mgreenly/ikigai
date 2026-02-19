@@ -11,11 +11,13 @@ Test execution order is defined in `tests/manual/index.md`.
 
 ## Running Tests
 
-**Run all tests:** Read `tests/manual/index.md` and launch a background Task agent for each test file. Each agent reads its test file, executes the steps, and reports PASS/FAIL for each test within. Collect results from all agents and report a summary table.
+**Tests must run sequentially.** All tests share a single ikigai instance and its framebuffer. Running tests in parallel would cause them to interfere with each other (sending keys, reading framebuffer state left by another test). Run one test file at a time, in the order defined by `index.md`.
 
-**Run a single test file:** Launch a background Task agent for the specified file.
+**Run all tests:** Read `tests/manual/index.md` and run each test file sequentially, one at a time. For each file, launch a Task subagent that executes all tests within that file and reports results. Wait for each subagent to complete before launching the next. Report a summary table at the end.
 
-Each agent follows this procedure per test:
+**Run a single test file:** Launch a Task subagent for the specified file.
+
+Procedure per test:
 
 1. Read the test file for preconditions, steps, and expected results
 2. Execute `ikigai-ctl` commands from the steps
