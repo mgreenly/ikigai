@@ -79,8 +79,10 @@ res_t ik_google_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
     impl_ctx->api_key = talloc_strdup(impl_ctx, api_key);
     if (impl_ctx->api_key == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    // Set base URL
-    impl_ctx->base_url = talloc_strdup(impl_ctx, "https://generativelanguage.googleapis.com/v1beta");
+    // Set base URL (allow override for testing)
+    const char *base_url_override = getenv("GOOGLE_BASE_URL");
+    impl_ctx->base_url = talloc_strdup(impl_ctx,
+        base_url_override != NULL ? base_url_override : "https://generativelanguage.googleapis.com/v1beta");
     if (impl_ctx->base_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Create HTTP multi handle for async operations

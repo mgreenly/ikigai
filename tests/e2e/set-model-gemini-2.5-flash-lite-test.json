@@ -1,0 +1,27 @@
+{
+  "name": "set model to gemini-2.5-flash-lite with low reasoning",
+  "steps": [
+    {"send_keys": "/clear"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 1},
+    {"send_keys": "/model gemini-2.5-flash-lite/low"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 1},
+    {"mock_expect": {"responses": [{"content": "Mock response from gemini-2.5-flash-lite."}]}},
+    {"send_keys": "Hello"},
+    {"wait": 1},
+    {"send_keys": "\\r"},
+    {"wait": 5},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "gemini-2.5-flash-lite/low"},
+    {"contains": "Thinking: low"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": [
+    {"contains": "Mock response from gemini-2.5-flash-lite."}
+  ]
+}
