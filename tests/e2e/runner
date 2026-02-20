@@ -1,0 +1,269 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'socket'
+require 'net/http'
+
+MOCK_PORT = 9100
+MOCK_URL = "http://127.0.0.1:#{MOCK_PORT}"
+RUNTIME_DIR = File.join(__dir__, '../../run')
+
+class E2ERunner
+  def initialize
+    @mock_pid = nil
+    @ikigai_pid = nil
+    @socket = nil
+    @tests_passed = 0
+    @tests_failed = 0
+    @failed_files = []
+    @assertions_passed = 0
+    @assertions_failed = 0
+  end
+
+  def run(test_files)
+    start_mock_provider
+    start_ikigai
+    test_files.each { |file| run_test(file) }
+    log_summary
+    @tests_failed.zero?
+  ensure
+    stop_services
+  end
+
+  private
+
+  def run_test(test_file)
+    test = JSON.parse(File.read(test_file))
+    @framebuffer = nil
+    @pass = true
+    log_header(test_file)
+    execute_steps(test['steps'])
+    evaluate_assertions(test)
+    log_result
+    if @pass
+      @tests_passed += 1
+    else
+      @tests_failed += 1
+      @failed_files << File.basename(test_file)
+    end
+  end
+
+  # -- process lifecycle --
+
+  def start_mock_provider
+    @mock_pid = Process.spawn('bin/mock-provider', %i[out err] => '/dev/null')
+    wait_for_http("127.0.0.1", MOCK_PORT)
+  end
+
+  def start_ikigai
+    env = {
+      'ANTHROPIC_BASE_URL' => MOCK_URL,
+      'OPENAI_BASE_URL'    => MOCK_URL,
+      'GOOGLE_BASE_URL'    => MOCK_URL
+    }
+    @ikigai_pid = Process.spawn(env, 'bin/ikigai', '--headless', %i[out err] => '/dev/null')
+    socket_path = File.join(RUNTIME_DIR, "ikigai-#{@ikigai_pid}.sock")
+    wait_for_socket(socket_path)
+    @socket = UNIXSocket.new(socket_path)
+  end
+
+  def stop_services
+    @socket&.close
+    [@ikigai_pid, @mock_pid].compact.each do |pid|
+      Process.kill('INT', pid)
+      Process.wait(pid)
+    rescue Errno::ESRCH, Errno::ECHILD
+      # already exited
+    end
+  end
+
+  def wait_for_http(host, port)
+    50.times do
+      Net::HTTP.get(host, '/', port)
+      return
+    rescue Errno::ECONNREFUSED, Errno::EADDRNOTAVAIL
+      sleep 0.1
+    end
+    abort 'mock-provider failed to start'
+  end
+
+  def wait_for_socket(path)
+    50.times do
+      return if File.socket?(path)
+      sleep 0.1
+    end
+    abort 'ikigai socket not found'
+  end
+
+  # -- socket communication --
+
+  def send_request(hash)
+    @socket.write(JSON.generate(hash) + "\n")
+    JSON.parse(@socket.gets("\n"))
+  end
+
+  def ctl_send_keys(keys)
+    send_request('type' => 'send_keys', 'keys' => unescape(keys))
+  end
+
+  def ctl_read_framebuffer
+    send_request('type' => 'read_framebuffer')
+  end
+
+  # -- step methods --
+
+  def step_send_keys(value)
+    log('send_keys', value.inspect)
+    ctl_send_keys(value)
+  end
+
+  def step_wait(seconds)
+    log('wait', seconds.to_s)
+    sleep(seconds)
+  end
+
+  def step_read_framebuffer
+    @framebuffer = ctl_read_framebuffer
+    count = @framebuffer['lines']&.length || 0
+    log('read_framebuffer', "#{count} lines captured")
+  end
+
+  def step_mock_expect(config)
+    count = config['responses']&.length || 0
+    log('mock_expect', "#{count} response#{'s' unless count == 1} queued")
+    uri = URI("#{MOCK_URL}/_mock/expect")
+    Net::HTTP.post(uri, JSON.generate(config), 'Content-Type' => 'application/json')
+  end
+
+  # -- step dispatch --
+
+  def execute_steps(steps)
+    steps.each { |step| execute_step(step) }
+  end
+
+  def execute_step(step)
+    type, value = step.first
+    case type
+    when 'send_keys'        then step_send_keys(value)
+    when 'wait'             then step_wait(value)
+    when 'read_framebuffer' then step_read_framebuffer
+    when 'mock_expect'      then step_mock_expect(value)
+    else abort("Unknown step type: #{type}")
+    end
+  end
+
+  # -- assertion methods --
+
+  def assert_contains(text)
+    framebuffer_lines.any? { |line| line.include?(text) }
+  end
+
+  def assert_not_contains(text)
+    framebuffer_lines.none? { |line| line.include?(text) }
+  end
+
+  def assert_line_prefix(prefix)
+    framebuffer_lines.any? { |line| line.lstrip.start_with?(prefix) }
+  end
+
+  # -- assertion dispatch --
+
+  def evaluate_assertions(test)
+    evaluate_group('assert', test['assert'])
+    evaluate_group('assert_mock', test['assert_mock'])
+  end
+
+  def evaluate_group(group_name, assertions)
+    return unless assertions
+
+    assertions.each do |assertion|
+      type, value = assertion.first
+      result = case type
+               when 'contains'     then assert_contains(value)
+               when 'not_contains' then assert_not_contains(value)
+               when 'line_prefix'  then assert_line_prefix(value)
+               else abort("Unknown assertion type: #{type}")
+               end
+
+      if result
+        @assertions_passed += 1
+        log(group_name, "#{type} #{value.inspect}".ljust(50) + 'PASS')
+      else
+        @assertions_failed += 1
+        @pass = false
+        log(group_name, "#{type} #{value.inspect}".ljust(50) + 'FAIL')
+        dump_framebuffer
+      end
+    end
+  end
+
+  # -- helpers --
+
+  def framebuffer_lines
+    @framebuffer['lines'].map do |line|
+      line['spans'].map { |s| s['text'] }.join
+    end
+  end
+
+  def unescape(str)
+    str.gsub(/\\(.)/) do
+      case $1
+      when 'r' then "\r"
+      when 'n' then "\n"
+      when '\\' then "\\"
+      else "\\#{$1}"
+      end
+    end
+  end
+
+  def dump_framebuffer
+    $stderr.puts '--- framebuffer ---'
+    framebuffer_lines.each { |line| $stderr.puts line }
+    $stderr.puts '---'
+  end
+
+  # -- logging --
+
+  def log(type, detail)
+    ts = Time.now.strftime('%H:%M:%S.%L')
+    puts "#{ts}  #{type.ljust(16)} #{detail}"
+  end
+
+  def log_header(test_file)
+    log('test', File.basename(test_file))
+  end
+
+  def log_result
+    log('result', @pass ? 'PASS' : 'FAIL')
+  end
+
+  def log_summary
+    total = @tests_passed + @tests_failed
+    total_assertions = @assertions_passed + @assertions_failed
+    log('summary', "#{total} tests: #{@tests_passed} passed, #{@tests_failed} failed")
+    log('summary', "#{total_assertions} assertions: #{@assertions_passed} passed, #{@assertions_failed} failed")
+    @failed_files.each { |f| log('failed', f) }
+  end
+end
+
+# -- main --
+
+if ARGV.empty?
+  abort "Usage: #{$PROGRAM_NAME} <test-file.json | test-dir>"
+end
+
+path = ARGV[0]
+
+if File.directory?(path)
+  index_file = File.join(path, 'index.json')
+  abort "No index.json in #{path}" unless File.exist?(index_file)
+  test_files = JSON.parse(File.read(index_file)).map { |f| File.join(path, f) }
+elsif File.file?(path)
+  test_files = [path]
+else
+  abort "Not found: #{path}"
+end
+
+runner = E2ERunner.new
+exit(runner.run(test_files) ? 0 : 1)
