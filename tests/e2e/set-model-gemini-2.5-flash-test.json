@@ -1,18 +1,12 @@
 {
   "name": "set model to gemini-2.5-flash with low reasoning",
   "steps": [
-    {"send_keys": "/clear"},
+    {"send_keys": "/clear\\r"},
     {"wait": 1},
-    {"send_keys": "\\r"},
-    {"wait": 1},
-    {"send_keys": "/model gemini-2.5-flash/low"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "/model gemini-2.5-flash/low\\r"},
     {"wait": 1},
     {"mock_expect": {"responses": [{"content": "Mock response from gemini-2.5-flash."}]}},
-    {"send_keys": "Hello"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "Hello\\r"},
     {"wait": 5},
     {"read_framebuffer": true}
   ],
