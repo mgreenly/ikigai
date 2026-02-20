@@ -49,11 +49,10 @@ Every test always includes `mock_expect` steps and `assert_mock` assertions — 
 Send keystrokes to ikigai via `ikigai-ctl send_keys`.
 
 ```json
-{"send_keys": "/model gpt-5-mini"},
-{"send_keys": "\\r"}
+{"send_keys": "/model gpt-5-mini\\r"}
 ```
 
-**Always separate text from `\\r` into two `send_keys` steps.** This ensures the text is visible in the input buffer before submission. Use `ikigai-ctl send_keys` escaping conventions.
+Include `\\r` at the end of the string to submit. Use `ikigai-ctl send_keys` escaping conventions.
 
 ### `read_framebuffer`
 
@@ -158,8 +157,7 @@ When asked to run tests, execute this procedure for each test file:
   "name": "basic chat completion via mock provider",
   "steps": [
     {"mock_expect": {"responses": [{"content": "The capital of France is Paris."}]}},
-    {"send_keys": "What is the capital of France?"},
-    {"send_keys": "\\r"},
+    {"send_keys": "What is the capital of France?\\r"},
     {"wait": 3},
     {"read_framebuffer": true}
   ],
@@ -178,15 +176,12 @@ When asked to run tests, execute this procedure for each test file:
 {
   "name": "set model to gpt-5-mini with low reasoning",
   "steps": [
-    {"send_keys": "/clear"},
-    {"send_keys": "\\r"},
+    {"send_keys": "/clear\\r"},
     {"wait": 1},
-    {"send_keys": "/model gpt-5-mini/low"},
-    {"send_keys": "\\r"},
+    {"send_keys": "/model gpt-5-mini/low\\r"},
     {"wait": 1},
     {"mock_expect": {"responses": [{"content": "Mock response from gpt-5-mini."}]}},
-    {"send_keys": "Hello"},
-    {"send_keys": "\\r"},
+    {"send_keys": "Hello\\r"},
     {"wait": 5},
     {"read_framebuffer": true}
   ],

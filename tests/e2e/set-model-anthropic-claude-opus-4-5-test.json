@@ -1,18 +1,12 @@
 {
   "name": "set model to anthropic claude-opus-4-5 with low reasoning",
   "steps": [
-    {"send_keys": "/clear"},
+    {"send_keys": "/clear\\r"},
     {"wait": 1},
-    {"send_keys": "\\r"},
-    {"wait": 1},
-    {"send_keys": "/model claude-opus-4-5/low"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "/model claude-opus-4-5/low\\r"},
     {"wait": 1},
     {"mock_expect": {"responses": [{"content": "Mock response from claude-opus-4-5."}]}},
-    {"send_keys": "Hello"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "Hello\\r"},
     {"wait": 5},
     {"read_framebuffer": true}
   ],

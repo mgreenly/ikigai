@@ -100,16 +100,29 @@ fi
 command -v socat >/dev/null 2>&1 || die "socat is required but not installed"
 command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
 
-# Build request based on message type
+# Send a single request and print the response
+send_request() {
+  local req="$1"
+  echo "$req" | socat - "UNIX-CONNECT:$socket_path" || die "failed to connect to $socket_path"
+}
+
 if [[ "$message_type" == "send_keys" ]]; then
-  # Interpret C-style escape sequences before passing to jq
+  # Interpret C-style escape sequences
   interpreted=$(printf "%b" "$message_arg")
-  request=$(jq -cn --arg keys "$interpreted" '{"type":"send_keys","keys":$keys}')
+
+  # Send one character at a time with 30ms delay to simulate typing
+  len=${#interpreted}
+  for (( i=0; i<len; i++ )); do
+    char="${interpreted:$i:1}"
+    request=$(jq -cn --arg keys "$char" '{"type":"send_keys","keys":$keys}')
+    response=$(send_request "$request")
+    if [[ $i -lt $((len - 1)) ]]; then
+      sleep 0.05
+    fi
+  done
+  echo "$response"
 else
   request="{\"type\":\"$message_type\"}"
+  response=$(send_request "$request")
+  echo "$response"
 fi
-
-# Send request, print response
-response=$(echo "$request" | socat - "UNIX-CONNECT:$socket_path") || die "failed to connect to $socket_path"
-
-echo "$response"

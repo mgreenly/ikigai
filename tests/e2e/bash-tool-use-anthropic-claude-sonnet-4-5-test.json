@@ -1,0 +1,19 @@
+{
+  "name": "tool use with anthropic claude-sonnet-4-5 returns current working directory",
+  "steps": [
+    {"send_keys": "/clear\\r"},
+    {"wait": 1},
+    {"send_keys": "/model claude-sonnet-4-5/low\\r"},
+    {"wait": 1},
+    {"send_keys": "use your bash tool to return the current working directory\\r"},
+    {"wait": 10},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "claude-sonnet-4-5/low"},
+    {"line_prefix": "→ bash:"},
+    {"line_prefix": "← bash:"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": []
+}

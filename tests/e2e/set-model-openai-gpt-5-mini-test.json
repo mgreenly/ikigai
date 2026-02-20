@@ -1,18 +1,12 @@
 {
   "name": "set model to openai gpt-5-mini with low reasoning",
   "steps": [
-    {"send_keys": "/clear"},
+    {"send_keys": "/clear\\r"},
     {"wait": 1},
-    {"send_keys": "\\r"},
-    {"wait": 1},
-    {"send_keys": "/model gpt-5-mini/low"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "/model gpt-5-mini/low\\r"},
     {"wait": 1},
     {"mock_expect": {"responses": [{"content": "Mock response from gpt-5-mini."}]}},
-    {"send_keys": "Hello"},
-    {"wait": 1},
-    {"send_keys": "\\r"},
+    {"send_keys": "Hello\\r"},
     {"wait": 5},
     {"read_framebuffer": true}
   ],
