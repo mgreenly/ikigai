@@ -48,6 +48,11 @@ START_TEST(test_model_series_null) {
     ck_assert_int_eq(series, IK_GEMINI_OTHER);
 }
 END_TEST
+START_TEST(test_model_series_gemini_31_pro_preview) {
+    ik_gemini_series_t series = ik_google_model_series("gemini-3.1-pro-preview");
+    ck_assert_int_eq(series, IK_GEMINI_3);
+}
+END_TEST
 /* Thinking Budget Calculation Tests */
 
 START_TEST(test_thinking_budget_2_5_pro_none) {
@@ -140,25 +145,32 @@ START_TEST(test_thinking_budget_2_5_typo_model) {
 END_TEST
 /* Thinking Level String Tests */
 
-START_TEST(test_thinking_level_str_none) {
-    const char *level = ik_google_thinking_level_str(IK_THINKING_NONE);
-    ck_assert_str_eq(level, "LOW");  // Gemini 3 maps NONE to LOW
-}
+/* gemini-3-flash-preview: minimal/low/medium/high */
+START_TEST(test_thinking_level_str_flash_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_NONE), "minimal"); }
 END_TEST
-START_TEST(test_thinking_level_str_low) {
-    const char *level = ik_google_thinking_level_str(IK_THINKING_LOW);
-    ck_assert_str_eq(level, "LOW");
-}
+START_TEST(test_thinking_level_str_flash_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_LOW), "low"); }
 END_TEST
-START_TEST(test_thinking_level_str_med) {
-    const char *level = ik_google_thinking_level_str(IK_THINKING_MED);
-    ck_assert_str_eq(level, "HIGH");  // Gemini 3 maps MED to HIGH
-}
+START_TEST(test_thinking_level_str_flash_med) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_MED), "medium"); }
 END_TEST
-START_TEST(test_thinking_level_str_high) {
-    const char *level = ik_google_thinking_level_str(IK_THINKING_HIGH);
-    ck_assert_str_eq(level, "HIGH");
-}
+START_TEST(test_thinking_level_str_flash_high) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_HIGH), "high"); }
+END_TEST
+/* gemini-3-pro-preview: low/low/high/high */
+START_TEST(test_thinking_level_str_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_NONE), "low"); }
+END_TEST
+START_TEST(test_thinking_level_str_pro_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_LOW), "low"); }
+END_TEST
+START_TEST(test_thinking_level_str_pro_med) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_MED), "high"); }
+END_TEST
+START_TEST(test_thinking_level_str_pro_high) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_HIGH), "high"); }
+END_TEST
+/* gemini-3.1-pro-preview: low/low/medium/high */
+START_TEST(test_thinking_level_str_31_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_NONE), "low"); }
+END_TEST
+START_TEST(test_thinking_level_str_31_pro_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_LOW), "low"); }
+END_TEST
+START_TEST(test_thinking_level_str_31_pro_med) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_MED), "medium"); }
+END_TEST
+START_TEST(test_thinking_level_str_31_pro_high) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_HIGH), "high"); }
 END_TEST
 /* Thinking Support Tests */
 
@@ -222,80 +234,24 @@ START_TEST(test_can_disable_thinking_2_5_unknown) {
 END_TEST
 /* Thinking Validation Tests */
 
-START_TEST(test_validate_thinking_2_5_flash_none) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-flash", IK_THINKING_NONE);
-    ck_assert(!is_err(&result)); // OK - can disable
-}
+#define VT(name, model, level, expect_ok) \
+START_TEST(name) { res_t r = ik_google_validate_thinking(test_ctx, model, level); ck_assert((expect_ok) ? !is_err(&r) : is_err(&r)); } \
 END_TEST
-START_TEST(test_validate_thinking_2_5_flash_low) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-flash", IK_THINKING_LOW);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_flash_med) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-flash", IK_THINKING_MED);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_flash_high) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-flash", IK_THINKING_HIGH);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_pro_none) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-pro", IK_THINKING_NONE);
-    ck_assert(is_err(&result)); // ERR - cannot disable (min=128)
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_pro_low) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-pro", IK_THINKING_LOW);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_pro_med) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-pro", IK_THINKING_MED);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_2_5_pro_high) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-2.5-pro", IK_THINKING_HIGH);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_3_pro_none) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-3-pro", IK_THINKING_NONE);
-    ck_assert(!is_err(&result)); // OK - NONE means don't send thinking config
-}
-END_TEST
-START_TEST(test_validate_thinking_3_pro_low) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-3-pro", IK_THINKING_LOW);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_3_pro_med) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-3-pro", IK_THINKING_MED);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_3_pro_high) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-3-pro", IK_THINKING_HIGH);
-    ck_assert(!is_err(&result)); // OK
-}
-END_TEST
-START_TEST(test_validate_thinking_1_5_pro_none) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-1.5-pro", IK_THINKING_NONE);
-    ck_assert(!is_err(&result)); // OK - NONE is always valid
-}
-END_TEST
-START_TEST(test_validate_thinking_1_5_pro_low) {
-    res_t result = ik_google_validate_thinking(test_ctx, "gemini-1.5-pro", IK_THINKING_LOW);
-    ck_assert(is_err(&result)); // ERR - doesn't support thinking
-}
-END_TEST
-START_TEST(test_validate_thinking_null_model) {
-    res_t result = ik_google_validate_thinking(test_ctx, NULL, IK_THINKING_LOW);
-    ck_assert(is_err(&result)); // ERR(INVALID_ARG)
-}
+VT(test_validate_thinking_2_5_flash_none, "gemini-2.5-flash", IK_THINKING_NONE, 1)
+VT(test_validate_thinking_2_5_flash_low,  "gemini-2.5-flash", IK_THINKING_LOW,  1)
+VT(test_validate_thinking_2_5_flash_med,  "gemini-2.5-flash", IK_THINKING_MED,  1)
+VT(test_validate_thinking_2_5_flash_high, "gemini-2.5-flash", IK_THINKING_HIGH, 1)
+VT(test_validate_thinking_2_5_pro_none,   "gemini-2.5-pro",   IK_THINKING_NONE, 0)
+VT(test_validate_thinking_2_5_pro_low,    "gemini-2.5-pro",   IK_THINKING_LOW,  1)
+VT(test_validate_thinking_2_5_pro_med,    "gemini-2.5-pro",   IK_THINKING_MED,  1)
+VT(test_validate_thinking_2_5_pro_high,   "gemini-2.5-pro",   IK_THINKING_HIGH, 1)
+VT(test_validate_thinking_3_pro_none,     "gemini-3-pro",     IK_THINKING_NONE, 1)
+VT(test_validate_thinking_3_pro_low,      "gemini-3-pro",     IK_THINKING_LOW,  1)
+VT(test_validate_thinking_3_pro_med,      "gemini-3-pro",     IK_THINKING_MED,  1)
+VT(test_validate_thinking_3_pro_high,     "gemini-3-pro",     IK_THINKING_HIGH, 1)
+VT(test_validate_thinking_1_5_pro_none,   "gemini-1.5-pro",   IK_THINKING_NONE, 1)
+VT(test_validate_thinking_1_5_pro_low,    "gemini-1.5-pro",   IK_THINKING_LOW,  0)
+START_TEST(test_validate_thinking_null_model) { res_t r = ik_google_validate_thinking(test_ctx, NULL, IK_THINKING_LOW); ck_assert(is_err(&r)); }
 END_TEST
 
 /* Test Suite Setup */
@@ -312,6 +268,7 @@ static Suite *google_thinking_suite(void)
     tcase_add_test(tc_series, test_model_series_gemini_3_pro);
     tcase_add_test(tc_series, test_model_series_gemini_1_5_pro);
     tcase_add_test(tc_series, test_model_series_null);
+    tcase_add_test(tc_series, test_model_series_gemini_31_pro_preview);
     suite_add_tcase(s, tc_series);
 
     TCase *tc_budget = tcase_create("Thinking Budget Calculation");
@@ -339,10 +296,18 @@ static Suite *google_thinking_suite(void)
     TCase *tc_level = tcase_create("Thinking Level Strings");
     tcase_set_timeout(tc_level, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_level, setup, teardown);
-    tcase_add_test(tc_level, test_thinking_level_str_none);
-    tcase_add_test(tc_level, test_thinking_level_str_low);
-    tcase_add_test(tc_level, test_thinking_level_str_med);
-    tcase_add_test(tc_level, test_thinking_level_str_high);
+    tcase_add_test(tc_level, test_thinking_level_str_flash_none);
+    tcase_add_test(tc_level, test_thinking_level_str_flash_low);
+    tcase_add_test(tc_level, test_thinking_level_str_flash_med);
+    tcase_add_test(tc_level, test_thinking_level_str_flash_high);
+    tcase_add_test(tc_level, test_thinking_level_str_pro_none);
+    tcase_add_test(tc_level, test_thinking_level_str_pro_low);
+    tcase_add_test(tc_level, test_thinking_level_str_pro_med);
+    tcase_add_test(tc_level, test_thinking_level_str_pro_high);
+    tcase_add_test(tc_level, test_thinking_level_str_31_pro_none);
+    tcase_add_test(tc_level, test_thinking_level_str_31_pro_low);
+    tcase_add_test(tc_level, test_thinking_level_str_31_pro_med);
+    tcase_add_test(tc_level, test_thinking_level_str_31_pro_high);
     suite_add_tcase(s, tc_level);
 
     TCase *tc_support = tcase_create("Thinking Support");

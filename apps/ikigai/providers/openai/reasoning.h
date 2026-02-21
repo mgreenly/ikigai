@@ -35,15 +35,15 @@ bool ik_openai_is_reasoning_model(const char *model);
  *
  * @param model Model identifier (e.g., "o1", "gpt-5", "gpt-5-pro")
  * @param level Thinking level (NONE/LOW/MED/HIGH)
- * @return      "low", "medium", "high", or NULL
+ * @return      "low", "medium", "high", "minimal", "xhigh", "none", or NULL
  *
  * Model-aware mapping:
- * | Our Level | o1, o3 family | gpt-5, gpt-5.1, gpt-5.2 | gpt-5-pro |
- * |-----------|---------------|-------------------------|-----------|
- * | NONE      | "low"         | NULL (omit param)       | "high"    |
- * | LOW       | "low"         | "low"                   | "high"    |
- * | MED       | "medium"      | "medium"                | "high"    |
- * | HIGH      | "high"        | "high"                  | "high"    |
+ * | Level | o1, o3-mini | o3, o3-pro, o4-mini | gpt-5/mini/nano | gpt-5-pro | gpt-5.1-chat-latest | gpt-5.1/codex/codex-mini | gpt-5.2-chat-latest | gpt-5.2/codex | gpt-5.2-pro |
+ * |-------|-------------|---------------------|-----------------|-----------|---------------------|--------------------------|---------------------|---------------|-------------|
+ * | NONE  | "low"       | "none"              | "minimal"       | "high"    | "medium"            | "none"                   | "medium"            | "none"        | "medium"    |
+ * | LOW   | "low"       | "low"               | "low"           | "high"    | "medium"            | "low"                    | "medium"            | "low"         | "medium"    |
+ * | MED   | "medium"    | "medium"            | "medium"        | "high"    | "medium"            | "medium"                 | "medium"            | "medium"      | "high"      |
+ * | HIGH  | "high"      | "high"              | "high"          | "high"    | "medium"            | "high"                   | "medium"            | "xhigh"       | "xhigh"     |
  */
 const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t level);
 
@@ -54,8 +54,8 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
  * @return      true if model uses Responses API (not Chat Completions API)
  *
  * Hardcoded lookup table:
- * - Responses API: o1, o1-mini, o1-preview, o3, o3-mini, gpt-5*, gpt-5.1*, gpt-5.2*
- * - Chat Completions API: gpt-4, gpt-4-turbo, gpt-4o, gpt-4o-mini
+ * - Responses API: o1, o3, o3-mini, o4-mini, o3-pro, gpt-5*, gpt-5.1*, gpt-5.2*
+ * - Chat Completions API: gpt-4, gpt-4-turbo, gpt-4o, gpt-4o-mini, gpt-4.1*
  * - Unknown models: Default to Chat Completions API
  */
 bool ik_openai_use_responses_api(const char *model);

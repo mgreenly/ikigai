@@ -192,6 +192,13 @@ START_TEST(test_is_adaptive_model_opus_4_6) {
 
 END_TEST
 
+START_TEST(test_is_adaptive_model_sonnet_4_6) {
+    bool is_adaptive = ik_anthropic_is_adaptive_model("claude-sonnet-4-6");
+    ck_assert(is_adaptive);
+}
+
+END_TEST
+
 START_TEST(test_is_adaptive_model_sonnet_4_5) {
     bool is_adaptive = ik_anthropic_is_adaptive_model("claude-sonnet-4-5");
     ck_assert(!is_adaptive);
@@ -255,6 +262,37 @@ START_TEST(test_thinking_effort_opus_4_6_high) {
 
 END_TEST
 
+START_TEST(test_thinking_effort_sonnet_4_6_none) {
+    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_NONE);
+    ck_assert_ptr_null(effort); // NONE -> omit thinking
+}
+
+END_TEST
+
+START_TEST(test_thinking_effort_sonnet_4_6_low) {
+    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_LOW);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "low");
+}
+
+END_TEST
+
+START_TEST(test_thinking_effort_sonnet_4_6_med) {
+    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_MED);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "medium");
+}
+
+END_TEST
+
+START_TEST(test_thinking_effort_sonnet_4_6_high) {
+    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_HIGH);
+    ck_assert_ptr_nonnull(effort);
+    ck_assert_str_eq(effort, "high");
+}
+
+END_TEST
+
 START_TEST(test_thinking_effort_non_adaptive_model) {
     const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-5", IK_THINKING_LOW);
     ck_assert_ptr_null(effort); // Budget-based models return NULL
@@ -265,6 +303,42 @@ END_TEST
 START_TEST(test_thinking_effort_null_model) {
     const char *effort = ik_anthropic_thinking_effort(NULL, IK_THINKING_LOW);
     ck_assert_ptr_null(effort);
+}
+
+END_TEST
+
+/* ================================================================
+ * Thinking Budget Calculation Tests - Opus 4.5
+ * ================================================================ */
+
+START_TEST(test_thinking_budget_opus_4_5_none) {
+    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_NONE);
+    ck_assert_int_eq(budget, 1024); // minimum
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_opus_4_5_low) {
+    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_LOW);
+    // min=1024, max=65536, range=64512
+    // LOW = 1024 + 64512/3 = 22528 -> floor to 2^14 = 16384
+    ck_assert_int_eq(budget, 16384);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_opus_4_5_med) {
+    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_MED);
+    // min=1024, max=65536, range=64512
+    // MED = 1024 + 2*64512/3 = 44032 -> floor to 2^15 = 32768
+    ck_assert_int_eq(budget, 32768);
+}
+
+END_TEST
+
+START_TEST(test_thinking_budget_opus_4_5_high) {
+    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_HIGH);
+    ck_assert_int_eq(budget, 65536); // max
 }
 
 END_TEST
@@ -325,10 +399,20 @@ static Suite *anthropic_thinking_suite(void)
     tcase_add_test(tc_budget_non_claude, test_thinking_budget_null_model);
     suite_add_tcase(s, tc_budget_non_claude);
 
+    TCase *tc_budget_opus_4_5 = tcase_create("Thinking Budget - Opus 4.5");
+    tcase_set_timeout(tc_budget_opus_4_5, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_budget_opus_4_5, setup, teardown);
+    tcase_add_test(tc_budget_opus_4_5, test_thinking_budget_opus_4_5_none);
+    tcase_add_test(tc_budget_opus_4_5, test_thinking_budget_opus_4_5_low);
+    tcase_add_test(tc_budget_opus_4_5, test_thinking_budget_opus_4_5_med);
+    tcase_add_test(tc_budget_opus_4_5, test_thinking_budget_opus_4_5_high);
+    suite_add_tcase(s, tc_budget_opus_4_5);
+
     TCase *tc_adaptive = tcase_create("Adaptive Thinking - Model Detection");
     tcase_set_timeout(tc_adaptive, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_adaptive, setup, teardown);
     tcase_add_test(tc_adaptive, test_is_adaptive_model_opus_4_6);
+    tcase_add_test(tc_adaptive, test_is_adaptive_model_sonnet_4_6);
     tcase_add_test(tc_adaptive, test_is_adaptive_model_sonnet_4_5);
     tcase_add_test(tc_adaptive, test_is_adaptive_model_haiku_4_5);
     tcase_add_test(tc_adaptive, test_is_adaptive_model_opus_4_5);
@@ -342,6 +426,10 @@ static Suite *anthropic_thinking_suite(void)
     tcase_add_test(tc_effort, test_thinking_effort_opus_4_6_low);
     tcase_add_test(tc_effort, test_thinking_effort_opus_4_6_med);
     tcase_add_test(tc_effort, test_thinking_effort_opus_4_6_high);
+    tcase_add_test(tc_effort, test_thinking_effort_sonnet_4_6_none);
+    tcase_add_test(tc_effort, test_thinking_effort_sonnet_4_6_low);
+    tcase_add_test(tc_effort, test_thinking_effort_sonnet_4_6_med);
+    tcase_add_test(tc_effort, test_thinking_effort_sonnet_4_6_high);
     tcase_add_test(tc_effort, test_thinking_effort_non_adaptive_model);
     tcase_add_test(tc_effort, test_thinking_effort_null_model);
     suite_add_tcase(s, tc_effort);

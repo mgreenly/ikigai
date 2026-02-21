@@ -117,7 +117,7 @@ START_TEST(test_build_request_gemini_3_with_thinking_level) {
     ck_assert_ptr_nonnull(strstr(json, "generationConfig"));
     ck_assert_ptr_nonnull(strstr(json, "thinkingConfig"));
     ck_assert_ptr_nonnull(strstr(json, "thinkingLevel"));
-    ck_assert_ptr_nonnull(strstr(json, "HIGH"));
+    ck_assert_ptr_nonnull(strstr(json, "\"high\""));
 }
 
 END_TEST

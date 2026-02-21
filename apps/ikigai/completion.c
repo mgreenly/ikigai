@@ -62,9 +62,12 @@ static arg_provider_result_t provide_model_args(TALLOC_CTX *ctx, ik_repl_ctx_t *
         "o3",
         "o3-mini",
         // Google
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
         "gemini-3-flash-preview",
-        "gemini-3-pro-preview"
+        "gemini-3-pro-preview",
+        "gemini-3.1-pro-preview"
     };
 
     arg_provider_result_t result;

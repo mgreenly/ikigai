@@ -62,16 +62,19 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level);
 /**
  * Get thinking level string for Gemini 3 models
  *
+ * @param model Model identifier (e.g., "gemini-3-flash-preview")
  * @param level Thinking level
- * @return      "minimal", "low", "medium", or "high" for Gemini 3 API
+ * @return      Lowercase level string for the Gemini 3 API
  *
- * Only applies to Gemini 3 models.
- * - NONE -> "minimal"
- * - LOW -> "low"
- * - MED -> "medium"
- * - HIGH -> "high"
+ * Only applies to Gemini 3 models. Returns "low" as safe default
+ * if model is not found in the level table.
+ *
+ * Per-model mapping:
+ * - gemini-3-flash-preview:  NONE->"minimal", LOW->"low", MED->"medium", HIGH->"high"
+ * - gemini-3-pro-preview:    NONE->"low",     LOW->"low", MED->"high",   HIGH->"high"
+ * - gemini-3.1-pro-preview:  NONE->"low",     LOW->"low", MED->"medium", HIGH->"high"
  */
-const char *ik_google_thinking_level_str(ik_thinking_level_t level);
+const char *ik_google_thinking_level_str(const char *model, ik_thinking_level_t level);
 
 /**
  * Check if model supports thinking mode

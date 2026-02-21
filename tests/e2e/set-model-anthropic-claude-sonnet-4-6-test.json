@@ -1,0 +1,21 @@
+{
+  "name": "set model to anthropic claude-sonnet-4-6 with low reasoning",
+  "steps": [
+    {"send_keys": "/clear\\r"},
+    {"wait": 1},
+    {"send_keys": "/model claude-sonnet-4-6/low\\r"},
+    {"wait": 1},
+    {"mock_expect": {"responses": [{"content": "Mock response from claude-sonnet-4-6."}]}},
+    {"send_keys": "Hello\\r"},
+    {"wait": 5},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "claude-sonnet-4-6/low"},
+    {"contains": "Thinking: low"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": [
+    {"contains": "Mock response from claude-sonnet-4-6."}
+  ]
+}

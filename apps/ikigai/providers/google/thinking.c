@@ -153,17 +153,56 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
     }
 }
 
-const char *ik_google_thinking_level_str(ik_thinking_level_t level)
+/**
+ * Per-model level mapping for Gemini 3 models
+ */
+typedef struct {
+    const char *model_pattern;
+    const char *none_str;
+    const char *low_str;
+    const char *med_str;
+    const char *high_str;
+} ik_google_level_map_t;
+
+static const ik_google_level_map_t LEVEL_TABLE[] = {
+    {"gemini-3-flash-preview",  "minimal", "low", "medium", "high"},
+    {"gemini-3-pro-preview",    "low",     "low", "high",   "high"},
+    {"gemini-3.1-pro-preview",  "low",     "low", "medium", "high"},
+    {NULL, NULL, NULL, NULL, NULL} // Sentinel
+};
+
+const char *ik_google_thinking_level_str(const char *model, ik_thinking_level_t level)
 {
-    // Gemini 3 only accepts LOW or HIGH (uppercase)
-    // NONE/LOW map to LOW, MED/HIGH map to HIGH
+    // Look up model in level table
+    const ik_google_level_map_t *entry = NULL;
+    if (model != NULL) {
+        for (size_t i = 0; LEVEL_TABLE[i].model_pattern != NULL; i++) {
+            if (strcmp(model, LEVEL_TABLE[i].model_pattern) == 0) {
+                entry = &LEVEL_TABLE[i];
+                break;
+            }
+        }
+    }
+
+    // Fall back to safe defaults for unknown Gemini 3 models
+    if (entry == NULL) {
+        switch (level) { // LCOV_EXCL_BR_LINE
+            case IK_THINKING_NONE:
+            case IK_THINKING_LOW:
+                return "low";
+            case IK_THINKING_MED:
+            case IK_THINKING_HIGH:
+                return "high";
+            default: // LCOV_EXCL_LINE
+                PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
+        }
+    }
+
     switch (level) { // LCOV_EXCL_BR_LINE
-        case IK_THINKING_NONE:
-        case IK_THINKING_LOW:
-            return "LOW";
-        case IK_THINKING_MED:
-        case IK_THINKING_HIGH:
-            return "HIGH";
+        case IK_THINKING_NONE:  return entry->none_str;
+        case IK_THINKING_LOW:   return entry->low_str;
+        case IK_THINKING_MED:   return entry->med_str;
+        case IK_THINKING_HIGH:  return entry->high_str;
         default: // LCOV_EXCL_LINE
             PANIC("Invalid thinking level"); // LCOV_EXCL_LINE
     }

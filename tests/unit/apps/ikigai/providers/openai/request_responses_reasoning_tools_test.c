@@ -64,7 +64,7 @@ END_TEST
 
 START_TEST(test_serialize_reasoning_medium) {
     ik_request_t *req = NULL;
-    res_t create_result = ik_request_create(test_ctx, "o1-mini", &req);
+    res_t create_result = ik_request_create(test_ctx, "o3-mini", &req);
     ck_assert(!is_err(&create_result));
 
     ik_request_set_thinking(req, IK_THINKING_MED, false);
@@ -147,7 +147,7 @@ START_TEST(test_serialize_gpt5_reasoning_none) {
     res_t create_result = ik_request_create(test_ctx, "gpt-5", &req);
     ck_assert(!is_err(&create_result));
 
-    // GPT-5 with NONE should omit reasoning field
+    // GPT-5 with NONE floors to "minimal" (not omitted)
     ik_request_set_thinking(req, IK_THINKING_NONE, false);
     ik_request_add_message(req, IK_ROLE_USER, "Test");
 
@@ -159,9 +159,10 @@ START_TEST(test_serialize_gpt5_reasoning_none) {
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
 
-    // No reasoning field should be present for gpt-5 with NONE
+    // GPT-5 NONE floors to "minimal" — reasoning field present with minimal effort
     yyjson_val *reasoning = yyjson_obj_get(root, "reasoning");
-    ck_assert_ptr_null(reasoning);
+    ck_assert_ptr_nonnull(reasoning);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(reasoning, "effort")), "minimal");
 
     yyjson_doc_free(doc);
 }

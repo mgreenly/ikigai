@@ -1,5 +1,5 @@
 ---
-name: end-to-end-testing
+name: e2e-testing
 description: JSON-based end-to-end test format for running tests against mock or live providers
 ---
 
