@@ -198,6 +198,8 @@ check-coverage      # Only when goal asks for coverage verification
 
 ### Version Control
 
+**"All files" means ALL files.** When the user says to commit, push, restore, or rebase "all files", that means every modified file in the working copy — no exceptions. Never selectively exclude files based on your own judgment about which changes are "relevant" or "from this session." The working copy is the source of truth.
+
 This project uses **jj** (Jujutsu), a git-compatible VCS. Never use git commands directly.
 
 ```sh

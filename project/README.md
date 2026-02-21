@@ -174,19 +174,14 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Pending prompt mechanism for fork tool (worker creates child, main loop starts its LLM stream)
 
 
-### rel-12: Control Socket & Headless Mode (complete)
+### rel-12: HTTP API for External Agents (future)
 
-**Objective**: Enable programmatic interaction with a running ikigai instance and black-box functional testing
+**Objective**: Enable external processes to spawn and communicate with agents
 
 **Features**:
-- Control socket lifecycle integrated into the repl event loop
-- Framebuffer serialization (ANSI-to-JSON) for programmatic screen reading
-- Key injection buffer (`key_inject.h/c`) drained in main event loop
-- `ikigai-ctl` shell client with `read_framebuffer` and `send_keys` subcommands
-- `--headless` flag for TTY-free operation (agent sessions, CI)
-- End-to-end test framework with mock providers for OpenAI, Anthropic, and Google
-- `check-e2e` automated test runner
-- `e2e-testing` skill documenting the JSON-based test format
+- Fork null agent (starting point on which you set model, tools, etc...)
+- Support basic message exchange (no tools)
+- Build minimal external agent to demo
 
 
 ### rel-13: Dynamic Sliding Context Window (future)
@@ -206,7 +201,19 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Parallelize read only tool calls
 
 
-### rel-15: Additional AI Providers (future)
+### rel-15: Per-Agent Configuration (future)
+
+**Objective**: Implement a runtime per-agent configuration system
+
+**Features**:
+- Default configuration defined purely in code (no config files)
+- `/config get|set KEY=value` slash commands for modifying the current agent's config
+- Deep copy inheritance on fork (children inherit parent's config at fork time)
+- Support for named config templates managed via `/config template` commands
+- Extended fork capabilities (`--from`, `--config`) to use templates or other agents as config sources
+
+
+### rel-16: Additional AI Providers (future)
 
 **Objective**: Expand provider support beyond core three
 
@@ -216,7 +223,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Evaluate OpenRouter
 
 
-### rel-16: Token Estimation (future)
+### rel-17: Token Estimation (future)
 
 **Objective**: Local token counting for pre-send estimates and context window warnings
 
@@ -227,7 +234,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Display `~NUMBER` during composition, exact count after response
 
 
-### rel-17: User Experience (future)
+### rel-18: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -236,7 +243,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - improved status bar
 
 
-### rel-18: Codebase Refactor & MVP Release (future)
+### rel-19: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt
 

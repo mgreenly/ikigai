@@ -138,7 +138,7 @@ When asked to run tests, execute this procedure for each test file:
    - `wait`: `sleep N`
    - `wait_idle`: run `ikigai-ctl wait_idle <value>`, fail if exit code is 1
    - `read_framebuffer`: run `ikigai-ctl read_framebuffer`, store result
-   - `mock_expect`: in mock mode, `curl -s 127.0.0.1:9100/_mock/expect -d '<json>'`; in live mode, skip
+   - `mock_expect`: in mock mode, `curl -s 127.0.0.1:<port>/_mock/expect -d '<json>'`; in live mode, skip
 4. After all steps, evaluate assertions:
    - Always evaluate `assert`
    - In mock mode, also evaluate `assert_mock`
