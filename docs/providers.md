@@ -51,8 +51,6 @@ These models use the newer Responses API with effort-based reasoning:
 | Model Name | Thinking | Notes |
 |------------|----------|-------|
 | `o1` | Yes | First-gen reasoning |
-| `o1-mini` | Yes | Smaller first-gen reasoning |
-| `o1-preview` | Yes | First-gen reasoning preview |
 | `o3` | Yes | Second-gen reasoning |
 | `o3-mini` | Yes | Smaller second-gen reasoning |
 | `gpt-5` | Yes | GPT-5 base |

@@ -14,13 +14,11 @@
  * Reasoning model lookup table
  *
  * All OpenAI models that support reasoning/thinking parameters.
- * - o-series: o1, o1-mini, o1-preview, o3, o3-mini
+ * - o-series: o1, o3, o3-mini
  * - GPT-5.x: gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, gpt-5.1/5.2 variants
  */
 static const char *REASONING_MODELS[] = {
     "o1",
-    "o1-mini",
-    "o1-preview",
     "o3",
     "o3-mini",
     "gpt-5",
@@ -102,8 +100,6 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
  */
 static const char *RESPONSES_API_MODELS[] = {
     "o1",
-    "o1-mini",
-    "o1-preview",
     "o3",
     "o3-mini",
     "gpt-5",

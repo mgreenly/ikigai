@@ -27,9 +27,9 @@ static void teardown(void)
  * ================================================================ */
 
 START_TEST(test_is_reasoning_model_reasoning) {
-    const char *models[] = {"o1", "o1-mini", "o1-preview", "o3", "o3-mini",
+    const char *models[] = {"o1", "o3", "o3-mini",
         "gpt-5", "gpt-5-mini", "gpt-5-pro", "gpt-5.2", "gpt-5.2-codex"};
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 8; i++) {
         ck_assert(ik_openai_is_reasoning_model(models[i]));
     }
 }
@@ -200,12 +200,12 @@ END_TEST
 
 START_TEST(test_use_responses_api_responses) {
     const char *resp_models[] = {
-        "o1", "o1-mini", "o1-preview", "o3", "o3-mini",
+        "o1", "o3", "o3-mini",
         "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-pro",
         "gpt-5.1", "gpt-5.1-chat-latest", "gpt-5.1-codex",
         "gpt-5.2", "gpt-5.2-chat-latest", "gpt-5.2-codex"
     };
-    for (size_t i = 0; i < 15; i++) {
+    for (size_t i = 0; i < 13; i++) {
         ck_assert(ik_openai_use_responses_api(resp_models[i]));
     }
 }
