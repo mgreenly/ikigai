@@ -86,7 +86,7 @@ START_TEST(test_status_layer_render_no_model) {
 
     bool visible = true;
     char *model = NULL;
-    int thinking = IK_THINKING_NONE;
+    int thinking = IK_THINKING_MIN;
 
     ik_layer_t *layer = ik_status_layer_create(ctx, "status", &visible, &model, &thinking);
     ik_output_buffer_t *output = ik_output_buffer_create(ctx, 500);
@@ -117,8 +117,8 @@ START_TEST(test_status_layer_thinking_levels) {
     char *model = talloc_strdup(ctx, "model");
 
     // Test each thinking level
-    const char *expected[] = {"none", "low", "medium", "high"};
-    int levels[] = {IK_THINKING_NONE, IK_THINKING_LOW, IK_THINKING_MED, IK_THINKING_HIGH};
+    const char *expected[] = {"min", "low", "medium", "high"};
+    int levels[] = {IK_THINKING_MIN, IK_THINKING_LOW, IK_THINKING_MED, IK_THINKING_HIGH};
 
     for (int i = 0; i < 4; i++) {
         int thinking = levels[i];

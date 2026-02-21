@@ -117,7 +117,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 **Features**:
 - Provider abstraction layer with normalized streaming, errors, and tool calling
 - Core 3 providers: OpenAI (refactor existing), Anthropic, Google
-- Extended thinking abstraction (`/model MODEL/THINKING` with none/low/med/high levels)
+- Extended thinking abstraction (`/model MODEL/THINKING` with min/low/med/high levels)
 - Per-message provider/model tracking in event history for cost and replay
 - Separate config.json (settings) and credentials.json (API keys)
 
@@ -174,14 +174,17 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Pending prompt mechanism for fork tool (worker creates child, main loop starts its LLM stream)
 
 
-### rel-12: HTTP API for External Agents (future)
+### rel-12: Model Support, Unified Thinking & E2E Verification (complete)
 
-**Objective**: Enable external processes to spawn and communicate with agents
+**Objective**: Comprehensive model coverage across all providers with unified thinking display and live end-to-end verification
 
 **Features**:
-- Fork null agent (starting point on which you set model, tools, etc...)
-- Support basic message exchange (no tools)
-- Build minimal external agent to demo
+- Full model registry: 17 OpenAI, 5 Anthropic, 6 Google models with per-model thinking level mappings
+- Unified thinking effort display across all providers (`Thinking: LEVEL (effort: EFFORT)`)
+- 32 live-verified e2e tests — every model tested against real provider APIs
+- 3 tool-use e2e tests (one per provider) verifying bash tool round-trips
+- Control socket with stateless protocol, ikigai-ctl client, and headless mode
+- Mock provider covering all three APIs for deterministic CI
 
 
 ### rel-13: Dynamic Sliding Context Window (future)
@@ -211,6 +214,7 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Deep copy inheritance on fork (children inherit parent's config at fork time)
 - Support for named config templates managed via `/config template` commands
 - Extended fork capabilities (`--from`, `--config`) to use templates or other agents as config sources
+- Per-agent workspace at `ik://agent/<UUID>/projects/` for repo checkouts and isolated work directories
 
 
 ### rel-16: Additional AI Providers (future)

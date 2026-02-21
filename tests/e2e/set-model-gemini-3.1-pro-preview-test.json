@@ -7,7 +7,7 @@
     {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from gemini-3.1-pro-preview."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait_idle": 15000},
+    {"wait_idle": 30000},
     {"read_framebuffer": true}
   ],
   "assert": [

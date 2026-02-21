@@ -12,7 +12,7 @@
   ],
   "assert": [
     {"contains": "gpt-5/low"},
-    {"contains": "low effort"},
+    {"contains": "effort: low"},
     {"line_prefix": "●"}
   ],
   "assert_mock": [

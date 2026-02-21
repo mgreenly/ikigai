@@ -43,15 +43,15 @@ START_TEST(test_apply_override_basic_model) {
     ck_assert_str_eq(child->model, "gpt-4o");
 }
 END_TEST
-// Test: Apply override with thinking level none
+// Test: Apply override with thinking level min
 START_TEST(test_apply_override_thinking_none) {
     ik_agent_ctx_t *child = talloc_zero(test_ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(child);
     child->thinking_level = IK_THINKING_HIGH;
 
-    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/none");
+    res_t res = ik_commands_fork_apply_override(child, "gpt-4o/min");
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(child->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(child->thinking_level, IK_THINKING_MIN);
 }
 
 END_TEST

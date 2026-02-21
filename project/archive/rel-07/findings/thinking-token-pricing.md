@@ -713,25 +713,25 @@ total_cost = (input_tokens × input_price) +
 **Abstract Level Mapping:**
 
 **Anthropic (budget_tokens):**
-- `none` → `type: "disabled"`
+- `min` → `type: "disabled"`
 - `low` → 5,000 tokens
 - `med` → 10,000 tokens
 - `high` → 20,000 tokens
 
 **OpenAI (reasoning.effort):**
-- `none` → Not available (reasoning models always reason)
+- `min` → Not available (reasoning models always reason)
 - `low` → `effort: "low"`
 - `med` → `effort: "medium"`
 - `high` → `effort: "high"`
 
 **Google Gemini 2.5 (thinkingBudget):**
-- `none` → `thinkingBudget: 0`
+- `min` → `thinkingBudget: 0`
 - `low` → 8,192 tokens
 - `med` → 16,384 tokens
 - `high` → 24,576 tokens (or 32,768 for Pro)
 
 **Google Gemini 3 (thinkingLevel):**
-- `none` → `thinkingLevel: "LOW"` (cannot disable)
+- `min` → `thinkingLevel: "LOW"` (cannot disable)
 - `low` → `thinkingLevel: "LOW"`
 - `med` → `thinkingLevel: "HIGH"`
 - `high` → `thinkingLevel: "HIGH"`
@@ -830,7 +830,7 @@ total_cost = (input_tokens × input_price) +
 
 ### Implementation Priorities for ikigai
 
-1. ✅ Abstract thinking levels (`none/low/med/high`) work well across providers
+1. ✅ Abstract thinking levels (`min/low/med/high`) work well across providers
 2. ✅ Map to provider-specific configurations (budget_tokens, effort, thinkingLevel)
 3. ✅ Track thinking tokens separately in database for cost analysis
 4. ✅ Provide cost estimates when users change thinking levels

@@ -84,7 +84,7 @@ Create `src/providers/provider.h` with vtable definition and core types that all
 
 | Enum | Values | Purpose |
 |------|--------|---------|
-| `ik_thinking_level_t` | IK_THINKING_NONE (0), IK_THINKING_LOW (1), IK_THINKING_MED (2), IK_THINKING_HIGH (3) | Provider-agnostic thinking budget levels |
+| `ik_thinking_level_t` | IK_THINKING_MIN (0), IK_THINKING_LOW (1), IK_THINKING_MED (2), IK_THINKING_HIGH (3) | Provider-agnostic thinking budget levels |
 | `ik_finish_reason_t` | IK_FINISH_STOP, IK_FINISH_LENGTH, IK_FINISH_TOOL_USE, IK_FINISH_CONTENT_FILTER, IK_FINISH_ERROR, IK_FINISH_UNKNOWN | Normalized completion reasons across providers |
 | `ik_content_type_t` | IK_CONTENT_TEXT, IK_CONTENT_TOOL_CALL, IK_CONTENT_TOOL_RESULT, IK_CONTENT_THINKING | Content block types |
 | `ik_role_t` | IK_ROLE_USER, IK_ROLE_ASSISTANT, IK_ROLE_TOOL | Message roles |
@@ -99,14 +99,14 @@ Providers MUST validate the requested thinking level against model capabilities 
 **Validation Rules:**
 
 1. **Non-thinking model requested with thinking enabled:**
-   - If thinking level > IK_THINKING_NONE for a model that does not support thinking
+   - If thinking level > IK_THINKING_MIN for a model that does not support thinking
    - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> does not support thinking")`
    - Example: User requests `IK_THINKING_HIGH` on `gpt-4`
 
 2. **Thinking-required model requested with thinking disabled:**
-   - If thinking level == IK_THINKING_NONE for a model that requires thinking to be enabled
+   - If thinking level == IK_THINKING_MIN for a model that requires thinking to be enabled
    - Return `ERR(ctx, ERR_INVALID_ARG, "Model <model_name> requires thinking to be enabled")`
-   - Example: User requests `IK_THINKING_NONE` on `o1-preview`
+   - Example: User requests `IK_THINKING_MIN` on `o1-preview`
 
 3. **Provider implementation must validate in `start_request()` and `start_stream()`:**
    - Check thinking level compatibility before constructing API request
@@ -116,8 +116,8 @@ Providers MUST validate the requested thinking level against model capabilities 
 
 - **OpenAI:**
   - Only `o1-*` and `o3-*` models support reasoning (thinking)
-  - `gpt-*` models: thinking level MUST be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
-  - `o1-*`, `o3-*` models: thinking level MUST NOT be IK_THINKING_NONE, otherwise return ERR_INVALID_ARG
+  - `gpt-*` models: thinking level MUST be IK_THINKING_MIN, otherwise return ERR_INVALID_ARG
+  - `o1-*`, `o3-*` models: thinking level MUST NOT be IK_THINKING_MIN, otherwise return ERR_INVALID_ARG
   - Reasoning effort mapping: OpenAI uses string values ("low"/"medium"/"high") for `reasoning_effort` field (NOT numeric token budgets)
     - Map IK_THINKING_LOW → "low"
     - Map IK_THINKING_MED → "medium"
@@ -125,7 +125,7 @@ Providers MUST validate the requested thinking level against model capabilities 
 
 - **Anthropic:**
   - All Claude models support thinking (extended_thinking parameter)
-  - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
+  - Thinking can be enabled or disabled (IK_THINKING_MIN is valid)
   - Uses numeric `budget_tokens` field (NOT string values)
     - IK_THINKING_LOW → 1024 tokens
     - IK_THINKING_MED → 22016 tokens
@@ -136,7 +136,7 @@ Providers MUST validate the requested thinking level against model capabilities 
 - **Google:**
   - Gemini 2.5: Supports thinking via `thought` content blocks
   - Gemini 3.0: Different thinking mode implementation
-  - Thinking can be enabled or disabled (IK_THINKING_NONE is valid)
+  - Thinking can be enabled or disabled (IK_THINKING_MIN is valid)
   - Uses numeric `thinking_budget` field (NOT string values)
     - IK_THINKING_LOW → 128 tokens
     - IK_THINKING_MED → 11008 tokens

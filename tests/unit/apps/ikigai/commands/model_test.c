@@ -52,7 +52,7 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     agent->model = talloc_strdup(agent, "gpt-5-mini");
     agent->provider = talloc_strdup(agent, "openai");
-    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->thinking_level = 0;  // IK_THINKING_MIN
     agent->shared = shared;
     r->current = agent;
 

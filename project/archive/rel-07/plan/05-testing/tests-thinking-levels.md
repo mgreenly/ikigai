@@ -34,7 +34,7 @@
 
 ## Objective
 
-Create comprehensive cross-provider integration tests that validate thinking level abstraction works consistently across all providers. Tests verify that the same thinking level enum (NONE/LOW/MED/HIGH) correctly maps to provider-specific parameters (Anthropic token budgets, OpenAI effort levels, Google thinkingConfig), thinking content is extracted correctly, thinking tokens are counted accurately, and thinking levels can be changed mid-session.
+Create comprehensive cross-provider integration tests that validate thinking level abstraction works consistently across all providers. Tests verify that the same thinking level enum (MIN/LOW/MED/HIGH) correctly maps to provider-specific parameters (Anthropic token budgets, OpenAI effort levels, Google thinkingConfig), thinking content is extracted correctly, thinking tokens are counted accurately, and thinking levels can be changed mid-session.
 
 ## Rationale
 
@@ -66,7 +66,7 @@ The thinking abstraction is a critical feature that must work consistently acros
 | `test_thinking_tokens_openai` | Verify reasoning_tokens counted correctly (OpenAI) |
 | `test_thinking_tokens_google` | Verify thoughtsTokenCount counted correctly (Google) |
 | `test_thinking_level_transition` | Verify changing levels mid-session works |
-| `test_thinking_none_skips_config` | Verify IK_THINKING_NONE skips thinking config |
+| `test_thinking_none_skips_config` | Verify IK_THINKING_MIN skips thinking config |
 | `test_thinking_max_budget` | Verify HIGH level uses maximum budget |
 | `test_thinking_unsupported_model` | Verify models without thinking skip config |
 | `test_thinking_streaming_content` | Verify thinking content in streaming responses |
@@ -90,21 +90,21 @@ The thinking abstraction is a critical feature that must work consistently acros
 **Anthropic Claude Sonnet 4.5:**
 - Model max: 64,000 tokens
 - Minimum: 1,024 tokens (enforced by API)
-- IK_THINKING_NONE → 1,024 tokens
+- IK_THINKING_MIN → 1,024 tokens
 - IK_THINKING_LOW → 22,016 tokens (1/3 of range from min to max)
 - IK_THINKING_MED → 43,008 tokens (2/3 of range from min to max)
 - IK_THINKING_HIGH → 64,000 tokens
 
 **OpenAI GPT-5 series (gpt-5-nano, gpt-5-mini, gpt-5):**
 - No token budget, uses effort enum
-- IK_THINKING_NONE → "effort": "none"
+- IK_THINKING_MIN → "effort": "none"
 - IK_THINKING_LOW → "effort": "low"
 - IK_THINKING_MED → "effort": "medium"
 - IK_THINKING_HIGH → "effort": "high"
 
 **Google Gemini 3.0 Flash/Pro:**
 - Uses thinkingLevel instead of thinkingBudget
-- IK_THINKING_NONE → "LOW" (cannot disable)
+- IK_THINKING_MIN → "LOW" (cannot disable)
 - IK_THINKING_LOW → "LOW"
 - IK_THINKING_MED → "HIGH"
 - IK_THINKING_HIGH → "HIGH"
@@ -230,7 +230,7 @@ Tests must verify that changing thinking level mid-session works correctly:
 
 ### Edge Cases
 
-**IK_THINKING_NONE:**
+**IK_THINKING_MIN:**
 - No thinking config sent in request
 - Thinking content still extracted if model produces it
 - Thinking tokens still counted if present
@@ -286,21 +286,21 @@ tests/fixtures/vcr/
 ### Budget Calculation Tests (3 tests)
 
 **Anthropic Budget Calculation:**
-1. For IK_THINKING_NONE: verify budget = 1024
+1. For IK_THINKING_MIN: verify budget = 1024
 2. For IK_THINKING_LOW: verify budget = 22,016
 3. For IK_THINKING_MED: verify budget = 43,008
 4. For IK_THINKING_HIGH: verify budget = 64,000
 5. Assert: all budgets within valid range [1024, 64000]
 
 **OpenAI Effort Mapping:**
-1. For IK_THINKING_NONE: verify no reasoning parameter
+1. For IK_THINKING_MIN: verify no reasoning parameter
 2. For IK_THINKING_LOW: verify effort = "low"
 3. For IK_THINKING_MED: verify effort = "medium"
 4. For IK_THINKING_HIGH: verify effort = "high"
 5. Assert: effort string matches expected value exactly
 
 **Google Level Mapping (Gemini 3.0):**
-1. For IK_THINKING_NONE: verify thinkingLevel = "LOW"
+1. For IK_THINKING_MIN: verify thinkingLevel = "LOW"
 2. For IK_THINKING_LOW: verify thinkingLevel = "LOW"
 3. For IK_THINKING_MED: verify thinkingLevel = "HIGH"
 4. For IK_THINKING_HIGH: verify thinkingLevel = "HIGH"
@@ -402,13 +402,13 @@ tests/fixtures/vcr/
 
 ### Edge Case Tests (5 tests)
 
-**NONE Level Skips Config:**
-1. Create request with IK_THINKING_NONE
+**MIN Level Skips Config:**
+1. Create request with IK_THINKING_MIN
 2. Serialize to JSON
 3. Verify no thinking/reasoning/thinkingConfig parameter
 4. Send request, parse response
 5. If response has thinking content, verify still extracted
-6. Assert: NONE level works correctly
+6. Assert: MIN level works correctly
 
 **HIGH Level Uses Maximum:**
 1. For each provider, create request with IK_THINKING_HIGH
@@ -454,18 +454,18 @@ tests/fixtures/vcr/
 **Test Coverage:**
 - [ ] 5 test files created covering all thinking scenarios
 - [ ] 18+ tests total across all files
-- [ ] All 4 thinking levels tested (NONE/LOW/MED/HIGH)
+- [ ] All 4 thinking levels tested (MIN/LOW/MED/HIGH)
 - [ ] All 3 providers tested (Anthropic, OpenAI, Google)
 - [ ] Budget calculation verified for each provider
 - [ ] Request serialization verified for each provider
 - [ ] Response extraction verified for each provider
 - [ ] Token counting verified for each provider
 - [ ] Level transitions tested
-- [ ] Edge cases covered (none, max, unsupported, invalid)
+- [ ] Edge cases covered (min, max, unsupported, invalid)
 
 **Fixture Coverage:**
 - [ ] 15+ VCR fixtures created (5 per provider)
-- [ ] Fixtures cover NONE/LOW/MED/HIGH for each provider
+- [ ] Fixtures cover MIN/LOW/MED/HIGH for each provider
 - [ ] Streaming thinking fixtures for each provider
 - [ ] All fixtures recorded with VCR_RECORD=1
 - [ ] No API keys in fixtures (verify: grep -r api_key tests/fixtures/)
@@ -527,7 +527,7 @@ These tests enforce that thinking works consistently across providers:
 3. **Content extraction:** Thinking content always extracted regardless of provider format
 4. **Token accounting:** Thinking tokens always counted separately from output tokens
 5. **Level changes:** All providers support changing thinking level mid-session
-6. **NONE handling:** All providers handle thinking disabled correctly
+6. **MIN handling:** All providers handle thinking disabled correctly
 
 ## Success Criteria
 

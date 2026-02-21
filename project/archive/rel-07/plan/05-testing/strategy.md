@@ -264,7 +264,7 @@ Tests verify that rate limit responses (HTTP 429) are mapped to IK_ERR_CAT_RATE_
 ### Budget Calculation
 
 Tests verify that provider-specific thinking budget calculation correctly maps abstract thinking levels to concrete token budgets. For Anthropic Claude Sonnet 4.5, the test verifies:
-- IK_THINKING_NONE maps to minimum (1024)
+- IK_THINKING_MIN maps to minimum (1024)
 - IK_THINKING_LOW maps to 1/3 of range
 - IK_THINKING_MED maps to 2/3 of range
 - IK_THINKING_HIGH maps to maximum (64000)

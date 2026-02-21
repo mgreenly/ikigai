@@ -67,7 +67,7 @@ ik_content_block_t *ik_content_block_tool_result(TALLOC_CTX *ctx,
  * Allocates and initializes ik_request_t structure with the specified
  * model. All arrays (messages, tools, system_prompt) are initialized
  * to NULL, max_output_tokens is set to -1 (use provider default),
- * and thinking level is set to NONE.
+ * and thinking level is set to MIN.
  *
  * @param ctx   Talloc parent context
  * @param model Model identifier (will be copied)
@@ -123,7 +123,7 @@ res_t ik_request_add_message_blocks(ik_request_t *req, ik_role_t role, ik_conten
  * request. This is a void function as it cannot fail.
  *
  * @param req             Request to modify
- * @param level           Thinking level (NONE, LOW, MED, HIGH)
+ * @param level           Thinking level (MIN, LOW, MED, HIGH)
  * @param include_summary Include thinking summary in response
  */
 void ik_request_set_thinking(ik_request_t *req, ik_thinking_level_t level, bool include_summary);

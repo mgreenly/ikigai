@@ -203,7 +203,7 @@ START_TEST(test_fork_warning_no_thinking_support) {
 END_TEST
 // Test: ik_commands_thinking_level_to_string handles all enum values
 START_TEST(test_ik_commands_thinking_level_to_string_all_values) {
-    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_NONE), "none");
+    ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_MIN), "min");
     ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_LOW), "low");
     ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_MED), "medium");
     ck_assert_str_eq(ik_commands_thinking_level_to_string(IK_THINKING_HIGH), "high");

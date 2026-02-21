@@ -18,8 +18,8 @@ extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t
 static int parse_thinking_level(const char *level_str)
 {
     // Note: level_str guaranteed non-NULL by caller (checked in ik_agent_restore_from_row)
-    if (strcmp(level_str, "none") == 0) {
-        return IK_THINKING_NONE;
+    if (strcmp(level_str, "min") == 0 || strcmp(level_str, "none") == 0) {
+        return IK_THINKING_MIN;
     } else if (strcmp(level_str, "low") == 0) {
         return IK_THINKING_LOW;
     } else if (strcmp(level_str, "med") == 0 || strcmp(level_str, "medium") == 0) {
@@ -27,8 +27,8 @@ static int parse_thinking_level(const char *level_str)
     } else if (strcmp(level_str, "high") == 0) {
         return IK_THINKING_HIGH;
     }
-    // Default to none for unknown values
-    return IK_THINKING_NONE;
+    // Default to min for unknown values
+    return IK_THINKING_MIN;
 }
 
 res_t ik_agent_restore_from_row(ik_agent_ctx_t *agent, const void *row_ptr)

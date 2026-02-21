@@ -14,13 +14,13 @@ This document specifies the behavior of commands that interact with the multi-pr
 
 **Components:**
 - `MODEL` - Model identifier (e.g., `claude-sonnet-4-5`, `gpt-5-mini`, `gemini-3.0-flash`)
-- `THINKING` - Optional thinking level: `none`, `low`, `med`, `high`
+- `THINKING` - Optional thinking level: `min`, `low`, `med`, `high`
 
 **Examples:**
 ```
 /model claude-sonnet-4-5        # Use default thinking for this model
 /model claude-sonnet-4-5/med    # Explicit medium thinking
-/model gpt-5-mini/none          # Disable thinking
+/model gpt-5-mini/min           # Disable thinking
 /model gemini-3.0-flash/high    # Maximum thinking level
 ```
 
@@ -53,7 +53,7 @@ The command argument is parsed to extract the model name and optional thinking l
 3. If a slash is found:
    - Extract the model name from before the slash
    - Extract the thinking level string from after the slash
-   - Validate the thinking level against allowed values: "none", "low", "med", "high"
+   - Validate the thinking level against allowed values: "min", "low", "med", "high"
    - If invalid, return an error with the invalid value and list of valid options
 
 ### Agent State Update
@@ -95,7 +95,7 @@ Tab completion should provide the following model suggestions:
 **Anthropic models:**
 - claude-haiku-4-5
 - claude-sonnet-4-5 (default)
-- claude-sonnet-4-5/none
+- claude-sonnet-4-5/min
 - claude-sonnet-4-5/low
 - claude-sonnet-4-5/med
 - claude-sonnet-4-5/high
@@ -104,7 +104,7 @@ Tab completion should provide the following model suggestions:
 **OpenAI models:**
 - gpt-5-nano
 - gpt-5-mini (default)
-- gpt-5-mini/none
+- gpt-5-mini/min
 - gpt-5-mini/low
 - gpt-5-mini/med
 - gpt-5-mini/high
@@ -113,7 +113,7 @@ Tab completion should provide the following model suggestions:
 **Google models:**
 - gemini-2.5-flash-lite
 - gemini-3.0-flash (default)
-- gemini-3.0-flash/none
+- gemini-3.0-flash/min
 - gemini-3.0-flash/low
 - gemini-3.0-flash/med
 - gemini-3.0-flash/high
@@ -262,7 +262,7 @@ Supported models:
 > /model claude-sonnet-4-5/maximum
 
 Invalid thinking level: maximum
-Valid levels: none, low, med, high
+Valid levels: min, low, med, high
 ```
 
 ### Missing Credentials

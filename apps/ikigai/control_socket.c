@@ -320,6 +320,10 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     if (doc == NULL) {
         const char *error_response = "{\"error\":\"Invalid JSON\"}\n";
         client_send(socket, error_response, strlen(error_response));
+        if (socket->client_fd >= 0) {
+            close(socket->client_fd);
+            socket->client_fd = -1;
+        }
         yyjson_doc_free(doc);
         return OK(NULL);
     }
@@ -348,6 +352,10 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
         }
         client_send(socket, response, strlen(response));
         talloc_free(response);
+        if (socket->client_fd >= 0) {
+            close(socket->client_fd);
+            socket->client_fd = -1;
+        }
     }
 
     yyjson_doc_free(doc);

@@ -88,7 +88,7 @@ Messages and system prompts are composed of content blocks.
 ### Thinking Configuration
 
 **ik_thinking_level_t** - Thinking effort level enumeration:
-- IK_THINKING_NONE - Disabled or minimum
+- IK_THINKING_MIN - Disabled or minimum
 - IK_THINKING_LOW - ~1/3 of max budget
 - IK_THINKING_MED - ~2/3 of max budget
 - IK_THINKING_HIGH - Maximum budget

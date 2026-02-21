@@ -40,13 +40,13 @@ ik_gemini_series_t ik_google_model_series(const char *model);
  * Calculate thinking budget for Gemini 2.5 models
  *
  * @param model Model identifier
- * @param level Thinking level (NONE/LOW/MED/HIGH)
+ * @param level Thinking level (MIN/LOW/MED/HIGH)
  * @return      Thinking budget in tokens, or -1 if not applicable
  *
  * Only applies to Gemini 2.5 models. Returns -1 for Gemini 3 (uses levels).
  *
  * Budget calculation:
- * - NONE: min_budget (0 or model minimum)
+ * - MIN:  min_budget (0 or model minimum)
  * - LOW:  min_budget + range/3
  * - MED:  min_budget + 2*range/3
  * - HIGH: max_budget
@@ -70,9 +70,9 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level);
  * if model is not found in the level table.
  *
  * Per-model mapping:
- * - gemini-3-flash-preview:  NONE->"minimal", LOW->"low", MED->"medium", HIGH->"high"
- * - gemini-3-pro-preview:    NONE->"low",     LOW->"low", MED->"high",   HIGH->"high"
- * - gemini-3.1-pro-preview:  NONE->"low",     LOW->"low", MED->"medium", HIGH->"high"
+ * - gemini-3-flash-preview:  MIN->"minimal", LOW->"low", MED->"medium", HIGH->"high"
+ * - gemini-3-pro-preview:    MIN->"low",     LOW->"low", MED->"high",   HIGH->"high"
+ * - gemini-3.1-pro-preview:  MIN->"low",     LOW->"low", MED->"medium", HIGH->"high"
  */
 const char *ik_google_thinking_level_str(const char *model, ik_thinking_level_t level);
 
@@ -115,9 +115,9 @@ bool ik_google_can_disable_thinking(const char *model);
  * Validation rules:
  * - NULL model -> ERR(INVALID_ARG)
  * - Gemini 2.5 models that can disable (min=0): All levels valid
- * - Gemini 2.5 models that cannot disable (min>0): NONE returns ERR, others valid
- * - Gemini 3 models: All levels valid (NONE means don't include thinking config)
- * - Non-thinking models: Only NONE is valid, others return ERR
+ * - Gemini 2.5 models that cannot disable (min>0): MIN returns ERR, others valid
+ * - Gemini 3 models: All levels valid (MIN means don't include thinking config)
+ * - Non-thinking models: Only MIN is valid, others return ERR
  */
 res_t ik_google_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinking_level_t level);
 

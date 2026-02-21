@@ -283,7 +283,7 @@ The existing pattern in `src/repl.c` (calling `ik_openai_multi_*` functions) bec
 Agent structure extended with:
 - `provider` - String identifying provider (e.g., "anthropic")
 - `model` - Model name within provider's namespace
-- `thinking_level` - Normalized thinking level (NONE/LOW/MED/HIGH)
+- `thinking_level` - Normalized thinking level (MIN/LOW/MED/HIGH)
 - `provider_ctx` - Cached provider handle (NULL until first use)
 
 ### Database Schema Changes
@@ -291,7 +291,7 @@ Agent structure extended with:
 The agents table requires new columns:
 - `provider` (TEXT) - Provider name, defaults to "openai"
 - `model` (TEXT) - Model identifier
-- `thinking_level` (TEXT) - Thinking level ("none", "low", "med", "high")
+- `thinking_level` (TEXT) - Thinking level ("min", "low", "med", "high")
 
 Migration adds these columns with appropriate defaults for existing rows.
 

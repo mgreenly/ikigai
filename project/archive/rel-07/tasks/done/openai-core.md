@@ -80,7 +80,7 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 
 ### Reasoning Effort Mapping
 
-- `IK_THINKING_NONE` → NULL (don't include reasoning config)
+- `IK_THINKING_MIN` → NULL (don't include reasoning config)
 - `IK_THINKING_LOW` → "low"
 - `IK_THINKING_MED` → "medium"
 - `IK_THINKING_HIGH` → "high"
@@ -100,7 +100,7 @@ Create native OpenAI provider to replace the adapter shim. This establishes dire
 ### Thinking Validation
 
 - `ik_openai_validate_thinking(model, level)` validates model/level compatibility
-- Non-reasoning models (gpt-4o, gpt-5): Only IK_THINKING_NONE is valid, others return ERR
+- Non-reasoning models (gpt-4o, gpt-5): Only IK_THINKING_MIN is valid, others return ERR
 - Reasoning models (o1, o3): All levels valid (LOW/MED/HIGH map to effort strings)
 - NULL model: Return ERR(INVALID_ARG)
 - Returns OK(NULL) if valid, ERR with descriptive message if invalid
@@ -194,9 +194,9 @@ src/providers/openai/
 
 ### Thinking Validation
 
-- o1 with NONE → OK (valid, no thinking)
+- o1 with MIN → OK (valid, no thinking)
 - o1 with LOW/MED/HIGH → OK (valid reasoning levels)
-- gpt-4o with NONE → OK (valid, no thinking for non-reasoning model)
+- gpt-4o with MIN → OK (valid, no thinking for non-reasoning model)
 - gpt-4o with LOW → ERR (non-reasoning model doesn't support thinking)
 - gpt-4o with MED/HIGH → ERR
 - NULL model → ERR(INVALID_ARG)

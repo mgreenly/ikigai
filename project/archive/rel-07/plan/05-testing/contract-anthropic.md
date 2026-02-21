@@ -144,7 +144,7 @@ Cassette naming convention: `test_contract_{scenario}.jsonl`
 
 **Thinking Tokens:**
 - `thinking` parameter in request maps to token budget
-- IK_THINKING_NONE → 1,024 tokens (minimum)
+- IK_THINKING_MIN → 1,024 tokens (minimum)
 - IK_THINKING_LOW → 22,016 tokens (1/3 range)
 - IK_THINKING_MED → 43,008 tokens (2/3 range)
 - IK_THINKING_HIGH → 64,000 tokens (maximum)

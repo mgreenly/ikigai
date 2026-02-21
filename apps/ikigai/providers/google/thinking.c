@@ -140,7 +140,7 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
     int32_t range = max_budget - min_budget;
 
     switch (level) { // LCOV_EXCL_BR_LINE
-        case IK_THINKING_NONE:
+        case IK_THINKING_MIN:
             return min_budget;
         case IK_THINKING_LOW:
             return floor_power_of_2(min_budget + range / 3);
@@ -158,7 +158,7 @@ int32_t ik_google_thinking_budget(const char *model, ik_thinking_level_t level)
  */
 typedef struct {
     const char *model_pattern;
-    const char *none_str;
+    const char *min_str;
     const char *low_str;
     const char *med_str;
     const char *high_str;
@@ -187,7 +187,7 @@ const char *ik_google_thinking_level_str(const char *model, ik_thinking_level_t 
     // Fall back to safe defaults for unknown Gemini 3 models
     if (entry == NULL) {
         switch (level) { // LCOV_EXCL_BR_LINE
-            case IK_THINKING_NONE:
+            case IK_THINKING_MIN:
             case IK_THINKING_LOW:
                 return "low";
             case IK_THINKING_MED:
@@ -199,7 +199,7 @@ const char *ik_google_thinking_level_str(const char *model, ik_thinking_level_t 
     }
 
     switch (level) { // LCOV_EXCL_BR_LINE
-        case IK_THINKING_NONE:  return entry->none_str;
+        case IK_THINKING_MIN:  return entry->min_str;
         case IK_THINKING_LOW:   return entry->low_str;
         case IK_THINKING_MED:   return entry->med_str;
         case IK_THINKING_HIGH:  return entry->high_str;
@@ -216,9 +216,9 @@ res_t ik_google_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinkin
         return ERR(ctx, INVALID_ARG, "Model cannot be NULL");
     }
 
-    // NONE is always valid for any model
-    if (level == IK_THINKING_NONE) {
-        // For Gemini 2.5 models that cannot disable thinking, NONE is invalid
+    // MIN is always valid for any model
+    if (level == IK_THINKING_MIN) {
+        // For Gemini 2.5 models that cannot disable thinking, MIN is invalid
         ik_gemini_series_t series = ik_google_model_series(model);
         if (series == IK_GEMINI_2_5 && !ik_google_can_disable_thinking(model)) {
             return ERR(ctx, INVALID_ARG,
@@ -228,7 +228,7 @@ res_t ik_google_validate_thinking(TALLOC_CTX *ctx, const char *model, ik_thinkin
         return OK(NULL);
     }
 
-    // Non-NONE levels require thinking support
+    // Non-MIN levels require thinking support
     if (!ik_google_supports_thinking(model)) {
         return ERR(ctx, INVALID_ARG,
                    "Model '%s' does not support Google thinking (only Gemini 2.5 and 3.x models support thinking)",

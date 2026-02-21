@@ -64,7 +64,7 @@ END_TEST
  * ================================================================ */
 
 START_TEST(test_thinking_budget_sonnet_none) {
-    int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_NONE);
+    int32_t budget = ik_anthropic_thinking_budget("claude-sonnet-4-5", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 1024); // minimum
 }
 
@@ -99,7 +99,7 @@ END_TEST
  * ================================================================ */
 
 START_TEST(test_thinking_budget_haiku_none) {
-    int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_NONE);
+    int32_t budget = ik_anthropic_thinking_budget("claude-haiku-4-5", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 1024); // minimum
 }
 
@@ -134,7 +134,7 @@ END_TEST
  * ================================================================ */
 
 START_TEST(test_thinking_budget_unknown_claude_none) {
-    int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_NONE);
+    int32_t budget = ik_anthropic_thinking_budget("claude-unknown-model", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 1024); // default minimum
 }
 
@@ -232,7 +232,7 @@ END_TEST
  * ================================================================ */
 
 START_TEST(test_thinking_effort_opus_4_6_none) {
-    const char *effort = ik_anthropic_thinking_effort("claude-opus-4-6", IK_THINKING_NONE);
+    const char *effort = ik_anthropic_thinking_effort("claude-opus-4-6", IK_THINKING_MIN);
     ck_assert_ptr_null(effort); // NONE -> omit thinking
 }
 
@@ -263,7 +263,7 @@ START_TEST(test_thinking_effort_opus_4_6_high) {
 END_TEST
 
 START_TEST(test_thinking_effort_sonnet_4_6_none) {
-    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_NONE);
+    const char *effort = ik_anthropic_thinking_effort("claude-sonnet-4-6", IK_THINKING_MIN);
     ck_assert_ptr_null(effort); // NONE -> omit thinking
 }
 
@@ -312,7 +312,7 @@ END_TEST
  * ================================================================ */
 
 START_TEST(test_thinking_budget_opus_4_5_none) {
-    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_NONE);
+    int32_t budget = ik_anthropic_thinking_budget("claude-opus-4-5", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 1024); // minimum
 }
 

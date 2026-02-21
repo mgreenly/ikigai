@@ -81,7 +81,7 @@ END_TEST
 START_TEST(test_thinking_gemini_versions) {
     ik_request_t req = {0}; char *json = NULL; res_t r; yyjson_doc *doc; yyjson_val *gc;
     // Gemini 3 with NONE level - always emits thinkingConfig (NONE -> "minimal" for flash)
-    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_NONE;
+    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_MIN;
     r = ik_google_serialize_request(test_ctx, &req, &json); ck_assert(is_ok(&r));
     doc = yyjson_read(json, strlen(json), 0);
     gc = yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig");
@@ -98,7 +98,7 @@ START_TEST(test_thinking_gemini_versions) {
                                                    "thinkingLevel")), "high");
     yyjson_doc_free(doc);
     // Gemini 2.5 with NONE level - no generation config
-    req.model = (char *)"gemini-2.5-flash"; req.thinking.level = IK_THINKING_NONE;
+    req.model = (char *)"gemini-2.5-flash"; req.thinking.level = IK_THINKING_MIN;
     r = ik_google_serialize_request(test_ctx, &req, &json); ck_assert(is_ok(&r));
     doc = yyjson_read(json, strlen(json), 0);
     ck_assert_ptr_null(yyjson_obj_get(yyjson_doc_get_root(doc), "generationConfig"));

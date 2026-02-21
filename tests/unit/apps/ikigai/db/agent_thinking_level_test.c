@@ -154,7 +154,7 @@ START_TEST(test_insert_agent_thinking_level_low) {
     PQclear(result);
 }
 END_TEST
-// Test: Insert agent with thinking_level = 99 (default/invalid -> "none")
+// Test: Insert agent with thinking_level = 99 (default/invalid -> "min")
 START_TEST(test_insert_agent_thinking_level_default) {
     SKIP_IF_NO_DB();
 
@@ -170,7 +170,7 @@ START_TEST(test_insert_agent_thinking_level_default) {
     res_t res = ik_db_agent_insert(db, &agent);
     ck_assert(is_ok(&res));
 
-    // Verify thinking_level in database (should be "none")
+    // Verify thinking_level in database (should be "min")
     const char *query = "SELECT thinking_level FROM agents WHERE uuid = $1";
     const char *param_values[1] = {agent.uuid};
 
@@ -179,7 +179,7 @@ START_TEST(test_insert_agent_thinking_level_default) {
     ck_assert_int_eq(PQntuples(result), 1);
 
     const char *thinking_level = PQgetvalue(result, 0, 0);
-    ck_assert_str_eq(thinking_level, "none");
+    ck_assert_str_eq(thinking_level, "min");
 
     PQclear(result);
 }

@@ -121,7 +121,7 @@ echo "..." | goal-create --title "..." --org ORG --repo REPO --model opus --reas
 - **--model haiku:** Simple, well-defined tasks (rare; server usually picks correctly)
 - **--reasoning high:** Deep debugging, architectural design, security analysis, complex tradeoffs
 - **--reasoning med:** Moderate complexity requiring multi-step planning
-- **--reasoning low/none:** Simple implementation tasks
+- **--reasoning low/min:** Simple implementation tasks
 
 **Example:**
 ```bash

@@ -19,6 +19,7 @@
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/providers/anthropic/thinking.h"
 #include "apps/ikigai/providers/google/thinking.h"
+#include "apps/ikigai/providers/openai/reasoning.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -28,43 +29,66 @@
 
 
 #include "shared/poison.h"
+
+static const char *provider_display_name(const char *provider)
+{
+    if (strcmp(provider, "anthropic") == 0) return "Anthropic";
+    if (strcmp(provider, "google") == 0)    return "Google";
+    if (strcmp(provider, "openai") == 0)    return "OpenAI";
+    return provider;
+}
+
+static const char *format_budget(TALLOC_CTX *ctx, int32_t budget)
+{
+    if (budget < 1024) return talloc_asprintf(ctx, "%d", budget);
+    return talloc_asprintf(ctx, "%dK", budget / 1024);
+}
+
 /**
  * Helper to build feedback message for model switch
  */
 static char *cmd_model_build_feedback(TALLOC_CTX *ctx, const char *provider,
                                       const char *model_name, ik_thinking_level_t thinking_level)
 {
-    const char *level_name = (thinking_level == IK_THINKING_NONE) ? "none" :
+    const char *level_name = (thinking_level == IK_THINKING_MIN) ? "min" :
                              (thinking_level == IK_THINKING_LOW)  ? "low" :
                              (thinking_level == IK_THINKING_MED)  ? "med" : "high";
 
+    const char *display = provider_display_name(provider);
+    const char *detail = NULL;
+
     if (strcmp(provider, "anthropic") == 0) {
         if (ik_anthropic_is_adaptive_model(model_name)) {
-            return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s effort (adaptive)",
-                                   model_name, level_name);
+            const char *effort = ik_anthropic_thinking_effort(model_name, thinking_level);
+            detail = talloc_asprintf(ctx, "adaptive: %s", effort ? effort : "none");
+        } else {
+            int32_t budget = ik_anthropic_thinking_budget(model_name, thinking_level);
+            if (budget >= 0) {
+                detail = talloc_asprintf(ctx, "budget: %s", format_budget(ctx, budget));
+            }
         }
-        int32_t budget = ik_anthropic_thinking_budget(model_name, thinking_level);
-        if (budget > 0) {
-            return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s (%d tokens)",
-                                   model_name, level_name, budget);
-        }
-        return talloc_asprintf(ctx, "Switched to Anthropic %s\n  Thinking: %s",
-                               model_name, level_name);
     } else if (strcmp(provider, "google") == 0) {
         int32_t budget = ik_google_thinking_budget(model_name, thinking_level);
         if (budget >= 0) {
-            return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%d tokens)",
-                                   provider, model_name, level_name, budget);
+            detail = talloc_asprintf(ctx, "budget: %s", format_budget(ctx, budget));
+        } else {
+            ik_gemini_series_t series = ik_google_model_series(model_name);
+            if (series == IK_GEMINI_3) {
+                const char *level_str = ik_google_thinking_level_str(model_name, thinking_level);
+                detail = talloc_asprintf(ctx, "level: %s", level_str);
+            }
         }
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s",
-                               provider, model_name, level_name);
     } else if (strcmp(provider, "openai") == 0) {
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s effort",
-                               provider, model_name, level_name);
-    } else {
-        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s",
-                               provider, model_name, level_name);
+        const char *effort = ik_openai_reasoning_effort(model_name, thinking_level);
+        if (effort) detail = talloc_asprintf(ctx, "effort: %s", effort);
     }
+
+    if (detail) {
+        return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s (%s)",
+                               display, model_name, level_name, detail);
+    }
+    return talloc_asprintf(ctx, "Switched to %s %s\n  Thinking: %s",
+                           display, model_name, level_name);
 }
 
 res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
@@ -115,8 +139,8 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse thinking level (use current if not specified)
     ik_thinking_level_t thinking_level = repl->current->thinking_level;
     if (thinking_str != NULL) {
-        if (strcmp(thinking_str, "none") == 0) {
-            thinking_level = IK_THINKING_NONE;
+        if (strcmp(thinking_str, "min") == 0) {
+            thinking_level = IK_THINKING_MIN;
         } else if (strcmp(thinking_str, "low") == 0) {
             thinking_level = IK_THINKING_LOW;
         } else if (strcmp(thinking_str, "med") == 0) {
@@ -124,7 +148,7 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
         } else if (strcmp(thinking_str, "high") == 0) {
             thinking_level = IK_THINKING_HIGH;
         } else {
-            char *msg = talloc_asprintf(ctx, "Error: Invalid thinking level '%s' (must be: none, low, med, high)", thinking_str);
+            char *msg = talloc_asprintf(ctx, "Error: Invalid thinking level '%s' (must be: min, low, med, high)", thinking_str);
             if (!msg) PANIC("OOM");   // LCOV_EXCL_BR_LINE
             ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
             return ERR(ctx, INVALID_ARG, "Invalid thinking level '%s'", thinking_str);
@@ -180,7 +204,7 @@ skip_google_validation:
     if (repl->shared->db_ctx != NULL) {
         const char *thinking_level_str = NULL;
         switch (thinking_level) { // LCOV_EXCL_BR_LINE
-            case IK_THINKING_NONE: thinking_level_str = "none"; break;
+            case IK_THINKING_MIN: thinking_level_str = "min"; break;
             case IK_THINKING_LOW:  thinking_level_str = "low";  break;
             case IK_THINKING_MED:  thinking_level_str = "med";  break;
             case IK_THINKING_HIGH: thinking_level_str = "high"; break;

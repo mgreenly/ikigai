@@ -55,7 +55,7 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent, bool with_db)
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     agent->model = talloc_strdup(agent, "gpt-5-mini");
     agent->provider = talloc_strdup(agent, "openai");
-    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->thinking_level = 0;  // IK_THINKING_MIN
     agent->shared = shared;
     r->current = agent;
 
@@ -196,13 +196,13 @@ START_TEST(test_openai_model_med_thinking) {
 
 END_TEST
 
-// Test: Model switch with none thinking level (line 130)
+// Test: Model switch with min thinking level (line 130)
 START_TEST(test_model_thinking_none) {
-    // Switch to model with none thinking
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/none");
+    // Switch to model with min thinking
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-4/min");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->model, "gpt-4");
-    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
+    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_MIN
 }
 
 END_TEST

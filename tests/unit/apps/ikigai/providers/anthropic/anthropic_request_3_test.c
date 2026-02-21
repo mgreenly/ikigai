@@ -33,7 +33,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
     ik_request_t *req = talloc_zero(ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-3-5-sonnet-20241022");
     req->max_output_tokens = 1024;
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
 
     // Add one simple message
     req->message_count = 1;
@@ -55,7 +55,7 @@ START_TEST(test_serialize_request_opus_4_6_adaptive_thinking_none) {
     ik_request_t *req = create_basic_request(test_ctx);
     talloc_free(req->model);
     req->model = talloc_strdup(req, "claude-opus-4-6");
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);

@@ -264,7 +264,7 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
         // Gemini 3 always sends thinkingConfig (NONE -> "minimal"/"low")
         need_thinking = true;
     } else {
-        need_thinking = (req->thinking.level != IK_THINKING_NONE &&
+        need_thinking = (req->thinking.level != IK_THINKING_MIN &&
                          ik_google_supports_thinking(req->model));
     }
 

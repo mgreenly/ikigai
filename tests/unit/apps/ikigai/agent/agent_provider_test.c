@@ -118,7 +118,7 @@ START_TEST(test_thinking_level_null) {
 
     res_t res = ik_agent_restore_from_row(agent, row);
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(agent->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(agent->thinking_level, IK_THINKING_MIN);
 
     talloc_free(ctx);
 }
@@ -132,11 +132,11 @@ START_TEST(test_thinking_level_none) {
     ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
     ck_assert_ptr_nonnull(agent);
 
-    ik_db_agent_row_t *row = create_test_row(ctx, "none");
+    ik_db_agent_row_t *row = create_test_row(ctx, "min");
 
     res_t res = ik_agent_restore_from_row(agent, row);
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(agent->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(agent->thinking_level, IK_THINKING_MIN);
 
     talloc_free(ctx);
 }
@@ -208,13 +208,13 @@ START_TEST(test_thinking_level_empty) {
 
     res_t res = ik_agent_restore_from_row(agent, row);
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(agent->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(agent->thinking_level, IK_THINKING_MIN);
 
     talloc_free(ctx);
 }
 
 END_TEST
-// Test parse_thinking_level with unknown value defaults to none
+// Test parse_thinking_level with unknown value defaults to min
 START_TEST(test_thinking_level_unknown) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(ctx);
@@ -226,7 +226,7 @@ START_TEST(test_thinking_level_unknown) {
 
     res_t res = ik_agent_restore_from_row(agent, row);
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(agent->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(agent->thinking_level, IK_THINKING_MIN);
 
     talloc_free(ctx);
 }

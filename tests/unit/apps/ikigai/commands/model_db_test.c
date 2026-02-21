@@ -58,7 +58,7 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     agent->model = talloc_strdup(agent, "gpt-5-mini");
     agent->provider = talloc_strdup(agent, "openai");
-    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->thinking_level = 0;  // IK_THINKING_MIN
     agent->shared = shared;
     r->current = agent;
 
@@ -81,12 +81,12 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-// Test: Database persistence with IK_THINKING_NONE (covers lines 177-179)
+// Test: Database persistence with IK_THINKING_MIN (covers lines 177-179)
 START_TEST(test_model_db_persist_thinking_none) {
-    // This should trigger the switch statement with IK_THINKING_NONE case
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/none");
+    // This should trigger the switch statement with IK_THINKING_MIN case
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/min");
     ck_assert(is_ok(&res));
-    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
+    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_MIN
 
     // Verify model changed
     ck_assert_str_eq(repl->current->model, "claude-sonnet-4-5");

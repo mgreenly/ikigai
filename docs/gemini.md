@@ -16,13 +16,13 @@ These models use thinking level strings.
 | `gemini-3-pro-preview` | Yes |
 | `gemini-3.1-pro-preview` | Yes |
 
-Thinking cannot be fully disabled for Gemini 3 models — `none` maps to the minimum supported level.
+Thinking cannot be fully disabled for Gemini 3 models — `min` maps to the minimum supported level.
 
 #### Reasoning Levels
 
 | Level | gemini-3-flash-preview | gemini-3-pro-preview | gemini-3.1-pro-preview |
 |-------|------------------------|----------------------|------------------------|
-| `none` | `"minimal"` | `"low"` | `"low"` |
+| `min` | `"minimal"` | `"low"` | `"low"` |
 | `low` | `"low"` | `"low"` | `"low"` |
 | `med` | `"medium"` | `"high"` | `"medium"` |
 | `high` | `"high"` | `"high"` | `"high"` |
@@ -45,7 +45,7 @@ Only `gemini-2.5-flash` can fully disable thinking (min budget is 0). The other 
 
 | Level | gemini-2.5-pro | gemini-2.5-flash | gemini-2.5-flash-lite |
 |-------|----------------|------------------|----------------------|
-| `none` | 128 tokens | 0 tokens | 512 tokens |
+| `min` | 128 tokens | 0 tokens | 512 tokens |
 | `low` | 8,192 tokens | 8,192 tokens | 8,192 tokens |
 | `med` | 16,384 tokens | 16,384 tokens | 16,384 tokens |
 | `high` | 32,768 tokens | 24,576 tokens | 24,576 tokens |

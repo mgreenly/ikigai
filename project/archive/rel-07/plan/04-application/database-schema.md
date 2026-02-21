@@ -34,7 +34,7 @@ COMMIT;
 **Future migrations** (for users beyond developer) would include:
 - Backfill existing rows with provider='openai'
 - Infer model from existing data
-- Default thinking_level='none'
+- Default thinking_level='min'
 
 ## Schema Changes
 
@@ -63,7 +63,7 @@ CREATE TABLE agents (
     -- New columns
     provider TEXT,        -- "anthropic", "openai", "google", etc.
     model TEXT,           -- Provider-specific model ID
-    thinking_level TEXT   -- "none", "low", "med", "high"
+    thinking_level TEXT   -- "min", "low", "med", "high"
 );
 ```
 
@@ -202,7 +202,7 @@ CREATE INDEX idx_messages_provider ON messages((data->>'provider'));
 ```sql
 -- Ensure thinking_level is valid
 ALTER TABLE agents ADD CONSTRAINT agents_thinking_level_check
-    CHECK (thinking_level IN ('none', 'low', 'med', 'high') OR thinking_level IS NULL);
+    CHECK (thinking_level IN ('min', 'low', 'med', 'high') OR thinking_level IS NULL);
 
 -- Ensure provider is known (if set)
 ALTER TABLE agents ADD CONSTRAINT agents_provider_check
@@ -214,7 +214,7 @@ ALTER TABLE agents ADD CONSTRAINT agents_provider_check
 ### Validation in Code
 
 Application-level validation should enforce:
-- `thinking_level` is one of: "none", "low", "med", "high"
+- `thinking_level` is one of: "min", "low", "med", "high"
 - `provider` is one of: "anthropic", "openai", "google", "xai", "meta"
 
 Example update query:

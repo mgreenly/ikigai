@@ -492,19 +492,19 @@ User Command → OpenAI API Parameter
 ```
 
 **For o3, o4-mini, GPT-5 models** (support "none"):
-- `/model o3/none` → `reasoning.effort: "none"` (disables reasoning entirely)
+- `/model o3/min` → `reasoning.effort: "none"` (disables reasoning entirely)
 - `/model o3/low` → `reasoning.effort: "low"` (~20% of max tokens)
 - `/model o3/med` → `reasoning.effort: "medium"` (~50% of max tokens)
 - `/model o3/high` → `reasoning.effort: "high"` (~80% of max tokens)
 
 **For o1, o3-mini** (do not support "none"):
-- `/model o3-mini/none` → Omit `reasoning.effort` parameter (use default "medium") with warning
+- `/model o3-mini/min` → Omit `reasoning.effort` parameter (use default "medium") with warning
 - `/model o3-mini/low` → `reasoning.effort: "low"`
 - `/model o3-mini/med` → `reasoning.effort: "medium"`
 - `/model o3-mini/high` → `reasoning.effort: "high"`
 
 **For GPT-4o and non-reasoning models**:
-- `/model gpt-4o/none` → No reasoning parameter (ignored)
+- `/model gpt-4o/min` → No reasoning parameter (ignored)
 - `/model gpt-4o/low|med|high` → Warning: "Thinking not supported by this model (ignored)"
 
 **API selection**:
@@ -536,7 +536,7 @@ User Command → OpenAI API Parameter
 ```
 
 ```
-> /model o3-mini/none
+> /model o3-mini/min
 
 ✓ Switched to OpenAI o3-mini (Responses API)
   ⚠ This model does not support disabling reasoning
@@ -698,14 +698,14 @@ Use `max_completion_tokens` (not deprecated `max_tokens`)
 ### 2. Implement Effort Mapping
 ```python
 OPENAI_EFFORT_MAPPING = {
-    "none": "none",   # Only for o3/o4-mini/GPT-5
+    "min": "none",    # Only for o3/o4-mini/GPT-5
     "low": "low",
     "med": "medium",
     "high": "high"
 }
 
 # Check model capability
-if model in ["o1", "o3-mini"] and effort == "none":
+if model in ["o1", "o3-mini"] and effort == "min":
     # Warn user and use default
     effort = "medium"
     warn("This model does not support disabling reasoning")

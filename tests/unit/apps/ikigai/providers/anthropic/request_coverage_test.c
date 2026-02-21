@@ -62,7 +62,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
     ik_request_t *req = talloc_zero(ctx, ik_request_t);
     req->model = talloc_strdup(req, "claude-3-5-sonnet-20241022");
     req->max_output_tokens = 1024;
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
 
     // Add one simple message
     req->message_count = 1;

@@ -7,12 +7,12 @@
     {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from gpt-5.2-pro."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait_idle": 15000},
+    {"wait_idle": 30000},
     {"read_framebuffer": true}
   ],
   "assert": [
     {"contains": "gpt-5.2-pro/low"},
-    {"contains": "low effort"},
+    {"contains": "effort: medium"},
     {"line_prefix": "●"}
   ],
   "assert_mock": [

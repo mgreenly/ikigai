@@ -34,7 +34,7 @@
  * - Google: thinking_budget (128/11008/21888)
  */
 typedef enum {
-    IK_THINKING_NONE = 0,  /* No thinking/reasoning */
+    IK_THINKING_MIN = 0,   /* Minimum thinking/reasoning */
     IK_THINKING_LOW = 1,   /* Low thinking budget */
     IK_THINKING_MED = 2,   /* Medium thinking budget */
     IK_THINKING_HIGH = 3   /* High thinking budget */

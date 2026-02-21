@@ -160,7 +160,7 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
     req->messages = msg;
     req->message_count = 1;
     req->model = talloc_strdup(test_ctx, model);
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
     req->thinking.include_summary = false;
     req->tools = NULL;
     req->tool_count = 0;
