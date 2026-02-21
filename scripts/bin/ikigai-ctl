@@ -23,6 +23,7 @@ usage() {
   echo "Examples:" >&2
   echo "  ikigai-ctl read_framebuffer" >&2
   echo "  ikigai-ctl send_keys \"hello world\r\"" >&2
+  echo "  ikigai-ctl wait_idle 10000" >&2
   echo "  ikigai-ctl read_framebuffer --socket /path/to/ikigai-1234.sock" >&2
   exit 1
 }
@@ -121,6 +122,17 @@ if [[ "$message_type" == "send_keys" ]]; then
     fi
   done
   echo "$response"
+elif [[ "$message_type" == "wait_idle" ]]; then
+  timeout_ms="${message_arg:-10000}"
+  request="{\"type\":\"wait_idle\",\"timeout_ms\":${timeout_ms}}"
+  response=$(send_request "$request")
+  echo "$response"
+  response_type=$(echo "$response" | jq -r '.type // empty')
+  if [[ "$response_type" == "idle" ]]; then
+    exit 0
+  else
+    exit 1
+  fi
 else
   request="{\"type\":\"$message_type\"}"
   response=$(send_request "$request")

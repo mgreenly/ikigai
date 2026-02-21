@@ -2,12 +2,12 @@
   "name": "set model to gemini-3-pro-preview with low reasoning",
   "steps": [
     {"send_keys": "/clear\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"send_keys": "/model gemini-3-pro-preview/low\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from gemini-3-pro-preview."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait": 5},
+    {"wait_idle": 10000},
     {"read_framebuffer": true}
   ],
   "assert": [

@@ -140,6 +140,11 @@ MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count)
     return result;
 }
 
+MOCKABLE ssize_t posix_send_(int sockfd, const void *buf, size_t len, int flags)
+{
+    return send(sockfd, buf, len, flags);
+}
+
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
 {
     // DEBUG_LOG("READ  fd=%d count=%zu", fd, count);

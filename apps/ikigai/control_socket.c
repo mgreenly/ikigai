@@ -1,5 +1,6 @@
 #include "control_socket.h"
 
+#include "apps/ikigai/agent.h"
 #include "apps/ikigai/key_inject.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/repl.h"
@@ -11,12 +12,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "vendor/yyjson/yyjson.h"
@@ -27,6 +30,8 @@ struct ik_control_socket_t {
     int32_t listen_fd;
     int32_t client_fd;
     char *socket_path;
+    bool     wait_idle_pending;        // deferred wait_idle response pending
+    int64_t  wait_idle_deadline_ms;    // CLOCK_MONOTONIC absolute deadline
 };
 
 static res_t ensure_runtime_dir_exists(TALLOC_CTX *ctx, const char *runtime_dir)
@@ -134,9 +139,11 @@ void ik_control_socket_add_to_fd_sets(ik_control_socket_t *socket,
     assert(read_fds != NULL);   // LCOV_EXCL_BR_LINE
     assert(max_fd != NULL);     // LCOV_EXCL_BR_LINE
 
-    FD_SET(socket->listen_fd, read_fds);
-    if (socket->listen_fd > *max_fd) {
-        *max_fd = socket->listen_fd;
+    if (!socket->wait_idle_pending) {
+        FD_SET(socket->listen_fd, read_fds);
+        if (socket->listen_fd > *max_fd) {
+            *max_fd = socket->listen_fd;
+        }
     }
 
     if (socket->client_fd >= 0) {
@@ -187,6 +194,99 @@ res_t ik_control_socket_accept(ik_control_socket_t *socket)
     return OK(NULL);
 }
 
+static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
+                                        ik_repl_ctx_t *repl)
+{
+    if (repl->framebuffer == NULL) {
+        return talloc_strdup(socket, "{\"error\":\"No framebuffer available\"}\n");
+    }
+    res_t ser_result = ik_serialize_framebuffer(
+        socket,
+        (const uint8_t *)repl->framebuffer,
+        repl->framebuffer_len,
+        repl->shared->term->screen_rows,
+        repl->shared->term->screen_cols,
+        repl->cursor_row,
+        repl->cursor_col,
+        repl->current->input_buffer_visible
+    );
+    if (is_ok(&ser_result)) {
+        return (char *)ser_result.ok;
+    }
+    talloc_free(ser_result.err);
+    return talloc_strdup(socket, "{\"error\":\"Serialization failed\"}\n");
+}
+
+static char *dispatch_send_keys(ik_control_socket_t *socket,
+                                 yyjson_val *root,
+                                 ik_repl_ctx_t *repl)
+{
+    yyjson_val *keys_val = yyjson_obj_get(root, "keys");
+    const char *keys = yyjson_get_str(keys_val);
+
+    if (keys == NULL) {
+        return talloc_strdup(socket, "{\"error\":\"Missing keys field\"}\n");
+    }
+
+    char *raw_bytes = NULL;
+    size_t raw_len = 0;
+    res_t unescape_result = ik_key_inject_unescape(socket, keys, strlen(keys), &raw_bytes, &raw_len);
+    if (is_err(&unescape_result)) {
+        talloc_free(unescape_result.err);
+        return talloc_strdup(socket, "{\"error\":\"Failed to unescape keys\"}\n");
+    }
+
+    res_t append_result = ik_key_inject_append(repl->key_inject_buf, raw_bytes, raw_len);
+    talloc_free(raw_bytes);
+    if (is_err(&append_result)) {
+        talloc_free(append_result.err);
+        return talloc_strdup(socket, "{\"error\":\"Failed to append keys\"}\n");
+    }
+
+    return talloc_strdup(socket, "{\"type\":\"ok\"}\n");
+}
+
+static void dispatch_wait_idle(ik_control_socket_t *socket,
+                                yyjson_val *root,
+                                ik_repl_ctx_t *repl,
+                                char **response,
+                                bool *deferred)
+{
+    if (socket->wait_idle_pending) {
+        *response = talloc_strdup(socket, "{\"error\":\"wait_idle already pending\"}\n");
+        return;
+    }
+    yyjson_val *timeout_val = yyjson_obj_get(root, "timeout_ms");
+    int64_t timeout_ms = yyjson_get_int(timeout_val);
+    if (timeout_ms <= 0) {
+        *response = talloc_strdup(socket, "{\"error\":\"Missing or invalid timeout_ms\"}\n");
+        return;
+    }
+    if (atomic_load(&repl->current->state) == IK_AGENT_STATE_IDLE) {
+        *response = talloc_strdup(socket, "{\"type\":\"idle\"}\n");
+        return;
+    }
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+    socket->wait_idle_pending     = true;
+    socket->wait_idle_deadline_ms = now_ms + timeout_ms;
+    *deferred = true;
+}
+
+static void client_send(ik_control_socket_t *socket, const char *msg, size_t len)
+{
+    if (socket->client_fd < 0) return;
+
+    ssize_t n = posix_send_(socket->client_fd, msg, len, MSG_NOSIGNAL);
+    if (n < 0 || (size_t)n < len) {
+        close(socket->client_fd);
+        socket->client_fd             = -1;
+        socket->wait_idle_pending     = false;
+        socket->wait_idle_deadline_ms = 0;
+    }
+}
+
 res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
                                        ik_repl_ctx_t *repl)
 {
@@ -201,7 +301,9 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     ssize_t n = posix_read_(socket->client_fd, buffer, sizeof(buffer) - 1);
     if (n <= 0) {
         close(socket->client_fd);
-        socket->client_fd = -1;
+        socket->client_fd             = -1;
+        socket->wait_idle_pending     = false;
+        socket->wait_idle_deadline_ms = 0;
         if (n < 0) {
             return ERR(socket, IO, "Failed to read from client: %s", strerror(errno));
         }
@@ -217,7 +319,7 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     yyjson_doc *doc = yyjson_read(buffer, strlen(buffer), 0);
     if (doc == NULL) {
         const char *error_response = "{\"error\":\"Invalid JSON\"}\n";
-        posix_write_(socket->client_fd, error_response, strlen(error_response));
+        client_send(socket, error_response, strlen(error_response));
         yyjson_doc_free(doc);
         return OK(NULL);
     }
@@ -227,65 +329,61 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     const char *type = yyjson_get_str(type_val);
 
     char *response = NULL;
+    bool deferred = false;
     if (type != NULL && strcmp(type, "read_framebuffer") == 0) {
-        if (repl->framebuffer != NULL) {
-            res_t ser_result = ik_serialize_framebuffer(
-                socket,
-                (const uint8_t *)repl->framebuffer,
-                repl->framebuffer_len,
-                repl->shared->term->screen_rows,
-                repl->shared->term->screen_cols,
-                repl->cursor_row,
-                repl->cursor_col,
-                repl->current->input_buffer_visible
-            );
-            if (is_ok(&ser_result)) {
-                response = (char *)ser_result.ok;
-            } else {
-                response = talloc_strdup(socket, "{\"error\":\"Serialization failed\"}\n");
-                talloc_free(ser_result.err);
-            }
-        } else {
-            response = talloc_strdup(socket, "{\"error\":\"No framebuffer available\"}\n");
-        }
+        response = dispatch_read_framebuffer(socket, repl);
     } else if (type != NULL && strcmp(type, "send_keys") == 0) {
-        yyjson_val *keys_val = yyjson_obj_get(root, "keys");
-        const char *keys = yyjson_get_str(keys_val);
-
-        if (keys == NULL) {
-            response = talloc_strdup(socket, "{\"error\":\"Missing keys field\"}\n");
-        } else {
-            char *raw_bytes = NULL;
-            size_t raw_len = 0;
-            res_t unescape_result = ik_key_inject_unescape(socket, keys, strlen(keys), &raw_bytes, &raw_len);
-
-            if (is_err(&unescape_result)) {
-                response = talloc_strdup(socket, "{\"error\":\"Failed to unescape keys\"}\n");
-                talloc_free(unescape_result.err);
-            } else {
-                res_t append_result = ik_key_inject_append(repl->key_inject_buf, raw_bytes, raw_len);
-                talloc_free(raw_bytes);
-
-                if (is_err(&append_result)) {
-                    response = talloc_strdup(socket, "{\"error\":\"Failed to append keys\"}\n");
-                    talloc_free(append_result.err);
-                } else {
-                    response = talloc_strdup(socket, "{\"type\":\"ok\"}\n");
-                }
-            }
-        }
+        response = dispatch_send_keys(socket, root, repl);
+    } else if (type != NULL && strcmp(type, "wait_idle") == 0) {
+        dispatch_wait_idle(socket, root, repl, &response, &deferred);
     } else {
         response = talloc_strdup(socket, "{\"error\":\"Unknown message type\"}\n");
     }
 
-    if (response == NULL) PANIC("response must be set");  // LCOV_EXCL_BR_LINE
-    size_t response_len = strlen(response);
-    if (response[response_len - 1] != '\n') {
-        response = talloc_strdup_append(response, "\n");
+    if (!deferred) {
+        if (response == NULL) PANIC("response must be set");  // LCOV_EXCL_BR_LINE
+        size_t response_len = strlen(response);
+        if (response[response_len - 1] != '\n') {
+            response = talloc_strdup_append(response, "\n");
+        }
+        client_send(socket, response, strlen(response));
+        talloc_free(response);
     }
-    posix_write_(socket->client_fd, response, strlen(response));
-    talloc_free(response);
 
     yyjson_doc_free(doc);
     return OK(NULL);
+}
+
+void ik_control_socket_tick(ik_control_socket_t *socket, ik_repl_ctx_t *repl)
+{
+    assert(socket != NULL);  // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);    // LCOV_EXCL_BR_LINE
+
+    if (!socket->wait_idle_pending) return;
+
+    bool fire = false;
+    const char *msg = NULL;
+
+    if (atomic_load(&repl->current->state) == IK_AGENT_STATE_IDLE) {
+        fire = true;
+        msg  = "{\"type\":\"idle\"}\n";
+    } else {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+        if (now_ms >= socket->wait_idle_deadline_ms) {
+            fire = true;
+            msg  = "{\"type\":\"timeout\"}\n";
+        }
+    }
+
+    if (fire) {
+        client_send(socket, msg, strlen(msg));
+        if (socket->client_fd >= 0) {
+            close(socket->client_fd);
+            socket->client_fd = -1;
+        }
+        socket->wait_idle_pending     = false;
+        socket->wait_idle_deadline_ms = 0;
+    }
 }
