@@ -1,0 +1,21 @@
+{
+  "name": "set model to openai gpt-5.2-chat-latest with low reasoning",
+  "steps": [
+    {"send_keys": "/clear\\r"},
+    {"wait": 1},
+    {"send_keys": "/model gpt-5.2-chat-latest/low\\r"},
+    {"wait": 1},
+    {"mock_expect": {"responses": [{"content": "Mock response from gpt-5.2-chat-latest."}]}},
+    {"send_keys": "Hello\\r"},
+    {"wait": 5},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "gpt-5.2-chat-latest/low"},
+    {"contains": "low effort"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": [
+    {"contains": "Mock response from gpt-5.2-chat-latest."}
+  ]
+}

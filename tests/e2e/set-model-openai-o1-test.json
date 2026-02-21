@@ -1,0 +1,21 @@
+{
+  "name": "set model to openai o1 with low reasoning",
+  "steps": [
+    {"send_keys": "/clear\\r"},
+    {"wait": 1},
+    {"send_keys": "/model o1/low\\r"},
+    {"wait": 1},
+    {"mock_expect": {"responses": [{"content": "Mock response from o1."}]}},
+    {"send_keys": "Hello\\r"},
+    {"wait": 5},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "o1/low"},
+    {"contains": "low effort"},
+    {"line_prefix": "●"}
+  ],
+  "assert_mock": [
+    {"contains": "Mock response from o1."}
+  ]
+}
