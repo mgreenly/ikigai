@@ -65,9 +65,11 @@ class E2ERunner
     @ikigai_pid = Process.spawn(env, 'bin/ikigai', '--headless', %i[out err] => '/dev/null')
     @socket_path = File.join(RUNTIME_DIR, "ikigai-#{@ikigai_pid}.sock")
     wait_for_socket(@socket_path)
+    @socket = UNIXSocket.new(@socket_path)
   end
 
   def stop_services
+    @socket&.close
     [@ikigai_pid, @mock_pid].compact.each do |pid|
       Process.kill('INT', pid)
       Process.wait(pid)
@@ -97,11 +99,8 @@ class E2ERunner
   # -- socket communication --
 
   def send_request(hash)
-    socket = UNIXSocket.new(@socket_path)
-    socket.write(JSON.generate(hash) + "\n")
-    JSON.parse(socket.gets("\n"))
-  ensure
-    socket&.close
+    @socket.write(JSON.generate(hash) + "\n")
+    JSON.parse(@socket.gets("\n"))
   end
 
   def ctl_send_keys(keys)
@@ -139,7 +138,11 @@ class E2ERunner
 
   def step_wait_idle(timeout_ms)
     log('wait_idle', "#{timeout_ms}ms")
-    response = send_request('type' => 'wait_idle', 'timeout_ms' => timeout_ms)
+    # Use a fresh connection; server closes it after responding
+    fresh = UNIXSocket.new(@socket_path)
+    fresh.write(JSON.generate('type' => 'wait_idle', 'timeout_ms' => timeout_ms) + "\n")
+    response = JSON.parse(fresh.gets("\n"))
+    fresh.close
     if response['type'] == 'timeout'
       @pass = false
       log('wait_idle', 'TIMEOUT — agent did not become idle in time')

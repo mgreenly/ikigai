@@ -7,7 +7,7 @@
     {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from claude-sonnet-4-5."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait_idle": 15000},
+    {"wait_idle": 10000},
     {"read_framebuffer": true}
   ],
   "assert": [
