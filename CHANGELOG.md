@@ -4,6 +4,70 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [rel-12] - 2026-02-22
+
+### Added
+
+#### Control Socket & ikigai-ctl (Complete)
+- **Runtime directory**: `IKIGAI_RUNTIME_DIR` environment variable and `runtime_dir` field in `ik_paths_t`; install wrapper updated to propagate the variable
+- **Control socket lifecycle**: `init`/`destroy` functions integrated into the repl event loop
+- **Framebuffer serialization**: ANSI-to-JSON serialization of the terminal framebuffer for programmatic screen reading
+- **Key injection buffer**: `key_inject.h/c` module buffers synthetic keystrokes; buffer drained in main event loop
+- **`send_keys` dispatcher**: `send_keys` wired into the control socket command dispatcher
+- **ikigai-ctl client script**: Shell script for programmatic interaction with a running ikigai instance
+- **`send_keys` subcommand**: ikigai-ctl `send_keys` command with correct escape sequence handling
+- **ikigai-ctl skill**: Documentation for the control socket protocol and client usage
+
+#### Headless Mode (Complete)
+- **`--headless` flag**: `ik_term_init_headless()` initializes the terminal layer without a TTY; `tty_fd >= 0` guards throughout protect headless operation
+- **Removed dev dump**: `read_framebuffer` via ikigai-ctl replaces the compile-time dev framebuffer dump
+
+#### End-to-End Test Framework (Complete)
+- **Functional test infrastructure**: Smoke test harness for black-box functional testing
+- **Mock provider — OpenAI**: Mock HTTP server implementing the OpenAI Responses API for deterministic e2e tests
+- **Mock provider — Anthropic & Google**: Expanded mock provider to cover all three supported AI providers
+- **Automated e2e test runner**: `check-e2e` script runs the full end-to-end suite automatically
+- **Model switching tests**: E2e tests exercise model switching across providers
+- **Bash tool e2e tests**: End-to-end tests covering bash tool execution; `simulate_typing` helper added to ikigai-ctl
+- **e2e-testing skill**: JSON-based end-to-end test format documented; renamed from manual-testing; `wait_idle` chaining rule added
+
+#### Documentation & Skills
+- **mdp skill**: Livestream banner generation with mdp
+- **Mock providers design doc**: Architecture document for the mock provider system
+- **Headless mode design plan**: Design document for headless operation
+
+### Changed
+
+#### Code Quality
+- **Header guard normalization**: All header guards in `apps/ikigai/` use the `IK_` prefix
+- **Namespace compliance**: 7 public functions in the commands layer renamed to add the missing `ik_` prefix
+- **Memory safety**: Replaced bare `malloc` with `talloc_zero_size` in OpenAI serializers; `talloc_zero_array` used in `key_inject.c` and `serialize_framebuffer.c` escape buffers
+- **Dead code cleanup**: Stale TODOs and dead commented-out code removed
+
+#### Skills & Pipeline
+- **Pipeline skill**: `--model`/`--reasoning` flags omitted by default; only set when user explicitly requests them
+
+### Added
+
+#### New Models
+- **gpt-5.1-codex-mini**: New OpenAI model registered with standard low/medium/high reasoning
+- **gpt-5.2-pro**: New OpenAI model registered with medium/high/xhigh reasoning support
+- **gemini-3.1-pro-preview**: New Google model registered with per-model thinking level mapping (NONE→"low", LOW→"low", MED→"medium", HIGH→"high")
+- **claude-sonnet-4-6**: Registered as an adaptive thinking model (joins claude-opus-4-6 in the adaptive models list)
+- **claude-opus-4-5**: Added to the Anthropic budget table (1024–65536 token range)
+
+### Fixed
+- **Framebuffer serializer**: Row-0 collapse bug — all framebuffer content was being written to row 0
+- **ikigai-ctl send_keys**: Escape sequence handling corrected; `jq --compact` flag added to produce valid single-line JSON
+- **gpt-5.1/5.2-chat-latest reasoning**: Both models use fixed adaptive reasoning — the API rejects any effort value other than `"medium"`; all four effort levels now map to `"medium"` for these models
+- **Gemini 3 thinking level mapping**: Replaced hardcoded LOW/MED/HIGH strings with a per-model table; gemini-3-flash-preview, gemini-3-pro-preview, and gemini-3.1-pro-preview each have their own correct mappings
+- **Anthropic adaptive model detection**: Replaced single-model hardcoded check with a proper `ADAPTIVE_MODELS[]` table; claude-sonnet-4-6 now correctly identified as adaptive
+
+### Technical Metrics
+- **Changes**: 166 files changed, +10,471/-551 lines
+- **Commits**: 43 commits over development cycle
+- **Quality gates**: All standard checks pass (compile, link, filesize, unit, integration, complexity)
+
 ## [rel-11] - 2026-02-15
 
 ### Added
@@ -1092,6 +1156,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Quality gates: fmt, check, lint, coverage, check-dynamic
 - Parallel test execution support (up to 32 concurrent tests)
 
+[rel-12]: https://github.com/mgreenly/ikigai/releases/tag/rel-12
 [rel-11]: https://github.com/mgreenly/ikigai/releases/tag/rel-11
 [rel-10]: https://github.com/mgreenly/ikigai/releases/tag/rel-10
 [rel-09]: https://github.com/mgreenly/ikigai/releases/tag/rel-09
