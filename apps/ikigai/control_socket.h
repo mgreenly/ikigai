@@ -56,3 +56,9 @@ res_t ik_control_socket_accept(ik_control_socket_t *socket);
 // Asserts socket != NULL and repl != NULL
 res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
                                        ik_repl_ctx_t *repl);
+
+// Check and fire any pending wait_idle response (call every main loop iteration).
+// Sends {"type":"idle"} when agent reaches IDLE, {"type":"timeout"} on deadline.
+// No-op if no pending wait_idle.
+// Asserts socket != NULL and repl != NULL.
+void ik_control_socket_tick(ik_control_socket_t *socket, ik_repl_ctx_t *repl);

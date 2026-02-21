@@ -2,12 +2,12 @@
   "name": "set model to openai gpt-5.2-pro with low reasoning",
   "steps": [
     {"send_keys": "/clear\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"send_keys": "/model gpt-5.2-pro/low\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from gpt-5.2-pro."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait": 5},
+    {"wait_idle": 10000},
     {"read_framebuffer": true}
   ],
   "assert": [

@@ -69,11 +69,25 @@ Always `read_framebuffer` before asserting. Each `read_framebuffer` replaces the
 Pause for N seconds. Use after `send_keys` to allow UI updates or LLM responses.
 
 ```json
-{"wait": 1}
+{"wait": 0.5}
 ```
 
-- After UI commands (`/model`, `/clear`): 1 second
+- After UI commands (`/model`, `/clear`): 0.5 seconds
 - After sending a prompt to the LLM: 3-5 seconds
+
+### `wait_idle`
+
+Wait until the current agent becomes idle (ready for input), or until the timeout elapses.
+Calls `ikigai-ctl wait_idle <timeout_ms>`.
+
+```json
+{"wait_idle": 10000}
+```
+
+- Value is `timeout_ms` (integer milliseconds)
+- Exit code 0 = agent became idle; exit code 1 = timed out (report FAIL)
+- Use instead of `{"wait": N}` after sending prompts to the LLM
+- Keep `{"wait": 0.5}` for UI-only commands (`/clear`, `/model`) that don't trigger LLM
 
 ### `mock_expect`
 
@@ -122,6 +136,7 @@ When asked to run tests, execute this procedure for each test file:
 3. Execute each step in order:
    - `send_keys`: run `ikigai-ctl send_keys "<value>"`
    - `wait`: `sleep N`
+   - `wait_idle`: run `ikigai-ctl wait_idle <value>`, fail if exit code is 1
    - `read_framebuffer`: run `ikigai-ctl read_framebuffer`, store result
    - `mock_expect`: in mock mode, `curl -s 127.0.0.1:<port>/_mock/expect -d '<json>'`; in live mode, skip
 4. After all steps, evaluate assertions:
@@ -132,9 +147,11 @@ When asked to run tests, execute this procedure for each test file:
 ## Key Rules
 
 - **Never start ikigai** — the user manages the instance
+- **Never use a script to run live mode tests** — live mode tests exist precisely because they are not run by code. Execute each step individually using tool calls so every response is visible and any crash or unexpected behavior can be observed and explained.
 - **One test file = one test** — self-contained, no dependencies on other test files
 - **Steps execute in order** — sequential, never parallel
 - **Always read_framebuffer before asserting** — assertions reference the last capture
+- **Never chain anything after wait_idle** — `wait_idle` must always be the last command in a Bash tool call. If it succeeds (exit code 0) and a subsequent command fails, the overall exit code 1 is indistinguishable from `wait_idle` timing out. Run `read_framebuffer` in a separate Bash tool call after `wait_idle` completes.
 
 ## Example: UI-only test
 
@@ -177,12 +194,12 @@ When asked to run tests, execute this procedure for each test file:
   "name": "set model to gpt-5-mini with low reasoning",
   "steps": [
     {"send_keys": "/clear\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"send_keys": "/model gpt-5-mini/low\\r"},
-    {"wait": 1},
+    {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from gpt-5-mini."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait": 5},
+    {"wait_idle": 10000},
     {"read_framebuffer": true}
   ],
   "assert": [

@@ -36,6 +36,9 @@ void ik_repl_handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
     if (repl->control_socket == NULL) {
         return;
     }
+
+    ik_control_socket_tick(repl->control_socket, repl);  // fire pending wait_idle
+
     if (ik_control_socket_listen_ready(repl->control_socket, read_fds)) {
         res_t accept_result = ik_control_socket_accept(repl->control_socket);
         if (is_err(&accept_result)) {

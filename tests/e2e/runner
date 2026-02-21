@@ -63,9 +63,9 @@ class E2ERunner
       'GOOGLE_BASE_URL'    => MOCK_URL
     }
     @ikigai_pid = Process.spawn(env, 'bin/ikigai', '--headless', %i[out err] => '/dev/null')
-    socket_path = File.join(RUNTIME_DIR, "ikigai-#{@ikigai_pid}.sock")
-    wait_for_socket(socket_path)
-    @socket = UNIXSocket.new(socket_path)
+    @socket_path = File.join(RUNTIME_DIR, "ikigai-#{@ikigai_pid}.sock")
+    wait_for_socket(@socket_path)
+    @socket = UNIXSocket.new(@socket_path)
   end
 
   def stop_services
@@ -136,6 +136,19 @@ class E2ERunner
     Net::HTTP.post(uri, JSON.generate(config), 'Content-Type' => 'application/json')
   end
 
+  def step_wait_idle(timeout_ms)
+    log('wait_idle', "#{timeout_ms}ms")
+    # Use a fresh connection; server closes it after responding
+    fresh = UNIXSocket.new(@socket_path)
+    fresh.write(JSON.generate('type' => 'wait_idle', 'timeout_ms' => timeout_ms) + "\n")
+    response = JSON.parse(fresh.gets("\n"))
+    fresh.close
+    if response['type'] == 'timeout'
+      @pass = false
+      log('wait_idle', 'TIMEOUT — agent did not become idle in time')
+    end
+  end
+
   # -- step dispatch --
 
   def execute_steps(steps)
@@ -149,6 +162,7 @@ class E2ERunner
     when 'wait'             then step_wait(value)
     when 'read_framebuffer' then step_read_framebuffer
     when 'mock_expect'      then step_mock_expect(value)
+    when 'wait_idle'        then step_wait_idle(value)
     else abort("Unknown step type: #{type}")
     end
   end
