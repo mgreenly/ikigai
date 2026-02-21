@@ -219,7 +219,8 @@ static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
 
 static char *dispatch_send_keys(ik_control_socket_t *socket,
                                  yyjson_val *root,
-                                 ik_repl_ctx_t *repl)
+                                 char **pending_keys,
+                                 size_t *pending_keys_len)
 {
     yyjson_val *keys_val = yyjson_obj_get(root, "keys");
     const char *keys = yyjson_get_str(keys_val);
@@ -236,13 +237,8 @@ static char *dispatch_send_keys(ik_control_socket_t *socket,
         return talloc_strdup(socket, "{\"error\":\"Failed to unescape keys\"}\n");
     }
 
-    res_t append_result = ik_key_inject_append(repl->key_inject_buf, raw_bytes, raw_len);
-    talloc_free(raw_bytes);
-    if (is_err(&append_result)) {
-        talloc_free(append_result.err);
-        return talloc_strdup(socket, "{\"error\":\"Failed to append keys\"}\n");
-    }
-
+    *pending_keys = raw_bytes;
+    *pending_keys_len = raw_len;
     return talloc_strdup(socket, "{\"type\":\"ok\"}\n");
 }
 
@@ -334,10 +330,12 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
 
     char *response = NULL;
     bool deferred = false;
+    char *pending_keys = NULL;
+    size_t pending_keys_len = 0;
     if (type != NULL && strcmp(type, "read_framebuffer") == 0) {
         response = dispatch_read_framebuffer(socket, repl);
     } else if (type != NULL && strcmp(type, "send_keys") == 0) {
-        response = dispatch_send_keys(socket, root, repl);
+        response = dispatch_send_keys(socket, root, &pending_keys, &pending_keys_len);
     } else if (type != NULL && strcmp(type, "wait_idle") == 0) {
         dispatch_wait_idle(socket, root, repl, &response, &deferred);
     } else {
@@ -352,6 +350,16 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
         }
         client_send(socket, response, strlen(response));
         talloc_free(response);
+
+        if (pending_keys != NULL && socket->client_fd >= 0) {
+            res_t append_result = ik_key_inject_append(repl->key_inject_buf,
+                                                        pending_keys, pending_keys_len);
+            if (is_err(&append_result)) {
+                talloc_free(append_result.err);
+            }
+        }
+        talloc_free(pending_keys);
+
         if (socket->client_fd >= 0) {
             close(socket->client_fd);
             socket->client_fd = -1;

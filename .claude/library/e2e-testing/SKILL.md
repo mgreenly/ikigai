@@ -127,13 +127,17 @@ At least one row starts with the given prefix (after trimming leading whitespace
 {"line_prefix": "●"}
 ```
 
-## Running Tests (LLM-Driven)
+## Running Tests — Direct Execution, No Scripts
 
-When asked to run tests, execute this procedure for each test file:
+**Every step must be executed directly using individual tool calls — never via a script, the runner, or any programmatic wrapper.** This applies to mock mode, live mode, single tests, and full suite runs.
+
+**Why:** The reason you are asked to run e2e tests (instead of the user running `tests/e2e/runner` themselves) is that direct execution lets you observe every response and react to unexpected behavior — crashes, garbled output, timing issues. A script executes steps mechanically and silently masks errors. The fully automated scripted runner already exists for when scripted execution is appropriate; when the user asks you to run e2e tests, they want the manual path precisely because the runner is not sufficient for what they're investigating.
+
+### Procedure for each test file:
 
 1. Read the JSON file
 2. Determine mode (mock or live) from context — mock if ikigai is connected to `mock-provider`, live otherwise
-3. Execute each step in order:
+3. Execute each step in order, one tool call per step:
    - `send_keys`: run `ikigai-ctl send_keys "<value>"`
    - `wait`: `sleep N`
    - `wait_idle`: run `ikigai-ctl wait_idle <value>`, fail if exit code is 1
@@ -144,24 +148,25 @@ When asked to run tests, execute this procedure for each test file:
    - In mock mode, also evaluate `assert_mock`
 5. Report **PASS** or **FAIL** with evidence (cite relevant framebuffer rows)
 
-## Running Large Live Test Batches with Sub-Agents
+## Running Large Test Batches with Sub-Agents
 
-When asked to run a **large number of live e2e tests** (more than 20), divide the work across sub-agents running **serially** (one after the next, never in parallel):
+When asked to run a **large number of e2e tests** (more than 20), in either mock or live mode, divide the work across sub-agents running **serially** (one after the next, never in parallel):
 
 1. Read `tests/e2e/index.json` to get the full ordered list of test files
 2. Partition the list into chunks of at most **20 tests each**
 3. Launch one sub-agent per chunk, **sequentially** — wait for each to complete before launching the next
-4. Each sub-agent receives: its assigned test files (in order), the ikigai socket path, and instructions to run in live mode. **Do not pre-read the test files yourself** — pass only the filenames and let the sub-agent read them.
-5. Collect pass/fail results from each sub-agent and summarize at the end
+4. Each sub-agent receives: its assigned test files (in order), the ikigai socket path, the mock provider port (if mock mode), and **the full contents of this skill file** (`/load e2e-testing` or inline the text). The sub-agent needs the complete context — step types, assertion types, execution rules, key rules — to execute correctly. Without it, the sub-agent will improvise and introduce errors. **Do not pre-read the test files yourself** — pass only the filenames and let the sub-agent read them.
+6. Collect pass/fail results from each sub-agent and summarize at the end
 
 **Why serially:** Tests share a single ikigai instance. Running sub-agents concurrently would interleave keystrokes and framebuffer reads across tests, corrupting results.
 
-**Why chunked:** Live tests are slow (LLM round-trips). Chunking prevents any single agent from exhausting its context window mid-run.
+**Why chunked:** Tests consume context window space. Chunking prevents any single agent from exhausting its context window mid-run.
 
 ## Key Rules
 
 - **Never start ikigai** — the user manages the instance
-- **Never use a script to run live mode tests** — live mode tests exist precisely because they are not run by code. Execute each step individually using tool calls so every response is visible and any crash or unexpected behavior can be observed and explained.
+- **Never use the runner script** (`tests/e2e/runner`) — it exists for CI/automated use. When the user asks you to run tests, they want direct execution so they can see every step and every response.
+- **Never use any script or programmatic wrapper** — no Ruby, no shell loops, no automation of any kind. One tool call per step. This applies equally to sub-agents executing chunked batches.
 - **One test file = one test** — self-contained, no dependencies on other test files
 - **Steps execute in order** — sequential, never parallel
 - **Always read_framebuffer before asserting** — assertions reference the last capture
