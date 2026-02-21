@@ -276,6 +276,13 @@ START_TEST(test_infer_provider_openai_o3_exact) {
 
 END_TEST
 
+START_TEST(test_infer_provider_openai_o4) {
+    const char *provider = ik_infer_provider("o4-mini");
+    ck_assert_ptr_nonnull(provider);
+    ck_assert_str_eq(provider, "openai");
+}
+END_TEST
+
 /* ================================================================
  * Model Thinking Support
  * ================================================================ */
@@ -433,6 +440,7 @@ static Suite *provider_types_suite(void)
     tcase_add_test(tc_infer, test_infer_provider_openai_o1);
     tcase_add_test(tc_infer, test_infer_provider_openai_o3);
     tcase_add_test(tc_infer, test_infer_provider_openai_o3_exact);
+    tcase_add_test(tc_infer, test_infer_provider_openai_o4);
     tcase_add_test(tc_infer, test_infer_provider_anthropic);
     tcase_add_test(tc_infer, test_infer_provider_google);
     tcase_add_test(tc_infer, test_infer_provider_unknown);

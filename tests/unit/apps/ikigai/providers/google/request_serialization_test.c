@@ -368,7 +368,8 @@ END_TEST
 START_TEST(test_serialize_request_with_thinking_gemini_25) {
     ik_request_t req = {0}; char *json = NULL;
     req.model = (char *)"gemini-2.5-pro"; req.thinking.level = IK_THINKING_LOW;
-    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    res_t r25 = ik_google_serialize_request(test_ctx, &req, &json);
+    ck_assert(is_ok(&r25));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");
@@ -382,7 +383,8 @@ END_TEST
 START_TEST(test_serialize_request_with_thinking_gemini_3) {
     ik_request_t req = {0}; char *json = NULL;
     req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_MED;
-    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    res_t r3 = ik_google_serialize_request(test_ctx, &req, &json);
+    ck_assert(is_ok(&r3));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
@@ -398,7 +400,8 @@ END_TEST
 START_TEST(test_serialize_request_with_thinking_gemini_3_none) {
     ik_request_t req = {0}; char *json = NULL;
     req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_NONE;
-    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    res_t r3n = ik_google_serialize_request(test_ctx, &req, &json);
+    ck_assert(is_ok(&r3n));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");
@@ -411,7 +414,8 @@ END_TEST
 START_TEST(test_serialize_request_with_thinking_gemini_31_pro) {
     ik_request_t req = {0}; char *json = NULL;
     req.model = (char *)"gemini-3.1-pro-preview"; req.thinking.level = IK_THINKING_MED;
-    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    res_t r31 = ik_google_serialize_request(test_ctx, &req, &json);
+    ck_assert(is_ok(&r31));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");

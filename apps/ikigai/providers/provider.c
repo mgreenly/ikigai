@@ -72,6 +72,9 @@ const char *ik_infer_provider(const char *model_name)
     if (strcmp(model_name, "o3") == 0 || strncmp(model_name, "o3-", 3) == 0) {
         return "openai";
     }
+    if (strcmp(model_name, "o4") == 0 || strncmp(model_name, "o4-", 3) == 0) {
+        return "openai";
+    }
 
     // Anthropic models: claude-*
     if (strncmp(model_name, "claude-", 7) == 0) {

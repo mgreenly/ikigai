@@ -221,11 +221,11 @@ START_TEST(test_reasoning_effort_gpt52_high) {
     ck_assert_str_eq(effort, "xhigh");
 } END_TEST
 
-// gpt-5.2-pro: same xhigh ceiling as gpt-5.2
+// gpt-5.2-pro: min effort is "medium" (API rejects "none" and "low")
 START_TEST(test_reasoning_effort_gpt52_pro_none) {
     const char *effort = ik_openai_reasoning_effort("gpt-5.2-pro", IK_THINKING_NONE);
     ck_assert_ptr_nonnull(effort);
-    ck_assert_str_eq(effort, "none");
+    ck_assert_str_eq(effort, "medium");
 } END_TEST
 
 START_TEST(test_reasoning_effort_gpt52_pro_high) {

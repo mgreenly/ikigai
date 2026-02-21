@@ -85,7 +85,7 @@ static const ik_effort_map_t EFFORT_MAP[] = {
     { "gpt-5.2",             "none",    "low",  "medium", "xhigh" },
     { "gpt-5.2-chat-latest", "none",    "low",  "medium", "xhigh" },
     { "gpt-5.2-codex",       "none",    "low",  "medium", "xhigh" },
-    { "gpt-5.2-pro",         "none",    "low",  "medium", "xhigh" },
+    { "gpt-5.2-pro",         "medium",  "medium", "high",  "xhigh" },
     { NULL, NULL, NULL, NULL, NULL }
 };
 
