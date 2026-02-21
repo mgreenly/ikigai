@@ -153,8 +153,8 @@ res_t ik_commands_fork_apply_override(ik_agent_ctx_t *child, const char *model_s
     // Parse thinking level if specified, otherwise keep parent's level (already inherited)
     if (thinking_str != NULL) {
         ik_thinking_level_t thinking_level;
-        if (strcmp(thinking_str, "none") == 0) {
-            thinking_level = IK_THINKING_NONE;
+        if (strcmp(thinking_str, "min") == 0) {
+            thinking_level = IK_THINKING_MIN;
         } else if (strcmp(thinking_str, "low") == 0) {
             thinking_level = IK_THINKING_LOW;
         } else if (strcmp(thinking_str, "med") == 0) {
@@ -162,7 +162,7 @@ res_t ik_commands_fork_apply_override(ik_agent_ctx_t *child, const char *model_s
         } else if (strcmp(thinking_str, "high") == 0) {
             thinking_level = IK_THINKING_HIGH;
         } else {
-            return ERR(child, INVALID_ARG, "Invalid thinking level '%s' (must be: none, low, med, high)", thinking_str);
+            return ERR(child, INVALID_ARG, "Invalid thinking level '%s' (must be: min, low, med, high)", thinking_str);
         }
         child->thinking_level = thinking_level;
     }

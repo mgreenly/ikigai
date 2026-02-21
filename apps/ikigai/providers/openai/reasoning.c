@@ -56,7 +56,7 @@ bool ik_openai_is_reasoning_model(const char *model)
 
 typedef struct {
     const char *model;
-    const char *none;
+    const char *min;
     const char *low;
     const char *med;
     const char *high;
@@ -100,7 +100,7 @@ const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t le
     for (size_t i = 0; EFFORT_MAP[i].model != NULL; i++) {
         if (strcmp(model, EFFORT_MAP[i].model) == 0) {
             switch (level) {
-                case IK_THINKING_NONE: return EFFORT_MAP[i].none;
+                case IK_THINKING_MIN: return EFFORT_MAP[i].min;
                 case IK_THINKING_LOW:  return EFFORT_MAP[i].low;
                 case IK_THINKING_MED:  return EFFORT_MAP[i].med;
                 case IK_THINKING_HIGH: return EFFORT_MAP[i].high;

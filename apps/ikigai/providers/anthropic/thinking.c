@@ -96,7 +96,7 @@ const char *ik_anthropic_thinking_effort(const char *model, ik_thinking_level_t 
 
     // Map thinking level to effort string
     switch (level) { // LCOV_EXCL_BR_LINE
-        case IK_THINKING_NONE:
+        case IK_THINKING_MIN:
             return NULL; // Omit thinking parameter
         case IK_THINKING_LOW:
             return "low";
@@ -137,7 +137,7 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
     int32_t range = max_budget - min_budget;
 
     switch (level) { // LCOV_EXCL_BR_LINE
-        case IK_THINKING_NONE:
+        case IK_THINKING_MIN:
             return min_budget;
         case IK_THINKING_LOW:
             return floor_power_of_2(min_budget + range / 3);

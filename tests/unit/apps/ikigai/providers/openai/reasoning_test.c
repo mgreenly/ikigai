@@ -53,7 +53,7 @@ END_TEST
 
 // o1/o3 family tests
 START_TEST(test_reasoning_effort_o1_none) {
-    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("o1", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "low");
 }
@@ -85,7 +85,7 @@ START_TEST(test_reasoning_effort_o1_high) {
 END_TEST
 
 START_TEST(test_reasoning_effort_o3_mini_none) {
-    const char *effort = ik_openai_reasoning_effort("o3-mini", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("o3-mini", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "low");
 }
@@ -94,7 +94,7 @@ END_TEST
 
 // gpt-5.x family tests
 START_TEST(test_reasoning_effort_gpt5_none) {
-    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("gpt-5", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "minimal");
 }
@@ -126,7 +126,7 @@ START_TEST(test_reasoning_effort_gpt5_high) {
 END_TEST
 
 START_TEST(test_reasoning_effort_gpt52_none) {
-    const char *effort = ik_openai_reasoning_effort("gpt-5.2", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("gpt-5.2", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "none");
 }
@@ -143,7 +143,7 @@ END_TEST
 
 // gpt-5-pro tests
 START_TEST(test_reasoning_effort_gpt5_pro_none) {
-    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("gpt-5-pro", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "high");
 }
@@ -176,14 +176,14 @@ END_TEST
 
 // o3: can disable reasoning (unlike o1/o3-mini)
 START_TEST(test_reasoning_effort_o3_none) {
-    const char *effort = ik_openai_reasoning_effort("o3", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("o3", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "none");
 } END_TEST
 
 // o4-mini: new o-series, same as o3
 START_TEST(test_reasoning_effort_o4_mini_none) {
-    const char *effort = ik_openai_reasoning_effort("o4-mini", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("o4-mini", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "none");
 } END_TEST
@@ -196,14 +196,14 @@ START_TEST(test_reasoning_effort_o4_mini_high) {
 
 // o3-pro: same effort range as o3
 START_TEST(test_reasoning_effort_o3_pro_none) {
-    const char *effort = ik_openai_reasoning_effort("o3-pro", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("o3-pro", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "none");
 } END_TEST
 
 // gpt-5.1-codex-mini: none family, max "high"
 START_TEST(test_reasoning_effort_gpt51_codex_mini_none) {
-    const char *effort = ik_openai_reasoning_effort("gpt-5.1-codex-mini", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("gpt-5.1-codex-mini", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "none");
 } END_TEST
@@ -223,7 +223,7 @@ START_TEST(test_reasoning_effort_gpt52_high) {
 
 // gpt-5.2-pro: min effort is "medium" (API rejects "none" and "low")
 START_TEST(test_reasoning_effort_gpt52_pro_none) {
-    const char *effort = ik_openai_reasoning_effort("gpt-5.2-pro", IK_THINKING_NONE);
+    const char *effort = ik_openai_reasoning_effort("gpt-5.2-pro", IK_THINKING_MIN);
     ck_assert_ptr_nonnull(effort);
     ck_assert_str_eq(effort, "medium");
 } END_TEST
@@ -236,7 +236,7 @@ START_TEST(test_reasoning_effort_gpt52_pro_high) {
 
 /* gpt-5.1-chat-latest: fixed "medium" (API rejects all other values) */
 START_TEST(test_reasoning_effort_gpt51_chat_latest_none) {
-    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_NONE), "medium");
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_MIN), "medium");
 } END_TEST
 START_TEST(test_reasoning_effort_gpt51_chat_latest_low) {
     ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_LOW), "medium");
@@ -250,7 +250,7 @@ START_TEST(test_reasoning_effort_gpt51_chat_latest_high) {
 
 /* gpt-5.2-chat-latest: fixed "medium" (API rejects all other values) */
 START_TEST(test_reasoning_effort_gpt52_chat_latest_none) {
-    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_NONE), "medium");
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_MIN), "medium");
 } END_TEST
 START_TEST(test_reasoning_effort_gpt52_chat_latest_low) {
     ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_LOW), "medium");

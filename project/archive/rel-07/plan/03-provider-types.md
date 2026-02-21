@@ -421,11 +421,11 @@ Internal Format ← Provider Adapter ← Wire Format (JSON) ← HTTP ←  Respon
 
 ## Thinking/Reasoning Abstraction
 
-ikigai provides a unified thinking level abstraction where users specify one of: `none`, `low`, `med`, `high`. Provider adapters translate these levels to provider-specific parameters.
+ikigai provides a unified thinking level abstraction where users specify one of: `min`, `low`, `med`, `high`. Provider adapters translate these levels to provider-specific parameters.
 
 ### Unified Thinking Levels
 
-- `none` - Disabled or minimum thinking
+- `min` - Disabled or minimum thinking
 - `low` - Approximately 1/3 of maximum budget
 - `med` - Approximately 2/3 of maximum budget
 - `high` - Maximum budget
@@ -448,7 +448,7 @@ Anthropic uses `thinking.budget_tokens` parameter.
 budget = min + (level_value / 3) * (max - min)
 
 Where level_value is:
-  none → 0
+  min  → 0
   low  → 1
   med  → 2
   high → 3
@@ -457,7 +457,7 @@ Where level_value is:
 **Examples (Sonnet 4.5, min=1024, max=64000):**
 
 ```
-none → 1,024   (minimum)
+min  → 1,024   (minimum)
 low  → 22,016  (1024 + 1/3 * 62,976)
 med  → 43,008  (1024 + 2/3 * 62,976)
 high → 64,000  (maximum)
@@ -487,7 +487,7 @@ high → 64,000  (maximum)
 1. Find matching model pattern from configuration table
 2. If no match, use Sonnet defaults (1024-64000)
 3. Calculate budget using formula above
-4. Return minimum for `none`, maximum for `high`
+4. Return minimum for `min`, maximum for `high`
 
 ### Google (Mixed: Budget for 2.5, Level for 3)
 
@@ -506,7 +506,7 @@ Google uses **different parameters for different model series:**
 **Mapping (Gemini 2.5 Flash Lite):**
 
 ```
-none → 512     (minimum, cannot disable)
+min  → 512     (minimum, cannot disable)
 low  → 8,533   (512 + 1/3 * (24576 - 512))
 med  → 16,554  (512 + 2/3 * (24576 - 512))
 high → 24,576  (maximum)
@@ -515,7 +515,7 @@ high → 24,576  (maximum)
 **Mapping (Gemini 3.0 Flash / 3.0 Pro):**
 
 ```
-none → "LOW"   (cannot disable)
+min  → "LOW"   (cannot disable)
 low  → "LOW"
 med  → "HIGH"  (round up)
 high → "HIGH"
@@ -559,7 +559,7 @@ high → "HIGH"
 
 1. Find matching model pattern from configuration table
 2. If `uses_level` is true (Gemini 3):
-   - Map `none`/`low` → "LOW"
+   - Map `min`/`low` → "LOW"
    - Map `med`/`high` → "HIGH"
    - Add to `thinkingLevel` field
 3. If `uses_level` is false (Gemini 2.5):
@@ -577,7 +577,7 @@ OpenAI uses `reasoning.effort` parameter (Responses API) or `reasoning_effort` (
 **Mapping:**
 
 ```
-none → "none"
+min  → "none"
 low  → "low"
 med  → "medium"
 high → "high"
@@ -614,7 +614,7 @@ high → "high"
 
 1. All GPT-5 models support "none" effort
 2. Map level to effort string:
-   - `none` → "none"
+   - `min` → "none"
    - `low` → "low"
    - `med` → "medium"
    - `high` → "high"
@@ -631,7 +631,7 @@ When user sets thinking level, provide feedback about what it means:
 > /model claude-sonnet-4-5/med
 
 ✓ Switched to Anthropic claude-sonnet-4-5
-  Thinking: medium (43,008 tokens)
+  Thinking: med (budget: 32K)
 ```
 
 ### Google
@@ -640,15 +640,14 @@ When user sets thinking level, provide feedback about what it means:
 > /model gemini-2.5-flash-lite/high
 
 ✓ Switched to Google gemini-2.5-flash-lite
-  Thinking: high (24,576 tokens)
+  Thinking: high (budget: 24K)
 ```
 
 ```
-> /model gemini-3.0-flash/none
+> /model gemini-3.0-flash/min
 
 ✓ Switched to Google gemini-3.0-flash
-  ⚠ This model does not support disabling thinking
-  Thinking: LOW level (minimum)
+  Thinking: min (level: minimal)
 ```
 
 ### OpenAI
@@ -656,15 +655,15 @@ When user sets thinking level, provide feedback about what it means:
 ```
 > /model gpt-5-mini/med
 
-✓ Switched to OpenAI gpt-5-mini (Responses API)
-  Thinking: medium effort
+✓ Switched to OpenAI gpt-5-mini
+  Thinking: med (effort: medium)
 ```
 
 ```
 > /model gpt-5/high
 
 ✓ Switched to OpenAI gpt-5
-  Thinking: high effort
+  Thinking: high (effort: high)
 ```
 
 ## Thinking Summary Display
@@ -725,7 +724,7 @@ Gemini 3.0 requires thought signatures for function calling:
 
 | Level | Expected Budget | Calculation |
 |-------|----------------|-------------|
-| none | 1,024 | minimum |
+| min | 1,024 | minimum |
 | low | 22,016 | 1024 + 1/3 * 62976 |
 | med | 43,008 | 1024 + 2/3 * 62976 |
 | high | 64,000 | maximum |

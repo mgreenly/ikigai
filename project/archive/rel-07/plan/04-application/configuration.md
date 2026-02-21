@@ -47,7 +47,7 @@ Both are stored in `~/.config/ikigai/` (or `$XDG_CONFIG_HOME/ikigai/`).
 
 **Per-provider:**
 - `default_model` (string): Model to use when provider is selected without explicit model
-- `default_thinking` (string): Default thinking level. Values: `"none"`, `"low"`, `"med"`, `"high"`
+- `default_thinking` (string): Default thinking level. Values: `"min"`, `"low"`, `"med"`, `"high"`
 - `base_url` (string, optional): Override API base URL (for testing, proxies, etc.)
 - `use_responses_api` (boolean, OpenAI only): Use Responses API instead of Chat Completions API
 
@@ -274,7 +274,7 @@ res_t ik_cfg_validate(ik_cfg_t *config);
 
 **Validation checks:**
 - `default_provider` is one of: anthropic, openai, google, xai, meta
-- `default_thinking` values are: none, low, med, high
+- `default_thinking` values are: min, low, med, high
 - Warnings are printed to stderr, not errors
 
 ### Runtime Validation

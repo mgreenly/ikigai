@@ -335,7 +335,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     }
 
     // Warn if model doesn't support thinking but thinking level is set
-    if (child->thinking_level != IK_THINKING_NONE && child->model != NULL) {
+    if (child->thinking_level != IK_THINKING_MIN && child->model != NULL) {
         bool supports_thinking = false;
         ik_model_supports_thinking(child->model, &supports_thinking);
         if (!supports_thinking) {

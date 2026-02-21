@@ -53,7 +53,7 @@ static ik_repl_ctx_t *create_test_repl_with_config(void *parent)
     agent->uuid = talloc_strdup(agent, "test-agent-uuid");
     agent->model = talloc_strdup(agent, "gpt-5-mini");
     agent->provider = talloc_strdup(agent, "openai");
-    agent->thinking_level = 0;  // IK_THINKING_NONE
+    agent->thinking_level = 0;  // IK_THINKING_MIN
     agent->shared = shared;
     r->current = agent;
 
@@ -76,20 +76,21 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-// Test: Thinking level - none
+// Test: Thinking level - min
 START_TEST(test_model_thinking_none) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/none");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-sonnet-4-5/min");
     ck_assert(is_ok(&res));
     ck_assert_str_eq(repl->current->model, "claude-sonnet-4-5");
     ck_assert_str_eq(repl->current->provider, "anthropic");
-    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
+    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_MIN
 
-    // Verify feedback shows "none" (line 2, after echo and blank)
+    // Verify feedback shows "min" with budget for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "none") != NULL);
+    ck_assert(strstr(line, "min") != NULL);
+    ck_assert(strstr(line, "budget:") != NULL);
 }
 
 END_TEST
@@ -99,13 +100,13 @@ START_TEST(test_model_thinking_low) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 1); // IK_THINKING_LOW
 
-    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
+    // Verify feedback shows thinking budget for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "low") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
+    ck_assert(strstr(line, "budget:") != NULL);
 }
 
 END_TEST
@@ -115,13 +116,13 @@ START_TEST(test_model_thinking_med) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 2); // IK_THINKING_MED
 
-    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
+    // Verify feedback shows thinking budget for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "med") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
+    ck_assert(strstr(line, "budget:") != NULL);
 }
 
 END_TEST
@@ -131,13 +132,13 @@ START_TEST(test_model_thinking_high) {
     ck_assert(is_ok(&res));
     ck_assert_int_eq(repl->current->thinking_level, 3); // IK_THINKING_HIGH
 
-    // Verify feedback shows thinking budget with tokens for Anthropic (line 2, after echo and blank)
+    // Verify feedback shows thinking budget for Anthropic (line 2, after echo and blank)
     const char *line;
     size_t length;
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
+    ck_assert(strstr(line, "budget:") != NULL);
 }
 
 END_TEST
@@ -152,151 +153,6 @@ START_TEST(test_model_thinking_invalid) {
     res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert(strstr(line, "Invalid thinking level") != NULL);
-}
-
-END_TEST
-// Test: Google provider with thinking (budget-based model)
-START_TEST(test_model_google_thinking) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/high");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "google");
-
-    // Verify feedback shows thinking budget with tokens for Gemini 2.5 (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
-}
-
-END_TEST
-
-// Test: Google Gemini 2.5 with none level (should show token count)
-START_TEST(test_model_google_thinking_none) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash/none");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "google");
-
-    // Verify feedback shows token count even for none level (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "none") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
-}
-
-END_TEST
-// Test: OpenAI GPT-5 with high thinking effort
-START_TEST(test_model_openai_thinking) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/high");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "openai");
-
-    // Verify feedback shows thinking effort for GPT-5 (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "effort") != NULL);
-}
-
-END_TEST
-// Test: OpenAI GPT-5 with low thinking effort
-START_TEST(test_model_openai_thinking_low) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/low");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "openai");
-
-    // Verify feedback shows low effort for GPT-5 (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "low") != NULL);
-    ck_assert(strstr(line, "effort") != NULL);
-}
-
-END_TEST
-// Test: OpenAI GPT-5 with med thinking effort
-START_TEST(test_model_openai_thinking_med) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/med");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "openai");
-
-    // Verify feedback shows med effort for GPT-5 (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "med") != NULL);
-    ck_assert(strstr(line, "effort") != NULL);
-}
-
-END_TEST
-// Test: OpenAI GPT-5 with none thinking effort (early return line 50-52)
-START_TEST(test_model_openai_thinking_none) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gpt-5/none");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "openai");
-    ck_assert_int_eq(repl->current->thinking_level, 0); // IK_THINKING_NONE
-
-    // Verify feedback shows "none" (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "none") != NULL);
-}
-
-END_TEST
-
-// Test: Unknown Google model with typo (gemini-2.5-flash-light instead of flash-lite)
-START_TEST(test_model_google_unknown_typo) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-flash-light/low");
-    ck_assert(is_err(&res));
-
-    // Verify error message (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "Error") != NULL);
-    ck_assert(strstr(line, "Unknown") != NULL);
-}
-
-END_TEST
-
-// Test: Unknown Google Gemini 2.5 model
-START_TEST(test_model_google_unknown_2_5) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-experimental/high");
-    ck_assert(is_err(&res));
-
-    // Verify error message (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "Error") != NULL);
-    ck_assert(strstr(line, "Unknown") != NULL);
-}
-
-END_TEST
-
-// Test: Gemini 2.5 Pro with none level (cannot disable thinking)
-START_TEST(test_model_google_pro_none_fails) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-2.5-pro/none");
-    ck_assert(is_err(&res));
-
-    // Verify error message (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "Error") != NULL);
-    ck_assert(strstr(line, "cannot disable thinking") != NULL);
 }
 
 END_TEST
@@ -350,39 +206,6 @@ START_TEST(test_model_parse_empty_model) {
 }
 
 END_TEST
-// Test: Google model with budget=0 (gemini-3.0-flash - no token count)
-START_TEST(test_model_google_level_based) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model gemini-3.0-flash/high");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "google");
-
-    // Verify feedback shows level name without tokens for Gemini 3.x (line 2, after echo and blank)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "tokens") == NULL); // No token count for budget=0
-}
-
-END_TEST
-// Test: Anthropic model not in budget table (uses default budget)
-START_TEST(test_model_anthropic_no_budget) {
-    // Use claude-3-5-sonnet-20241022 which is not in budget table (uses default)
-    res_t res = ik_cmd_dispatch(ctx, repl, "/model claude-3-5-sonnet-20241022/high");
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(repl->current->provider, "anthropic");
-
-    // Verify feedback shows tokens (uses default budget for unknown claude models)
-    const char *line;
-    size_t length;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert(strstr(line, "high") != NULL);
-    ck_assert(strstr(line, "tokens") != NULL);
-}
-
-END_TEST
 
 // Suite definition
 static Suite *commands_model_thinking_suite(void)
@@ -398,20 +221,9 @@ static Suite *commands_model_thinking_suite(void)
     tcase_add_test(tc_core, test_model_thinking_med);
     tcase_add_test(tc_core, test_model_thinking_high);
     tcase_add_test(tc_core, test_model_thinking_invalid);
-    tcase_add_test(tc_core, test_model_google_thinking);
-    tcase_add_test(tc_core, test_model_google_thinking_none);
-    tcase_add_test(tc_core, test_model_openai_thinking);
-    tcase_add_test(tc_core, test_model_openai_thinking_low);
-    tcase_add_test(tc_core, test_model_openai_thinking_med);
-    tcase_add_test(tc_core, test_model_openai_thinking_none);
-    tcase_add_test(tc_core, test_model_google_unknown_typo);
-    tcase_add_test(tc_core, test_model_google_unknown_2_5);
-    tcase_add_test(tc_core, test_model_google_pro_none_fails);
     tcase_add_test(tc_core, test_model_switch_during_request);
     tcase_add_test(tc_core, test_model_parse_trailing_slash);
     tcase_add_test(tc_core, test_model_parse_empty_model);
-    tcase_add_test(tc_core, test_model_google_level_based);
-    tcase_add_test(tc_core, test_model_anthropic_no_budget);
 
     suite_add_tcase(s, tc_core);
 

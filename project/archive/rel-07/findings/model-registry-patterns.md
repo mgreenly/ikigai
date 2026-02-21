@@ -389,7 +389,7 @@ meta-llama/Meta-Llama-3.1-405B-Instruct         ← Largest Llama 3.1
 
 **ikigai's Unified Mapping (from README):**
 ```
-none → min_budget or type: disabled
+min  → min_budget or type: disabled
 low  → min_budget + (1/3 × (max_budget - min_budget))
 med  → min_budget + (2/3 × (max_budget - min_budget))
 high → max_budget
@@ -825,7 +825,7 @@ ik_thinking_budget_t ik_get_thinking_budget(const char *provider, const char *mo
 uint32_t ik_thinking_level_to_budget(ik_thinking_level_t level,
                                       ik_thinking_budget_t budget) {
     switch (level) {
-        case IK_THINKING_NONE:
+        case IK_THINKING_MIN:
             return budget.min_budget;
         case IK_THINKING_LOW:
             return budget.min_budget +

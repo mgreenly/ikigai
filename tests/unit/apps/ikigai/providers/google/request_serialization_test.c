@@ -55,7 +55,7 @@ START_TEST(test_serialize_request_minimal) {
     req.tool_count = 0;
     req.system_prompt = NULL;
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -87,7 +87,7 @@ START_TEST(test_serialize_request_with_system_prompt) {
     req.message_count = 0;
     req.tool_count = 0;
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -124,7 +124,7 @@ START_TEST(test_serialize_request_empty_system_prompt) {
     req.message_count = 0;
     req.tool_count = 0;
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -161,7 +161,7 @@ START_TEST(test_serialize_request_with_messages) {
     req.message_count = 1;
     req.tool_count = 0;
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -200,7 +200,7 @@ START_TEST(test_serialize_request_with_tools) {
     req.tool_count = 1;
     req.tool_choice_mode = 0; // IK_TOOL_AUTO
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -247,7 +247,7 @@ START_TEST(test_serialize_request_tool_choice_none) {
     req.tool_count = 1;
     req.tool_choice_mode = 1; // IK_TOOL_NONE
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -281,7 +281,7 @@ START_TEST(test_serialize_request_tool_choice_required) {
     req.tool_count = 1;
     req.tool_choice_mode = 2; // IK_TOOL_REQUIRED
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -315,7 +315,7 @@ START_TEST(test_serialize_request_tool_choice_unknown) {
     req.tool_count = 1;
     req.tool_choice_mode = 999; // Invalid
     req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -342,7 +342,7 @@ START_TEST(test_serialize_request_with_max_tokens) {
     req.message_count = 0;
     req.tool_count = 0;
     req.max_output_tokens = 1000;
-    req.thinking.level = IK_THINKING_NONE;
+    req.thinking.level = IK_THINKING_MIN;
 
     char *json = NULL;
     res_t r = ik_google_serialize_request(test_ctx, &req, &json);
@@ -399,7 +399,7 @@ END_TEST
 
 START_TEST(test_serialize_request_with_thinking_gemini_3_none) {
     ik_request_t req = {0}; char *json = NULL;
-    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_NONE;
+    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_MIN;
     res_t r3n = ik_google_serialize_request(test_ctx, &req, &json);
     ck_assert(is_ok(&r3n));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);

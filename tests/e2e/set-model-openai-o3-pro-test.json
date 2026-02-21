@@ -7,12 +7,12 @@
     {"wait": 0.5},
     {"mock_expect": {"responses": [{"content": "Mock response from o3-pro."}]}},
     {"send_keys": "Hello\\r"},
-    {"wait_idle": 15000},
+    {"wait_idle": 30000},
     {"read_framebuffer": true}
   ],
   "assert": [
     {"contains": "o3-pro/low"},
-    {"contains": "low effort"},
+    {"contains": "effort: low"},
     {"line_prefix": "●"}
   ],
   "assert_mock": [

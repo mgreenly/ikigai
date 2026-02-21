@@ -46,7 +46,7 @@ ik_request_t *ik_test_fixture_simple_text(TALLOC_CTX *ctx)
     req->tools = NULL;
 
     // Default thinking config
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
     req->thinking.include_summary = false;
 
     // Max tokens
@@ -110,7 +110,7 @@ ik_request_t *ik_test_fixture_tool_call(TALLOC_CTX *ctx)
     tool->strict = false;
 
     // Default thinking config
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
     req->thinking.include_summary = false;
 
     // Max tokens
@@ -187,7 +187,7 @@ ik_request_t *ik_test_fixture_multi_turn(TALLOC_CTX *ctx)
     req->tools = NULL;
 
     // Default thinking config
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
     req->thinking.include_summary = false;
 
     // Max tokens
@@ -237,7 +237,7 @@ ik_request_t *ik_test_fixture_invalid_model(TALLOC_CTX *ctx)
     req->tools = NULL;
 
     // Default thinking config
-    req->thinking.level = IK_THINKING_NONE;
+    req->thinking.level = IK_THINKING_MIN;
     req->thinking.include_summary = false;
 
     // Max tokens

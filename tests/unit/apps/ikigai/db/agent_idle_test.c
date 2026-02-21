@@ -4,7 +4,7 @@
  *
  * Covers:
  * - ik_db_agent_set_idle (set idle true/false and verify via ik_db_agent_get)
- * - thinking_level default branch (value 99 maps to "none")
+ * - thinking_level default branch (value 99 maps to "min")
  * - agent_row.c idle field parsing (row->idle bool from DB text)
  */
 
@@ -204,20 +204,20 @@ START_TEST(test_idle_default_false) {
 }
 END_TEST
 
-// Test: thinking_level default branch (value 99 maps to "none")
+// Test: thinking_level default branch (value 99 maps to "min")
 START_TEST(test_thinking_level_default_branch) {
     SKIP_IF_NO_DB();
 
     // Insert agent with thinking_level = 99 to hit the default case
     insert_test_agent("test-thinking-default", 99);
 
-    // Verify agent was inserted and thinking_level stored as "none"
+    // Verify agent was inserted and thinking_level stored as "min"
     ik_db_agent_row_t *row = NULL;
     res_t res = ik_db_agent_get(db, test_ctx, "test-thinking-default", &row);
     ck_assert(is_ok(&res));
     ck_assert(row != NULL);
     ck_assert(row->thinking_level != NULL);
-    ck_assert_str_eq(row->thinking_level, "none");
+    ck_assert_str_eq(row->thinking_level, "min");
 }
 END_TEST
 

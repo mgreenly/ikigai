@@ -90,7 +90,7 @@ START_TEST(test_request_create) {
     ck_assert_ptr_null(req->tools);
     ck_assert_int_eq((int)req->tool_count, 0);
     ck_assert_int_eq(req->max_output_tokens, -1);
-    ck_assert_int_eq(req->thinking.level, IK_THINKING_NONE);
+    ck_assert_int_eq(req->thinking.level, IK_THINKING_MIN);
     ck_assert(!req->thinking.include_summary);
     // During coexistence phase, tool_choice_mode is int (would be IK_TOOL_AUTO = 0)
     ck_assert_int_eq(req->tool_choice_mode, 0);

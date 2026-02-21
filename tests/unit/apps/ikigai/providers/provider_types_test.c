@@ -9,7 +9,7 @@
  * ================================================================ */
 
 START_TEST(test_thinking_level_enum_values) {
-    ck_assert_int_eq(IK_THINKING_NONE, 0);
+    ck_assert_int_eq(IK_THINKING_MIN, 0);
     ck_assert_int_eq(IK_THINKING_LOW, 1);
     ck_assert_int_eq(IK_THINKING_MED, 2);
     ck_assert_int_eq(IK_THINKING_HIGH, 3);
@@ -120,7 +120,7 @@ START_TEST(test_talloc_allocation_request) {
     ck_assert_ptr_null(req->messages);
     ck_assert(req->message_count == 0);
     ck_assert_ptr_null(req->model);
-    ck_assert_int_eq(req->thinking.level, IK_THINKING_NONE);
+    ck_assert_int_eq(req->thinking.level, IK_THINKING_MIN);
     ck_assert_int_eq(req->thinking.include_summary, 0);
 
     talloc_free(ctx);

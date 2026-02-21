@@ -144,14 +144,14 @@ START_TEST(test_completion_model_thinking_level) {
     ck_assert(comp->count > 0);
 
     // Verify thinking levels are present
-    bool found_none = false, found_low = false, found_med = false, found_high = false;
+    bool found_min = false, found_low = false, found_med = false, found_high = false;
     for (size_t i = 0; i < comp->count; i++) {
-        if (strcmp(comp->candidates[i], "none") == 0) found_none = true;
+        if (strcmp(comp->candidates[i], "min") == 0) found_min = true;
         if (strcmp(comp->candidates[i], "low") == 0) found_low = true;
         if (strcmp(comp->candidates[i], "med") == 0) found_med = true;
         if (strcmp(comp->candidates[i], "high") == 0) found_high = true;
     }
-    ck_assert(found_none);
+    ck_assert(found_min);
     ck_assert(found_low);
     ck_assert(found_med);
     ck_assert(found_high);

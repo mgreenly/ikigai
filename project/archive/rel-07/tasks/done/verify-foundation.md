@@ -91,7 +91,7 @@ Read `src/providers/provider.h` and verify these symbols exist:
 
 | Enum | Required Values |
 |------|-----------------|
-| `ik_thinking_level_t` | IK_THINKING_NONE=0, IK_THINKING_LOW=1, IK_THINKING_MED=2, IK_THINKING_HIGH=3 |
+| `ik_thinking_level_t` | IK_THINKING_MIN=0, IK_THINKING_LOW=1, IK_THINKING_MED=2, IK_THINKING_HIGH=3 |
 | `ik_finish_reason_t` | IK_FINISH_STOP, IK_FINISH_LENGTH, IK_FINISH_TOOL_USE, IK_FINISH_CONTENT_FILTER, IK_FINISH_ERROR, IK_FINISH_UNKNOWN |
 | `ik_content_type_t` | IK_CONTENT_TEXT, IK_CONTENT_TOOL_CALL, IK_CONTENT_TOOL_RESULT, IK_CONTENT_THINKING |
 | `ik_role_t` | IK_ROLE_USER, IK_ROLE_ASSISTANT, IK_ROLE_TOOL |
@@ -266,7 +266,7 @@ Create a minimal C file that uses all foundation APIs and verify it compiles:
 
 // Verify enums compile
 static void check_enums(void) {
-    ik_thinking_level_t t = IK_THINKING_NONE;
+    ik_thinking_level_t t = IK_THINKING_MIN;
     ik_finish_reason_t f = IK_FINISH_STOP;
     ik_error_category_t e = IK_ERR_CAT_AUTH;
     ik_stream_event_type_t s = IK_STREAM_START;

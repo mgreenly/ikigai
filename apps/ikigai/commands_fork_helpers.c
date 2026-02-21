@@ -23,7 +23,7 @@
 const char *ik_commands_thinking_level_to_string(ik_thinking_level_t level)
 {
     switch (level) {
-        case IK_THINKING_NONE: return "none";
+        case IK_THINKING_MIN: return "min";
         case IK_THINKING_LOW:  return "low";
         case IK_THINKING_MED:  return "medium";
         case IK_THINKING_HIGH: return "high";

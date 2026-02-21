@@ -14,7 +14,7 @@ ikigai uses four universal reasoning levels across all providers:
 
 | Level | Meaning |
 |-------|---------|
-| `none` | Minimal or disabled reasoning |
+| `min` | Minimal or disabled reasoning |
 | `low` | Light reasoning |
 | `med` | Moderate reasoning |
 | `high` | Maximum reasoning |

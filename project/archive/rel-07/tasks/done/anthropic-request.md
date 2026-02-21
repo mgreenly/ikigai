@@ -66,7 +66,7 @@ Structs to define: None (uses existing provider types)
   - IK_CONTENT_TOOL_RESULT → `{"type": "tool_result", "tool_use_id": "...", "content": "...", "is_error": true/false}`
 
 ### Thinking Configuration
-- When thinking.level is not IK_THINKING_NONE, calculate budget using `ik_anthropic_thinking_budget()`
+- When thinking.level is not IK_THINKING_MIN, calculate budget using `ik_anthropic_thinking_budget()`
 - Add thinking config: `{"type": "enabled", "budget_tokens": <budget>}`
 - Skip if budget is -1 (model doesn't support thinking)
 
@@ -105,7 +105,7 @@ Structs to define: None (uses existing provider types)
 ### Thinking Configuration
 - Request with IK_THINKING_MED adds thinking config
 - Budget calculated correctly for model (e.g., 43008 for Sonnet 4.5 MED)
-- IK_THINKING_NONE skips thinking config
+- IK_THINKING_MIN skips thinking config
 - Unsupported model skips thinking config
 
 ### Tool Serialization

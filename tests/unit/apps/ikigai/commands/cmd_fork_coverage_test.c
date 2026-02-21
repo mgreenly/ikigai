@@ -59,7 +59,7 @@ static void setup_repl(int64_t session_id)
     agent->fork_message_id = 0;
     agent->provider = talloc_strdup(agent, "openai");
     agent->model = talloc_strdup(agent, "gpt-4o-mini");
-    agent->thinking_level = IK_THINKING_NONE;
+    agent->thinking_level = IK_THINKING_MIN;
     repl->current = agent;
 
     // Create mock provider with vtable
@@ -267,15 +267,15 @@ START_TEST(test_fork_prompt_success_path) {
 }
 
 END_TEST
-// Test: Line 294 branch: child->thinking_level == IK_THINKING_NONE
+// Test: Line 294 branch: child->thinking_level == IK_THINKING_MIN
 START_TEST(test_fork_no_thinking_level) {
-    // Fork without thinking level (defaults to NONE)
+    // Fork without thinking level (defaults to MIN)
     res_t res = ik_cmd_fork(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    // Child should have thinking_level == NONE
+    // Child should have thinking_level == MIN
     ik_agent_ctx_t *child = repl->current;
-    ck_assert_int_eq(child->thinking_level, IK_THINKING_NONE);
+    ck_assert_int_eq(child->thinking_level, IK_THINKING_MIN);
 }
 
 END_TEST

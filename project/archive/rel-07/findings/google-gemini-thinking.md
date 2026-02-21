@@ -274,7 +274,7 @@ response = client.chat.completions.create(
 
 ```
 Calculation:
-  none → 0
+  min  → 0
   low  → 8,192  (1/3 of 24,576)
   med  → 16,384 (2/3 of 24,576)
   high → 24,576 (max)
@@ -284,7 +284,7 @@ Calculation:
 
 ```
 Calculation (accounting for minimum):
-  none → 128    (minimum - cannot disable)
+  min  → 128    (minimum - cannot disable)
   low  → 11,008 (128 + 1/3 × (32,768 - 128))
   med  → 21,760 (128 + 2/3 × (32,768 - 128))
   high → 32,768 (max)
@@ -292,7 +292,7 @@ Calculation (accounting for minimum):
 
 **gemini-2.5-flash-lite special note:**
 - Default is thinking OFF (0)
-- User setting to "none" should keep it at 0
+- User setting to "min" should keep it at 0
 - Only enable thinking when user sets low/med/high
 
 #### Gemini 3 Series (level-based)
@@ -301,7 +301,7 @@ Calculation (accounting for minimum):
 
 ```
 Mapping (only 2 levels available):
-  none → LOW  (cannot fully disable)
+  min  → LOW  (cannot fully disable)
   low  → LOW
   med  → HIGH (round up)
   high → HIGH
@@ -309,7 +309,7 @@ Mapping (only 2 levels available):
 
 **User feedback should clarify:**
 ```
-> /model gemini-3-pro/none
+> /model gemini-3-pro/min
 
 ✓ Switched to Google gemini-3-pro
   Thinking: LOW level (cannot disable for this model)
@@ -400,7 +400,7 @@ All Gemini 2.5 and 3 models with thinking support are **natively multimodal**:
 - Gemini 3 Pro: Minimum LOW level (cannot disable)
 - This differs from Anthropic and OpenAI where thinking can be fully disabled
 
-**Impact on ikigai:** User setting `/model gemini-2.5-pro/none` should show warning and use minimum
+**Impact on ikigai:** User setting `/model gemini-2.5-pro/min` should show warning and use minimum
 
 ### 6. Pricing Implications
 

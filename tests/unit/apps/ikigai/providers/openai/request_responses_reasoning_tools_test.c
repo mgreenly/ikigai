@@ -119,7 +119,7 @@ START_TEST(test_serialize_reasoning_none) {
     res_t create_result = ik_request_create(test_ctx, "o1", &req);
     ck_assert(!is_err(&create_result));
 
-    ik_request_set_thinking(req, IK_THINKING_NONE, false);
+    ik_request_set_thinking(req, IK_THINKING_MIN, false);
     ik_request_add_message(req, IK_ROLE_USER, "Test");
 
     char *json = NULL;
@@ -148,7 +148,7 @@ START_TEST(test_serialize_gpt5_reasoning_none) {
     ck_assert(!is_err(&create_result));
 
     // GPT-5 with NONE floors to "minimal" (not omitted)
-    ik_request_set_thinking(req, IK_THINKING_NONE, false);
+    ik_request_set_thinking(req, IK_THINKING_MIN, false);
     ik_request_add_message(req, IK_ROLE_USER, "Test");
 
     char *json = NULL;

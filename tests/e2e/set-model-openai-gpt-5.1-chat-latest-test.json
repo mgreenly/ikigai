@@ -12,7 +12,7 @@
   ],
   "assert": [
     {"contains": "gpt-5.1-chat-latest/low"},
-    {"contains": "low effort"},
+    {"contains": "effort: medium"},
     {"line_prefix": "●"}
   ],
   "assert_mock": [

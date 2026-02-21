@@ -12,7 +12,7 @@
   ],
   "assert": [
     {"contains": "o4-mini/low"},
-    {"contains": "low effort"},
+    {"contains": "effort: low"},
     {"line_prefix": "●"}
   ],
   "assert_mock": [

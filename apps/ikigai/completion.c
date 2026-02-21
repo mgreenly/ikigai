@@ -87,7 +87,7 @@ static arg_provider_result_t provide_thinking_args(TALLOC_CTX *ctx, ik_repl_ctx_
     (void)repl;  // Unused - using static array
 
     static const char *thinking_levels[] = {
-        "none",
+        "min",
         "low",
         "med",
         "high"

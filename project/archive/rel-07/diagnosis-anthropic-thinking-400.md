@@ -21,7 +21,7 @@ In `src/providers/anthropic/request.c`, added logic to ensure `max_tokens > budg
 
 ```c
 // Ensure max_tokens > thinking budget when thinking is enabled
-if (req->thinking.level != IK_THINKING_NONE) {
+if (req->thinking.level != IK_THINKING_MIN) {
     int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
     if (budget > 0 && max_tokens <= budget) {
         max_tokens = budget + 4096;
@@ -64,7 +64,7 @@ int32_t ik_anthropic_thinking_budget(const char *model, ik_thinking_level_t leve
     int32_t range = max_budget - min_budget;
 
     switch (level) {
-        case IK_THINKING_NONE: return min_budget;
+        case IK_THINKING_MIN: return min_budget;
         case IK_THINKING_LOW:  return min_budget + range / 3;
         case IK_THINKING_MED:  return min_budget + (2 * range) / 3;
         case IK_THINKING_HIGH: return max_budget;

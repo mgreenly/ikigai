@@ -48,7 +48,7 @@ res_t ik_db_agent_insert(ik_db_ctx_t *db_ctx, const ik_agent_ctx_t *agent)
             case 1: thinking_level_param = "low"; break;
             case 2: thinking_level_param = "med"; break;
             case 3: thinking_level_param = "high"; break;
-            default: thinking_level_param = "none"; break;
+            default: thinking_level_param = "min"; break;
         }
     }
 

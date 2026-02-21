@@ -17,11 +17,11 @@
  * Calculate thinking budget tokens for model and level
  *
  * @param model Model identifier (e.g., "claude-sonnet-4-5")
- * @param level Thinking level (NONE/LOW/MED/HIGH)
+ * @param level Thinking level (MIN/LOW/MED/HIGH)
  * @return      Thinking budget in tokens (power of 2), or -1 if unsupported
  *
  * Budget calculation (LOW/MED rounded down to nearest power of 2):
- * - NONE: min_budget (1024)
+ * - MIN:  min_budget (1024)
  * - LOW:  floor_power_of_2(min_budget + range/3)
  * - MED:  floor_power_of_2(min_budget + 2*range/3)
  * - HIGH: max_budget
@@ -60,11 +60,11 @@ bool ik_anthropic_is_adaptive_model(const char *model);
  * Get thinking effort string for adaptive models
  *
  * @param model Model identifier (e.g., "claude-opus-4-6")
- * @param level Thinking level (NONE/LOW/MED/HIGH)
+ * @param level Thinking level (MIN/LOW/MED/HIGH)
  * @return      Effort string ("low"/"medium"/"high") or NULL
  *
  * Effort mapping for adaptive models:
- * - NONE: NULL (omit thinking parameter)
+ * - MIN:  NULL (omit thinking parameter)
  * - LOW:  "low"
  * - MED:  "medium"
  * - HIGH: "high"

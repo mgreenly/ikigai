@@ -31,7 +31,7 @@ static int32_t calculate_max_tokens(const ik_request_t *req)
     }
 
     // Only adjust for budget-based models, not adaptive models
-    if (req->thinking.level != IK_THINKING_NONE && !ik_anthropic_is_adaptive_model(req->model)) {
+    if (req->thinking.level != IK_THINKING_MIN && !ik_anthropic_is_adaptive_model(req->model)) {
         int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
         if (budget > 0 && max_tokens <= budget) {
             max_tokens = budget + 4096;
@@ -45,7 +45,7 @@ static int32_t calculate_max_tokens(const ik_request_t *req)
 static void add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
                                 const ik_request_t *req)
 {
-    if (req->thinking.level == IK_THINKING_NONE) {
+    if (req->thinking.level == IK_THINKING_MIN) {
         return;
     }
 

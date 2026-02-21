@@ -56,7 +56,7 @@ END_TEST
 /* Thinking Budget Calculation Tests */
 
 START_TEST(test_thinking_budget_2_5_pro_none) {
-    int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_NONE);
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-pro", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 128);
 }
 END_TEST
@@ -76,7 +76,7 @@ START_TEST(test_thinking_budget_2_5_pro_high) {
 }
 END_TEST
 START_TEST(test_thinking_budget_2_5_flash_none) {
-    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_NONE);
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 0);
 }
 END_TEST
@@ -96,7 +96,7 @@ START_TEST(test_thinking_budget_2_5_flash_high) {
 }
 END_TEST
 START_TEST(test_thinking_budget_2_5_flash_lite_none) {
-    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_NONE);
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-flash-lite", IK_THINKING_MIN);
     ck_assert_int_eq(budget, 512);
 }
 END_TEST
@@ -133,7 +133,7 @@ START_TEST(test_thinking_budget_2_5_unknown_model) {
 END_TEST
 START_TEST(test_thinking_budget_2_5_unknown_model_none) {
     // Test NONE level with unknown model - returns error
-    int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_NONE);
+    int32_t budget = ik_google_thinking_budget("gemini-2.5-experimental", IK_THINKING_MIN);
     ck_assert_int_eq(budget, -1);
 }
 END_TEST
@@ -146,7 +146,7 @@ END_TEST
 /* Thinking Level String Tests */
 
 /* gemini-3-flash-preview: minimal/low/medium/high */
-START_TEST(test_thinking_level_str_flash_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_NONE), "minimal"); }
+START_TEST(test_thinking_level_str_flash_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_MIN), "minimal"); }
 END_TEST
 START_TEST(test_thinking_level_str_flash_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_LOW), "low"); }
 END_TEST
@@ -155,7 +155,7 @@ END_TEST
 START_TEST(test_thinking_level_str_flash_high) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-flash-preview", IK_THINKING_HIGH), "high"); }
 END_TEST
 /* gemini-3-pro-preview: low/low/high/high */
-START_TEST(test_thinking_level_str_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_NONE), "low"); }
+START_TEST(test_thinking_level_str_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_MIN), "low"); }
 END_TEST
 START_TEST(test_thinking_level_str_pro_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_LOW), "low"); }
 END_TEST
@@ -164,7 +164,7 @@ END_TEST
 START_TEST(test_thinking_level_str_pro_high) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3-pro-preview", IK_THINKING_HIGH), "high"); }
 END_TEST
 /* gemini-3.1-pro-preview: low/low/medium/high */
-START_TEST(test_thinking_level_str_31_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_NONE), "low"); }
+START_TEST(test_thinking_level_str_31_pro_none) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_MIN), "low"); }
 END_TEST
 START_TEST(test_thinking_level_str_31_pro_low) { ck_assert_str_eq(ik_google_thinking_level_str("gemini-3.1-pro-preview", IK_THINKING_LOW), "low"); }
 END_TEST
@@ -237,19 +237,19 @@ END_TEST
 #define VT(name, model, level, expect_ok) \
 START_TEST(name) { res_t r = ik_google_validate_thinking(test_ctx, model, level); ck_assert((expect_ok) ? !is_err(&r) : is_err(&r)); } \
 END_TEST
-VT(test_validate_thinking_2_5_flash_none, "gemini-2.5-flash", IK_THINKING_NONE, 1)
+VT(test_validate_thinking_2_5_flash_none, "gemini-2.5-flash", IK_THINKING_MIN, 1)
 VT(test_validate_thinking_2_5_flash_low,  "gemini-2.5-flash", IK_THINKING_LOW,  1)
 VT(test_validate_thinking_2_5_flash_med,  "gemini-2.5-flash", IK_THINKING_MED,  1)
 VT(test_validate_thinking_2_5_flash_high, "gemini-2.5-flash", IK_THINKING_HIGH, 1)
-VT(test_validate_thinking_2_5_pro_none,   "gemini-2.5-pro",   IK_THINKING_NONE, 0)
+VT(test_validate_thinking_2_5_pro_none,   "gemini-2.5-pro",   IK_THINKING_MIN, 0)
 VT(test_validate_thinking_2_5_pro_low,    "gemini-2.5-pro",   IK_THINKING_LOW,  1)
 VT(test_validate_thinking_2_5_pro_med,    "gemini-2.5-pro",   IK_THINKING_MED,  1)
 VT(test_validate_thinking_2_5_pro_high,   "gemini-2.5-pro",   IK_THINKING_HIGH, 1)
-VT(test_validate_thinking_3_pro_none,     "gemini-3-pro",     IK_THINKING_NONE, 1)
+VT(test_validate_thinking_3_pro_none,     "gemini-3-pro",     IK_THINKING_MIN, 1)
 VT(test_validate_thinking_3_pro_low,      "gemini-3-pro",     IK_THINKING_LOW,  1)
 VT(test_validate_thinking_3_pro_med,      "gemini-3-pro",     IK_THINKING_MED,  1)
 VT(test_validate_thinking_3_pro_high,     "gemini-3-pro",     IK_THINKING_HIGH, 1)
-VT(test_validate_thinking_1_5_pro_none,   "gemini-1.5-pro",   IK_THINKING_NONE, 1)
+VT(test_validate_thinking_1_5_pro_none,   "gemini-1.5-pro",   IK_THINKING_MIN, 1)
 VT(test_validate_thinking_1_5_pro_low,    "gemini-1.5-pro",   IK_THINKING_LOW,  0)
 START_TEST(test_validate_thinking_null_model) { res_t r = ik_google_validate_thinking(test_ctx, NULL, IK_THINKING_LOW); ck_assert(is_err(&r)); }
 END_TEST

@@ -335,7 +335,7 @@ START_TEST(test_start_stream_null_model_error) {
         .messages = &msg,
         .message_count = 1,
         .model = NULL,  // NULL model triggers serialization error
-        .thinking = {.level = IK_THINKING_NONE, .include_summary = false},
+        .thinking = {.level = IK_THINKING_MIN, .include_summary = false},
         .tools = NULL,
         .tool_count = 0,
         .max_output_tokens = 100,

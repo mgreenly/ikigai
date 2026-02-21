@@ -37,7 +37,7 @@ def main
         --org ORG           Organization (required)
         --repo REPO         Repository name (required)
         --model MODEL       AI model: haiku, sonnet, opus (optional)
-        --reasoning LEVEL   Reasoning level: none, low, med, high (optional)
+        --reasoning LEVEL   Reasoning level: min, low, med, high (optional)
 
       Output:
         JSON {"ok": true, "id": <goal-id>}
@@ -51,7 +51,7 @@ def main
     opts.on('--org=ORG', 'Organization') { |o| org = o }
     opts.on('--repo=REPO', 'Repository name') { |r| repo = r }
     opts.on('--model=MODEL', 'AI model (haiku, sonnet, opus)') { |m| model = m }
-    opts.on('--reasoning=LEVEL', 'Reasoning level (none, low, med, high)') { |l| reasoning = l }
+    opts.on('--reasoning=LEVEL', 'Reasoning level (min, low, med, high)') { |l| reasoning = l }
   end.parse!
 
   unless title
@@ -76,8 +76,8 @@ def main
   end
 
   # Validate reasoning
-  if reasoning && !%w[none low med high].include?(reasoning)
-    puts JSON.generate(ok: false, error: "invalid --reasoning: #{reasoning} (valid: none, low, med, high)")
+  if reasoning && !%w[min low med high].include?(reasoning)
+    puts JSON.generate(ok: false, error: "invalid --reasoning: #{reasoning} (valid: min, low, med, high)")
     exit 1
   end
 

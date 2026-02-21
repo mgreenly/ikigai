@@ -8,33 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-#### Control Socket & ikigai-ctl (Complete)
-- **Runtime directory**: `IKIGAI_RUNTIME_DIR` environment variable and `runtime_dir` field in `ik_paths_t`; install wrapper updated to propagate the variable
-- **Control socket lifecycle**: `init`/`destroy` functions integrated into the repl event loop
-- **Framebuffer serialization**: ANSI-to-JSON serialization of the terminal framebuffer for programmatic screen reading
-- **Key injection buffer**: `key_inject.h/c` module buffers synthetic keystrokes; buffer drained in main event loop
-- **`send_keys` dispatcher**: `send_keys` wired into the control socket command dispatcher
-- **ikigai-ctl client script**: Shell script for programmatic interaction with a running ikigai instance
-- **`send_keys` subcommand**: ikigai-ctl `send_keys` command with correct escape sequence handling
-- **ikigai-ctl skill**: Documentation for the control socket protocol and client usage
+#### Comprehensive Model Support & Unified Thinking Display (Complete)
+- **17 models across 3 providers**: Full model registry coverage — OpenAI (o1, o3, o3-mini, o3-pro, o4-mini, gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, gpt-5.1, gpt-5.1-chat-latest, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5.2, gpt-5.2-chat-latest, gpt-5.2-codex, gpt-5.2-pro), Anthropic (claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5, claude-opus-4-6, claude-sonnet-4-6), Google (gemini-2.5-flash-lite, gemini-2.5-flash, gemini-2.5-pro, gemini-3-flash-preview, gemini-3-pro-preview, gemini-3.1-pro-preview)
+- **Unified thinking effort display**: All providers show a consistent `Thinking: LEVEL (effort: EFFORT)` status line, normalizing each provider's native thinking/reasoning representation into a single UI
+- **Per-model thinking level tables**: Each provider maps the four abstract levels (min/low/med/high) to its native API parameters — OpenAI reasoning effort strings, Anthropic budget ranges and adaptive mode, Google per-model thinking level strings
+- **New models**: gpt-5.1-codex-mini (standard reasoning), gpt-5.2-pro (medium/high/xhigh reasoning), gemini-3.1-pro-preview (per-model thinking mapping), claude-sonnet-4-6 (adaptive thinking), claude-opus-4-5 (budget table)
 
-#### Headless Mode (Complete)
-- **`--headless` flag**: `ik_term_init_headless()` initializes the terminal layer without a TTY; `tty_fd >= 0` guards throughout protect headless operation
-- **Removed dev dump**: `read_framebuffer` via ikigai-ctl replaces the compile-time dev framebuffer dump
+#### End-to-End Test Suite (Complete)
+- **32 live-verified e2e tests**: Every registered model has a live end-to-end test that switches to the model, sends a prompt to the real provider API, waits for a response, and asserts correct UI state — model name in status bar, thinking effort indicator, and response prefix
+- **3 tool-use e2e tests**: One per provider (Anthropic, OpenAI, Google) verifying bash tool execution round-trips through the real API with tool request/response indicators
+- **Mock + live dual-mode format**: Each test includes `mock_expect` steps for deterministic CI and runs against real providers in live mode with the same assertions
+- **Automated e2e runner**: `check-e2e` script for CI; live mode executed via ikigai-ctl for human-observable verification
+- **Mock provider coverage**: Mock HTTP server implements OpenAI Responses, Anthropic Messages, and Google GenerateContent APIs
 
-#### End-to-End Test Framework (Complete)
-- **Functional test infrastructure**: Smoke test harness for black-box functional testing
-- **Mock provider — OpenAI**: Mock HTTP server implementing the OpenAI Responses API for deterministic e2e tests
-- **Mock provider — Anthropic & Google**: Expanded mock provider to cover all three supported AI providers
-- **Automated e2e test runner**: `check-e2e` script runs the full end-to-end suite automatically
-- **Model switching tests**: E2e tests exercise model switching across providers
-- **Bash tool e2e tests**: End-to-end tests covering bash tool execution; `simulate_typing` helper added to ikigai-ctl
-- **e2e-testing skill**: JSON-based end-to-end test format documented; renamed from manual-testing; `wait_idle` chaining rule added
+#### Control Socket & Headless Mode (Complete)
+- **Control socket**: Unix domain socket with stateless one-connection-per-message protocol; `read_framebuffer`, `send_keys`, `wait_idle` commands
+- **ikigai-ctl**: Ruby client for programmatic interaction — auto-discovers socket, per-character key injection with escape sequence support
+- **Headless mode**: `--headless` flag initializes terminal layer without TTY for background/CI operation
+- **Framebuffer serialization**: ANSI-to-JSON serialization for programmatic screen reading
 
 #### Documentation & Skills
-- **mdp skill**: Livestream banner generation with mdp
+- **Provider documentation**: Per-provider docs split into `docs/anthropic.md`, `docs/openai.md`, `docs/gemini.md`
+- **e2e-testing skill**: JSON-based test format with step types, assertion types, and execution rules
 - **Mock providers design doc**: Architecture document for the mock provider system
-- **Headless mode design plan**: Design document for headless operation
 
 ### Changed
 
@@ -47,18 +43,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 #### Skills & Pipeline
 - **Pipeline skill**: `--model`/`--reasoning` flags omitted by default; only set when user explicitly requests them
 
-### Added
-
-#### New Models
-- **gpt-5.1-codex-mini**: New OpenAI model registered with standard low/medium/high reasoning
-- **gpt-5.2-pro**: New OpenAI model registered with medium/high/xhigh reasoning support
-- **gemini-3.1-pro-preview**: New Google model registered with per-model thinking level mapping (NONE→"low", LOW→"low", MED→"medium", HIGH→"high")
-- **claude-sonnet-4-6**: Registered as an adaptive thinking model (joins claude-opus-4-6 in the adaptive models list)
-- **claude-opus-4-5**: Added to the Anthropic budget table (1024–65536 token range)
-
 ### Fixed
 - **Framebuffer serializer**: Row-0 collapse bug — all framebuffer content was being written to row 0
 - **ikigai-ctl send_keys**: Escape sequence handling corrected; `jq --compact` flag added to produce valid single-line JSON
+- **ikigai-ctl protocol**: Changed from line-oriented `gets` to EOF-oriented `read` to match server's close-after-response design
 - **gpt-5.1/5.2-chat-latest reasoning**: Both models use fixed adaptive reasoning — the API rejects any effort value other than `"medium"`; all four effort levels now map to `"medium"` for these models
 - **Gemini 3 thinking level mapping**: Replaced hardcoded LOW/MED/HIGH strings with a per-model table; gemini-3-flash-preview, gemini-3-pro-preview, and gemini-3.1-pro-preview each have their own correct mappings
 - **Anthropic adaptive model detection**: Replaced single-model hardcoded check with a proper `ADAPTIVE_MODELS[]` table; claude-sonnet-4-6 now correctly identified as adaptive
@@ -67,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Changes**: 166 files changed, +10,471/-551 lines
 - **Commits**: 43 commits over development cycle
 - **Quality gates**: All standard checks pass (compile, link, filesize, unit, integration, complexity)
+- **E2e verification**: 32/32 tests pass in live mode against real provider APIs
 
 ## [rel-11] - 2026-02-15
 
@@ -299,7 +288,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **History navigation disabled**: Keeps readline commands (Ctrl+A/E/K/U/W) but disables Up/Down history navigation
 - **Readline in CSI u mode**: Fixed readline command support in CSI u keyboard protocol mode
 - **Hidden system messages**: System messages no longer displayed in UI
-- **Thinking level display**: Changed from 'disabled' to 'none'
+- **Thinking level display**: Changed from 'disabled' to 'min'
 - **Banner alignment**: Banner text columns aligned for cleaner display
 
 #### Memory Safety

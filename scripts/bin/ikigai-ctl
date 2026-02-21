@@ -1,4 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
 #
 # ikigai-ctl - Send requests to the ikigai control socket
 #
@@ -7,134 +9,123 @@
 # Examples:
 #   ikigai-ctl read_framebuffer
 #   ikigai-ctl send_keys "hello world\r"
+#   ikigai-ctl wait_idle 10000
 #   ikigai-ctl read_framebuffer --socket /tmp/ikigai-1234.sock
 #
 
-set -euo pipefail
+require "socket"
+require "json"
 
-die() {
-  echo "error: $*" >&2
+def die(msg)
+  $stderr.puts "error: #{msg}"
   exit 1
-}
+end
 
-usage() {
-  echo "Usage: ikigai-ctl <message-type> [args...] [--socket PATH]" >&2
-  echo "" >&2
-  echo "Examples:" >&2
-  echo "  ikigai-ctl read_framebuffer" >&2
-  echo "  ikigai-ctl send_keys \"hello world\r\"" >&2
-  echo "  ikigai-ctl wait_idle 10000" >&2
-  echo "  ikigai-ctl read_framebuffer --socket /path/to/ikigai-1234.sock" >&2
+def usage
+  $stderr.puts <<~TEXT
+    Usage: ikigai-ctl <message-type> [args...] [--socket PATH]
+
+    Examples:
+      ikigai-ctl read_framebuffer
+      ikigai-ctl send_keys "hello world\\r"
+      ikigai-ctl wait_idle 10000
+      ikigai-ctl read_framebuffer --socket /path/to/ikigai-1234.sock
+  TEXT
   exit 1
-}
+end
 
 # Parse arguments
-message_type=""
-message_arg=""
-socket_path=""
+message_type = nil
+message_arg = nil
+socket_path = nil
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --socket)
-      [[ $# -lt 2 ]] && die "--socket requires a path argument"
-      socket_path="$2"
-      shift 2
-      ;;
-    --help|-h)
-      usage
-      ;;
-    -*)
-      die "unknown option: $1"
-      ;;
-    *)
-      if [[ -z "$message_type" ]]; then
-        message_type="$1"
-        shift
-      elif [[ -z "$message_arg" ]]; then
-        message_arg="$1"
-        shift
-      else
-        die "unexpected argument: $1"
-      fi
-      ;;
-  esac
-done
+args = ARGV.dup
+while (arg = args.shift)
+  case arg
+  when "--socket"
+    die "--socket requires a path argument" if args.empty?
+    socket_path = args.shift
+  when "--help", "-h"
+    usage
+  when /\A-/
+    die "unknown option: #{arg}"
+  else
+    if message_type.nil?
+      message_type = arg
+    elsif message_arg.nil?
+      message_arg = arg
+    else
+      die "unexpected argument: #{arg}"
+    end
+  end
+end
 
-[[ -z "$message_type" ]] && usage
+usage if message_type.nil?
 
-# Validate arguments for message types
-if [[ "$message_type" == "send_keys" ]]; then
-  [[ -z "$message_arg" ]] && die "send_keys requires a keys argument"
-fi
+die "send_keys requires a keys argument" if message_type == "send_keys" && message_arg.nil?
 
 # Auto-discover socket if not specified
-if [[ -z "$socket_path" ]]; then
-  runtime_dir="${IKIGAI_RUNTIME_DIR:-}"
-  [[ -z "$runtime_dir" ]] && die "IKIGAI_RUNTIME_DIR is not set and --socket not specified"
+if socket_path.nil?
+  runtime_dir = ENV["IKIGAI_RUNTIME_DIR"]
+  die "IKIGAI_RUNTIME_DIR is not set and --socket not specified" if runtime_dir.nil? || runtime_dir.empty?
 
-  sockets=()
-  for f in "$runtime_dir"/ikigai-*.sock; do
-    [[ -S "$f" ]] && sockets+=("$f")
-  done
+  sockets = Dir.glob("#{runtime_dir}/ikigai-*.sock").select { |f| File.socket?(f) }
 
-  case "${#sockets[@]}" in
-    0)
-      die "ikigai is not running (no sockets found in $runtime_dir)"
-      ;;
-    1)
-      socket_path="${sockets[0]}"
-      ;;
-    *)
-      echo "error: multiple ikigai instances found:" >&2
-      for s in "${sockets[@]}"; do
-        echo "  $s" >&2
-      done
-      echo "" >&2
-      echo "Specify one with: ikigai-ctl $message_type --socket PATH" >&2
-      exit 1
-      ;;
-  esac
-fi
-
-[[ -S "$socket_path" ]] || die "socket not found: $socket_path"
-
-command -v socat >/dev/null 2>&1 || die "socat is required but not installed"
-command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
-
-# Send a single request and print the response
-send_request() {
-  local req="$1"
-  echo "$req" | socat - "UNIX-CONNECT:$socket_path" || die "failed to connect to $socket_path"
-}
-
-if [[ "$message_type" == "send_keys" ]]; then
-  # Interpret C-style escape sequences
-  interpreted=$(printf "%b" "$message_arg")
-
-  # Send one character at a time with 30ms delay to simulate typing
-  len=${#interpreted}
-  for (( i=0; i<len; i++ )); do
-    char="${interpreted:$i:1}"
-    request=$(jq -cn --arg keys "$char" '{"type":"send_keys","keys":$keys}')
-    response=$(send_request "$request")
-    if [[ $i -lt $((len - 1)) ]]; then
-      sleep 0.05
-    fi
-  done
-  echo "$response"
-elif [[ "$message_type" == "wait_idle" ]]; then
-  timeout_ms="${message_arg:-10000}"
-  request="{\"type\":\"wait_idle\",\"timeout_ms\":${timeout_ms}}"
-  response=$(send_request "$request")
-  echo "$response"
-  response_type=$(echo "$response" | jq -r '.type // empty')
-  if [[ "$response_type" == "idle" ]]; then
-    exit 0
+  case sockets.size
+  when 0
+    die "ikigai is not running (no sockets found in #{runtime_dir})"
+  when 1
+    socket_path = sockets[0]
   else
+    $stderr.puts "error: multiple ikigai instances found:"
+    sockets.each { |s| $stderr.puts "  #{s}" }
+    $stderr.puts ""
+    $stderr.puts "Specify one with: ikigai-ctl #{message_type} --socket PATH"
     exit 1
-  fi
+  end
+end
+
+die "socket not found: #{socket_path}" unless File.socket?(socket_path)
+
+def send_request(socket_path, request_json)
+  sock = UNIXSocket.new(socket_path)
+  sock.write(request_json)
+  sock.write("\n")
+
+  sock.read
+rescue Errno::ECONNREFUSED
+  die "failed to connect to #{socket_path}"
+ensure
+  sock&.close
+end
+
+case message_type
+when "send_keys"
+  interpreted = message_arg
+    .gsub("\\r", "\r")
+    .gsub("\\n", "\n")
+    .gsub("\\t", "\t")
+    .gsub("\\e", "\e")
+    .gsub("\\\\", "\\")
+
+  response = nil
+  interpreted.each_char.with_index do |char, i|
+    request = JSON.generate({ type: "send_keys", keys: char })
+    response = send_request(socket_path, request)
+    sleep 0.05 if i < interpreted.size - 1
+  end
+  puts response
+
+when "wait_idle"
+  timeout_ms = (message_arg || "10000").to_i
+  request = JSON.generate({ type: "wait_idle", timeout_ms: timeout_ms })
+  response = send_request(socket_path, request)
+  puts response
+  parsed = JSON.parse(response)
+  exit(parsed["type"] == "idle" ? 0 : 1)
+
 else
-  request="{\"type\":\"$message_type\"}"
-  response=$(send_request "$request")
-  echo "$response"
-fi
+  request = JSON.generate({ type: message_type })
+  response = send_request(socket_path, request)
+  puts response
+end

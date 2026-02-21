@@ -86,7 +86,7 @@ START_TEST(test_model_completion_with_slash) {
     // Verify we got thinking levels
     bool found_thinking = false;
     for (size_t i = 0; i < comp->count; i++) {
-        if (strcmp(comp->candidates[i], "none") == 0 ||
+        if (strcmp(comp->candidates[i], "min") == 0 ||
             strcmp(comp->candidates[i], "low") == 0 ||
             strcmp(comp->candidates[i], "med") == 0 ||
             strcmp(comp->candidates[i], "high") == 0) {

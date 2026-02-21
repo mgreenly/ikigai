@@ -22,7 +22,7 @@ These models use the Responses API with effort-based reasoning.
 
 | Level | o1 | o3-mini | o3, o3-pro, o4-mini |
 |-------|----|---------|---------------------|
-| `none` | `"low"` | `"low"` | `"none"` |
+| `min` | `"low"` | `"low"` | `"none"` |
 | `low` | `"low"` | `"low"` | `"low"` |
 | `med` | `"medium"` | `"medium"` | `"medium"` |
 | `high` | `"high"` | `"high"` | `"high"` |
@@ -40,7 +40,7 @@ These models use the Responses API with effort-based reasoning.
 
 | Level | gpt-5, gpt-5-mini, gpt-5-nano | gpt-5-pro |
 |-------|-------------------------------|-----------|
-| `none` | `"minimal"` | `"high"` |
+| `min` | `"minimal"` | `"high"` |
 | `low` | `"low"` | `"high"` |
 | `med` | `"medium"` | `"high"` |
 | `high` | `"high"` | `"high"` |
@@ -58,7 +58,7 @@ These models use the Responses API with effort-based reasoning.
 
 | Level | gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini | gpt-5.1-chat-latest |
 |-------|----------------------------------------------|---------------------|
-| `none` | `"none"` | `"medium"` |
+| `min` | `"none"` | `"medium"` |
 | `low` | `"low"` | `"medium"` |
 | `med` | `"medium"` | `"medium"` |
 | `high` | `"high"` | `"medium"` |
@@ -76,7 +76,7 @@ These models use the Responses API with effort-based reasoning.
 
 | Level | gpt-5.2, gpt-5.2-codex | gpt-5.2-pro | gpt-5.2-chat-latest |
 |-------|------------------------|-------------|---------------------|
-| `none` | `"none"` | `"medium"` | `"medium"` |
+| `min` | `"none"` | `"medium"` | `"medium"` |
 | `low` | `"low"` | `"medium"` | `"medium"` |
 | `med` | `"medium"` | `"high"` | `"medium"` |
 | `high` | `"xhigh"` | `"xhigh"` | `"medium"` |
