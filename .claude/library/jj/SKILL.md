@@ -17,6 +17,7 @@ description: Jujutsu (jj) skill for the ikigai project
 
 ## CRITICAL Rules
 
+- **"All files" means ALL files** - When told to commit, restore, or rebase "all files", include every modified file in the working copy. Never selectively exclude files. The working copy is the source of truth.
 - **ONE bookmark only** - Never create multiple bookmarks
 - **Push ALL commits** - Always push the entire stack from main to HEAD
 - **Never partial pushes** - Don't push just one commit when there are more

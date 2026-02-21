@@ -20,7 +20,7 @@ See [project/README.md](project/README.md) for design and implementation details
 ```text
 git clone https://github.com/mgreenly/ikigai.git
 cd ikigai
-git checkout rel-09
+git checkout rel-12
 ```
 
 **Install**:
