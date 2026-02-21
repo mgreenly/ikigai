@@ -144,6 +144,20 @@ When asked to run tests, execute this procedure for each test file:
    - In mock mode, also evaluate `assert_mock`
 5. Report **PASS** or **FAIL** with evidence (cite relevant framebuffer rows)
 
+## Running Large Live Test Batches with Sub-Agents
+
+When asked to run a **large number of live e2e tests** (more than 20), divide the work across sub-agents running **serially** (one after the next, never in parallel):
+
+1. Read `tests/e2e/index.json` to get the full ordered list of test files
+2. Partition the list into chunks of at most **20 tests each**
+3. Launch one sub-agent per chunk, **sequentially** — wait for each to complete before launching the next
+4. Each sub-agent receives: its assigned test files (in order), the ikigai socket path, and instructions to run in live mode. **Do not pre-read the test files yourself** — pass only the filenames and let the sub-agent read them.
+5. Collect pass/fail results from each sub-agent and summarize at the end
+
+**Why serially:** Tests share a single ikigai instance. Running sub-agents concurrently would interleave keystrokes and framebuffer reads across tests, corrupting results.
+
+**Why chunked:** Live tests are slow (LLM round-trips). Chunking prevents any single agent from exhausting its context window mid-run.
+
 ## Key Rules
 
 - **Never start ikigai** — the user manages the instance
