@@ -5,6 +5,7 @@
     {"wait": 0.5},
     {"send_keys": "/model gpt-5-mini/low\\r"},
     {"wait": 0.5},
+    {"mock_expect": {"responses": [{"tool_calls": [{"name": "bash", "arguments": {"command": "pwd"}}]}, {"content": "The current working directory is /home/user/projects/ikigai."}]}},
     {"send_keys": "use your bash tool to return the current working directory\\r"},
     {"wait_idle": 15000},
     {"read_framebuffer": true}
