@@ -366,75 +366,60 @@ START_TEST(test_serialize_request_with_max_tokens) {
 END_TEST
 
 START_TEST(test_serialize_request_with_thinking_gemini_25) {
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-2.5-pro";
-    req.message_count = 0;
-    req.tool_count = 0;
-    req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_LOW;
-
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
-
-    // Parse and verify
+    ik_request_t req = {0}; char *json = NULL;
+    req.model = (char *)"gemini-2.5-pro"; req.thinking.level = IK_THINKING_LOW;
+    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
-
-    yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
-    ck_assert_ptr_nonnull(gen_config);
-
-    yyjson_val *thinking_config = yyjson_obj_get(gen_config, "thinkingConfig");
-    ck_assert_ptr_nonnull(thinking_config);
-
-    yyjson_val *include_thoughts = yyjson_obj_get(thinking_config, "includeThoughts");
-    ck_assert(yyjson_get_bool(include_thoughts));
-
-    // Should have thinkingBudget for 2.5
-    yyjson_val *budget = yyjson_obj_get(thinking_config, "thinkingBudget");
-    ck_assert_ptr_nonnull(budget);
-
+    yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");
+    ck_assert_ptr_nonnull(tc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(tc, "includeThoughts")));
+    ck_assert_ptr_nonnull(yyjson_obj_get(tc, "thinkingBudget"));
     yyjson_doc_free(doc);
 }
-
 END_TEST
 
 START_TEST(test_serialize_request_with_thinking_gemini_3) {
-    ik_request_t req = {0};
-    req.model = (char *)"gemini-3-flash-preview";
-    req.message_count = 0;
-    req.tool_count = 0;
-    req.max_output_tokens = 0;
-    req.thinking.level = IK_THINKING_MED;
-
-    char *json = NULL;
-    res_t r = ik_google_serialize_request(test_ctx, &req, &json);
-
-    ck_assert(is_ok(&r));
-    ck_assert_ptr_nonnull(json);
-
-    // Parse and verify
+    ik_request_t req = {0}; char *json = NULL;
+    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_MED;
+    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
     yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
     yyjson_val *root = yyjson_doc_get_root(doc);
-
     yyjson_val *gen_config = yyjson_obj_get(root, "generationConfig");
     ck_assert_ptr_nonnull(gen_config);
-
-    yyjson_val *thinking_config = yyjson_obj_get(gen_config, "thinkingConfig");
-    ck_assert_ptr_nonnull(thinking_config);
-
-    yyjson_val *include_thoughts = yyjson_obj_get(thinking_config, "includeThoughts");
-    ck_assert(yyjson_get_bool(include_thoughts));
-
-    // Should have thinkingLevel for 3.x
-    yyjson_val *level = yyjson_obj_get(thinking_config, "thinkingLevel");
-    ck_assert_ptr_nonnull(level);
-
+    yyjson_val *tc = yyjson_obj_get(gen_config, "thinkingConfig");
+    ck_assert_ptr_nonnull(tc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(tc, "includeThoughts")));
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(tc, "thinkingLevel")), "medium");
     yyjson_doc_free(doc);
 }
+END_TEST
 
+START_TEST(test_serialize_request_with_thinking_gemini_3_none) {
+    ik_request_t req = {0}; char *json = NULL;
+    req.model = (char *)"gemini-3-flash-preview"; req.thinking.level = IK_THINKING_NONE;
+    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");
+    ck_assert_ptr_nonnull(tc);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(tc, "thinkingLevel")), "minimal");
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_serialize_request_with_thinking_gemini_31_pro) {
+    ik_request_t req = {0}; char *json = NULL;
+    req.model = (char *)"gemini-3.1-pro-preview"; req.thinking.level = IK_THINKING_MED;
+    ck_assert(is_ok(&ik_google_serialize_request(test_ctx, &req, &json)));
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *tc = yyjson_obj_get(yyjson_obj_get(root, "generationConfig"), "thinkingConfig");
+    ck_assert_ptr_nonnull(tc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(tc, "includeThoughts")));
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(tc, "thinkingLevel")), "medium");
+    yyjson_doc_free(doc);
+}
 END_TEST
 
 START_TEST(test_serialize_request_no_thinking_config_when_unsupported) {
@@ -486,6 +471,8 @@ static Suite *request_serialization_suite(void)
     tcase_add_test(tc_request, test_serialize_request_with_max_tokens);
     tcase_add_test(tc_request, test_serialize_request_with_thinking_gemini_25);
     tcase_add_test(tc_request, test_serialize_request_with_thinking_gemini_3);
+    tcase_add_test(tc_request, test_serialize_request_with_thinking_gemini_3_none);
+    tcase_add_test(tc_request, test_serialize_request_with_thinking_gemini_31_pro);
     tcase_add_test(tc_request, test_serialize_request_no_thinking_config_when_unsupported);
     suite_add_tcase(s, tc_request);
 

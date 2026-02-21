@@ -258,8 +258,15 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
 
     // Check if we need generation config
     bool need_max_tokens = (req->max_output_tokens > 0);
-    bool need_thinking = (req->thinking.level != IK_THINKING_NONE &&
-                          ik_google_supports_thinking(req->model));
+    ik_gemini_series_t series = ik_google_model_series(req->model);
+    bool need_thinking;
+    if (series == IK_GEMINI_3) {
+        // Gemini 3 always sends thinkingConfig (NONE -> "minimal"/"low")
+        need_thinking = true;
+    } else {
+        need_thinking = (req->thinking.level != IK_THINKING_NONE &&
+                         ik_google_supports_thinking(req->model));
+    }
 
     if (!need_max_tokens && !need_thinking) {
         return true;
@@ -284,7 +291,6 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
             return false; // LCOV_EXCL_LINE
         }
 
-        ik_gemini_series_t series = ik_google_model_series(req->model);
         if (series == IK_GEMINI_2_5) {
             // Gemini 2.5 uses thinking budget
             int32_t budget = ik_google_thinking_budget(req->model, req->thinking.level);
@@ -293,13 +299,11 @@ static bool serialize_generation_config(yyjson_mut_doc *doc, yyjson_mut_val *roo
                     return false; // LCOV_EXCL_LINE
                 }
             }
-        } else if (series == IK_GEMINI_3) { // LCOV_EXCL_BR_LINE - else unreachable (supports_thinking ensures 2.5 or 3)
-            // Gemini 3 uses thinking level
-            const char *level_str = ik_google_thinking_level_str(req->thinking.level);
-            if (level_str != NULL) { // LCOV_EXCL_BR_LINE - NULL unreachable (need_thinking ensures level != NONE)
-                if (!yyjson_mut_obj_add_str(doc, thinking_config, "thinkingLevel", level_str)) { // LCOV_EXCL_BR_LINE
-                    return false; // LCOV_EXCL_LINE
-                }
+        } else if (series == IK_GEMINI_3) {
+            // Gemini 3 uses thinking level (lowercase, per-model mapping)
+            const char *level_str = ik_google_thinking_level_str(req->model, req->thinking.level);
+            if (!yyjson_mut_obj_add_str(doc, thinking_config, "thinkingLevel", level_str)) { // LCOV_EXCL_BR_LINE
+                return false; // LCOV_EXCL_LINE
             }
         }
 

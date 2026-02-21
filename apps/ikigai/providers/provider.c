@@ -40,8 +40,9 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"o3-mini", "openai", true, 0},
 
     // Google models (mixed: level-based for 3.x, budget for 2.5)
-    {"gemini-3-flash-preview", "google", true, 0}, // Level-based (minimal/low/medium/high)
-    {"gemini-3-pro-preview", "google", true, 0},   // Level-based (minimal/low/medium/high)
+    {"gemini-3-flash-preview", "google", true, 0},   // Level-based (minimal/low/medium/high)
+    {"gemini-3-pro-preview", "google", true, 0},     // Level-based (low/high)
+    {"gemini-3.1-pro-preview", "google", true, 0},   // Level-based (low/medium/high)
     {"gemini-2.5-pro", "google", true, 32768},     // Budget-based
     {"gemini-2.5-flash", "google", true, 24576},   // Budget-based
     {"gemini-2.5-flash-lite", "google", true, 24576},  // Budget-based

@@ -128,8 +128,9 @@ Google has two thinking mechanisms depending on model series.
 
 | Model Name | Thinking | Notes |
 |------------|----------|-------|
-| `gemini-3-pro-preview` | Yes | Uses thinking levels |
 | `gemini-3-flash-preview` | Yes | Uses thinking levels |
+| `gemini-3-pro-preview` | Yes | Uses thinking levels |
+| `gemini-3.1-pro-preview` | Yes | Uses thinking levels |
 
 ### Gemini 2.5 Models (Budget-based)
 
@@ -141,16 +142,16 @@ Google has two thinking mechanisms depending on model series.
 
 ### Thinking Level Mapping
 
-**Gemini 3 models** (both Pro and Flash use same mapping):
+**Gemini 3 models** (per-model mapping, lowercase strings):
 
-| Level | API Value |
-|-------|-----------|
-| `none` | `"LOW"` |
-| `low` | `"LOW"` |
-| `med` | `"HIGH"` |
-| `high` | `"HIGH"` |
+| Level | gemini-3-flash-preview | gemini-3-pro-preview | gemini-3.1-pro-preview |
+|-------|------------------------|----------------------|------------------------|
+| `none` | `"minimal"` | `"low"` | `"low"` |
+| `low` | `"low"` | `"low"` | `"low"` |
+| `med` | `"medium"` | `"high"` | `"medium"` |
+| `high` | `"high"` | `"high"` | `"high"` |
 
-**Note**: Gemini 3 models only support two levels (`LOW` and `HIGH`, uppercase). Thinking cannot be disabled.
+**Note**: Thinking config is always sent for Gemini 3 models (NONE maps to the minimum supported level). The `med`→`"high"` mapping for `gemini-3-pro-preview` is a silent best-fit (medium not supported by that model).
 
 **Gemini 2.5 (budget-based)**:
 
