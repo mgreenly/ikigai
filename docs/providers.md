@@ -53,6 +53,8 @@ These models use the newer Responses API with effort-based reasoning:
 | `o1` | Yes | First-gen reasoning |
 | `o3` | Yes | Second-gen reasoning |
 | `o3-mini` | Yes | Smaller second-gen reasoning |
+| `o4-mini` | Yes | Latest small reasoning model |
+| `o3-pro` | Yes | Pro-tier o3 reasoning |
 | `gpt-5` | Yes | GPT-5 base |
 | `gpt-5-mini` | Yes | Smaller GPT-5 |
 | `gpt-5-nano` | Yes | Smallest GPT-5 |
@@ -60,9 +62,11 @@ These models use the newer Responses API with effort-based reasoning:
 | `gpt-5.1` | Yes | GPT-5.1 base |
 | `gpt-5.1-chat-latest` | Yes | GPT-5.1 chat |
 | `gpt-5.1-codex` | Yes | GPT-5.1 code-focused |
+| `gpt-5.1-codex-mini` | Yes | Smaller GPT-5.1 code model |
 | `gpt-5.2` | Yes | GPT-5.2 base |
 | `gpt-5.2-chat-latest` | Yes | GPT-5.2 chat |
 | `gpt-5.2-codex` | Yes | GPT-5.2 code-focused |
+| `gpt-5.2-pro` | Yes | GPT-5.2 pro tier |
 
 ### Chat Completions API Models
 
@@ -76,35 +80,65 @@ Legacy models without reasoning support:
 | `gpt-4-turbo` | No | GPT-4 Turbo |
 | `gpt-4o` | No | GPT-4o |
 | `gpt-4o-mini` | No | Smaller GPT-4o |
+| `gpt-4.1` | No | GPT-4.1 (1M context) |
+| `gpt-4.1-mini` | No | Smaller GPT-4.1 |
+| `gpt-4.1-nano` | No | Smallest GPT-4.1 |
 
 ### Thinking Level Mapping
 
-**GPT-5.x models** (except gpt-5-pro):
+**Old o-series** (o1, o3-mini — cannot disable reasoning):
 
 | Level | API Value |
 |-------|-----------|
-| `none` | Omitted (no reasoning config) |
+| `none` | `"low"` (minimum supported) |
 | `low` | `"low"` |
 | `med` | `"medium"` |
 | `high` | `"high"` |
 
-**O-series models** (o1, o3):
+**New o-series** (o3, o3-pro, o4-mini):
 
 | Level | API Value |
 |-------|-----------|
-| `none` | `"low"` (cannot disable) |
+| `none` | `"none"` |
 | `low` | `"low"` |
 | `med` | `"medium"` |
 | `high` | `"high"` |
 
-**gpt-5-pro**:
+**gpt-5, gpt-5-mini, gpt-5-nano** (minimum is "minimal", API rejects "none"):
 
 | Level | API Value |
 |-------|-----------|
-| `none` | `"high"` (always high) |
+| `none` | `"minimal"` (minimum supported) |
+| `low` | `"low"` |
+| `med` | `"medium"` |
+| `high` | `"high"` |
+
+**gpt-5-pro** (always high effort):
+
+| Level | API Value |
+|-------|-----------|
+| `none` | `"high"` |
 | `low` | `"high"` |
 | `med` | `"high"` |
 | `high` | `"high"` |
+
+**gpt-5.1, gpt-5.1-chat-latest, gpt-5.1-codex, gpt-5.1-codex-mini**:
+
+| Level | API Value |
+|-------|-----------|
+| `none` | `"none"` |
+| `low` | `"low"` |
+| `med` | `"medium"` |
+| `high` | `"high"` |
+
+**gpt-5.2, gpt-5.2-chat-latest, gpt-5.2-codex, gpt-5.2-pro**:
+
+| Level | API Value |
+|-------|-----------|
+| `none` | `"none"` |
+| `low` | `"low"` |
+| `med` | `"medium"` |
+| `high` | `"xhigh"` (maximum supported) |
 
 ### Fixed Parameters
 
