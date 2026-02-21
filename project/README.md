@@ -174,14 +174,19 @@ This documentation is primarily for AI agents and secondarily for humans.
 - Pending prompt mechanism for fork tool (worker creates child, main loop starts its LLM stream)
 
 
-### rel-12: HTTP API for External Agents (future)
+### rel-12: Control Socket & Headless Mode (complete)
 
-**Objective**: Enable external processes to spawn and communicate with agents
+**Objective**: Enable programmatic interaction with a running ikigai instance and black-box functional testing
 
 **Features**:
-- Fork null agent (starting point on which you set model, tools, etc...)
-- Support basic message exchange (no tools)
-- Build minimal external agent to demo
+- Control socket lifecycle integrated into the repl event loop
+- Framebuffer serialization (ANSI-to-JSON) for programmatic screen reading
+- Key injection buffer (`key_inject.h/c`) drained in main event loop
+- `ikigai-ctl` shell client with `read_framebuffer` and `send_keys` subcommands
+- `--headless` flag for TTY-free operation (agent sessions, CI)
+- End-to-end test framework with mock providers for OpenAI, Anthropic, and Google
+- `check-e2e` automated test runner
+- `e2e-testing` skill documenting the JSON-based test format
 
 
 ### rel-13: Dynamic Sliding Context Window (future)
