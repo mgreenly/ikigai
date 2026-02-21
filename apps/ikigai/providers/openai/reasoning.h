@@ -38,12 +38,12 @@ bool ik_openai_is_reasoning_model(const char *model);
  * @return      "low", "medium", "high", "minimal", "xhigh", "none", or NULL
  *
  * Model-aware mapping:
- * | Level | o1, o3-mini | o3, o3-pro, o4-mini | gpt-5/mini/nano | gpt-5-pro | gpt-5.1.x | gpt-5.2.x |
- * |-------|-------------|---------------------|-----------------|-----------|-----------|-----------|
- * | NONE  | "low"       | "none"              | "minimal"       | "high"    | "none"    | "none"    |
- * | LOW   | "low"       | "low"               | "low"           | "high"    | "low"     | "low"     |
- * | MED   | "medium"    | "medium"            | "medium"        | "high"    | "medium"  | "medium"  |
- * | HIGH  | "high"      | "high"              | "high"          | "high"    | "high"    | "xhigh"   |
+ * | Level | o1, o3-mini | o3, o3-pro, o4-mini | gpt-5/mini/nano | gpt-5-pro | gpt-5.1-chat-latest | gpt-5.1/codex/codex-mini | gpt-5.2-chat-latest | gpt-5.2/codex | gpt-5.2-pro |
+ * |-------|-------------|---------------------|-----------------|-----------|---------------------|--------------------------|---------------------|---------------|-------------|
+ * | NONE  | "low"       | "none"              | "minimal"       | "high"    | "medium"            | "none"                   | "medium"            | "none"        | "medium"    |
+ * | LOW   | "low"       | "low"               | "low"           | "high"    | "medium"            | "low"                    | "medium"            | "low"         | "medium"    |
+ * | MED   | "medium"    | "medium"            | "medium"        | "high"    | "medium"            | "medium"                 | "medium"            | "medium"      | "high"      |
+ * | HIGH  | "high"      | "high"              | "high"          | "high"    | "medium"            | "high"                   | "medium"            | "xhigh"       | "xhigh"     |
  */
 const char *ik_openai_reasoning_effort(const char *model, ik_thinking_level_t level);
 

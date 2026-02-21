@@ -234,6 +234,34 @@ START_TEST(test_reasoning_effort_gpt52_pro_high) {
     ck_assert_str_eq(effort, "xhigh");
 } END_TEST
 
+/* gpt-5.1-chat-latest: fixed "medium" (API rejects all other values) */
+START_TEST(test_reasoning_effort_gpt51_chat_latest_none) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_NONE), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt51_chat_latest_low) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_LOW), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt51_chat_latest_med) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_MED), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt51_chat_latest_high) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.1-chat-latest", IK_THINKING_HIGH), "medium");
+} END_TEST
+
+/* gpt-5.2-chat-latest: fixed "medium" (API rejects all other values) */
+START_TEST(test_reasoning_effort_gpt52_chat_latest_none) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_NONE), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt52_chat_latest_low) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_LOW), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt52_chat_latest_med) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_MED), "medium");
+} END_TEST
+START_TEST(test_reasoning_effort_gpt52_chat_latest_high) {
+    ck_assert_str_eq(ik_openai_reasoning_effort("gpt-5.2-chat-latest", IK_THINKING_HIGH), "medium");
+} END_TEST
+
 // Invalid/edge cases
 START_TEST(test_reasoning_effort_null_model) {
     const char *effort = ik_openai_reasoning_effort(NULL, IK_THINKING_LOW);
@@ -324,6 +352,14 @@ static Suite *reasoning_suite(void)
     tcase_add_test(tc_effort, test_reasoning_effort_gpt52_high);
     tcase_add_test(tc_effort, test_reasoning_effort_gpt52_pro_none);
     tcase_add_test(tc_effort, test_reasoning_effort_gpt52_pro_high);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt51_chat_latest_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt51_chat_latest_low);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt51_chat_latest_med);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt51_chat_latest_high);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt52_chat_latest_none);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt52_chat_latest_low);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt52_chat_latest_med);
+    tcase_add_test(tc_effort, test_reasoning_effort_gpt52_chat_latest_high);
     tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_none);
     tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_low);
     tcase_add_test(tc_effort, test_reasoning_effort_gpt5_pro_med);

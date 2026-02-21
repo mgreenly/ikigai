@@ -80,7 +80,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `align` | Behavioral alignment rules |
 | `principles` | Guiding principles and decision patterns |
 | `scratch` | Temporary storage between sessions |
-| `end-to-end-testing` | JSON-based end-to-end test format for mock and live providers |
+| `e2e-testing` | JSON-based end-to-end test format for mock and live providers |
 
 ### Skillsets
 

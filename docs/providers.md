@@ -122,7 +122,7 @@ Legacy models without reasoning support:
 | `med` | `"high"` |
 | `high` | `"high"` |
 
-**gpt-5.1, gpt-5.1-chat-latest, gpt-5.1-codex, gpt-5.1-codex-mini**:
+**gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini**:
 
 | Level | API Value |
 |-------|-----------|
@@ -131,7 +131,16 @@ Legacy models without reasoning support:
 | `med` | `"medium"` |
 | `high` | `"high"` |
 
-**gpt-5.2, gpt-5.2-chat-latest, gpt-5.2-codex, gpt-5.2-pro**:
+**gpt-5.1-chat-latest** (fixed medium effort — adaptive reasoning, not configurable):
+
+| Level | API Value |
+|-------|-----------|
+| `none` | `"medium"` |
+| `low`  | `"medium"` |
+| `med`  | `"medium"` |
+| `high` | `"medium"` |
+
+**gpt-5.2, gpt-5.2-codex, gpt-5.2-pro**:
 
 | Level | API Value |
 |-------|-----------|
@@ -139,6 +148,15 @@ Legacy models without reasoning support:
 | `low` | `"low"` |
 | `med` | `"medium"` |
 | `high` | `"xhigh"` (maximum supported) |
+
+**gpt-5.2-chat-latest** (fixed medium effort — adaptive reasoning, not configurable):
+
+| Level | API Value |
+|-------|-----------|
+| `none` | `"medium"` |
+| `low`  | `"medium"` |
+| `med`  | `"medium"` |
+| `high` | `"medium"` |
 
 ### Fixed Parameters
 
