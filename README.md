@@ -4,7 +4,7 @@
 
 # ikigai
 
-An experiment in agentic orchestration. One platform for living agents that coordinate through hierarchical sub-agents, persist state to permanent memory, and manage context through a dynamic sliding window. Build and test locally (Ikigai), deploy to production (Iki-Genba).
+An experiment in agentic orchestration. A platform for living agents that coordinate through hierarchical sub-agents, persist state to permanent memory, and manage long-term context using a dynamic sliding window paired with historical summaries and embedding-searchable topical history.
 
 Why? Because I want to and no one can stop me!
 
