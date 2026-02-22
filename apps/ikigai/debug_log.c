@@ -19,7 +19,7 @@
 
 
 #include "shared/poison.h"
-#define DEBUG_LOG_CURRENT "current.log"
+#define DEBUG_LOG_CURRENT "debug.log"
 
 static FILE *g_debug_log = NULL;
 

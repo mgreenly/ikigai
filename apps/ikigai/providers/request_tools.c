@@ -6,7 +6,6 @@
 #include "apps/ikigai/providers/request.h"
 
 #include "apps/ikigai/agent.h"
-#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/doc_cache.h"
 #include "shared/error.h"
 #include "shared/panic.h"
@@ -152,18 +151,6 @@ static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *regi
         return OK(NULL);
     }
 
-    DEBUG_LOG("add_tools_from_registry: registry_count=%zu agent=%p toolset_filter=%p toolset_count=%zu",
-              registry->count,
-              (void *)agent,
-              agent ? (void *)agent->toolset_filter : NULL,
-              agent ? agent->toolset_count : 0);
-
-    if (agent != NULL && agent->toolset_filter != NULL && agent->toolset_count > 0) {
-        for (size_t j = 0; j < agent->toolset_count; j++) {
-            DEBUG_LOG("  toolset_filter[%zu]=%s", j, agent->toolset_filter[j]);
-        }
-    }
-
     for (size_t i = 0; i < registry->count; i++) {
         ik_tool_registry_entry_t *entry = &registry->entries[i];
 
@@ -176,12 +163,8 @@ static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *regi
                 }
             }
             if (!allowed) {
-                DEBUG_LOG("  FILTERED OUT tool: %s", entry->name);
                 continue;
             }
-            DEBUG_LOG("  ALLOWED tool: %s", entry->name);
-        } else {
-            DEBUG_LOG("  ADDED tool (no filter): %s", entry->name);
         }
 
         const char *description = yyjson_get_str(yyjson_obj_get(entry->schema_root, "description"));  // LCOV_EXCL_BR_LINE

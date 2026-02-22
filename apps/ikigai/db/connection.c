@@ -1,5 +1,6 @@
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/migration.h"
+#include "apps/ikigai/debug_log.h"
 #include "shared/error.h"
 
 #include "shared/panic.h"
@@ -140,6 +141,8 @@ res_t ik_db_init_with_migrations(TALLOC_CTX *ctx,
 
         return result;
     }
+
+    DEBUG_LOG("[db_connect] connected conn_str=%s", conn_str ? conn_str : "(null)");
 
     // Set notice processor to prevent PostgreSQL from writing to stderr
     // This is critical when running in alternate screen mode

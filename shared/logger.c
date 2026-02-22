@@ -283,21 +283,6 @@ ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir)
         PANIC("Failed to initialize mutex");  // LCOV_EXCL_LINE
     }
 
-    char log_path[512];
-    ik_log_setup_directories(working_dir, log_path);
-
-    pthread_mutex_lock(&logger->mutex);
-    ik_log_rotate_if_exists(log_path);
-
-    logger->file = fopen_(log_path, "w");
-    if (logger->file == NULL) {  // LCOV_EXCL_BR_LINE
-        pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
-        pthread_mutex_destroy(&logger->mutex);  // LCOV_EXCL_LINE
-        talloc_free(logger);  // LCOV_EXCL_LINE
-        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
-    }
-
-    pthread_mutex_unlock(&logger->mutex);
     talloc_set_destructor(logger, logger_destructor);
     return logger;
 }
@@ -305,35 +290,15 @@ ik_logger_t *ik_logger_create(TALLOC_CTX *ctx, const char *working_dir)
 void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
 {
     if (logger == NULL) return;  // LCOV_EXCL_LINE
-    assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
-
-    char log_path[512];
-    ik_log_setup_directories(working_dir, log_path);
-
-    pthread_mutex_lock(&logger->mutex);
-    if (logger->file != NULL) {  // LCOV_EXCL_BR_LINE
-        if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
-            pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
-            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
-        }
-        logger->file = NULL;
-    }
-
-    ik_log_rotate_if_exists(log_path);
-    logger->file = fopen_(log_path, "w");
-    if (logger->file == NULL) {  // LCOV_EXCL_BR_LINE
-        pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
-        PANIC("Failed to open log file");  // LCOV_EXCL_LINE
-    }
-    pthread_mutex_unlock(&logger->mutex);
+    (void)working_dir;
 }
 
 static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_doc *doc)
 {
-    if (logger == NULL) {  // LCOV_EXCL_START
+    if (logger == NULL || logger->file == NULL) {
         yyjson_mut_doc_free(doc);
         return;
-    }  // LCOV_EXCL_STOP
+    }
 
     char *json_str = ik_log_create_jsonl(level, doc);
 

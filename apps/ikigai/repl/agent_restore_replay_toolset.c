@@ -8,7 +8,6 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/pg_result.h"
-#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/tmp_ctx.h"
 #include "shared/error.h"
 #include "shared/wrapper.h"
@@ -126,9 +125,6 @@ res_t ik_agent_replay_toolset(ik_db_ctx_t *db, ik_agent_ctx_t *agent)
     assert(agent != NULL);     // LCOV_EXCL_BR_LINE
     assert(agent->uuid != NULL);     // LCOV_EXCL_BR_LINE
 
-    DEBUG_LOG("replay_toolset: agent_uuid=%s parent_uuid=%s",
-              agent->uuid, agent->parent_uuid ? agent->parent_uuid : "(null)");
-
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     const char *query =
@@ -154,25 +150,21 @@ res_t ik_agent_replay_toolset(ik_db_ctx_t *db, ik_agent_ctx_t *agent)
     }
 
     int cmd_rows = PQntuples(cmd_res);
-    DEBUG_LOG("replay_toolset: found %d toolset command rows", cmd_rows);
 
     if (cmd_rows > 0) {
         const char *data_json = PQgetvalue_(cmd_res, 0, 0);
-        DEBUG_LOG("replay_toolset: data_json=%s", data_json);
         yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
         if (doc != NULL) {
             yyjson_val *root = yyjson_doc_get_root_(doc);
             yyjson_val *args = yyjson_obj_get_(root, "args");
             if (args != NULL && yyjson_is_str(args)) {
                 const char *args_str = yyjson_get_str(args);
-                DEBUG_LOG("replay_toolset: replaying args=%s", args_str);
                 replay_toolset_command(agent, args_str);
             }
             yyjson_doc_free(doc);
         }
     } else if (agent->parent_uuid != NULL) {
         // No explicit toolset command - check fork message for inherited toolset
-        DEBUG_LOG("replay_toolset: no toolset command, checking fork message for inherited toolset");
 
         const char *fork_query =
             "SELECT data "
@@ -189,24 +181,18 @@ res_t ik_agent_replay_toolset(ik_db_ctx_t *db, ik_agent_ctx_t *agent)
 
         if (PQresultStatus(fork_res) == PGRES_TUPLES_OK && PQntuples(fork_res) > 0) {
             const char *fork_data = PQgetvalue_(fork_res, 0, 0);
-            DEBUG_LOG("replay_toolset: fork data=%s", fork_data);
 
             yyjson_doc *fork_doc = yyjson_read(fork_data, strlen(fork_data), 0);
             if (fork_doc != NULL) {
                 yyjson_val *fork_root = yyjson_doc_get_root_(fork_doc);
                 yyjson_val *toolset_arr = yyjson_obj_get_(fork_root, "toolset_filter");
                 if (toolset_arr != NULL && yyjson_is_arr(toolset_arr)) {
-                    DEBUG_LOG("replay_toolset: found toolset_filter in fork message, count=%zu",
-                              yyjson_arr_size(toolset_arr));
                     replay_toolset_from_json_array(agent, toolset_arr);
                 }
                 yyjson_doc_free(fork_doc);
             }
         }
     }
-
-    DEBUG_LOG("replay_toolset: after replay toolset_filter=%p toolset_count=%zu",
-              (void *)agent->toolset_filter, agent->toolset_count);
 
     talloc_free(tmp);
     return OK(NULL);

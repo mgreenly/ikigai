@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 
     // Initialize debug log (DEBUG builds only, compiled away in release)
     ik_debug_log_init();
+    DEBUG_LOG("[startup] pid=%d", (int)getpid());
 
     // Logger first (its own talloc root for independent lifetime)
     void *logger_ctx = talloc_new(NULL);
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
     g_panic_logger = NULL;   // Disable panic logging
     talloc_free(logger_ctx); // Logger last
 
+    DEBUG_LOG("[shutdown] exit_code=%d", exit_code);
     return exit_code;
 }
 

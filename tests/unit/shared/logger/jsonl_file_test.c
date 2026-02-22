@@ -8,166 +8,69 @@
 #include <sys/stat.h>
 #include "shared/logger.h"
 
-// Test: ik_log_init creates .ikigai/logs directory and current.log file
+// Test: ik_log_init and ik_log_shutdown do not crash (logger is a no-op)
 START_TEST(test_log_init_creates_log_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
-
-    // Create test directory
     mkdir(test_dir, 0755);
 
-    // Initialize logger with temp directory
-    ik_log_init(test_dir);
-
-    // Check that .ikigai/logs directory was created
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    struct stat st;
-    ck_assert_int_eq(stat(logs_dir, &st), 0);
-    ck_assert(S_ISDIR(st.st_mode));
-
-    // Check that current.log file exists
-    char log_file[512];
-    snprintf(log_file, sizeof(log_file), "%s/.ikigai/logs/current.log", test_dir);
-    ck_assert_int_eq(stat(log_file, &st), 0);
-    ck_assert(S_ISREG(st.st_mode));
-
-    // Cleanup
+    ik_log_init(test_dir);   // Should not crash
     ik_log_shutdown();
-    unlink(log_file);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
+
     rmdir(test_dir);
 }
 END_TEST
-// Test: ik_log_debug_json writes to current.log file
+// Test: ik_log_debug_json does not crash (logger is a no-op)
 START_TEST(test_log_writes_to_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
-
-    // Create test directory
     mkdir(test_dir, 0755);
 
-    // Initialize logger
     ik_log_init(test_dir);
 
-    // Write a log entry
     yyjson_mut_doc *doc = ik_log_create();
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "event", "test_event");
     yyjson_mut_obj_add_int(doc, root, "value", 42);
-    ik_log_debug_json(doc);
+    ik_log_debug_json(doc);  // Should not crash; logger is a no-op
 
-    // Read the log file
-    char log_file[512];
-    snprintf(log_file, sizeof(log_file), "%s/.ikigai/logs/current.log", test_dir);
-    FILE *f = fopen(log_file, "r");
-    ck_assert_ptr_nonnull(f);
-
-    char line[4096];
-    ck_assert_ptr_nonnull(fgets(line, sizeof(line), f));
-    fclose(f);
-
-    // Verify the log entry contains expected fields
-    ck_assert_ptr_nonnull(strstr(line, "\"level\":\"debug\""));
-    ck_assert_ptr_nonnull(strstr(line, "\"timestamp\""));
-    ck_assert_ptr_nonnull(strstr(line, "\"logline\""));
-    ck_assert_ptr_nonnull(strstr(line, "\"event\":\"test_event\""));
-    ck_assert_ptr_nonnull(strstr(line, "\"value\":42"));
-
-    // Cleanup
     ik_log_shutdown();
-    unlink(log_file);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
     rmdir(test_dir);
 }
 
 END_TEST
-// Test: multiple log entries append correctly
+// Test: multiple ik_log_debug_json calls do not crash (logger is a no-op)
 START_TEST(test_multiple_log_entries_append) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
-
-    // Create test directory
     mkdir(test_dir, 0755);
 
-    // Initialize logger
     ik_log_init(test_dir);
 
-    // Write first log entry
     yyjson_mut_doc *doc1 = ik_log_create();
     yyjson_mut_val *root1 = yyjson_mut_doc_get_root(doc1);
     yyjson_mut_obj_add_str(doc1, root1, "event", "first");
-    ik_log_debug_json(doc1);
+    ik_log_debug_json(doc1);  // Should not crash
 
-    // Write second log entry
     yyjson_mut_doc *doc2 = ik_log_create();
     yyjson_mut_val *root2 = yyjson_mut_doc_get_root(doc2);
     yyjson_mut_obj_add_str(doc2, root2, "event", "second");
-    ik_log_debug_json(doc2);
+    ik_log_debug_json(doc2);  // Should not crash
 
-    // Read the log file
-    char log_file[512];
-    snprintf(log_file, sizeof(log_file), "%s/.ikigai/logs/current.log", test_dir);
-    FILE *f = fopen(log_file, "r");
-    ck_assert_ptr_nonnull(f);
-
-    char line1[4096];
-    char line2[4096];
-    ck_assert_ptr_nonnull(fgets(line1, sizeof(line1), f));
-    ck_assert_ptr_nonnull(fgets(line2, sizeof(line2), f));
-    fclose(f);
-
-    // Verify both entries
-    ck_assert_ptr_nonnull(strstr(line1, "\"event\":\"first\""));
-    ck_assert_ptr_nonnull(strstr(line2, "\"event\":\"second\""));
-
-    // Cleanup
     ik_log_shutdown();
-    unlink(log_file);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
     rmdir(test_dir);
 }
 
 END_TEST
-// Test: ik_log_shutdown closes file
+// Test: ik_log_shutdown does not crash (logger is a no-op)
 START_TEST(test_log_shutdown_closes_file) {
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
-
-    // Create test directory
     mkdir(test_dir, 0755);
 
-    // Initialize and shutdown logger
     ik_log_init(test_dir);
-    ik_log_shutdown();
+    ik_log_shutdown();  // Should not crash
 
-    // The file should exist after shutdown
-    char log_file[512];
-    snprintf(log_file, sizeof(log_file), "%s/.ikigai/logs/current.log", test_dir);
-    struct stat st;
-    ck_assert_int_eq(stat(log_file, &st), 0);
-
-    // Cleanup
-    unlink(log_file);
-    char logs_dir[512];
-    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
-    rmdir(logs_dir);
-    char ikigai_dir[512];
-    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
-    rmdir(ikigai_dir);
     rmdir(test_dir);
 }
 

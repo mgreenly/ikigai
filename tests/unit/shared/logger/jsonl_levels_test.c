@@ -35,19 +35,7 @@ static void teardown_logger(void)
     rmdir(test_dir);
 }
 
-static char *read_log_file(void)
-{
-    FILE *f = fopen(log_file_path, "r");
-    if (!f) return NULL;
-
-    static char buffer[4096];
-    size_t len = fread(buffer, 1, sizeof(buffer) - 1, f);
-    buffer[len] = '\0';
-    fclose(f);
-    return buffer;
-}
-
-// Test: ik_log_info_json writes "info" level
+// Test: ik_log_info_json does not crash (logger is a no-op)
 START_TEST(test_log_info_has_info_level) {
     setup_logger();
 
@@ -55,26 +43,12 @@ START_TEST(test_log_info_has_info_level) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "event", "test");
 
-    ik_log_info_json(doc);
+    ik_log_info_json(doc);  // Should not crash; logger is a no-op
 
-    char *output = read_log_file();
-    ck_assert_ptr_nonnull(output);
-
-    // Parse the output as JSON
-    yyjson_doc *parsed = yyjson_read(output, strlen(output), 0);
-    ck_assert_ptr_nonnull(parsed);
-
-    yyjson_val *parsed_root = yyjson_doc_get_root(parsed);
-    yyjson_val *level = yyjson_obj_get(parsed_root, "level");
-    ck_assert_ptr_nonnull(level);
-    ck_assert(yyjson_is_str(level));
-    ck_assert_str_eq(yyjson_get_str(level), "info");
-
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 END_TEST
-// Test: ik_log_warn_json writes "warn" level
+// Test: ik_log_warn_json does not crash (logger is a no-op)
 START_TEST(test_log_warn_has_warn_level) {
     setup_logger();
 
@@ -82,22 +56,8 @@ START_TEST(test_log_warn_has_warn_level) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "event", "test");
 
-    ik_log_warn_json(doc);
+    ik_log_warn_json(doc);  // Should not crash; logger is a no-op
 
-    char *output = read_log_file();
-    ck_assert_ptr_nonnull(output);
-
-    // Parse the output as JSON
-    yyjson_doc *parsed = yyjson_read(output, strlen(output), 0);
-    ck_assert_ptr_nonnull(parsed);
-
-    yyjson_val *parsed_root = yyjson_doc_get_root(parsed);
-    yyjson_val *level = yyjson_obj_get(parsed_root, "level");
-    ck_assert_ptr_nonnull(level);
-    ck_assert(yyjson_is_str(level));
-    ck_assert_str_eq(yyjson_get_str(level), "warn");
-
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 
