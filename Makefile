@@ -155,7 +155,7 @@ TOOL_LIB_OBJECTS = $(filter-out $(TOOL_MAIN_OBJECTS),$(TOOL_OBJECTS))
 
 # Discover all tool binaries (convert underscores to hyphens for Unix convention)
 TOOL_NAMES = $(shell find tools -name 'main.c' 2>/dev/null | sed 's|tools/||; s|/main.c||')
-TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(subst _,-,$(TOOL_NAMES)))
+TOOL_BINARIES = $(patsubst %,libexec/%-tool,$(subst _,-,$(TOOL_NAMES)))
 
 # Discover all test binaries (exclude helpers/ - those are test suite helpers, not standalone tests)
 UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
@@ -307,17 +307,17 @@ endif
 	@chmod 755 $(DESTDIR)$(bindir)/ikigai
 	# Install config files
 ifeq ($(FORCE),1)
-	install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+	install -m 644 etc/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
 else
-	@test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
+	@test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
 endif
 	# Install database migrations
 ifeq ($(IS_USER_INSTALL),yes)
 	install -d $(DESTDIR)$(user_datadir)/migrations
-	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(user_datadir)/migrations/
+	install -m 644 share/migrations/*.sql $(DESTDIR)$(user_datadir)/migrations/
 else
 	install -d $(DESTDIR)$(datadir)/ikigai/migrations
-	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(datadir)/ikigai/migrations/
+	install -m 644 share/migrations/*.sql $(DESTDIR)$(datadir)/ikigai/migrations/
 endif
 	@echo "✅ Installed to $(PREFIX)"
 

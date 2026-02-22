@@ -39,8 +39,6 @@ else
 		echo "🔴 Pre-existing build failures - fix compilation/linking before checking for races"; \
 		exit 1; \
 	fi
-	@mkdir -p reports/check
-	@find tests/unit tests/integration -type d 2>/dev/null | sed 's|^tests/|reports/check/|' | xargs mkdir -p 2>/dev/null || true
 	@tmpdir=$$(mktemp -d); \
 	find $(TSAN_BUILDDIR)/tests/unit $(TSAN_BUILDDIR)/tests/integration \
 		-name '*_test' -type f -executable 2>/dev/null | \

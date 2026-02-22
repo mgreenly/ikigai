@@ -5,7 +5,6 @@
 
 #include "apps/ikigai/providers/google/google.h"
 
-#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/providers/google/error.h"
 #include "apps/ikigai/providers/google/google_internal.h"
 #include "shared/logger.h"
@@ -314,9 +313,6 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
         talloc_free(active_stream); // LCOV_EXCL_LINE
         return r; // LCOV_EXCL_LINE
     }
-
-    DEBUG_LOG("[llm_request] provider=google model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", body ? body : "(null)");
 
     // Build headers (Google uses API key in URL, so headers are simpler)
     const char *headers[3];

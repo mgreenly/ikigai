@@ -27,9 +27,11 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
 
+    DEBUG_LOG("stream_callback: event_type=%d", event->type);
+
     switch (event->type) { // LCOV_EXCL_BR_LINE - default case is defensive
         case IK_STREAM_START:
-            DEBUG_LOG("[llm_stream_start] agent=%s", agent->uuid ? agent->uuid : "unknown");
+            DEBUG_LOG("stream_callback: IK_STREAM_START");
             if (agent->assistant_response != NULL) {
                 talloc_free(agent->assistant_response);
                 agent->assistant_response = NULL;
@@ -81,13 +83,11 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
     assert(completion != NULL);  /* LCOV_EXCL_BR_LINE */
     assert(ctx != NULL);         /* LCOV_EXCL_BR_LINE */
 
+    DEBUG_LOG("completion_callback: ENTRY success=%d", completion->success);
+
     ik_agent_ctx_t *agent = (ik_agent_ctx_t *)ctx;
 
-    DEBUG_LOG("[llm_response] success=%s finish=%d input_tokens=%d output_tokens=%d",
-              completion->success ? "true" : "false",
-              completion->response ? (int)completion->response->finish_reason : -1,
-              completion->response ? (int)completion->response->usage.input_tokens : 0,
-              completion->response ? (int)completion->response->usage.output_tokens : 0);
+    DEBUG_LOG("completion_callback: logging response metadata");
 
     // Log response metadata via JSONL logger
     {
@@ -108,6 +108,8 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
         ik_logger_debug_json(agent->shared->logger, doc);  // LCOV_EXCL_LINE
     }
+
+    DEBUG_LOG("completion_callback: after logging");
 
     // Flush any remaining buffered line content (with prefix if first line)
     // Check for non-whitespace content (empty/whitespace-only responses are not displayed)
@@ -161,10 +163,16 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
 
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
+        DEBUG_LOG("completion_callback: storing response metadata");
         ik_repl_store_response_metadata(agent, completion->response);
+        DEBUG_LOG("completion_callback: rendering usage event");
         ik_repl_render_usage_event(agent);
+        DEBUG_LOG("completion_callback: extracting tool calls");
         ik_repl_extract_tool_calls(agent, completion->response);
+        DEBUG_LOG("completion_callback: tool calls extracted, pending=%p", (void *)agent->pending_tool_call);
     }
+
+    DEBUG_LOG("completion_callback: EXIT");
 
     return OK(NULL);
 }

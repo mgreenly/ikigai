@@ -1,5 +1,4 @@
 // Agent restoration on startup
-#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/repl/agent_restore.h"
 #include "apps/ikigai/repl/agent_restore_replay.h"
 #include "apps/ikigai/repl/agent_restore_replay_toolset.h"
@@ -118,8 +117,6 @@ static void restore_agent_zero(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
-    DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
-              agent->uuid, replay_ctx->count, agent->mark_count);
 
     // Replay pins (independent of clear boundaries)
     res = ik_agent_replay_pins(db_ctx, agent);
@@ -202,8 +199,6 @@ static void restore_child_agent(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
-    DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
-              agent->uuid, replay_ctx->count, agent->mark_count);
 
     // Replay pins (independent of clear boundaries)
     res = ik_agent_replay_pins(db_ctx, agent);

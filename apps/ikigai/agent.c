@@ -1,6 +1,5 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/config.h"
-#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/config_defaults.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/agent_row.h"
@@ -54,8 +53,6 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     agent->uuid = ik_generate_uuid(agent);
     agent->parent_uuid = parent_uuid ? talloc_strdup(agent, parent_uuid) : NULL;
-    DEBUG_LOG("[agent_create] uuid=%s parent=%s",
-              agent->uuid, agent->parent_uuid ? agent->parent_uuid : "root");
     agent->shared = shared;
     agent->created_at = time(NULL);
 
@@ -157,8 +154,6 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->uuid = talloc_strdup(agent, row->uuid);
     agent->name = row->name ? talloc_strdup(agent, row->name) : NULL;
     agent->parent_uuid = row->parent_uuid ? talloc_strdup(agent, row->parent_uuid) : NULL;
-    DEBUG_LOG("[agent_restore_row] uuid=%s parent=%s",
-              agent->uuid, agent->parent_uuid ? agent->parent_uuid : "root");
     agent->created_at = row->created_at;
     agent->fork_message_id = row->fork_message_id ? strtoll(row->fork_message_id, NULL, 10) : 0;
     agent->shared = shared;

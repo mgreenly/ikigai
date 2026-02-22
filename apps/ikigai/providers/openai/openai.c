@@ -7,7 +7,6 @@
 #include "apps/ikigai/providers/openai/openai_handlers.h"
 #include "apps/ikigai/providers/openai/openai_internal.h"
 #include "apps/ikigai/providers/openai/error.h"
-#include "apps/ikigai/debug_log.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/common/http_multi.h"
 #include "apps/ikigai/providers/openai/reasoning.h"
@@ -200,9 +199,6 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
         return serialize_res;
     }
 
-    DEBUG_LOG("[llm_request] provider=openai model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", json_body ? json_body : "(null)");
-
     // Build URL
     char *url = NULL;
     res_t url_res;
@@ -318,9 +314,6 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
         talloc_free(req_ctx);
         return serialize_res;
     }
-
-    DEBUG_LOG("[llm_request] provider=openai model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", json_body ? json_body : "(null)");
 
     // Build URL
     char *url = NULL;

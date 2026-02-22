@@ -70,6 +70,42 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
+/* Helper function to read last JSONL entry from log file */
+static yyjson_doc *read_last_log_entry(void)
+{
+    const char *log_dir = getenv("IKIGAI_LOG_DIR");
+    if (log_dir == NULL) {
+        return NULL;
+    }
+
+    char log_path[512];
+    snprintf(log_path, sizeof(log_path), "%s/current.log", log_dir);
+
+    FILE *fp = fopen(log_path, "r");
+    if (fp == NULL) {
+        return NULL;
+    }
+
+    /* Read all lines, keep the last one */
+    char *last_line = NULL;
+    char buffer[4096];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (last_line != NULL) {
+            free(last_line);
+        }
+        last_line = strdup(buffer);
+    }
+    fclose(fp);
+
+    if (last_line == NULL) {
+        return NULL;
+    }
+
+    /* Parse the JSON */
+    yyjson_doc *doc = yyjson_read(last_line, strlen(last_line), 0);
+    free(last_line);
+    return doc;
+}
 
 /* Test: Debug output for successful response with metadata */
 START_TEST(test_debug_output_response_success) {
@@ -94,9 +130,47 @@ START_TEST(test_debug_output_response_success) {
         .retry_after_ms = -1
     };
 
-    /* Call callback — JSONL logging is disabled, just verify no crash */
+    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
+
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    /* Verify log structure */
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "debug");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
+
+    yyjson_val *input_tokens = yyjson_obj_get(logline, "input_tokens");
+    ck_assert_ptr_nonnull(input_tokens);
+    ck_assert_int_eq(yyjson_get_int(input_tokens), 100);
+
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 42);
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -113,9 +187,35 @@ START_TEST(test_debug_output_response_error) {
         .retry_after_ms = -1
     };
 
-    /* Call callback — JSONL logging is disabled, just verify no crash */
+    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
+
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    /* Verify log structure */
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "debug");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "error");
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -149,7 +249,7 @@ START_TEST(test_debug_output_response_with_tool_call) {
         .retry_after_ms = -1
     };
 
-    /* Call callback — JSONL logging is disabled, verify functional behavior */
+    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
 
@@ -157,6 +257,35 @@ START_TEST(test_debug_output_response_with_tool_call) {
     ck_assert_ptr_nonnull(repl->current->pending_tool_call);
     ck_assert_str_eq(repl->current->pending_tool_call->name, "glob");
     ck_assert_str_eq(repl->current->pending_tool_call->arguments, "{\"pattern\":\"*.c\"}");
+
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "gpt-4o");
+
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 50);
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST
@@ -183,9 +312,38 @@ START_TEST(test_debug_output_null_metadata) {
         .retry_after_ms = -1
     };
 
-    /* Call callback — JSONL logging is disabled, just verify no crash */
+    /* Call callback */
     res_t result = ik_repl_completion_callback(&completion, repl->current);
     ck_assert(is_ok(&result));
+
+    /* Read and verify logger output */
+    yyjson_doc *doc = read_last_log_entry();
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert_ptr_nonnull(root);
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    /* Verify logline fields */
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "provider_response");
+
+    yyjson_val *type = yyjson_obj_get(logline, "type");
+    ck_assert_ptr_nonnull(type);
+    ck_assert_str_eq(yyjson_get_str(type), "success");
+
+    yyjson_val *model_val = yyjson_obj_get(logline, "model");
+    ck_assert_ptr_nonnull(model_val);
+    ck_assert_str_eq(yyjson_get_str(model_val), "(null)");
+
+    yyjson_val *output_tokens = yyjson_obj_get(logline, "output_tokens");
+    ck_assert_ptr_nonnull(output_tokens);
+    ck_assert_int_eq(yyjson_get_int(output_tokens), 0);
+
+    yyjson_doc_free(doc);
 }
 
 END_TEST

@@ -10,7 +10,6 @@
 #include "apps/ikigai/providers/anthropic/response.h"
 #include "apps/ikigai/providers/anthropic/request.h"
 #include "apps/ikigai/providers/anthropic/streaming.h"
-#include "apps/ikigai/debug_log.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/common/http_multi.h"
 #include "apps/ikigai/providers/common/sse_parser.h"
@@ -317,10 +316,6 @@ static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
         talloc_free(active_stream);
         return r;
     }
-
-    DEBUG_LOG("[llm_request] provider=anthropic model=%s messages=%zu",
-              req->model ? req->model : "unknown", req->message_count);
-    DEBUG_LOG("[llm_request_body] %s", body ? body : "(null)");
 
     // Build headers
     const char *headers[6];

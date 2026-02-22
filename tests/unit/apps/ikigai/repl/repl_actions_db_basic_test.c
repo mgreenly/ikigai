@@ -96,6 +96,8 @@ res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload)
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
 static ik_db_ctx_t *mock_db_ctx;
+static char test_dir[256];
+static char log_file_path[512];
 
 // Mock start_stream for provider - defined here so it can be referenced in static initializer
 static res_t db_basic_mock_start_stream(void *ctx, const ik_request_t *req,
@@ -111,6 +113,12 @@ static void setup(void)
 {
     test_ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(test_ctx);
+
+    // Initialize logger for test
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_repl_db_test_%d", getpid());
+    mkdir(test_dir, 0755);
+    ik_log_init(test_dir);
+    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
 
     // Create mock database context (just a talloc pointer)
     mock_db_ctx = talloc_zero_(test_ctx, 1);
@@ -196,6 +204,17 @@ static void teardown(void)
     }
 
     talloc_free(test_ctx);
+
+    // Cleanup logger
+    ik_log_shutdown();
+    unlink(log_file_path);
+    char logs_dir[512];
+    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+    rmdir(logs_dir);
+    char ikigai_dir[512];
+    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+    rmdir(ikigai_dir);
+    rmdir(test_dir);
 }
 
 // Test that DB error during message persistence doesn't crash
@@ -217,6 +236,22 @@ START_TEST(test_db_message_insert_error) {
     // Process newline action (should trigger DB persistence error path)
     res_t result = ik_repl_process_action(repl, &action);
     ck_assert(is_ok(&result));
+
+    // Read from log file to verify error was logged
+    FILE *log_f = fopen(log_file_path, "r");
+    ck_assert_ptr_nonnull(log_f);
+
+    char buffer[1024];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, log_f);
+    buffer[len] = '\0';
+    fclose(log_f);
+
+    // Verify error was logged with structured data
+    ck_assert(strstr(buffer, "\"level\":\"warn\"") != NULL);
+    ck_assert(strstr(buffer, "\"event\":\"db_persist_failed\"") != NULL);
+    ck_assert(strstr(buffer, "\"context\":\"send_to_llm\"") != NULL);
+    ck_assert(strstr(buffer, "\"operation\":\"persist_user_message\"") != NULL);
+    ck_assert(strstr(buffer, "Mock database error") != NULL);
 
     // Verify the user message was still added to conversation (memory state is authoritative)
     ck_assert_uint_eq(repl->current->message_count, 1);

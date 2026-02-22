@@ -36,6 +36,8 @@
 // Test fixture
 static TALLOC_CTX *test_ctx;
 static ik_repl_ctx_t *repl;
+static char test_dir[256];
+static char log_file_path[512];
 
 // Mock result for PQexecParams failure
 static PGresult *mock_failed_result = (PGresult *)1;  // Non-null sentinel
@@ -133,11 +135,30 @@ static ik_repl_ctx_t *create_test_repl_with_db(void *parent)
     return r;
 }
 
+// Helper to read log file
+static char *read_log_file(void)
+{
+    FILE *f = fopen(log_file_path, "r");
+    if (!f) return NULL;
+
+    static char buffer[4096];
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, f);
+    buffer[len] = '\0';
+    fclose(f);
+    return buffer;
+}
+
 // Per-test setup
 static void test_setup(void)
 {
     test_ctx = talloc_new(NULL);
     ck_assert_ptr_nonnull(test_ctx);
+
+    // Set up logger
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_mark_db_test_%d", getpid());
+    mkdir(test_dir, 0755);
+    ik_log_init(test_dir);
+    snprintf(log_file_path, sizeof(log_file_path), "%s/.ikigai/logs/current.log", test_dir);
 
     repl = create_test_repl_with_db(test_ctx);
     ck_assert_ptr_nonnull(repl);
@@ -155,6 +176,17 @@ static void test_teardown(void)
         test_ctx = NULL;
         repl = NULL;
     }
+
+    // Cleanup logger
+    ik_log_shutdown();
+    unlink(log_file_path);
+    char logs_dir[512];
+    snprintf(logs_dir, sizeof(logs_dir), "%s/.ikigai/logs", test_dir);
+    rmdir(logs_dir);
+    char ikigai_dir[512];
+    snprintf(ikigai_dir, sizeof(ikigai_dir), "%s/.ikigai", test_dir);
+    rmdir(ikigai_dir);
+    rmdir(test_dir);
 }
 
 // ========== Tests ==========
@@ -174,9 +206,38 @@ START_TEST(test_mark_db_insert_error_with_null_label) {
     res_t res = ik_cmd_mark(test_ctx, repl, NULL);
     ck_assert(is_ok(&res));
 
-    // Mark should still be created in memory; logger is a no-op
+    // Mark should still be created in memory
     ck_assert_uint_eq(repl->current->mark_count, 1);
     ck_assert_ptr_null(repl->current->marks[0]->label);
+
+    // Read log output to verify error was logged
+    char *log_output = read_log_file();
+    ck_assert_ptr_nonnull(log_output);
+
+    // Parse the log output as JSON
+    yyjson_doc *parsed = yyjson_read(log_output, strlen(log_output), 0);
+    ck_assert_ptr_nonnull(parsed);
+
+    yyjson_val *root = yyjson_doc_get_root(parsed);
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "warn");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "db_persist_failed");
+
+    yyjson_val *operation = yyjson_obj_get(logline, "operation");
+    ck_assert_ptr_nonnull(operation);
+    ck_assert_str_eq(yyjson_get_str(operation), "persist_mark");
+
+    yyjson_val *error = yyjson_obj_get(logline, "error");
+    ck_assert_ptr_nonnull(error);
+
+    yyjson_doc_free(parsed);
 }
 END_TEST
 // Test: DB error during mark persistence with label
@@ -194,9 +255,38 @@ START_TEST(test_mark_db_insert_error_with_label) {
     res_t res = ik_cmd_mark(test_ctx, repl, "testlabel");
     ck_assert(is_ok(&res));
 
-    // Mark should still be created in memory; logger is a no-op
+    // Mark should still be created in memory
     ck_assert_uint_eq(repl->current->mark_count, 1);
     ck_assert_str_eq(repl->current->marks[0]->label, "testlabel");
+
+    // Read log output to verify error was logged
+    char *log_output = read_log_file();
+    ck_assert_ptr_nonnull(log_output);
+
+    // Parse the log output as JSON
+    yyjson_doc *parsed = yyjson_read(log_output, strlen(log_output), 0);
+    ck_assert_ptr_nonnull(parsed);
+
+    yyjson_val *root = yyjson_doc_get_root(parsed);
+    yyjson_val *level = yyjson_obj_get(root, "level");
+    ck_assert_ptr_nonnull(level);
+    ck_assert_str_eq(yyjson_get_str(level), "warn");
+
+    yyjson_val *logline = yyjson_obj_get(root, "logline");
+    ck_assert_ptr_nonnull(logline);
+
+    yyjson_val *event = yyjson_obj_get(logline, "event");
+    ck_assert_ptr_nonnull(event);
+    ck_assert_str_eq(yyjson_get_str(event), "db_persist_failed");
+
+    yyjson_val *operation = yyjson_obj_get(logline, "operation");
+    ck_assert_ptr_nonnull(operation);
+    ck_assert_str_eq(yyjson_get_str(operation), "persist_mark");
+
+    yyjson_val *error = yyjson_obj_get(logline, "error");
+    ck_assert_ptr_nonnull(error);
+
+    yyjson_doc_free(parsed);
 }
 
 END_TEST
@@ -270,9 +360,16 @@ START_TEST(test_mark_db_insert_success) {
     res_t res = ik_cmd_mark(test_ctx, repl, "success_label");
     ck_assert(is_ok(&res));
 
-    // Mark should be created in memory; logger is a no-op
+    // Mark should be created in memory
     ck_assert_uint_eq(repl->current->mark_count, 1);
     ck_assert_str_eq(repl->current->marks[0]->label, "success_label");
+
+    // Read log file - should be empty or minimal (no error logged)
+    char *log_output = read_log_file();
+    // Either file doesn't exist or it doesn't contain db_persist_failed
+    if (log_output != NULL) {
+        ck_assert(strstr(log_output, "db_persist_failed") == NULL);
+    }
 }
 
 END_TEST

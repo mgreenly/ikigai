@@ -27,7 +27,7 @@ DEBUG_LOG("buffer contents: %.*s", (int)len, buf);
 
 | Build | DEBUG defined | Behavior |
 |-------|---------------|----------|
-| Debug | Yes | Writes to `$IKIGAI_LOG_DIR/debug.log` |
+| Debug | Yes | Writes to `IKIGAI_DEBUG.LOG` |
 | Release | No | Compiles to `((void)0)` - removed entirely |
 
 ## Initialization
@@ -56,18 +56,13 @@ Format: `[timestamp] file:line:function: message`
 
 ## Log Location
 
-- Current session: `$IKIGAI_LOG_DIR/debug.log` (default: `.ikigai/logs/debug.log`)
-- Previous sessions: archived as `$IKIGAI_LOG_DIR/YYYY-MM-DDTHH-MM-SS±HH-MM.log` using the file's birth time
-- Archive is skipped if the target already exists (session lasted < 1 s)
-- `debug.log` is truncated on each new run
-
-`IKIGAI_LOG_DIR` must be set or the process panics at startup. It is exported by `.envrc`.
+- File: `IKIGAI_DEBUG.LOG` in working directory
+- Truncated on each run (via `ik_debug_log_init`)
 
 ## Inspecting Logs
 
 ```bash
-tail -f .ikigai/logs/debug.log            # follow current session
-ls .ikigai/logs/                           # list all archived sessions
+tail -f IKIGAI_DEBUG.LOG
 ```
 
 ## Alternate Buffer Note
@@ -76,5 +71,5 @@ ikigai runs in terminal alternate buffer mode. `printf()` and `fprintf(stderr, .
 
 ## Source Files
 
-- `apps/ikigai/debug_log.h` - Macro definition
-- `apps/ikigai/debug_log.c` - Implementation (excluded from coverage)
+- `src/debug_log.h` - Macro definition
+- `src/debug_log.c` - Implementation (excluded from coverage)

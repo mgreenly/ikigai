@@ -5,21 +5,13 @@
 
 #include "shared/panic.h"
 
-#include <errno.h>
-#include <fcntl.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
-#include <linux/stat.h>
 #include <time.h>
-#include <unistd.h>
-#include <limits.h>
 
 
 #include "shared/poison.h"
-#define DEBUG_LOG_CURRENT "debug.log"
+#define DEBUG_LOG_FILENAME "IKIGAI_DEBUG.LOG"
 
 static FILE *g_debug_log = NULL;
 
@@ -35,62 +27,19 @@ static void ik_debug_log_cleanup(void)
 
 void ik_debug_log_init(void)
 {
-    const char *log_dir = getenv("IKIGAI_LOG_DIR");
-    if (log_dir == NULL || log_dir[0] == '\0') {
-        PANIC("IKIGAI_LOG_DIR environment variable is not set");
-    }
+    // Remove existing log file to truncate (ignore errors if doesn't exist)
+    remove(DEBUG_LOG_FILENAME);
 
-    struct stat dir_st;
-    if (stat(log_dir, &dir_st) != 0) {
-        if (mkdir(log_dir, 0755) != 0 && errno != EEXIST) {
-            PANIC("Failed to create IKIGAI_LOG_DIR");
-        }
-    }
-
-    char current_path[PATH_MAX];
-    snprintf(current_path, sizeof(current_path), "%s/%s", log_dir, DEBUG_LOG_CURRENT);
-
-    struct stat cur_st;
-    if (stat(current_path, &cur_st) == 0) {
-        struct timespec birth = {0};
-        struct statx stx = {0};
-        if (syscall(__NR_statx, AT_FDCWD, current_path, 0,
-                    STATX_BTIME, &stx) == 0 &&
-            (stx.stx_mask & STATX_BTIME)) {
-            birth.tv_sec  = stx.stx_btime.tv_sec;
-            birth.tv_nsec = stx.stx_btime.tv_nsec;
-        } else {
-            birth.tv_sec  = cur_st.st_mtime;
-            birth.tv_nsec = 0;
-        }
-
-        struct tm *tm_info = localtime(&birth.tv_sec);
-        long off_sec = tm_info->tm_gmtoff;
-        char sign = (off_sec >= 0) ? '+' : '-';
-        if (off_sec < 0) off_sec = -off_sec;
-        int off_h = (int)(off_sec / 3600);
-        int off_m = (int)((off_sec % 3600) / 60);
-
-        char ts[64];
-        snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d-%02d-%02d%c%02d-%02d",
-                 tm_info->tm_year + 1900, tm_info->tm_mon + 1, tm_info->tm_mday,
-                 tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec,
-                 sign, off_h, off_m);
-
-        char archive_path[PATH_MAX];
-        snprintf(archive_path, sizeof(archive_path), "%s/%s.log", log_dir, ts);
-
-        struct stat arc_st;
-        if (stat(archive_path, &arc_st) != 0) {
-            rename(current_path, archive_path);
-        }
-    }
-
-    g_debug_log = fopen(current_path, "w");
+    // Open in append mode for thread-safe writes (O_APPEND makes writes atomic)
+    g_debug_log = fopen(DEBUG_LOG_FILENAME, "a");
     if (g_debug_log == NULL) {
-        PANIC("Failed to create debug log file");
+        PANIC("Failed to create debug log file: " DEBUG_LOG_FILENAME);
     }
+
+    // Ensure cleanup happens on any exit path
     atexit(ik_debug_log_cleanup);
+
+    // Write header
     fprintf(g_debug_log, "=== IKIGAI DEBUG LOG ===\n");
     fflush(g_debug_log);
 }

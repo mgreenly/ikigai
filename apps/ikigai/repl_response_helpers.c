@@ -3,6 +3,7 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/ansi.h"
+#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/output_style.h"
 #include "shared/panic.h"
@@ -204,34 +205,52 @@ static void process_redacted_thinking_block(ik_agent_ctx_t *agent, ik_content_bl
 
 static bool process_tool_call_block(ik_agent_ctx_t *agent, ik_content_block_t *block)
 {
+    DEBUG_LOG("process_tool_call_block: id=%s name=%s args=%s",
+              block->data.tool_call.id ? block->data.tool_call.id : "(NULL)",
+              block->data.tool_call.name ? block->data.tool_call.name : "(NULL)",
+              block->data.tool_call.arguments ? "(has args)" : "(NULL)");
+
     agent->pending_tool_call = ik_tool_call_create(agent,
                                                    block->data.tool_call.id,
                                                    block->data.tool_call.name,
                                                    block->data.tool_call.arguments);
+    DEBUG_LOG("process_tool_call_block: ik_tool_call_create returned %p", (void *)agent->pending_tool_call);
+    DEBUG_LOG("process_tool_call_block: about to check NULL");
     if (agent->pending_tool_call == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("process_tool_call_block: passed NULL check");
 
+    DEBUG_LOG("process_tool_call_block: checking thought_signature=%p",
+              (void *)block->data.tool_call.thought_signature);
     if (block->data.tool_call.thought_signature != NULL) {
+        DEBUG_LOG("process_tool_call_block: copying thought_signature");
         agent->pending_tool_thought_signature = talloc_strdup(agent, block->data.tool_call.thought_signature);
         if (agent->pending_tool_thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
+    DEBUG_LOG("process_tool_call_block: returning true");
     return true;  // Indicates we should stop processing
 }
 
 void ik_repl_extract_tool_calls(ik_agent_ctx_t *agent, const ik_response_t *response)
 {
+    DEBUG_LOG("extract_tool_calls: ENTRY content_count=%zu", response->content_count);
     clear_pending_data(agent);
+    DEBUG_LOG("extract_tool_calls: cleared pending data");
 
     for (size_t i = 0; i < response->content_count; i++) {
         ik_content_block_t *block = &response->content_blocks[i];
+        DEBUG_LOG("extract_tool_calls: block[%zu] type=%d", i, block->type);
 
         if (block->type == IK_CONTENT_THINKING) {
             process_thinking_block(agent, block);
         } else if (block->type == IK_CONTENT_REDACTED_THINKING) {
             process_redacted_thinking_block(agent, block);
         } else if (block->type == IK_CONTENT_TOOL_CALL) {
+            DEBUG_LOG("extract_tool_calls: processing tool call name=%s", block->data.tool_call.name);
             if (process_tool_call_block(agent, block)) {
+                DEBUG_LOG("extract_tool_calls: tool call processed, breaking");
                 break;  // Only handle first tool call
             }
         }
     }
+    DEBUG_LOG("extract_tool_calls: EXIT pending_tool_call=%p", (void *)agent->pending_tool_call);
 }

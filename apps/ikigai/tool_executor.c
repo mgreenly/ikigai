@@ -8,11 +8,8 @@
 #include "apps/ikigai/tool_wrapper.h"
 #include "shared/wrapper.h"
 
-#include "apps/ikigai/debug_log.h"
-
 #include <talloc.h>
 
-#define TOOL_RESULT_LOG_MAX 512
 
 #include "shared/poison.h"
 char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
@@ -28,8 +25,6 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
         if (result == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         return result;
     }
-
-    DEBUG_LOG("[tool_call] name=%s args=%s", tool_name, arguments ? arguments : "(null)");
 
     ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, tool_name);
     if (entry == NULL) {
@@ -64,15 +59,5 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
 
     char *result_json = ik_tool_wrap_success(ctx, translated_result);
     if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    size_t result_len = result_json ? strlen(result_json) : 0;
-    if (result_len > TOOL_RESULT_LOG_MAX) {
-        DEBUG_LOG("[tool_result] name=%s len=%zu result=%.*s...[truncated]",
-                  tool_name, result_len, TOOL_RESULT_LOG_MAX, result_json);
-    } else {
-        DEBUG_LOG("[tool_result] name=%s len=%zu result=%s",
-                  tool_name, result_len, result_json ? result_json : "(null)");
-    }
-
     return result_json;
 }
