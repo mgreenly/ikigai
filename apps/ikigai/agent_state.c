@@ -2,6 +2,8 @@
 
 #include "apps/ikigai/wrapper_pthread.h"
 
+#include "apps/ikigai/debug_log.h"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <time.h>
@@ -23,6 +25,7 @@ void ik_agent_transition_to_waiting_for_llm(ik_agent_ctx_t *agent)
     assert(atomic_load(&agent->state) == IK_AGENT_STATE_IDLE);   /* LCOV_EXCL_BR_LINE */
     atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    DEBUG_LOG("[state] uuid=%s idle->waiting_for_llm", agent->uuid);
 
     // Show spinner, hide input
     agent->spinner_state.visible = true;
@@ -43,6 +46,7 @@ void ik_agent_transition_to_idle(ik_agent_ctx_t *agent)
     assert(atomic_load(&agent->state) == IK_AGENT_STATE_WAITING_FOR_LLM);   /* LCOV_EXCL_BR_LINE */
     atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    DEBUG_LOG("[state] uuid=%s waiting_for_llm->idle", agent->uuid);
 
     // Hide spinner, show input
     agent->spinner_state.visible = false;
@@ -56,6 +60,7 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
     assert(atomic_load(&agent->state) == IK_AGENT_STATE_WAITING_FOR_LLM); /* LCOV_EXCL_BR_LINE */
     atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    DEBUG_LOG("[state] uuid=%s waiting_for_llm->executing_tool", agent->uuid);
 }
 
 void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent)
@@ -65,4 +70,5 @@ void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent)
     assert(atomic_load(&agent->state) == IK_AGENT_STATE_EXECUTING_TOOL); /* LCOV_EXCL_BR_LINE */
     atomic_store(&agent->state, IK_AGENT_STATE_WAITING_FOR_LLM);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
+    DEBUG_LOG("[state] uuid=%s executing_tool->waiting_for_llm", agent->uuid);
 }

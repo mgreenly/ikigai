@@ -21,6 +21,8 @@
 #include "apps/ikigai/scrollback_utils.h"
 #include "apps/ikigai/shared.h"
 
+#include "apps/ikigai/debug_log.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -124,6 +126,7 @@ res_t ik_cmd_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
 
     // Args is NULL if no arguments, otherwise points to remaining text
     const char *args = (*args_start == '\0') ? NULL : args_start;     // LCOV_EXCL_BR_LINE
+    DEBUG_LOG("[command] name=%s args=%s", cmd_name, args ? args : "(none)");
 
     // Echo command to scrollback before execution
     {

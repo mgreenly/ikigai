@@ -12,22 +12,12 @@
 #include "shared/wrapper.h"
 
 // Mock posix_stat_ to fail with EACCES for logs directory
-static int mock_count = 0;
 int posix_stat_(const char *pathname, struct stat *statbuf)
 {
-    // First call is for .ikigai directory - fail with ENOENT (will create it)
-    if (mock_count == 0) {
-        mock_count++;
-        errno = ENOENT;
-        return -1;
-    }
-    // Second call is for logs directory - fail with EACCES
-    if (mock_count == 1) {
-        mock_count++;
+    if (strstr(pathname, ".ikigai/logs") != NULL) {
         errno = EACCES;
         return -1;
     }
-    // Subsequent calls use real stat
     return stat(pathname, statbuf);
 }
 
@@ -37,7 +27,6 @@ START_TEST(test_stat_eacces_logs_panics) {
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_log_test_%d", getpid());
     mkdir(test_dir, 0755);
 
-    mock_count = 0;
     ik_log_init(test_dir);
 }
 END_TEST

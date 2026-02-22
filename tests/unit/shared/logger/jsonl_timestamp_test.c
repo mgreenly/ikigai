@@ -37,19 +37,7 @@ static void teardown_logger(void)
     rmdir(test_dir);
 }
 
-static char *read_log_file(void)
-{
-    FILE *f = fopen(log_file_path, "r");
-    if (!f) return NULL;
-
-    static char buffer[4096];
-    size_t len = fread(buffer, 1, sizeof(buffer) - 1, f);
-    buffer[len] = '\0';
-    fclose(f);
-    return buffer;
-}
-
-// Test: timestamp format matches ISO 8601 pattern with milliseconds and timezone
+// Test: ik_log_debug_json does not crash (logger is a no-op)
 START_TEST(test_jsonl_timestamp_iso8601_format) {
     setup_logger();
 
@@ -57,37 +45,12 @@ START_TEST(test_jsonl_timestamp_iso8601_format) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "msg", "test");
 
-    ik_log_debug_json(doc);
+    ik_log_debug_json(doc);  // Should not crash; logger is a no-op
 
-    char *buffer = read_log_file();
-    ck_assert_ptr_nonnull(buffer);
-
-    // Parse JSON to extract timestamp
-    yyjson_doc *parsed = yyjson_read(buffer, strlen(buffer), 0);
-    ck_assert_ptr_ne(parsed, NULL);
-
-    yyjson_val *timestamp_val = yyjson_obj_get(yyjson_doc_get_root(parsed), "timestamp");
-    ck_assert_ptr_ne(timestamp_val, NULL);
-
-    const char *timestamp = yyjson_get_str(timestamp_val);
-    ck_assert_ptr_ne(timestamp, NULL);
-
-    // Verify format: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
-    regex_t regex;
-    int reti = regcomp(&regex,
-                       "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}[+-][0-9]{2}:[0-9]{2}$",
-                       REG_EXTENDED);
-    ck_assert_int_eq(reti, 0);
-
-    reti = regexec(&regex, timestamp, 0, NULL, 0);
-    ck_assert_int_eq(reti, 0);
-
-    regfree(&regex);
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 END_TEST
-// Test: timestamp includes exactly 3 millisecond digits
+// Test: ik_log_debug_json does not crash (logger is a no-op)
 START_TEST(test_jsonl_timestamp_milliseconds) {
     setup_logger();
 
@@ -95,36 +58,13 @@ START_TEST(test_jsonl_timestamp_milliseconds) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "msg", "test");
 
-    ik_log_debug_json(doc);
+    ik_log_debug_json(doc);  // Should not crash; logger is a no-op
 
-    char *buffer = read_log_file();
-    ck_assert_ptr_nonnull(buffer);
-
-    // Parse JSON to extract timestamp
-    yyjson_doc *parsed = yyjson_read(buffer, strlen(buffer), 0);
-    ck_assert_ptr_ne(parsed, NULL);
-
-    yyjson_val *timestamp_val = yyjson_obj_get(yyjson_doc_get_root(parsed), "timestamp");
-    const char *timestamp = yyjson_get_str(timestamp_val);
-
-    // Find the dot and verify 3 digits after it before ± sign
-    const char *dot = strchr(timestamp, '.');
-    ck_assert_ptr_ne(dot, NULL);
-
-    const char *plus_or_minus = strchr(dot, '+');
-    if (plus_or_minus == NULL)
-        plus_or_minus = strchr(dot, '-');
-    ck_assert_ptr_ne(plus_or_minus, NULL);
-
-    // Should be exactly 4 characters: dot + 3 digits
-    ck_assert_int_eq(plus_or_minus - dot, 4);
-
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 
 END_TEST
-// Test: timestamp includes timezone offset ±HH:MM
+// Test: ik_log_debug_json does not crash (logger is a no-op)
 START_TEST(test_jsonl_timestamp_timezone_offset) {
     setup_logger();
 
@@ -132,76 +72,22 @@ START_TEST(test_jsonl_timestamp_timezone_offset) {
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "msg", "test");
 
-    ik_log_debug_json(doc);
+    ik_log_debug_json(doc);  // Should not crash; logger is a no-op
 
-    char *buffer = read_log_file();
-    ck_assert_ptr_nonnull(buffer);
-
-    // Parse JSON to extract timestamp
-    yyjson_doc *parsed = yyjson_read(buffer, strlen(buffer), 0);
-    yyjson_val *timestamp_val = yyjson_obj_get(yyjson_doc_get_root(parsed), "timestamp");
-    const char *timestamp = yyjson_get_str(timestamp_val);
-
-    // Should end with ±HH:MM
-    size_t len = strlen(timestamp);
-    ck_assert(len >= 6);
-
-    // Last 6 characters should be ±HH:MM
-    const char *offset = timestamp + len - 6;
-    ck_assert(offset[0] == '+' || offset[0] == '-');
-    ck_assert(offset[1] >= '0' && offset[1] <= '2');
-    ck_assert(offset[2] >= '0' && offset[2] <= '9');
-    ck_assert(offset[3] == ':');
-    ck_assert(offset[4] >= '0' && offset[4] <= '5');
-    ck_assert(offset[5] >= '0' && offset[5] <= '9');
-
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 
 END_TEST
-// Test: timestamp is approximately current time (within 1 second tolerance)
+// Test: ik_log_debug_json does not crash (logger is a no-op)
 START_TEST(test_jsonl_timestamp_current_time) {
     setup_logger();
-
-    time_t before = time(NULL);
 
     yyjson_mut_doc *doc = ik_log_create();
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
     yyjson_mut_obj_add_str(doc, root, "msg", "test");
 
-    ik_log_debug_json(doc);
+    ik_log_debug_json(doc);  // Should not crash; logger is a no-op
 
-    time_t after = time(NULL);
-
-    char *buffer = read_log_file();
-    ck_assert_ptr_nonnull(buffer);
-
-    // Parse JSON to extract timestamp
-    yyjson_doc *parsed = yyjson_read(buffer, strlen(buffer), 0);
-    yyjson_val *timestamp_val = yyjson_obj_get(yyjson_doc_get_root(parsed), "timestamp");
-    const char *timestamp = yyjson_get_str(timestamp_val);
-
-    // Parse timestamp: YYYY-MM-DDTHH:MM:SS.mmm±HH:MM
-    int year, month, day, hour, min, sec;
-    sscanf(timestamp, "%d-%d-%d", &year, &month, &day);
-
-    struct tm tm_check = {0};
-    tm_check.tm_year = year - 1900;
-    tm_check.tm_mon = month - 1;
-    tm_check.tm_mday = day;
-    sscanf(timestamp + 11, "%d:%d:%d", &hour, &min, &sec);
-    tm_check.tm_hour = hour;
-    tm_check.tm_min = min;
-    tm_check.tm_sec = sec;
-
-    time_t ts_logged = mktime(&tm_check);
-
-    // Should be within 1 second of the capture time
-    ck_assert(ts_logged >= before - 1);
-    ck_assert(ts_logged <= after + 1);
-
-    yyjson_doc_free(parsed);
     teardown_logger();
 }
 
