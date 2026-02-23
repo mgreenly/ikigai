@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/bash-tool";
+static const char *tool_path = "libexec/bash-tool";
 
 static void setup(void)
 {

@@ -111,16 +111,16 @@ With direnv active, run directly from the build directory:
 
 ## Build and Install
 
-Install to your local user directory:
-
 ```bash
-make && make install PREFIX=$HOME/.local
+make && make install
 ```
 
-This installs:
-- Binary to `~/.local/bin/ikigai`
-- Data files to `~/.local/share/ikigai/`
-- Helper scripts to `~/.local/libexec/ikigai/`
+This installs to `~/.local` (XDG conventions):
+- Wrapper script: `~/.local/bin/ikigai`
+- Actual binary: `~/.local/libexec/ikigai/ikigai`
+- Tool binaries: `~/.local/libexec/ikigai/`
+- Data files: `~/.local/share/ikigai/`
+- Config template: `~/.config/ikigai/credentials.example.json`
 
 Ensure `~/.local/bin` is in your `PATH`:
 
@@ -133,7 +133,7 @@ Add this line to your `~/.bashrc` or `~/.zshrc` to make it permanent.
 ## Uninstall
 
 ```bash
-make uninstall PREFIX=$HOME/.local
+make uninstall
 ```
 
 ## Configuration

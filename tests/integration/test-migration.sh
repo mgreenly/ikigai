@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Generate unique test database name using process ID
 TEST_DB="ikigai_test_migration_$$"
-MIGRATION_FILE="share/ikigai/migrations/001-initial-schema.sql"
+MIGRATION_FILE="share/migrations/001-initial-schema.sql"
 
 # Database connection - use postgres user for test database creation
 DB_USER="postgres"

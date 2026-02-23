@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/glob-tool";
+static const char *tool_path = "libexec/glob-tool";
 
 static void setup(void)
 {

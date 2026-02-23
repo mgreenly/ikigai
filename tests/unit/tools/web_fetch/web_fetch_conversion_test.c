@@ -21,9 +21,9 @@ static void setup(void)
     // Construct absolute path to tool binary
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        snprintf(tool_path, sizeof(tool_path), "%s/libexec/ikigai/web-fetch-tool", cwd);
+        snprintf(tool_path, sizeof(tool_path), "%s/libexec/web-fetch-tool", cwd);
     } else {
-        snprintf(tool_path, sizeof(tool_path), "libexec/ikigai/web-fetch-tool");
+        snprintf(tool_path, sizeof(tool_path), "libexec/web-fetch-tool");
     }
 }
 

@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/file-write-tool";
+static const char *tool_path = "libexec/file-write-tool";
 
 static void setup(void)
 {

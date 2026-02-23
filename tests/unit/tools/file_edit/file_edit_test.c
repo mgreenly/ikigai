@@ -16,7 +16,7 @@ static void run_tool_with_args(const char *arg1, const char *stdin_data, char **
     int32_t stdin_pipe[2];
     int32_t stdout_pipe[2];
     int32_t stderr_pipe[2];
-    const char *tool_path = "libexec/ikigai/file-edit-tool";
+    const char *tool_path = "libexec/file-edit-tool";
 
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1 || pipe(stderr_pipe) == -1) {
         perror("pipe");

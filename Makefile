@@ -10,39 +10,15 @@ CC = gcc
 # Build directory
 BUILDDIR ?= build
 
-# Installation paths
-PREFIX ?= /usr/local
-bindir ?= $(PREFIX)/bin
-libexecdir ?= $(PREFIX)/libexec
-datadir ?= $(PREFIX)/share
-
-# Special handling for sysconfdir and configdir based on PREFIX
+# Installation paths (always ~/.local, XDG-aware)
 HOME_DIR := $(shell echo $$HOME)
+XDG_DATA_HOME   ?= $(shell echo $${XDG_DATA_HOME:-$(HOME_DIR)/.local/share})
+XDG_CONFIG_HOME ?= $(shell echo $${XDG_CONFIG_HOME:-$(HOME_DIR)/.config})
 
-# Detect install type
-IS_OPT_INSTALL := $(if $(filter /opt%,$(PREFIX)),yes,no)
-IS_USER_INSTALL := $(if $(findstring /home/,$(PREFIX)),yes,no)
-
-ifeq ($(PREFIX),/usr)
-    # /usr uses /etc not /usr/etc
-    sysconfdir ?= /etc
-    configdir = /etc/ikigai
-else ifeq ($(IS_OPT_INSTALL),yes)
-    # PREFIX is /opt/* - use PREFIX/etc not PREFIX/etc/ikigai
-    sysconfdir ?= $(PREFIX)/etc
-    configdir = $(PREFIX)/etc
-else ifeq ($(IS_USER_INSTALL),yes)
-    # PREFIX is under /home/* - use XDG variables or defaults
-    XDG_CONFIG_HOME ?= $(shell echo $${XDG_CONFIG_HOME:-$(HOME_DIR)/.config})
-    XDG_DATA_HOME ?= $(shell echo $${XDG_DATA_HOME:-$(HOME_DIR)/.local/share})
-    sysconfdir ?= $(XDG_CONFIG_HOME)
-    configdir = $(XDG_CONFIG_HOME)/ikigai
-    user_datadir = $(XDG_DATA_HOME)/ikigai
-else
-    # Default: /usr/local and others use PREFIX/etc/ikigai
-    sysconfdir ?= $(PREFIX)/etc
-    configdir = $(sysconfdir)/ikigai
-endif
+bindir    = $(HOME_DIR)/.local/bin
+libexecdir = $(HOME_DIR)/.local/libexec
+datadir   = $(XDG_DATA_HOME)
+configdir = $(XDG_CONFIG_HOME)/ikigai
 
 # Warning flags
 WARNING_FLAGS = -Wall -Wextra -Wshadow \
@@ -155,7 +131,7 @@ TOOL_LIB_OBJECTS = $(filter-out $(TOOL_MAIN_OBJECTS),$(TOOL_OBJECTS))
 
 # Discover all tool binaries (convert underscores to hyphens for Unix convention)
 TOOL_NAMES = $(shell find tools -name 'main.c' 2>/dev/null | sed 's|tools/||; s|/main.c||')
-TOOL_BINARIES = $(patsubst %,libexec/ikigai/%-tool,$(subst _,-,$(TOOL_NAMES)))
+TOOL_BINARIES = $(patsubst %,libexec/%-tool,$(subst _,-,$(TOOL_NAMES)))
 
 # Discover all test binaries (exclude helpers/ - those are test suite helpers, not standalone tests)
 UNIT_TEST_BINARIES = $(patsubst tests/%.c,$(BUILDDIR)/tests/%,$(shell find tests/unit -name '*_test.c' -not -path '*/helpers/*' 2>/dev/null))
@@ -272,83 +248,61 @@ clean:
 	@find apps/ tests/ shared/ tools/ vendor/ -name '*.d' -delete 2>/dev/null || true
 	@echo "✨ Cleaned"
 
-# install: Install binaries to PREFIX
+# install: Install binaries to ~/.local
 install: all
 	# Create directories
-	install -d $(DESTDIR)$(bindir)
-	install -d $(DESTDIR)$(libexecdir)/ikigai
-	install -d $(DESTDIR)$(configdir)
-ifeq ($(IS_USER_INSTALL),yes)
-	install -d $(DESTDIR)$(user_datadir)
-else
-	install -d $(DESTDIR)$(datadir)/ikigai
-endif
+	install -d $(bindir)
+	install -d $(libexecdir)/ikigai
+	install -d $(configdir)
+	install -d $(datadir)/ikigai/migrations
+	install -d $(datadir)/ikigai/system
 	# Install actual binary to libexec
-	install -m 755 bin/ikigai $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	install -m 755 bin/ikigai $(libexecdir)/ikigai/ikigai
 	# Install tool binaries to libexec
 	@for tool in $(TOOL_BINARIES); do \
-		install -m 755 $$tool $(DESTDIR)$(libexecdir)/ikigai/; \
+		install -m 755 $$tool $(libexecdir)/ikigai/; \
 	done
 	# Generate and install wrapper script to bin
-	@printf '#!/bin/bash\n' > $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(DESTDIR)$(bindir)/ikigai
-ifeq ($(IS_USER_INSTALL),yes)
-	@printf 'IKIGAI_DATA_DIR=%s\n' "$(user_datadir)" >> $(DESTDIR)$(bindir)/ikigai
-else
-	@printf 'IKIGAI_DATA_DIR=%s\n' "$(datadir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
-endif
-	@printf 'IKIGAI_LIBEXEC_DIR=%s\n' "$(libexecdir)/ikigai" >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_CONFIG_DIR=$${XDG_CONFIG_HOME:-$$HOME/.config}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_CACHE_DIR=$${XDG_CACHE_HOME:-$$HOME/.cache}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_STATE_DIR=$${XDG_STATE_HOME:-$$HOME/.local/state}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'IKIGAI_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}/ikigai\n' >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR IKIGAI_RUNTIME_DIR\n' >> $(DESTDIR)$(bindir)/ikigai
-	@printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(DESTDIR)$(bindir)/ikigai
-	@chmod 755 $(DESTDIR)$(bindir)/ikigai
-	# Install config files
-ifeq ($(FORCE),1)
-	install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
-else
-	@test -f $(DESTDIR)$(configdir)/credentials.example.json || install -m 644 etc/ikigai/credentials.example.json $(DESTDIR)$(configdir)/credentials.example.json
-endif
-	# Install database migrations
-ifeq ($(IS_USER_INSTALL),yes)
-	install -d $(DESTDIR)$(user_datadir)/migrations
-	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(user_datadir)/migrations/
-else
-	install -d $(DESTDIR)$(datadir)/ikigai/migrations
-	install -m 644 share/ikigai/migrations/*.sql $(DESTDIR)$(datadir)/ikigai/migrations/
-endif
-	@echo "✅ Installed to $(PREFIX)"
+	@printf '#!/bin/bash\n' > $(bindir)/ikigai
+	@printf 'IKIGAI_BIN_DIR=%s\n' "$(bindir)" >> $(bindir)/ikigai
+	@printf 'IKIGAI_DATA_DIR=$${XDG_DATA_HOME:-$$HOME/.local/share}/ikigai\n' >> $(bindir)/ikigai
+	@printf 'IKIGAI_LIBEXEC_DIR=%s/ikigai\n' "$(libexecdir)" >> $(bindir)/ikigai
+	@printf 'IKIGAI_CONFIG_DIR=$${XDG_CONFIG_HOME:-$$HOME/.config}/ikigai\n' >> $(bindir)/ikigai
+	@printf 'IKIGAI_CACHE_DIR=$${XDG_CACHE_HOME:-$$HOME/.cache}/ikigai\n' >> $(bindir)/ikigai
+	@printf 'IKIGAI_STATE_DIR=$${XDG_STATE_HOME:-$$HOME/.local/state}/ikigai\n' >> $(bindir)/ikigai
+	@printf 'IKIGAI_RUNTIME_DIR=$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}/ikigai\n' >> $(bindir)/ikigai
+	@printf 'export IKIGAI_BIN_DIR IKIGAI_DATA_DIR IKIGAI_LIBEXEC_DIR IKIGAI_CONFIG_DIR IKIGAI_CACHE_DIR IKIGAI_STATE_DIR IKIGAI_RUNTIME_DIR\n' >> $(bindir)/ikigai
+	@printf 'exec %s/ikigai/ikigai "$$@"\n' "$(libexecdir)" >> $(bindir)/ikigai
+	@chmod 755 $(bindir)/ikigai
+	# Install example credentials (no-clobber)
+	@test -f $(configdir)/credentials.example.json || \
+		install -m 644 etc/credentials.example.json $(configdir)/credentials.example.json
+	# Install data files
+	install -m 644 share/migrations/*.sql $(datadir)/ikigai/migrations/
+	install -m 644 share/system/* $(datadir)/ikigai/system/
+	@echo "Installed to ~/.local"
 
 # uninstall: Remove installed files
 uninstall:
-	rm -f $(DESTDIR)$(bindir)/ikigai
-	rm -f $(DESTDIR)$(libexecdir)/ikigai/ikigai
+	rm -f $(bindir)/ikigai
+	rm -f $(libexecdir)/ikigai/ikigai
 	@for tool in $(TOOL_BINARIES); do \
-		rm -f $(DESTDIR)$(libexecdir)/ikigai/$$(basename $$tool); \
+		rm -f $(libexecdir)/ikigai/$$(basename $$tool); \
 	done
-	rmdir $(DESTDIR)$(libexecdir)/ikigai 2>/dev/null || true
-	rmdir $(DESTDIR)$(libexecdir) 2>/dev/null || true
+	rmdir $(libexecdir)/ikigai 2>/dev/null || true
 ifeq ($(PURGE),1)
-	rm -f $(DESTDIR)$(configdir)/credentials.json
-	rm -f $(DESTDIR)$(configdir)/credentials.example.json
+	rm -f $(configdir)/credentials.json
+	rm -f $(configdir)/credentials.example.json
+	rmdir $(configdir) 2>/dev/null || true
+	rm -rf $(datadir)/ikigai
 endif
-	rmdir $(DESTDIR)$(configdir) 2>/dev/null || true
-ifeq ($(IS_USER_INSTALL),yes)
-	rm -rf $(DESTDIR)$(user_datadir)/migrations
-	rmdir $(DESTDIR)$(user_datadir) 2>/dev/null || true
-else
-	rm -rf $(DESTDIR)$(datadir)/ikigai/migrations
-	rmdir $(DESTDIR)$(datadir)/ikigai 2>/dev/null || true
-endif
-	@echo "✅ Uninstalled from $(PREFIX)"
+	@echo "Uninstalled from ~/.local"
 
 # help: Show available targets
 help:
 	@echo "Available targets:"
 	@echo "  all            - Build main binary and tools (default)"
-	@echo "  install        - Install to PREFIX (default: /usr/local)"
+	@echo "  install        - Install to ~/.local (XDG)"
 	@echo "  uninstall      - Remove installed files"
 	@echo "  clean          - Remove build artifacts"
 	@echo "  help           - Show this help"
@@ -374,9 +328,6 @@ help:
 	@echo "  valgrind       - Debug build optimized for Valgrind"
 	@echo ""
 	@echo "Installation variables:"
-	@echo "  PREFIX         - Installation prefix (default: /usr/local)"
-	@echo "  DESTDIR        - Staging directory for packagers"
-	@echo "  FORCE=1        - Overwrite existing config files"
 	@echo "  PURGE=1        - Remove config files on uninstall"
 	@echo ""
 	@echo "Quality check variables:"
@@ -384,8 +335,7 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make                                - Build main binary and tools"
-	@echo "  make install                        - Install to /usr/local"
-	@echo "  make PREFIX=/opt/ikigai install     - Install to /opt/ikigai"
-	@echo "  make PREFIX=~/.local install        - Install to ~/.local (uses XDG paths)"
+	@echo "  make install                        - Install to ~/.local"
+	@echo "  make PURGE=1 uninstall              - Uninstall and remove config files"
 	@echo "  make check-compile FILE=src/main.c  - Compile single file"
 	@echo "  make BUILD=release                  - Build in release mode"

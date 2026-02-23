@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/file-read-tool";
+static const char *tool_path = "libexec/file-read-tool";
 
 static void setup(void)
 {

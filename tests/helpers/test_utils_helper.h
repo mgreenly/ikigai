@@ -105,7 +105,7 @@ res_t ik_test_db_create(const char *db_name);
 /**
  * Run migrations on test database
  *
- * Applies all migrations from ./share/ikigai/migrations/ directory.
+ * Applies all migrations from ./share/migrations/ directory.
  *
  * @param ctx Talloc context for temporary allocations
  * @param db_name Database name to migrate

@@ -51,12 +51,12 @@ bin/mock-provider: $(MOCK_OBJECTS) $(SHARED_OBJECTS) $(VENDOR_OBJECTS)
 # =============================================================================
 
 # Secondary expansion needed to convert hyphens in binary names back to underscores for directory lookup
-# e.g., libexec/ikigai/file-read-tool needs to find build/tools/file_read/main.o
+# e.g., libexec/file-read-tool needs to find build/tools/file_read/main.o
 .SECONDEXPANSION:
 
 # Each tool links with: tool-specific objects + all src objects + vendor
 # Over-link strategy: gc-sections strips unused symbols
-libexec/ikigai/%-tool: $$(BUILDDIR)/tools/$$(subst -,_,$$*)/main.o $(MODULE_OBJ) $(VCR_STUBS)
+libexec/%-tool: $$(BUILDDIR)/tools/$$(subst -,_,$$*)/main.o $(MODULE_OBJ) $(VCR_STUBS)
 	@mkdir -p $(dir $@)
 	@tool_dir=$$(echo "$*" | tr '-' '_'); \
 	tool_objs=$$(find $(BUILDDIR)/tools/$$tool_dir -name '*.o' 2>/dev/null | tr '\n' ' '); \
