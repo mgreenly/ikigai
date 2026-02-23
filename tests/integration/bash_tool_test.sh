@@ -13,7 +13,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-BASH_TOOL="libexec/ikigai/bash-tool"
+BASH_TOOL="libexec/bash-tool"
 
 echo "======================================"
 echo "bash Integration Test Suite"

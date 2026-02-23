@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 static TALLOC_CTX *test_ctx;
-static const char *tool_path = "libexec/ikigai/grep-tool";
+static const char *tool_path = "libexec/grep-tool";
 static char test_dir[PATH_MAX];
 
 static void setup(void)
