@@ -4,14 +4,31 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 
 ### rel-13: Dynamic Sliding Context Window (future)
 
-**Objective**: Manage context window efficiently with automatic history management
+**Objective**: Proactive context management with a fixed history budget and automatic turn clipping
+
+**Design**: [sliding-context-window.md](sliding-context-window.md)
 
 **Features**:
-- History clipping
-- Recent summary
+- Token counting module with pluggable backends (character estimator on day one, exact tokenizers later)
+- Turn grouping — user prompt + tool calls/results + assistant response as an atomic unit
+- Per-turn token tracking via model-independent estimation
+- Configurable history cap (`DEFAULT_HISTORY_TOKEN_LIMIT`, compile-time default 100k)
+- Automatic clipping of oldest turns when history exceeds cap
+- Context divider in chat UI showing what the model can see vs what's fallen out
+- All messages retained in memory and database; clipping only affects API requests
 
 
-### rel-14: Parallel Tool Execution (future)
+### rel-14: Context Summary (future)
+
+**Objective**: Compressed summary of clipped conversation history to preserve long-term context
+
+**Features**:
+- Summary budget (configurable cap, independent of history cap)
+- Clipped turns feed into summary generation
+- Summary included in API requests alongside live history
+
+
+### rel-15: Parallel Tool Execution (future)
 
 **Objective**: Parallelize read only tool calls
 
@@ -19,7 +36,7 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - Parallelize read only tool calls
 
 
-### rel-15: Per-Agent Configuration (future)
+### rel-16: Per-Agent Configuration (future)
 
 **Objective**: Implement a runtime per-agent configuration system
 
@@ -32,7 +49,7 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - Per-agent workspace at `ik://agent/<UUID>/projects/` for repo checkouts and isolated work directories
 
 
-### rel-16: Additional Deployment Targets (future)
+### rel-17: Additional Deployment Targets (future)
 
 **Objective**: Extend build and packaging support to macOS and Ubuntu
 
@@ -42,7 +59,7 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - CI matrix covering Linux, macOS, and Ubuntu
 
 
-### rel-17: User Experience (future)
+### rel-18: User Experience (future)
 
 **Objective**: Polish configuration, discoverability, and customization workflows
 
@@ -55,6 +72,6 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - auto-complete agent UUIDs in `/switch`, `/kill`, `/send`, and similar commands
 
 
-### rel-18: Codebase Refactor & MVP Release (future)
+### rel-19: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt before MVP release.
