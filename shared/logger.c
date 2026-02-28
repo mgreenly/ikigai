@@ -81,6 +81,30 @@ static void ik_log_rotate_if_exists(const char *log_path)
     }
 }
 
+static void ik_log_mkdir_p(const char *path)
+{
+    assert(path != NULL); // LCOV_EXCL_BR_LINE
+
+    char tmp[512];
+    int ret = snprintf(tmp, sizeof(tmp), "%s", path);
+    if (ret < 0 || (size_t)ret >= sizeof(tmp)) {  // LCOV_EXCL_BR_LINE
+        PANIC("Path too long in mkdir_p");  // LCOV_EXCL_LINE
+    }
+
+    for (char *p = tmp + 1; *p != '\0'; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {
+                PANIC("Failed to create intermediate directory");
+            }
+            *p = '/';
+        }
+    }
+    if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {
+        PANIC("Failed to create IKIGAI_LOG_DIR directory");
+    }
+}
+
 static void ik_log_setup_directories(const char *working_dir, char *log_path)
 {
     assert(working_dir != NULL); // LCOV_EXCL_BR_LINE
@@ -89,11 +113,9 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
     const char *env_log_dir = getenv("IKIGAI_LOG_DIR");
     if (env_log_dir != NULL && env_log_dir[0] != '\0') {
         struct stat st;
-        if (posix_stat_(env_log_dir, &st) != 0) {  // LCOV_EXCL_BR_LINE
-            if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
-                if (posix_mkdir_(env_log_dir, 0755) != 0) {  // LCOV_EXCL_BR_LINE LCOV_EXCL_LINE
-                    PANIC("Failed to create IKIGAI_LOG_DIR directory");  // LCOV_EXCL_LINE
-                }
+        if (posix_stat_(env_log_dir, &st) != 0) {
+            if (errno == ENOENT) {
+                ik_log_mkdir_p(env_log_dir);
             } else {  // LCOV_EXCL_START
                 PANIC("Failed to stat IKIGAI_LOG_DIR directory");
             }  // LCOV_EXCL_STOP
