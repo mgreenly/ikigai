@@ -33,6 +33,33 @@ static void ik_debug_log_cleanup(void)
     }
 }
 
+static int mkdir_p(const char *path, mode_t mode)
+{
+    char tmp[PATH_MAX];
+    size_t len = strlen(path);
+    if (len == 0 || len >= PATH_MAX) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    memcpy(tmp, path, len + 1);
+    if (tmp[len - 1] == '/') {
+        tmp[len - 1] = '\0';
+    }
+    for (char *p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(tmp, mode) != 0 && errno != EEXIST) {
+                return -1;
+            }
+            *p = '/';
+        }
+    }
+    if (mkdir(tmp, mode) != 0 && errno != EEXIST) {
+        return -1;
+    }
+    return 0;
+}
+
 void ik_debug_log_init(void)
 {
     const char *log_dir = getenv("IKIGAI_LOG_DIR");
@@ -42,7 +69,7 @@ void ik_debug_log_init(void)
 
     struct stat dir_st;
     if (stat(log_dir, &dir_st) != 0) {
-        if (mkdir(log_dir, 0755) != 0 && errno != EEXIST) {
+        if (mkdir_p(log_dir, 0755) != 0) {
             PANIC("Failed to create IKIGAI_LOG_DIR");
         }
     }
