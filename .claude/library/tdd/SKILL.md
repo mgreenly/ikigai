@@ -48,3 +48,20 @@ Follow Red/Green/Verify cycle:
 **The test should come first** - but don't let perfect coverage slow down feature development.
 
 If writing a helper function, ask: "Does a passing test call this right now?" If no, DELETE IT.
+
+## Coverage Phase (Strict Mode)
+
+**ABSOLUTE RULE: NEVER WRITE CODE BEFORE YOU HAVE A TEST THAT NEEDS IT.**
+
+When closing coverage gaps, the verify step adds:
+
+- `make check-coverage` — **90% coverage is MANDATORY**
+
+**Hunt every branch:**
+
+- Test all error paths (use mocks to trigger failures)
+- Test assertion violations (`tcase_add_test_raise_signal` with SIGABRT)
+- Test edge cases (empty, null, boundary conditions)
+- Only use `LCOV_EXCL` markers when genuinely untestable (OOM, impossible states)
+
+If a branch is uncovered, ask: "Can I write a test for this?" If yes, WRITE IT.

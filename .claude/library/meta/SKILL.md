@@ -67,13 +67,8 @@ JSON files listing skills to load together.
 - `advertise`: Skills mentioned but not loaded (load on demand)
 
 **Current skillsets:**
-- `researcher` - Research phase (goals, specs)
-- `architect` - Plan phase (plan/, task breakdown)
 - `developer` - Implementation (TDD, quality)
-- `orchestrator` - Task execution
-- `refactor` - Behavior-preserving refactoring
-- `coverage` - 90% test coverage
-- `debugger` - Troubleshooting
+- `architect` - Architectural decisions (DDD, DI, patterns)
 - `security` - Security review
 - `meta` - Agent system management
 

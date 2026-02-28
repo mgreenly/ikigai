@@ -5,23 +5,20 @@ description: Jujutsu (jj) skill for the ikigai project
 
 # Jujutsu (jj)
 
-## Dedicated Checkout Workflow
+## Workflow
 
-**This checkout is yours alone.** No other work happens here. The workflow is:
+**Float on main.** The working copy sits directly on `main@origin`. Manual changes are committed and pushed to main. Most work goes through goals, so you periodically pull from main to pick up completed goal work.
 
 1. **Start fresh**: `jj git fetch` then `jj new main@origin`
-2. **Do work**: Create commits as needed
-3. **Push PR**: Create ONE bookmark on HEAD, push ALL commits (main..HEAD)
-4. **Iterate**: If PR needs updates, commit more, push same bookmark
-5. **Done**: PR merges via GitHub, return to step 1
+2. **Do work**: Make changes, commit as needed
+3. **Push to main**: Push directly to main (no bookmarks, no PRs)
+4. **Pull updates**: `jj git fetch` then `jj rebase -d main@origin` to pick up goal work
 
 ## CRITICAL Rules
 
 - **"All files" means ALL files** - When told to commit, restore, or rebase "all files", include every modified file in the working copy. Never selectively exclude files. The working copy is the source of truth.
-- **ONE bookmark only** - Never create multiple bookmarks
-- **Push ALL commits** - Always push the entire stack from main to HEAD
-- **Never partial pushes** - Don't push just one commit when there are more
-- **Bookmark on HEAD** - The bookmark always points to the top of your stack
+- **No bookmarks** - Push directly to main, no feature branches
+- **No PRs** - All work lands on main directly
 
 ## Starting Work
 
@@ -42,54 +39,24 @@ jj commit -m "Add feature X"
 
 Commits stack automatically. After 3 commits you have: `main → A → B → C (@)`
 
-## Creating a PR
+## Pushing to Main
 
-When ready to push:
-
-```bash
-# Create bookmark on current commit (HEAD of your stack)
-jj bookmark create feature-name
-
-# Track the bookmark (required before first push)
-jj bookmark track feature-name@origin
-
-# Push the bookmark (pushes ALL commits from main to HEAD)
-jj git push --bookmark feature-name
-```
-
-## Updating a PR
-
-If PR needs changes:
+Push all commits directly to main:
 
 ```bash
-# Make changes, commit
-jj commit -m "Fix review feedback"
-
-# Move bookmark to new HEAD
-jj bookmark set feature-name
-
-# Push updated bookmark
-jj git push --bookmark feature-name
+jj git push --revisions 'main@origin..@-'
 ```
 
-## Rebasing a Remote Branch onto main
+This pushes every commit between main and your current working copy parent.
 
-Remote commits are **immutable** — `jj rebase` will fail on them. To rebase a remote branch's changes onto main@origin, use `jj restore`:
+## Pulling Updates
+
+When goals complete and land on main, pull their work:
 
 ```bash
-jj new main@origin
-jj restore --from <bookmark>@origin
+jj git fetch
+jj rebase -d main@origin
 ```
-
-This creates a new working copy on main and applies all the branch's changes on top. **Never use `jj rebase` on remote commits.**
-
-## Prohibited Operations
-
-- Modifying `main` bookmark locally
-- Merging into main locally (PRs only)
-- Force pushing to main
-- Creating multiple bookmarks
-- Pushing partial commit stacks
 
 ## Squashing (Permission Required)
 
@@ -98,12 +65,6 @@ This creates a new working copy on main and applies all the branch's changes on 
 ```bash
 jj edit <revision>
 jj squash -m "Combined message"
-```
-
-After squashing, update and push bookmark:
-```bash
-jj bookmark set feature-name
-jj git push --bookmark feature-name
 ```
 
 ## Recovery
@@ -124,14 +85,11 @@ jj op restore <operation-id>
 | View changes | `jj diff` |
 | View log | `jj log` |
 | Commit | `jj commit -m "msg"` |
-| Create bookmark | `jj bookmark create <name>` |
-| Move bookmark to HEAD | `jj bookmark set <name>` |
-| Push bookmark | `jj git push --bookmark <name>` |
-| Track new bookmark | `jj bookmark track <name>@origin` |
+| Push to main | `jj git push --revisions 'main@origin..@-'` |
+| Rebase onto main | `jj rebase -d main@origin` |
 
 ## Key Concepts
 
 - **Working copy** (`@`): Always a commit being edited
-- **Bookmarks**: Named pointers to commits (like git branches)
-- **main@origin**: The remote main branch
-- **Commit stack**: Your commits from main to HEAD, all pushed together
+- **main@origin**: The remote main branch — your base and push target
+- **Float on main**: Work sits on top of main, pushes go directly to main

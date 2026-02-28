@@ -44,8 +44,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `jj` | Jujutsu VCS workflow, commit policy, permitted operations |
 | `style` | Code style conventions |
 | `naming` | Naming conventions |
-| `tdd` | Test-Driven Development workflow |
-| `tdd-strict` | TDD strict mode |
+| `tdd` | Test-Driven Development workflow (includes strict/coverage mode) |
 | `coverage` | 90% coverage requirement and exclusion rules |
 | `lcov` | LCOV tooling for finding coverage gaps |
 | `quality` | Quality checks and standards |
@@ -61,19 +60,16 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `valgrind` | Memory error detection and leak checking |
 | `sanitizers` | ASan/UBSan/TSan output interpretation |
 | `debug-log` | Printf-style debug logging |
-| `dev-dump` | Debug buffer dumps for terminal rendering state |
 | `harness` | Automated quality check loops with escalation |
 | `fix-checks` | Fix all quality check failures using Ralph |
-| `pipeline` | Goal creation and management via ralph-plans API |
-| `goal-authoring` | Writing effective goal files for Ralph |
 | `ralph` | Ralph agent loop and configuration |
-
-> **Ralph** is a simple autonomous agent loop: run a prompt, inspect progress, repeat until the goal is complete. Each iteration's progress output and file changes carry context forward. The `ralph-runs` service orchestrates multiple Ralph instances, distributing goals written via `goal-authoring` and submitted through `pipeline`. Load `ralph` before interacting with any of these.
-| `pull-request` | Creating PRs with concise descriptions |
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
-| `event-log` | JSONL event stream for external integrations |
 | `ikigai-ctl` | Control socket client for programmatic interaction with running ikigai |
+| `notify` | Send push notifications via ntfy.sh |
+| `manual-tests` | Running manual verification tests against a live instance |
+| `mdp` | Write mdp markdown banners for livestream display |
+| `rules` | Critical project rules and constraints |
 | `docs` | User documentation authoring guidelines |
 | `bugs` | Known bugs and quirks in dependencies |
 | `meta` | Agent system infrastructure (.claude/ directory) |
@@ -89,12 +85,8 @@ Use `/skillset <name>` to load a skillset.
 | Skillset | Purpose |
 |----------|---------|
 | `developer` | Writing new code (TDD, style, quality, coverage, jj) |
-| `implementor` | Base skillset for task execution (minimal: jj, errors, style, tdd) |
 | `architect` | Architectural decisions (DDD, DI, patterns, naming) |
-| `refactor` | Behavior-preserving code improvements |
-| `debugger` | Debugging and troubleshooting |
 | `security` | Discovering security flaws |
-| `orchestrator` | Running task execution loops (lean, no preloaded skills) |
 | `meta` | Improving the .claude/ system |
 
 ## Quality Harnesses

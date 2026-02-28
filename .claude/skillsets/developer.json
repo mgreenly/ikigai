@@ -19,7 +19,6 @@
     "testability"
   ],
   "advertise": [
-    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
     {"skill": "database", "description": "PostgreSQL schema and query patterns"}
   ]
 }

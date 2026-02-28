@@ -5,15 +5,8 @@ Load a skillset (composite skill set) from `.claude/skillsets/`.
 
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
-- `coverage` - For achieving and maintaining 90% test coverage
-- `debugger` - For debugging and troubleshooting issues
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
-- `implementor` - Base skillset for task execution (minimal: jj, errors, style, tdd)
 - `meta` - For improving the .claude/ system
-- `orchestrator` - For running task execution loops (lean, no preloaded skills)
-- `planner` - For creating implementation plans and task files
-- `refactor` - For behavior-preserving code improvements
-- `researcher` - For research phase (goals, specs, user stories)
 - `security` - For discovering security flaws
 
 **Skillset JSON format:**
@@ -42,15 +35,8 @@ For `advertise`: Skills you can load with `/load <skill>` when you determine you
 {{else}}
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
-- `coverage` - For achieving and maintaining 90% test coverage
-- `debugger` - For debugging and troubleshooting issues
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
-- `implementor` - Base skillset for task execution (minimal: jj, errors, style, tdd)
 - `meta` - For improving the .claude/ system
-- `orchestrator` - For running task execution loops (lean, no preloaded skills)
-- `planner` - For creating implementation plans and task files
-- `refactor` - For behavior-preserving code improvements
-- `researcher` - For research phase (goals, specs, user stories)
 - `security` - For discovering security flaws
 
 Use `/skillset <name>` to load a skillset.

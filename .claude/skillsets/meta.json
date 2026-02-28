@@ -5,14 +5,10 @@
     "align",
     "jj",
     "principles",
-    "scratch",
-    "pipeline"
+    "scratch"
   ],
   "advertise": [
     {"skill": "harness", "description": "Automated quality check loops with escalation"},
-    {"skill": "pull-request", "description": "Creating PRs with concise descriptions"},
-    {"skill": "ralph", "description": "Iterative goal execution harness"},
-    {"skill": "goal-authoring", "description": "Writing effective goal files for Ralph"},
     {"skill": "debug-log", "description": "Printf-style debug logging for development-time visibility"}
   ]
 }
