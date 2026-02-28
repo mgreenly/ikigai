@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+make clean
+check-compile
+check-link
+check-filesize
+check-unit
+check-integration
+check-complexity
