@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-make clean
-check-compile
-check-link
-check-filesize
-check-unit
-check-integration
-check-complexity
+make clean || exit 1
+
+failed=()
+
+run_check() {
+  if ! "$1"; then
+    failed+=("$1")
+  fi
+}
+
+run_check check-compile
+run_check check-link
+run_check check-filesize
+run_check check-unit
+run_check check-integration
+run_check check-complexity
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "FAILED: $(IFS=', '; echo "${failed[*]}")"
+  exit 1
+fi
