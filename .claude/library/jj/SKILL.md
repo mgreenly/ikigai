@@ -41,13 +41,14 @@ Commits stack automatically. After 3 commits you have: `main → A → B → C (
 
 ## Pushing to Main
 
-Push all commits directly to main:
+Move the `main` bookmark forward to your latest commit, then push:
 
 ```bash
-jj git push --revisions 'main@origin..@-'
+jj bookmark set main -r @-
+jj git push --bookmark main
 ```
 
-This pushes every commit between main and your current working copy parent.
+`@-` is the parent of the working copy — your most recent `jj commit`. If you have uncommitted work in `@`, commit first.
 
 ## Pulling Updates
 
@@ -85,7 +86,7 @@ jj op restore <operation-id>
 | View changes | `jj diff` |
 | View log | `jj log` |
 | Commit | `jj commit -m "msg"` |
-| Push to main | `jj git push --revisions 'main@origin..@-'` |
+| Push to main | `jj bookmark set main -r @- && jj git push --bookmark main` |
 | Rebase onto main | `jj rebase -d main@origin` |
 
 ## Key Concepts
