@@ -1,1 +1,1 @@
-ping
+ping=42
