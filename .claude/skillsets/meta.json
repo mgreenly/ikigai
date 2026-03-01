@@ -9,6 +9,7 @@
   ],
   "advertise": [
     {"skill": "harness", "description": "Automated quality check loops with escalation"},
-    {"skill": "debug-log", "description": "Printf-style debug logging for development-time visibility"}
+    {"skill": "debug-log", "description": "Printf-style debug logging for development-time visibility"},
+    {"skill": "ikigai-ctl", "description": "Control socket client for programmatic interaction with running ikigai"}
   ]
 }

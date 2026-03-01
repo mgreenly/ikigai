@@ -64,7 +64,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `ctags` | Code navigation with ctags |
 | `ikigai-ctl` | Control socket client for programmatic interaction with running ikigai |
 | `notify` | Send push notifications via ntfy.sh |
-| `manual-tests` | Running manual verification tests against a live instance |
+| `headless` | Driving ikigai interactively from an agent session |
 | `mdp` | Write mdp markdown banners for livestream display |
 | `rules` | Critical project rules and constraints |
 | `docs` | User documentation authoring guidelines |
@@ -73,7 +73,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `align` | Behavioral alignment rules |
 | `principles` | Guiding principles and decision patterns |
 | `scratch` | Temporary storage between sessions |
-| `e2e-testing` | JSON-based end-to-end test format for mock and live providers |
+| `e2e-testing` | JSON-based end-to-end test format, runner, and mock provider |
 
 ### Skillsets
 

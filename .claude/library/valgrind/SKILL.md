@@ -11,8 +11,8 @@ Interpreting Valgrind memcheck output for memory debugging.
 ## Running Valgrind
 
 ```bash
-# Via Makefile
-make check-valgrind
+# Via check script (never run make directly)
+check-valgrind
 
 # Direct invocation
 valgrind --leak-check=full --track-origins=yes ./ikigai
@@ -95,5 +95,5 @@ Detects:
 ## References
 
 - Valgrind manual: https://valgrind.org/docs/manual/
-- See `gdbserver.md` for live debugging
-- See `coredump.md` for crash analysis
+- See `/load gdbserver` for live debugging
+- See `/load coredump` for crash analysis

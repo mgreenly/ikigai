@@ -1,15 +1,15 @@
 ---
 name: e2e-testing
-description: JSON-based end-to-end test format for running tests against mock or live providers
+description: JSON-based end-to-end test format, runner, and mock provider
 ---
 
 # End-to-End Testing
 
-End-to-end tests verify ikigai behavior through its control socket (`ikigai-ctl`). Each test is a self-contained JSON file. Tests run sequentially — they share a single ikigai instance.
+End-to-end tests verify ikigai behavior through its control socket. For `ikigai-ctl` usage, see `/load ikigai-ctl`. For general headless interaction, see `/load headless`.
 
-## Test File Location
+## Test Files
 
-Tests live in `tests/e2e/`. Run order is defined by `tests/e2e/index.json` — a JSON array of test filenames in execution order. When asked to "run the e2e tests", read `index.json` and execute each listed test file sequentially.
+Tests live in `tests/e2e/` as self-contained JSON files. Run order is defined by `tests/e2e/index.json` — a JSON array of test filenames in execution order.
 
 ## Execution Modes
 
@@ -18,22 +18,16 @@ Tests live in `tests/e2e/`. Run order is defined by `tests/e2e/index.json` — a
 | **mock** | `bin/mock-provider` | all steps including `mock_expect` | `assert` + `assert_mock` |
 | **live** | real provider (Anthropic, OpenAI, Google) | `mock_expect` steps skipped | `assert` only |
 
-Every test always includes `mock_expect` steps and `assert_mock` assertions — tests are written once and run in either mode. In live mode, `mock_expect` steps are skipped and `assert_mock` is not evaluated.
+Tests are written once and run in either mode. In live mode, `mock_expect` steps are skipped and `assert_mock` is not evaluated.
 
 ## JSON Schema
 
 ```json
 {
   "name": "human-readable test name",
-  "steps": [
-    ...
-  ],
-  "assert": [
-    ...
-  ],
-  "assert_mock": [
-    ...
-  ]
+  "steps": [ ... ],
+  "assert": [ ... ],
+  "assert_mock": [ ... ]
 }
 ```
 
@@ -46,62 +40,54 @@ Every test always includes `mock_expect` steps and `assert_mock` assertions — 
 
 ### `send_keys`
 
-Send keystrokes to ikigai via `ikigai-ctl send_keys`.
-
 ```json
 {"send_keys": "/model gpt-5-mini\\r"}
 ```
 
-Include `\\r` at the end of the string to submit. Use `ikigai-ctl send_keys` escaping conventions.
+Include `\\r` to submit. See `/load ikigai-ctl` for escaping conventions.
 
 ### `read_framebuffer`
-
-Capture the current screen contents via `ikigai-ctl read_framebuffer`. The captured state is what assertions run against.
 
 ```json
 {"read_framebuffer": true}
 ```
 
-Always `read_framebuffer` before asserting. Each `read_framebuffer` replaces the previous capture.
+Always `read_framebuffer` before asserting. Each capture replaces the previous one.
 
 ### `wait`
-
-Pause for N seconds. Use after `send_keys` to allow UI updates or LLM responses.
 
 ```json
 {"wait": 0.5}
 ```
 
 - After UI commands (`/model`, `/clear`): 0.5 seconds
-- After sending a prompt to the LLM: 3-5 seconds
+- After sending a prompt to the LLM: 3-5 seconds (prefer `wait_idle`)
 
 ### `wait_idle`
 
-Wait until the current agent becomes idle (ready for input), or until the timeout elapses.
-Calls `ikigai-ctl wait_idle <timeout_ms>`.
+Wait until the agent becomes idle or timeout elapses.
 
 ```json
 {"wait_idle": 10000}
 ```
 
 - Value is `timeout_ms` (integer milliseconds)
-- Exit code 0 = agent became idle; exit code 1 = timed out (report FAIL)
-- Use instead of `{"wait": N}` after sending prompts to the LLM
-- Keep `{"wait": 0.5}` for UI-only commands (`/clear`, `/model`) that don't trigger LLM
+- Exit code 0 = idle; exit code 1 = timed out (report FAIL)
+- Use instead of `wait` after sending prompts to the LLM
 
 ### `mock_expect`
 
-Configure the mock provider's next response queue. Sends a POST to `/_mock/expect`. **Skipped in live mode.**
+Configure the mock provider's response queue. **Skipped in live mode.**
 
 ```json
 {"mock_expect": {"responses": [{"content": "The capital of France is Paris."}]}}
 ```
 
-The object is sent as the JSON body to `/_mock/expect`. The `responses` array is a FIFO queue — each LLM request pops the next entry. Entries contain either `content` (text) or `tool_calls` (array), never both. Must appear before the `send_keys` that triggers the LLM call.
+The `responses` array is a FIFO queue — each LLM request pops the next entry. Entries contain either `content` (text) or `tool_calls` (array), never both. Must appear before the `send_keys` that triggers the LLM call.
 
 ## Assertion Types
 
-Assertions run against the most recent `read_framebuffer` capture. The framebuffer response contains a `lines` array; each line has `spans` with `text` fields. Concatenate span texts per row to reconstruct screen content.
+Assertions run against the most recent `read_framebuffer` capture.
 
 ### `contains`
 
@@ -127,50 +113,35 @@ At least one row starts with the given prefix (after trimming leading whitespace
 {"line_prefix": "●"}
 ```
 
-## Running Tests — Direct Execution, No Scripts
+## Running Tests
 
-**Every step must be executed directly using individual tool calls — never via a script, the runner, or any programmatic wrapper.** This applies to mock mode, live mode, single tests, and full suite runs.
+**Direct execution, one tool call per step.** Never use scripts or programmatic wrappers when the user asks you to run e2e tests. The scripted runner (`tests/e2e/runner`) exists for CI — when the user asks you to run tests, they want direct execution so they can observe every response.
 
-**Why:** The reason you are asked to run e2e tests (instead of the user running `tests/e2e/runner` themselves) is that direct execution lets you observe every response and react to unexpected behavior — crashes, garbled output, timing issues. A script executes steps mechanically and silently masks errors. The fully automated scripted runner already exists for when scripted execution is appropriate; when the user asks you to run e2e tests, they want the manual path precisely because the runner is not sufficient for what they're investigating.
-
-### Procedure for each test file:
+### Procedure per test file:
 
 1. Read the JSON file
-2. Determine mode (mock or live) from context — mock if ikigai is connected to `mock-provider`, live otherwise
+2. Determine mode — mock if ikigai is connected to `mock-provider`, live otherwise
 3. Execute each step in order, one tool call per step:
    - `send_keys`: run `ikigai-ctl send_keys "<value>"`
    - `wait`: `sleep N`
    - `wait_idle`: run `ikigai-ctl wait_idle <value>`, fail if exit code is 1
    - `read_framebuffer`: run `ikigai-ctl read_framebuffer`, store result
    - `mock_expect`: in mock mode, `curl -s 127.0.0.1:<port>/_mock/expect -d '<json>'`; in live mode, skip
-4. After all steps, evaluate assertions:
-   - Always evaluate `assert`
-   - In mock mode, also evaluate `assert_mock`
+4. Evaluate assertions (`assert` always, `assert_mock` in mock mode only)
 5. Report **PASS** or **FAIL** with evidence (cite relevant framebuffer rows)
 
-## Running Large Test Batches with Sub-Agents
+### Large batches (20+ tests)
 
-When asked to run a **large number of e2e tests** (more than 20), in either mock or live mode, divide the work across sub-agents running **serially** (one after the next, never in parallel):
-
-1. Read `tests/e2e/index.json` to get the full ordered list of test files
-2. Partition the list into chunks of at most **20 tests each**
-3. Launch one sub-agent per chunk, **sequentially** — wait for each to complete before launching the next
-4. Each sub-agent receives: its assigned test files (in order), the ikigai socket path, the mock provider port (if mock mode), and **the full contents of this skill file** (`/load e2e-testing` or inline the text). The sub-agent needs the complete context — step types, assertion types, execution rules, key rules — to execute correctly. Without it, the sub-agent will improvise and introduce errors. **Do not pre-read the test files yourself** — pass only the filenames and let the sub-agent read them.
-6. Collect pass/fail results from each sub-agent and summarize at the end
-
-**Why serially:** Tests share a single ikigai instance. Running sub-agents concurrently would interleave keystrokes and framebuffer reads across tests, corrupting results.
-
-**Why chunked:** Tests consume context window space. Chunking prevents any single agent from exhausting its context window mid-run.
+Divide into chunks of 20, run sub-agents **serially** (shared instance — never parallel). Each sub-agent receives filenames and the full contents of this skill. Don't pre-read test files yourself.
 
 ## Key Rules
 
 - **Never start ikigai** — the user manages the instance
-- **Never use the runner script** (`tests/e2e/runner`) — it exists for CI/automated use. When the user asks you to run tests, they want direct execution so they can see every step and every response.
-- **Never use any script or programmatic wrapper** — no Ruby, no shell loops, no automation of any kind. One tool call per step. This applies equally to sub-agents executing chunked batches.
-- **One test file = one test** — self-contained, no dependencies on other test files
+- **Never use the runner script** — direct execution only
+- **One test file = one test** — self-contained, no dependencies
 - **Steps execute in order** — sequential, never parallel
-- **Always read_framebuffer before asserting** — assertions reference the last capture
-- **Never chain anything after wait_idle** — `wait_idle` must always be the last command in a Bash tool call. If it succeeds (exit code 0) and a subsequent command fails, the overall exit code 1 is indistinguishable from `wait_idle` timing out. Run `read_framebuffer` in a separate Bash tool call after `wait_idle` completes.
+- **Always read_framebuffer before asserting**
+- **Never chain after wait_idle** — run `read_framebuffer` in a separate tool call
 
 ## Example: UI-only test
 
@@ -202,32 +173,6 @@ When asked to run a **large number of e2e tests** (more than 20), in either mock
   ],
   "assert_mock": [
     {"contains": "The capital of France is Paris."}
-  ]
-}
-```
-
-## Example: model switching test
-
-```json
-{
-  "name": "set model to gpt-5-mini with low reasoning",
-  "steps": [
-    {"send_keys": "/clear\\r"},
-    {"wait": 0.5},
-    {"send_keys": "/model gpt-5-mini/low\\r"},
-    {"wait": 0.5},
-    {"mock_expect": {"responses": [{"content": "Mock response from gpt-5-mini."}]}},
-    {"send_keys": "Hello\\r"},
-    {"wait_idle": 10000},
-    {"read_framebuffer": true}
-  ],
-  "assert": [
-    {"contains": "gpt-5-mini/low"},
-    {"contains": "low effort"},
-    {"line_prefix": "●"}
-  ],
-  "assert_mock": [
-    {"contains": "Mock response from gpt-5-mini."}
   ]
 }
 ```
