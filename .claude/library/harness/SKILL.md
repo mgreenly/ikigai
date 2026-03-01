@@ -13,15 +13,53 @@ Automated fix loops. Each harness runs a make target, spawns sub-agents to fix f
 
 **History:** Each harness maintains `history.md` for cross-attempt learning. Truncated per-file, accumulates across escalation. Agents append summaries after each attempt so higher-level models can avoid repeating failed approaches.
 
-**CLI:** `.claude/scripts/check-<name>` symlinks to harness run scripts
+## Quality Checks
 
-**Commands:** `/check-<name>` runs the corresponding harness with `--no-spinner`
+The `check-*` namespace is reserved for quality checks. Only these scripts use the `check-` prefix. Each has a corresponding `fix-*` script that spawns sub-agents to fix failures.
 
-**Quality:** `quality/run` orchestrates all harnesses in sequence until stable
+### Core Quality Checks
 
-## Running check-* Skills
+The 6 core quality checks are the default exit gate for all work. Run these in order when work is complete.
 
-When invoking check-* skills via Bash:
+| Script | What it verifies |
+|--------|------------------|
+| `check-compile` | Code compiles cleanly |
+| `check-link` | Linker succeeds |
+| `check-filesize` | File size under 16KB |
+| `check-unit` | Unit tests pass |
+| `check-integration` | Integration tests pass |
+| `check-complexity` | Function complexity limits |
+
+### Full Quality Suite
+
+The full quality suite is the 6 core quality checks plus these 5 additional checks. Run only when explicitly requested.
+
+| Script | What it verifies |
+|--------|------------------|
+| `check-sanitize` | Address/UB sanitizer clean |
+| `check-tsan` | ThreadSanitizer clean |
+| `check-valgrind` | Valgrind memcheck clean |
+| `check-helgrind` | Valgrind helgrind clean |
+| `check-coverage` | 90% line coverage met |
+
+## Other Harnesses
+
+Not part of the quality suite. Do not use the `check-*` prefix.
+
+- `prune` — dead code detection (`.claude/scripts/prune`) and goal creation (`fix-prune`)
+- `notify` — push notifications via ntfy.sh
+- `pluribus` — multi-agent orchestration
+- `reset-repo` — reset jj working copy to fresh state
+
+## CLI
+
+- `.claude/scripts/check-<name>` — symlinks to quality check harness run scripts
+- `.claude/scripts/fix-<name>` — symlinks to fix harness run scripts
+- `.claude/scripts/<name>` — symlinks for non-quality harnesses
+
+## Running check-* Scripts
+
+When invoking check-* scripts via Bash:
 
 - **Timeout:** Use 60 minute timeout (`timeout: 3600000`)
 - **Foreground:** Always run in foreground (never use `run_in_background`)
