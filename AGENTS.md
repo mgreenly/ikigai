@@ -47,7 +47,7 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `tdd` | Test-Driven Development workflow (includes strict/coverage mode) |
 | `coverage` | 90% coverage requirement and exclusion rules |
 | `lcov` | LCOV tooling for finding coverage gaps |
-| `quality` | Quality checks and standards |
+| `quality` | Quality checks — what to run and when |
 | `zero-debt` | Zero technical debt policy |
 | `di` | Dependency injection patterns |
 | `ddd` | Domain vocabulary, bounded contexts, core entities and invariants |
