@@ -23,7 +23,7 @@ ikigai/
 │   ├── commands/              # Slash command definitions
 │   ├── library/               # Skills (modular instruction sets)
 │   ├── skillsets/              # Composite skill bundles
-│   ├── harness/               # Quality check + fix scripts
+│   ├── harness/               # Quality check scripts
 │   ├── scripts/               # Symlinks to harness scripts (on PATH)
 │   └── data/                  # Runtime data (gitignored)
 ├── .envrc                     # direnv config (env vars, PATH)
@@ -107,14 +107,14 @@ Stay in this single-file loop. It takes seconds. Do not run project-wide checks 
 
 Six checks run project-wide in order, once, when all changes are done:
 
-| Check | Fix | What it verifies |
-|-------|-----|------------------|
-| `check-compile` | `fix-compile` | Code compiles cleanly |
-| `check-link` | `fix-link` | Linker succeeds |
-| `check-filesize` | `fix-filesize` | File size under 16KB |
-| `check-unit` | `fix-unit` | Unit tests pass |
-| `check-integration` | `fix-integration` | Integration tests pass |
-| `check-complexity` | `fix-complexity` | Function complexity limits |
+| Check | What it verifies |
+|-------|------------------|
+| `check-compile` | Code compiles cleanly |
+| `check-link` | Linker succeeds |
+| `check-filesize` | File size under 16KB |
+| `check-unit` | Unit tests pass |
+| `check-integration` | Integration tests pass |
+| `check-complexity` | Function complexity limits |
 
 This is the default meaning of "all checks pass" in any goal. If any fail, fix and re-run only the failing check, not all six.
 
@@ -122,13 +122,13 @@ This is the default meaning of "all checks pass" in any goal. If any fail, fix a
 
 Five additional checks run only when the goal or user explicitly asks for them:
 
-| Check | Fix | What it verifies |
-|-------|-----|------------------|
-| `check-sanitize` | `fix-sanitize` | Address/UB sanitizer clean |
-| `check-tsan` | `fix-tsan` | ThreadSanitizer clean |
-| `check-valgrind` | `fix-valgrind` | Valgrind memcheck clean |
-| `check-helgrind` | `fix-helgrind` | Valgrind helgrind clean |
-| `check-coverage` | `fix-coverage` | 90% line coverage met |
+| Check | What it verifies |
+|-------|------------------|
+| `check-sanitize` | Address/UB sanitizer clean |
+| `check-tsan` | ThreadSanitizer clean |
+| `check-valgrind` | Valgrind memcheck clean |
+| `check-helgrind` | Valgrind helgrind clean |
+| `check-coverage` | 90% line coverage met |
 
 
 ## Running the Application

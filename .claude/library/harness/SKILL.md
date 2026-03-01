@@ -46,7 +46,7 @@ The full quality suite is the 6 core quality checks plus these 5 additional chec
 
 Not part of the quality suite. Do not use the `check-*` prefix.
 
-- `prune` — dead code detection (`.claude/scripts/prune`) and goal creation (`fix-prune`)
+- `prune` — dead code detection (`.claude/scripts/prune`)
 - `notify` — push notifications via ntfy.sh
 - `pluribus` — multi-agent orchestration
 - `reset-repo` — reset jj working copy to fresh state

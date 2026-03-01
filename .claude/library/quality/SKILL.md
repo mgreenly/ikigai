@@ -1,20 +1,15 @@
 ---
 name: quality
-description: Quality skill for the ikigai project
+description: Quality strategy — when and how to run checks
 ---
 
 # Quality
 
-## Description
-Testing and quality requirements for development phase. Focus on high coverage.
+Quality strategy for agents and humans. For check/fix script mechanics, see the `harness` skill.
 
 ## Pre-Commit Requirements
 
-Before creating commits:
-
-1. `make fmt` - Format code
-2. `make check` - All tests pass
-3. `make lint` - Complexity/file size checks pass
+Before creating commits, run the 6 core quality checks (see `harness` skill for the full list and run order).
 
 ## Test Execution
 
@@ -44,12 +39,5 @@ make BUILD={debug|release|sanitize|tsan|coverage}
 - `sanitize` - Address and undefined behavior sanitizers
 - `tsan` - Thread sanitizer
 - `coverage` - Code coverage analysis
-
-## Development Phase Focus
-
-- Aim for high test coverage of new code
-- Test the happy path and obvious error cases
-- Coverage gaps will be closed in a dedicated coverage phase
-- Don't let coverage metrics slow down feature development
 
 **CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
