@@ -38,8 +38,7 @@ If you discover deficiencies in existing code while working nearby, fix them as 
 **CRITICAL**: Do not make architectural, structural, or refactoring changes unless explicitly requested.
 
 Acceptable without asking:
-- Formatting with `make fmt`
-- Running `make check` and `make lint`
+- Running `check-compile`, `check-unit`, `check-filesize`, `check-complexity`
 - Minor code style consistency
 
 When discussing improvements:

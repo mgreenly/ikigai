@@ -31,8 +31,9 @@ Follow Red/Green/Verify cycle:
 
 ### 3. Verify: Run quality checks
 
-- `make check` - All tests must pass
-- `make lint` - Code complexity under threshold
+- `check-unit --file=PATH` - Test must pass
+- `check-filesize --file=PATH` - File size under 16KB
+- `check-complexity --file=PATH` - Function complexity under threshold
 
 ## Development Phase Focus
 
@@ -55,7 +56,7 @@ If writing a helper function, ask: "Does a passing test call this right now?" If
 
 When closing coverage gaps, the verify step adds:
 
-- `make check-coverage` — **90% coverage is MANDATORY**
+- `check-coverage` — **90% coverage is MANDATORY**
 
 **Hunt every branch:**
 

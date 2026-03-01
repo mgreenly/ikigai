@@ -1,7 +1,7 @@
 # Ikigai - Elegant Makefile
 # Build system for ikigai terminal agent
 
-.PHONY: all help clean install uninstall
+.PHONY: all help clean install uninstall fmt
 .DEFAULT_GOAL := all
 
 # Compiler
@@ -241,6 +241,12 @@ all:
 		echo "❌ $$failed binaries failed to build"; \
 		exit 1; \
 	fi
+
+# fmt: Format all source files with uncrustify
+fmt:
+	@find apps/ shared/ tests/ tools/ -name '*.c' -o -name '*.h' | \
+		xargs uncrustify -c .uncrustify.cfg --no-backup -q
+	@echo "✨ Formatted"
 
 # clean: Remove build artifacts
 clean:

@@ -30,8 +30,7 @@ LDFLAGS += -Wl,-z,relro,-z,now      # GOT protection
 
 ## Static Analysis
 
-- `make lint` - clang-tidy checks
+- `check-compile` - Compiler warnings (`-Wall -Wextra -Werror`)
 - `cppcheck --enable=all`
-- Compiler warnings: `-Wall -Wextra -Werror`
 
 **Review red flags:** Any banned function, missing bounds on string ops, `char buf[N]` with unchecked input.
