@@ -40,11 +40,11 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `errors` | Result types with OK()/ERR() patterns |
 | `database` | PostgreSQL schema and query patterns |
 | `source-code` | Map of all source files by functional area |
-| `makefile` | Build targets, test commands, coverage requirements |
+| `makefile` | Reference for modifying the Makefile (never run make directly — use check-* scripts) |
 | `jj` | Jujutsu VCS workflow, commit policy, permitted operations |
 | `style` | Code style conventions |
 | `naming` | Naming conventions |
-| `tdd` | Test-Driven Development workflow (includes strict/coverage mode) |
+| `tdd` | Test-Driven Development workflow |
 | `coverage` | 90% coverage requirement and exclusion rules |
 | `lcov` | LCOV tooling for finding coverage gaps |
 | `quality` | Quality checks — what to run and when |
@@ -60,8 +60,6 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `sanitizers` | ASan/UBSan/TSan output interpretation |
 | `debug-log` | Printf-style debug logging |
 | `harness` | Automated quality check loops with escalation |
-| `fix-checks` | Fix all quality check failures using Ralph |
-| `ralph` | Ralph agent loop and configuration |
 | `scm` | Source code management workflow |
 | `ctags` | Code navigation with ctags |
 | `ikigai-ctl` | Control socket client for programmatic interaction with running ikigai |

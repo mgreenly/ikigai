@@ -282,6 +282,4 @@ talloc_steal(new_parent, ptr);  // ptr is now child of new_parent
 
 ---
 
-For refactoring existing code, see `/load refactoring/memory`.
-
 For full details, see `project/memory.md`.

@@ -24,7 +24,7 @@ Each skill is a directory containing `SKILL.md`. Loaded via `/load` or as part o
 **Conventions:**
 - One domain per skill
 - Keep concise (~20-100 lines)
-- Subdirectories for groups: `patterns/`, `security/`, `refactoring/`
+- One directory per skill
 
 **Skill structure:**
 ```markdown
