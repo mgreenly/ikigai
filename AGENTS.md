@@ -48,7 +48,6 @@ Use `/load <name>` to load a skill. Use `/load name1 name2` to load multiple.
 | `coverage` | 90% coverage requirement and exclusion rules |
 | `lcov` | LCOV tooling for finding coverage gaps |
 | `quality` | Quality checks and standards |
-| `quality-strict` | Strict quality enforcement |
 | `zero-debt` | Zero technical debt policy |
 | `di` | Dependency injection patterns |
 | `ddd` | Domain vocabulary, bounded contexts, core entities and invariants |
