@@ -59,9 +59,11 @@ Not part of the quality suite. Do not use the `check-*` prefix.
 
 ## Running check-* Scripts
 
-When invoking check-* scripts via Bash:
+All check scripts are on PATH via `.claude/scripts/`.
 
+- **Single file:** `check-compile --file=PATH` — scopes the check to one file. Use this during development for fast feedback.
+- **Project-wide:** `check-compile` (no args) — checks everything. Use this as the exit gate when work is complete.
 - **Timeout:** Use 60 minute timeout (`timeout: 3600000`)
 - **Foreground:** Always run in foreground (never use `run_in_background`)
-- **Blocking:** No output until completion—do not tail or monitor, just wait
+- **Blocking:** No output until completion — do not tail or monitor, just wait
 - **Output format:** Structured JSON: `{"ok": true/false, "items": [...]}`

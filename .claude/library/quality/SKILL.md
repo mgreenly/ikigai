@@ -1,43 +1,35 @@
 ---
 name: quality
-description: Quality strategy — when and how to run checks
+description: Quality checks — what to run and when
 ---
 
 # Quality
 
-Quality strategy for agents and humans. For check/fix script mechanics, see the `harness` skill.
+## Core Checks (default exit gate)
 
-## Pre-Commit Requirements
+Six checks run project-wide, in order, once when work is complete. This is the default meaning of "all checks pass."
 
-Before creating commits, run the 6 core quality checks (see `harness` skill for the full list and run order).
+`check-compile` → `check-link` → `check-filesize` → `check-unit` → `check-integration` → `check-complexity`
 
-## Test Execution
+If any fail, fix and re-run only the failing check.
 
-**By Default**: Tests run in parallel, with 24 parallel tests on this machine.
-- `MAKE_JOBS=24` - up to 24 concurrent tests
+## Full Suite (only when explicitly requested)
 
-**When you need clear debug output** (serialize execution):
-```bash
-PARALLEL=0 MAKE_JOBS=1 make check
-```
+The core 6 plus 5 deep checks. Run only when the goal or user specifically asks.
 
-**Best practice**: Test individual files during development, run full suite before commits.
+`check-sanitize` · `check-tsan` · `check-valgrind` · `check-helgrind` · `check-coverage`
 
-Example:
-```bash
-make build/tests/unit/array/basic_test && ./build/tests/unit/array/basic_test
-```
+## Development Inner Loop
+
+After changing a file, run the relevant check with `--file=PATH`:
+
+- `check-compile --file=PATH` after every edit
+- `check-unit --file=PATH` when a test file exists
+
+Stay in this single-file loop. Do not run project-wide checks during active development.
 
 ## Build Modes
 
-```bash
-make BUILD={debug|release|sanitize|tsan|coverage}
-```
+`make BUILD={debug|release|sanitize|tsan|coverage}`
 
-- `debug` - Development builds with symbols
-- `release` - Optimized production builds
-- `sanitize` - Address and undefined behavior sanitizers
-- `tsan` - Thread sanitizer
-- `coverage` - Code coverage analysis
-
-**CRITICAL**: Never run multiple `make` commands simultaneously. Different targets use incompatible compiler flags and will corrupt the build.
+**CRITICAL**: Never run multiple `make` commands simultaneously — incompatible compiler flags corrupt the build.
