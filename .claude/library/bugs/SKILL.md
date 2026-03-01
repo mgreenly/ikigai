@@ -21,10 +21,6 @@ Known issues, quirks, and workarounds for dependencies and tooling used in the i
 - Package version: `lcov 2.3.1-1`
 - Binary reports: `lcov: LCOV version 2.0-1`
 
-**Ubuntu 24.04 (GitHub runners):**
-- Package version: `lcov 2.0-4ubuntu2`
-- Binary reports: `lcov: LCOV version 2.0-1`
-
 **Root cause:** The version string is hardcoded in `/usr/lib/lcov/lcovutil.pm`:
 ```perl
 our $VERSION = "2.0-1";

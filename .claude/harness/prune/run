@@ -6,7 +6,7 @@
 #
 # 1. Runs check-prune to get candidates
 # 2. Picks a random candidate
-# 3. Creates a GitHub issue goal
+# 3. Creates a Ralph goal
 # 4. Queues the goal for orchestrator pickup
 #
 
@@ -17,8 +17,9 @@ require 'open3'
 SCRIPT_DIR = File.dirname(File.realpath(__FILE__))
 PROJECT_ROOT = File.expand_path('../../..', SCRIPT_DIR)
 CHECK_SCRIPT = File.join(PROJECT_ROOT, '.claude/scripts/check-prune')
-GOAL_CREATE_SCRIPT = File.join(PROJECT_ROOT, 'scripts/bin/goal-create')
-GOAL_QUEUE_SCRIPT = File.join(PROJECT_ROOT, 'scripts/bin/goal-queue')
+RALPH_PIPELINE = File.expand_path('~/projects/ralph-pipeline/scripts')
+GOAL_CREATE_SCRIPT = File.join(RALPH_PIPELINE, 'goal-create')
+GOAL_QUEUE_SCRIPT = File.join(RALPH_PIPELINE, 'goal-queue')
 GOAL_TEMPLATE = File.join(SCRIPT_DIR, 'goal-template.md')
 
 def log(msg)
@@ -77,13 +78,10 @@ def create_goal(candidate)
   title = "Prune dead code: #{function}"
   body = render_goal_body(candidate)
 
-  org = ENV.fetch('RALPH_ORG')
-  repo = ENV.fetch('RALPH_REPO')
-
   log "Creating goal: #{title}"
 
-  # Pipe body to goal-create
-  cmd = [GOAL_CREATE_SCRIPT, '--org', org, '--repo', repo, '--title', title]
+  # Pipe body to goal-create (org/repo auto-derived from git remote origin)
+  cmd = [GOAL_CREATE_SCRIPT, '--title', title]
   stdout, status = Open3.capture2(*cmd, stdin_data: body, err: '/dev/null')
 
   unless status.success?
