@@ -201,7 +201,7 @@ static res_t openai_start_request(void *ctx, const ik_request_t *req,
     }
 
     DEBUG_LOG("[llm_request] provider=openai model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", json_body ? json_body : "(null)");
+    DEBUG_LOG("[llm_request_body] %s", json_body);
 
     // Build URL
     char *url = NULL;
@@ -320,7 +320,7 @@ static res_t openai_start_stream(void *ctx, const ik_request_t *req,
     }
 
     DEBUG_LOG("[llm_request] provider=openai model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", json_body ? json_body : "(null)");
+    DEBUG_LOG("[llm_request_body] %s", json_body);
 
     // Build URL
     char *url = NULL;

@@ -394,6 +394,42 @@ START_TEST(test_shared_ctx_history_load_failure_graceful) {
 
 END_TEST
 
+// Test: ik_shared_ctx_init_with_term covers the term != NULL branch (headless mode)
+START_TEST(test_shared_ctx_init_with_headless_term) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    ik_config_t *cfg = talloc_zero(ctx, ik_config_t);
+    ck_assert_ptr_nonnull(cfg);
+    cfg->history_size = 100;
+
+    ik_credentials_t *creds = talloc_zero(ctx, ik_credentials_t);
+    ck_assert_ptr_nonnull(creds);
+
+    ik_logger_t *logger = ik_logger_create(ctx, "/tmp");
+    test_paths_setup_env();
+    ik_paths_t *paths = NULL;
+    {
+        res_t paths_res = ik_paths_init(ctx, &paths);
+        ck_assert(is_ok(&paths_res));
+    }
+
+    // Create a headless term to exercise the term != NULL branch in shared.c
+    ik_term_ctx_t *term = ik_term_init_headless(ctx);
+    ck_assert_ptr_nonnull(term);
+
+    ik_shared_ctx_t *shared = NULL;
+    res_t res = ik_shared_ctx_init_with_term(ctx, cfg, creds, paths, logger, term, &shared);
+
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(shared);
+    ck_assert_ptr_eq(shared->term, term);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *shared_basic_suite(void)
 {
     Suite *s = suite_create("Shared Context Basic");
@@ -407,6 +443,7 @@ static Suite *shared_basic_suite(void)
     tcase_add_test(tc_core, test_shared_ctx_history);
     tcase_add_test(tc_core, test_shared_ctx_debug);
     tcase_add_test(tc_core, test_shared_ctx_history_load_failure_graceful);
+    tcase_add_test(tc_core, test_shared_ctx_init_with_headless_term);
     suite_add_tcase(s, tc_core);
 
     return s;

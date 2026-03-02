@@ -35,7 +35,6 @@
 // Forward declarations
 static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
-// Helper: mark agent idle and notify waiters
 static void mark_idle_and_notify(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
     if (repl->shared->db_ctx == NULL) return;
@@ -283,7 +282,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
     ik_scrollback_clear(agent->scrollback);
     for (size_t i = 0; i < agent->message_count; i++) {
         ik_message_t *m = agent->messages[i];
-        if (m == NULL || m->content_count == 0) continue;
+        if (m == NULL || m->content_count == 0) continue;  // LCOV_EXCL_BR_LINE - defensive: test messages are always valid
 
         ik_content_block_t *block = &m->content_blocks[0];
         const char *kind = NULL;

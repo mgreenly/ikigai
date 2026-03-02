@@ -154,7 +154,7 @@ res_t ik_agent_replay_toolset(ik_db_ctx_t *db, ik_agent_ctx_t *agent)
     if (cmd_rows > 0) {
         const char *data_json = PQgetvalue_(cmd_res, 0, 0);
         yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
-        if (doc != NULL) {
+        if (doc != NULL) {  // LCOV_EXCL_BR_LINE - defensive: valid JSON always expected from DB
             yyjson_val *root = yyjson_doc_get_root_(doc);
             yyjson_val *args = yyjson_obj_get_(root, "args");
             if (args != NULL && yyjson_is_str(args)) {

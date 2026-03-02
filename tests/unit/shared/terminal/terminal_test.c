@@ -311,6 +311,69 @@ START_TEST(test_term_init_tcflush_fails) {
 
 END_TEST
 
+// Test: headless terminal init and cleanup (covers ik_term_init_headless and tty_fd < 0 cleanup path)
+START_TEST(test_term_init_headless) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_term_ctx_t *term = ik_term_init_headless(ctx);
+
+    ck_assert_ptr_nonnull(term);
+    ck_assert_int_eq(term->tty_fd, -1);
+    ck_assert_int_eq(term->screen_rows, 50);
+    ck_assert_int_eq(term->screen_cols, 100);
+
+    // Cleanup with tty_fd < 0 should return early (no writes/closes)
+    ik_term_cleanup(term);
+    ck_assert_int_eq(mock_write_count, 0);
+    ck_assert_int_eq(mock_close_count, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: get terminal size with headless terminal (tty_fd < 0, covers line 304 false branch)
+START_TEST(test_term_get_size_headless) {
+    reset_mocks();
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_term_ctx_t *term = ik_term_init_headless(ctx);
+    ck_assert_ptr_nonnull(term);
+
+    int rows, cols;
+    res_t res = ik_term_get_size(term, &rows, &cols);
+
+    ck_assert(is_ok(&res));
+    // Returns stored dimensions (50x100 from headless init) without calling ioctl
+    ck_assert_int_eq(rows, 50);
+    ck_assert_int_eq(cols, 100);
+    ck_assert_int_eq(mock_ioctl_fail, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: clear screen write fails (write call 2 fails, covers lines 232-235)
+START_TEST(test_term_init_clear_screen_write_fails) {
+    reset_mocks();
+    mock_write_fail_on_call = 2;  // Fail on 2nd write (clear screen, after alt screen enter)
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_term_ctx_t *term = NULL;
+
+    res_t res = ik_term_init(ctx, NULL, &term);
+
+    ck_assert(is_err(&res));
+    ck_assert_int_eq(error_code(res.err), ERR_IO);
+    ck_assert_ptr_null(term);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test suite
 static Suite *terminal_suite(void)
 {
@@ -329,6 +392,9 @@ static Suite *terminal_suite(void)
     tcase_add_test(tc_core, test_term_cleanup_null_safe);
     tcase_add_test(tc_core, test_term_get_size_success);
     tcase_add_test(tc_core, test_term_get_size_fails);
+    tcase_add_test(tc_core, test_term_init_headless);
+    tcase_add_test(tc_core, test_term_get_size_headless);
+    tcase_add_test(tc_core, test_term_init_clear_screen_write_fails);
 
 #if !defined(NDEBUG) && !defined(SKIP_SIGNAL_TESTS)
     tcase_add_test_raise_signal(tc_core, test_term_init_null_parent_asserts, SIGABRT);

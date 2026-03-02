@@ -65,13 +65,13 @@ char *ik_tool_execute_from_registry(TALLOC_CTX *ctx,
     char *result_json = ik_tool_wrap_success(ctx, translated_result);
     if (result_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    size_t result_len = result_json ? strlen(result_json) : 0;
+    size_t result_len = strlen(result_json);
     if (result_len > TOOL_RESULT_LOG_MAX) {
         DEBUG_LOG("[tool_result] name=%s len=%zu result=%.*s...[truncated]",
                   tool_name, result_len, TOOL_RESULT_LOG_MAX, result_json);
     } else {
         DEBUG_LOG("[tool_result] name=%s len=%zu result=%s",
-                  tool_name, result_len, result_json ? result_json : "(null)");
+                  tool_name, result_len, result_json);
     }
 
     return result_json;

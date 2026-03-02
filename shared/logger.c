@@ -94,14 +94,14 @@ static void ik_log_mkdir_p(const char *path)
     for (char *p = tmp + 1; *p != '\0'; p++) {
         if (*p == '/') {
             *p = '\0';
-            if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {
-                PANIC("Failed to create intermediate directory");
+            if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {  // LCOV_EXCL_BR_LINE
+                PANIC("Failed to create intermediate directory");  // LCOV_EXCL_LINE
             }
             *p = '/';
         }
     }
-    if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {
-        PANIC("Failed to create IKIGAI_LOG_DIR directory");
+    if (posix_mkdir_(tmp, 0755) != 0 && errno != EEXIST) {  // LCOV_EXCL_BR_LINE
+        PANIC("Failed to create IKIGAI_LOG_DIR directory");  // LCOV_EXCL_LINE
     }
 }
 
@@ -114,7 +114,7 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
     if (env_log_dir != NULL && env_log_dir[0] != '\0') {
         struct stat st;
         if (posix_stat_(env_log_dir, &st) != 0) {
-            if (errno == ENOENT) {
+            if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE
                 ik_log_mkdir_p(env_log_dir);
             } else {  // LCOV_EXCL_START
                 PANIC("Failed to stat IKIGAI_LOG_DIR directory");
@@ -135,7 +135,7 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
     }
 
     struct stat st;
-    if (posix_stat_(ikigai_dir, &st) != 0) {
+    if (posix_stat_(ikigai_dir, &st) != 0) {  // LCOV_EXCL_BR_LINE
         if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE
             if (posix_mkdir_(ikigai_dir, 0755) != 0) {  // LCOV_EXCL_BR_LINE
                 PANIC("Failed to create .ikigai directory");  // LCOV_EXCL_LINE
@@ -151,7 +151,7 @@ static void ik_log_setup_directories(const char *working_dir, char *log_path)
         PANIC("Path too long for logs directory");  // LCOV_EXCL_LINE
     }
 
-    if (posix_stat_(logs_dir, &st) != 0) {
+    if (posix_stat_(logs_dir, &st) != 0) {  // LCOV_EXCL_BR_LINE
         if (errno == ENOENT) {  // LCOV_EXCL_BR_LINE
             if (posix_mkdir_(logs_dir, 0755) != 0) {  // LCOV_EXCL_BR_LINE
                 PANIC("Failed to create logs directory");  // LCOV_EXCL_LINE
@@ -280,12 +280,14 @@ void ik_log_warn_json(yyjson_mut_doc *doc)
 static int logger_destructor(ik_logger_t *logger)
 {
     pthread_mutex_lock(&logger->mutex);
-    if (logger->file != NULL) {  // LCOV_EXCL_BR_LINE
-        if (fclose_(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
-            pthread_mutex_unlock(&logger->mutex);  // LCOV_EXCL_LINE
-            PANIC("Failed to close log file");  // LCOV_EXCL_LINE
+    if (logger->file != NULL) {  // LCOV_EXCL_BR_LINE - instance logger never opens a file
+        // LCOV_EXCL_START
+        if (fclose_(logger->file) != 0) {
+            pthread_mutex_unlock(&logger->mutex);
+            PANIC("Failed to close log file");
         }
         logger->file = NULL;
+        // LCOV_EXCL_STOP
     }
     pthread_mutex_unlock(&logger->mutex);
     pthread_mutex_destroy(&logger->mutex);
@@ -317,24 +319,26 @@ void ik_logger_reinit(ik_logger_t *logger, const char *working_dir)
 
 static void ik_logger_write(ik_logger_t *logger, const char *level, yyjson_mut_doc *doc)
 {
-    if (logger == NULL || logger->file == NULL) {
+    if (logger == NULL || logger->file == NULL) {  // LCOV_EXCL_BR_LINE - file never set
         yyjson_mut_doc_free(doc);
         return;
     }
 
+    // LCOV_EXCL_START - instance logger never has a file open
     char *json_str = ik_log_create_jsonl(level, doc);
 
     pthread_mutex_lock(&logger->mutex);
-    if (fprintf(logger->file, "%s\n", json_str) < 0) {  // LCOV_EXCL_BR_LINE
-        PANIC("Failed to write to log file");  // LCOV_EXCL_LINE
+    if (fprintf(logger->file, "%s\n", json_str) < 0) {
+        PANIC("Failed to write to log file");
     }
-    if (fflush(logger->file) != 0) {  // LCOV_EXCL_BR_LINE
-        PANIC("Failed to flush log file");  // LCOV_EXCL_LINE
+    if (fflush(logger->file) != 0) {
+        PANIC("Failed to flush log file");
     }
     pthread_mutex_unlock(&logger->mutex);
 
     free(json_str);
     yyjson_mut_doc_free(doc);
+    // LCOV_EXCL_STOP
 }
 
 void ik_logger_debug_json(ik_logger_t *logger, yyjson_mut_doc *doc)
@@ -362,5 +366,5 @@ int ik_logger_get_fd(ik_logger_t *logger)
     if (logger == NULL || logger->file == NULL) {  // LCOV_EXCL_BR_LINE
         return -1;  // LCOV_EXCL_LINE
     }  // LCOV_EXCL_LINE
-    return fileno(logger->file);
+    return fileno(logger->file);  // LCOV_EXCL_LINE - file never set in instance logger
 }

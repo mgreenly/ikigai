@@ -1,9 +1,9 @@
 #include "tests/test_constants.h"
 /**
- * @file openai_coverage_test.c
- * @brief Coverage tests for openai.c error paths (start_request)
+ * @file openai_coverage_stream_test.c
+ * @brief Coverage tests for openai.c error paths (start_stream)
  *
- * Tests error handling branches in start_request.
+ * Tests error handling branches in start_stream.
  * Uses mock wrappers to inject failures in serialization, URL building,
  * header building, and HTTP multi operations.
  */
@@ -170,10 +170,10 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
 }
 
 /* ================================================================
- * start_request Error Path Tests - Chat API
+ * start_stream Error Path Tests - Chat API
  * ================================================================ */
 
-START_TEST(test_start_request_chat_serialize_failure) {
+START_TEST(test_start_stream_chat_serialize_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -185,14 +185,15 @@ START_TEST(test_start_request_chat_serialize_failure) {
 
     g_serialize_chat_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
     ck_assert_str_eq(r.err->msg, "Mock chat serialize failure");
 }
 END_TEST
 
-START_TEST(test_start_request_chat_url_failure) {
+START_TEST(test_start_stream_chat_url_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -204,14 +205,15 @@ START_TEST(test_start_request_chat_url_failure) {
 
     g_build_chat_url_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
     ck_assert_str_eq(r.err->msg, "Mock chat URL build failure");
 }
 END_TEST
 
-START_TEST(test_start_request_headers_failure) {
+START_TEST(test_start_stream_headers_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -223,14 +225,15 @@ START_TEST(test_start_request_headers_failure) {
 
     g_build_headers_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
     ck_assert_str_eq(r.err->msg, "Mock headers build failure");
 }
 END_TEST
 
-START_TEST(test_start_request_http_multi_add_failure) {
+START_TEST(test_start_stream_http_multi_add_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -242,17 +245,18 @@ START_TEST(test_start_request_http_multi_add_failure) {
 
     g_curl_easy_init_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
 }
 END_TEST
 
 /* ================================================================
- * start_request Error Path Tests - Responses API
+ * start_stream Error Path Tests - Responses API
  * ================================================================ */
 
-START_TEST(test_start_request_responses_serialize_failure) {
+START_TEST(test_start_stream_responses_serialize_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
     ck_assert(is_ok(&r));
@@ -264,14 +268,15 @@ START_TEST(test_start_request_responses_serialize_failure) {
 
     g_serialize_responses_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
     ck_assert_str_eq(r.err->msg, "Mock responses serialize failure");
 }
 END_TEST
 
-START_TEST(test_start_request_responses_url_failure) {
+START_TEST(test_start_stream_responses_url_failure) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
     ck_assert(is_ok(&r));
@@ -283,62 +288,16 @@ START_TEST(test_start_request_responses_url_failure) {
 
     g_build_responses_url_should_fail = true;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
 
     ck_assert(is_err(&r));
     ck_assert_str_eq(r.err->msg, "Mock responses URL build failure");
 }
 END_TEST
 
-/* ================================================================
- * Success Path Tests
- * ================================================================ */
-
-START_TEST(test_start_request_success) {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_request_t req;
-    ik_message_t msg;
-    ik_content_block_t content;
-    setup_minimal_request(&req, &msg, &content, "gpt-4");
-
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
-
-    ck_assert(is_ok(&r));
-}
-END_TEST
-
-START_TEST(test_start_stream_success) {
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_request_t req;
-    ik_message_t msg;
-    ik_content_block_t content;
-    setup_minimal_request(&req, &msg, &content, "gpt-4");
-
-    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
-                                   dummy_completion_cb, NULL);
-
-    ck_assert(is_ok(&r));
-}
-END_TEST
-
-// Test: create with OPENAI_BASE_URL env var set (covers line 92 non-NULL branch)
-START_TEST(test_create_with_base_url_override) {
-    setenv("OPENAI_BASE_URL", "http://mock-openai.test", 1);
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
-    unsetenv("OPENAI_BASE_URL");
-    ck_assert(is_ok(&r));
-}
-END_TEST
-
-// Test: start_request with model that auto-selects responses API
-START_TEST(test_start_request_model_forces_responses_api) {
+// Test: start_stream with model that auto-selects responses API
+START_TEST(test_start_stream_model_forces_responses_api) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -348,13 +307,14 @@ START_TEST(test_start_request_model_forces_responses_api) {
     ik_content_block_t content;
     setup_minimal_request(&req, &msg, &content, "o1");
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
     ck_assert(is_ok(&r));
 }
 END_TEST
 
-// Test: start_request with NULL model (covers the DEBUG_LOG NULL branch)
-START_TEST(test_start_request_null_model) {
+// Test: start_stream with NULL model (covers the DEBUG_LOG NULL branch)
+START_TEST(test_start_stream_null_model) {
     ik_provider_t *provider = NULL;
     res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
     ck_assert(is_ok(&r));
@@ -365,7 +325,8 @@ START_TEST(test_start_request_null_model) {
     setup_minimal_request(&req, &msg, &content, "gpt-4");
     req.model = NULL;
 
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
+    r = provider->vt->start_stream(provider->ctx, &req, dummy_stream_cb, NULL,
+                                   dummy_completion_cb, NULL);
     ck_assert(is_ok(&r));
 }
 END_TEST
@@ -374,39 +335,31 @@ END_TEST
  * Test Suite Setup
  * ================================================================ */
 
-static Suite *openai_coverage_suite(void)
+static Suite *openai_coverage_stream_suite(void)
 {
-    Suite *s = suite_create("OpenAI Coverage");
+    Suite *s = suite_create("OpenAI Coverage Stream");
 
-    TCase *tc_start_request = tcase_create("Start Request Error Paths");
-    tcase_set_timeout(tc_start_request, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_start_request, setup, teardown);
-    tcase_add_test(tc_start_request, test_start_request_chat_serialize_failure);
-    tcase_add_test(tc_start_request, test_start_request_chat_url_failure);
-    tcase_add_test(tc_start_request, test_start_request_headers_failure);
-    tcase_add_test(tc_start_request, test_start_request_http_multi_add_failure);
-    tcase_add_test(tc_start_request, test_start_request_responses_serialize_failure);
-    tcase_add_test(tc_start_request, test_start_request_responses_url_failure);
-    suite_add_tcase(s, tc_start_request);
-
-    TCase *tc_success = tcase_create("Success Paths");
-    tcase_set_timeout(tc_success, IK_TEST_TIMEOUT);
-    tcase_add_checked_fixture(tc_success, setup, teardown);
-    tcase_add_test(tc_success, test_start_request_success);
-    tcase_add_test(tc_success, test_start_stream_success);
-    tcase_add_test(tc_success, test_create_with_base_url_override);
-    tcase_add_test(tc_success, test_start_request_model_forces_responses_api);
-    tcase_add_test(tc_success, test_start_request_null_model);
-    suite_add_tcase(s, tc_success);
+    TCase *tc_start_stream = tcase_create("Start Stream Error Paths");
+    tcase_set_timeout(tc_start_stream, IK_TEST_TIMEOUT);
+    tcase_add_checked_fixture(tc_start_stream, setup, teardown);
+    tcase_add_test(tc_start_stream, test_start_stream_chat_serialize_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_chat_url_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_headers_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_http_multi_add_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_responses_serialize_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_responses_url_failure);
+    tcase_add_test(tc_start_stream, test_start_stream_model_forces_responses_api);
+    tcase_add_test(tc_start_stream, test_start_stream_null_model);
+    suite_add_tcase(s, tc_start_stream);
 
     return s;
 }
 
 int main(void)
 {
-    Suite *s = openai_coverage_suite();
+    Suite *s = openai_coverage_stream_suite();
     SRunner *sr = srunner_create(s);
-    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/providers/openai/openai_coverage_test.xml");
+    srunner_set_xml(sr, "reports/check/unit/apps/ikigai/providers/openai/openai_coverage_stream_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -60,7 +60,7 @@ res_t ik_repl_handle_key_injection(ik_repl_ctx_t *repl, bool *handled)
         return OK(NULL);
     }
     char byte;
-    if (!ik_key_inject_drain(repl->key_inject_buf, &byte)) {
+    if (!ik_key_inject_drain(repl->key_inject_buf, &byte)) {  // LCOV_EXCL_BR_LINE - defensive: pending > 0 guarantees drain succeeds
         return OK(NULL);
     }
     struct timespec ts;

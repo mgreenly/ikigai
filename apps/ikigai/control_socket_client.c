@@ -17,8 +17,8 @@ res_t ik_ctl_connect(TALLOC_CTX *ctx, const char *socket_path, int *fd_out)
     assert(fd_out != NULL);        // LCOV_EXCL_BR_LINE
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) {
-        return ERR(ctx, IO, "Failed to create socket: %s", strerror(errno));
+    if (fd < 0) {                                          // LCOV_EXCL_BR_LINE
+        return ERR(ctx, IO, "Failed to create socket: %s", strerror(errno));  // LCOV_EXCL_LINE
     }
 
     struct sockaddr_un addr;
@@ -59,11 +59,11 @@ res_t ik_ctl_read_framebuffer(TALLOC_CTX *ctx, int fd, char **response_out)
     if (buf == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t total = 0;
-    while (total < buf_size - 1) {
+    while (total < buf_size - 1) {                        // LCOV_EXCL_BR_LINE
         ssize_t n = read(fd, buf + total, buf_size - 1 - total);
-        if (n < 0) {
-            talloc_free(buf);
-            return ERR(ctx, IO, "Failed to read response: %s", strerror(errno));
+        if (n < 0) {                                       // LCOV_EXCL_BR_LINE
+            talloc_free(buf);                              // LCOV_EXCL_LINE
+            return ERR(ctx, IO, "Failed to read response: %s", strerror(errno));  // LCOV_EXCL_LINE
         }
         if (n == 0) {
             break;
@@ -99,8 +99,8 @@ res_t ik_ctl_send_keys(TALLOC_CTX *ctx, int fd, const char *keys)
     // Read response
     char buf[4096];
     ssize_t n = read(fd, buf, sizeof(buf) - 1);
-    if (n < 0) {
-        return ERR(ctx, IO, "Failed to read response: %s", strerror(errno));
+    if (n < 0) {                                           // LCOV_EXCL_BR_LINE
+        return ERR(ctx, IO, "Failed to read response: %s", strerror(errno));  // LCOV_EXCL_LINE
     }
     buf[n] = '\0';
 

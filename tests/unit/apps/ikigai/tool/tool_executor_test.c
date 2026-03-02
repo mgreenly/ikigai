@@ -141,17 +141,33 @@ START_TEST(test_successful_execution) {
 
 END_TEST
 
-// Mock for tool execution failure
+// Mock for tool execution failure or long result
 static int mock_tool_exec_fail = 0;
+static int mock_tool_long_result = 0;
 res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, pid_t *child_pid_out, char **out_result)
 {
     (void)tool_path;
     (void)agent_id;
     (void)arguments_json;
     (void)child_pid_out;
-    (void)out_result;
     if (mock_tool_exec_fail) {
         return ERR(ctx, IO, "Tool execution failed");
+    }
+    if (mock_tool_long_result) {
+        // Return valid JSON with >512 bytes to trigger the truncated DEBUG_LOG branch
+        // Format: {"data":"AAAA...500 A chars..."}
+        // This creates ~515 bytes of JSON output
+        const size_t data_len = 500;
+        const size_t json_len = 10 + data_len + 2; // {"data":"..."}
+        char *long_json = talloc_array(ctx, char, (unsigned int)(json_len + 1));
+        if (long_json == NULL) return ERR(ctx, IO, "OOM");
+        snprintf(long_json, 10, "{\"data\":\"");
+        memset(long_json + 9, 'A', data_len);
+        long_json[9 + data_len] = '"';
+        long_json[9 + data_len + 1] = '}';
+        long_json[9 + data_len + 2] = '\0';
+        *out_result = long_json;
+        return OK(NULL);
     }
     return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, child_pid_out, out_result);
 }
@@ -230,6 +246,59 @@ START_TEST(test_translate_back_failure) {
 
 END_TEST
 
+// Test: NULL arguments (covers the arguments ? arguments : "(null)" branch in DEBUG_LOG)
+START_TEST(test_null_arguments) {
+    const char *script_path = "/tmp/test_null_args_tool.sh";
+    FILE *f = fopen(script_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fprintf(f, "#!/bin/sh\necho '{}'\n");
+    fclose(f);
+    chmod(script_path, 0755);
+
+    char schema_json[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(test_ctx);
+    yyjson_doc *schema = yyjson_read_opts(schema_json, strlen(schema_json), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema);
+
+    res_t add_res = ik_tool_registry_add(registry, "test_tool", script_path, schema);
+    ck_assert(!is_err(&add_res));
+
+    // Pass NULL arguments — hits the "(null)" branch in the DEBUG_LOG ternary
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", NULL, NULL);
+    // Result is non-null regardless of success or error
+    ck_assert_ptr_nonnull(result);
+
+    unlink(script_path);
+}
+
+END_TEST
+
+// Test: Long result (covers result_len > TOOL_RESULT_LOG_MAX branch)
+START_TEST(test_long_result) {
+    char schema_json[] = "{\"name\":\"test_tool\"}";
+    yyjson_alc allocator = ik_make_talloc_allocator(test_ctx);
+    yyjson_doc *schema = yyjson_read_opts(schema_json, strlen(schema_json), 0, &allocator, NULL);
+    ck_assert_ptr_nonnull(schema);
+
+    res_t add_res = ik_tool_registry_add(registry, "test_tool", "/tmp/dummy_long.sh", schema);
+    ck_assert(!is_err(&add_res));
+
+    // Use mock to return 600 chars, triggering the truncated DEBUG_LOG branch
+    mock_tool_long_result = 1;
+    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{}", NULL);
+    mock_tool_long_result = 0;
+    ck_assert_ptr_nonnull(result);
+
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *success = yyjson_obj_get(root, "tool_success");
+    ck_assert(yyjson_get_bool(success));
+    yyjson_doc_free(doc);
+}
+
+END_TEST
+
 static Suite *tool_executor_suite(void)
 {
     Suite *s = suite_create("ToolExecutor");
@@ -242,6 +311,8 @@ static Suite *tool_executor_suite(void)
     tcase_add_test(tc_core, test_successful_execution);
     tcase_add_test(tc_core, test_tool_execution_failure);
     tcase_add_test(tc_core, test_translate_back_failure);
+    tcase_add_test(tc_core, test_null_arguments);
+    tcase_add_test(tc_core, test_long_result);
     suite_add_tcase(s, tc_core);
 
     return s;
