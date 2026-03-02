@@ -16,6 +16,7 @@
 #include "apps/ikigai/providers/google/response.h"
 #include "apps/ikigai/providers/google/streaming.h"
 #include "apps/ikigai/providers/google/thinking.h"
+#include "apps/ikigai/providers/google/count_tokens.h"
 
 #include <string.h>
 #include <sys/select.h>
@@ -42,6 +43,7 @@ static res_t google_start_stream(void *ctx,
                                  void *completion_ctx);
 static void google_cleanup(void *ctx);
 static void google_cancel(void *ctx);
+static res_t google_count_tokens(void *ctx, const ik_request_t *req, int32_t *token_count_out);
 
 /* ================================================================
  * Vtable
@@ -56,6 +58,7 @@ static const ik_provider_vtable_t GOOGLE_VTABLE = {
     .start_stream = google_start_stream,
     .cleanup = google_cleanup,
     .cancel = google_cancel,
+    .count_tokens = google_count_tokens,
 };
 
 /* ================================================================
@@ -370,4 +373,15 @@ static void google_cancel(void *ctx)
     if (impl_ctx->active_stream != NULL) {
         impl_ctx->active_stream->completed = true;
     }
+}
+
+static res_t google_count_tokens(void *ctx, const ik_request_t *req, int32_t *token_count_out)
+{
+    assert(ctx != NULL);             // LCOV_EXCL_BR_LINE
+    assert(req != NULL);             // LCOV_EXCL_BR_LINE
+    assert(token_count_out != NULL); // LCOV_EXCL_BR_LINE
+
+    ik_google_ctx_t *impl_ctx = (ik_google_ctx_t *)ctx;
+    return ik_google_count_tokens(impl_ctx, impl_ctx->base_url, impl_ctx->api_key,
+                                  req, token_count_out);
 }
