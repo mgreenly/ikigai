@@ -7,6 +7,7 @@
 #include "apps/ikigai/providers/openai/openai_handlers.h"
 #include "apps/ikigai/providers/openai/openai_internal.h"
 #include "apps/ikigai/providers/openai/error.h"
+#include "apps/ikigai/providers/openai/count_tokens.h"
 #include "apps/ikigai/debug_log.h"
 #include "shared/panic.h"
 #include "apps/ikigai/providers/common/http_multi.h"
@@ -38,6 +39,7 @@ static res_t openai_start_stream(void *ctx,
                                  ik_provider_completion_cb_t completion_cb,
                                  void *completion_ctx);
 static void openai_cancel(void *ctx);
+static res_t openai_count_tokens(void *ctx, const ik_request_t *req, int32_t *token_count_out);
 
 /* ================================================================
  * Vtable
@@ -52,6 +54,7 @@ static const ik_provider_vtable_t OPENAI_VTABLE = {
     .start_stream = openai_start_stream,
     .cleanup = NULL,
     .cancel = openai_cancel,
+    .count_tokens = openai_count_tokens,
 };
 
 /* ================================================================
@@ -413,6 +416,24 @@ res_t ik_openai_build_headers_(TALLOC_CTX *ctx, const char *api_key, char ***out
 }
 
 #endif
+
+static res_t openai_count_tokens(void *ctx, const ik_request_t *req, int32_t *token_count_out)
+{
+    assert(ctx != NULL);              // LCOV_EXCL_BR_LINE
+    assert(req != NULL);              // LCOV_EXCL_BR_LINE
+    assert(token_count_out != NULL);  // LCOV_EXCL_BR_LINE
+
+    ik_openai_ctx_t *impl_ctx = (ik_openai_ctx_t *)ctx;
+
+    TALLOC_CTX *tmp = talloc_new(impl_ctx);
+    if (!tmp) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t r = ik_openai_count_tokens(tmp, impl_ctx->base_url, impl_ctx->api_key,
+                                     req, token_count_out);
+
+    talloc_free(tmp);
+    return r;
+}
 
 static void openai_cancel(void *ctx)
 {
