@@ -1,6 +1,6 @@
 # Google Gemini countTokens API
 
-Reference documentation for the Google Gemini `countTokens` API, covering both the Gemini Developer API and the Vertex AI variant. Written for Phase 2 implementation of the sliding context window token counting module.
+Reference documentation for the Google Gemini `countTokens` API, covering both the Gemini Developer API and the Vertex AI variant. Implementation: `apps/ikigai/providers/google/count_tokens.c` (goal #259).
 
 ---
 

@@ -16,24 +16,26 @@ A horizontal rule appears in the scrollback buffer to mark the visible cutoff, g
 
 ---
 
-## Phasing
+## Implementation Status
 
-### Phase 1 — rel-13 (this release)
+### Completed (goals #256–259)
 
-- Implement sliding window with **bytes-based token estimation** (~4 bytes/token)
-- Pruning triggers at turn completion (agent transitions to IDLE)
-- Default budget: 100K tokens
-- Configuration via environment variable and config struct
+- **Bytes-based token estimator** (`apps/ikigai/token_count.h`, `apps/ikigai/token_count.c`) — ~4 bytes/token fallback, used when provider APIs are unavailable
+- **Provider vtable entry** (`apps/ikigai/providers/provider_vtable.h`) — `count_tokens` slot added alongside existing provider methods
+- **Anthropic `count_tokens`** (`apps/ikigai/providers/anthropic/count_tokens.c`) — `POST /v1/messages/count_tokens`
+- **OpenAI `count_tokens`** (`apps/ikigai/providers/openai/count_tokens.c`) — `POST /v1/responses/input_tokens`
+- **Google `count_tokens`** (`apps/ikigai/providers/google/count_tokens.c`) — `POST models/{model}:countTokens`
+
+### Remaining (rel-13, not yet started)
+
+- Token cache module (`apps/ikigai/token_cache.h` / `token_cache.c`) — caches per-component counts, drives pruning loop
+- Sliding window pruning loop — triggers at IDLE transition, removes oldest whole turn
+- IDLE transition integration (`repl_actions_llm.c`, `repl_callbacks.c`)
+- `/model` invalidation
+- Horizontal rule in scrollback
+- Configuration (`config.h`, `config_defaults.h`, env var)
 
 **Summaries deferred**: The original rel-13 plan included automatic summaries of pruned history. Summaries are deferred to a future release. rel-13 delivers pruning only.
-
-### Phase 2 — Future
-
-- Swap in real token counting via provider pre-flight APIs:
-  - Anthropic: `messages.countTokens` (free)
-  - OpenAI: token counting endpoint
-  - Google: `countTokens` (free, 3000 RPM)
-- No changes to calling code — the token counting module's dispatch pattern absorbs the new implementations
 
 ---
 
@@ -63,22 +65,15 @@ A standalone module that takes:
 
 Returns: estimated token count.
 
-### Dispatch Pattern
+### Implementation
 
-The module switches on provider/model and falls through to a bytes-based default:
+Token counting is dispatched through the provider vtable (`apps/ikigai/providers/provider_vtable.h`). Each provider implements its own `count_tokens` method:
 
-```
-count_tokens(provider, model, buf, len):
-  if provider == "anthropic":
-    return anthropic_estimate(model, buf, len)
-  if provider == "openai":
-    return openai_estimate(model, buf, len)
-  if provider == "google":
-    return google_estimate(model, buf, len)
-  return bytes_estimate(buf, len)  // ~4 bytes/token fallback
-```
+- **Anthropic**: `apps/ikigai/providers/anthropic/count_tokens.c` — `POST /v1/messages/count_tokens`
+- **OpenAI**: `apps/ikigai/providers/openai/count_tokens.c` — `POST /v1/responses/input_tokens`
+- **Google**: `apps/ikigai/providers/google/count_tokens.c` — `POST models/{model}:countTokens`
 
-This structure means adding a real tokenizer (Phase 2) requires only adding an implementation branch — no changes to the pruning logic or any calling code.
+The bytes-based estimator (`apps/ikigai/token_count.h`, `apps/ikigai/token_count.c`) serves as a fallback when provider APIs are unavailable (offline, rate-limited, or API error). It uses ~4 bytes/token and is never the primary path.
 
 ### What Gets Counted
 
@@ -105,19 +100,19 @@ The estimate is **conservative**: it prunes slightly early rather than slightly 
 
 - **Tokenizer**: Proprietary BPE, ~65K vocabulary
 - **Overhead**: Injects a hidden 313–346 token system prompt when tools are provided (undocumented but observed)
-- **Phase 2 API**: `messages.countTokens` — free, exact pre-flight counts
+- **API**: `POST /v1/messages/count_tokens` — free, exact pre-flight counts. Implemented in `apps/ikigai/providers/anthropic/count_tokens.c`.
 
 ### OpenAI
 
 - **Tokenizer**: tiktoken with `o200k_base` encoding for newer models (200K vocabulary)
 - **Overhead**: ChatML format adds 3 tokens per message + 3 tokens for reply priming + 9 tokens when tools are defined. Tool schemas are internally converted to TypeScript type declarations before tokenizing.
-- **Phase 2 API**: Token counting endpoint available
+- **API**: `POST /v1/responses/input_tokens`. Implemented in `apps/ikigai/providers/openai/count_tokens.c`.
 
 ### Google
 
 - **Tokenizer**: SentencePiece BPE, ~256K vocabulary
 - **Overhead**: Formatting overhead not explicitly documented
-- **Phase 2 API**: `countTokens` — free, 3000 RPM limit
+- **API**: `POST models/{model}:countTokens` — free, 3000 RPM limit. Implemented in `apps/ikigai/providers/google/count_tokens.c`.
 
 ### Caching
 
@@ -227,7 +222,7 @@ Counting raw message strings would miss all of this.
 
 ### The Token Counting Module Takes Provider and Model
 
-The module accepts both `provider` and `model` strings. `provider` selects the general encoding approach; `model` allows for model-specific variations within a provider (e.g., different vocabulary sizes). For Phase 1, both parameters are used only for future dispatch — the bytes-based fallback ignores them.
+The module accepts both `provider` and `model` strings. `provider` selects the dispatch path to the correct provider `count_tokens` implementation; `model` is passed through to the provider API which may use it for model-specific variations. The bytes-based fallback ignores both parameters.
 
 ### The HR is Not Persisted
 
@@ -343,10 +338,16 @@ The pruning implementation must track these boundaries to identify whole-turn bo
 | `apps/ikigai/repl_callbacks.c` | Completion callbacks — IDLE transition fires here |
 | `apps/ikigai/commands_fork.c` | Fork and config inheritance |
 
-New files to create:
-- `apps/ikigai/token_count.h` / `apps/ikigai/token_count.c` — Token counting module
+Completed files (goals #256–259):
+- `apps/ikigai/token_count.h` / `apps/ikigai/token_count.c` — Bytes-based estimator (fallback)
+- `apps/ikigai/providers/provider_vtable.h` — `count_tokens` vtable entry added
+- `apps/ikigai/providers/anthropic/count_tokens.c` — Anthropic implementation
+- `apps/ikigai/providers/openai/count_tokens.c` — OpenAI implementation
+- `apps/ikigai/providers/google/count_tokens.c` — Google implementation
+- `tests/unit/token_count_test.c` — Unit tests for bytes estimator
+
+Remaining files to create:
 - `apps/ikigai/sliding_window.h` / `apps/ikigai/sliding_window.c` — Pruning logic
-- `tests/unit/token_count_test.c` — Unit tests for token counting module
 - `tests/unit/sliding_window_test.c` — Unit tests for pruning logic
 
 ---

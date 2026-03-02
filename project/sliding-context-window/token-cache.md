@@ -1,7 +1,7 @@
 # Token Cache Module — Design Document
 
 **Feature**: Token counting cache for sliding context window
-**Status**: Design
+**Status**: Design (supporting infrastructure complete — provider `count_tokens` vtable entries and bytes estimator implemented in goals #256–259; token cache module itself not yet implemented)
 **Related**: `project/sliding-context-window.md` (parent design), `anthropic-token-api.md`, `openai-token-api.md`, `google-token-api.md`
 
 ---
@@ -10,7 +10,7 @@
 
 The token cache is a small module that tracks the token cost of each component in the LLM request context. All token count reads go through a single getter interface. If a cached value exists, it's returned immediately. If not, the module calls the current provider's countTokens API, caches the result, and returns it. Invalidation clears cached values so the next read recomputes them.
 
-This design eliminates the need for a bytes-based fallback estimator. All three providers offer free token counting APIs with rate limits far above what ikigai can realistically generate (see provider API docs in this directory).
+This design makes countTokens the primary path for all token counting. The bytes-based fallback estimator (`apps/ikigai/token_count.c`) is retained as an internal fallback inside the cache getters — used when provider APIs fail due to rate limits, network errors, or offline conditions. See OQ-2 for the resolution that kept the bytes estimator as an internal detail rather than eliminating it.
 
 ---
 
@@ -178,10 +178,10 @@ The resulting count captures the token cost of those messages including per-mess
 
 | File | Integration |
 |------|-------------|
-| `providers/provider_vtable.h` | Add `count_tokens` entry to `ik_provider_vtable` |
-| `providers/anthropic/anthropic.c` | Implement `count_tokens` → `POST /v1/messages/count_tokens` |
-| `providers/openai/openai.c` | Implement `count_tokens` → `POST /v1/responses/input_tokens` |
-| `providers/google/google.c` | Implement `count_tokens` → `POST models/{model}:countTokens` |
+| `providers/provider_vtable.h` | `count_tokens` entry added (**done**, goal #256) |
+| `providers/anthropic/count_tokens.c` | `count_tokens` → `POST /v1/messages/count_tokens` (**done**, goal #257) |
+| `providers/openai/count_tokens.c` | `count_tokens` → `POST /v1/responses/input_tokens` (**done**, goal #258) |
+| `providers/google/count_tokens.c` | `count_tokens` → `POST models/{model}:countTokens` (**done**, goal #259) |
 | `agent_state.c` | `WAITING_FOR_LLM → IDLE` transition: record turn cost from `response_input_tokens` delta, run prune loop |
 | `repl_response_helpers.c` | Response metadata storage — where `response_input_tokens` is populated |
 | `commands_basic.c` | `/clear`: reset cache |
@@ -196,11 +196,11 @@ The resulting count captures the token cost of those messages including per-mess
 
 The original design doc (`project/sliding-context-window.md`) specified:
 
-- A bytes-based fallback estimator (~4 bytes/token) for Phase 1
-- Provider countTokens APIs for Phase 2
+- A bytes-based fallback estimator (~4 bytes/token)
+- Provider countTokens APIs
 - The pruning loop serializing the full request and counting on every iteration
 
-This design eliminates the bytes-based estimator entirely and makes countTokens a cached implementation detail behind the getter. The pruning loop becomes arithmetic over cached values in the common case.
+This design makes countTokens the primary path and the bytes-based estimator an internal fallback (not exposed to callers). The bytes estimator is **not eliminated** — it is retained inside the cache getter as a circuit breaker when provider APIs are unavailable (OQ-2 resolution). The pruning loop becomes arithmetic over cached values in the common case.
 
 ---
 

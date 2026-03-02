@@ -1,7 +1,7 @@
 # OpenAI Token Counting — API and Tokenizer Reference
 
-**Purpose**: Phase 2 implementation reference for OpenAI token counting in the sliding context window.
-**Related**: `project/sliding-context-window.md` (design doc), `apps/ikigai/token_count.h` (module interface)
+**Purpose**: Reference for OpenAI token counting in the sliding context window. Implementation: `apps/ikigai/providers/openai/count_tokens.c` (goal #258).
+**Related**: `project/sliding-context-window.md` (design doc), `apps/ikigai/token_count.h` (bytes estimator fallback)
 
 ---
 

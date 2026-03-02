@@ -1,6 +1,6 @@
 # Anthropic Token Counting API
 
-Reference documentation for the `messages.countTokens` endpoint, researched for Phase 2 of the sliding context window (see `project/sliding-context-window.md`).
+Reference documentation for the `messages.countTokens` endpoint, used by the sliding context window token counting module (see `project/sliding-context-window.md`). Implementation: `apps/ikigai/providers/anthropic/count_tokens.c` (goal #257).
 
 ---
 
@@ -232,7 +232,7 @@ In practice, the count is very close to exact — the variance is small and typi
 | Tool overhead | Captures hidden system prompt | Misses it entirely |
 | Image/PDF tokens | Accurate | Cannot estimate |
 
-The bytes-based estimate is suitable for Phase 1 (rough budgeting), but undercounts tool overhead and cannot handle images or PDFs. The API is the correct choice for Phase 2 when exact counts matter.
+The bytes-based estimate (`apps/ikigai/token_count.c`) serves as a fallback when the API is unavailable, but undercounts tool overhead and cannot handle images or PDFs. The API is the primary path for token counting in the sliding context window.
 
 ---
 
@@ -265,5 +265,6 @@ The bytes-based estimate is suitable for Phase 1 (rough budgeting), but undercou
 - [Token Counting Guide](https://platform.claude.com/docs/en/docs/build-with-claude/token-counting) — official user guide
 - [Count Tokens API Reference](https://platform.claude.com/docs/en/api/messages-count-tokens) — API reference
 - [Rate Limits](https://platform.claude.com/docs/en/api/rate-limits) — tier-based rate limits
-- `project/sliding-context-window.md` — design document (Phase 2 references this API)
+- `project/sliding-context-window.md` — design document
+- `apps/ikigai/providers/anthropic/count_tokens.c` — implementation
 - `project/tokens/anthropic-tokens.md` — existing tokenizer research
