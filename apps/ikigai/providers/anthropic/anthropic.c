@@ -5,6 +5,7 @@
 
 #include "apps/ikigai/providers/anthropic/anthropic.h"
 #include "apps/ikigai/providers/anthropic/anthropic_internal.h"
+#include "apps/ikigai/providers/anthropic/count_tokens.h"
 #include "apps/ikigai/providers/anthropic/thinking.h"
 #include "apps/ikigai/providers/anthropic/error.h"
 #include "apps/ikigai/providers/anthropic/response.h"
@@ -21,15 +22,6 @@
 
 
 #include "shared/poison.h"
-/**
- * Anthropic provider implementation context
- */
-typedef struct {
-    char *api_key;
-    char *base_url;
-    ik_http_multi_t *http_multi;               /* Async HTTP client */
-    ik_anthropic_active_stream_t *active_stream; /* Current streaming request */
-} ik_anthropic_ctx_t;
 
 /* ================================================================
  * Forward Declarations - Vtable Methods
@@ -65,6 +57,7 @@ static const ik_provider_vtable_t ANTHROPIC_VTABLE = {
     .start_stream = anthropic_start_stream,
     .cleanup = anthropic_cleanup,
     .cancel = anthropic_cancel,
+    .count_tokens = ik_anthropic_count_tokens,
 };
 
 /* ================================================================

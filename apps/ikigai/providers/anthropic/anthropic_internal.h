@@ -28,6 +28,19 @@ typedef struct ik_anthropic_active_stream {
 } ik_anthropic_active_stream_t;
 
 /**
+ * Anthropic provider implementation context
+ *
+ * Defined here (rather than in anthropic.c) so that count_tokens.c
+ * and unit tests can access api_key and base_url without casting.
+ */
+typedef struct ik_anthropic_ctx {
+    char *api_key;
+    char *base_url;
+    ik_http_multi_t *http_multi;
+    ik_anthropic_active_stream_t *active_stream;
+} ik_anthropic_ctx_t;
+
+/**
  * HTTP write callback for streaming - exposed for testing
  */
 size_t ik_anthropic_stream_write_cb(const char *data, size_t len, void *ctx);

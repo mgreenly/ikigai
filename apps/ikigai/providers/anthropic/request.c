@@ -214,9 +214,11 @@ static res_t add_tools(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
 
 /**
  * Internal serialize request implementation
+ *
+ * @param skip_output_fields  If true, omit max_tokens and stream (for count_tokens)
  */
 static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req,
-                                        char **out_json)
+                                        bool skip_output_fields, char **out_json)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
     assert(req != NULL);      // LCOV_EXCL_BR_LINE
@@ -240,15 +242,17 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
         return ERR(ctx, PARSE, "Failed to add model field"); // LCOV_EXCL_LINE
     }
 
-    int32_t max_tokens = calculate_max_tokens(req);
-    if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", max_tokens)) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        return ERR(ctx, PARSE, "Failed to add max_tokens field"); // LCOV_EXCL_LINE
-    }
+    if (!skip_output_fields) {
+        int32_t max_tokens = calculate_max_tokens(req);
+        if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", max_tokens)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add max_tokens field"); // LCOV_EXCL_LINE
+        }
 
-    if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        return ERR(ctx, PARSE, "Failed to add stream field"); // LCOV_EXCL_LINE
+        if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add stream field"); // LCOV_EXCL_LINE
+        }
     }
 
     if (req->system_prompt != NULL) {
@@ -294,5 +298,10 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
 
 res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
 {
-    return serialize_request_internal(ctx, req, out_json);
+    return serialize_request_internal(ctx, req, false, out_json);
+}
+
+res_t ik_anthropic_serialize_request_count_tokens(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json)
+{
+    return serialize_request_internal(ctx, req, true, out_json);
 }

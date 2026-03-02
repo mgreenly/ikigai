@@ -24,4 +24,16 @@
  */
 res_t ik_anthropic_serialize_request_stream(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json);
 
+/**
+ * Serialize internal request for the count_tokens endpoint
+ *
+ * @param ctx      Talloc context for error allocation
+ * @param req      Internal request structure
+ * @param out_json Output: JSON string (allocated on ctx)
+ * @return         OK with JSON string, ERR on failure
+ *
+ * Same as ik_anthropic_serialize_request_stream but omits max_tokens and stream.
+ */
+res_t ik_anthropic_serialize_request_count_tokens(TALLOC_CTX *ctx, const ik_request_t *req, char **out_json);
+
 #endif /* IK_PROVIDERS_ANTHROPIC_REQUEST_H */

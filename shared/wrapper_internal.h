@@ -15,6 +15,7 @@
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/providers/request.h"
 #include "apps/ikigai/providers/common/http_multi.h"
+#include "apps/ikigai/providers/anthropic/count_tokens.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/repl.h"
@@ -120,6 +121,17 @@ MOCKABLE res_t ik_template_process_(TALLOC_CTX *ctx,
     return ik_template_process(ctx, text, (ik_agent_ctx_t *)agent, (ik_config_t *)config, (ik_template_result_t **)out);
 }
 
+MOCKABLE res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
+                                               const char *url,
+                                               const char *api_key,
+                                               const char *body,
+                                               char **response_out,
+                                               long *http_status_out)
+{
+    return ik_anthropic_count_tokens_http(ctx, url, api_key, body,
+                                          response_out, http_status_out);
+}
+
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
@@ -151,6 +163,12 @@ MOCKABLE res_t ik_template_process_(TALLOC_CTX *ctx,
                                     void *agent,
                                     void *config,
                                     void **out);
+MOCKABLE res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
+                                               const char *url,
+                                               const char *api_key,
+                                               const char *body,
+                                               char **response_out,
+                                               long *http_status_out);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

@@ -31,14 +31,6 @@ static void teardown(void)
 
 /* Info Read Tests */
 
-// We need to expose the internal context structure for testing
-typedef struct {
-    char *api_key;
-    char *base_url;
-    ik_http_multi_t *http_multi;
-    ik_anthropic_active_stream_t *active_stream;
-} ik_anthropic_ctx_t;
-
 // Mock for ik_http_multi_create_
 res_t ik_http_multi_create_(void *parent, void **out)
 {
