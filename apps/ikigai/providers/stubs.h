@@ -21,4 +21,7 @@ res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out
 res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 res_t ik_google_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 
+// Vtable stub — returns ERR_NOT_IMPLEMENTED; assign to count_tokens until provider implements it
+res_t ik_provider_count_tokens_stub(void *ctx, const ik_request_t *req, int32_t *token_count_out);
+
 #endif // IK_PROVIDERS_STUBS_H

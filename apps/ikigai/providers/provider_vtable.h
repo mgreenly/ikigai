@@ -190,6 +190,28 @@ struct ik_provider_vtable {
      * MUST be async-signal-safe (no malloc, no mutex).
      */
     void (*cancel)(void *ctx);
+
+    /* ============================================================
+     * Token Counting
+     * ============================================================ */
+
+    /**
+     * count_tokens - Count input tokens for a request
+     *
+     * @param ctx             Provider context (opaque)
+     * @param req             Request to count (same format as start_request/start_stream)
+     * @param token_count_out Output: number of input tokens
+     * @return                OK(NULL) on success, ERR(...) on failure
+     *
+     * Synchronous blocking call. Only called at IDLE transition when
+     * nothing else is in flight. Each provider hits its own endpoint:
+     *   - Anthropic: POST /v1/messages/count_tokens
+     *   - OpenAI:    POST /v1/responses/input_tokens
+     *   - Google:    POST models/{model}:countTokens
+     */
+    res_t (*count_tokens)(void *ctx,
+                          const ik_request_t *req,
+                          int32_t *token_count_out);
 };
 
 /**
