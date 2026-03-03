@@ -150,4 +150,42 @@ void ik_token_cache_prune_oldest_turn(ik_token_cache_t *cache);
  */
 void ik_token_cache_add_turn(ik_token_cache_t *cache);
 
+/* ================================================================
+ * Introspection — read-only access to cache internals
+ * Used by control socket read_token_cache command.
+ * ================================================================ */
+
+/** Get configured token budget. Default 100000. */
+int32_t ik_token_cache_get_budget(const ik_token_cache_t *cache);
+
+/** Set configured token budget. */
+void ik_token_cache_set_budget(ik_token_cache_t *cache, int32_t budget);
+
+/** Get number of active turns currently in cache. */
+size_t ik_token_cache_get_turn_count(const ik_token_cache_t *cache);
+
+/**
+ * Get absolute turn index of the oldest active turn.
+ *
+ * Equals the number of turns that have been pruned. Used by the
+ * read_token_cache command to report per-turn absolute indices.
+ */
+size_t ik_token_cache_get_context_start_turn(const ik_token_cache_t *cache);
+
+/**
+ * Peek at cached total without triggering computation.
+ *
+ * Returns the cached total, or 0 if uncached.
+ */
+int32_t ik_token_cache_peek_total(const ik_token_cache_t *cache);
+
+/**
+ * Peek at cached turn token count without triggering computation.
+ *
+ * Returns the cached value for turn_index, or 0 if uncached.
+ * PANIC if turn_index >= turn_count.
+ */
+int32_t ik_token_cache_peek_turn_tokens(const ik_token_cache_t *cache,
+                                         size_t turn_index);
+
 #endif /* IK_TOKEN_CACHE_H */

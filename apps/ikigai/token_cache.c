@@ -34,6 +34,8 @@ struct ik_token_cache {
     size_t turn_count;           /* Number of turns in cache */
     size_t turn_capacity;        /* Allocated capacity for turn_tokens */
     int32_t total_tokens;        /* Cached total, -1 = uncached */
+    int32_t budget;              /* Token budget (default 100000) */
+    size_t  pruned_turn_count;   /* Number of turns pruned so far */
 };
 
 /* ================================================================
@@ -51,6 +53,8 @@ static ik_token_cache_t *alloc_cache(TALLOC_CTX *ctx,
     c->tool_tokens   = TOKEN_UNCACHED;
     c->total_tokens  = TOKEN_UNCACHED;
     c->context_start_index = 0;
+    c->budget = 100000;
+    c->pruned_turn_count = 0;
 
     if (turn_capacity > 0) {
         c->turn_tokens = talloc_array(c, int32_t, (unsigned int)turn_capacity);
@@ -187,6 +191,8 @@ ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx,
     c->tool_tokens   = src->tool_tokens;
     c->total_tokens  = src->total_tokens;
     c->turn_count    = src->turn_count;
+    c->budget        = src->budget;
+    c->pruned_turn_count = src->pruned_turn_count;
 
     if (src->turn_count > 0 && src->turn_tokens != NULL) {
         for (size_t i = 0; i < src->turn_count; i++) {
@@ -408,6 +414,8 @@ void ik_token_cache_prune_oldest_turn(ik_token_cache_t *cache)
         }
     }
 
+    cache->pruned_turn_count++;
+
     /* Remove first turn entry (shift left) */
     cache->turn_count--;
     if (cache->turn_count > 0) {
@@ -434,4 +442,45 @@ void ik_token_cache_add_turn(ik_token_cache_t *cache)
     cache->turn_tokens[cache->turn_count] = TOKEN_UNCACHED;
     cache->turn_count++;
     cache->total_tokens = TOKEN_UNCACHED;
+}
+
+/* Introspection */
+
+int32_t ik_token_cache_get_budget(const ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    return cache->budget;
+}
+
+void ik_token_cache_set_budget(ik_token_cache_t *cache, int32_t budget)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    cache->budget = budget;
+}
+
+size_t ik_token_cache_get_turn_count(const ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    return cache->turn_count;
+}
+
+size_t ik_token_cache_get_context_start_turn(const ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    return cache->pruned_turn_count;
+}
+
+int32_t ik_token_cache_peek_total(const ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    return (cache->total_tokens == TOKEN_UNCACHED) ? 0 : cache->total_tokens;
+}
+
+int32_t ik_token_cache_peek_turn_tokens(const ik_token_cache_t *cache,
+                                         size_t turn_index)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    if (turn_index >= cache->turn_count) PANIC("turn_index out of range"); // LCOV_EXCL_BR_LINE
+    int32_t v = cache->turn_tokens[turn_index];
+    return (v == TOKEN_UNCACHED) ? 0 : v;
 }

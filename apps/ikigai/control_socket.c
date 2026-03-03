@@ -6,6 +6,7 @@
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/serialize.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/panic.h"
 #include "shared/wrapper.h"
 
@@ -194,6 +195,44 @@ res_t ik_control_socket_accept(ik_control_socket_t *socket)
     return OK(NULL);
 }
 
+static char *dispatch_read_token_cache(ik_control_socket_t *socket,
+                                        ik_repl_ctx_t *repl)
+{
+    ik_token_cache_t *cache = (repl->current != NULL) ?
+                               repl->current->token_cache : NULL;
+
+    if (cache == NULL) {
+        return talloc_strdup(socket,
+            "{\"total_tokens\":0,\"budget\":100000,\"turn_count\":0,"
+            "\"context_start_index\":0,\"turns\":[]}\n");
+    }
+
+    int32_t total    = ik_token_cache_peek_total(cache);
+    int32_t budget   = ik_token_cache_get_budget(cache);
+    size_t  turns    = ik_token_cache_get_turn_count(cache);
+    size_t  ctx_turn = ik_token_cache_get_context_start_turn(cache);
+
+    char *turns_json = talloc_strdup(socket, "[");
+    if (turns_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    for (size_t i = 0; i < turns; i++) {
+        int32_t tok = ik_token_cache_peek_turn_tokens(cache, i);
+        if (i > 0) {
+            turns_json = talloc_strdup_append(turns_json, ",");
+        }
+        turns_json = talloc_asprintf_append(turns_json,
+            "{\"index\":%zu,\"tokens\":%"PRId32"}",
+            ctx_turn + i, tok);
+    }
+    turns_json = talloc_strdup_append(turns_json, "]");
+
+    char *response = talloc_asprintf(socket,
+        "{\"total_tokens\":%"PRId32",\"budget\":%"PRId32","
+        "\"turn_count\":%zu,\"context_start_index\":%zu,\"turns\":%s}\n",
+        total, budget, turns, ctx_turn, turns_json);
+    talloc_free(turns_json);
+    return response;
+}
+
 static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
                                         ik_repl_ctx_t *repl)
 {
@@ -334,6 +373,8 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     size_t pending_keys_len = 0;
     if (type != NULL && strcmp(type, "read_framebuffer") == 0) {
         response = dispatch_read_framebuffer(socket, repl);
+    } else if (type != NULL && strcmp(type, "read_token_cache") == 0) {
+        response = dispatch_read_token_cache(socket, repl);
     } else if (type != NULL && strcmp(type, "send_keys") == 0) {
         response = dispatch_send_keys(socket, root, &pending_keys, &pending_keys_len);
     } else if (type != NULL && strcmp(type, "wait_idle") == 0) {

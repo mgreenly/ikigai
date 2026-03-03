@@ -16,5 +16,9 @@ res_t ik_ctl_read_framebuffer(TALLOC_CTX *ctx, int fd, char **response_out);
 // Returns OK on success, ERR on failure
 res_t ik_ctl_send_keys(TALLOC_CTX *ctx, int fd, const char *keys);
 
+// Send read_token_cache request and receive JSON response
+// Caller must talloc_free the returned string
+res_t ik_ctl_read_token_cache(TALLOC_CTX *ctx, int fd, char **response_out);
+
 // Close control socket connection
 void ik_ctl_disconnect(int fd);

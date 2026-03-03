@@ -112,6 +112,42 @@ res_t ik_ctl_send_keys(TALLOC_CTX *ctx, int fd, const char *keys)
     return OK(NULL);
 }
 
+res_t ik_ctl_read_token_cache(TALLOC_CTX *ctx, int fd, char **response_out)
+{
+    assert(ctx != NULL);            // LCOV_EXCL_BR_LINE
+    assert(response_out != NULL);   // LCOV_EXCL_BR_LINE
+
+    const char *request = "{\"type\":\"read_token_cache\"}\n";
+    ssize_t written = write(fd, request, strlen(request));
+    if (written < 0) {
+        return ERR(ctx, IO, "Failed to send request: %s", strerror(errno));
+    }
+
+    char *buf = talloc_size(ctx, 4096);
+    if (buf == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    size_t total = 0;
+    while (total < 4095) {                            // LCOV_EXCL_BR_LINE
+        ssize_t n = read(fd, buf + total, 4095 - total);
+        if (n < 0) {                                   // LCOV_EXCL_BR_LINE
+            talloc_free(buf);                          // LCOV_EXCL_LINE
+            return ERR(ctx, IO, "Failed to read response: %s", strerror(errno));  // LCOV_EXCL_LINE
+        }
+        if (n == 0) {
+            break;
+        }
+        total += (size_t)n;
+
+        if (memchr(buf + total - (size_t)n, '\n', (size_t)n) != NULL) {
+            break;
+        }
+    }
+    buf[total] = '\0';
+
+    *response_out = buf;
+    return OK(NULL);
+}
+
 void ik_ctl_disconnect(int fd)
 {
     if (fd >= 0) {

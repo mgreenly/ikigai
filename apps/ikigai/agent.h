@@ -17,6 +17,7 @@
 typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
 typedef struct ik_message ik_message_t;
+typedef struct ik_token_cache ik_token_cache_t;
 struct ik_openai_multi;
 struct ik_repl_ctx_t;
 
@@ -162,6 +163,9 @@ typedef struct ik_agent_ctx {
     // Toolset filter (per-agent)
     char **toolset_filter;    // Allowed tool names (NULL = no filter)
     size_t toolset_count;     // Number of tools in filter
+
+    // Token cache (per-agent, NULL until initialized)
+    ik_token_cache_t *token_cache;
 } ik_agent_ctx_t;
 
 // Create agent context
