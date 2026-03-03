@@ -278,6 +278,17 @@ void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent);
 void ik_agent_record_and_prune_token_cache(ik_agent_ctx_t *agent, bool was_success);
 
 /**
+ * Run prune loop on token cache without recording
+ *
+ * Prunes oldest turns until total is within budget or only one turn remains.
+ * No-op if token_cache is NULL.
+ * Called after /model switch following invalidate_all.
+ *
+ * @param agent Agent context (must not be NULL)
+ */
+void ik_agent_prune_token_cache(ik_agent_ctx_t *agent);
+
+/**
  * Start async tool execution on specific agent
  *
  * Spawns background thread to execute pending tool call.

@@ -1,7 +1,7 @@
 # Token Cache Module — Design Document
 
 **Feature**: Token counting cache for sliding context window
-**Status**: Core integration complete (goals #262, #280). Standalone module and IDLE transition integration are wired and tested. Remaining: `/model` invalidation, `/clear` reset, `/rewind` trim, horizontal rule in scrollback.
+**Status**: Core integration complete (goals #262, #280, #274). Standalone module, IDLE transition integration, and `/model` invalidation are wired and tested. Remaining: `/clear` reset, `/rewind` trim, horizontal rule in scrollback.
 **Related**: `project/sliding-context-window.md` (parent design), `anthropic-token-api.md`, `openai-token-api.md`, `google-token-api.md`
 
 **Implementation files**:

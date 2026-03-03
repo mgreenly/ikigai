@@ -13,6 +13,7 @@
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/scrollback_utils.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/wrapper.h"
 
 // Include provider.h after other headers to avoid type conflicts
@@ -199,6 +200,12 @@ skip_google_validation:
 
     // Invalidate cached provider instance
     ik_agent_invalidate_provider(repl->current);
+
+    // Invalidate token cache and immediately re-prune with new provider's counts
+    if (repl->current->token_cache != NULL) {
+        ik_token_cache_invalidate_all(repl->current->token_cache);
+        ik_agent_prune_token_cache(repl->current);
+    }
 
     // Persist to database
     if (repl->shared->db_ctx != NULL) {

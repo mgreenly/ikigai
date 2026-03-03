@@ -216,6 +216,16 @@ class E2ERunner
     turns.all? { |t| t['tokens'] > 0 }
   end
 
+  def assert_token_cache_turn_count_gte(value)
+    @token_cache['turn_count'] >= value
+  end
+
+  def assert_token_cache_turns_sum_equals_total
+    turns = @token_cache['turns'] || []
+    sum = turns.sum { |t| t['tokens'] }
+    sum == @token_cache['total_tokens']
+  end
+
   # -- assertion dispatch --
 
   def evaluate_assertions(test)
@@ -254,10 +264,12 @@ class E2ERunner
     assertions.each do |assertion|
       type, value = assertion.first
       result = case type
-               when 'total_lte'           then assert_token_cache_total_lte(value)
-               when 'turn_count_lt'       then assert_token_cache_turn_count_lt(value)
-               when 'context_start_gt'    then assert_token_cache_context_start_gt(value)
-               when 'all_turns_positive'  then assert_token_cache_all_turns_positive
+               when 'total_lte'               then assert_token_cache_total_lte(value)
+               when 'turn_count_lt'           then assert_token_cache_turn_count_lt(value)
+               when 'turn_count_gte'          then assert_token_cache_turn_count_gte(value)
+               when 'context_start_gt'        then assert_token_cache_context_start_gt(value)
+               when 'all_turns_positive'      then assert_token_cache_all_turns_positive
+               when 'turns_sum_equals_total'  then assert_token_cache_turns_sum_equals_total
                else abort("Unknown token_cache assertion type: #{type}")
                end
 
