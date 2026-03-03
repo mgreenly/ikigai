@@ -1,8 +1,13 @@
 # Token Cache Module — Design Document
 
 **Feature**: Token counting cache for sliding context window
-**Status**: Design (supporting infrastructure complete — provider `count_tokens` vtable entries and bytes estimator implemented in goals #256–259; token cache module itself not yet implemented)
+**Status**: Implemented (goal #262) — standalone module, fully tested. Integration with agent IDLE transitions, commands, and UI is deferred to follow-up goals.
 **Related**: `project/sliding-context-window.md` (parent design), `anthropic-token-api.md`, `openai-token-api.md`, `google-token-api.md`
+
+**Implementation files**:
+- `apps/ikigai/token_cache.h` — Public interface
+- `apps/ikigai/token_cache.c` — Implementation
+- `tests/unit/apps/ikigai/token_cache_test.c` — Unit tests (25 tests, all passing)
 
 ---
 
@@ -279,3 +284,20 @@ Child agents always inherit parent messages. Two cases, both clone the cache via
 
 **OQ-15: Threading contract implicit.**
 Ikigai has tool threads (`pthread_mutex_t tool_thread_mutex`). The design doesn't state that the cache is single-threaded and IDLE-only. Agent fields are main-thread-only by convention (`agent.h` comment), but the cache should state this explicitly.
+
+---
+
+## Implementation Notes (goal #262)
+
+### Deviations from design
+
+**`prune_oldest_turn` does not modify `agent->messages[]`.**
+The design says pruning is atomic and the module removes from both message array and cache. However, it also says "pruned messages remain in the scrollback". For this standalone implementation, `prune_oldest_turn` advances an internal `context_start_index` field (stored in the cache struct, not on the agent) to track which messages are still in context. The agent's `context_start_index` field referenced in OQ-13 is not yet on the agent struct — that integration is deferred to a follow-up goal.
+
+**`get_tool_tokens` counts without tool definitions.**
+The cache has no access to the tool registry (not in `ik_agent_ctx_t`). `get_tool_tokens()` calls `count_tokens` with an empty request (model-only). This gives an accurate per-turn count but underestimates tool overhead. Full tool-definition counting requires the tool registry to be accessible from the cache — deferred to integration work.
+
+**`ik_agent_get_effective_system_prompt` always returns a non-NULL default.**
+Priority 4 in the function returns `IK_DEFAULT_OPENAI_SYSTEM_MESSAGE` ("You are a personal agent...") as a hardcoded fallback. The bytes estimate for this (~21 tokens) appears in system token counts for test agents without provider instances.
+
+**Threading contract** (OQ-15) is documented in `token_cache.h` header comment: single-threaded, main-thread-only.
