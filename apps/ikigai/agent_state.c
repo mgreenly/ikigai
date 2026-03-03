@@ -1,5 +1,8 @@
 #include "apps/ikigai/agent.h"
 
+#include "apps/ikigai/event_render.h"
+#include "apps/ikigai/providers/provider.h"
+#include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
@@ -7,6 +10,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -64,6 +68,56 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
     DEBUG_LOG("[state] uuid=%s waiting_for_llm->executing_tool", agent->uuid);
 }
 
+/* Horizontal rule text inserted before the first active context message */
+#define IK_CONTEXT_HR "── context ──"
+
+/* Re-render scrollback with HR before the first active context message.
+ * Called after pruning when context_start_index > 0. Follows the same
+ * simplified re-render pattern as interrupt recovery. */
+static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
+{
+    if (agent->token_cache == NULL || agent->scrollback == NULL) return;
+    size_t ctx_idx = ik_token_cache_get_context_start_index(agent->token_cache);
+    if (ctx_idx == 0) return;
+
+    ik_scrollback_clear(agent->scrollback);
+
+    for (size_t i = 0; i < agent->message_count; i++) {
+        if (i == ctx_idx) {
+            ik_scrollback_append_line(agent->scrollback, "", 0);
+            ik_scrollback_append_line(agent->scrollback,
+                                      IK_CONTEXT_HR, strlen(IK_CONTEXT_HR));
+            ik_scrollback_append_line(agent->scrollback, "", 0);
+        }
+
+        ik_message_t *m = agent->messages[i];
+        if (m == NULL || m->content_count == 0) continue;
+
+        ik_content_block_t *block = &m->content_blocks[0];
+        const char *kind = NULL;
+        const char *content = NULL;
+
+        switch (m->role) {
+            case IK_ROLE_USER:
+                kind = "user";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_ASSISTANT:
+                kind = "assistant";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_TOOL:
+                kind = "tool_result";
+                if (block->type == IK_CONTENT_TOOL_RESULT) content = block->data.tool_result.content;
+                break;
+        }
+
+        if (kind != NULL && content != NULL) {
+            ik_event_render(agent->scrollback, kind, content, "{}", m->interrupted);
+        }
+    }
+}
+
 void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
 {
     if (agent->token_cache == NULL) return;
@@ -72,6 +126,7 @@ void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
            ik_token_cache_get_turn_count(agent->token_cache) > 1) {
         ik_token_cache_prune_oldest_turn(agent->token_cache);
     }
+    refresh_scrollback_with_hr(agent);
 }
 
 void ik_agent_record_and_prune_token_cache(ik_agent_ctx_t *agent, bool was_success)

@@ -181,6 +181,16 @@ size_t ik_token_cache_get_turn_count(const ik_token_cache_t *cache);
 size_t ik_token_cache_get_context_start_turn(const ik_token_cache_t *cache);
 
 /**
+ * Get message index of the oldest message still in active context.
+ *
+ * Returns the index into agent->messages[] of the first message that
+ * is still included when building requests to the LLM. Returns 0 when
+ * no pruning has occurred. Used by the scrollback renderer to position
+ * the horizontal rule.
+ */
+size_t ik_token_cache_get_context_start_index(const ik_token_cache_t *cache);
+
+/**
  * Peek at cached total without triggering computation.
  *
  * Returns the cached total, or 0 if uncached.

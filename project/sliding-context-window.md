@@ -34,10 +34,13 @@ A horizontal rule appears in the scrollback buffer to mark the visible cutoff, g
 - **Configuration** — `sliding_context_tokens` field in `ik_config_t`, `IKIGAI_SLIDING_CONTEXT_TOKENS` env var, 100K default (goal #280)
 - **Functional e2e test** — `tests/e2e/token-cache-pruning-test.json` verifies pruning at low budget via `read_token_cache` ikigai-ctl command (goal #280)
 
+### Completed (goal #267)
+
+- **Horizontal rule in scrollback** — `ik_token_cache_get_context_start_index()` getter added to token cache; `refresh_scrollback_with_hr()` in `agent_state.c` re-renders scrollback with an `── context ──` separator at `context_start_index`; e2e test at `tests/e2e/scrollback-context-hr-test.json` verifies HR visibility via `read_framebuffer`
+
 ### Remaining (rel-13)
 
 - `/model` invalidation — `invalidate_all()` + re-prune when model changes
-- Horizontal rule in scrollback
 - `/clear` cache reset
 - `/rewind` cache entry removal
 
@@ -358,8 +361,12 @@ Completed files (goal #280):
 - `apps/ikigai/config_defaults.h` — `IK_DEFAULT_SLIDING_CONTEXT_TOKENS 100000`
 - `tests/e2e/token-cache-pruning-test.json` — Functional test for pruning at low budget
 
+Completed files (goal #267):
+- `apps/ikigai/token_cache.h` / `token_cache.c` — `ik_token_cache_get_context_start_index()` getter
+- `apps/ikigai/agent_state.c` — `refresh_scrollback_with_hr()` renders `── context ──` at context boundary
+- `tests/e2e/scrollback-context-hr-test.json` — E2e test verifying HR visibility via `read_framebuffer`
+
 Remaining files to create:
-- Horizontal rule insertion in scrollback (`apps/ikigai/scrollback.h` / related)
 - `/model` invalidation in `apps/ikigai/commands_model.c`
 
 ---

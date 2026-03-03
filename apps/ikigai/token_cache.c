@@ -26,14 +26,14 @@
 struct ik_token_cache {
     ik_agent_ctx_t *agent;       /* Non-owning reference */
     size_t context_start_index;  /* First message index still in context */
-    int32_t system_tokens;       /* Cached system prompt count, -1 = uncached */
-    int32_t tool_tokens;         /* Cached tool definitions count, -1 = uncached */
+    int32_t system_tokens;       /* system prompt count, -1=uncached */
+    int32_t tool_tokens;         /* tool definitions count, -1=uncached */
     int32_t *turn_tokens;        /* Per-turn cached counts (-1 = uncached) */
     size_t turn_count;           /* Number of turns in cache */
     size_t turn_capacity;        /* Allocated capacity for turn_tokens */
     int32_t total_tokens;        /* Cached total, -1 = uncached */
     int32_t budget;              /* Token budget (default 100000) */
-    size_t  pruned_turn_count;   /* Number of turns pruned so far */
+    size_t  pruned_turn_count;   /* turns pruned so far */
 };
 
 /* --- Internal helpers --- */
@@ -480,6 +480,12 @@ size_t ik_token_cache_get_context_start_turn(const ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
     return cache->pruned_turn_count;
+}
+
+size_t ik_token_cache_get_context_start_index(const ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    return cache->context_start_index;
 }
 
 int32_t ik_token_cache_peek_total(const ik_token_cache_t *cache)
