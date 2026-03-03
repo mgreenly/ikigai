@@ -395,6 +395,28 @@ START_TEST(test_record_turn_oob)
 END_TEST
 
 
+START_TEST(test_reset_clears_all)
+{
+    ik_agent_ctx_t *a = make_agent(test_ctx);
+    add_user(a, "u0");
+    add_user(a, "u1");
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
+    ik_token_cache_add_turn(c);
+    ik_token_cache_add_turn(c);
+    ik_token_cache_record_turn(c, 0, 100);
+    ik_token_cache_record_turn(c, 1, 200);
+    g_mock_count = 0;
+    ik_token_cache_prune_oldest_turn(c); /* context_start_index > 0 */
+    ck_assert_uint_gt(ik_token_cache_get_context_start_index(c), 0);
+
+    ik_token_cache_reset(c);
+
+    ck_assert_uint_eq(ik_token_cache_get_turn_count(c), 0);
+    ck_assert_uint_eq(ik_token_cache_get_context_start_index(c), 0);
+    ck_assert_int_eq(ik_token_cache_get_total(c), 0);
+}
+END_TEST
+
 START_TEST(test_add_turn_invalidates_total)
 {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
@@ -427,6 +449,7 @@ static Suite *token_cache_suite(void)
     tcase_add_test(tc, test_total_sum);
     tcase_add_test(tc, test_total_cached);
     tcase_add_test(tc, test_total_recomputed_after_invalidate);
+    tcase_add_test(tc, test_reset_clears_all);
     tcase_add_test(tc, test_invalidate_all);
     tcase_add_test(tc, test_invalidate_system_only);
     tcase_add_test(tc, test_invalidate_tools_only);

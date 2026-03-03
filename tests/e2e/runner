@@ -211,6 +211,10 @@ class E2ERunner
     @token_cache['context_start_index'] > value
   end
 
+  def assert_token_cache_context_start_lte(value)
+    @token_cache['context_start_index'] <= value
+  end
+
   def assert_token_cache_all_turns_positive
     turns = @token_cache['turns'] || []
     turns.all? { |t| t['tokens'] > 0 }
@@ -268,6 +272,7 @@ class E2ERunner
                when 'turn_count_lt'           then assert_token_cache_turn_count_lt(value)
                when 'turn_count_gte'          then assert_token_cache_turn_count_gte(value)
                when 'context_start_gt'        then assert_token_cache_context_start_gt(value)
+               when 'context_start_lte'       then assert_token_cache_context_start_lte(value)
                when 'all_turns_positive'      then assert_token_cache_all_turns_positive
                when 'turns_sum_equals_total'  then assert_token_cache_turns_sum_equals_total
                else abort("Unknown token_cache assertion type: #{type}")

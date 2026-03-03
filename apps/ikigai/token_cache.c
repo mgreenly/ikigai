@@ -24,16 +24,16 @@
 #define TURN_CAP_INITIAL 8
 
 struct ik_token_cache {
-    ik_agent_ctx_t *agent;       /* Non-owning reference */
-    size_t context_start_index;  /* First message index still in context */
-    int32_t system_tokens;       /* system prompt count, -1=uncached */
-    int32_t tool_tokens;         /* tool definitions count, -1=uncached */
-    int32_t *turn_tokens;        /* Per-turn cached counts (-1 = uncached) */
-    size_t turn_count;           /* Number of turns in cache */
-    size_t turn_capacity;        /* Allocated capacity for turn_tokens */
-    int32_t total_tokens;        /* Cached total, -1 = uncached */
-    int32_t budget;              /* Token budget (default 100000) */
-    size_t  pruned_turn_count;   /* turns pruned so far */
+    ik_agent_ctx_t *agent;       /* non-owning */
+    size_t context_start_index;  /* first msg in context */
+    int32_t system_tokens;       /* -1=uncached */
+    int32_t tool_tokens;         /* -1=uncached */
+    int32_t *turn_tokens;        /* per-turn, -1=uncached */
+    size_t turn_count;           /* active turns */
+    size_t turn_capacity;        /* capacity */
+    int32_t total_tokens;        /* -1=uncached */
+    int32_t budget;              /* token budget */
+    size_t  pruned_turn_count;   /* turns pruned */
 };
 
 /* --- Internal helpers --- */
@@ -209,11 +209,9 @@ int32_t ik_token_cache_get_system_tokens(ik_token_cache_t *cache)
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    /* Get system prompt text */
     char *prompt = NULL;
     res_t r = ik_agent_get_effective_system_prompt(cache->agent, &prompt);
 
-    /* Build minimal request with system prompt */
     ik_request_t *req = NULL;
     if (is_ok(&r)) {
         const char *model = (cache->agent->model != NULL) ? cache->agent->model : "default";
@@ -223,7 +221,6 @@ int32_t ik_token_cache_get_system_tokens(ik_token_cache_t *cache)
         }
     }
 
-    /* Try provider */
     if (is_ok(&r) && req != NULL) {
         int32_t count = provider_count(cache, req);
         if (count != TOKEN_UNCACHED) {
@@ -234,7 +231,6 @@ int32_t ik_token_cache_get_system_tokens(ik_token_cache_t *cache)
         }
     }
 
-    /* Bytes fallback — not cached */
     size_t bytes = (prompt != NULL) ? strlen(prompt) : 0;
     talloc_free(tmp);
     return ik_token_count_from_bytes(bytes);
@@ -251,7 +247,6 @@ int32_t ik_token_cache_get_tool_tokens(ik_token_cache_t *cache)
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
-    /* Build minimal empty request (tool registry not accessible from cache) */
     const char *model = (cache->agent->model != NULL) ? cache->agent->model : "default";
     ik_request_t *req = NULL;
     res_t r = ik_request_create(tmp, model, &req);
@@ -266,7 +261,6 @@ int32_t ik_token_cache_get_tool_tokens(ik_token_cache_t *cache)
         }
     }
 
-    /* Bytes fallback — not cached */
     talloc_free(tmp);
     return 0;
 }
@@ -343,6 +337,17 @@ void ik_token_cache_invalidate_all(ik_token_cache_t *cache)
     for (size_t i = 0; i < cache->turn_count; i++) {
         cache->turn_tokens[i] = TOKEN_UNCACHED;
     }
+}
+
+void ik_token_cache_reset(ik_token_cache_t *cache)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    cache->system_tokens       = TOKEN_UNCACHED;
+    cache->tool_tokens         = TOKEN_UNCACHED;
+    cache->total_tokens        = TOKEN_UNCACHED;
+    cache->turn_count          = 0;
+    cache->context_start_index = 0;
+    cache->pruned_turn_count   = 0;
 }
 
 void ik_token_cache_invalidate_system(ik_token_cache_t *cache)

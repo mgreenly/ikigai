@@ -120,6 +120,14 @@ void ik_token_cache_record_turn(ik_token_cache_t *cache,
 /** Clear all cached values (system, tools, all turns, total). */
 void ik_token_cache_invalidate_all(ik_token_cache_t *cache);
 
+/**
+ * Full reset: clear all cached values, empty turn array, reset context window.
+ *
+ * After reset: turn_count=0, context_start_index=0, pruned_turn_count=0,
+ * all cached values invalidated. Called by /clear to start fresh.
+ */
+void ik_token_cache_reset(ik_token_cache_t *cache);
+
 /** Clear system prompt cache and total. */
 void ik_token_cache_invalidate_system(ik_token_cache_t *cache);
 

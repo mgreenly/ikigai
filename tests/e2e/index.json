@@ -32,5 +32,6 @@
   "bash-tool-use-gemini-2.5-flash-test.json",
   "token-cache-pruning-test.json",
   "token-cache-model-switch-test.json",
+  "token-cache-clear-test.json",
   "scrollback-context-hr-test.json"
 ]

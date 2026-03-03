@@ -7,6 +7,7 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands.h"
+#include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/event_render.h"
 #include "shared/logger.h"
@@ -46,6 +47,11 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Clear conversation (session messages)
     ik_agent_clear_messages(repl->current);
+
+    // Reset token cache: clear all cached values, empty turn array, reset context window
+    if (repl->current->token_cache != NULL) {
+        ik_token_cache_reset(repl->current->token_cache);
+    }
 
     // Clear marks
     if (repl->current->marks != NULL) {  // LCOV_EXCL_BR_LINE
