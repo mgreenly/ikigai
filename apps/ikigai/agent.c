@@ -2,6 +2,7 @@
 #include "apps/ikigai/config.h"
 #include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/config_defaults.h"
+#include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/agent_row.h"
 #include "apps/ikigai/db/connection.h"
@@ -30,6 +31,41 @@
 #include "shared/poison.h"
 typedef struct ik_provider ik_provider_t;
 extern res_t ik_provider_create(TALLOC_CTX *ctx, const char *name, ik_provider_t **out);
+
+static void agent_init_layers(ik_agent_ctx_t *agent)
+{
+    // Banner layer must be first (topmost)
+    agent->banner_layer = ik_banner_layer_create(agent, "banner", &agent->banner_visible);
+    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->banner_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->input_layer = ik_input_layer_create(agent, "input",
+                                               &agent->input_buffer_visible,
+                                               &agent->input_text,
+                                               &agent->input_text_len);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+
+    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
+    result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
+    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+}
 
 static int agent_destructor(ik_agent_ctx_t *agent)
 {
@@ -73,54 +109,19 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_buffer_visible = true;
     agent->status_visible = true;
 
-    // Create and add layers (following pattern from repl_init.c)
-    // Banner layer must be first (topmost)
-    agent->banner_layer = ik_banner_layer_create(agent, "banner", &agent->banner_visible);
-    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->banner_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create spinner layer (pass pointer to agent's spinner_state)
-    agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create separator layer (upper) - pass pointer to agent field
-    agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create input layer - pass pointers to agent fields
-    agent->input_layer = ik_input_layer_create(agent, "input",
-                                               &agent->input_buffer_visible,
-                                               &agent->input_text,
-                                               &agent->input_text_len);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create completion layer (pass pointer to agent's completion field)
-    agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+    agent_init_layers(agent);
 
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
     // Create per-agent worker DB connection (avoids concurrent PG access across agents)
     if (shared->db_conn_str != NULL) {
         const char *data_dir = ik_paths_get_data_dir(shared->paths);
-        result = ik_db_init(agent, shared->db_conn_str, data_dir, &agent->worker_db_ctx);
-        if (is_err(&result)) {
-            talloc_steal(ctx, result.err);
+        res_t db_result = ik_db_init(agent, shared->db_conn_str, data_dir, &agent->worker_db_ctx);
+        if (is_err(&db_result)) {
+            talloc_steal(ctx, db_result.err);
             talloc_free(agent);
             *out = NULL;
-            return result;
+            return db_result;
         }
     }
 
@@ -135,6 +136,13 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Set destructor to clean up mutex (only after successful init)
     talloc_set_destructor(agent, agent_destructor);
+
+    // Create token cache (parented to agent, lifetime tied to agent)
+    int32_t budget = (shared->cfg != NULL)
+        ? shared->cfg->sliding_context_tokens
+        : IK_DEFAULT_SLIDING_CONTEXT_TOKENS;
+    agent->token_cache = ik_token_cache_create(agent, agent);
+    ik_token_cache_set_budget(agent->token_cache, budget);
 
     *out = agent;
     return OK(agent);
@@ -177,42 +185,7 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->input_buffer_visible = true;
     agent->status_visible = true;
 
-    // Create and add layers (following pattern from repl_init.c)
-    // Banner layer must be first (topmost)
-    agent->banner_layer = ik_banner_layer_create(agent, "banner", &agent->banner_visible);
-    res_t result = ik_layer_cake_add_layer(agent->layer_cake, agent->banner_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    agent->scrollback_layer = ik_scrollback_layer_create(agent, "scrollback", agent->scrollback);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->scrollback_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create spinner layer (pass pointer to agent's spinner_state)
-    agent->spinner_layer = ik_spinner_layer_create(agent, "spinner", &agent->spinner_state);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->spinner_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create separator layer (upper) - pass pointer to agent field
-    agent->separator_layer = ik_separator_layer_create(agent, "separator", &agent->separator_visible);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->separator_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create input layer - pass pointers to agent fields
-    agent->input_layer = ik_input_layer_create(agent, "input",
-                                               &agent->input_buffer_visible,
-                                               &agent->input_text,
-                                               &agent->input_text_len);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->input_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    // Create completion layer (pass pointer to agent's completion field)
-    agent->completion_layer = ik_completion_layer_create(agent, "completion", &agent->completion);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
-
-    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
-    result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
-    if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
+    agent_init_layers(agent);
 
     agent->doc_cache = (shared->paths != NULL) ? ik_doc_cache_create(agent, shared->paths) : NULL;
 
@@ -239,6 +212,13 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
 
     // Set destructor to clean up mutex (only after successful init)
     talloc_set_destructor(agent, agent_destructor);
+
+    // Create token cache (parented to agent, lifetime tied to agent)
+    int32_t budget = (shared->cfg != NULL)
+        ? shared->cfg->sliding_context_tokens
+        : IK_DEFAULT_SLIDING_CONTEXT_TOKENS;
+    agent->token_cache = ik_token_cache_create(agent, agent);
+    ik_token_cache_set_budget(agent->token_cache, budget);
 
     *out = agent;
     return OK(agent);

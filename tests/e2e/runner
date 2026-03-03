@@ -23,7 +23,7 @@ class E2ERunner
 
   def run(test_files)
     start_mock_provider
-    start_ikigai
+    start_ikigai(collect_ikigai_env(test_files))
     test_files.each { |file| run_test(file) }
     log_summary
     @tests_failed.zero?
@@ -36,6 +36,7 @@ class E2ERunner
   def run_test(test_file)
     test = JSON.parse(File.read(test_file))
     @framebuffer = nil
+    @token_cache = nil
     @pass = true
     log_header(test_file)
     execute_steps(test['steps'])
@@ -56,12 +57,22 @@ class E2ERunner
     wait_for_http("127.0.0.1", MOCK_PORT)
   end
 
-  def start_ikigai
+  def collect_ikigai_env(test_files)
+    merged = {}
+    test_files.each do |file|
+      test = JSON.parse(File.read(file))
+      ikigai_env = test['ikigai_env']
+      merged.merge!(ikigai_env) if ikigai_env.is_a?(Hash)
+    end
+    merged
+  end
+
+  def start_ikigai(extra_env = {})
     env = {
       'ANTHROPIC_BASE_URL' => MOCK_URL,
       'OPENAI_BASE_URL'    => MOCK_URL,
       'GOOGLE_BASE_URL'    => MOCK_URL
-    }
+    }.merge(extra_env)
     @ikigai_pid = Process.spawn(env, 'bin/ikigai', '--headless', %i[out err] => '/dev/null')
     @socket_path = File.join(RUNTIME_DIR, "ikigai-#{@ikigai_pid}.sock")
     wait_for_socket(@socket_path)
@@ -112,6 +123,10 @@ class E2ERunner
     send_request('type' => 'read_framebuffer')
   end
 
+  def ctl_read_token_cache
+    send_request('type' => 'read_token_cache')
+  end
+
   # -- step methods --
 
   def step_send_keys(value)
@@ -128,6 +143,11 @@ class E2ERunner
     @framebuffer = ctl_read_framebuffer
     count = @framebuffer['lines']&.length || 0
     log('read_framebuffer', "#{count} lines captured")
+  end
+
+  def step_read_token_cache
+    @token_cache = ctl_read_token_cache
+    log('read_token_cache', "total=#{@token_cache['total_tokens']} turns=#{@token_cache['turn_count']} start=#{@token_cache['context_start_index']}")
   end
 
   def step_mock_expect(config)
@@ -155,11 +175,12 @@ class E2ERunner
   def execute_step(step)
     type, value = step.first
     case type
-    when 'send_keys'        then step_send_keys(value)
-    when 'wait'             then step_wait(value)
-    when 'read_framebuffer' then step_read_framebuffer
-    when 'mock_expect'      then step_mock_expect(value)
-    when 'wait_idle'        then step_wait_idle(value)
+    when 'send_keys'         then step_send_keys(value)
+    when 'wait'              then step_wait(value)
+    when 'read_framebuffer'  then step_read_framebuffer
+    when 'read_token_cache'  then step_read_token_cache
+    when 'mock_expect'       then step_mock_expect(value)
+    when 'wait_idle'         then step_wait_idle(value)
     else abort("Unknown step type: #{type}")
     end
   end
@@ -178,11 +199,29 @@ class E2ERunner
     framebuffer_lines.any? { |line| line.lstrip.start_with?(prefix) }
   end
 
+  def assert_token_cache_total_lte(value)
+    @token_cache['total_tokens'] <= value
+  end
+
+  def assert_token_cache_turn_count_lt(value)
+    @token_cache['turn_count'] < value
+  end
+
+  def assert_token_cache_context_start_gt(value)
+    @token_cache['context_start_index'] > value
+  end
+
+  def assert_token_cache_all_turns_positive
+    turns = @token_cache['turns'] || []
+    turns.all? { |t| t['tokens'] > 0 }
+  end
+
   # -- assertion dispatch --
 
   def evaluate_assertions(test)
     evaluate_group('assert', test['assert'])
     evaluate_group('assert_mock', test['assert_mock'])
+    evaluate_token_cache_group('assert_token_cache', test['assert_token_cache'])
   end
 
   def evaluate_group(group_name, assertions)
@@ -209,6 +248,32 @@ class E2ERunner
     end
   end
 
+  def evaluate_token_cache_group(group_name, assertions)
+    return unless assertions
+
+    assertions.each do |assertion|
+      type, value = assertion.first
+      result = case type
+               when 'total_lte'           then assert_token_cache_total_lte(value)
+               when 'turn_count_lt'       then assert_token_cache_turn_count_lt(value)
+               when 'context_start_gt'    then assert_token_cache_context_start_gt(value)
+               when 'all_turns_positive'  then assert_token_cache_all_turns_positive
+               else abort("Unknown token_cache assertion type: #{type}")
+               end
+
+      detail = "#{type} #{value.inspect}".ljust(50)
+      if result
+        @assertions_passed += 1
+        log(group_name, detail + 'PASS')
+      else
+        @assertions_failed += 1
+        @pass = false
+        log(group_name, detail + 'FAIL')
+        dump_token_cache
+      end
+    end
+  end
+
   # -- helpers --
 
   def framebuffer_lines
@@ -231,6 +296,12 @@ class E2ERunner
   def dump_framebuffer
     $stderr.puts '--- framebuffer ---'
     framebuffer_lines.each { |line| $stderr.puts line }
+    $stderr.puts '---'
+  end
+
+  def dump_token_cache
+    $stderr.puts '--- token_cache ---'
+    $stderr.puts JSON.generate(@token_cache)
     $stderr.puts '---'
   end
 

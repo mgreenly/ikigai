@@ -1,5 +1,6 @@
 #include "apps/ikigai/agent.h"
 
+#include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
 #include "apps/ikigai/debug_log.h"
@@ -61,6 +62,31 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
     atomic_store(&agent->state, IK_AGENT_STATE_EXECUTING_TOOL);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     DEBUG_LOG("[state] uuid=%s waiting_for_llm->executing_tool", agent->uuid);
+}
+
+void ik_agent_record_and_prune_token_cache(ik_agent_ctx_t *agent, bool was_success)
+{
+    if (!was_success || agent->token_cache == NULL) return;
+    size_t turn_count = ik_token_cache_get_turn_count(agent->token_cache);
+    if (turn_count > 0) {
+        size_t last_turn = turn_count - 1;
+        int32_t delta = agent->response_input_tokens - agent->prev_response_input_tokens;
+        if (delta > 0) {
+            ik_token_cache_record_turn(agent->token_cache, last_turn, delta);
+        } else {
+            /* Provider didn't return token counts; fall back to bytes estimate */
+            int32_t est = ik_token_cache_get_turn_tokens(agent->token_cache, last_turn);
+            if (est > 0) {
+                ik_token_cache_record_turn(agent->token_cache, last_turn, est);
+            }
+        }
+    }
+    agent->prev_response_input_tokens = agent->response_input_tokens;
+    int32_t budget = ik_token_cache_get_budget(agent->token_cache);
+    while (ik_token_cache_get_total(agent->token_cache) > budget &&
+           ik_token_cache_get_turn_count(agent->token_cache) > 1) {
+        ik_token_cache_prune_oldest_turn(agent->token_cache);
+    }
 }
 
 void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent)

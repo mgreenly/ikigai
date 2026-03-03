@@ -39,4 +39,13 @@ void ik_config_apply_env_overrides(ik_config_t *cfg)
         cfg->db_user = talloc_strdup(cfg, env_db_user);
         if (!cfg->db_user) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     }
+
+    const char *env_sliding_tokens = getenv("IKIGAI_SLIDING_CONTEXT_TOKENS");
+    if (env_sliding_tokens && env_sliding_tokens[0] != '\0') {
+        char *endptr = NULL;
+        long tokens_val = strtol(env_sliding_tokens, &endptr, 10);
+        if (endptr != env_sliding_tokens && *endptr == '\0' && tokens_val > 0) {
+            cfg->sliding_context_tokens = (int32_t)tokens_val;
+        }
+    }
 }

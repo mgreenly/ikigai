@@ -26,14 +26,20 @@ A horizontal rule appears in the scrollback buffer to mark the visible cutoff, g
 - **OpenAI `count_tokens`** (`apps/ikigai/providers/openai/count_tokens.c`) — `POST /v1/responses/input_tokens`
 - **Google `count_tokens`** (`apps/ikigai/providers/google/count_tokens.c`) — `POST models/{model}:countTokens`
 
-### Remaining (rel-13, not yet started)
+### Completed (goals #262, #280)
 
-- Token cache module (`apps/ikigai/token_cache.h` / `token_cache.c`) — caches per-component counts, drives pruning loop
-- Sliding window pruning loop — triggers at IDLE transition, removes oldest whole turn
-- IDLE transition integration (`repl_actions_llm.c`, `repl_callbacks.c`)
-- `/model` invalidation
+- **Token cache module** (`apps/ikigai/token_cache.h` / `token_cache.c`) — caches per-component counts, drives pruning loop (goal #262)
+- **Agent integration** — `ik_token_cache_t *token_cache` field on agent struct, created and attached during initialization, lifetime managed by talloc (goal #280)
+- **IDLE transition integration** — records turn cost from `response_input_tokens` delta, runs prune loop in `ik_agent_record_and_prune_token_cache()` (`agent_state.c`) (goal #280)
+- **Configuration** — `sliding_context_tokens` field in `ik_config_t`, `IKIGAI_SLIDING_CONTEXT_TOKENS` env var, 100K default (goal #280)
+- **Functional e2e test** — `tests/e2e/token-cache-pruning-test.json` verifies pruning at low budget via `read_token_cache` ikigai-ctl command (goal #280)
+
+### Remaining (rel-13)
+
+- `/model` invalidation — `invalidate_all()` + re-prune when model changes
 - Horizontal rule in scrollback
-- Configuration (`config.h`, `config_defaults.h`, env var)
+- `/clear` cache reset
+- `/rewind` cache entry removal
 
 **Summaries deferred**: The original rel-13 plan included automatic summaries of pruned history. Summaries are deferred to a future release. rel-13 delivers pruning only.
 
@@ -346,9 +352,15 @@ Completed files (goals #256–259):
 - `apps/ikigai/providers/google/count_tokens.c` — Google implementation
 - `tests/unit/token_count_test.c` — Unit tests for bytes estimator
 
+Completed files (goal #280):
+- `apps/ikigai/agent_state.c` — `ik_agent_record_and_prune_token_cache()` function, called at IDLE transition
+- `apps/ikigai/config.h` — `sliding_context_tokens` field added to `ik_config_t`
+- `apps/ikigai/config_defaults.h` — `IK_DEFAULT_SLIDING_CONTEXT_TOKENS 100000`
+- `tests/e2e/token-cache-pruning-test.json` — Functional test for pruning at low budget
+
 Remaining files to create:
-- `apps/ikigai/sliding_window.h` / `apps/ikigai/sliding_window.c` — Pruning logic
-- `tests/unit/sliding_window_test.c` — Unit tests for pruning logic
+- Horizontal rule insertion in scrollback (`apps/ikigai/scrollback.h` / related)
+- `/model` invalidation in `apps/ikigai/commands_model.c`
 
 ---
 

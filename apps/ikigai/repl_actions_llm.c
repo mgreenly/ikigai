@@ -17,6 +17,7 @@
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/providers/request.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/token_cache.h"
 #include <assert.h>
 #include <talloc.h>
 #include <stdio.h>
@@ -104,6 +105,10 @@ void send_to_llm_for_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent, const cha
     ik_message_t *user_msg = ik_message_create_text(agent, IK_ROLE_USER, message_text);
     res_t result = ik_agent_add_message(agent, user_msg);
     if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+    if (agent->token_cache != NULL) {
+        ik_token_cache_add_turn(agent->token_cache);
+    }
 
     // Persist user message to database
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {

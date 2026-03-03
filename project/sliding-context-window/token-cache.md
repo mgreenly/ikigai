@@ -1,7 +1,7 @@
 # Token Cache Module — Design Document
 
 **Feature**: Token counting cache for sliding context window
-**Status**: Implemented (goal #262) — standalone module, fully tested. Integration with agent IDLE transitions, commands, and UI is deferred to follow-up goals.
+**Status**: Core integration complete (goals #262, #280). Standalone module and IDLE transition integration are wired and tested. Remaining: `/model` invalidation, `/clear` reset, `/rewind` trim, horizontal rule in scrollback.
 **Related**: `project/sliding-context-window.md` (parent design), `anthropic-token-api.md`, `openai-token-api.md`, `google-token-api.md`
 
 **Implementation files**:
@@ -187,13 +187,13 @@ The resulting count captures the token cost of those messages including per-mess
 | `providers/anthropic/count_tokens.c` | `count_tokens` → `POST /v1/messages/count_tokens` (**done**, goal #257) |
 | `providers/openai/count_tokens.c` | `count_tokens` → `POST /v1/responses/input_tokens` (**done**, goal #258) |
 | `providers/google/count_tokens.c` | `count_tokens` → `POST models/{model}:countTokens` (**done**, goal #259) |
-| `agent_state.c` | `WAITING_FOR_LLM → IDLE` transition: record turn cost from `response_input_tokens` delta, run prune loop |
+| `agent_state.c` | `WAITING_FOR_LLM → IDLE` transition: record turn cost from `response_input_tokens` delta, run prune loop (**done**, goal #280) |
 | `repl_response_helpers.c` | Response metadata storage — where `response_input_tokens` is populated |
 | `commands_basic.c` | `/clear`: reset cache |
 | `commands_mark.c` | `/rewind`: remove pruned turn entries from cache |
 | `commands_model.c` | `/model`: call `invalidate_all()`, run prune loop |
-| `agent.h` | Agent struct holds `ik_token_cache_t *` pointer |
-| `config.h` | `sliding_context_tokens` budget field |
+| `agent.h` | Agent struct holds `ik_token_cache_t *` pointer (**done**, goal #280) |
+| `config.h` | `sliding_context_tokens` budget field (**done**, goal #280) |
 
 ---
 

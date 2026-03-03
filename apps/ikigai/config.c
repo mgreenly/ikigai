@@ -80,6 +80,7 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
     cfg->max_output_size = IK_DEFAULT_MAX_OUTPUT_SIZE;
     cfg->history_size = IK_DEFAULT_HISTORY_SIZE;
     cfg->default_provider = NULL;
+    cfg->sliding_context_tokens = IK_DEFAULT_SLIDING_CONTEXT_TOKENS;
 
     if (cfg->openai_model == NULL || cfg->listen_address == NULL || cfg->db_host == NULL || // LCOV_EXCL_BR_LINE
         cfg->db_name == NULL || cfg->db_user == NULL) { // LCOV_EXCL_BR_LINE

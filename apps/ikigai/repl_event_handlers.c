@@ -326,30 +326,30 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
 
 static res_t process_agent_curl_events(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {
-    if (agent->curl_still_running > 0 && agent->provider_instance != NULL) {
-        int prev_running = agent->curl_still_running;
-        CHECK(agent->provider_instance->vt->perform(agent->provider_instance->ctx, &agent->curl_still_running));
-        agent->provider_instance->vt->info_read(agent->provider_instance->ctx, repl->shared->logger);
-        ik_agent_state_t current_state = atomic_load(&agent->state);
-        if (prev_running > 0 && agent->curl_still_running == 0 && current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {  // LCOV_EXCL_BR_LINE
-            if (agent->interrupt_requested) {
-                ik_repl_handle_interrupted_llm_completion(repl, agent);
-            } else {
-                if (agent->http_error_message != NULL) {
-                    handle_agent_request_error(repl, agent);
-                } else {
-                    ik_repl_handle_agent_request_success(repl, agent);
-                }
-                current_state = atomic_load(&agent->state);
-                if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
-                    ik_agent_transition_to_idle_(agent);
-                    mark_idle_and_notify(repl, agent);
-                }
-                if (agent == repl->current) {
-                    CHECK(ik_repl_render_frame(repl));
-                }
-            }
-        }
+    if (agent->curl_still_running == 0 || agent->provider_instance == NULL) return OK(NULL);
+    int prev_running = agent->curl_still_running;
+    CHECK(agent->provider_instance->vt->perform(agent->provider_instance->ctx, &agent->curl_still_running));
+    agent->provider_instance->vt->info_read(agent->provider_instance->ctx, repl->shared->logger);
+    ik_agent_state_t current_state = atomic_load(&agent->state);
+    if (prev_running == 0 || agent->curl_still_running != 0 ||  // LCOV_EXCL_BR_LINE
+        current_state != IK_AGENT_STATE_WAITING_FOR_LLM) return OK(NULL);
+    if (agent->interrupt_requested) {
+        ik_repl_handle_interrupted_llm_completion(repl, agent);
+        return OK(NULL);
+    }
+    bool was_success = (agent->http_error_message == NULL);
+    if (!was_success)
+        handle_agent_request_error(repl, agent);
+    else
+        ik_repl_handle_agent_request_success(repl, agent);
+    current_state = atomic_load(&agent->state);
+    if (current_state == IK_AGENT_STATE_WAITING_FOR_LLM) {
+        ik_agent_record_and_prune_token_cache(agent, was_success);
+        ik_agent_transition_to_idle_(agent);
+        mark_idle_and_notify(repl, agent);
+    }
+    if (agent == repl->current) {
+        CHECK(ik_repl_render_frame(repl));
     }
     return OK(NULL);
 }

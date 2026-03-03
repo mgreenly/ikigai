@@ -1,0 +1,45 @@
+{
+  "name": "token cache prunes turns when context exceeds budget",
+  "ikigai_env": {"IKIGAI_SLIDING_CONTEXT_TOKENS": "500"},
+  "steps": [
+    {"mock_expect": {"responses": [{"content": "Artificial intelligence is a broad field of computer science that focuses on building machines capable of performing tasks that typically require human intelligence. This includes areas such as machine learning, natural language processing, computer vision, and robotics."}]}},
+    {"send_keys": "Tell me about artificial intelligence and its major subfields including machine learning and deep learning.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Machine learning is a subset of AI that enables systems to learn and improve from experience without being explicitly programmed. It focuses on developing computer programs that can access data and use it to learn for themselves through pattern recognition and inference."}]}},
+    {"send_keys": "Explain how machine learning differs from traditional programming approaches in software development.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Deep learning uses neural networks with many layers to analyze data in complex ways. These networks are inspired by the structure of the human brain and can automatically learn representations of data with multiple levels of abstraction from raw data."}]}},
+    {"send_keys": "How does deep learning use neural networks to recognize patterns in large datasets and images?\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Natural language processing enables computers to understand, interpret, and generate human language. It combines computational linguistics with machine learning to process text and speech. Applications include translation, sentiment analysis, chatbots, and text summarization."}]}},
+    {"send_keys": "What is natural language processing and how does it enable computers to understand human language?\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Computer vision is an interdisciplinary field that deals with how computers can gain high-level understanding from digital images and videos. It seeks to automate tasks that the human visual system can do. Applications include object detection, facial recognition, and medical image analysis."}]}},
+    {"send_keys": "Describe computer vision techniques used in autonomous vehicles and medical imaging applications.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Reinforcement learning trains agents to make decisions by rewarding desired behaviors and punishing undesired ones. The agent learns from the consequences of its actions in an environment. It has been used to train systems that play games like Chess and Go at superhuman levels."}]}},
+    {"send_keys": "How does reinforcement learning work and what are its applications in robotics and game playing?\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Transfer learning is a technique where a model trained on one task is reused as the starting point for a model on a different task. This is especially powerful in deep learning because it allows leveraging large pretrained models like GPT and BERT for specific downstream tasks."}]}},
+    {"send_keys": "Explain transfer learning and why pretrained models like transformers are so useful for downstream tasks.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Generative AI creates new content such as text, images, audio, and video. Models like large language models use learned patterns to produce novel outputs. The field has advanced rapidly with transformer architectures and attention mechanisms enabling models to generate coherent and creative content."}]}},
+    {"send_keys": "What is generative AI and how do large language models generate coherent text and creative content?\r"},
+    {"wait_idle": 10000},
+
+    {"read_token_cache": true}
+  ],
+  "assert_token_cache": [
+    {"total_lte": 500},
+    {"turn_count_lt": 8},
+    {"context_start_gt": 0},
+    {"all_turns_positive": true}
+  ]
+}

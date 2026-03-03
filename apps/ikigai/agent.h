@@ -120,6 +120,7 @@ typedef struct ik_agent_ctx {
     int32_t response_input_tokens;
     int32_t response_output_tokens;
     int32_t response_thinking_tokens;
+    int32_t prev_response_input_tokens; // input_tokens from last completed turn (for delta)
 
     // Layer reference fields (updated before each render)
     bool banner_visible;
@@ -263,6 +264,18 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent);
  * @param agent Agent context to transition
  */
 void ik_agent_transition_from_executing_tool(ik_agent_ctx_t *agent);
+
+/**
+ * Record turn cost and prune token cache if over budget
+ *
+ * Called after a successful LLM response to update the token cache
+ * and prune oldest turns if the total exceeds the budget.
+ * No-op if was_success is false or token_cache is NULL.
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param was_success True if the LLM request succeeded
+ */
+void ik_agent_record_and_prune_token_cache(ik_agent_ctx_t *agent, bool was_success);
 
 /**
  * Start async tool execution on specific agent

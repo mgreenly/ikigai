@@ -21,6 +21,7 @@ typedef struct {
     int64_t max_output_size;
     int32_t history_size;
     char *default_provider;  // NEW: "anthropic", "openai", "google"
+    int32_t sliding_context_tokens;  // Token budget for sliding context window
 } ik_config_t;
 
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out);
