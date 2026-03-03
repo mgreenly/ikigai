@@ -18,9 +18,7 @@
 
 #include "shared/poison.h"
 
-/* ================================================================
- * Internal structure
- * ================================================================ */
+/* --- Internal structure --- */
 
 #define TOKEN_UNCACHED   (-1)
 #define TURN_CAP_INITIAL 8
@@ -38,9 +36,7 @@ struct ik_token_cache {
     size_t  pruned_turn_count;   /* Number of turns pruned so far */
 };
 
-/* ================================================================
- * Internal helpers
- * ================================================================ */
+/* --- Internal helpers --- */
 
 static ik_token_cache_t *alloc_cache(TALLOC_CTX *ctx,
                                       ik_agent_ctx_t *agent,
@@ -166,9 +162,7 @@ static int32_t count_turn_via_provider(ik_token_cache_t *cache,
     return result;
 }
 
-/* ================================================================
- * Lifecycle
- * ================================================================ */
+/* --- Lifecycle --- */
 
 ik_token_cache_t *ik_token_cache_create(TALLOC_CTX *ctx, ik_agent_ctx_t *agent)
 {
@@ -202,9 +196,7 @@ ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx,
     return c;
 }
 
-/* ================================================================
- * Getters
- * ================================================================ */
+/* --- Getters --- */
 
 int32_t ik_token_cache_get_system_tokens(ik_token_cache_t *cache)
 {
@@ -327,9 +319,7 @@ int32_t ik_token_cache_get_total(ik_token_cache_t *cache)
     return total;
 }
 
-/* ================================================================
- * Record
- * ================================================================ */
+/* --- Record --- */
 
 void ik_token_cache_record_turn(ik_token_cache_t *cache,
                                 size_t turn_index,
@@ -342,9 +332,7 @@ void ik_token_cache_record_turn(ik_token_cache_t *cache,
     cache->total_tokens = TOKEN_UNCACHED;
 }
 
-/* ================================================================
- * Invalidation
- * ================================================================ */
+/* --- Invalidation --- */
 
 void ik_token_cache_invalidate_all(ik_token_cache_t *cache)
 {
@@ -371,9 +359,7 @@ void ik_token_cache_invalidate_tools(ik_token_cache_t *cache)
     cache->total_tokens = TOKEN_UNCACHED;
 }
 
-/* ================================================================
- * Structural
- * ================================================================ */
+/* --- Structural --- */
 
 void ik_token_cache_prune_oldest_turn(ik_token_cache_t *cache)
 {
@@ -442,6 +428,32 @@ void ik_token_cache_add_turn(ik_token_cache_t *cache)
     cache->turn_tokens[cache->turn_count] = TOKEN_UNCACHED;
     cache->turn_count++;
     cache->total_tokens = TOKEN_UNCACHED;
+}
+
+void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    if (turn_index > cache->turn_count) PANIC("turn_index out of range");
+
+    if (turn_index == cache->turn_count) {
+        return; /* no-op */
+    }
+
+    /* Update cached total — subtract known costs, invalidate on sentinel */
+    for (size_t i = turn_index; i < cache->turn_count; i++) {
+        if (cache->turn_tokens[i] == TOKEN_UNCACHED) {
+            cache->total_tokens = TOKEN_UNCACHED;
+            break;
+        }
+        if (cache->total_tokens != TOKEN_UNCACHED) {
+            cache->total_tokens -= cache->turn_tokens[i];
+            if (cache->total_tokens < 0) {
+                cache->total_tokens = TOKEN_UNCACHED;
+            }
+        }
+    }
+
+    cache->turn_count = turn_index;
 }
 
 /* Introspection */

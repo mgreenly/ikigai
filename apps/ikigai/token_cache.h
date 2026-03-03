@@ -150,6 +150,14 @@ void ik_token_cache_prune_oldest_turn(ik_token_cache_t *cache);
  */
 void ik_token_cache_add_turn(ik_token_cache_t *cache);
 
+/**
+ * Remove all turns from turn_index onward (inclusive).
+ * Subtracts their cached costs from the total.
+ * Asserts turn_index <= turn_count. If turn_index == turn_count, this is a no-op.
+ * If a removed turn had sentinel value (-1), the cached total is invalidated.
+ */
+void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index);
+
 /* ================================================================
  * Introspection — read-only access to cache internals
  * Used by control socket read_token_cache command.
