@@ -1,0 +1,36 @@
+{
+  "name": "token cache updated consistently after /rewind",
+  "ikigai_env": {"IKIGAI_SLIDING_CONTEXT_TOKENS": "50000"},
+  "steps": [
+    {"mock_expect": {"responses": [{"content": "Artificial intelligence is a broad field of computer science that focuses on building machines capable of performing tasks that typically require human intelligence. This includes machine learning, natural language processing, and computer vision."}]}},
+    {"send_keys": "Tell me about artificial intelligence and its applications.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Machine learning enables systems to learn from experience without being explicitly programmed. It uses statistical techniques to give computers the ability to learn from data and improve over time without being explicitly programmed."}]}},
+    {"send_keys": "How does machine learning work?\r"},
+    {"wait_idle": 10000},
+
+    {"send_keys": "/mark rewind-point\r"},
+    {"wait": 0.5},
+
+    {"mock_expect": {"responses": [{"content": "Deep learning uses neural networks with many layers to analyze complex patterns. These multi-layer networks automatically learn hierarchical representations of data, enabling them to solve tasks like image recognition and natural language understanding."}]}},
+    {"send_keys": "Explain deep learning and neural networks.\r"},
+    {"wait_idle": 10000},
+
+    {"mock_expect": {"responses": [{"content": "Natural language processing allows computers to understand human language. It combines linguistics and machine learning to process text and speech, enabling applications like translation, sentiment analysis, and conversational AI."}]}},
+    {"send_keys": "What is natural language processing?\r"},
+    {"wait_idle": 10000},
+
+    {"read_token_cache": true},
+
+    {"send_keys": "/rewind rewind-point\r"},
+    {"wait": 0.5},
+
+    {"read_token_cache": true}
+  ],
+  "assert_token_cache": [
+    {"turn_count_gte": 2},
+    {"turn_count_lt": 4},
+    {"turns_sum_equals_total": true}
+  ]
+}

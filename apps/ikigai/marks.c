@@ -7,6 +7,7 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/wrapper.h"
 
 #include <assert.h>
@@ -150,6 +151,19 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         talloc_free(repl->current->messages[i]);
     }
     repl->current->message_count = target_mark->message_index;
+
+    // Sync token cache with truncated message array
+    if (repl->current->token_cache != NULL) {
+        size_t csi = ik_token_cache_get_context_start_index(repl->current->token_cache);
+        size_t new_msg_count = repl->current->message_count;
+        size_t new_turn_count = 0;
+        for (size_t i = csi; i < new_msg_count; i++) {
+            if (repl->current->messages[i]->role == IK_ROLE_USER) {
+                new_turn_count++;
+            }
+        }
+        ik_token_cache_remove_turns_from(repl->current->token_cache, new_turn_count);
+    }
 
     // Remove marks after the target position (but keep the target mark itself)
     size_t target_index = 0;

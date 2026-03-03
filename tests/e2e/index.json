@@ -33,5 +33,6 @@
   "token-cache-pruning-test.json",
   "token-cache-model-switch-test.json",
   "token-cache-clear-test.json",
+  "token-cache-rewind-test.json",
   "scrollback-context-hr-test.json"
 ]

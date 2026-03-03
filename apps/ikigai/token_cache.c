@@ -85,8 +85,7 @@ static size_t estimate_turn_bytes(ik_agent_ctx_t *agent, size_t start, size_t en
     return total;
 }
 
-/* Find message-index boundaries for turn turn_index (relative to context_start_index).
- * Returns false if not found (caller logic error — turn_count should prevent this). */
+/* Find message [start,end) for turn_index (relative to context_start_index). */
 static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
                               size_t *start_out, size_t *end_out)
 {
@@ -459,6 +458,11 @@ void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index
     }
 
     cache->turn_count = turn_index;
+
+    if (cache->turn_count == 0 && cache->context_start_index > 0) {
+        cache->context_start_index = 0;
+        cache->pruned_turn_count   = 0;
+    }
 }
 
 /* Introspection */

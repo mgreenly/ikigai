@@ -134,6 +134,49 @@ START_TEST(test_remove_turns_from_oob)
 }
 END_TEST
 
+/* Rewind past pruning boundary resets context_start_index and pruned_turn_count */
+START_TEST(test_remove_turns_from_all_resets_context_start)
+{
+    ik_agent_ctx_t *a = make_agent(test_ctx);
+    /* Add 3 user messages */
+    add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
+    /* Add 3 turns and prune the oldest to advance context_start_index */
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 0, 10);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 1, 20);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 2, 30);
+    ik_token_cache_prune_oldest_turn(c); /* advance context_start_index */
+    ck_assert_int_gt((int)ik_token_cache_get_context_start_turn(c), 0);
+
+    /* Rewind past pruning boundary: remove all remaining turns */
+    ik_token_cache_remove_turns_from(c, 0);
+    ck_assert_int_eq((int)ik_token_cache_get_turn_count(c), 0);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_index(c), 0);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_turn(c), 0);
+}
+END_TEST
+
+/* Rewind within pruning boundary keeps context_start_index unchanged */
+START_TEST(test_remove_turns_from_partial_keeps_context_start)
+{
+    ik_agent_ctx_t *a = make_agent(test_ctx);
+    add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2"); add_user(a, "u3");
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 0, 10);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 1, 20);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 2, 30);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 3, 40);
+    ik_token_cache_prune_oldest_turn(c); /* prune turn 0, context_start_index advances */
+    size_t csi = ik_token_cache_get_context_start_index(c);
+    ck_assert_int_gt((int)csi, 0);
+
+    /* Rewind only removes the last turn, leaves turns 0..1 (relative) intact */
+    ik_token_cache_remove_turns_from(c, 2);
+    ck_assert_int_eq((int)ik_token_cache_get_turn_count(c), 2);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_index(c), (int)csi);
+}
+END_TEST
+
 
 static Suite *token_cache_remove_suite(void)
 {
@@ -146,6 +189,8 @@ static Suite *token_cache_remove_suite(void)
     tcase_add_test(tc, test_remove_turns_from_uncached_invalidates_total);
     tcase_add_test(tc, test_remove_turns_from_all_clears_turns);
     tcase_add_test(tc, test_remove_turns_from_noop_at_turn_count);
+    tcase_add_test(tc, test_remove_turns_from_all_resets_context_start);
+    tcase_add_test(tc, test_remove_turns_from_partial_keeps_context_start);
     suite_add_tcase(s, tc);
 
     TCase *tc_panic = tcase_create("PANIC");
