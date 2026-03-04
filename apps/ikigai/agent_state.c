@@ -73,7 +73,8 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
 /* Append a full-width context HR (light blue) to the scrollback. */
 static void append_context_hr(ik_agent_ctx_t *agent)
 {
-    int cols = agent->shared->term->screen_cols;
+    int cols = (agent->shared != NULL && agent->shared->term != NULL)
+        ? agent->shared->term->screen_cols : 80;
     const char *label = " context ";
     int label_len = (int)strlen(label);
     int remaining = cols - label_len;

@@ -4,6 +4,7 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/message.h"
 #include "apps/ikigai/msg.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/error.h"
 #include "shared/logger.h"
 #include "shared/wrapper_json.h"
@@ -38,6 +39,9 @@ void ik_agent_restore_populate_conversation(
                 continue;     // LCOV_EXCL_LINE
             }
             if (provider_msg != NULL) {  // NULL for system messages (handled via request->system_prompt)
+                if (provider_msg->role == IK_ROLE_USER && agent->token_cache != NULL) {
+                    ik_token_cache_add_turn(agent->token_cache);
+                }
                 res = ik_agent_add_message(agent, provider_msg);
                 if (is_err(&res)) {     // LCOV_EXCL_BR_LINE - OOM tested in agent tests
                     yyjson_mut_doc *log_doc = ik_log_create();     // LCOV_EXCL_LINE

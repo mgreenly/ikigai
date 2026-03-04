@@ -118,6 +118,7 @@ static void restore_agent_zero(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
+    ik_agent_prune_token_cache(agent);
     DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
               agent->uuid, replay_ctx->count, agent->mark_count);
 
@@ -202,6 +203,7 @@ static void restore_child_agent(
     ik_agent_restore_populate_conversation(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
+    ik_agent_prune_token_cache(agent);
     DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
               agent->uuid, replay_ctx->count, agent->mark_count);
 
