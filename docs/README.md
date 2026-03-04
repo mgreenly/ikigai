@@ -15,6 +15,7 @@ User documentation for ikigai, a Linux coding agent with terminal UI.
 ## Reference
 
 - [Commands](commands.md) - Slash command reference
+- [Tools](tools.md) - Tool reference (bash, file I/O, search, and agent coordination)
 
 ## Developer Documentation
 
