@@ -3,6 +3,7 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/shared.h"
 #include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
@@ -68,9 +69,6 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
     DEBUG_LOG("[state] uuid=%s waiting_for_llm->executing_tool", agent->uuid);
 }
 
-/* Horizontal rule text inserted before the first active context message */
-#define IK_CONTEXT_HR "── context ──"
-
 /* Re-render scrollback with HR before the first active context message.
  * Called after pruning when context_start_index > 0. Follows the same
  * simplified re-render pattern as interrupt recovery. */
@@ -84,10 +82,32 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
 
     for (size_t i = 0; i < agent->message_count; i++) {
         if (i == ctx_idx) {
+            /* Build a full-width HR with " context " centered.
+             * ─ (U+2500) is 3 UTF-8 bytes: 0xE2 0x94 0x80. */
+            int cols = agent->shared->term->screen_cols;
+            const char *label = " context ";
+            int label_len = (int)strlen(label);
+            int remaining = cols - label_len;
+            if (remaining < 0) remaining = 0;
+            int left = remaining / 2;
+            int right = remaining - left;
+            size_t hr_bytes = (size_t)(left + right) * 3 + (size_t)label_len + 1;
+            char *hr = talloc_size(agent, hr_bytes);
+            size_t pos = 0;
+            for (int j = 0; j < left; j++) {
+                hr[pos++] = '\xe2'; hr[pos++] = '\x94'; hr[pos++] = '\x80';
+            }
+            memcpy(hr + pos, label, (size_t)label_len);
+            pos += (size_t)label_len;
+            for (int j = 0; j < right; j++) {
+                hr[pos++] = '\xe2'; hr[pos++] = '\x94'; hr[pos++] = '\x80';
+            }
+            hr[pos] = '\0';
+
             ik_scrollback_append_line(agent->scrollback, "", 0);
-            ik_scrollback_append_line(agent->scrollback,
-                                      IK_CONTEXT_HR, strlen(IK_CONTEXT_HR));
+            ik_scrollback_append_line(agent->scrollback, hr, pos);
             ik_scrollback_append_line(agent->scrollback, "", 0);
+            talloc_free(hr);
         }
 
         ik_message_t *m = agent->messages[i];
