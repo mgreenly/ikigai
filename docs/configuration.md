@@ -26,14 +26,88 @@ ikigai uses environment variables for directory locations, falling back to XDG B
 - `IKIGAI_CACHE_DIR` - Cache files (default: `$XDG_CACHE_HOME/ikigai/` or `~/.cache/ikigai/`)
 - `IKIGAI_STATE_DIR` - Persistent state (default: `$XDG_STATE_HOME/ikigai/` or `~/.local/state/ikigai/`)
 
-**Development:**
-The `.envrc` file (used with direnv) sets up development directories:
-- `IKIGAI_CONFIG_DIR=$PWD/etc/ikigai`
-- `IKIGAI_CACHE_DIR=$PWD/cache`
-- `IKIGAI_STATE_DIR=$PWD/state`
-- `IKIGAI_DATA_DIR=$PWD/share/ikigai`
-- `IKIGAI_BIN_DIR=$PWD/bin`
-- `IKIGAI_LIBEXEC_DIR=$PWD/libexec/ikigai`
+### .envrc
+
+The `.envrc` file (used with [direnv](https://direnv.net/)) configures the development environment. Run `direnv allow` once after cloning to activate it.
+
+**Development flag:**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `IKIGAI_DEV` | `1` | Enables development mode |
+
+**Directories:**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `IKIGAI_BIN_DIR` | `$PWD/bin` | Compiled executables |
+| `IKIGAI_CONFIG_DIR` | `$PWD/etc` | Configuration files |
+| `IKIGAI_DATA_DIR` | `$PWD/share` | Shared data files |
+| `IKIGAI_LIBEXEC_DIR` | `$PWD/libexec` | Helper executables |
+| `IKIGAI_CACHE_DIR` | `$PWD/cache` | Cache files |
+| `IKIGAI_STATE_DIR` | `$PWD/state` | Persistent state |
+| `IKIGAI_RUNTIME_DIR` | `$PWD/run` | Runtime files (sockets, PIDs) |
+| `IKIGAI_LOG_DIR` | `$PWD/.ikigai/logs` | Log files |
+
+**Database:**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `IKIGAI_DB_HOST` | `localhost` | PostgreSQL host |
+| `IKIGAI_DB_PORT` | `5432` | PostgreSQL port |
+| `IKIGAI_DB_NAME` | *(derived from project dir)* | Database name |
+| `IKIGAI_DB_USER` | `ikigai` | Database user |
+| `IKIGAI_DB_PASS` | *(from `~/.secrets/IKIGAI_DB_PASS`)* | Database password |
+
+**AI provider API keys:**
+
+| Variable | Secret file | Description |
+|----------|-------------|-------------|
+| `OPENAI_API_KEY` | `~/.secrets/OPENAI_API_KEY` | OpenAI API key |
+| `ANTHROPIC_API_KEY` | `~/.secrets/ANTHROPIC_API_KEY` | Anthropic API key |
+| `GOOGLE_API_KEY` | `~/.secrets/GOOGLE_API_KEY` | Google Gemini API key |
+
+**Search:**
+
+| Variable | Secret file | Description |
+|----------|-------------|-------------|
+| `BRAVE_API_KEY` | `~/.secrets/BRAVE_API_KEY` | Brave Search API key |
+| `GOOGLE_SEARCH_API_KEY` | `~/.secrets/GOOGLE_SEARCH_API_KEY` | Google Custom Search API key |
+| `GOOGLE_SEARCH_ENGINE_ID` | `~/.secrets/GOOGLE_SEARCH_ENGINE_ID` | Google Custom Search Engine ID |
+
+**Notifications:**
+
+| Variable | Secret file | Description |
+|----------|-------------|-------------|
+| `NTFY_API_KEY` | `~/.secrets/NTFY_API_KEY` | ntfy.sh API key |
+| `NTFY_TOPIC` | `~/.secrets/NTFY_TOPIC` | ntfy.sh notification topic |
+
+**Google Chat (optional):**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `GOOGLE_CHAT_SPACE` | *(space ID)* | Google Chat space for notifications |
+| `GOOGLE_CHAT_USER` | *(service account email)* | Google Chat sender identity |
+| `GOOGLE_APPLICATION_CREDENTIALS` | `~/.secrets/ikigai-dev-*.iam.gserviceaccount.com` | Google service account credentials file |
+
+**Ralph agent system:**
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `RALPH_PLANS_HOST` | `localhost` | Ralph plans service host |
+| `RALPH_PLANS_PORT` | `5001` | Ralph plans service port |
+| `RALPH_ORG` | *(GitHub org)* | GitHub organization for goal tracking |
+| `RALPH_REPO` | *(repository name)* | GitHub repository for goal tracking |
+
+**PATH additions:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `scripts/bin` | Goal management scripts |
+| `.claude/bin` | Claude agent binaries |
+| `.claude/scripts` | Quality harness scripts |
+| `.ikigai/scripts` | ikigai helper scripts |
+| `.ralph` | Ralph check scripts |
 
 ### credentials.json
 
