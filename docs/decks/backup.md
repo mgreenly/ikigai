@@ -95,7 +95,6 @@ Minimal building blocks. Maximum composability.
 # Minimal tools
 
 -> bash <-
--> web_search <-
 -> slash_command <-
 
 That's it.

@@ -54,11 +54,6 @@ echo "sk-..." > ~/.secrets/OPENAI_API_KEY
 echo "sk-ant-..." > ~/.secrets/ANTHROPIC_API_KEY
 echo "..." > ~/.secrets/GOOGLE_API_KEY
 
-# Web Search API Keys (optional)
-echo "..." > ~/.secrets/BRAVE_API_KEY
-echo "..." > ~/.secrets/GOOGLE_SEARCH_API_KEY
-echo "..." > ~/.secrets/GOOGLE_SEARCH_ENGINE_ID
-
 # Push Notifications via ntfy.sh (optional)
 echo "..." > ~/.secrets/NTFY_API_KEY
 echo "..." > ~/.secrets/NTFY_TOPIC
@@ -143,7 +138,6 @@ After installation, you must configure API credentials before ikigai can be usef
 See [Configuration](../docs/configuration.md) for:
 - Setting up `~/.config/ikigai/credentials.json`
 - Configuring AI providers (OpenAI, Anthropic, Google)
-- Configuring web search providers (Brave, Google Custom Search)
 
 ## Building Your System Prompt
 

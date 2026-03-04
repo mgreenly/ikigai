@@ -5,7 +5,6 @@
 ikigai runs with built-in defaults and requires no configuration files to start. However, it requires API credentials to be useful:
 
 - **At least one AI provider** (OpenAI, Anthropic, or Google)
-- **At least one web search provider** (Brave or Google Custom Search)
 
 Credentials can be provided via environment variables or a `credentials.json` file.
 
@@ -59,9 +58,7 @@ API keys for external services. Environment variables take precedence over this 
   "ANTHROPIC_API_KEY": "sk-ant-api03-YOUR_KEY_HERE",
   "GOOGLE_API_KEY": "YOUR_KEY_HERE",
   "BRAVE_API_KEY": "YOUR_KEY_HERE",
-  "GOOGLE_SEARCH_API_KEY": "YOUR_KEY_HERE",
-  "GOOGLE_SEARCH_ENGINE_ID": "YOUR_ENGINE_ID_HERE",
-  "NTFY_API_KEY": "YOUR_KEY_HERE",
+"NTFY_API_KEY": "YOUR_KEY_HERE",
   "NTFY_TOPIC": "YOUR_TOPIC_HERE"
 }
 ```
@@ -127,25 +124,6 @@ Configure at least one:
 - **Key:** `GOOGLE_API_KEY`
 - **Sign up:** https://aistudio.google.com/app/apikey
 - **Models:** Gemini 1.5 Pro, Gemini 1.5 Flash, etc.
-- **Note:** This is separate from Google Custom Search API
-
-### Web Search Providers
-
-Configure at least one:
-
-#### Brave Search
-- **Key:** `BRAVE_API_KEY`
-- **Format:** `BSA...`
-- **Sign up:** https://brave.com/search/api/
-
-#### Google Custom Search
-- **Keys:** `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_ENGINE_ID`
-- **Sign up:** https://developers.google.com/custom-search/v1/overview
-- **Note:** This is separate from Google Gemini API
-- **Setup:**
-  1. Create API key in Google Cloud Console
-  2. Create Custom Search Engine at https://programmablesearchengine.google.com/
-  3. Use both values in credentials
 
 ### Optional Services
 
