@@ -7,6 +7,7 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/doc_cache.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/error.h"
 #include "shared/panic.h"
 #include "apps/ikigai/shared.h"
@@ -218,7 +219,10 @@ res_t ik_request_build_from_conversation(TALLOC_CTX *ctx,
     }
 
     if (agent->messages != NULL) {
-        for (size_t i = 0; i < agent->message_count; i++) {
+        size_t start_idx = 0;
+        if (agent->token_cache != NULL)
+            start_idx = ik_token_cache_get_context_start_index(agent->token_cache);
+        for (size_t i = start_idx; i < agent->message_count; i++) {
             ik_message_t *msg = agent->messages[i];
             if (msg == NULL) continue;
 
