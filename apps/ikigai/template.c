@@ -22,20 +22,20 @@ static char *resolve_agent_field(TALLOC_CTX *ctx, const char *field, ik_agent_ct
 {
     if (agent == NULL) return NULL;
 
-    if (strcmp(field, "uuid") == 0 && agent->uuid != NULL) {
-        return talloc_strdup(ctx, agent->uuid);
+    if (strcmp(field, "uuid") == 0) {
+        return talloc_strdup(ctx, agent->uuid != NULL ? agent->uuid : "undefined");
     }
-    if (strcmp(field, "name") == 0 && agent->name != NULL) {
-        return talloc_strdup(ctx, agent->name);
+    if (strcmp(field, "name") == 0) {
+        return talloc_strdup(ctx, agent->name != NULL ? agent->name : "undefined");
     }
-    if (strcmp(field, "parent_uuid") == 0 && agent->parent_uuid != NULL) {
-        return talloc_strdup(ctx, agent->parent_uuid);
+    if (strcmp(field, "parent_uuid") == 0) {
+        return talloc_strdup(ctx, agent->parent_uuid != NULL ? agent->parent_uuid : "undefined");
     }
-    if (strcmp(field, "provider") == 0 && agent->provider != NULL) {
-        return talloc_strdup(ctx, agent->provider);
+    if (strcmp(field, "provider") == 0) {
+        return talloc_strdup(ctx, agent->provider != NULL ? agent->provider : "undefined");
     }
-    if (strcmp(field, "model") == 0 && agent->model != NULL) {
-        return talloc_strdup(ctx, agent->model);
+    if (strcmp(field, "model") == 0) {
+        return talloc_strdup(ctx, agent->model != NULL ? agent->model : "undefined");
     }
     if (strcmp(field, "created_at") == 0) {
         char *val = talloc_asprintf(ctx, "%" PRId64, agent->created_at);
@@ -49,25 +49,25 @@ static char *resolve_config_field(TALLOC_CTX *ctx, const char *field, ik_config_
 {
     if (config == NULL) return NULL;
 
-    if (strcmp(field, "openai_model") == 0 && config->openai_model != NULL) {
-        return talloc_strdup(ctx, config->openai_model);
+    if (strcmp(field, "openai_model") == 0) {
+        return talloc_strdup(ctx, config->openai_model != NULL ? config->openai_model : "undefined");
     }
-    if (strcmp(field, "db_host") == 0 && config->db_host != NULL) {
-        return talloc_strdup(ctx, config->db_host);
+    if (strcmp(field, "db_host") == 0) {
+        return talloc_strdup(ctx, config->db_host != NULL ? config->db_host : "undefined");
     }
     if (strcmp(field, "db_port") == 0) {
         char *val = talloc_asprintf(ctx, "%" PRId32, config->db_port);
         if (val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return val;
     }
-    if (strcmp(field, "db_name") == 0 && config->db_name != NULL) {
-        return talloc_strdup(ctx, config->db_name);
+    if (strcmp(field, "db_name") == 0) {
+        return talloc_strdup(ctx, config->db_name != NULL ? config->db_name : "undefined");
     }
-    if (strcmp(field, "db_user") == 0 && config->db_user != NULL) {
-        return talloc_strdup(ctx, config->db_user);
+    if (strcmp(field, "db_user") == 0) {
+        return talloc_strdup(ctx, config->db_user != NULL ? config->db_user : "undefined");
     }
-    if (strcmp(field, "default_provider") == 0 && config->default_provider != NULL) {
-        return talloc_strdup(ctx, config->default_provider);
+    if (strcmp(field, "default_provider") == 0) {
+        return talloc_strdup(ctx, config->default_provider != NULL ? config->default_provider : "undefined");
     }
     if (strcmp(field, "max_tool_turns") == 0) {
         char *val = talloc_asprintf(ctx, "%" PRId32, config->max_tool_turns);
@@ -84,8 +84,8 @@ static char *resolve_config_field(TALLOC_CTX *ctx, const char *field, ik_config_
         if (val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return val;
     }
-    if (strcmp(field, "listen_address") == 0 && config->listen_address != NULL) {
-        return talloc_strdup(ctx, config->listen_address);
+    if (strcmp(field, "listen_address") == 0) {
+        return talloc_strdup(ctx, config->listen_address != NULL ? config->listen_address : "undefined");
     }
     if (strcmp(field, "listen_port") == 0) {
         char *val = talloc_asprintf(ctx, "%" PRIu16, config->listen_port);
@@ -102,8 +102,8 @@ static char *resolve_config_field(TALLOC_CTX *ctx, const char *field, ik_config_
         if (val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return val;
     }
-    if (strcmp(field, "openai_system_message") == 0 && config->openai_system_message != NULL) {
-        return talloc_strdup(ctx, config->openai_system_message);
+    if (strcmp(field, "openai_system_message") == 0) {
+        return talloc_strdup(ctx, config->openai_system_message != NULL ? config->openai_system_message : "undefined");
     }
     return NULL;
 }

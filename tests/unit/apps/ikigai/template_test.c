@@ -312,8 +312,8 @@ START_TEST(test_agent_field_null) {
     res_t res = ik_template_process(ctx, input, null_agent, config, &result);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(result);
-    ck_assert_str_eq(result->processed, "UUID: ${agent.uuid}");
-    ck_assert_int_eq((int32_t)result->unresolved_count, 1);
+    ck_assert_str_eq(result->processed, "UUID: undefined");
+    ck_assert_int_eq((int32_t)result->unresolved_count, 0);
 }
 END_TEST
 
@@ -327,8 +327,8 @@ START_TEST(test_config_field_null) {
     res_t res = ik_template_process(ctx, input, agent, null_config, &result);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(result);
-    ck_assert_str_eq(result->processed, "Model: ${config.openai_model}");
-    ck_assert_int_eq((int32_t)result->unresolved_count, 1);
+    ck_assert_str_eq(result->processed, "Model: undefined");
+    ck_assert_int_eq((int32_t)result->unresolved_count, 0);
 }
 END_TEST
 
@@ -341,6 +341,20 @@ START_TEST(test_unknown_namespace) {
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result->processed, "Unknown: ${unknown.field}");
     ck_assert_int_eq((int32_t)result->unresolved_count, 1);
+}
+END_TEST
+
+START_TEST(test_known_field_null_resolves_to_undefined) {
+    ik_agent_ctx_t *test_agent = talloc_zero(ctx, ik_agent_ctx_t);
+    ck_assert_ptr_nonnull(test_agent);
+
+    const char *input = "Provider: ${agent.provider}";
+    ik_template_result_t *result = NULL;
+
+    res_t res = ik_template_process(ctx, input, test_agent, config, &result);
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(result->processed, "Provider: undefined");
+    ck_assert_int_eq((int32_t)result->unresolved_count, 0);
 }
 END_TEST
 
@@ -366,8 +380,8 @@ START_TEST(test_agent_string_fields_null) {
         char *input = talloc_asprintf(ctx, "Field: ${agent.%s}", fields[i]);
         res_t res = ik_template_process(ctx, input, test_agent, config, &result);
         ck_assert(is_ok(&res));
-        ck_assert(strstr(result->processed, "${agent.") != NULL);
-        ck_assert_int_eq((int32_t)result->unresolved_count, 1);
+        ck_assert_str_eq(result->processed, "Field: undefined");
+        ck_assert_int_eq((int32_t)result->unresolved_count, 0);
         talloc_free(input);
         talloc_free(result);
         result = NULL;
@@ -386,8 +400,8 @@ START_TEST(test_config_string_fields_null) {
         char *input = talloc_asprintf(ctx, "Field: ${config.%s}", fields[i]);
         res_t res = ik_template_process(ctx, input, agent, test_config, &result);
         ck_assert(is_ok(&res));
-        ck_assert(strstr(result->processed, "${config.") != NULL);
-        ck_assert_int_eq((int32_t)result->unresolved_count, 1);
+        ck_assert_str_eq(result->processed, "Field: undefined");
+        ck_assert_int_eq((int32_t)result->unresolved_count, 0);
         talloc_free(input);
         talloc_free(result);
         result = NULL;
@@ -425,6 +439,7 @@ static Suite *template_suite(void)
     tcase_add_test(tc, test_duplicate_unresolved);
     tcase_add_test(tc, test_agent_string_fields_null);
     tcase_add_test(tc, test_config_string_fields_null);
+    tcase_add_test(tc, test_known_field_null_resolves_to_undefined);
 
     suite_add_tcase(s, tc);
     return s;
