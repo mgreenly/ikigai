@@ -8,60 +8,36 @@ OpenAI models use two different APIs depending on model family.
 
 These models use the Responses API with effort-based reasoning.
 
-### o-series
+### GPT-5.4
 
 | Model | Reasoning | Notes |
 |-------|-----------|-------|
-| `o1` | Yes | Cannot fully disable reasoning (minimum `"low"`) |
-| `o3` | Yes | Can disable reasoning |
-| `o3-mini` | Yes | Cannot fully disable reasoning (minimum `"low"`) |
-| `o3-pro` | Yes | Can disable reasoning |
-| `o4-mini` | Yes | Can disable reasoning |
+| `gpt-5.4` | Yes | Flagship reasoning model, supports `"xhigh"` effort |
+| `gpt-5.4-pro` | Yes | Maximum compute variant, minimum `"medium"`, supports `"xhigh"` effort |
 
 #### Reasoning Levels
 
-| Level | o1 | o3-mini | o3, o3-pro, o4-mini |
-|-------|----|---------|---------------------|
-| `min` | `"low"` | `"low"` | `"none"` |
-| `low` | `"low"` | `"low"` | `"low"` |
-| `med` | `"medium"` | `"medium"` | `"medium"` |
-| `high` | `"high"` | `"high"` | `"high"` |
-
-### GPT-5
-
-| Model | Reasoning | Notes |
-|-------|-----------|-------|
-| `gpt-5` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
-| `gpt-5-mini` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
-| `gpt-5-nano` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
-| `gpt-5-pro` | Yes | Always uses `"high"` effort regardless of level |
-
-#### Reasoning Levels
-
-| Level | gpt-5, gpt-5-mini, gpt-5-nano | gpt-5-pro |
-|-------|-------------------------------|-----------|
-| `min` | `"minimal"` | `"high"` |
-| `low` | `"low"` | `"high"` |
-| `med` | `"medium"` | `"high"` |
-| `high` | `"high"` | `"high"` |
-
-### GPT-5.1
-
-| Model | Reasoning | Notes |
-|-------|-----------|-------|
-| `gpt-5.1` | Yes | Can disable reasoning |
-| `gpt-5.1-chat-latest` | Yes | Fixed `"medium"` — adaptive reasoning, not configurable |
-| `gpt-5.1-codex` | Yes | Can disable reasoning |
-| `gpt-5.1-codex-mini` | Yes | Can disable reasoning |
-
-#### Reasoning Levels
-
-| Level | gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini | gpt-5.1-chat-latest |
-|-------|----------------------------------------------|---------------------|
+| Level | gpt-5.4 | gpt-5.4-pro |
+|-------|---------|-------------|
 | `min` | `"none"` | `"medium"` |
 | `low` | `"low"` | `"medium"` |
-| `med` | `"medium"` | `"medium"` |
-| `high` | `"high"` | `"medium"` |
+| `med` | `"medium"` | `"high"` |
+| `high` | `"xhigh"` | `"xhigh"` |
+
+### GPT-5.3
+
+| Model | Reasoning | Notes |
+|-------|-----------|-------|
+| `gpt-5.3-codex` | Yes | Coding-optimized, minimum `"low"`, supports `"xhigh"` effort |
+
+#### Reasoning Levels
+
+| Level | gpt-5.3-codex |
+|-------|---------------|
+| `min` | `"low"` |
+| `low` | `"low"` |
+| `med` | `"medium"` |
+| `high` | `"xhigh"` |
 
 ### GPT-5.2
 
@@ -81,36 +57,60 @@ These models use the Responses API with effort-based reasoning.
 | `med` | `"medium"` | `"high"` | `"medium"` |
 | `high` | `"xhigh"` | `"xhigh"` | `"medium"` |
 
-### GPT-5.3
+### GPT-5.1
 
 | Model | Reasoning | Notes |
 |-------|-----------|-------|
-| `gpt-5.3-codex` | Yes | Coding-optimized, minimum `"low"`, supports `"xhigh"` effort |
+| `gpt-5.1` | Yes | Can disable reasoning |
+| `gpt-5.1-chat-latest` | Yes | Fixed `"medium"` — adaptive reasoning, not configurable |
+| `gpt-5.1-codex` | Yes | Can disable reasoning |
+| `gpt-5.1-codex-mini` | Yes | Can disable reasoning |
 
 #### Reasoning Levels
 
-| Level | gpt-5.3-codex |
-|-------|---------------|
-| `min` | `"low"` |
-| `low` | `"low"` |
-| `med` | `"medium"` |
-| `high` | `"xhigh"` |
-
-### GPT-5.4
-
-| Model | Reasoning | Notes |
-|-------|-----------|-------|
-| `gpt-5.4` | Yes | Flagship reasoning model, supports `"xhigh"` effort |
-| `gpt-5.4-pro` | Yes | Maximum compute variant, minimum `"medium"`, supports `"xhigh"` effort |
-
-#### Reasoning Levels
-
-| Level | gpt-5.4 | gpt-5.4-pro |
-|-------|---------|-------------|
+| Level | gpt-5.1, gpt-5.1-codex, gpt-5.1-codex-mini | gpt-5.1-chat-latest |
+|-------|----------------------------------------------|---------------------|
 | `min` | `"none"` | `"medium"` |
 | `low` | `"low"` | `"medium"` |
+| `med` | `"medium"` | `"medium"` |
+| `high` | `"high"` | `"medium"` |
+
+### GPT-5
+
+| Model | Reasoning | Notes |
+|-------|-----------|-------|
+| `gpt-5` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
+| `gpt-5-mini` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
+| `gpt-5-nano` | Yes | Cannot fully disable reasoning (minimum `"minimal"`) |
+| `gpt-5-pro` | Yes | Always uses `"high"` effort regardless of level |
+
+#### Reasoning Levels
+
+| Level | gpt-5, gpt-5-mini, gpt-5-nano | gpt-5-pro |
+|-------|-------------------------------|-----------|
+| `min` | `"minimal"` | `"high"` |
+| `low` | `"low"` | `"high"` |
 | `med` | `"medium"` | `"high"` |
-| `high` | `"xhigh"` | `"xhigh"` |
+| `high` | `"high"` | `"high"` |
+
+### o-series
+
+| Model | Reasoning | Notes |
+|-------|-----------|-------|
+| `o1` | Yes | Cannot fully disable reasoning (minimum `"low"`) |
+| `o3` | Yes | Can disable reasoning |
+| `o3-mini` | Yes | Cannot fully disable reasoning (minimum `"low"`) |
+| `o3-pro` | Yes | Can disable reasoning |
+| `o4-mini` | Yes | Can disable reasoning |
+
+#### Reasoning Levels
+
+| Level | o1 | o3-mini | o3, o3-pro, o4-mini |
+|-------|----|---------|---------------------|
+| `min` | `"low"` | `"low"` | `"none"` |
+| `low` | `"low"` | `"low"` | `"low"` |
+| `med` | `"medium"` | `"medium"` | `"medium"` |
+| `high` | `"high"` | `"high"` | `"high"` |
 
 ## Chat Completions API Models
 
@@ -120,12 +120,12 @@ These models do not support reasoning.
 
 | Model | Reasoning |
 |-------|-----------|
-| `gpt-4` | No |
-| `gpt-4-turbo` | No |
-| `gpt-4o` | No |
-| `gpt-4o-mini` | No |
-| `o1-mini` | No |
 | `o1-preview` | No |
+| `o1-mini` | No |
+| `gpt-4o-mini` | No |
+| `gpt-4o` | No |
+| `gpt-4-turbo` | No |
+| `gpt-4` | No |
 
 ## Fixed Parameters
 
