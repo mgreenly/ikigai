@@ -31,6 +31,9 @@ static const ik_model_capability_t MODEL_CAPABILITIES[] = {
     {"gpt-5.2", "openai", true, 0},
     {"gpt-5.2-chat-latest", "openai", true, 0},
     {"gpt-5.2-codex", "openai", true, 0},
+    {"gpt-5.3-codex", "openai", true, 0},
+    {"gpt-5.4", "openai", true, 0},
+    {"gpt-5.4-pro", "openai", true, 0},
 
     // OpenAI o-series reasoning models (effort-based, budget = 0)
     {"o1", "openai", true, 0},

@@ -81,6 +81,37 @@ These models use the Responses API with effort-based reasoning.
 | `med` | `"medium"` | `"high"` | `"medium"` |
 | `high` | `"xhigh"` | `"xhigh"` | `"medium"` |
 
+### GPT-5.3
+
+| Model | Reasoning | Notes |
+|-------|-----------|-------|
+| `gpt-5.3-codex` | Yes | Coding-optimized, minimum `"low"`, supports `"xhigh"` effort |
+
+#### Reasoning Levels
+
+| Level | gpt-5.3-codex |
+|-------|---------------|
+| `min` | `"low"` |
+| `low` | `"low"` |
+| `med` | `"medium"` |
+| `high` | `"xhigh"` |
+
+### GPT-5.4
+
+| Model | Reasoning | Notes |
+|-------|-----------|-------|
+| `gpt-5.4` | Yes | Flagship reasoning model, supports `"xhigh"` effort |
+| `gpt-5.4-pro` | Yes | Maximum compute variant, minimum `"medium"`, supports `"xhigh"` effort |
+
+#### Reasoning Levels
+
+| Level | gpt-5.4 | gpt-5.4-pro |
+|-------|---------|-------------|
+| `min` | `"none"` | `"medium"` |
+| `low` | `"low"` | `"medium"` |
+| `med` | `"medium"` | `"high"` |
+| `high` | `"xhigh"` | `"xhigh"` |
+
 ## Chat Completions API Models
 
 **API**: `https://api.openai.com/v1/chat/completions`

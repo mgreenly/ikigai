@@ -35,6 +35,9 @@ static const char *REASONING_MODELS[] = {
     "gpt-5.2-chat-latest",
     "gpt-5.2-codex",
     "gpt-5.2-pro",
+    "gpt-5.3-codex",
+    "gpt-5.4",
+    "gpt-5.4-pro",
     NULL  // Sentinel
 };
 
@@ -88,6 +91,12 @@ static const ik_effort_map_t EFFORT_MAP[] = {
     { "gpt-5.2-chat-latest", "medium",  "medium", "medium", "medium" },
     { "gpt-5.2-codex",       "none",    "low",  "medium", "xhigh" },
     { "gpt-5.2-pro",         "medium",  "medium", "high",  "xhigh" },
+    /* gpt-5.3-codex: coding-optimized, min "low", max "xhigh" */
+    { "gpt-5.3-codex",       "low",     "low",  "medium", "xhigh" },
+    /* gpt-5.4: flagship reasoning, min "none", max "xhigh" */
+    { "gpt-5.4",             "none",    "low",  "medium", "xhigh" },
+    /* gpt-5.4-pro: max compute, min "medium", max "xhigh" */
+    { "gpt-5.4-pro",         "medium",  "medium", "high",  "xhigh" },
     { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -135,6 +144,9 @@ static const char *RESPONSES_API_MODELS[] = {
     "gpt-5.2-chat-latest",
     "gpt-5.2-codex",
     "gpt-5.2-pro",
+    "gpt-5.3-codex",
+    "gpt-5.4",
+    "gpt-5.4-pro",
     NULL  // Sentinel
 };
 
