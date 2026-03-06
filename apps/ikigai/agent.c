@@ -318,7 +318,8 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
         talloc_free(prompt_path);
 
         if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
-            *out = content;
+            *out = process_pinned_content(agent, content);
+            talloc_free(content);
             return OK(*out);
         }
         if (content != NULL) {
@@ -329,8 +330,7 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
     // Priority 3: Config fallback
     if (agent->shared != NULL && agent->shared->cfg != NULL &&
         agent->shared->cfg->openai_system_message != NULL) {
-        *out = talloc_strdup(agent, agent->shared->cfg->openai_system_message);
-        if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        *out = process_pinned_content(agent, agent->shared->cfg->openai_system_message);
         return OK(*out);
     }
 

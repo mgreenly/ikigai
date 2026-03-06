@@ -134,20 +134,10 @@ res_t ik_db_ensure_agent_zero(ik_db_ctx_t *db, int64_t session_id, ik_paths_t *p
         }
     }
 
-    // Create initial pin event for system.md (only on fresh agent creation)
-    // Build path to system.md
-    const char *data_dir = ik_paths_get_data_dir(paths);
-    char *system_md_path = talloc_asprintf(tmp, "%s/system/prompt.md", data_dir);
-    if (system_md_path == NULL) {     // LCOV_EXCL_BR_LINE
-        talloc_free(tmp);     // LCOV_EXCL_LINE
-        return ERR(db, OUT_OF_MEMORY, "Failed to allocate system.md path");     // LCOV_EXCL_LINE
-    }
-
     // Create fork event with role="child" and pinned_paths array
     // This allows replay_fork_event() to populate the agent's pinned_paths
     char *fork_data = talloc_asprintf(tmp,
-        "{\"role\":\"child\",\"pinned_paths\":[\"%s\"]}",
-        system_md_path);
+        "{\"role\":\"child\",\"pinned_paths\":[\"ik://system/prompt.md\"]}");
     if (fork_data == NULL) {     // LCOV_EXCL_BR_LINE
         talloc_free(tmp);     // LCOV_EXCL_LINE
         return ERR(db, OUT_OF_MEMORY, "Failed to allocate fork event data");     // LCOV_EXCL_LINE

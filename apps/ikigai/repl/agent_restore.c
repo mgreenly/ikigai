@@ -10,7 +10,6 @@
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/msg.h"
-#include "apps/ikigai/paths.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/shared.h"
 #include "shared/error.h"
@@ -54,21 +53,12 @@ static void handle_fresh_install(ik_repl_ctx_t *repl, ik_db_ctx_t *db_ctx)
 
     // Write synthetic pin command for default system prompt
     if (repl->shared->paths != NULL) {     // LCOV_EXCL_BR_LINE
-        const char *data_dir = ik_paths_get_data_dir(repl->shared->paths);
-        char *system_prompt_path = talloc_asprintf(repl, "%s/system/prompt.md", data_dir);
-        if (system_prompt_path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-        char *pin_data = talloc_asprintf(
-            repl, "{\"command\":\"pin\",\"args\":\"%s\"}", system_prompt_path
-            );
-        if (pin_data == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        const char *pin_data = "{\"command\":\"pin\",\"args\":\"ik://system/prompt.md\"}";
 
         res_t pin_res = ik_db_message_insert(
             db_ctx, repl->shared->session_id, repl->current->uuid,
             "command", NULL, pin_data
             );
-        talloc_free(system_prompt_path);
-        talloc_free(pin_data);
         if (is_err(&pin_res)) {     // LCOV_EXCL_BR_LINE
             yyjson_mut_doc *pin_log = ik_log_create();     // LCOV_EXCL_LINE
             yyjson_mut_val *pin_root = yyjson_mut_doc_get_root(pin_log);     // LCOV_EXCL_LINE
