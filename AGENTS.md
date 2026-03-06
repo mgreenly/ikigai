@@ -2,6 +2,10 @@
 
 Ikigai is a terminal-based coding agent written in C for Linux, similar in purpose to Claude Code but designed as a modular, experimental platform. It supports multiple AI providers (Anthropic, OpenAI, Google) and records all user and LLM messages as events in PostgreSQL, creating a permanent conversation history that outlives any single context window. Agents are organized in an unbounded process tree — users create long-lived agents with custom system prompts built from stacked pinned documents, and those agents can spawn temporary child agents as needed. The flagship feature, currently in development, is a sliding context window: you set a token budget, old messages fall off the back, and a reserved portion is filled with automatically generated summaries drawn from the complete database history. The codebase is built to production standards but structured for experimentation — modular and plug-and-play so new ideas can be tested without destabilizing what works.
 
+## Goal Requirement
+
+All content changes in this repository must be done through `/ralph-pipeline:ralph-goal` unless the user provides explicit instructions to do otherwise. Do not edit source files, tests, docs, or any other tracked content without a goal.
+
 > **This file is an index, not an encyclopedia.** It tells you where to find information, not the information itself. Each skill listed below is a self-contained document you load on demand with `/load <name>`. If you need to understand the database schema, load `database`. If you need error handling patterns, load `errors`. Don't assume information is missing just because it isn't inlined here — check the skill table first, then load what you need. Resist the urge to front-load everything; load skills relevant to your current task and trust that the detail is there when you follow the pointer.
 
 ## Project Layout
