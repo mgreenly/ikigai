@@ -185,6 +185,95 @@ START_TEST(test_two_pinned_docs_order_preserved)
 END_TEST
 
 /* ================================================================
+ * Session summaries and recent summary injection
+ * ================================================================ */
+
+START_TEST(test_session_summaries_and_recent_summary)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    /* Set up two previous-session summaries (oldest first) */
+    agent->session_summaries = talloc_array(agent, ik_session_summary_t, 2);
+    ck_assert_ptr_nonnull(agent->session_summaries);
+    agent->session_summaries[0].summary = talloc_strdup(agent, "Session one summary.");
+    agent->session_summaries[0].token_count = 10;
+    agent->session_summaries[1].summary = talloc_strdup(agent, "Session two summary.");
+    agent->session_summaries[1].token_count = 12;
+    agent->session_summary_count = 2;
+
+    /* Set recent summary */
+    agent->recent_summary = talloc_strdup(agent, "Recent summary text.");
+    agent->recent_summary_tokens = 8;
+
+    ik_request_t *req = NULL;
+    res = ik_request_create(ctx, "test-model", &req);
+    ck_assert(is_ok(&res));
+
+    res = ik_agent_build_system_blocks(req, agent);
+    ck_assert(is_ok(&res));
+
+    /* Expect: block 0 (base) + 2 session summaries + 1 recent = 4 blocks */
+    ck_assert_uint_eq(req->system_block_count, 4);
+
+    /* Block 0: base system prompt, not cacheable */
+    ck_assert(req->system_blocks[0].cacheable == false);
+    ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+
+    /* Block 1: first session summary, cacheable */
+    ck_assert(req->system_blocks[1].cacheable == true);
+    ck_assert_str_eq(req->system_blocks[1].text, "Session one summary.");
+
+    /* Block 2: second session summary, cacheable */
+    ck_assert(req->system_blocks[2].cacheable == true);
+    ck_assert_str_eq(req->system_blocks[2].text, "Session two summary.");
+
+    /* Block 3: recent summary, not cacheable */
+    ck_assert(req->system_blocks[3].cacheable == false);
+    ck_assert_str_eq(req->system_blocks[3].text, "Recent summary text.");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_only_recent_summary_no_sessions)
+{
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    /* No session summaries, only recent summary */
+    agent->recent_summary = talloc_strdup(agent, "Only recent summary.");
+    agent->recent_summary_tokens = 5;
+
+    ik_request_t *req = NULL;
+    res = ik_request_create(ctx, "test-model", &req);
+    ck_assert(is_ok(&res));
+
+    res = ik_agent_build_system_blocks(req, agent);
+    ck_assert(is_ok(&res));
+
+    /* Expect: block 0 (base) + 1 recent summary = 2 blocks */
+    ck_assert_uint_eq(req->system_block_count, 2);
+
+    /* Block 0: base system prompt, not cacheable */
+    ck_assert(req->system_blocks[0].cacheable == false);
+    ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+
+    /* Block 1: recent summary, not cacheable */
+    ck_assert(req->system_blocks[1].cacheable == false);
+    ck_assert_str_eq(req->system_blocks[1].text, "Only recent summary.");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ================================================================
  * Suite
  * ================================================================ */
 
@@ -206,6 +295,12 @@ static Suite *agent_system_prompt_suite(void)
     tcase_add_checked_fixture(tc_two_pins, suite_setup, NULL);
     tcase_add_test(tc_two_pins, test_two_pinned_docs_order_preserved);
     suite_add_tcase(s, tc_two_pins);
+
+    TCase *tc_summaries = tcase_create("SessionSummaries");
+    tcase_add_checked_fixture(tc_summaries, suite_setup, NULL);
+    tcase_add_test(tc_summaries, test_session_summaries_and_recent_summary);
+    tcase_add_test(tc_summaries, test_only_recent_summary_no_sessions);
+    suite_add_tcase(s, tc_summaries);
 
     return s;
 }
