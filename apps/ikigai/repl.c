@@ -15,6 +15,7 @@
 #include "apps/ikigai/repl_event_handlers.h"
 #include "apps/ikigai/repl_tool_completion.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/summary_worker.h"
 #include "apps/ikigai/signal_handler.h"
 #include "shared/wrapper.h"
 
@@ -171,6 +172,9 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
 
         // Poll for tool thread completion - check ALL agents
         CHECK(ik_repl_poll_tool_completions(repl));  // LCOV_EXCL_BR_LINE
+
+        // Poll for background summary thread completion
+        ik_summary_worker_poll(repl->current);  // LCOV_EXCL_LINE
 
         // Poll for pending prompts - check all agents for deferred fork prompts
         for (size_t i = 0; i < repl->agent_count; i++) {
