@@ -254,6 +254,130 @@ START_TEST(test_populated_cache_json) {
 }
 END_TEST
 
+/* ---- Summary token tests ---- */
+
+/* Helper: get total with no summary tokens as a baseline (accounts for system
+ * prompt overhead from whatever is in the environment). */
+static int32_t get_baseline_total(ik_agent_ctx_t *agent)
+{
+    ik_token_cache_t *tmp = ik_token_cache_create(agent, agent);
+    return ik_token_cache_get_total(tmp);
+}
+
+START_TEST(test_recent_summary_tokens_in_total) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
+    ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
+
+    /* Compute baseline (system prompt overhead from env, no summaries) */
+    int32_t baseline = ik_token_cache_get_total(cache);
+
+    /* Set recent_summary_tokens — summary tokens are read fresh, no invalidation
+     * needed; the base (system+tools+turns) stays cached */
+    agent->recent_summary_tokens = 500;
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 500);
+
+    /* Change it and verify the new value is reflected immediately */
+    agent->recent_summary_tokens = 750;
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 750);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_session_summary_tokens_in_total) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
+    ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
+
+    int32_t baseline = ik_token_cache_get_total(cache);
+
+    /* Allocate two session summary entries */
+    ik_session_summary_t **summaries = talloc_array(agent, ik_session_summary_t *, 2);
+    ik_session_summary_t *s1 = talloc_zero(summaries, ik_session_summary_t);
+    ik_session_summary_t *s2 = talloc_zero(summaries, ik_session_summary_t);
+    s1->token_count = 300;
+    s2->token_count = 200;
+    summaries[0] = s1;
+    summaries[1] = s2;
+    agent->session_summaries = summaries;
+    agent->session_summary_count = 2;
+
+    /* Total should include both session summary token counts: baseline + 300 + 200 */
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 500);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_summary_tokens_combined_with_turns) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
+    ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
+
+    /* Compute baseline with no turns and no summaries */
+    int32_t baseline = ik_token_cache_get_total(cache);
+
+    /* Record a turn with 100 tokens */
+    ik_token_cache_add_turn(cache);
+    ik_token_cache_record_turn(cache, 0, 100);
+
+    /* Set recent summary tokens and one session summary (all read fresh) */
+    agent->recent_summary_tokens = 400;
+    ik_session_summary_t **summaries = talloc_array(agent, ik_session_summary_t *, 1);
+    ik_session_summary_t *ss = talloc_zero(summaries, ik_session_summary_t);
+    ss->token_count = 150;
+    summaries[0] = ss;
+    agent->session_summaries = summaries;
+    agent->session_summary_count = 1;
+
+    /* Total: baseline + 100 (turn) + 400 (recent_summary) + 150 (session_summary) */
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 650);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_pruning_with_summary_tokens) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
+
+    /* Get baseline overhead from system prompt etc. */
+    int32_t overhead = get_baseline_total(agent);
+
+    ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
+
+    /* Set budget to fit one turn but not two when summaries are present.
+     * overhead + 600 (summary) + 2 * 100 (turns) = overhead+800 > budget.
+     * After pruning one turn: overhead + 600 + 100 > budget (still).
+     * Pruning is limited to turn_count > 1, so we need 3 turns. */
+    int32_t budget = overhead + 600 + 150; /* only one turn fits alongside summaries */
+    ik_token_cache_set_budget(cache, budget);
+    agent->recent_summary_tokens = 600;
+
+    /* Add three turns of 100 tokens each */
+    ik_token_cache_add_turn(cache);
+    ik_token_cache_record_turn(cache, 0, 100);
+    ik_token_cache_add_turn(cache);
+    ik_token_cache_record_turn(cache, 1, 100);
+    ik_token_cache_add_turn(cache);
+    ik_token_cache_record_turn(cache, 2, 100);
+
+    /* Total should exceed budget: overhead + 600 + 300 > overhead + 750 */
+    ck_assert_int_gt(ik_token_cache_get_total(cache), budget);
+
+    /* Prune oldest turn (100 removed from base); should still be over budget */
+    ik_token_cache_prune_oldest_turn(cache);
+    ck_assert_int_gt(ik_token_cache_get_total(cache), budget);
+
+    /* Prune again; now two turns removed: overhead + 600 + 100 <= overhead + 750 */
+    ik_token_cache_prune_oldest_turn(cache);
+    ck_assert_int_le(ik_token_cache_get_total(cache), budget);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *token_cache_ctl_suite(void)
 {
     Suite *s = suite_create("token_cache_ctl");
@@ -268,6 +392,13 @@ static Suite *token_cache_ctl_suite(void)
     tcase_add_test(tc_disp, test_null_cache_returns_empty_json);
     tcase_add_test(tc_disp, test_populated_cache_json);
     suite_add_tcase(s, tc_disp);
+
+    TCase *tc_sum = tcase_create("SummaryTokens");
+    tcase_add_test(tc_sum, test_recent_summary_tokens_in_total);
+    tcase_add_test(tc_sum, test_session_summary_tokens_in_total);
+    tcase_add_test(tc_sum, test_summary_tokens_combined_with_turns);
+    tcase_add_test(tc_sum, test_pruning_with_summary_tokens);
+    suite_add_tcase(s, tc_sum);
 
     return s;
 }

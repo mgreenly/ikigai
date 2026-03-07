@@ -60,7 +60,6 @@ static ik_token_cache_t *alloc_cache(TALLOC_CTX *ctx,
     return c;
 }
 
-/* Estimate bytes in agent messages[start..end) for fallback */
 static size_t estimate_turn_bytes(ik_agent_ctx_t *agent, size_t start, size_t end)
 {
     size_t total = 0;
@@ -85,7 +84,6 @@ static size_t estimate_turn_bytes(ik_agent_ctx_t *agent, size_t start, size_t en
     return total;
 }
 
-/* Find message [start,end) for turn_index (relative to context_start_index). */
 static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
                              size_t *start_out, size_t *end_out)
 {
@@ -115,7 +113,6 @@ static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
     return false;
 }
 
-/* Call provider count_tokens. Returns -1 on failure. */
 static int32_t provider_count(ik_token_cache_t *cache, ik_request_t *req)
 {
     struct ik_provider *p = cache->agent->provider_instance;
@@ -130,7 +127,6 @@ static int32_t provider_count(ik_token_cache_t *cache, ik_request_t *req)
     return count;
 }
 
-/* Build minimal request for a turn's messages and count via provider */
 static int32_t count_turn_via_provider(ik_token_cache_t *cache,
                                        size_t msg_start, size_t msg_end)
 {
@@ -273,7 +269,6 @@ int32_t ik_token_cache_get_turn_tokens(ik_token_cache_t *cache, size_t turn_inde
         return cache->turn_tokens[turn_index];
     }
 
-    /* No cached value — try to find turn messages and count */
     size_t msg_start = 0;
     size_t msg_end = 0;
     if (cache->agent != NULL &&
@@ -284,12 +279,10 @@ int32_t ik_token_cache_get_turn_tokens(ik_token_cache_t *cache, size_t turn_inde
             cache->total_tokens = TOKEN_UNCACHED;
             return count;
         }
-        /* Bytes fallback — not cached */
         size_t bytes = estimate_turn_bytes(cache->agent, msg_start, msg_end);
         return ik_token_count_from_bytes(bytes);
     }
 
-    /* No messages found for this turn */
     return 0;
 }
 
@@ -297,18 +290,19 @@ int32_t ik_token_cache_get_total(ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
 
-    if (cache->total_tokens != TOKEN_UNCACHED) {
-        return cache->total_tokens;
+    if (cache->total_tokens == TOKEN_UNCACHED) {
+        int32_t base = ik_token_cache_get_system_tokens(cache);
+        base += ik_token_cache_get_tool_tokens(cache);
+        for (size_t i = 0; i < cache->turn_count; i++)
+            base += ik_token_cache_get_turn_tokens(cache, i);
+        cache->total_tokens = base;
     }
 
-    int32_t total = 0;
-    total += ik_token_cache_get_system_tokens(cache);
-    total += ik_token_cache_get_tool_tokens(cache);
-    for (size_t i = 0; i < cache->turn_count; i++) {
-        total += ik_token_cache_get_turn_tokens(cache, i);
-    }
-
-    cache->total_tokens = total;
+    /* Summary tokens read fresh so changes take effect without invalidation. */
+    int32_t total = cache->total_tokens + cache->agent->recent_summary_tokens;
+    for (size_t i = 0; i < cache->agent->session_summary_count; i++)
+        if (cache->agent->session_summaries[i] != NULL)
+            total += (int32_t)cache->agent->session_summaries[i]->token_count;
     return total;
 }
 
