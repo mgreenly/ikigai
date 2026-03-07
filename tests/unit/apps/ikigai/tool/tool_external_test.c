@@ -293,7 +293,6 @@ START_TEST(test_tool_with_child_pid_out) {
 
 END_TEST
 
-
 static Suite *tool_external_suite(void)
 {
     Suite *s = suite_create("ToolExternal");

@@ -1,5 +1,5 @@
 /**
-#include "apps/ikigai/wrapper_pthread.h"
+ #include "apps/ikigai/wrapper_pthread.h"
  * @file provider_switching_thinking_test.c
  * @brief Integration tests for thinking level translation
  *

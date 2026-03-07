@@ -137,8 +137,7 @@ static void reset_mocks(void)
 }
 
 // Test: mkdir failure in ensure_runtime_dir_exists
-START_TEST(test_init_mkdir_fails)
-{
+START_TEST(test_init_mkdir_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -162,8 +161,7 @@ START_TEST(test_init_mkdir_fails)
 END_TEST
 
 // Test: socket() failure
-START_TEST(test_init_socket_fails)
-{
+START_TEST(test_init_socket_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -186,8 +184,7 @@ START_TEST(test_init_socket_fails)
 END_TEST
 
 // Test: bind() failure
-START_TEST(test_init_bind_fails)
-{
+START_TEST(test_init_bind_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -210,8 +207,7 @@ START_TEST(test_init_bind_fails)
 END_TEST
 
 // Test: listen() failure
-START_TEST(test_init_listen_fails)
-{
+START_TEST(test_init_listen_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -234,8 +230,7 @@ START_TEST(test_init_listen_fails)
 END_TEST
 
 // Test: read error (n < 0) in handle_client
-START_TEST(test_handle_client_read_error)
-{
+START_TEST(test_handle_client_read_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -251,7 +246,7 @@ START_TEST(test_handle_client_read_error)
     // Connect a client
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd, 0);

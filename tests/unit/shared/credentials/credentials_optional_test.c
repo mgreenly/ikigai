@@ -54,13 +54,13 @@ START_TEST(test_optional_credentials_from_file) {
     unsetenv("NTFY_TOPIC");
 
     const char *json = "{"
-        "\"GOOGLE_SEARCH_API_KEY\":\"gs-key\","
-        "\"GOOGLE_SEARCH_ENGINE_ID\":\"gs-engine\","
-        "\"IKIGAI_DB_PASS\":\"db-pass\","
-        "\"BRAVE_API_KEY\":\"brave-key\","
-        "\"NTFY_API_KEY\":\"ntfy-key\","
-        "\"NTFY_TOPIC\":\"ntfy-topic\""
-    "}";
+                       "\"GOOGLE_SEARCH_API_KEY\":\"gs-key\","
+                       "\"GOOGLE_SEARCH_ENGINE_ID\":\"gs-engine\","
+                       "\"IKIGAI_DB_PASS\":\"db-pass\","
+                       "\"BRAVE_API_KEY\":\"brave-key\","
+                       "\"NTFY_API_KEY\":\"ntfy-key\","
+                       "\"NTFY_TOPIC\":\"ntfy-topic\""
+                       "}";
     char *path = create_temp_credentials(json);
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);
@@ -110,10 +110,10 @@ END_TEST
 
 START_TEST(test_optional_credentials_env_override) {
     const char *json = "{"
-        "\"GOOGLE_SEARCH_API_KEY\":\"file-gs-key\","
-        "\"GOOGLE_SEARCH_ENGINE_ID\":\"file-gs-engine\","
-        "\"IKIGAI_DB_PASS\":\"file-db-pass\""
-    "}";
+                       "\"GOOGLE_SEARCH_API_KEY\":\"file-gs-key\","
+                       "\"GOOGLE_SEARCH_ENGINE_ID\":\"file-gs-engine\","
+                       "\"IKIGAI_DB_PASS\":\"file-db-pass\""
+                       "}";
     char *path = create_temp_credentials(json);
 
     setenv("GOOGLE_SEARCH_API_KEY", "env-gs-key", 1);
@@ -143,13 +143,13 @@ START_TEST(test_credentials_get_optional) {
     unsetenv("NTFY_TOPIC");
 
     const char *json = "{"
-        "\"GOOGLE_SEARCH_API_KEY\":\"gs-test\","
-        "\"GOOGLE_SEARCH_ENGINE_ID\":\"engine-test\","
-        "\"IKIGAI_DB_PASS\":\"pass-test\","
-        "\"BRAVE_API_KEY\":\"brave-test\","
-        "\"NTFY_API_KEY\":\"ntfy-key-test\","
-        "\"NTFY_TOPIC\":\"ntfy-topic-test\""
-    "}";
+                       "\"GOOGLE_SEARCH_API_KEY\":\"gs-test\","
+                       "\"GOOGLE_SEARCH_ENGINE_ID\":\"engine-test\","
+                       "\"IKIGAI_DB_PASS\":\"pass-test\","
+                       "\"BRAVE_API_KEY\":\"brave-test\","
+                       "\"NTFY_API_KEY\":\"ntfy-key-test\","
+                       "\"NTFY_TOPIC\":\"ntfy-topic-test\""
+                       "}";
     char *path = create_temp_credentials(json);
     ik_credentials_t *creds = NULL;
     res_t result = ik_credentials_load(test_ctx, path, &creds);

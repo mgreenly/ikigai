@@ -25,7 +25,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 void ik_persist_pin_command(void *ctx, ik_repl_ctx_t *repl, const char *command, const char *path)
 {
@@ -109,7 +108,7 @@ res_t ik_cmd_pin_add(void *ctx, ik_repl_ctx_t *repl, const char *path)
             char *msg = NULL;
             if (color_seq[0] != '\0') {
                 msg = talloc_asprintf(ctx, "%s%s File not found: %s%s",
-                                     color_seq, prefix, path, IK_ANSI_RESET);
+                                      color_seq, prefix, path, IK_ANSI_RESET);
             } else {
                 msg = talloc_asprintf(ctx, "%s File not found: %s", prefix, path);
             }
@@ -141,7 +140,7 @@ res_t ik_cmd_pin_add(void *ctx, ik_repl_ctx_t *repl, const char *path)
     }
 
     char **new_paths = talloc_realloc(repl->current, repl->current->pinned_paths,
-                                       char *, (unsigned int)(repl->current->pinned_count + 1));
+                                      char *, (unsigned int)(repl->current->pinned_count + 1));
     if (!new_paths) {     // LCOV_EXCL_BR_LINE
         PANIC("OOM");   // LCOV_EXCL_LINE
     }
@@ -222,7 +221,7 @@ res_t ik_cmd_unpin(void *ctx, ik_repl_ctx_t *repl, const char *args)
         repl->current->pinned_paths = NULL;
     } else {
         char **new_paths = talloc_realloc(repl->current, repl->current->pinned_paths,
-                                           char *, (unsigned int)repl->current->pinned_count);
+                                          char *, (unsigned int)repl->current->pinned_count);
         if (!new_paths) {     // LCOV_EXCL_BR_LINE
             PANIC("OOM");   // LCOV_EXCL_LINE
         }

@@ -1,5 +1,5 @@
 /**
-#include "apps/ikigai/wrapper_pthread.h"
+ #include "apps/ikigai/wrapper_pthread.h"
  * @file test_error_handling_e2e.c
  * @brief Integration tests for error handling and recovery
  *

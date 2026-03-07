@@ -19,7 +19,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 // Helper: apply color styling to content based on color code
@@ -319,7 +318,8 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
     uint8_t color = 0;
     const char *prefix = NULL;
 
-    if (interrupted && (strcmp(kind, "user") == 0 || strcmp(kind, "tool_call") == 0 || strcmp(kind, "tool_result") == 0)) {
+    if (interrupted && (strcmp(kind, "user") == 0 || strcmp(kind, "tool_call") == 0 || strcmp(kind,
+                                                                                              "tool_result") == 0)) {
         // Use cancelled style for interrupted messages
         int32_t color_code = ik_output_color(IK_OUTPUT_CANCELLED);
         color = (color_code >= 0) ? (uint8_t)color_code : 0;     // LCOV_EXCL_BR_LINE

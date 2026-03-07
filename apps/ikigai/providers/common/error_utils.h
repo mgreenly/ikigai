@@ -44,5 +44,4 @@ typedef void TALLOC_CTX;
  */
 bool ik_error_is_retryable(int category);
 
-
 #endif /* IK_PROVIDERS_COMMON_ERROR_UTILS_H */

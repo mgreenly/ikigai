@@ -5,7 +5,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Spinner animation frames
 static const char *SPINNER_FRAMES[] = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};

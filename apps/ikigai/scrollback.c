@@ -17,7 +17,6 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-
 #include "shared/poison.h"
 ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width)
 {

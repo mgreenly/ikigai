@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Private struct definition (NOT in header)
 struct ik_paths_t {
@@ -135,7 +134,6 @@ const char *ik_paths_get_data_dir(ik_paths_t *paths)
     return paths->data_dir;
 }
 
-
 const char *ik_paths_get_state_dir(ik_paths_t *paths)
 {
     assert(paths != NULL);  // LCOV_EXCL_BR_LINE
@@ -174,7 +172,7 @@ static inline bool is_alnum_or_underscore(char c)
 }
 
 res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
-                                         const char *input, char **out)
+                                        const char *input, char **out)
 {
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(out != NULL);    // LCOV_EXCL_BR_LINE
@@ -231,8 +229,9 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
 
     // Allocate output buffer
     size_t output_size = strlen(input) +
-                        (state_dir_len - uri_prefix_len + 1) * generic_count +
-                        (data_dir_len + system_suffix_len + 1 - uri_prefix_len - system_suffix_len + 1) * system_count + 1;
+                         (state_dir_len - uri_prefix_len + 1) * generic_count +
+                         (data_dir_len + system_suffix_len + 1 - uri_prefix_len - system_suffix_len + 1) *
+                         system_count + 1;
     char *result = talloc_zero_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -284,7 +283,7 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
         memcpy(dest, state_dir, state_dir_len);
         dest += state_dir_len;
         bool need_slash = (*after_prefix != '\0' && *after_prefix != '/' &&
-                          state_dir[state_dir_len - 1] != '/');
+                           state_dir[state_dir_len - 1] != '/');
         if (need_slash) {
             *dest++ = '/';
         }
@@ -299,7 +298,7 @@ res_t ik_paths_translate_ik_uri_to_path(TALLOC_CTX *ctx, ik_paths_t *paths,
 }
 
 res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
-                                         const char *input, char **out)
+                                        const char *input, char **out)
 {
     assert(ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(out != NULL);    // LCOV_EXCL_BR_LINE
@@ -358,9 +357,9 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
 
     // Allocate output buffer
     size_t output_size = strlen(input) +
-                        (uri_prefix_len - state_dir_len) * generic_count +
-                        (uri_prefix_len + system_suffix_len - (data_dir_len + 1 + system_suffix_len)) * system_count +
-                        generic_count + system_count + 1;
+                         (uri_prefix_len - state_dir_len) * generic_count +
+                         (uri_prefix_len + system_suffix_len - (data_dir_len + 1 + system_suffix_len)) * system_count +
+                         generic_count + system_count + 1;
     char *result = talloc_zero_array(ctx, char, (unsigned int)output_size);
     if (result == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -383,7 +382,7 @@ res_t ik_paths_translate_path_to_ik_uri(TALLOC_CTX *ctx, ik_paths_t *paths,
         }
 
         bool use_system = (system_match != NULL &&
-                          (state_match == NULL || system_match < state_match));
+                           (state_match == NULL || system_match < state_match));
 
         const char *match = use_system ? system_match : state_match;
         size_t match_len = use_system ? system_path_len : state_dir_len;

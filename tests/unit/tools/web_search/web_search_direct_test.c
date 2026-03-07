@@ -160,7 +160,8 @@ static void teardown(void)
 
 static web_search_params_t mk_p(void)
 {
-    web_search_params_t p = {.query = "test", .count = 10, .offset = 0, .allowed_domains = NULL, .blocked_domains = NULL};
+    web_search_params_t p = {.query = "test", .count = 10, .offset = 0, .allowed_domains = NULL,
+                             .blocked_domains = NULL};
     return p;
 }
 
@@ -180,214 +181,199 @@ static yyjson_val *mk_f(const char *j)
     return yyjson_doc_get_root(d);
 }
 
-START_TEST(test_curl_init_failure)
-{
+START_TEST(test_curl_init_failure) {
     mock_curl_return = NULL;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_curl_perform_failure)
-{
+START_TEST(test_curl_perform_failure) {
     mock_perform_return = CURLE_COULDNT_CONNECT;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_no_api_key)
-{
+START_TEST(test_no_api_key) {
     mock_env_brave_key = NULL;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_http_401_error)
-{
+START_TEST(test_http_401_error) {
     mock_http_code = 401;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_http_429_rate_limit)
-{
+START_TEST(test_http_429_rate_limit) {
     mock_http_code = 429;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_http_500_error)
-{
+START_TEST(test_http_500_error) {
     mock_http_code = 500;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_success_with_results)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\", \"description\": \"Test desc\"}]}}");
+START_TEST(test_success_with_results) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\", \"description\": \"Test desc\"}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_success_empty_results)
-{
+START_TEST(test_success_empty_results) {
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": []}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_invalid_json_response)
-{
+START_TEST(test_invalid_json_response) {
     mock_response_data = talloc_strdup(test_ctx, "not json");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_missing_web_field)
-{
+START_TEST(test_missing_web_field) {
     mock_response_data = talloc_strdup(test_ctx, "{\"results\": []}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_empty_response_data)
-{
+START_TEST(test_empty_response_data) {
     mock_response_data = NULL;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_results_not_array)
-{
+START_TEST(test_results_not_array) {
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": \"not an array\"}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_http_403_error)
-{
+START_TEST(test_http_403_error) {
     mock_http_code = 403;
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_invalid_url_entry)
-{
+START_TEST(test_invalid_url_entry) {
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"title\": \"No URL\"}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_allowed_domains_match)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_allowed_domains_match) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.allowed_domains = mk_f("[\"example.com\"]");
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_allowed_domains_no_match)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_allowed_domains_no_match) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.allowed_domains = mk_f("[\"different.com\"]");
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_blocked_domains_match)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_blocked_domains_match) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.blocked_domains = mk_f("[\"example.com\"]");
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_blocked_domains_no_match)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_blocked_domains_no_match) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.blocked_domains = mk_f("[\"different.com\"]");
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_empty_api_key_env)
-{
+START_TEST(test_empty_api_key_env) {
     mock_env_brave_key = talloc_strdup(test_ctx, "");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_result_missing_title)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"description\": \"Test desc\"}]}}");
+START_TEST(test_result_missing_title) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"description\": \"Test desc\"}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_result_missing_description)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\"}]}}");
+START_TEST(test_result_missing_description) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_result_title_not_string)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": 123}]}}");
+START_TEST(test_result_title_not_string) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": 123}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_result_description_not_string)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\", \"description\": false}]}}");
+START_TEST(test_result_description_not_string) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com\", \"title\": \"Test\", \"description\": false}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_result_url_not_string)
-{
+START_TEST(test_result_url_not_string) {
     mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": 456, \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_allowed_domains_non_string)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_allowed_domains_non_string) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.allowed_domains = mk_f("[123, \"example.com\"]");
     ck_assert_int_eq(run(&p), 0);
 }
 END_TEST
 
-START_TEST(test_blocked_domains_non_string)
-{
-    mock_response_data = talloc_strdup(test_ctx, "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
+START_TEST(test_blocked_domains_non_string) {
+    mock_response_data = talloc_strdup(test_ctx,
+                                       "{\"web\": {\"results\": [{\"url\": \"https://example.com/page\", \"title\": \"Test\"}]}}");
     web_search_params_t p = mk_p();
     p.blocked_domains = mk_f("[456]");
     ck_assert_int_eq(run(&p), 0);

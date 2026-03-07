@@ -21,7 +21,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Sort agents by created_at (oldest first)
 static int compare_agents_by_created_at(const void *a, const void *b)

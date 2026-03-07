@@ -16,7 +16,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Forward declarations
 static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root);
@@ -150,7 +149,7 @@ static void replay_pin_command(ik_agent_ctx_t *agent, const char *args)
     }
 
     char **new_paths = talloc_realloc(agent, agent->pinned_paths,
-                                       char *, (unsigned int)(agent->pinned_count + 1));
+                                      char *, (unsigned int)(agent->pinned_count + 1));
     if (new_paths == NULL) return;  // LCOV_EXCL_LINE
     agent->pinned_paths = new_paths;
 
@@ -185,7 +184,7 @@ static void replay_unpin_command(ik_agent_ctx_t *agent, const char *args)
         agent->pinned_paths = NULL;     // LCOV_EXCL_LINE
     } else {
         char **new_paths = talloc_realloc(agent, agent->pinned_paths,
-                                           char *, (unsigned int)agent->pinned_count);
+                                          char *, (unsigned int)agent->pinned_count);
         if (new_paths != NULL) {  // LCOV_EXCL_BR_LINE
             agent->pinned_paths = new_paths;
         }

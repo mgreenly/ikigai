@@ -20,7 +20,6 @@
 #include <string.h>
 #include <assert.h>
 
-
 #include "shared/poison.h"
 // Helper: calculate max_tokens with thinking budget adjustment
 static int32_t calculate_max_tokens(const ik_request_t *req)
@@ -167,7 +166,7 @@ static const char *map_tool_choice_type(int32_t tool_choice_mode)
 
 // Helper: add tool_choice configuration
 static void add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                           const ik_request_t *req)
+                            const ik_request_t *req)
 {
     yyjson_mut_val *tool_choice_obj = yyjson_mut_obj(doc);
     if (!tool_choice_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -187,7 +186,7 @@ static void add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
 
 // Helper: add system field (blocks array or legacy string)
 static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
-                               yyjson_mut_val *root, const ik_request_t *req)
+                              yyjson_mut_val *root, const ik_request_t *req)
 {
     if (req->system_block_count == 0) {
         if (req->system_prompt != NULL) {
@@ -227,7 +226,7 @@ static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
 
 // Helper: add tools array to request
 static res_t add_tools(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
-                      yyjson_mut_val *root, const ik_request_t *req)
+                       yyjson_mut_val *root, const ik_request_t *req)
 {
     if (req->tool_count == 0) {
         return OK(NULL);

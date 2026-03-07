@@ -25,8 +25,7 @@ typedef struct {
  * Parse an HTTP request from raw data.
  * Returns NULL on parse error.
  */
-http_request_t *http_request_parse(TALLOC_CTX *ctx, const char *data,
-                                   size_t data_len);
+http_request_t *http_request_parse(TALLOC_CTX *ctx, const char *data, size_t data_len);
 
 /**
  * Write an HTTP response with JSON body.

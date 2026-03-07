@@ -58,5 +58,4 @@ res_t ik_credentials_load(TALLOC_CTX *ctx, const char *path, ik_credentials_t **
  */
 const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_var_name);
 
-
 #endif // IK_CREDENTIALS_H

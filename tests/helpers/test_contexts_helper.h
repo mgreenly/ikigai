@@ -46,11 +46,7 @@ res_t test_shared_ctx_create(TALLOC_CTX *ctx, ik_shared_ctx_t **out);
 
 // Create shared + repl together (most common test need)
 // Both are children of ctx (siblings to each other)
-res_t test_repl_create(TALLOC_CTX *ctx,
-                       ik_shared_ctx_t **shared_out,
-                       ik_repl_ctx_t **repl_out);
+res_t test_repl_create(TALLOC_CTX *ctx, ik_shared_ctx_t **shared_out, ik_repl_ctx_t **repl_out);
 
 // Create shared with custom config
-res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
-                                       ik_config_t *cfg,
-                                       ik_shared_ctx_t **out);
+res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx, ik_config_t *cfg, ik_shared_ctx_t **out);

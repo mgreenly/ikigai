@@ -39,7 +39,7 @@ static ik_paths_t *create_test_paths(TALLOC_CTX *ctx, const char *tmpdir)
 
 /* Set up control socket + connected client, return client fd */
 static int32_t setup_socket(TALLOC_CTX *ctx, const char *tmpdir,
-                              ik_control_socket_t **ctl_out)
+                            ik_control_socket_t **ctl_out)
 {
     ik_paths_t *paths = create_test_paths(ctx, tmpdir);
     ck_assert_ptr_nonnull(paths);
@@ -49,7 +49,7 @@ static int32_t setup_socket(TALLOC_CTX *ctx, const char *tmpdir,
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
     int32_t client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd, 0);
 
@@ -86,10 +86,10 @@ static ik_repl_ctx_t *create_repl_no_cache(TALLOC_CTX *ctx)
 
 /* Create repl with a populated token cache */
 static ik_repl_ctx_t *create_repl_with_cache(TALLOC_CTX *ctx,
-                                               int32_t budget,
-                                               int32_t *turn_tokens,
-                                               size_t  turn_count,
-                                               size_t  pruned)
+                                             int32_t budget,
+                                             int32_t *turn_tokens,
+                                             size_t turn_count,
+                                             size_t pruned)
 {
     ik_repl_ctx_t *repl = talloc_zero(ctx, ik_repl_ctx_t);
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
@@ -123,8 +123,8 @@ static ik_repl_ctx_t *create_repl_with_cache(TALLOC_CTX *ctx,
 
 /* Do a round-trip: client writes request, server handles, client reads response */
 static void do_round_trip(int32_t client_fd, ik_control_socket_t *ctl,
-                           ik_repl_ctx_t *repl,
-                           char *buf, size_t buf_size)
+                          ik_repl_ctx_t *repl,
+                          char *buf, size_t buf_size)
 {
     const char *req = "{\"type\":\"read_token_cache\"}\n";
     ssize_t w = write(client_fd, req, strlen(req));
@@ -140,8 +140,7 @@ static void do_round_trip(int32_t client_fd, ik_control_socket_t *ctl,
 
 /* ---- Accessor unit tests ---- */
 
-START_TEST(test_introspection_defaults)
-{
+START_TEST(test_introspection_defaults) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
     ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
@@ -155,8 +154,7 @@ START_TEST(test_introspection_defaults)
 }
 END_TEST
 
-START_TEST(test_set_budget_and_peek_turn)
-{
+START_TEST(test_set_budget_and_peek_turn) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
     ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
@@ -174,8 +172,7 @@ START_TEST(test_set_budget_and_peek_turn)
 }
 END_TEST
 
-START_TEST(test_context_start_turn_increments)
-{
+START_TEST(test_context_start_turn_increments) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = talloc_zero(ctx, ik_agent_ctx_t);
     ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
@@ -201,8 +198,7 @@ END_TEST
 
 /* ---- Dispatch round-trip tests ---- */
 
-START_TEST(test_null_cache_returns_empty_json)
-{
+START_TEST(test_null_cache_returns_empty_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -227,8 +223,7 @@ START_TEST(test_null_cache_returns_empty_json)
 }
 END_TEST
 
-START_TEST(test_populated_cache_json)
-{
+START_TEST(test_populated_cache_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));

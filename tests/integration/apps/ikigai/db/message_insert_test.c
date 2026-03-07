@@ -110,13 +110,12 @@ static void test_teardown(void)
     }
 }
 
-#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while(0)
+#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // ========== Tests ==========
 
 // Test 1: Clear event (kind='clear', content=NULL, data={})
-START_TEST(test_clear_event_insert)
-{
+START_TEST(test_clear_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert clear event
@@ -144,8 +143,7 @@ START_TEST(test_clear_event_insert)
 END_TEST
 
 // Test 2: System event (kind='system', content='prompt text', data={})
-START_TEST(test_system_event_insert)
-{
+START_TEST(test_system_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert system event
@@ -171,8 +169,7 @@ START_TEST(test_system_event_insert)
 END_TEST
 
 // Test 3: User event with model data
-START_TEST(test_user_event_insert)
-{
+START_TEST(test_user_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert user event with JSONB data
@@ -204,8 +201,7 @@ START_TEST(test_user_event_insert)
 END_TEST
 
 // Test 4: Assistant event with model and token data
-START_TEST(test_assistant_event_insert)
-{
+START_TEST(test_assistant_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert assistant event with metadata
@@ -237,8 +233,7 @@ START_TEST(test_assistant_event_insert)
 END_TEST
 
 // Test 5: Mark event with label
-START_TEST(test_mark_event_insert)
-{
+START_TEST(test_mark_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert mark event (content=NULL, label in data_json)
@@ -267,8 +262,7 @@ START_TEST(test_mark_event_insert)
 END_TEST
 
 // Test 6: Rewind event with target_message_id
-START_TEST(test_rewind_event_insert)
-{
+START_TEST(test_rewind_event_insert) {
     SKIP_IF_NO_DB();
 
     // Insert rewind event
@@ -299,8 +293,7 @@ START_TEST(test_rewind_event_insert)
 END_TEST
 
 // Test 7: Verify created_at timestamp is set
-START_TEST(test_message_has_created_at)
-{
+START_TEST(test_message_has_created_at) {
     SKIP_IF_NO_DB();
 
     // Insert a message
@@ -324,8 +317,7 @@ START_TEST(test_message_has_created_at)
 END_TEST
 
 // Test 8: Verify foreign key constraint (session_id references sessions.id)
-START_TEST(test_message_foreign_key_constraint)
-{
+START_TEST(test_message_foreign_key_constraint) {
     SKIP_IF_NO_DB();
 
     // Try to insert message with non-existent session_id
@@ -338,8 +330,7 @@ START_TEST(test_message_foreign_key_constraint)
 END_TEST
 
 // Test 9: Multiple message insertion preserves order
-START_TEST(test_multiple_messages_preserve_order)
-{
+START_TEST(test_multiple_messages_preserve_order) {
     SKIP_IF_NO_DB();
 
     // Insert multiple messages

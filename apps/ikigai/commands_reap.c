@@ -19,7 +19,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Collect all descendants of a given agent in depth-first order (dead or alive)
 static size_t collect_all_descendants(ik_repl_ctx_t *repl,

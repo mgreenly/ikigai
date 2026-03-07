@@ -13,7 +13,6 @@
 #include "apps/ikigai/providers/stubs.h"
 #include "apps/ikigai/providers/provider.h"
 
-
 #include "shared/poison.h"
 // OpenAI factory implementation moved to providers/openai/shim.c
 // Anthropic factory implementation moved to providers/anthropic/anthropic.c

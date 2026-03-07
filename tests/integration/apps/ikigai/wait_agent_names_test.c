@@ -130,7 +130,7 @@ static void test_teardown(void)
     }
 }
 
-#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while(0)
+#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // ========== Helper Functions ==========
 
@@ -155,8 +155,7 @@ static char *create_test_agent(const char *parent_uuid)
 // ========== Tests ==========
 
 // Test 1: Wait fanin verifies agent_name for unnamed agents
-START_TEST(test_wait_fanin_unnamed_agents)
-{
+START_TEST(test_wait_fanin_unnamed_agents) {
     SKIP_IF_NO_DB();
 
     char *waiter = create_test_agent(NULL);
@@ -182,8 +181,7 @@ START_TEST(test_wait_fanin_unnamed_agents)
 END_TEST
 
 // Test 2: Wait fanin verifies agent_name for named agents
-START_TEST(test_wait_fanin_named_agents)
-{
+START_TEST(test_wait_fanin_named_agents) {
     SKIP_IF_NO_DB();
 
     char *waiter = create_test_agent(NULL);
@@ -191,13 +189,13 @@ START_TEST(test_wait_fanin_named_agents)
     char *agent2 = create_test_agent(NULL);
 
     char *update1 = talloc_asprintf(test_ctx,
-        "UPDATE agents SET name = 'Agent One' WHERE uuid = '%s'", agent1);
+                                    "UPDATE agents SET name = 'Agent One' WHERE uuid = '%s'", agent1);
     PGresult *pg_result = PQexec(db->conn, update1);
     ck_assert_int_eq(PQresultStatus(pg_result), PGRES_COMMAND_OK);
     PQclear(pg_result);
 
     char *update2 = talloc_asprintf(test_ctx,
-        "UPDATE agents SET name = 'Agent Two' WHERE uuid = '%s'", agent2);
+                                    "UPDATE agents SET name = 'Agent Two' WHERE uuid = '%s'", agent2);
     pg_result = PQexec(db->conn, update2);
     ck_assert_int_eq(PQresultStatus(pg_result), PGRES_COMMAND_OK);
     PQclear(pg_result);

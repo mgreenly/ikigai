@@ -4,47 +4,41 @@
 #include <check.h>
 #include <string.h>
 
-START_TEST(test_count_newlines_empty)
-{
+START_TEST(test_count_newlines_empty) {
     size_t count = ik_render_count_newlines("", 0);
     ck_assert_uint_eq(count, 0);
 }
 END_TEST
 
-START_TEST(test_count_newlines_no_newlines)
-{
+START_TEST(test_count_newlines_no_newlines) {
     const char *text = "hello world";
     size_t count = ik_render_count_newlines(text, strlen(text));
     ck_assert_uint_eq(count, 0);
 }
 END_TEST
 
-START_TEST(test_count_newlines_one_newline)
-{
+START_TEST(test_count_newlines_one_newline) {
     const char *text = "hello\nworld";
     size_t count = ik_render_count_newlines(text, strlen(text));
     ck_assert_uint_eq(count, 1);
 }
 END_TEST
 
-START_TEST(test_count_newlines_multiple)
-{
+START_TEST(test_count_newlines_multiple) {
     const char *text = "line1\nline2\nline3\n";
     size_t count = ik_render_count_newlines(text, strlen(text));
     ck_assert_uint_eq(count, 3);
 }
 END_TEST
 
-START_TEST(test_copy_text_empty)
-{
+START_TEST(test_copy_text_empty) {
     char dest[100];
     size_t written = ik_render_copy_text_with_crlf(dest, "", 0);
     ck_assert_uint_eq(written, 0);
 }
 END_TEST
 
-START_TEST(test_copy_text_no_newlines)
-{
+START_TEST(test_copy_text_no_newlines) {
     char dest[100];
     const char *src = "hello";
     size_t written = ik_render_copy_text_with_crlf(dest, src, strlen(src));
@@ -53,8 +47,7 @@ START_TEST(test_copy_text_no_newlines)
 }
 END_TEST
 
-START_TEST(test_copy_text_with_newline)
-{
+START_TEST(test_copy_text_with_newline) {
     char dest[100];
     const char *src = "hello\nworld";
     size_t written = ik_render_copy_text_with_crlf(dest, src, strlen(src));
@@ -63,8 +56,7 @@ START_TEST(test_copy_text_with_newline)
 }
 END_TEST
 
-START_TEST(test_copy_text_multiple_newlines)
-{
+START_TEST(test_copy_text_multiple_newlines) {
     char dest[100];
     const char *src = "a\nb\nc";
     size_t written = ik_render_copy_text_with_crlf(dest, src, strlen(src));

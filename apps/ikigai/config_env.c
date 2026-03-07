@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 void ik_config_apply_env_overrides(ik_config_t *cfg)
 {

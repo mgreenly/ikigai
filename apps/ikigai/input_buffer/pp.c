@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <inttypes.h>
 
-
 #include "shared/poison.h"
 void ik_pp_input_buffer(const ik_input_buffer_t *input_buffer, ik_format_buffer_t *buf, int32_t indent)
 {

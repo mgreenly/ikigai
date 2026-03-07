@@ -36,7 +36,6 @@ yyjson_mut_val *ik_openai_serialize_message(yyjson_mut_doc *doc, const ik_messag
  * @param out_arr Mutable JSON array to append items to
  * @return true on success, false on error
  */
-bool ik_openai_serialize_responses_message(yyjson_mut_doc *doc, const ik_message_t *msg,
-                                           yyjson_mut_val *out_arr);
+bool ik_openai_serialize_responses_message(yyjson_mut_doc *doc, const ik_message_t *msg, yyjson_mut_val *out_arr);
 
 #endif // IK_PROVIDERS_OPENAI_SERIALIZE_H

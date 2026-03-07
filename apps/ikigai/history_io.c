@@ -17,7 +17,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 res_t ik_history_ensure_directory(TALLOC_CTX *ctx)
 {

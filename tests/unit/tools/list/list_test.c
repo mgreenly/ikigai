@@ -37,8 +37,7 @@ static void teardown(void)
     unsetenv("IKIGAI_STATE_DIR");
 }
 
-START_TEST(test_list_rpush)
-{
+START_TEST(test_list_rpush) {
     // Capture stdout
     int32_t stdout_fd = dup(STDOUT_FILENO);
     FILE *capture = tmpfile();
@@ -66,8 +65,7 @@ START_TEST(test_list_rpush)
 
 END_TEST
 
-START_TEST(test_list_lpush)
-{
+START_TEST(test_list_lpush) {
     // First add an item with rpush
     list_execute(test_ctx, "rpush", "First item");
 
@@ -98,8 +96,7 @@ START_TEST(test_list_lpush)
 
 END_TEST
 
-START_TEST(test_list_count)
-{
+START_TEST(test_list_count) {
     // Add some items
     list_execute(test_ctx, "rpush", "Item 1");
     list_execute(test_ctx, "rpush", "Item 2");
@@ -132,8 +129,7 @@ START_TEST(test_list_count)
 
 END_TEST
 
-START_TEST(test_list_count_empty)
-{
+START_TEST(test_list_count_empty) {
     // Capture stdout
     int32_t stdout_fd = dup(STDOUT_FILENO);
     FILE *capture = tmpfile();
@@ -161,8 +157,7 @@ START_TEST(test_list_count_empty)
 
 END_TEST
 
-START_TEST(test_list_list)
-{
+START_TEST(test_list_list) {
     // Add some items
     list_execute(test_ctx, "rpush", "First");
     list_execute(test_ctx, "rpush", "Second");
@@ -196,8 +191,7 @@ START_TEST(test_list_list)
 
 END_TEST
 
-START_TEST(test_list_lpop)
-{
+START_TEST(test_list_lpop) {
     // Add some items
     list_execute(test_ctx, "rpush", "First");
     list_execute(test_ctx, "rpush", "Second");
@@ -229,8 +223,7 @@ START_TEST(test_list_lpop)
 
 END_TEST
 
-START_TEST(test_list_rpop)
-{
+START_TEST(test_list_rpop) {
     // Add some items
     list_execute(test_ctx, "rpush", "First");
     list_execute(test_ctx, "rpush", "Second");
@@ -262,8 +255,7 @@ START_TEST(test_list_rpop)
 
 END_TEST
 
-START_TEST(test_list_lpop_empty)
-{
+START_TEST(test_list_lpop_empty) {
     // Capture stdout
     int32_t stdout_fd = dup(STDOUT_FILENO);
     FILE *capture = tmpfile();
@@ -290,8 +282,7 @@ START_TEST(test_list_lpop_empty)
 
 END_TEST
 
-START_TEST(test_list_lpeek)
-{
+START_TEST(test_list_lpeek) {
     // Add some items
     list_execute(test_ctx, "rpush", "First");
     list_execute(test_ctx, "rpush", "Second");
@@ -340,8 +331,7 @@ START_TEST(test_list_lpeek)
 
 END_TEST
 
-START_TEST(test_list_rpeek)
-{
+START_TEST(test_list_rpeek) {
     // Add some items
     list_execute(test_ctx, "rpush", "First");
     list_execute(test_ctx, "rpush", "Second");
@@ -373,8 +363,7 @@ START_TEST(test_list_rpeek)
 
 END_TEST
 
-START_TEST(test_list_rpeek_empty)
-{
+START_TEST(test_list_rpeek_empty) {
     // Capture stdout
     int32_t stdout_fd = dup(STDOUT_FILENO);
     FILE *capture = tmpfile();
@@ -401,8 +390,7 @@ START_TEST(test_list_rpeek_empty)
 
 END_TEST
 
-START_TEST(test_list_missing_agent_id)
-{
+START_TEST(test_list_missing_agent_id) {
     // Clear IKIGAI_AGENT_ID
     unsetenv("IKIGAI_AGENT_ID");
 
@@ -435,8 +423,7 @@ START_TEST(test_list_missing_agent_id)
 
 END_TEST
 
-START_TEST(test_list_missing_state_dir)
-{
+START_TEST(test_list_missing_state_dir) {
     // Clear IKIGAI_STATE_DIR
     unsetenv("IKIGAI_STATE_DIR");
 
@@ -469,8 +456,7 @@ START_TEST(test_list_missing_state_dir)
 
 END_TEST
 
-START_TEST(test_list_unknown_operation)
-{
+START_TEST(test_list_unknown_operation) {
     // Capture stderr
     int32_t stderr_fd = dup(STDERR_FILENO);
     FILE *capture = tmpfile();
@@ -497,8 +483,7 @@ START_TEST(test_list_unknown_operation)
 
 END_TEST
 
-START_TEST(test_list_push_missing_item)
-{
+START_TEST(test_list_push_missing_item) {
     // Capture stderr
     int32_t stderr_fd = dup(STDERR_FILENO);
     FILE *capture = tmpfile();

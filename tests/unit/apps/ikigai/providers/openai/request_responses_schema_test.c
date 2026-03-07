@@ -20,17 +20,17 @@ START_TEST(test_schema_with_array_items) {
 
     // Tool with array items that have format validators
     const char *schema = "{"
-        "\"type\":\"object\","
-        "\"properties\":{"
-            "\"urls\":{"
-                "\"type\":\"array\","
-                "\"items\":{"
-                    "\"type\":\"string\","
-                    "\"format\":\"uri\""
-                "}"
-            "}"
-        "}"
-    "}";
+                         "\"type\":\"object\","
+                         "\"properties\":{"
+                         "\"urls\":{"
+                         "\"type\":\"array\","
+                         "\"items\":{"
+                         "\"type\":\"string\","
+                         "\"format\":\"uri\""
+                         "}"
+                         "}"
+                         "}"
+                         "}";
 
     ik_request_add_tool(req, "test_tool", "Test with array items", schema, true);
 
@@ -61,16 +61,16 @@ START_TEST(test_schema_with_oneof_combinator) {
 
     // Tool with oneOf combinator containing format validators
     const char *schema = "{"
-        "\"type\":\"object\","
-        "\"properties\":{"
-            "\"value\":{"
-                "\"oneOf\":["
-                    "{\"type\":\"string\",\"format\":\"uri\"},"
-                    "{\"type\":\"integer\"}"
-                "]"
-            "}"
-        "}"
-    "}";
+                         "\"type\":\"object\","
+                         "\"properties\":{"
+                         "\"value\":{"
+                         "\"oneOf\":["
+                         "{\"type\":\"string\",\"format\":\"uri\"},"
+                         "{\"type\":\"integer\"}"
+                         "]"
+                         "}"
+                         "}"
+                         "}";
 
     ik_request_add_tool(req, "test_tool", "Test with oneOf", schema, true);
 
@@ -102,16 +102,16 @@ START_TEST(test_schema_with_anyof_combinator) {
 
     // Tool with anyOf combinator
     const char *schema = "{"
-        "\"type\":\"object\","
-        "\"properties\":{"
-            "\"value\":{"
-                "\"anyOf\":["
-                    "{\"type\":\"string\",\"format\":\"email\"},"
-                    "{\"type\":\"null\"}"
-                "]"
-            "}"
-        "}"
-    "}";
+                         "\"type\":\"object\","
+                         "\"properties\":{"
+                         "\"value\":{"
+                         "\"anyOf\":["
+                         "{\"type\":\"string\",\"format\":\"email\"},"
+                         "{\"type\":\"null\"}"
+                         "]"
+                         "}"
+                         "}"
+                         "}";
 
     ik_request_add_tool(req, "test_tool", "Test with anyOf", schema, true);
 
@@ -143,16 +143,16 @@ START_TEST(test_schema_with_allof_combinator) {
 
     // Tool with allOf combinator
     const char *schema = "{"
-        "\"type\":\"object\","
-        "\"properties\":{"
-            "\"value\":{"
-                "\"allOf\":["
-                    "{\"type\":\"string\"},"
-                    "{\"format\":\"date-time\"}"
-                "]"
-            "}"
-        "}"
-    "}";
+                         "\"type\":\"object\","
+                         "\"properties\":{"
+                         "\"value\":{"
+                         "\"allOf\":["
+                         "{\"type\":\"string\"},"
+                         "{\"format\":\"date-time\"}"
+                         "]"
+                         "}"
+                         "}"
+                         "}";
 
     ik_request_add_tool(req, "test_tool", "Test with allOf", schema, true);
 
@@ -209,11 +209,11 @@ START_TEST(test_schema_without_items) {
 
     // Array property without items definition
     const char *schema = "{"
-        "\"type\":\"object\","
-        "\"properties\":{"
-            "\"values\":{\"type\":\"array\"}"
-        "}"
-    "}";
+                         "\"type\":\"object\","
+                         "\"properties\":{"
+                         "\"values\":{\"type\":\"array\"}"
+                         "}"
+                         "}";
 
     ik_request_add_tool(req, "test_tool", "Test without items", schema, true);
 

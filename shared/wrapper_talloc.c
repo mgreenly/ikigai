@@ -11,7 +11,6 @@
 
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // ============================================================================
 // talloc wrappers - debug/test builds only

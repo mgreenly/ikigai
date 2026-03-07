@@ -28,7 +28,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 // JSON schemas for internal tools

@@ -20,11 +20,22 @@
 #include <talloc.h>
 
 // Forward declarations for mocks
-void ik_wait_core_next_message(void *ctx, ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
-                                int32_t timeout_sec, _Bool *interrupt, ik_wait_result_t *out);
-void ik_wait_core_fanin(void *ctx, ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
-                        int32_t timeout_sec, char **target_uuids, size_t target_count,
-                        _Bool *interrupt, ik_wait_result_t *out);
+void ik_wait_core_next_message(void *ctx,
+                               ik_db_ctx_t *db,
+                               int64_t session_id,
+                               const char *agent_uuid,
+                               int32_t timeout_sec,
+                               _Bool *interrupt,
+                               ik_wait_result_t *out);
+void ik_wait_core_fanin(void *ctx,
+                        ik_db_ctx_t *db,
+                        int64_t session_id,
+                        const char *agent_uuid,
+                        int32_t timeout_sec,
+                        char **target_uuids,
+                        size_t target_count,
+                        _Bool *interrupt,
+                        ik_wait_result_t *out);
 
 // Mock control flags
 static bool mock_wait_timeout = false;
@@ -42,7 +53,7 @@ yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 
 // Mock: wait core next message
 void ik_wait_core_next_message(void *ctx, ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
-                                int32_t timeout_sec, _Bool *interrupt, ik_wait_result_t *out)
+                               int32_t timeout_sec, _Bool *interrupt, ik_wait_result_t *out)
 {
     (void)db;
     (void)session_id;

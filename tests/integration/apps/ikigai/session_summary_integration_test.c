@@ -124,8 +124,7 @@ static void test_teardown(void)
 // ========== Tests ==========
 
 // Test: insert 6 summaries for same agent, verify only 5 remain (oldest deleted)
-START_TEST(test_insert_cap_enforcement)
-{
+START_TEST(test_insert_cap_enforcement) {
     SKIP_IF_NO_DB();
 
     // Insert 6 summaries
@@ -158,8 +157,7 @@ START_TEST(test_insert_cap_enforcement)
 END_TEST
 
 // Test: insert summaries, load, verify order (oldest-first) and content
-START_TEST(test_load_order_and_content)
-{
+START_TEST(test_load_order_and_content) {
     SKIP_IF_NO_DB();
 
     res_t res;
@@ -199,8 +197,7 @@ START_TEST(test_load_order_and_content)
 END_TEST
 
 // Test: load returns empty when no summaries exist
-START_TEST(test_load_empty)
-{
+START_TEST(test_load_empty) {
     SKIP_IF_NO_DB();
 
     ik_session_summary_t **summaries = NULL;
@@ -214,8 +211,7 @@ START_TEST(test_load_empty)
 END_TEST
 
 // Test: unique constraint rejects duplicate epoch
-START_TEST(test_unique_constraint_rejects_duplicate)
-{
+START_TEST(test_unique_constraint_rejects_duplicate) {
     SKIP_IF_NO_DB();
 
     res_t res = ik_db_session_summary_insert(
@@ -253,7 +249,7 @@ int main(void)
     Suite *s = session_summary_integration_suite();
     SRunner *sr = srunner_create(s);
     srunner_set_xml(sr,
-        "reports/check/integration/apps/ikigai/session_summary_integration_test.xml");
+                    "reports/check/integration/apps/ikigai/session_summary_integration_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

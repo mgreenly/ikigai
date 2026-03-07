@@ -13,7 +13,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
                                       size_t start, size_t chunk_len)

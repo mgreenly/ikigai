@@ -9,7 +9,6 @@
 #include <talloc.h>
 #include "vendor/yyjson/yyjson.h"
 
-
 #include "shared/poison.h"
 // Build tool_call data_json for database with thinking/redacted blocks.
 char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,

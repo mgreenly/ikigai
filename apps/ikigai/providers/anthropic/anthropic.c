@@ -20,7 +20,6 @@
 #include <string.h>
 #include <sys/select.h>
 
-
 #include "shared/poison.h"
 
 /* ================================================================
@@ -85,7 +84,7 @@ res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **
     // Set base URL (allow override for testing)
     const char *base_url_override = getenv("ANTHROPIC_BASE_URL");
     impl_ctx->base_url = talloc_strdup(impl_ctx,
-        base_url_override != NULL ? base_url_override : "https://api.anthropic.com");
+                                       base_url_override != NULL ? base_url_override : "https://api.anthropic.com");
     if (impl_ctx->base_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Create HTTP multi handle for async operations

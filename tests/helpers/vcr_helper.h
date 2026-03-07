@@ -128,8 +128,7 @@ bool vcr_has_more(void);
  * @param headers Request headers (newline-separated)
  * @param body Request body (NULL for no body)
  */
-void vcr_record_request(const char *method, const char *url,
-                       const char *headers, const char *body);
+void vcr_record_request(const char *method, const char *url, const char *headers, const char *body);
 
 /**
  * Record HTTP response metadata to fixture
@@ -186,18 +185,18 @@ void vcr_verify_request(const char *method, const char *url, const char *body);
  */
 
 #define vcr_ck_assert(expr) \
-    do { if (!vcr_recording) ck_assert(expr); } while(0)
+        do { if (!vcr_recording) ck_assert(expr); } while (0)
 
 #define vcr_ck_assert_int_eq(a, b) \
-    do { if (!vcr_recording) ck_assert_int_eq(a, b); } while(0)
+        do { if (!vcr_recording) ck_assert_int_eq(a, b); } while (0)
 
 #define vcr_ck_assert_str_eq(a, b) \
-    do { if (!vcr_recording) ck_assert_str_eq(a, b); } while(0)
+        do { if (!vcr_recording) ck_assert_str_eq(a, b); } while (0)
 
 #define vcr_ck_assert_ptr_nonnull(ptr) \
-    do { if (!vcr_recording) ck_assert_ptr_nonnull(ptr); } while(0)
+        do { if (!vcr_recording) ck_assert_ptr_nonnull(ptr); } while (0)
 
 #define vcr_ck_assert_ptr_null(ptr) \
-    do { if (!vcr_recording) ck_assert_ptr_null(ptr); } while(0)
+        do { if (!vcr_recording) ck_assert_ptr_null(ptr); } while (0)
 
 #endif // VCR_H

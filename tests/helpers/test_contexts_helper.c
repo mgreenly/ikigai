@@ -73,8 +73,8 @@ res_t test_repl_create(TALLOC_CTX *ctx,
 }
 
 res_t test_shared_ctx_create_with_cfg(TALLOC_CTX *ctx,
-                                       ik_config_t *cfg,
-                                       ik_shared_ctx_t **out)
+                                      ik_config_t *cfg,
+                                      ik_shared_ctx_t **out)
 {
     // Setup test environment
     test_paths_setup_env();

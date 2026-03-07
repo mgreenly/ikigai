@@ -11,7 +11,6 @@
 #include <talloc.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /**
  * @brief Load history entry into input buffer
@@ -34,6 +33,7 @@ static res_t load_history_entry_(ik_repl_ctx_t *repl, const char *entry)
     size_t entry_len = strlen(entry);
     return ik_input_buffer_set_text(repl->current->input_buffer, entry, entry_len);
 }
+
 // LCOV_EXCL_STOP
 
 /**
@@ -142,6 +142,7 @@ res_t ik_repl_handle_history_prev_action(ik_repl_ctx_t *repl)
 
     return load_history_entry_(repl, entry);
 }
+
 // LCOV_EXCL_STOP
 
 /**
@@ -169,4 +170,5 @@ res_t ik_repl_handle_history_next_action(ik_repl_ctx_t *repl)
 
     return load_history_entry_(repl, entry);
 }
+
 // LCOV_EXCL_STOP

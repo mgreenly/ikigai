@@ -8,7 +8,6 @@
 #include "shared/panic.h"
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Forward declarations for provider-specific factories
 // These are implemented in later tasks (openai-core.md, anthropic-core.md, google-core.md)

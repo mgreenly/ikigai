@@ -50,8 +50,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Backward compatibility: system_prompt used when no blocks
  * ================================================================ */
 
-START_TEST(test_fallback_to_system_prompt_when_no_blocks)
-{
+START_TEST(test_fallback_to_system_prompt_when_no_blocks) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = talloc_strdup(req, "Legacy prompt");
     req->system_block_count = 0;
@@ -77,8 +76,7 @@ END_TEST
  * Single system block without cache_control
  * ================================================================ */
 
-START_TEST(test_single_system_block_not_cacheable)
-{
+START_TEST(test_single_system_block_not_cacheable) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 1;
     req->system_blocks = talloc_array(req, ik_system_block_t, 1);
@@ -110,8 +108,7 @@ END_TEST
  * Single system block with cache_control
  * ================================================================ */
 
-START_TEST(test_single_system_block_cacheable)
-{
+START_TEST(test_single_system_block_cacheable) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 1;
     req->system_blocks = talloc_array(req, ik_system_block_t, 1);
@@ -142,8 +139,7 @@ END_TEST
  * Multiple system blocks: order preserved, cache_control correct
  * ================================================================ */
 
-START_TEST(test_multiple_system_blocks)
-{
+START_TEST(test_multiple_system_blocks) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 3;
     req->system_blocks = talloc_array(req, ik_system_block_t, 3);
@@ -186,8 +182,7 @@ END_TEST
  * system_blocks take priority over system_prompt when both set
  * ================================================================ */
 
-START_TEST(test_system_blocks_override_system_prompt)
-{
+START_TEST(test_system_blocks_override_system_prompt) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = talloc_strdup(req, "Legacy prompt");
     req->system_block_count = 1;

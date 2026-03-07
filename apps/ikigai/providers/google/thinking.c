@@ -8,7 +8,6 @@
 #include "shared/panic.h"
 #include <string.h>
 
-
 #include "shared/poison.h"
 /**
  * Model-specific thinking budget limits for Gemini 2.5
@@ -28,7 +27,6 @@ static const ik_google_budget_t BUDGET_TABLE[] = {
     {"gemini-2.5-flash", 0, 24576},
     {NULL, 0, 0} // Sentinel
 };
-
 
 /**
  * Round down to nearest power of 2
@@ -165,9 +163,9 @@ typedef struct {
 } ik_google_level_map_t;
 
 static const ik_google_level_map_t LEVEL_TABLE[] = {
-    {"gemini-3-flash-preview",  "minimal", "low", "medium", "high"},
-    {"gemini-3-pro-preview",    "low",     "low", "high",   "high"},
-    {"gemini-3.1-pro-preview",  "low",     "low", "medium", "high"},
+    {"gemini-3-flash-preview", "minimal", "low", "medium", "high"},
+    {"gemini-3-pro-preview", "low", "low", "high", "high"},
+    {"gemini-3.1-pro-preview", "low", "low", "medium", "high"},
     {NULL, NULL, NULL, NULL, NULL} // Sentinel
 };
 

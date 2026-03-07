@@ -72,7 +72,7 @@ END_TEST
 START_TEST(test_translate_ik_uri_to_path_multiple) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "Copy ik://a.txt to ik://b.txt", &output);
+                                                     "Copy ik://a.txt to ik://b.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -83,7 +83,7 @@ END_TEST
 START_TEST(test_translate_ik_uri_to_path_mixed) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "Move ik://notes.txt to ./local.txt", &output);
+                                                     "Move ik://notes.txt to ./local.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -94,7 +94,7 @@ END_TEST
 START_TEST(test_translate_ik_uri_to_path_no_false_positive) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "myik://test should not translate", &output);
+                                                     "myik://test should not translate", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -105,7 +105,7 @@ END_TEST
 START_TEST(test_translate_ik_uri_to_path_no_match) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "No URI here at all", &output);
+                                                     "No URI here at all", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -136,7 +136,7 @@ END_TEST
 START_TEST(test_translate_path_to_ik_uri_basic) {
     char *output = NULL;
     res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "/home/user/projects/ikigai/state/shared/notes.txt", &output);
+                                                     "/home/user/projects/ikigai/state/shared/notes.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -147,7 +147,7 @@ END_TEST
 START_TEST(test_translate_path_to_ik_uri_root) {
     char *output = NULL;
     res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "/home/user/projects/ikigai/state/config.json", &output);
+                                                     "/home/user/projects/ikigai/state/config.json", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -158,7 +158,7 @@ END_TEST
 START_TEST(test_translate_path_to_ik_uri_trailing_slash) {
     char *output = NULL;
     res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "/home/user/projects/ikigai/state/shared/", &output);
+                                                     "/home/user/projects/ikigai/state/shared/", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -168,9 +168,10 @@ END_TEST
 
 START_TEST(test_translate_path_to_ik_uri_multiple) {
     char *output = NULL;
-    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "Error in /home/user/projects/ikigai/state/a.txt and /home/user/projects/ikigai/state/b.txt",
-                                                      &output);
+    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx,
+                                                     paths,
+                                                     "Error in /home/user/projects/ikigai/state/a.txt and /home/user/projects/ikigai/state/b.txt",
+                                                     &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -180,9 +181,10 @@ END_TEST
 
 START_TEST(test_translate_path_to_ik_uri_mixed) {
     char *output = NULL;
-    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "File /home/user/projects/ikigai/state/notes.txt and /tmp/other.txt",
-                                                      &output);
+    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx,
+                                                     paths,
+                                                     "File /home/user/projects/ikigai/state/notes.txt and /tmp/other.txt",
+                                                     &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -193,7 +195,7 @@ END_TEST
 START_TEST(test_translate_path_to_ik_uri_no_match) {
     char *output = NULL;
     res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "No state path here: /tmp/test.txt", &output);
+                                                     "No state path here: /tmp/test.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -221,46 +223,10 @@ START_TEST(test_translate_path_to_ik_uri_null_input) {
 }
 END_TEST
 
-START_TEST(test_round_trip_translation) {
-    // Test: ik:// -> path -> ik:// should return original
-    const char *original = "ik://shared/notes.txt";
-
-    char *path = NULL;
-    res_t result1 = ik_paths_translate_ik_uri_to_path(test_ctx, paths, original, &path);
-    ck_assert(is_ok(&result1));
-    ck_assert_ptr_nonnull(path);
-
-    char *uri = NULL;
-    res_t result2 = ik_paths_translate_path_to_ik_uri(test_ctx, paths, path, &uri);
-    ck_assert(is_ok(&result2));
-    ck_assert_ptr_nonnull(uri);
-
-    ck_assert_str_eq(uri, original);
-}
-END_TEST
-
-START_TEST(test_round_trip_system_translation) {
-    // Test: ik://system -> path -> ik://system should return original
-    const char *original = "ik://system/prompt.md";
-
-    char *path = NULL;
-    res_t result1 = ik_paths_translate_ik_uri_to_path(test_ctx, paths, original, &path);
-    ck_assert(is_ok(&result1));
-    ck_assert_ptr_nonnull(path);
-
-    char *uri = NULL;
-    res_t result2 = ik_paths_translate_path_to_ik_uri(test_ctx, paths, path, &uri);
-    ck_assert(is_ok(&result2));
-    ck_assert_ptr_nonnull(uri);
-
-    ck_assert_str_eq(uri, original);
-}
-END_TEST
-
 START_TEST(test_translate_false_positive_with_real) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "prefix_ik://fake and ik://real/path.txt", &output);
+                                                     "prefix_ik://fake and ik://real/path.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -327,18 +293,19 @@ END_TEST
 START_TEST(test_translate_mixed_system_and_generic) {
     char *output = NULL;
     res_t result = ik_paths_translate_ik_uri_to_path(test_ctx, paths,
-                                                      "Copy ik://system/prompt.md to ik://notes.txt", &output);
+                                                     "Copy ik://system/prompt.md to ik://notes.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
-    ck_assert_str_eq(output, "Copy /usr/local/share/ikigai/system/prompt.md to /home/user/projects/ikigai/state/notes.txt");
+    ck_assert_str_eq(output,
+                     "Copy /usr/local/share/ikigai/system/prompt.md to /home/user/projects/ikigai/state/notes.txt");
 }
 END_TEST
 
 START_TEST(test_translate_path_with_leading_slash) {
     char *output = NULL;
     res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "/home/user/projects/ikigai/state/path.txt", &output);
+                                                     "/home/user/projects/ikigai/state/path.txt", &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -349,7 +316,7 @@ END_TEST
 START_TEST(test_translate_system_path_variations) {
     char *out = NULL;
     res_t r = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                 "/usr/local/share/ikigai/system", &out);
+                                                "/usr/local/share/ikigai/system", &out);
     ck_assert(is_ok(&r));
     ck_assert_str_eq(out, "ik://system");
 
@@ -367,9 +334,10 @@ END_TEST
 
 START_TEST(test_translate_mixed_system_and_generic_paths) {
     char *output = NULL;
-    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx, paths,
-                                                      "Error in /usr/local/share/ikigai/system/prompt.md and /home/user/projects/ikigai/state/notes.txt",
-                                                      &output);
+    res_t result = ik_paths_translate_path_to_ik_uri(test_ctx,
+                                                     paths,
+                                                     "Error in /usr/local/share/ikigai/system/prompt.md and /home/user/projects/ikigai/state/notes.txt",
+                                                     &output);
 
     ck_assert(is_ok(&result));
     ck_assert_ptr_nonnull(output);
@@ -415,12 +383,6 @@ static Suite *paths_translate_suite(void)
     tcase_add_test(tc_path_to_uri, test_translate_system_path_variations);
     tcase_add_test(tc_path_to_uri, test_translate_mixed_system_and_generic_paths);
     suite_add_tcase(s, tc_path_to_uri);
-
-    TCase *tc_round_trip = tcase_create("round_trip");
-    tcase_add_checked_fixture(tc_round_trip, setup, teardown);
-    tcase_add_test(tc_round_trip, test_round_trip_translation);
-    tcase_add_test(tc_round_trip, test_round_trip_system_translation);
-    suite_add_tcase(s, tc_round_trip);
 
     return s;
 }

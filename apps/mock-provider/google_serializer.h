@@ -25,8 +25,6 @@ void google_serialize_text(TALLOC_CTX *ctx, const char *content, int fd);
  * Stream tool calls as Google Gemini API SSE data.
  * Writes: data: {candidates with functionCall parts}\n\n
  */
-void google_serialize_tool_calls(TALLOC_CTX *ctx,
-                                 const mock_tool_call_t *tool_calls,
-                                 int32_t count, int fd);
+void google_serialize_tool_calls(TALLOC_CTX *ctx, const mock_tool_call_t *tool_calls, int32_t count, int fd);
 
 #endif /* MOCK_GOOGLE_SERIALIZER_H */

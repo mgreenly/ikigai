@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /**
  * Parse /fork command arguments for --model flag and prompt

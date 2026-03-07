@@ -194,7 +194,8 @@ START_TEST(test_copy_tool_call_with_thought_signature) {
     agent->messages[0]->content_blocks[0].data.tool_call.id = talloc_strdup(agent->messages[0], "c1");
     agent->messages[0]->content_blocks[0].data.tool_call.name = talloc_strdup(agent->messages[0], "bash");
     agent->messages[0]->content_blocks[0].data.tool_call.arguments = talloc_strdup(agent->messages[0], "{}");
-    agent->messages[0]->content_blocks[0].data.tool_call.thought_signature = talloc_strdup(agent->messages[0], "sig123");
+    agent->messages[0]->content_blocks[0].data.tool_call.thought_signature = talloc_strdup(agent->messages[0],
+                                                                                           "sig123");
 
     ik_request_t *req = NULL;
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);

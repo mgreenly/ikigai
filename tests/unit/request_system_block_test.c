@@ -12,8 +12,7 @@
  * Zero system blocks: fresh request has count=0 and NULL array
  * ================================================================ */
 
-START_TEST(test_no_system_blocks)
-{
+START_TEST(test_no_system_blocks) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_request_t *req = NULL;
 
@@ -31,8 +30,7 @@ END_TEST
  * One system block: count=1, text and cacheable preserved
  * ================================================================ */
 
-START_TEST(test_one_system_block)
-{
+START_TEST(test_one_system_block) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_request_t *req = NULL;
 
@@ -51,8 +49,7 @@ START_TEST(test_one_system_block)
 }
 END_TEST
 
-START_TEST(test_one_system_block_not_cacheable)
-{
+START_TEST(test_one_system_block_not_cacheable) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_request_t *req = NULL;
 
@@ -74,8 +71,7 @@ END_TEST
  * Multiple system blocks: count accurate, order preserved
  * ================================================================ */
 
-START_TEST(test_multiple_system_blocks)
-{
+START_TEST(test_multiple_system_blocks) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_request_t *req = NULL;
 
@@ -111,8 +107,7 @@ END_TEST
  * System blocks do not affect existing system_prompt field
  * ================================================================ */
 
-START_TEST(test_system_blocks_independent_of_system_prompt)
-{
+START_TEST(test_system_blocks_independent_of_system_prompt) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_request_t *req = NULL;
 

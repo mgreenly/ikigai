@@ -14,8 +14,7 @@
 #include "shared/error.h"
 
 // NULL paths returns ERR_INVALID_ARG
-START_TEST(test_init_null_paths)
-{
+START_TEST(test_init_null_paths) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_control_socket_t *ctl = NULL;
     res_t res = ik_control_socket_init(ctx, NULL, &ctl);
@@ -48,7 +47,7 @@ static ik_paths_t *create_test_paths(TALLOC_CTX *ctx, const char *tmpdir)
 // Helper: create control socket, connect a client, accept connection
 // Returns client_fd (caller must close). Sets *ctl_out to the control socket.
 static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
-                                       ik_control_socket_t **ctl_out)
+                                      ik_control_socket_t **ctl_out)
 {
     ik_paths_t *paths = create_test_paths(ctx, tmpdir);
     ck_assert_ptr_nonnull(paths);
@@ -58,7 +57,7 @@ static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd, 0);
@@ -78,8 +77,7 @@ static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
 }
 
 // Init and destroy lifecycle with real socket
-START_TEST(test_init_destroy)
-{
+START_TEST(test_init_destroy) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -99,8 +97,7 @@ START_TEST(test_init_destroy)
 END_TEST
 
 // Add to fd_sets populates correctly
-START_TEST(test_add_to_fd_sets)
-{
+START_TEST(test_add_to_fd_sets) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -123,8 +120,7 @@ START_TEST(test_add_to_fd_sets)
 END_TEST
 
 // listen_ready returns false when not in fd_set
-START_TEST(test_listen_ready_false)
-{
+START_TEST(test_listen_ready_false) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -145,8 +141,7 @@ START_TEST(test_listen_ready_false)
 END_TEST
 
 // client_ready returns false with no client connected
-START_TEST(test_client_ready_no_client)
-{
+START_TEST(test_client_ready_no_client) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -167,8 +162,7 @@ START_TEST(test_client_ready_no_client)
 END_TEST
 
 // Accept a real connection
-START_TEST(test_accept_connection)
-{
+START_TEST(test_accept_connection) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -190,8 +184,7 @@ START_TEST(test_accept_connection)
 END_TEST
 
 // Destroy socket that had a client connected
-START_TEST(test_destroy_with_client)
-{
+START_TEST(test_destroy_with_client) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -207,8 +200,7 @@ START_TEST(test_destroy_with_client)
 END_TEST
 
 // Accept replaces existing client
-START_TEST(test_accept_replaces_client)
-{
+START_TEST(test_accept_replaces_client) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -220,7 +212,7 @@ START_TEST(test_accept_replaces_client)
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
@@ -246,8 +238,7 @@ START_TEST(test_accept_replaces_client)
 END_TEST
 
 // add_to_fd_sets with max_fd already larger than socket fds
-START_TEST(test_add_to_fd_sets_large_max_fd)
-{
+START_TEST(test_add_to_fd_sets_large_max_fd) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -270,8 +261,7 @@ START_TEST(test_add_to_fd_sets_large_max_fd)
 END_TEST
 
 // Init with socket path too long
-START_TEST(test_init_path_too_long)
-{
+START_TEST(test_init_path_too_long) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     // Create a temp dir, then inside it create a deeply nested dir

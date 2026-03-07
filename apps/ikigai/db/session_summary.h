@@ -14,12 +14,12 @@
  * Used by the sliding context window to fill the reserved summary portion.
  */
 typedef struct {
-    int64_t     id;
-    char       *agent_uuid;
-    char       *summary;
-    int64_t     start_msg_id;
-    int64_t     end_msg_id;
-    int         token_count;
+    int64_t id;
+    char *agent_uuid;
+    char *summary;
+    int64_t start_msg_id;
+    int64_t end_msg_id;
+    int token_count;
 } ik_session_summary_t;
 
 /**
@@ -40,11 +40,11 @@ typedef struct {
  * @return             OK on success, ERR on failure
  */
 res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
-                                   const char  *agent_uuid,
-                                   const char  *summary,
-                                   int64_t      start_msg_id,
-                                   int64_t      end_msg_id,
-                                   int          token_count);
+                                   const char *agent_uuid,
+                                   const char *summary,
+                                   int64_t start_msg_id,
+                                   int64_t end_msg_id,
+                                   int token_count);
 
 /**
  * Load all session summaries for an agent, ordered oldest-first.
@@ -63,10 +63,10 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
  * @param count      Output parameter: number of summaries (must not be NULL)
  * @return           OK on success, ERR on failure
  */
-res_t ik_db_session_summary_load(ik_db_ctx_t          *db,
-                                 TALLOC_CTX           *ctx,
-                                 const char           *agent_uuid,
+res_t ik_db_session_summary_load(ik_db_ctx_t *db,
+                                 TALLOC_CTX *ctx,
+                                 const char *agent_uuid,
                                  ik_session_summary_t ***out,
-                                 size_t               *count);
+                                 size_t *count);
 
 #endif // IK_DB_SESSION_SUMMARY_H

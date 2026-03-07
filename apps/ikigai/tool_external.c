@@ -14,7 +14,6 @@
 #include <talloc.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 res_t ik_tool_external_exec(TALLOC_CTX *ctx,
                             const char *tool_path,
@@ -110,7 +109,8 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     ssize_t stdout_total = 0;
     ssize_t n;
 
-    while ((n = read(stdout_pipe[0], stdout_buffer + stdout_total, sizeof(stdout_buffer) - (size_t)stdout_total - 1)) > 0) {
+    while ((n = read(stdout_pipe[0], stdout_buffer + stdout_total,
+                     sizeof(stdout_buffer) - (size_t)stdout_total - 1)) > 0) {
         stdout_total += n;
         if (stdout_total >= (ssize_t)(sizeof(stdout_buffer) - 1)) {
             break;
@@ -123,7 +123,8 @@ res_t ik_tool_external_exec(TALLOC_CTX *ctx,
     char stderr_buffer[65536];
     ssize_t stderr_total = 0;
 
-    while ((n = read(stderr_pipe[0], stderr_buffer + stderr_total, sizeof(stderr_buffer) - (size_t)stderr_total - 1)) > 0) {
+    while ((n = read(stderr_pipe[0], stderr_buffer + stderr_total,
+                     sizeof(stderr_buffer) - (size_t)stderr_total - 1)) > 0) {
         stderr_total += n;
         if (stderr_total >= (ssize_t)(sizeof(stderr_buffer) - 1)) {
             break;

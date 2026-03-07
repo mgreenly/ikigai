@@ -14,11 +14,10 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 
 static bool serialize_text_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                  const ik_content_block_t *block)
+                                 const ik_content_block_t *block)
 {
     if (!yyjson_mut_obj_add_str_(doc, obj, "type", "text")) {
         return false;
@@ -30,7 +29,7 @@ static bool serialize_text_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
 }
 
 static bool serialize_thinking_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                      const ik_content_block_t *block)
+                                     const ik_content_block_t *block)
 {
     if (!yyjson_mut_obj_add_str_(doc, obj, "type", "thinking")) {
         return false;
@@ -50,7 +49,7 @@ static bool serialize_thinking_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
 }
 
 static bool serialize_tool_call_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                       const ik_content_block_t *block)
+                                      const ik_content_block_t *block)
 {
     if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_use")) {
         return false;
@@ -84,7 +83,7 @@ static bool serialize_tool_call_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
 }
 
 static bool serialize_tool_result_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                         const ik_content_block_t *block)
+                                        const ik_content_block_t *block)
 {
     if (!yyjson_mut_obj_add_str_(doc, obj, "type", "tool_result")) {
         return false;
@@ -102,7 +101,7 @@ static bool serialize_tool_result_block(yyjson_mut_doc *doc, yyjson_mut_val *obj
 }
 
 static bool serialize_redacted_thinking_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
-                                               const ik_content_block_t *block)
+                                              const ik_content_block_t *block)
 {
     if (!yyjson_mut_obj_add_str_(doc, obj, "type", "redacted_thinking")) {
         return false;

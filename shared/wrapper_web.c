@@ -3,7 +3,6 @@
 #include <libxml/HTMLparser.h>
 #include <libxml/tree.h>
 
-
 #include "shared/poison.h"
 /* LCOV_EXCL_START */
 #ifndef NDEBUG

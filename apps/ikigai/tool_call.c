@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_tool_call_t *ik_tool_call_create(TALLOC_CTX *ctx,
                                     const char *id,

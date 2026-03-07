@@ -48,8 +48,7 @@ extern const char IK_SUMMARY_PROMPT[];
  * @param context_start_index  First message index still in active context
  * @return Range [0, context_start_index). Empty when context_start_index == 0.
  */
-ik_summary_range_t ik_summary_boundaries(size_t message_count,
-                                          size_t context_start_index);
+ik_summary_range_t ik_summary_boundaries(size_t message_count, size_t context_start_index);
 
 /**
  * Build a plain-text transcript from an array of messages.
@@ -64,9 +63,7 @@ ik_summary_range_t ik_summary_boundaries(size_t message_count,
  * @param count Number of messages in the array
  * @return Allocated transcript string (empty string if no conversation messages)
  */
-char *ik_summary_transcript(TALLOC_CTX *ctx,
-                             ik_msg_t * const *msgs,
-                             size_t count);
+char *ik_summary_transcript(TALLOC_CTX *ctx, ik_msg_t * const *msgs, size_t count);
 
 /**
  * Generate a summary of a message range via an LLM call.
@@ -90,11 +87,11 @@ char *ik_summary_transcript(TALLOC_CTX *ctx,
  * @return OK on success, ERR on provider failure
  */
 res_t ik_summary_generate(TALLOC_CTX *ctx,
-                           ik_msg_t * const *msgs,
-                           size_t count,
-                           ik_provider_t *provider,
-                           const char *model,
-                           int32_t max_tokens,
-                           char **summary_out);
+                          ik_msg_t * const *msgs,
+                          size_t count,
+                          ik_provider_t *provider,
+                          const char *model,
+                          int32_t max_tokens,
+                          char **summary_out);
 
 #endif /* IK_SUMMARY_H */

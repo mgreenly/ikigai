@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_input_buffer_t *ik_input_buffer_create(void *parent)
 {

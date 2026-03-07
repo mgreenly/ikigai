@@ -43,6 +43,10 @@
  * - Returns ERR if kind is NULL
  * - Returns ERR if kind is not a recognized event type
  */
-res_t ik_event_render(ik_scrollback_t *scrollback, const char *kind, const char *content, const char *data_json, bool interrupted);
+res_t ik_event_render(ik_scrollback_t *scrollback,
+                      const char *kind,
+                      const char *content,
+                      const char *data_json,
+                      bool interrupted);
 
 #endif // IK_EVENT_RENDER_H

@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Event Emission Helpers
@@ -90,7 +89,6 @@ static void process_content_delta(ik_openai_chat_stream_ctx_t *sctx, yyjson_val 
     };
     emit_event(sctx, &event);
 }
-
 
 /**
  * Process choices[0].delta object

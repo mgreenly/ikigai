@@ -172,8 +172,7 @@ static void test_teardown(void)
 }
 
 // Test: /wait with no arguments shows usage
-START_TEST(test_wait_no_args)
-{
+START_TEST(test_wait_no_args) {
     res_t res = ik_cmd_wait(test_ctx, repl, "");
     ck_assert(is_ok(&res));
 
@@ -183,8 +182,7 @@ START_TEST(test_wait_no_args)
 END_TEST
 
 // Test: /wait with invalid timeout shows error
-START_TEST(test_wait_invalid_timeout)
-{
+START_TEST(test_wait_invalid_timeout) {
     res_t res = ik_cmd_wait(test_ctx, repl, "abc");
     ck_assert(is_ok(&res));
 
@@ -194,8 +192,7 @@ START_TEST(test_wait_invalid_timeout)
 END_TEST
 
 // Test: /wait with negative timeout shows error
-START_TEST(test_wait_negative_timeout)
-{
+START_TEST(test_wait_negative_timeout) {
     res_t res = ik_cmd_wait(test_ctx, repl, "-5");
     ck_assert(is_ok(&res));
 
@@ -205,8 +202,7 @@ START_TEST(test_wait_negative_timeout)
 END_TEST
 
 // Test: /wait with no DB returns error
-START_TEST(test_wait_no_db)
-{
+START_TEST(test_wait_no_db) {
     repl->shared->db_ctx = NULL;
 
     res_t res = ik_cmd_wait(test_ctx, repl, "5");
@@ -218,8 +214,7 @@ START_TEST(test_wait_no_db)
 END_TEST
 
 // Test: /wait timeout=0 with no messages returns timeout
-START_TEST(test_wait_instant_no_messages)
-{
+START_TEST(test_wait_instant_no_messages) {
     res_t res = ik_cmd_wait(test_ctx, repl, "0");
     ck_assert(is_ok(&res));
 
@@ -254,8 +249,7 @@ START_TEST(test_wait_instant_no_messages)
 END_TEST
 
 // Test: /wait receives message that was already in inbox
-START_TEST(test_wait_instant_with_message)
-{
+START_TEST(test_wait_instant_with_message) {
     // Create sender agent
     ik_agent_ctx_t *sender = talloc_zero(repl, ik_agent_ctx_t);
     sender->uuid = talloc_strdup(sender, "sender-uuid-456");
@@ -269,7 +263,7 @@ START_TEST(test_wait_instant_with_message)
 
     // Insert a mail message
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, sender->uuid,
-                                             repl->current->uuid, "Test message");
+                                            repl->current->uuid, "Test message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, session_id, msg);
     ck_assert(is_ok(&res));
@@ -304,8 +298,7 @@ START_TEST(test_wait_instant_with_message)
 END_TEST
 
 // Test: /wait fan-in mode with multiple targets
-START_TEST(test_wait_fanin_mode)
-{
+START_TEST(test_wait_fanin_mode) {
     // Create two target agents
     ik_agent_ctx_t *target1 = talloc_zero(repl, ik_agent_ctx_t);
     target1->uuid = talloc_strdup(target1, "target1-uuid");
@@ -333,7 +326,7 @@ START_TEST(test_wait_fanin_mode)
 
     // Send a message from target2
     ik_mail_msg_t *msg = ik_mail_msg_create(test_ctx, target2->uuid,
-                                             repl->current->uuid, "Fan-in message");
+                                            repl->current->uuid, "Fan-in message");
     ck_assert_ptr_nonnull(msg);
     res = ik_db_mail_insert(db, session_id, msg);
     ck_assert(is_ok(&res));

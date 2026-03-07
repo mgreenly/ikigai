@@ -6,7 +6,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_history_t *ik_history_create(void *ctx, size_t capacity)
 {

@@ -209,9 +209,7 @@ struct ik_provider_vtable {
      *   - OpenAI:    POST /v1/responses/input_tokens
      *   - Google:    POST models/{model}:countTokens
      */
-    res_t (*count_tokens)(void *ctx,
-                          const ik_request_t *req,
-                          int32_t *token_count_out);
+    res_t (*count_tokens)(void *ctx, const ik_request_t *req, int32_t *token_count_out);
 };
 
 /**

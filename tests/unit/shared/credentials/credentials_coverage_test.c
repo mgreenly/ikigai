@@ -283,7 +283,6 @@ START_TEST(test_corrupted_json_file) {
 
 END_TEST
 
-
 START_TEST(test_file_not_found) {
     unsetenv("OPENAI_API_KEY");
     unsetenv("ANTHROPIC_API_KEY");

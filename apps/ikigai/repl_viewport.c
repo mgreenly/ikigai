@@ -11,7 +11,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Calculate total document height.
 // Layer order: banner, scrollback, spinner, separator, input, completion, status.

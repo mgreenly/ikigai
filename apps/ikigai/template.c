@@ -115,8 +115,8 @@ static char *resolve_func_value(TALLOC_CTX *ctx, const char *func_name)
         struct tm *tm = gmtime(&now);
         if (tm == NULL) return NULL;  // LCOV_EXCL_LINE
         char *val = talloc_asprintf(ctx, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-                                   tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                                   tm->tm_hour, tm->tm_min, tm->tm_sec);
+                                    tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+                                    tm->tm_hour, tm->tm_min, tm->tm_sec);
         if (val == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         return val;
     }
@@ -149,9 +149,9 @@ static char *resolve_func_value(TALLOC_CTX *ctx, const char *func_name)
 }
 
 static char *resolve_variable(TALLOC_CTX *ctx,
-                             const char *var,
-                             ik_agent_ctx_t *agent,
-                             ik_config_t *config)
+                              const char *var,
+                              ik_agent_ctx_t *agent,
+                              ik_config_t *config)
 {
     if (strncmp(var, "agent.", 6) == 0) {
         return resolve_agent_field(ctx, var + 6, agent);
@@ -178,9 +178,9 @@ static void append_to_processed(TALLOC_CTX *ctx, char **processed, const char *a
 }
 
 static void track_unresolved(TALLOC_CTX *ctx,
-                            char ***unresolved,
-                            size_t *unresolved_count,
-                            const char *literal)
+                             char ***unresolved,
+                             size_t *unresolved_count,
+                             const char *literal)
 {
     for (size_t i = 0; i < *unresolved_count; i++) {
         if (strcmp((*unresolved)[i], literal) == 0) {

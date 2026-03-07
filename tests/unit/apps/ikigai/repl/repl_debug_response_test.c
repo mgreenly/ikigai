@@ -70,7 +70,6 @@ static void teardown(void)
     talloc_free(ctx);
 }
 
-
 /* Test: Debug output for successful response with metadata */
 START_TEST(test_debug_output_response_success) {
     /* Create successful response with metadata */

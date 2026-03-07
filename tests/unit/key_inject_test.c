@@ -8,8 +8,7 @@
 #include "shared/error.h"
 
 // Init/destroy lifecycle
-START_TEST(test_init_destroy)
-{
+START_TEST(test_init_destroy) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -25,8 +24,7 @@ START_TEST(test_init_destroy)
 END_TEST
 
 // Append and drain single byte
-START_TEST(test_append_drain_single)
-{
+START_TEST(test_append_drain_single) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -49,8 +47,7 @@ START_TEST(test_append_drain_single)
 END_TEST
 
 // Append multiple bytes, drain in order
-START_TEST(test_append_drain_multiple)
-{
+START_TEST(test_append_drain_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -76,8 +73,7 @@ START_TEST(test_append_drain_multiple)
 END_TEST
 
 // Drain from empty buffer returns false
-START_TEST(test_drain_empty)
-{
+START_TEST(test_drain_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -91,8 +87,7 @@ START_TEST(test_drain_empty)
 END_TEST
 
 // Multiple appends queue behind each other
-START_TEST(test_multiple_appends)
-{
+START_TEST(test_multiple_appends) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -118,8 +113,7 @@ START_TEST(test_multiple_appends)
 END_TEST
 
 // Pending count
-START_TEST(test_pending)
-{
+START_TEST(test_pending) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -145,8 +139,7 @@ START_TEST(test_pending)
 END_TEST
 
 // Unescape: printable passthrough
-START_TEST(test_unescape_passthrough)
-{
+START_TEST(test_unescape_passthrough) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "hello";
     char *output;
@@ -162,8 +155,7 @@ START_TEST(test_unescape_passthrough)
 END_TEST
 
 // Unescape: \r → 0x0D
-START_TEST(test_unescape_r)
-{
+START_TEST(test_unescape_r) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\r";
     char *output;
@@ -179,8 +171,7 @@ START_TEST(test_unescape_r)
 END_TEST
 
 // Unescape: \n → 0x0A
-START_TEST(test_unescape_n)
-{
+START_TEST(test_unescape_n) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\n";
     char *output;
@@ -196,8 +187,7 @@ START_TEST(test_unescape_n)
 END_TEST
 
 // Unescape: \t → 0x09
-START_TEST(test_unescape_t)
-{
+START_TEST(test_unescape_t) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\t";
     char *output;
@@ -213,8 +203,7 @@ START_TEST(test_unescape_t)
 END_TEST
 
 // Unescape: \\ → 0x5C
-START_TEST(test_unescape_backslash)
-{
+START_TEST(test_unescape_backslash) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\\\";
     char *output;
@@ -230,8 +219,7 @@ START_TEST(test_unescape_backslash)
 END_TEST
 
 // Unescape: \x1b → 0x1B
-START_TEST(test_unescape_x1b)
-{
+START_TEST(test_unescape_x1b) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\x1b";
     char *output;
@@ -247,8 +235,7 @@ START_TEST(test_unescape_x1b)
 END_TEST
 
 // Unescape: \x7f → 0x7F
-START_TEST(test_unescape_x7f)
-{
+START_TEST(test_unescape_x7f) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\x7f";
     char *output;
@@ -264,8 +251,7 @@ START_TEST(test_unescape_x7f)
 END_TEST
 
 // Unescape: mixed ("hi\r" → 0x68 0x69 0x0D)
-START_TEST(test_unescape_mixed)
-{
+START_TEST(test_unescape_mixed) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "hi\\r";
     char *output;
@@ -283,8 +269,7 @@ START_TEST(test_unescape_mixed)
 END_TEST
 
 // Unescape: \x1b[A → 0x1B 0x5B 0x41 (arrow up sequence)
-START_TEST(test_unescape_arrow_up)
-{
+START_TEST(test_unescape_arrow_up) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     const char *input = "\\x1b[A";
     char *output;
@@ -302,8 +287,7 @@ START_TEST(test_unescape_arrow_up)
 END_TEST
 
 // Buffer growth test
-START_TEST(test_buffer_growth)
-{
+START_TEST(test_buffer_growth) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -330,8 +314,7 @@ START_TEST(test_buffer_growth)
 END_TEST
 
 // Test NULL pointer handling
-START_TEST(test_null_handling)
-{
+START_TEST(test_null_handling) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_key_inject_buf_t *buf = ik_key_inject_init(ctx);
 
@@ -373,8 +356,7 @@ START_TEST(test_null_handling)
 END_TEST
 
 // Test destroy with NULL
-START_TEST(test_destroy_null)
-{
+START_TEST(test_destroy_null) {
     ik_key_inject_destroy(NULL);  // Should not crash
 }
 END_TEST

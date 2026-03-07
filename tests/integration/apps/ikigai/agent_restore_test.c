@@ -453,7 +453,6 @@ START_TEST(test_metadata_events_filtered_on_restore) {
 
 END_TEST
 
-
 // ========== Suite Configuration ==========
 
 static Suite *agent_restore_integration_suite(void)

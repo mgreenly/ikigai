@@ -33,21 +33,21 @@ struct ik_token_cache {
     size_t turn_capacity;        /* capacity */
     int32_t total_tokens;        /* -1=uncached */
     int32_t budget;              /* token budget */
-    size_t  pruned_turn_count;   /* turns pruned */
+    size_t pruned_turn_count;    /* turns pruned */
 };
 
 /* --- Internal helpers --- */
 
 static ik_token_cache_t *alloc_cache(TALLOC_CTX *ctx,
-                                      ik_agent_ctx_t *agent,
-                                      size_t turn_capacity)
+                                     ik_agent_ctx_t *agent,
+                                     size_t turn_capacity)
 {
     ik_token_cache_t *c = talloc_zero(ctx, ik_token_cache_t);
     if (c == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     c->agent = agent;
     c->system_tokens = TOKEN_UNCACHED;
-    c->tool_tokens   = TOKEN_UNCACHED;
-    c->total_tokens  = TOKEN_UNCACHED;
+    c->tool_tokens = TOKEN_UNCACHED;
+    c->total_tokens = TOKEN_UNCACHED;
     c->context_start_index = 0;
     c->budget = 100000;
     c->pruned_turn_count = 0;
@@ -87,7 +87,7 @@ static size_t estimate_turn_bytes(ik_agent_ctx_t *agent, size_t start, size_t en
 
 /* Find message [start,end) for turn_index (relative to context_start_index). */
 static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
-                              size_t *start_out, size_t *end_out)
+                             size_t *start_out, size_t *end_out)
 {
     size_t user_count = 0;
     size_t turn_start = 0;
@@ -100,7 +100,7 @@ static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
                 found = true;
             } else if (user_count == turn_index + 1 && found) {
                 *start_out = turn_start;
-                *end_out   = i;
+                *end_out = i;
                 return true;
             }
             user_count++;
@@ -109,7 +109,7 @@ static bool find_turn_bounds(const ik_token_cache_t *cache, size_t turn_index,
 
     if (found) {
         *start_out = turn_start;
-        *end_out   = cache->agent->message_count;
+        *end_out = cache->agent->message_count;
         return true;
     }
     return false;
@@ -132,7 +132,7 @@ static int32_t provider_count(ik_token_cache_t *cache, ik_request_t *req)
 
 /* Build minimal request for a turn's messages and count via provider */
 static int32_t count_turn_via_provider(ik_token_cache_t *cache,
-                                        size_t msg_start, size_t msg_end)
+                                       size_t msg_start, size_t msg_end)
 {
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -148,8 +148,8 @@ static int32_t count_turn_via_provider(ik_token_cache_t *cache,
     for (size_t i = msg_start; i < msg_end; i++) {
         const ik_message_t *msg = cache->agent->messages[i];
         r = ik_request_add_message_blocks(req, msg->role,
-                                           msg->content_blocks,
-                                           msg->content_count);
+                                          msg->content_blocks,
+                                          msg->content_count);
         if (is_err(&r)) {
             talloc_free(tmp);
             return TOKEN_UNCACHED;
@@ -170,8 +170,8 @@ ik_token_cache_t *ik_token_cache_create(TALLOC_CTX *ctx, ik_agent_ctx_t *agent)
 }
 
 ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx,
-                                        const ik_token_cache_t *src,
-                                        ik_agent_ctx_t *new_agent)
+                                       const ik_token_cache_t *src,
+                                       ik_agent_ctx_t *new_agent)
 {
     assert(src != NULL);       // LCOV_EXCL_BR_LINE
     assert(new_agent != NULL); // LCOV_EXCL_BR_LINE
@@ -181,10 +181,10 @@ ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx,
 
     c->context_start_index = src->context_start_index;
     c->system_tokens = src->system_tokens;
-    c->tool_tokens   = src->tool_tokens;
-    c->total_tokens  = src->total_tokens;
-    c->turn_count    = src->turn_count;
-    c->budget        = src->budget;
+    c->tool_tokens = src->tool_tokens;
+    c->total_tokens = src->total_tokens;
+    c->turn_count = src->turn_count;
+    c->budget = src->budget;
     c->pruned_turn_count = src->pruned_turn_count;
 
     if (src->turn_count > 0 && src->turn_tokens != NULL) {
@@ -275,7 +275,7 @@ int32_t ik_token_cache_get_turn_tokens(ik_token_cache_t *cache, size_t turn_inde
 
     /* No cached value — try to find turn messages and count */
     size_t msg_start = 0;
-    size_t msg_end   = 0;
+    size_t msg_end = 0;
     if (cache->agent != NULL &&
         find_turn_bounds(cache, turn_index, &msg_start, &msg_end)) {
         int32_t count = count_turn_via_provider(cache, msg_start, msg_end);
@@ -331,8 +331,8 @@ void ik_token_cache_invalidate_all(ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
     cache->system_tokens = TOKEN_UNCACHED;
-    cache->tool_tokens   = TOKEN_UNCACHED;
-    cache->total_tokens  = TOKEN_UNCACHED;
+    cache->tool_tokens = TOKEN_UNCACHED;
+    cache->total_tokens = TOKEN_UNCACHED;
     for (size_t i = 0; i < cache->turn_count; i++) {
         cache->turn_tokens[i] = TOKEN_UNCACHED;
     }
@@ -341,25 +341,25 @@ void ik_token_cache_invalidate_all(ik_token_cache_t *cache)
 void ik_token_cache_reset(ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
-    cache->system_tokens       = TOKEN_UNCACHED;
-    cache->tool_tokens         = TOKEN_UNCACHED;
-    cache->total_tokens        = TOKEN_UNCACHED;
-    cache->turn_count          = 0;
+    cache->system_tokens = TOKEN_UNCACHED;
+    cache->tool_tokens = TOKEN_UNCACHED;
+    cache->total_tokens = TOKEN_UNCACHED;
+    cache->turn_count = 0;
     cache->context_start_index = 0;
-    cache->pruned_turn_count   = 0;
+    cache->pruned_turn_count = 0;
 }
 
 void ik_token_cache_invalidate_system(ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
     cache->system_tokens = TOKEN_UNCACHED;
-    cache->total_tokens  = TOKEN_UNCACHED;
+    cache->total_tokens = TOKEN_UNCACHED;
 }
 
 void ik_token_cache_invalidate_tools(ik_token_cache_t *cache)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
-    cache->tool_tokens  = TOKEN_UNCACHED;
+    cache->tool_tokens = TOKEN_UNCACHED;
     cache->total_tokens = TOKEN_UNCACHED;
 }
 
@@ -423,9 +423,9 @@ void ik_token_cache_add_turn(ik_token_cache_t *cache)
         size_t new_cap = cache->turn_capacity > 0 ?
                          cache->turn_capacity * 2 : TURN_CAP_INITIAL;
         int32_t *new_arr = talloc_realloc(cache, cache->turn_tokens,
-                                           int32_t, (unsigned int)new_cap);
+                                          int32_t, (unsigned int)new_cap);
         if (new_arr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        cache->turn_tokens  = new_arr;
+        cache->turn_tokens = new_arr;
         cache->turn_capacity = new_cap;
     }
 
@@ -461,7 +461,7 @@ void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index
 
     if (cache->turn_count == 0 && cache->context_start_index > 0) {
         cache->context_start_index = 0;
-        cache->pruned_turn_count   = 0;
+        cache->pruned_turn_count = 0;
     }
 }
 
@@ -504,7 +504,7 @@ int32_t ik_token_cache_peek_total(const ik_token_cache_t *cache)
 }
 
 int32_t ik_token_cache_peek_turn_tokens(const ik_token_cache_t *cache,
-                                         size_t turn_index)
+                                        size_t turn_index)
 {
     assert(cache != NULL); // LCOV_EXCL_BR_LINE
     if (turn_index >= cache->turn_count) PANIC("turn_index out of range"); // LCOV_EXCL_BR_LINE

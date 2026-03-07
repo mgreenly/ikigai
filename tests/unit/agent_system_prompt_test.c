@@ -46,8 +46,7 @@ static char *write_temp_file(TALLOC_CTX *ctx, const char *dir, const char *name,
  * No pinned docs: single block (default system prompt), not cacheable
  * ================================================================ */
 
-START_TEST(test_no_pinned_docs_single_block)
-{
+START_TEST(test_no_pinned_docs_single_block) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;
@@ -74,8 +73,7 @@ END_TEST
  * One pinned doc: two blocks — base (not cacheable) + pinned (cacheable)
  * ================================================================ */
 
-START_TEST(test_one_pinned_doc_two_blocks)
-{
+START_TEST(test_one_pinned_doc_two_blocks) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     const char *prefix = test_paths_setup_env();
@@ -129,8 +127,7 @@ END_TEST
  * Two pinned docs: three blocks, order preserved, all pinned cacheable
  * ================================================================ */
 
-START_TEST(test_two_pinned_docs_order_preserved)
-{
+START_TEST(test_two_pinned_docs_order_preserved) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     const char *prefix = test_paths_setup_env();
@@ -188,8 +185,7 @@ END_TEST
  * Session summaries and recent summary injection
  * ================================================================ */
 
-START_TEST(test_session_summaries_and_recent_summary)
-{
+START_TEST(test_session_summaries_and_recent_summary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;
@@ -241,8 +237,7 @@ START_TEST(test_session_summaries_and_recent_summary)
 }
 END_TEST
 
-START_TEST(test_only_recent_summary_no_sessions)
-{
+START_TEST(test_only_recent_summary_no_sessions) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;

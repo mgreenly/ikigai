@@ -17,7 +17,7 @@
  * Write a named SSE event: "event: <name>\ndata: <json>\n\n"
  */
 static void write_sse_event(int fd, const char *event_name,
-                             const char *json_str)
+                            const char *json_str)
 {
     const char *event_prefix = "event: ";
     const char *data_prefix = "\ndata: ";

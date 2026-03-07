@@ -26,9 +26,9 @@
  * @return                Always returns OK(NULL); fallback is transparent to caller
  */
 res_t ik_google_count_tokens(void *ctx,
-                              const char *base_url,
-                              const char *api_key,
-                              const ik_request_t *req,
-                              int32_t *token_count_out);
+                             const char *base_url,
+                             const char *api_key,
+                             const ik_request_t *req,
+                             int32_t *token_count_out);
 
 #endif /* IK_PROVIDERS_GOOGLE_COUNT_TOKENS_H */

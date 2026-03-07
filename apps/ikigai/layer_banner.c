@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Unicode box-drawing characters (UTF-8 encoding, 3 bytes each, 1 display column)
 #define BOX_DOUBLE_HORIZONTAL "\xE2\x95\x90"        // ═ (U+2550)
@@ -49,10 +48,10 @@ static size_t banner_get_height(const ik_layer_t *layer, size_t width)
 }
 
 static void banner_render(const ik_layer_t *layer,
-                         ik_output_buffer_t *output,
-                         size_t width,
-                         size_t start_row,
-                         size_t row_count)
+                          ik_output_buffer_t *output,
+                          size_t width,
+                          size_t start_row,
+                          size_t row_count)
 {
     assert(layer != NULL);       // LCOV_EXCL_BR_LINE
     assert(layer->data != NULL); // LCOV_EXCL_BR_LINE

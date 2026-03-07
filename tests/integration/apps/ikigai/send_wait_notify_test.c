@@ -131,12 +131,12 @@ static void test_teardown(void)
         // Clean up session data
         if (db != NULL && session_id > 0) {
             char *cleanup = talloc_asprintf(test_ctx,
-                "DELETE FROM messages WHERE session_id = %lld; "
-                "DELETE FROM mail WHERE session_id = %lld; "
-                "DELETE FROM agents WHERE session_id = %lld; "
-                "DELETE FROM sessions WHERE id = %lld;",
-                (long long)session_id, (long long)session_id,
-                (long long)session_id, (long long)session_id);
+                                            "DELETE FROM messages WHERE session_id = %lld; "
+                                            "DELETE FROM mail WHERE session_id = %lld; "
+                                            "DELETE FROM agents WHERE session_id = %lld; "
+                                            "DELETE FROM sessions WHERE id = %lld;",
+                                            (long long)session_id, (long long)session_id,
+                                            (long long)session_id, (long long)session_id);
             PGresult *result = PQexec(db->conn, cleanup);
             PQclear(result);
         }
@@ -147,7 +147,7 @@ static void test_teardown(void)
     }
 }
 
-#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while(0)
+#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // ========== Helper Functions ==========
 
@@ -173,8 +173,7 @@ static char *create_test_agent(const char *parent_uuid)
 // ========== Tests ==========
 
 // Test 1: Core send with error_msg_out for empty body
-START_TEST(test_send_core_empty_body_with_error_msg)
-{
+START_TEST(test_send_core_empty_body_with_error_msg) {
     SKIP_IF_NO_DB();
 
     char *sender = create_test_agent(NULL);
@@ -190,8 +189,7 @@ START_TEST(test_send_core_empty_body_with_error_msg)
 END_TEST
 
 // Test 2: Core send with error_msg_out for dead recipient
-START_TEST(test_send_core_dead_recipient_with_error_msg)
-{
+START_TEST(test_send_core_dead_recipient_with_error_msg) {
     SKIP_IF_NO_DB();
 
     char *sender = create_test_agent(NULL);
@@ -199,7 +197,7 @@ START_TEST(test_send_core_dead_recipient_with_error_msg)
 
     // Mark recipient as dead
     char *update = talloc_asprintf(test_ctx,
-        "UPDATE agents SET status = 'dead' WHERE uuid = '%s'", recipient);
+                                   "UPDATE agents SET status = 'dead' WHERE uuid = '%s'", recipient);
     PGresult *result = PQexec(db->conn, update);
     ck_assert_int_eq(PQresultStatus(result), PGRES_COMMAND_OK);
     PQclear(result);
@@ -214,8 +212,7 @@ START_TEST(test_send_core_dead_recipient_with_error_msg)
 END_TEST
 
 // Test 3: Core send successful with NOTIFY (outside transaction)
-START_TEST(test_send_core_notify_fires_outside_transaction)
-{
+START_TEST(test_send_core_notify_fires_outside_transaction) {
     SKIP_IF_NO_DB();
 
     char *sender = create_test_agent(NULL);
@@ -234,8 +231,8 @@ START_TEST(test_send_core_notify_fires_outside_transaction)
 
     // Verify mail was inserted
     char *query = talloc_asprintf(test_ctx,
-        "SELECT body FROM mail WHERE from_uuid = '%s' AND to_uuid = '%s'",
-        sender, recipient);
+                                  "SELECT body FROM mail WHERE from_uuid = '%s' AND to_uuid = '%s'",
+                                  sender, recipient);
     PGresult *result = PQexec(db->conn, query);
     ck_assert_int_eq(PQresultStatus(result), PGRES_TUPLES_OK);
     ck_assert_int_eq(PQntuples(result), 1);
@@ -245,8 +242,7 @@ START_TEST(test_send_core_notify_fires_outside_transaction)
 END_TEST
 
 // Test 4: Wait core with instant timeout (no messages)
-START_TEST(test_wait_core_instant_timeout_no_messages)
-{
+START_TEST(test_wait_core_instant_timeout_no_messages) {
     SKIP_IF_NO_DB();
 
     char *my_uuid = create_test_agent(NULL);
@@ -263,8 +259,7 @@ START_TEST(test_wait_core_instant_timeout_no_messages)
 END_TEST
 
 // Test 5: Wait core receives message after send
-START_TEST(test_wait_core_receives_message)
-{
+START_TEST(test_wait_core_receives_message) {
     SKIP_IF_NO_DB();
 
     char *sender = create_test_agent(NULL);
@@ -287,7 +282,7 @@ START_TEST(test_wait_core_receives_message)
 
     // Verify mail was consumed (deleted from inbox)
     char *query = talloc_asprintf(test_ctx,
-        "SELECT COUNT(*) FROM mail WHERE to_uuid = '%s'", recipient);
+                                  "SELECT COUNT(*) FROM mail WHERE to_uuid = '%s'", recipient);
     PGresult *pg_result = PQexec(db->conn, query);
     ck_assert_int_eq(PQresultStatus(pg_result), PGRES_TUPLES_OK);
     ck_assert_str_eq(PQgetvalue(pg_result, 0, 0), "0");
@@ -296,8 +291,7 @@ START_TEST(test_wait_core_receives_message)
 END_TEST
 
 // Test 6: Wait fanin mode with multiple agents
-START_TEST(test_wait_fanin_multiple_agents)
-{
+START_TEST(test_wait_fanin_multiple_agents) {
     SKIP_IF_NO_DB();
 
     char *waiter = create_test_agent(NULL);
@@ -344,8 +338,7 @@ START_TEST(test_wait_fanin_multiple_agents)
 END_TEST
 
 // Test 7: Wait fanin with dead agent
-START_TEST(test_wait_fanin_dead_agent)
-{
+START_TEST(test_wait_fanin_dead_agent) {
     SKIP_IF_NO_DB();
 
     char *waiter = create_test_agent(NULL);
@@ -353,7 +346,7 @@ START_TEST(test_wait_fanin_dead_agent)
 
     // Mark agent as dead
     char *update = talloc_asprintf(test_ctx,
-        "UPDATE agents SET status = 'dead' WHERE uuid = '%s'", dead_agent);
+                                   "UPDATE agents SET status = 'dead' WHERE uuid = '%s'", dead_agent);
     PGresult *pg_result = PQexec(db->conn, update);
     ck_assert_int_eq(PQresultStatus(pg_result), PGRES_COMMAND_OK);
     PQclear(pg_result);
@@ -371,8 +364,7 @@ START_TEST(test_wait_fanin_dead_agent)
 END_TEST
 
 // Test 8: Wait fanin with idle agent
-START_TEST(test_wait_fanin_idle_agent)
-{
+START_TEST(test_wait_fanin_idle_agent) {
     SKIP_IF_NO_DB();
 
     char *waiter = create_test_agent(NULL);

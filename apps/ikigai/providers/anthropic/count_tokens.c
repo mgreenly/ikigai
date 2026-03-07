@@ -20,7 +20,6 @@
 #include <string.h>
 #include <curl/curl.h>
 
-
 #include "shared/poison.h"
 
 /* ================================================================

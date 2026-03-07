@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <limits.h>
 
-
 #include "shared/poison.h"
 #define DEBUG_LOG_CURRENT "debug.log"
 
@@ -84,10 +83,10 @@ void ik_debug_log_init(void)
         if (syscall(__NR_statx, AT_FDCWD, current_path, 0,
                     STATX_BTIME, &stx) == 0 &&
             (stx.stx_mask & STATX_BTIME)) {
-            birth.tv_sec  = stx.stx_btime.tv_sec;
+            birth.tv_sec = stx.stx_btime.tv_sec;
             birth.tv_nsec = stx.stx_btime.tv_nsec;
         } else {
-            birth.tv_sec  = cur_st.st_mtime;
+            birth.tv_sec = cur_st.st_mtime;
             birth.tv_nsec = 0;
         }
 

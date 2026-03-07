@@ -16,7 +16,6 @@
 #include <talloc.h>
 #include "tests/helpers/vcr_helper.h"
 
-
 #include "shared/poison.h"
 // ============================================================================
 // libcurl wrappers - debug/test builds only

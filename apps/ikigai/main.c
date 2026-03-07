@@ -18,13 +18,12 @@
 #include <time.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 static void log_error_and_cleanup(ik_logger_t *logger,
-                                   const char *event,
-                                   err_t *err,
-                                   void *root_ctx,
-                                   void *logger_ctx)
+                                  const char *event,
+                                  err_t *err,
+                                  void *root_ctx,
+                                  void *logger_ctx)
 {
     yyjson_mut_doc *doc = ik_log_create();
     yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);
@@ -119,10 +118,10 @@ int main(int argc, char *argv[])
     res_t creds_result = ik_credentials_load(root_ctx, NULL, &creds);
     if (is_err(&creds_result)) {
         log_error_and_cleanup(logger,
-                               "credentials_load_error",
-                               creds_result.err,
-                               root_ctx,
-                               logger_ctx);
+                              "credentials_load_error",
+                              creds_result.err,
+                              root_ctx,
+                              logger_ctx);
         return EXIT_FAILURE;
     }
 

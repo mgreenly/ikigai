@@ -9,8 +9,10 @@
 /* Forward declarations */
 CURLM *curl_multi_init_(void);
 CURLMcode curl_multi_perform_(CURLM *multi_handle, int *running_handles);
-CURLMcode curl_multi_fdset_(CURLM *multi_handle, fd_set *read_fd_set,
-                            fd_set *write_fd_set, fd_set *exc_fd_set,
+CURLMcode curl_multi_fdset_(CURLM *multi_handle,
+                            fd_set *read_fd_set,
+                            fd_set *write_fd_set,
+                            fd_set *exc_fd_set,
                             int *max_fd);
 CURLMcode curl_multi_timeout_(CURLM *multi_handle, long *timeout);
 CURLMcode curl_multi_cleanup_(CURLM *multi_handle);

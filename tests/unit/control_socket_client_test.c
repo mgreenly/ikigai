@@ -37,7 +37,7 @@ static ik_paths_t *create_test_paths(TALLOC_CTX *ctx, const char *tmpdir)
 }
 
 static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
-                                       ik_control_socket_t **ctl_out)
+                                      ik_control_socket_t **ctl_out)
 {
     ik_paths_t *paths = create_test_paths(ctx, tmpdir);
     ck_assert_ptr_nonnull(paths);
@@ -47,7 +47,7 @@ static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd, 0);
@@ -91,8 +91,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     return repl;
 }
 
-START_TEST(test_client_ready_with_connection)
-{
+START_TEST(test_client_ready_with_connection) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -121,8 +120,7 @@ START_TEST(test_client_ready_with_connection)
 }
 END_TEST
 
-START_TEST(test_handle_client_unknown_type)
-{
+START_TEST(test_handle_client_unknown_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -150,8 +148,7 @@ START_TEST(test_handle_client_unknown_type)
 }
 END_TEST
 
-START_TEST(test_handle_client_invalid_json)
-{
+START_TEST(test_handle_client_invalid_json) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -179,8 +176,7 @@ START_TEST(test_handle_client_invalid_json)
 }
 END_TEST
 
-START_TEST(test_handle_client_send_keys)
-{
+START_TEST(test_handle_client_send_keys) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -210,8 +206,7 @@ START_TEST(test_handle_client_send_keys)
 }
 END_TEST
 
-START_TEST(test_handle_client_send_keys_missing)
-{
+START_TEST(test_handle_client_send_keys_missing) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -239,8 +234,7 @@ START_TEST(test_handle_client_send_keys_missing)
 }
 END_TEST
 
-START_TEST(test_handle_client_read_framebuffer)
-{
+START_TEST(test_handle_client_read_framebuffer) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -268,8 +262,7 @@ START_TEST(test_handle_client_read_framebuffer)
 }
 END_TEST
 
-START_TEST(test_handle_client_read_framebuffer_null)
-{
+START_TEST(test_handle_client_read_framebuffer_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -301,8 +294,7 @@ START_TEST(test_handle_client_read_framebuffer_null)
 }
 END_TEST
 
-START_TEST(test_handle_client_disconnect)
-{
+START_TEST(test_handle_client_disconnect) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -327,8 +319,7 @@ START_TEST(test_handle_client_disconnect)
 }
 END_TEST
 
-START_TEST(test_handle_client_null_type)
-{
+START_TEST(test_handle_client_null_type) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -356,8 +347,7 @@ START_TEST(test_handle_client_null_type)
 }
 END_TEST
 
-START_TEST(test_handle_client_no_client)
-{
+START_TEST(test_handle_client_no_client) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -379,8 +369,7 @@ START_TEST(test_handle_client_no_client)
 }
 END_TEST
 
-START_TEST(test_handle_client_after_disconnect)
-{
+START_TEST(test_handle_client_after_disconnect) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));

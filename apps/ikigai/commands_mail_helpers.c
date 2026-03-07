@@ -11,7 +11,6 @@
 #include <stddef.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 
 bool ik_mail_parse_uuid(const char *args, char *uuid_out)
@@ -43,4 +42,3 @@ bool ik_mail_parse_uuid(const char *args, char *uuid_out)
     uuid_out[uuid_len] = '\0';
     return true;
 }
-

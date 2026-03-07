@@ -30,9 +30,7 @@ void openai_serialize_text(TALLOC_CTX *ctx, const char *content, int fd);
  * Writes: role chunk with tool_calls delta for each call, stop chunk,
  * [DONE] sentinel.
  */
-void openai_serialize_tool_calls(TALLOC_CTX *ctx,
-                                 const mock_tool_call_t *tool_calls,
-                                 int32_t count, int fd);
+void openai_serialize_tool_calls(TALLOC_CTX *ctx, const mock_tool_call_t *tool_calls, int32_t count, int fd);
 
 /* ================================================================
  * Responses API (/v1/responses)
@@ -43,8 +41,7 @@ void openai_serialize_tool_calls(TALLOC_CTX *ctx,
  * Writes: response.created, response.output_text.delta,
  * response.completed events.
  */
-void openai_responses_serialize_text(TALLOC_CTX *ctx, const char *content,
-                                     int fd);
+void openai_responses_serialize_text(TALLOC_CTX *ctx, const char *content, int fd);
 
 /**
  * Stream tool calls as OpenAI Responses API SSE events.
@@ -52,8 +49,6 @@ void openai_responses_serialize_text(TALLOC_CTX *ctx, const char *content,
  * response.function_call_arguments.delta,
  * response.output_item.done, response.completed events.
  */
-void openai_responses_serialize_tool_calls(TALLOC_CTX *ctx,
-                                           const mock_tool_call_t *tool_calls,
-                                           int32_t count, int fd);
+void openai_responses_serialize_tool_calls(TALLOC_CTX *ctx, const mock_tool_call_t *tool_calls, int32_t count, int fd);
 
 #endif /* MOCK_OPENAI_SERIALIZER_H */

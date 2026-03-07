@@ -102,7 +102,11 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, ik_db_agent
  * @param count Output parameter for array size (must not be NULL)
  * @return OK with agent rows on success, ERR on failure
  */
-res_t ik_db_agent_list_active(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, int64_t session_id, ik_db_agent_row_t ***out, size_t *count);
+res_t ik_db_agent_list_active(ik_db_ctx_t *db_ctx,
+                              TALLOC_CTX *ctx,
+                              int64_t session_id,
+                              ik_db_agent_row_t ***out,
+                              size_t *count);
 
 /**
  * Mark agent as reaped
@@ -186,8 +190,11 @@ typedef struct {
  * @param out_count Output parameter for result array size (must not be NULL)
  * @return OK with name entries on success, ERR on failure
  */
-res_t ik_db_agent_get_names_batch(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                                   char **uuids, size_t uuid_count,
-                                   ik_db_agent_name_entry_t **out, size_t *out_count);
+res_t ik_db_agent_get_names_batch(ik_db_ctx_t *db_ctx,
+                                  TALLOC_CTX *ctx,
+                                  char **uuids,
+                                  size_t uuid_count,
+                                  ik_db_agent_name_entry_t **out,
+                                  size_t *out_count);
 
 #endif // IK_DB_AGENT_H

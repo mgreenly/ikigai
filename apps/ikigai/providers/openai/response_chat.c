@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Helper Functions
@@ -333,7 +332,7 @@ static ik_error_category_t map_http_status_to_category(int http_status)
 }
 
 static void extract_error_strings(yyjson_val *error_obj, const char **type_str,
-                                   const char **code_str, const char **msg_str)
+                                  const char **code_str, const char **msg_str)
 {
     yyjson_val *type_val = yyjson_obj_get(error_obj, "type"); // LCOV_EXCL_BR_LINE
     yyjson_val *code_val = yyjson_obj_get(error_obj, "code"); // LCOV_EXCL_BR_LINE
@@ -355,7 +354,7 @@ static void extract_error_strings(yyjson_val *error_obj, const char **type_str,
 }
 
 static char *format_error_message(TALLOC_CTX *ctx, const char *type_str, const char *code_str,
-                                   const char *msg_str, int http_status)
+                                  const char *msg_str, int http_status)
 {
     char *message = NULL;
 
@@ -376,7 +375,7 @@ static char *format_error_message(TALLOC_CTX *ctx, const char *type_str, const c
 }
 
 static bool try_parse_json_error(TALLOC_CTX *ctx, const char *json, size_t json_len,
-                                  int http_status, char **out_message)
+                                 int http_status, char **out_message)
 {
     if (json == NULL || json_len == 0) {
         return false;

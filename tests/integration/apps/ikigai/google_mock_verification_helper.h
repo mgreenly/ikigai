@@ -28,12 +28,10 @@ sse_accumulator_t *create_sse_accumulator(TALLOC_CTX *ctx);
 void add_sse_chunk(sse_accumulator_t *acc, const char *chunk);
 
 // Make HTTP POST request with SSE streaming
-int http_post_sse_google(TALLOC_CTX *ctx, const char *url,
-                         const char *body, sse_accumulator_t *acc);
+int http_post_sse_google(TALLOC_CTX *ctx, const char *url, const char *body, sse_accumulator_t *acc);
 
 // Make HTTP POST request (non-streaming)
-int http_post_json_google(TALLOC_CTX *ctx, const char *url,
-                          const char *body, char **out_response);
+int http_post_json_google(TALLOC_CTX *ctx, const char *url, const char *body, char **out_response);
 
 // Capture fixture to file
 void capture_fixture_google(const char *name, sse_accumulator_t *acc);

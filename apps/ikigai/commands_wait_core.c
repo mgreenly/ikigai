@@ -34,11 +34,12 @@ static void notify_callback(void *user_data, const char *channel, const char *pa
     ctx->payload = payload;
     ctx->received = true;
 }
+
 // LCOV_EXCL_STOP
 
 // Check for mail (optionally filtered by sender)
 static ik_mail_msg_t *check_mail(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id,
-                                  const char *my_uuid, const char *from_uuid)
+                                 const char *my_uuid, const char *from_uuid)
 {
     ik_mail_msg_t **msgs = NULL;
     size_t count = 0;
@@ -56,8 +57,8 @@ static ik_mail_msg_t *check_mail(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t s
 
 // Check and update single target status in fan-in mode
 static bool update_target_status(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id,
-                                  const char *my_uuid, const char *target_uuid,
-                                  ik_wait_fanin_entry_t *entry)
+                                 const char *my_uuid, const char *target_uuid,
+                                 ik_wait_fanin_entry_t *entry)
 {
     if (strcmp(entry->status, "running") != 0) {  // LCOV_EXCL_BR_LINE
         return true;  // Already resolved  // LCOV_EXCL_LINE
@@ -87,8 +88,8 @@ static bool update_target_status(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t s
 
 // Core wait logic - Mode 1: next message
 void ik_wait_core_next_message(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id,
-                                const char *my_uuid, int32_t timeout_sec, bool *interrupted,
-                                ik_wait_result_t *result)
+                               const char *my_uuid, int32_t timeout_sec, bool *interrupted,
+                               ik_wait_result_t *result)
 {
     char *my_channel = talloc_asprintf(ctx, "agent_event_%s", my_uuid);
     if (my_channel == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -206,7 +207,7 @@ void ik_wait_core_fanin(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id
     ik_db_agent_name_entry_t *name_entries = NULL;
     size_t name_count = 0;
     res_t name_res = ik_db_agent_get_names_batch(db_ctx, ctx, target_uuids, target_count,
-                                                   &name_entries, &name_count);
+                                                 &name_entries, &name_count);
     if (is_err(&name_res) || name_entries == NULL) {
         goto skip_name_lookup;
     }
@@ -254,7 +255,7 @@ skip_name_lookup:
         bool all_resolved = true;
         for (size_t i = 0; i < target_count; i++) {
             bool resolved = update_target_status(ctx, db_ctx, session_id, my_uuid,
-                                                  target_uuids[i], &result->entries[i]);
+                                                 target_uuids[i], &result->entries[i]);
             if (!resolved) all_resolved = false;
         }
 

@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 
 /* ================================================================
@@ -57,10 +56,10 @@ static size_t write_callback(const char *ptr, size_t size, size_t nmemb, void *u
  * ================================================================ */
 
 res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
-                              const char *base_url,
-                              const char *api_key,
-                              const ik_request_t *req,
-                              int32_t *out)
+                             const char *base_url,
+                             const char *api_key,
+                             const ik_request_t *req,
+                             int32_t *out)
 {
     assert(ctx_talloc != NULL); // LCOV_EXCL_BR_LINE
     assert(base_url != NULL);   // LCOV_EXCL_BR_LINE

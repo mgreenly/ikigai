@@ -15,7 +15,6 @@
 #include <talloc.h>
 #include <utf8proc.h>
 
-
 #include "shared/poison.h"
 res_t ik_scrollback_calculate_layout(void *parent,
                                      const char *text,

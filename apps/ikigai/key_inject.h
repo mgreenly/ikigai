@@ -35,7 +35,6 @@ size_t ik_key_inject_pending(ik_key_inject_buf_t *buf);
 // Convert C-style escape sequences to raw bytes
 // Handles: \r \n \t \\ \xNN (hex)
 // Returns talloc'd output buffer
-res_t ik_key_inject_unescape(TALLOC_CTX *ctx, const char *input, size_t input_len,
-                               char **out, size_t *out_len);
+res_t ik_key_inject_unescape(TALLOC_CTX *ctx, const char *input, size_t input_len, char **out, size_t *out_len);
 
 #endif

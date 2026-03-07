@@ -67,7 +67,12 @@ int pthread_mutex_lock_(pthread_mutex_t *mutex);
 int pthread_mutex_unlock_(pthread_mutex_t *mutex);
 int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
 int pthread_join_(pthread_t thread, void **retval);
-res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_uuid, const char *role, const char *content, const char *data);
+res_t ik_db_message_insert_(void *db_ctx,
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *role,
+                            const char *content,
+                            const char *data);
 
 // Mock render function
 res_t ik_repl_render_frame_(void *repl);
@@ -293,7 +298,12 @@ res_t ik_repl_render_frame_(void *repl)
 }
 
 // Mock database insert function
-res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_uuid, const char *role, const char *content, const char *data)
+res_t ik_db_message_insert_(void *db_ctx,
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *role,
+                            const char *content,
+                            const char *data)
 {
     (void)db_ctx;
     (void)session_id;
@@ -483,7 +493,6 @@ START_TEST(test_interrupt_kills_child_process_timeout) {
 }
 
 END_TEST
-
 
 static Suite *interrupt_action_suite(void)
 {

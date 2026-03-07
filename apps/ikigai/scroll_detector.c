@@ -6,7 +6,6 @@
 
 #include "shared/panic.h"
 
-
 #include "shared/poison.h"
 // Create detector (talloc-based)
 ik_scroll_detector_t *ik_scroll_detector_create(void *parent)
@@ -163,4 +162,3 @@ ik_scroll_result_t ik_scroll_detector_flush(ik_scroll_detector_t *det)
     det->state = IK_SCROLL_STATE_IDLE;
     return IK_SCROLL_RESULT_NONE;
 }
-

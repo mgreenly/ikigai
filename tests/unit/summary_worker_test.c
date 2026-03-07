@@ -37,7 +37,7 @@ static void agent_destroy(ik_agent_ctx_t *a)
 
 typedef struct {
     const char *response_text;
-    bool        should_fail;
+    bool should_fail;
 } mock_ctx_t;
 
 static res_t mock_fdset(void *ctx, fd_set *r, fd_set *w, fd_set *e, int *max_fd)
@@ -75,20 +75,20 @@ static res_t mock_start_request(void *ctx, const ik_request_t *req,
     if (m->should_fail) {
         char err_msg[] = "mock provider error";
         ik_provider_completion_t completion = {
-            .success       = false,
+            .success = false,
             .error_message = err_msg,
         };
         cb(&completion, cb_ctx);
         return OK(NULL);
     }
 
-    TALLOC_CTX *tmp       = talloc_new(NULL);
-    ik_response_t *resp   = talloc_zero(tmp, ik_response_t);
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     ik_content_block_t *b = talloc_zero(tmp, ik_content_block_t);
-    b->type               = IK_CONTENT_TEXT;
-    b->data.text.text     = talloc_strdup(tmp, m->response_text);
-    resp->content_blocks  = b;
-    resp->content_count   = 1;
+    b->type = IK_CONTENT_TEXT;
+    b->data.text.text = talloc_strdup(tmp, m->response_text);
+    resp->content_blocks = b;
+    resp->content_count = 1;
 
     ik_provider_completion_t completion = { .success = true, .response = resp };
     cb(&completion, cb_ctx);
@@ -113,15 +113,15 @@ static res_t mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
 }
 
 static const ik_provider_vtable_t mock_vt = {
-    .fdset         = mock_fdset,
-    .timeout       = mock_timeout,
-    .perform       = mock_perform,
-    .info_read     = mock_info_read,
+    .fdset = mock_fdset,
+    .timeout = mock_timeout,
+    .perform = mock_perform,
+    .info_read = mock_info_read,
     .start_request = mock_start_request,
-    .start_stream  = mock_start_stream,
-    .count_tokens  = mock_count_tokens,
-    .cleanup       = NULL,
-    .cancel        = NULL,
+    .start_stream = mock_start_stream,
+    .count_tokens = mock_count_tokens,
+    .cleanup = NULL,
+    .cancel = NULL,
 };
 
 /* Spin until summary_thread_complete is set (max 2 s with 1 ms sleep). */
@@ -139,8 +139,7 @@ static void wait_for_complete(ik_agent_ctx_t *a)
 
 /* ---- Worker: result written and complete flag set on success ---- */
 
-START_TEST(test_worker_fn_success)
-{
+START_TEST(test_worker_fn_success) {
     ik_agent_ctx_t *agent = agent_create();
 
     char ku[] = "user";
@@ -154,12 +153,12 @@ START_TEST(test_worker_fn_success)
     char model[] = "test-model";
 
     ik_summary_worker_args_t args = {
-        .msgs       = (ik_msg_t * const *)msgs,
-        .msg_count  = 1,
-        .provider   = &provider,
-        .model      = model,
+        .msgs = (ik_msg_t * const *)msgs,
+        .msg_count = 1,
+        .provider = &provider,
+        .model = model,
         .max_tokens = 1000,
-        .agent      = agent,
+        .agent = agent,
         .generation = 7,
     };
 
@@ -177,8 +176,7 @@ END_TEST
 
 /* ---- Worker: complete flag set on provider failure; result is NULL ---- */
 
-START_TEST(test_worker_fn_failure)
-{
+START_TEST(test_worker_fn_failure) {
     ik_agent_ctx_t *agent = agent_create();
 
     char ku[] = "user";
@@ -192,12 +190,12 @@ START_TEST(test_worker_fn_failure)
     char model[] = "test-model";
 
     ik_summary_worker_args_t args = {
-        .msgs       = (ik_msg_t * const *)msgs,
-        .msg_count  = 1,
-        .provider   = &provider,
-        .model      = model,
+        .msgs = (ik_msg_t * const *)msgs,
+        .msg_count = 1,
+        .provider = &provider,
+        .model = model,
         .max_tokens = 1000,
-        .agent      = agent,
+        .agent = agent,
         .generation = 2,
     };
 
@@ -213,8 +211,7 @@ END_TEST
 
 /* ---- Dispatch: second dispatch while running is skipped ---- */
 
-START_TEST(test_dispatch_skips_when_running)
-{
+START_TEST(test_dispatch_skips_when_running) {
     ik_agent_ctx_t *agent = agent_create();
 
     /* Mark thread as running to simulate an in-flight dispatch */
@@ -250,8 +247,7 @@ END_TEST
 
 /* ---- Poll: matching generation accepts result ---- */
 
-START_TEST(test_poll_accepts_matching_generation)
-{
+START_TEST(test_poll_accepts_matching_generation) {
     ik_agent_ctx_t *agent = agent_create();
 
     char ku[] = "user";
@@ -284,8 +280,7 @@ END_TEST
 
 /* ---- Poll: stale generation discards result ---- */
 
-START_TEST(test_poll_stale_generation_discards)
-{
+START_TEST(test_poll_stale_generation_discards) {
     ik_agent_ctx_t *agent = agent_create();
 
     char ku[] = "user";
@@ -319,8 +314,7 @@ END_TEST
 
 /* ---- Poll: LLM failure keeps previous recent_summary ---- */
 
-START_TEST(test_poll_failure_keeps_previous_summary)
-{
+START_TEST(test_poll_failure_keeps_previous_summary) {
     ik_agent_ctx_t *agent = agent_create();
 
     /* Pre-populate an existing summary owned by the agent */

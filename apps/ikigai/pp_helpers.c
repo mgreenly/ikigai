@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-
 #include "shared/poison.h"
 void ik_pp_header(ik_format_buffer_t *buf, int32_t indent, const char *type, const void *ptr)
 {

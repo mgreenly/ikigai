@@ -4,7 +4,6 @@
 #include <string.h>
 #include <assert.h>
 
-
 #include "shared/poison.h"
 /**
  * SSE parser implementation
@@ -87,7 +86,12 @@ static void process_event_line(ik_sse_event_t *event, const char *line, size_t l
     }
 }
 
-static void process_data_line(ik_sse_event_t *event, const char *line, size_t line_len, bool *has_data, char **data_accum, size_t *data_len)
+static void process_data_line(ik_sse_event_t *event,
+                              const char *line,
+                              size_t line_len,
+                              bool *has_data,
+                              char **data_accum,
+                              size_t *data_len)
 {
     const char *data_start = line + 5;
     size_t content_len;
@@ -214,4 +218,3 @@ bool ik_sse_event_is_done(const ik_sse_event_t *event)
 
     return strcmp(event->data, "[DONE]") == 0;
 }
-

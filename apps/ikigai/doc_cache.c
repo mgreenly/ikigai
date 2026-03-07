@@ -7,7 +7,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Cache entry
 typedef struct {
@@ -74,8 +73,8 @@ res_t ik_doc_cache_get(ik_doc_cache_t *cache, const char *path, char **out_conte
     if (cache->count >= cache->capacity) {
         size_t new_capacity = cache->capacity == 0 ? 4 : cache->capacity * 2;
         ik_doc_cache_entry_t **new_entries = talloc_realloc(cache, cache->entries,
-                                                             ik_doc_cache_entry_t *,
-                                                             (unsigned int)new_capacity);
+                                                            ik_doc_cache_entry_t *,
+                                                            (unsigned int)new_capacity);
         if (new_entries == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         cache->entries = new_entries;
         cache->capacity = new_capacity;

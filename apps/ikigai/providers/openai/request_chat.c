@@ -20,7 +20,6 @@
 #include <string.h>
 #include <assert.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Helper Functions
@@ -192,7 +191,7 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
  * Add a single system/developer role message to the messages array
  */
 static bool add_sys_message(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                             const char *role, const char *text)
+                            const char *role, const char *text)
 {
     yyjson_mut_val *msg = yyjson_mut_obj(doc);
     if (!msg) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE

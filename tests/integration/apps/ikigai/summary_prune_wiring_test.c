@@ -26,7 +26,7 @@
 
 typedef struct {
     const char *response_text;
-    bool        should_fail;
+    bool should_fail;
 } prune_mock_ctx_t;
 
 static res_t prune_mock_fdset(void *ctx, fd_set *r, fd_set *w, fd_set *e, int *max_fd)
@@ -64,20 +64,20 @@ static res_t prune_mock_start_request(void *ctx, const ik_request_t *req,
     if (m->should_fail) {
         char err_msg[] = "mock provider error";
         ik_provider_completion_t completion = {
-            .success       = false,
+            .success = false,
             .error_message = err_msg,
         };
         cb(&completion, cb_ctx);
         return OK(NULL);
     }
 
-    TALLOC_CTX *tmp       = talloc_new(NULL);
-    ik_response_t *resp   = talloc_zero(tmp, ik_response_t);
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     ik_content_block_t *b = talloc_zero(tmp, ik_content_block_t);
-    b->type               = IK_CONTENT_TEXT;
-    b->data.text.text     = talloc_strdup(tmp, m->response_text);
-    resp->content_blocks  = b;
-    resp->content_count   = 1;
+    b->type = IK_CONTENT_TEXT;
+    b->data.text.text = talloc_strdup(tmp, m->response_text);
+    resp->content_blocks = b;
+    resp->content_count = 1;
 
     ik_provider_completion_t completion = { .success = true, .response = resp };
     cb(&completion, cb_ctx);
@@ -102,15 +102,15 @@ static res_t prune_mock_count_tokens(void *ctx, const ik_request_t *req, int32_t
 }
 
 static const ik_provider_vtable_t prune_mock_vt = {
-    .fdset         = prune_mock_fdset,
-    .timeout       = prune_mock_timeout,
-    .perform       = prune_mock_perform,
-    .info_read     = prune_mock_info_read,
+    .fdset = prune_mock_fdset,
+    .timeout = prune_mock_timeout,
+    .perform = prune_mock_perform,
+    .info_read = prune_mock_info_read,
     .start_request = prune_mock_start_request,
-    .start_stream  = prune_mock_start_stream,
-    .count_tokens  = prune_mock_count_tokens,
-    .cleanup       = NULL,
-    .cancel        = NULL,
+    .start_stream = prune_mock_start_stream,
+    .count_tokens = prune_mock_count_tokens,
+    .cleanup = NULL,
+    .cancel = NULL,
 };
 
 /* Spin until summary_thread_complete is set (max 2 s with 1 ms sleep). */
@@ -134,8 +134,7 @@ static void prune_wait_for_complete(ik_agent_ctx_t *a)
  * Setup: 2 turns, budget below total, so turn 0 is pruned.
  * Expect: recent_summary_generation incremented (dispatch fired).
  */
-START_TEST(test_prune_triggers_dispatch)
-{
+START_TEST(test_prune_triggers_dispatch) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -149,8 +148,8 @@ START_TEST(test_prune_triggers_dispatch)
     prune_mock_ctx_t mock = { .response_text = "Summary.", .should_fail = false };
     ik_provider_t *provider = talloc_zero(agent, ik_provider_t);
     provider->name = "mock";
-    provider->vt   = &prune_mock_vt;
-    provider->ctx  = &mock;
+    provider->vt = &prune_mock_vt;
+    provider->ctx = &mock;
     agent->provider_instance = provider;
 
     /* Set model (required by prune dispatch guard) */
@@ -198,8 +197,7 @@ END_TEST
 /*
  * No dispatch when nothing is pruned (total within budget).
  */
-START_TEST(test_prune_no_dispatch_within_budget)
-{
+START_TEST(test_prune_no_dispatch_within_budget) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
@@ -211,8 +209,8 @@ START_TEST(test_prune_no_dispatch_within_budget)
     prune_mock_ctx_t mock = { .response_text = "Summary.", .should_fail = false };
     ik_provider_t *provider = talloc_zero(agent, ik_provider_t);
     provider->name = "mock";
-    provider->vt   = &prune_mock_vt;
-    provider->ctx  = &mock;
+    provider->vt = &prune_mock_vt;
+    provider->ctx = &mock;
     agent->provider_instance = provider;
     agent->model = talloc_strdup(agent, "test-model");
 

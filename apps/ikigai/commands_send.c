@@ -26,7 +26,6 @@
 #include <talloc.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 /**
  * Core send logic - reusable by both slash command and internal tool

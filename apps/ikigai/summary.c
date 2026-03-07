@@ -26,7 +26,7 @@ const char IK_SUMMARY_PROMPT[] =
     "Write in past tense from the perspective of the conversation participants.";
 
 ik_summary_range_t ik_summary_boundaries(size_t message_count,
-                                          size_t context_start_index)
+                                         size_t context_start_index)
 {
     (void)message_count; /* epoch starts at 0 after /clear resets the array */
 
@@ -38,8 +38,8 @@ ik_summary_range_t ik_summary_boundaries(size_t message_count,
 }
 
 char *ik_summary_transcript(TALLOC_CTX *ctx,
-                             ik_msg_t * const *msgs,
-                             size_t count)
+                            ik_msg_t * const *msgs,
+                            size_t count)
 {
     char *result = talloc_strdup(ctx, "");
 
@@ -60,9 +60,9 @@ char *ik_summary_transcript(TALLOC_CTX *ctx,
 /* Internal context for the completion callback */
 typedef struct {
     TALLOC_CTX *ctx;
-    char       *summary;
-    res_t       result;
-    bool        done;
+    char *summary;
+    res_t result;
+    bool done;
 } generate_cb_ctx_t;
 
 static res_t generate_completion_cb(const ik_provider_completion_t *completion,
@@ -137,12 +137,12 @@ static char *truncate_at_sentence(TALLOC_CTX *ctx, const char *text,
 }
 
 res_t ik_summary_generate(TALLOC_CTX *ctx,
-                           ik_msg_t * const *msgs,
-                           size_t count,
-                           ik_provider_t *provider,
-                           const char *model,
-                           int32_t max_tokens,
-                           char **summary_out)
+                          ik_msg_t * const *msgs,
+                          size_t count,
+                          ik_provider_t *provider,
+                          const char *model,
+                          int32_t max_tokens,
+                          char **summary_out)
 {
     /* Build transcript of conversation messages */
     char *transcript = ik_summary_transcript(ctx, msgs, count);
@@ -156,10 +156,10 @@ res_t ik_summary_generate(TALLOC_CTX *ctx,
 
     /* Callback context */
     generate_cb_ctx_t cb = {
-        .ctx     = ctx,
+        .ctx = ctx,
         .summary = NULL,
-        .result  = OK(NULL),
-        .done    = false,
+        .result = OK(NULL),
+        .done = false,
     };
 
     /* Initiate the request */
@@ -180,7 +180,7 @@ res_t ik_summary_generate(TALLOC_CTX *ctx,
         provider->vt->timeout(provider->ctx, &timeout_ms);
 
         struct timeval tv = {
-            .tv_sec  = timeout_ms / 1000,
+            .tv_sec = timeout_ms / 1000,
             .tv_usec = (timeout_ms % 1000) * 1000,
         };
 

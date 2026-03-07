@@ -19,7 +19,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 // Wait handler: wait for messages from other agents
@@ -77,8 +76,8 @@ char *ik_wait_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char *args_j
         // Next message mode
         yyjson_doc_free(doc);
         ik_wait_core_next_message(ctx, worker_db_ctx, agent->shared->session_id,
-                                   agent->uuid, timeout_sec,
-                                   &agent->interrupt_requested, &wait_result);
+                                  agent->uuid, timeout_sec,
+                                  &agent->interrupt_requested, &wait_result);
     }
 
     // Build result JSON

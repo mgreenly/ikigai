@@ -52,7 +52,6 @@ START_TEST(test_output_item_done_edge_cases) {
 
 END_TEST
 
-
 START_TEST(test_response_completed_with_usage) {
     ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
         test_ctx, stream_cb, events);

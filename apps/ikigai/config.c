@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-
 #include "shared/poison.h"
 res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
 {
@@ -37,14 +36,14 @@ res_t ik_config_load(TALLOC_CTX *ctx, ik_paths_t *paths, ik_config_t **out)
         }
         if (system_prompt_st.st_size > 1024) {
             return ERR(ctx, IO, "System prompt file exceeds 1KB limit: %s (%lld bytes)",
-                      system_prompt_path, (long long)system_prompt_st.st_size);
+                       system_prompt_path, (long long)system_prompt_st.st_size);
         }
 
         // Read file contents
         FILE *fp = fopen_(system_prompt_path, "r");
         if (!fp) {
             return ERR(ctx, IO, "Failed to open system prompt file: %s (%s)",
-                      system_prompt_path, strerror(errno));
+                       system_prompt_path, strerror(errno));
         }
 
         char *buffer = talloc_size(cfg, (size_t)system_prompt_st.st_size + 1);

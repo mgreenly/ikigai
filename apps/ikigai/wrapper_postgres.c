@@ -11,7 +11,6 @@
 
 #include <libpq-fe.h>
 
-
 #include "shared/poison.h"
 // ============================================================================
 // PostgreSQL wrappers - debug/test builds only

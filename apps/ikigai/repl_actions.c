@@ -21,7 +21,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 /**
  * @brief Append multi-line output to scrollback (splits by newlines)

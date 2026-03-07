@@ -21,8 +21,13 @@
 #include <talloc.h>
 
 // Forward declarations for mocks
-res_t ik_send_core(void *ctx, ik_db_ctx_t *db, int64_t session_id, const char *from_uuid,
-                   const char *to_uuid, const char *message, char **error_msg);
+res_t ik_send_core(void *ctx,
+                   ik_db_ctx_t *db,
+                   int64_t session_id,
+                   const char *from_uuid,
+                   const char *to_uuid,
+                   const char *message,
+                   char **error_msg);
 
 // Mock control flags
 static bool mock_send_core_fail = false;

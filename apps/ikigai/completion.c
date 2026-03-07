@@ -12,7 +12,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #include "shared/poison.h"
 // Maximum number of completion suggestions to return
 #define MAX_COMPLETIONS 15

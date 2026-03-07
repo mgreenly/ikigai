@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Helper to check if two agents have the same parent
 static bool same_parent(const char *parent1, const char *parent2)

@@ -26,7 +26,8 @@ int32_t main(int32_t argc, char **argv)
         printf("      \"operation\": {\n");
         printf("        \"type\": \"string\",\n");
         printf("        \"description\": \"Operation: lpush, rpush, lpop, rpop, lpeek, rpeek, list, count\",\n");
-        printf("        \"enum\": [\"lpush\", \"rpush\", \"lpop\", \"rpop\", \"lpeek\", \"rpeek\", \"list\", \"count\"]\n");
+        printf(
+            "        \"enum\": [\"lpush\", \"rpush\", \"lpop\", \"rpop\", \"lpeek\", \"rpeek\", \"list\", \"count\"]\n");
         printf("      },\n");
         printf("      \"item\": {\n");
         printf("        \"type\": \"string\",\n");

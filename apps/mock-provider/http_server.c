@@ -124,12 +124,12 @@ void http_respond_json(int fd, int status_code, const char *body)
 
     char header[256];
     int header_len = snprintf(header, sizeof(header),
-        "HTTP/1.1 %d %s\r\n"
-        "Content-Type: application/json\r\n"
-        "Content-Length: %zu\r\n"
-        "Connection: close\r\n"
-        "\r\n",
-        status_code, status_text, strlen(body));
+                              "HTTP/1.1 %d %s\r\n"
+                              "Content-Type: application/json\r\n"
+                              "Content-Length: %zu\r\n"
+                              "Connection: close\r\n"
+                              "\r\n",
+                              status_code, status_text, strlen(body));
 
     if (header_len > 0) {
         (void)write(fd, header, (size_t)header_len);

@@ -47,9 +47,7 @@ ik_token_cache_t *ik_token_cache_create(TALLOC_CTX *ctx, ik_agent_ctx_t *agent);
  * @param new_agent New agent for the clone (must not be NULL)
  * @return          Allocated clone (never NULL, panics on OOM)
  */
-ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx,
-                                        const ik_token_cache_t *src,
-                                        ik_agent_ctx_t *new_agent);
+ik_token_cache_t *ik_token_cache_clone(TALLOC_CTX *ctx, const ik_token_cache_t *src, ik_agent_ctx_t *new_agent);
 
 /* ================================================================
  * Getters — return cached value or compute (bytes fallback on API failure)
@@ -109,9 +107,7 @@ int32_t ik_token_cache_get_turn_tokens(ik_token_cache_t *cache, size_t turn_inde
  * @param turn_index Zero-based turn index
  * @param tokens     Token count to store
  */
-void ik_token_cache_record_turn(ik_token_cache_t *cache,
-                                size_t turn_index,
-                                int32_t tokens);
+void ik_token_cache_record_turn(ik_token_cache_t *cache, size_t turn_index, int32_t tokens);
 
 /* ================================================================
  * Invalidation — clear cached values
@@ -211,7 +207,6 @@ int32_t ik_token_cache_peek_total(const ik_token_cache_t *cache);
  * Returns the cached value for turn_index, or 0 if uncached.
  * PANIC if turn_index >= turn_count.
  */
-int32_t ik_token_cache_peek_turn_tokens(const ik_token_cache_t *cache,
-                                         size_t turn_index);
+int32_t ik_token_cache_peek_turn_tokens(const ik_token_cache_t *cache, size_t turn_index);
 
 #endif /* IK_TOKEN_CACHE_H */

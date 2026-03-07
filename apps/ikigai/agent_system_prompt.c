@@ -38,7 +38,7 @@ static void display_template_warnings(ik_agent_ctx_t *agent, ik_template_result_
 
     for (size_t j = 0; j < template_result->unresolved_count; j++) {
         char *warning_text = talloc_asprintf(agent, "Unknown template variable: %s",
-                                            template_result->unresolved[j]);
+                                             template_result->unresolved[j]);
         if (warning_text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         char *formatted_warning = ik_scrollback_format_warning(agent, warning_text);

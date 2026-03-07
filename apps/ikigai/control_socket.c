@@ -25,14 +25,13 @@
 
 #include "vendor/yyjson/yyjson.h"
 
-
 #include "shared/poison.h"
 struct ik_control_socket_t {
     int32_t listen_fd;
     int32_t client_fd;
     char *socket_path;
-    bool     wait_idle_pending;        // deferred wait_idle response pending
-    int64_t  wait_idle_deadline_ms;    // CLOCK_MONOTONIC absolute deadline
+    bool wait_idle_pending;            // deferred wait_idle response pending
+    int64_t wait_idle_deadline_ms;     // CLOCK_MONOTONIC absolute deadline
 };
 
 static res_t ensure_runtime_dir_exists(TALLOC_CTX *ctx, const char *runtime_dir)
@@ -53,7 +52,7 @@ static res_t ensure_runtime_dir_exists(TALLOC_CTX *ctx, const char *runtime_dir)
 }
 
 res_t ik_control_socket_init(TALLOC_CTX *ctx, ik_paths_t *paths,
-                              ik_control_socket_t **out)
+                             ik_control_socket_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(out != NULL);   // LCOV_EXCL_BR_LINE
@@ -133,8 +132,8 @@ void ik_control_socket_destroy(ik_control_socket_t *socket)
 }
 
 void ik_control_socket_add_to_fd_sets(ik_control_socket_t *socket,
-                                       fd_set *read_fds,
-                                       int *max_fd)
+                                      fd_set *read_fds,
+                                      int *max_fd)
 {
     assert(socket != NULL);     // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);   // LCOV_EXCL_BR_LINE
@@ -156,7 +155,7 @@ void ik_control_socket_add_to_fd_sets(ik_control_socket_t *socket,
 }
 
 bool ik_control_socket_listen_ready(ik_control_socket_t *socket,
-                                     fd_set *read_fds)
+                                    fd_set *read_fds)
 {
     assert(socket != NULL);     // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);   // LCOV_EXCL_BR_LINE
@@ -165,7 +164,7 @@ bool ik_control_socket_listen_ready(ik_control_socket_t *socket,
 }
 
 bool ik_control_socket_client_ready(ik_control_socket_t *socket,
-                                     fd_set *read_fds)
+                                    fd_set *read_fds)
 {
     assert(socket != NULL);     // LCOV_EXCL_BR_LINE
     assert(read_fds != NULL);   // LCOV_EXCL_BR_LINE
@@ -196,21 +195,21 @@ res_t ik_control_socket_accept(ik_control_socket_t *socket)
 }
 
 static char *dispatch_read_token_cache(ik_control_socket_t *socket,
-                                        ik_repl_ctx_t *repl)
+                                       ik_repl_ctx_t *repl)
 {
     ik_token_cache_t *cache = (repl->current != NULL) ?
-                               repl->current->token_cache : NULL;
+                              repl->current->token_cache : NULL;
 
     if (cache == NULL) {
         return talloc_strdup(socket,
-            "{\"total_tokens\":0,\"budget\":100000,\"turn_count\":0,"
-            "\"context_start_index\":0,\"turns\":[]}\n");
+                             "{\"total_tokens\":0,\"budget\":100000,\"turn_count\":0,"
+                             "\"context_start_index\":0,\"turns\":[]}\n");
     }
 
-    int32_t total    = ik_token_cache_peek_total(cache);
-    int32_t budget   = ik_token_cache_get_budget(cache);
-    size_t  turns    = ik_token_cache_get_turn_count(cache);
-    size_t  ctx_turn = ik_token_cache_get_context_start_turn(cache);
+    int32_t total = ik_token_cache_peek_total(cache);
+    int32_t budget = ik_token_cache_get_budget(cache);
+    size_t turns = ik_token_cache_get_turn_count(cache);
+    size_t ctx_turn = ik_token_cache_get_context_start_turn(cache);
 
     char *turns_json = talloc_strdup(socket, "[");
     if (turns_json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -220,21 +219,21 @@ static char *dispatch_read_token_cache(ik_control_socket_t *socket,
             turns_json = talloc_strdup_append(turns_json, ",");
         }
         turns_json = talloc_asprintf_append(turns_json,
-            "{\"index\":%zu,\"tokens\":%"PRId32"}",
-            ctx_turn + i, tok);
+                                            "{\"index\":%zu,\"tokens\":%" PRId32 "}",
+                                            ctx_turn + i, tok);
     }
     turns_json = talloc_strdup_append(turns_json, "]");
 
     char *response = talloc_asprintf(socket,
-        "{\"total_tokens\":%"PRId32",\"budget\":%"PRId32","
-        "\"turn_count\":%zu,\"context_start_index\":%zu,\"turns\":%s}\n",
-        total, budget, turns, ctx_turn, turns_json);
+                                     "{\"total_tokens\":%" PRId32 ",\"budget\":%" PRId32 ","
+                                     "\"turn_count\":%zu,\"context_start_index\":%zu,\"turns\":%s}\n",
+                                     total, budget, turns, ctx_turn, turns_json);
     talloc_free(turns_json);
     return response;
 }
 
 static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
-                                        ik_repl_ctx_t *repl)
+                                       ik_repl_ctx_t *repl)
 {
     if (repl->framebuffer == NULL) {
         return talloc_strdup(socket, "{\"error\":\"No framebuffer available\"}\n");
@@ -248,7 +247,7 @@ static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
         repl->cursor_row,
         repl->cursor_col,
         repl->current->input_buffer_visible
-    );
+        );
     if (is_ok(&ser_result)) {              // LCOV_EXCL_BR_LINE
         return (char *)ser_result.ok;
     }
@@ -257,9 +256,9 @@ static char *dispatch_read_framebuffer(ik_control_socket_t *socket,
 }
 
 static char *dispatch_send_keys(ik_control_socket_t *socket,  // LCOV_EXCL_BR_LINE
-                                 yyjson_val *root,
-                                 char **pending_keys,
-                                 size_t *pending_keys_len)
+                                yyjson_val *root,
+                                char **pending_keys,
+                                size_t *pending_keys_len)
 {
     yyjson_val *keys_val = yyjson_obj_get(root, "keys");
     const char *keys = yyjson_get_str(keys_val);
@@ -282,10 +281,10 @@ static char *dispatch_send_keys(ik_control_socket_t *socket,  // LCOV_EXCL_BR_LI
 }
 
 static void dispatch_wait_idle(ik_control_socket_t *socket,
-                                yyjson_val *root,
-                                ik_repl_ctx_t *repl,
-                                char **response,
-                                bool *deferred)
+                               yyjson_val *root,
+                               ik_repl_ctx_t *repl,
+                               char **response,
+                               bool *deferred)
 {
     if (socket->wait_idle_pending) {
         *response = talloc_strdup(socket, "{\"error\":\"wait_idle already pending\"}\n");
@@ -304,7 +303,7 @@ static void dispatch_wait_idle(ik_control_socket_t *socket,
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-    socket->wait_idle_pending     = true;
+    socket->wait_idle_pending = true;
     socket->wait_idle_deadline_ms = now_ms + timeout_ms;
     *deferred = true;
 }
@@ -316,14 +315,14 @@ static void client_send(ik_control_socket_t *socket, const char *msg, size_t len
     ssize_t n = posix_send_(socket->client_fd, msg, len, MSG_NOSIGNAL);
     if (n < 0 || (size_t)n < len) {       // LCOV_EXCL_BR_LINE
         close(socket->client_fd);
-        socket->client_fd             = -1;
-        socket->wait_idle_pending     = false;
+        socket->client_fd = -1;
+        socket->wait_idle_pending = false;
         socket->wait_idle_deadline_ms = 0;
     }
 }
 
 res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
-                                       ik_repl_ctx_t *repl)
+                                      ik_repl_ctx_t *repl)
 {
     assert(socket != NULL);  // LCOV_EXCL_BR_LINE
     assert(repl != NULL);    // LCOV_EXCL_BR_LINE
@@ -336,8 +335,8 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
     ssize_t n = posix_read_(socket->client_fd, buffer, sizeof(buffer) - 1);
     if (n <= 0) {
         close(socket->client_fd);
-        socket->client_fd             = -1;
-        socket->wait_idle_pending     = false;
+        socket->client_fd = -1;
+        socket->wait_idle_pending = false;
         socket->wait_idle_deadline_ms = 0;
         if (n < 0) {
             return ERR(socket, IO, "Failed to read from client: %s", strerror(errno));
@@ -394,7 +393,7 @@ res_t ik_control_socket_handle_client(ik_control_socket_t *socket,
 
         if (pending_keys != NULL && socket->client_fd >= 0) {  // LCOV_EXCL_BR_LINE
             res_t append_result = ik_key_inject_append(repl->key_inject_buf,
-                                                        pending_keys, pending_keys_len);
+                                                       pending_keys, pending_keys_len);
             if (is_err(&append_result)) {  // LCOV_EXCL_BR_LINE
                 talloc_free(append_result.err);  // LCOV_EXCL_LINE
             }
@@ -423,14 +422,14 @@ void ik_control_socket_tick(ik_control_socket_t *socket, ik_repl_ctx_t *repl)
 
     if (atomic_load(&repl->current->state) == IK_AGENT_STATE_IDLE) {
         fire = true;
-        msg  = "{\"type\":\"idle\"}\n";
+        msg = "{\"type\":\"idle\"}\n";
     } else {
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
         int64_t now_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
         if (now_ms >= socket->wait_idle_deadline_ms) {  // LCOV_EXCL_BR_LINE
             fire = true;
-            msg  = "{\"type\":\"timeout\"}\n";
+            msg = "{\"type\":\"timeout\"}\n";
         }
     }
 
@@ -440,7 +439,7 @@ void ik_control_socket_tick(ik_control_socket_t *socket, ik_repl_ctx_t *repl)
             close(socket->client_fd);
             socket->client_fd = -1;
         }
-        socket->wait_idle_pending     = false;
+        socket->wait_idle_pending = false;
         socket->wait_idle_deadline_ms = 0;
     }
 }

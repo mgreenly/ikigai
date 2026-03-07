@@ -28,12 +28,18 @@ sse_event_accumulator_t *create_sse_event_accumulator(TALLOC_CTX *ctx);
 void add_sse_event(sse_event_accumulator_t *acc, const char *event);
 
 // Make HTTP POST request with SSE streaming
-int http_post_sse_anthropic(TALLOC_CTX *ctx, const char *url, const char *api_key,
-                            const char *body, sse_event_accumulator_t *acc);
+int http_post_sse_anthropic(TALLOC_CTX *ctx,
+                            const char *url,
+                            const char *api_key,
+                            const char *body,
+                            sse_event_accumulator_t *acc);
 
 // Make HTTP POST request (non-streaming)
-int http_post_json_anthropic(TALLOC_CTX *ctx, const char *url, const char *api_key,
-                             const char *body, char **out_response);
+int http_post_json_anthropic(TALLOC_CTX *ctx,
+                             const char *url,
+                             const char *api_key,
+                             const char *body,
+                             char **out_response);
 
 // Capture fixture to file
 void capture_fixture_anthropic(const char *name, sse_event_accumulator_t *acc);

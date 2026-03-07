@@ -7,10 +7,9 @@
 #include <inttypes.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 static void categorize_http_response(ik_http_multi_t *multi, long response_code,
-                                      ik_http_completion_t *completion)
+                                     ik_http_completion_t *completion)
 {
     if (response_code >= 200 && response_code < 300) {
         completion->type = IK_HTTP_SUCCESS;
@@ -29,8 +28,8 @@ static void categorize_http_response(ik_http_multi_t *multi, long response_code,
 }
 
 static void build_completion_for_success(ik_http_multi_t *multi, CURL *easy_handle,
-                                          active_request_t *completed,
-                                          ik_http_completion_t *completion)
+                                         active_request_t *completed,
+                                         ik_http_completion_t *completion)
 {
     long response_code = 0;
     curl_easy_getinfo_(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -46,7 +45,7 @@ static void build_completion_for_success(ik_http_multi_t *multi, CURL *easy_hand
 }
 
 static void build_completion_for_error(ik_http_multi_t *multi, CURLcode curl_result,
-                                        ik_http_completion_t *completion)
+                                       ik_http_completion_t *completion)
 {
     completion->type = IK_HTTP_NETWORK_ERROR;
     completion->http_code = 0;
@@ -55,7 +54,7 @@ static void build_completion_for_error(ik_http_multi_t *multi, CURLcode curl_res
 }
 
 static void cleanup_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
-                                       active_request_t *completed)
+                                      active_request_t *completed)
 {
     curl_multi_remove_handle_(multi->multi_handle, easy_handle);
     curl_easy_cleanup_(easy_handle);
@@ -89,7 +88,7 @@ static void cleanup_completion_resources(ik_http_completion_t *completion)
 }
 
 static void process_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
-                                       CURLcode curl_result, size_t index)
+                                      CURLcode curl_result, size_t index)
 {
     active_request_t *completed = multi->active_requests[index];
 
@@ -111,7 +110,7 @@ static void process_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
 }
 
 static bool find_and_process_completed_request(ik_http_multi_t *multi, CURL *easy_handle,
-                                                CURLcode curl_result)
+                                               CURLcode curl_result)
 {
     for (size_t i = 0; i < multi->active_count; i++) {
         if (multi->active_requests[i]->easy_handle == easy_handle) {

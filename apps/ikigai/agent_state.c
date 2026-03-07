@@ -19,7 +19,6 @@
 #include <string.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 bool ik_agent_has_running_tools(const ik_agent_ctx_t *agent)
 {
@@ -192,7 +191,7 @@ static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
         if (m == NULL || m->content_count == 0) continue;
 
         ik_content_block_t *block = &m->content_blocks[0];
-        const char *kind    = NULL;
+        const char *kind = NULL;
         const char *content = NULL;
 
         switch (m->role) {
@@ -213,19 +212,19 @@ static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
 
         if (kind == NULL || content == NULL) continue;
 
-        stubs[stub_count].id         = 0;
+        stubs[stub_count].id = 0;
         /* ik_msg_t.kind and .content are char*, not const char*. Safe to cast
          * since the worker only reads these fields (never modifies them). */
-        stubs[stub_count].kind       = (char *)(uintptr_t)kind;
-        stubs[stub_count].content    = (char *)(uintptr_t)content;
-        stubs[stub_count].data_json  = NULL;
+        stubs[stub_count].kind = (char *)(uintptr_t)kind;
+        stubs[stub_count].content = (char *)(uintptr_t)content;
+        stubs[stub_count].data_json = NULL;
         stubs[stub_count].interrupted = false;
         ptrs[stub_count] = &stubs[stub_count];
         stub_count++;
     }
 
     agent->summary_msgs_stubs = stubs;
-    agent->summary_msgs_ptrs  = ptrs;
+    agent->summary_msgs_ptrs = ptrs;
     return stub_count;
 }
 

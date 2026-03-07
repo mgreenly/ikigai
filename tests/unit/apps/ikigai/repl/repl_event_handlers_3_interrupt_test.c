@@ -23,8 +23,12 @@
 #include <stdatomic.h>
 
 /* Forward declarations for mocks */
-res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
-                            const char *kind, const char *content, const char *data_json);
+res_t ik_db_message_insert_(void *db,
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *kind,
+                            const char *content,
+                            const char *data_json);
 res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle);
 res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload);
 res_t ik_repl_render_frame_(void *repl_ctx);

@@ -70,11 +70,11 @@ void *ik_summary_worker_fn(void *arg)
  * Dispatch — spawn the summary thread if one is not already running.
  */
 void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
-                                ik_provider_t  *provider,
-                                const char     *model,
+                                ik_provider_t *provider,
+                                const char *model,
                                 ik_msg_t * const *msgs,
-                                size_t          msg_count,
-                                int32_t         max_tokens)
+                                size_t msg_count,
+                                int32_t max_tokens)
 {
     assert(agent != NULL);    // LCOV_EXCL_BR_LINE
     assert(provider != NULL); // LCOV_EXCL_BR_LINE
@@ -93,12 +93,12 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
     ik_summary_worker_args_t *args = malloc(sizeof(ik_summary_worker_args_t));
     if (args == NULL) return; // LCOV_EXCL_LINE
 
-    args->msgs       = msgs;
-    args->msg_count  = msg_count;
-    args->provider   = provider;
-    args->model      = strdup(model);
+    args->msgs = msgs;
+    args->msg_count = msg_count;
+    args->provider = provider;
+    args->model = strdup(model);
     args->max_tokens = max_tokens;
-    args->agent      = agent;
+    args->agent = agent;
     args->generation = agent->recent_summary_generation;
 
     if (args->model == NULL) { // LCOV_EXCL_BR_LINE
@@ -107,9 +107,9 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
     }
 
     pthread_mutex_lock_(&agent->summary_thread_mutex);
-    agent->summary_thread_running  = true;
+    agent->summary_thread_running = true;
     agent->summary_thread_complete = false;
-    agent->summary_thread_result   = NULL;
+    agent->summary_thread_result = NULL;
     pthread_mutex_unlock_(&agent->summary_thread_mutex);
 
     int ret = pthread_create_(&agent->summary_thread, NULL,
@@ -182,8 +182,8 @@ void ik_summary_worker_poll(ik_agent_ctx_t *agent)
     }
 
     pthread_mutex_lock_(&agent->summary_thread_mutex);
-    agent->summary_thread_running  = false;
+    agent->summary_thread_running = false;
     agent->summary_thread_complete = false;
-    agent->summary_thread_result   = NULL;
+    agent->summary_thread_result = NULL;
     pthread_mutex_unlock_(&agent->summary_thread_mutex);
 }

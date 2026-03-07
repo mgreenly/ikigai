@@ -19,7 +19,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 static void replay_toolset_command(ik_agent_ctx_t *agent, const char *args)
 {

@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 size_t ik_ansi_skip_csi(const char *text, size_t len, size_t pos)
 {

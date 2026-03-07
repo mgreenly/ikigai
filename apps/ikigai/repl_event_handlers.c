@@ -165,7 +165,7 @@ static void persist_assistant_msg(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
     if (agent->thinking_level > 0) {
         const char *levels[] = {"unknown", "low", "med", "high"};
         const char *level_str = (agent->thinking_level <= 3) ?
-            levels[agent->thinking_level] : levels[0];
+                                levels[agent->thinking_level] : levels[0];
         data_json = talloc_asprintf_append(data_json, "%s\"thinking_level\":\"%s\"",
                                            first ? "" : ",", level_str);
         first = false;

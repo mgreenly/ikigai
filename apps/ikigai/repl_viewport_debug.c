@@ -8,7 +8,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 void ik_repl_dev_dump_framebuffer(ik_repl_ctx_t *repl)
 {

@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-
 #include "shared/poison.h"
 /**
  * Map HTTP status code to error category (default mapping)
@@ -99,4 +98,3 @@ res_t ik_openai_handle_error(TALLOC_CTX *ctx, int32_t status, const char *body,
     yyjson_doc_free(doc);
     return OK(NULL);
 }
-

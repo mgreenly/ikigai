@@ -27,7 +27,6 @@
 #include "apps/ikigai/tool_external.h"
 #include "apps/ikigai/tool_registry.h"
 
-
 #include "shared/poison.h"
 // ============================================================================
 // Internal ikigai function wrappers for testing - debug/test builds only
@@ -43,7 +42,12 @@ MOCKABLE res_t ik_paths_translate_path_to_ik_uri_(TALLOC_CTX *ctx, void *paths, 
     return ik_paths_translate_path_to_ik_uri(ctx, (ik_paths_t *)paths, input, out);
 }
 
-MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, pid_t *child_pid_out, char **out_result)
+MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx,
+                                      const char *tool_path,
+                                      const char *agent_id,
+                                      const char *arguments_json,
+                                      pid_t *child_pid_out,
+                                      char **out_result)
 {
     return ik_tool_external_exec(ctx, tool_path, agent_id, arguments_json, child_pid_out, out_result);
 }

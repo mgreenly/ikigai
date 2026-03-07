@@ -13,7 +13,6 @@
 #include <string.h>
 #include <assert.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Helper Functions
@@ -292,7 +291,7 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
 }
 
 static bool add_input_field(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                           const ik_request_t *req)
+                            const ik_request_t *req)
 {
     /* Force array input when remaining system blocks need developer messages prepended */
     bool has_extra_blocks = (req->system_block_count > 1);
@@ -337,7 +336,7 @@ static bool add_reasoning_config(yyjson_mut_doc *doc, yyjson_mut_val *root, cons
 }
 
 static bool add_tools_and_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                const ik_request_t *req)
+                                 const ik_request_t *req)
 {
     if (req->tool_count == 0) {
         return true;

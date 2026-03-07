@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Forward Declarations (from events.c)
@@ -226,7 +225,6 @@ void ik_openai_responses_handle_output_item_done(ik_openai_responses_stream_ctx_
     }
 }
 
-
 /**
  * Handle response.completed event - extract usage statistics
  */
@@ -268,7 +266,6 @@ void ik_openai_responses_handle_response_completed(ik_openai_responses_stream_ct
         }
     }
 }
-
 
 /**
  * Handle error event

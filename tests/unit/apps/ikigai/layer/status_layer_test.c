@@ -137,7 +137,8 @@ START_TEST(test_status_layer_thinking_levels) {
 }
 END_TEST
 
-static Suite *status_layer_suite(void) {
+static Suite *status_layer_suite(void)
+{
     Suite *s = suite_create("status_layer");
 
     TCase *tc_basic = tcase_create("basic");
@@ -151,7 +152,8 @@ static Suite *status_layer_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s = status_layer_suite();
     SRunner *sr = srunner_create(s);

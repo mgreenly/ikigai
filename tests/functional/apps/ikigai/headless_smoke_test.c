@@ -39,8 +39,7 @@ static void test_teardown(void)
     test_ctx = NULL;
 }
 
-START_TEST(test_headless_starts_and_socket_exists)
-{
+START_TEST(test_headless_starts_and_socket_exists) {
     ck_assert(instance != NULL);
     ck_assert(instance->pid > 0);
     ck_assert(instance->socket_path != NULL);
@@ -51,8 +50,7 @@ START_TEST(test_headless_starts_and_socket_exists)
 }
 END_TEST
 
-START_TEST(test_read_framebuffer_returns_valid_json)
-{
+START_TEST(test_read_framebuffer_returns_valid_json) {
     int fd = -1;
     res_t result = ik_ctl_connect(test_ctx, instance->socket_path, &fd);
     ck_assert_msg(is_ok(&result), "Failed to connect to control socket");
@@ -70,8 +68,7 @@ START_TEST(test_read_framebuffer_returns_valid_json)
 }
 END_TEST
 
-START_TEST(test_send_keys_and_framebuffer_changes)
-{
+START_TEST(test_send_keys_and_framebuffer_changes) {
     int fd = -1;
     res_t result = ik_ctl_connect(test_ctx, instance->socket_path, &fd);
     ck_assert_msg(is_ok(&result), "Failed to connect to control socket");

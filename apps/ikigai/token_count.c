@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 #include "shared/poison.h"
 int32_t ik_token_count_from_bytes(size_t byte_count)
 {

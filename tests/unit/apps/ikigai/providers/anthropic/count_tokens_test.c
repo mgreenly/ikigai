@@ -124,8 +124,7 @@ static ik_request_t *make_request(TALLOC_CTX *ctx)
  * Tests: Successful count
  * ================================================================ */
 
-START_TEST(test_count_tokens_success)
-{
+START_TEST(test_count_tokens_success) {
     g_mock_response_body = "{\"input_tokens\": 42}";
     g_mock_http_status = 200;
 
@@ -139,8 +138,7 @@ START_TEST(test_count_tokens_success)
 }
 END_TEST
 
-START_TEST(test_count_tokens_large_value)
-{
+START_TEST(test_count_tokens_large_value) {
     g_mock_response_body = "{\"input_tokens\": 99999}";
     g_mock_http_status = 200;
 
@@ -158,8 +156,7 @@ END_TEST
  * Tests: API error fallback
  * ================================================================ */
 
-START_TEST(test_count_tokens_api_error_401)
-{
+START_TEST(test_count_tokens_api_error_401) {
     /* 401 Unauthorized -> fallback to bytes estimator */
     g_mock_response_body = "{\"error\": \"unauthorized\"}";
     g_mock_http_status = 401;
@@ -175,8 +172,7 @@ START_TEST(test_count_tokens_api_error_401)
 }
 END_TEST
 
-START_TEST(test_count_tokens_api_error_429)
-{
+START_TEST(test_count_tokens_api_error_429) {
     /* 429 Rate limit -> fallback */
     g_mock_response_body = "{\"error\": \"rate_limit\"}";
     g_mock_http_status = 429;
@@ -191,8 +187,7 @@ START_TEST(test_count_tokens_api_error_429)
 }
 END_TEST
 
-START_TEST(test_count_tokens_network_error)
-{
+START_TEST(test_count_tokens_network_error) {
     /* Network failure -> fallback */
     g_mock_http_error = true;
 
@@ -210,8 +205,7 @@ END_TEST
  * Tests: Malformed response fallback
  * ================================================================ */
 
-START_TEST(test_count_tokens_malformed_json)
-{
+START_TEST(test_count_tokens_malformed_json) {
     g_mock_response_body = "not valid json";
     g_mock_http_status = 200;
 
@@ -225,8 +219,7 @@ START_TEST(test_count_tokens_malformed_json)
 }
 END_TEST
 
-START_TEST(test_count_tokens_missing_field)
-{
+START_TEST(test_count_tokens_missing_field) {
     /* Response has no input_tokens field */
     g_mock_response_body = "{\"something_else\": 10}";
     g_mock_http_status = 200;
@@ -241,8 +234,7 @@ START_TEST(test_count_tokens_missing_field)
 }
 END_TEST
 
-START_TEST(test_count_tokens_empty_response)
-{
+START_TEST(test_count_tokens_empty_response) {
     g_mock_response_body = "";
     g_mock_http_status = 200;
 
@@ -260,8 +252,7 @@ END_TEST
  * Test: vtable entry is non-NULL
  * ================================================================ */
 
-START_TEST(test_count_tokens_vtable_non_null)
-{
+START_TEST(test_count_tokens_vtable_non_null) {
     ck_assert_ptr_nonnull(provider->vt->count_tokens);
 }
 END_TEST

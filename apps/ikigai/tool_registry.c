@@ -7,7 +7,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_tool_registry_t *ik_tool_registry_create(TALLOC_CTX *ctx)
 {

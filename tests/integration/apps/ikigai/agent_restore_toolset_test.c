@@ -208,6 +208,7 @@ static ik_repl_ctx_t *create_test_repl(const char *agent0_uuid)
 
     return repl;
 }
+
 // Test: Toolset command replayed on restore
 START_TEST(test_toolset_command_replayed) {
     SKIP_IF_NO_DB();

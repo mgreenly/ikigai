@@ -13,7 +13,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-
 #include "shared/poison.h"
 struct ik_logger {
     FILE *file;

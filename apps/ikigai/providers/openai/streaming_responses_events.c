@@ -13,7 +13,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Event Emission Helpers

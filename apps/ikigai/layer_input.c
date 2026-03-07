@@ -3,7 +3,6 @@
 #include "shared/panic.h"
 #include <assert.h>
 
-
 #include "shared/poison.h"
 // Input layer data
 typedef struct {

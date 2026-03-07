@@ -7,7 +7,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 char *ik_tool_wrap_success(TALLOC_CTX *ctx, char *tool_result_json)
 {

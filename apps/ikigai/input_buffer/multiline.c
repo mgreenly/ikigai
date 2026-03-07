@@ -7,7 +7,6 @@
 
 #include <assert.h>
 
-
 #include "shared/poison.h"
 // @brief Find the start of the current line (position after previous newline, or 0)
 //

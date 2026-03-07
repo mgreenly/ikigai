@@ -12,7 +12,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-
 #include "shared/poison.h"
 // Helper to expand tilde in path
 static res_t expand_tilde(TALLOC_CTX *ctx, const char *path, char **out_path)
@@ -258,4 +257,3 @@ const char *ik_credentials_get(const ik_credentials_t *creds, const char *env_va
 
     return NULL;
 }
-

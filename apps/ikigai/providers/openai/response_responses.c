@@ -10,7 +10,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Helper Functions
@@ -168,7 +167,7 @@ static size_t count_content_blocks(yyjson_val *output_arr)
  * Process output_text content item
  */
 static void process_output_text(yyjson_val *content_item, ik_content_block_t *blocks,
-                                 size_t *block_idx)
+                                size_t *block_idx)
 {
     assert(content_item != NULL); // LCOV_EXCL_BR_LINE
     assert(blocks != NULL); // LCOV_EXCL_BR_LINE

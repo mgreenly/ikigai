@@ -10,9 +10,8 @@
 #include "apps/ikigai/providers/provider_vtable.h"
 #include "shared/error.h"
 
-
-static int32_t g_mock_count  = 0;
-static bool    g_mock_fail   = false;
+static int32_t g_mock_count = 0;
+static bool g_mock_fail = false;
 static TALLOC_CTX *g_err_ctx = NULL;
 
 static res_t mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
@@ -55,7 +54,7 @@ static void add_user(ik_agent_ctx_t *a, const char *text)
     size_t idx = a->message_count++;
     a->message_capacity = a->message_count;
     a->messages = talloc_realloc(a, a->messages, ik_message_t *,
-                                  (unsigned int)a->message_count);
+                                 (unsigned int)a->message_count);
     ik_message_t *m = talloc_zero(a, ik_message_t);
     m->role = IK_ROLE_USER;
     m->content_count = 1;
@@ -65,9 +64,7 @@ static void add_user(ik_agent_ctx_t *a, const char *text)
     a->messages[idx] = m;
 }
 
-
-START_TEST(test_remove_turns_from_removes_last)
-{
+START_TEST(test_remove_turns_from_removes_last) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -83,8 +80,7 @@ START_TEST(test_remove_turns_from_removes_last)
 }
 END_TEST
 
-START_TEST(test_remove_turns_from_uncached_invalidates_total)
-{
+START_TEST(test_remove_turns_from_uncached_invalidates_total) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -100,8 +96,7 @@ START_TEST(test_remove_turns_from_uncached_invalidates_total)
 }
 END_TEST
 
-START_TEST(test_remove_turns_from_all_clears_turns)
-{
+START_TEST(test_remove_turns_from_all_clears_turns) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0"); add_user(a, "u1");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -114,8 +109,7 @@ START_TEST(test_remove_turns_from_all_clears_turns)
 }
 END_TEST
 
-START_TEST(test_remove_turns_from_noop_at_turn_count)
-{
+START_TEST(test_remove_turns_from_noop_at_turn_count) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -127,16 +121,14 @@ START_TEST(test_remove_turns_from_noop_at_turn_count)
 }
 END_TEST
 
-START_TEST(test_remove_turns_from_oob)
-{
+START_TEST(test_remove_turns_from_oob) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_remove_turns_from(c, 1); /* PANIC */
 }
 END_TEST
 
 /* Rewind past pruning boundary resets context_start_index and pruned_turn_count */
-START_TEST(test_remove_turns_from_all_resets_context_start)
-{
+START_TEST(test_remove_turns_from_all_resets_context_start) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     /* Add 3 user messages */
     add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
@@ -157,8 +149,7 @@ START_TEST(test_remove_turns_from_all_resets_context_start)
 END_TEST
 
 /* Rewind within pruning boundary keeps context_start_index unchanged */
-START_TEST(test_remove_turns_from_partial_keeps_context_start)
-{
+START_TEST(test_remove_turns_from_partial_keeps_context_start) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2"); add_user(a, "u3");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -176,7 +167,6 @@ START_TEST(test_remove_turns_from_partial_keeps_context_start)
     ck_assert_int_eq((int)ik_token_cache_get_context_start_index(c), (int)csi);
 }
 END_TEST
-
 
 static Suite *token_cache_remove_suite(void)
 {

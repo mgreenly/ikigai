@@ -26,9 +26,9 @@
  * @return            OK(NULL) always (falls back to estimate on error)
  */
 res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
-                              const char *base_url,
-                              const char *api_key,
-                              const ik_request_t *req,
-                              int32_t *out);
+                             const char *base_url,
+                             const char *api_key,
+                             const ik_request_t *req,
+                             int32_t *out);
 
 #endif /* IK_PROVIDERS_OPENAI_COUNT_TOKENS_H */

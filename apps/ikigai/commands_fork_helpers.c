@@ -15,7 +15,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-
 #include "shared/poison.h"
 /**
  * Helper to convert thinking level enum to string
@@ -35,7 +34,7 @@ const char *ik_commands_thinking_level_to_string(ik_thinking_level_t level)
  * Helper to build fork feedback message
  */
 char *ik_commands_build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *child,
-                          bool is_override)
+                                      bool is_override)
 {
     (void)is_override;  // No longer needed - format is the same regardless
     const char *thinking_level_str = ik_commands_thinking_level_to_string(child->thinking_level);
@@ -48,8 +47,8 @@ char *ik_commands_build_fork_feedback(TALLOC_CTX *ctx, const ik_agent_ctx_t *chi
  * Helper to insert fork events into database
  */
 res_t ik_commands_insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
-                         ik_agent_ctx_t *parent, ik_agent_ctx_t *child,
-                         int64_t fork_message_id)
+                                     ik_agent_ctx_t *parent, ik_agent_ctx_t *child,
+                                     int64_t fork_message_id)
 {
     if (repl->shared->session_id <= 0) {
         return OK(NULL);
@@ -96,9 +95,9 @@ res_t ik_commands_insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
         char *new_pins = talloc_asprintf(ctx, "%s%s\"%s\"",
-                                          pins_json,
-                                          (i > 0) ? "," : "",
-                                          escaped_path);
+                                         pins_json,
+                                         (i > 0) ? "," : "",
+                                         escaped_path);
         if (new_pins == NULL) {     // LCOV_EXCL_BR_LINE
             PANIC("Out of memory");     // LCOV_EXCL_LINE
         }
@@ -136,8 +135,12 @@ res_t ik_commands_insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
     talloc_free(toolset_json);
 
     char *child_data = talloc_asprintf(ctx,
-                                       "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64 ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s}",
-                                       parent->uuid, fork_message_id, final_pins_json, final_toolset_json);
+                                       "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64
+                                       ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s}",
+                                       parent->uuid,
+                                       fork_message_id,
+                                       final_pins_json,
+                                       final_toolset_json);
     if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }

@@ -47,8 +47,7 @@ static void add_msg(ik_agent_ctx_t *agent, ik_role_t role, const char *text)
 }
 
 /* With NULL token_cache, all messages are included (backwards compatible) */
-START_TEST(test_null_token_cache_includes_all_messages)
-{
+START_TEST(test_null_token_cache_includes_all_messages) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -71,8 +70,7 @@ START_TEST(test_null_token_cache_includes_all_messages)
 END_TEST
 
 /* With context_start_index > 0, only messages from that index onward are included */
-START_TEST(test_context_start_index_excludes_pruned_messages)
-{
+START_TEST(test_context_start_index_excludes_pruned_messages) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");
@@ -107,8 +105,7 @@ START_TEST(test_context_start_index_excludes_pruned_messages)
 END_TEST
 
 /* With context_start_index == 0, all messages are included */
-START_TEST(test_zero_context_start_index_includes_all_messages)
-{
+START_TEST(test_zero_context_start_index_includes_all_messages) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
     agent->model = talloc_strdup(agent, "gpt-4");

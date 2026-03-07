@@ -62,10 +62,10 @@ static size_t count_tokens_write_cb(char *ptr, size_t size, size_t nmemb, void *
  * ================================================================ */
 
 res_t ik_google_count_tokens(void *ctx,
-                              const char *base_url,
-                              const char *api_key,
-                              const ik_request_t *req,
-                              int32_t *token_count_out)
+                             const char *base_url,
+                             const char *api_key,
+                             const ik_request_t *req,
+                             int32_t *token_count_out)
 {
     assert(ctx != NULL);             // LCOV_EXCL_BR_LINE
     assert(base_url != NULL);        // LCOV_EXCL_BR_LINE
@@ -96,13 +96,13 @@ res_t ik_google_count_tokens(void *ctx,
     if (body_len <= 2) {
         /* Empty body: {"generateContentRequest":{"model":"models/X"}} */
         count_body = talloc_asprintf(tmp,
-            "{\"generateContentRequest\":{\"model\":\"models/%s\"}}",
-            req->model);
+                                     "{\"generateContentRequest\":{\"model\":\"models/%s\"}}",
+                                     req->model);
     } else {
         /* Normal case: inject model field and concatenate inner fields */
         count_body = talloc_asprintf(tmp,
-            "{\"generateContentRequest\":{\"model\":\"models/%s\",%s}",
-            req->model, body_json + 1);
+                                     "{\"generateContentRequest\":{\"model\":\"models/%s\",%s}",
+                                     req->model, body_json + 1);
     }
     if (!count_body) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 

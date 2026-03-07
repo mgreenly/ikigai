@@ -6,7 +6,6 @@
 #include "shared/json_allocator.h"
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 /**
  * talloc-based malloc for yyjson

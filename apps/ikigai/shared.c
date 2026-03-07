@@ -18,7 +18,6 @@
 
 #include <assert.h>
 
-
 #include "shared/poison.h"
 // Destructor for shared context - handles cleanup
 static int shared_destructor(ik_shared_ctx_t *shared)
@@ -41,12 +40,12 @@ res_t ik_shared_ctx_init(TALLOC_CTX *ctx,
 }
 
 res_t ik_shared_ctx_init_with_term(TALLOC_CTX *ctx,
-                                    ik_config_t *cfg,
-                                    ik_credentials_t *creds,
-                                    ik_paths_t *paths,
-                                    ik_logger_t *logger,
-                                    ik_term_ctx_t *term,
-                                    ik_shared_ctx_t **out)
+                                   ik_config_t *cfg,
+                                   ik_credentials_t *creds,
+                                   ik_paths_t *paths,
+                                   ik_logger_t *logger,
+                                   ik_term_ctx_t *term,
+                                   ik_shared_ctx_t **out)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(cfg != NULL);   // LCOV_EXCL_BR_LINE

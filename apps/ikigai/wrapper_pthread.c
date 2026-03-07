@@ -11,7 +11,6 @@
 
 #include <pthread.h>
 
-
 #include "shared/poison.h"
 // ============================================================================
 // Pthread wrappers - debug/test builds only

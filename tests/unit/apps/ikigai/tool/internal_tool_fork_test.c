@@ -25,8 +25,12 @@
 res_t ik_agent_create(void *parent, ik_shared_ctx_t *shared, const char *parent_uuid, ik_agent_ctx_t **out);
 res_t ik_db_agent_get_last_message_id(ik_db_ctx_t *db, const char *agent_uuid, int64_t *out);
 res_t ik_db_agent_insert(ik_db_ctx_t *db, const ik_agent_ctx_t *agent);
-res_t ik_db_message_insert(ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
-                           const char *kind, const char *content, const char *data_json);
+res_t ik_db_message_insert(ik_db_ctx_t *db,
+                           int64_t session_id,
+                           const char *agent_uuid,
+                           const char *kind,
+                           const char *content,
+                           const char *data_json);
 res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent);
 
 // Mock control flags

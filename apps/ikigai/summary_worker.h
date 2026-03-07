@@ -18,12 +18,12 @@
  */
 typedef struct {
     ik_msg_t * const *msgs;  /* Borrowed: agent owns messages; valid for thread lifetime */
-    size_t            msg_count;
-    ik_provider_t    *provider;   /* Borrowed: caller ensures lifetime */
-    char             *model;      /* Owned: strdup copy, freed after join */
-    int32_t           max_tokens;
-    ik_agent_ctx_t   *agent;      /* Borrowed: caller ensures lifetime */
-    uint32_t          generation; /* Generation counter at dispatch time */
+    size_t msg_count;
+    ik_provider_t *provider;      /* Borrowed: caller ensures lifetime */
+    char *model;                  /* Owned: strdup copy, freed after join */
+    int32_t max_tokens;
+    ik_agent_ctx_t *agent;        /* Borrowed: caller ensures lifetime */
+    uint32_t generation;          /* Generation counter at dispatch time */
 } ik_summary_worker_args_t;
 
 /**
@@ -60,11 +60,11 @@ void *ik_summary_worker_fn(void *arg);
  * @param max_tokens Maximum tokens for the generated summary
  */
 void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
-                                ik_provider_t  *provider,
-                                const char     *model,
+                                ik_provider_t *provider,
+                                const char *model,
                                 ik_msg_t * const *msgs,
-                                size_t          msg_count,
-                                int32_t         max_tokens);
+                                size_t msg_count,
+                                int32_t max_tokens);
 
 /**
  * Poll for summary thread completion — call from main event loop tick.

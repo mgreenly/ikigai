@@ -28,14 +28,29 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
+
+static res_t parse_thinking_str(void *ctx, const char *thinking_str, ik_thinking_level_t *level)
+{
+    if (strcmp(thinking_str, "min") == 0) {
+        *level = IK_THINKING_MIN;
+    } else if (strcmp(thinking_str, "low") == 0) {
+        *level = IK_THINKING_LOW;
+    } else if (strcmp(thinking_str, "med") == 0) {
+        *level = IK_THINKING_MED;
+    } else if (strcmp(thinking_str, "high") == 0) {
+        *level = IK_THINKING_HIGH;
+    } else {
+        return ERR(ctx, INVALID_ARG, "Invalid thinking level '%s' (must be: min, low, med, high)", thinking_str);
+    }
+    return OK(NULL);
+}
 
 static const char *provider_display_name(const char *provider)
 {
     if (strcmp(provider, "anthropic") == 0) return "Anthropic";
-    if (strcmp(provider, "google") == 0)    return "Google";
-    if (strcmp(provider, "openai") == 0)    return "OpenAI";
+    if (strcmp(provider, "google") == 0) return "Google";
+    if (strcmp(provider, "openai") == 0) return "OpenAI";
     return provider;
 }
 
@@ -140,19 +155,12 @@ res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Parse thinking level (use current if not specified)
     ik_thinking_level_t thinking_level = repl->current->thinking_level;
     if (thinking_str != NULL) {
-        if (strcmp(thinking_str, "min") == 0) {
-            thinking_level = IK_THINKING_MIN;
-        } else if (strcmp(thinking_str, "low") == 0) {
-            thinking_level = IK_THINKING_LOW;
-        } else if (strcmp(thinking_str, "med") == 0) {
-            thinking_level = IK_THINKING_MED;
-        } else if (strcmp(thinking_str, "high") == 0) {
-            thinking_level = IK_THINKING_HIGH;
-        } else {
-            char *msg = talloc_asprintf(ctx, "Error: Invalid thinking level '%s' (must be: min, low, med, high)", thinking_str);
+        res_t think_res = parse_thinking_str(ctx, thinking_str, &thinking_level);
+        if (is_err(&think_res)) {
+            char *msg = talloc_asprintf(ctx, "Error: %s", error_message(think_res.err));
             if (!msg) PANIC("OOM");   // LCOV_EXCL_BR_LINE
             ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
-            return ERR(ctx, INVALID_ARG, "Invalid thinking level '%s'", thinking_str);
+            return think_res;
         }
     }
 

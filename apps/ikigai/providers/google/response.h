@@ -13,7 +13,6 @@
 #include "shared/error.h"
 #include "apps/ikigai/providers/provider.h"
 
-
 /**
  * Parse Google error response
  *
@@ -82,6 +81,5 @@ char *ik_google_generate_tool_id(TALLOC_CTX *ctx);
  * Returns immediately. Callback invoked from info_read() when complete.
  */
 res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req, ik_provider_completion_cb_t cb, void *cb_ctx);
-
 
 #endif /* IK_PROVIDERS_GOOGLE_RESPONSE_H */

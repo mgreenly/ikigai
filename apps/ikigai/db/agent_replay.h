@@ -75,9 +75,7 @@ res_t ik_agent_query_range(ik_db_ctx_t *db_ctx,
  * @param src_msgs Source message array (must not be NULL)
  * @param count Number of messages to append
  */
-void ik_agent_replay_append_messages(ik_replay_context_t *replay_ctx,
-                                     ik_msg_t **src_msgs,
-                                     size_t count);
+void ik_agent_replay_append_messages(ik_replay_context_t *replay_ctx, ik_msg_t **src_msgs, size_t count);
 
 /**
  * Filter out interrupted turns from replay context

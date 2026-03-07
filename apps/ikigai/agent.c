@@ -62,7 +62,11 @@ static void agent_init_layers(ik_agent_ctx_t *agent)
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->completion_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 
-    agent->status_layer = ik_status_layer_create(agent, "status", &agent->status_visible, &agent->model, &agent->thinking_level);
+    agent->status_layer = ik_status_layer_create(agent,
+                                                 "status",
+                                                 &agent->status_visible,
+                                                 &agent->model,
+                                                 &agent->thinking_level);
     result = ik_layer_cake_add_layer(agent->layer_cake, agent->status_layer);
     if (is_err(&result)) PANIC("OOM"); /* LCOV_EXCL_BR_LINE */
 }

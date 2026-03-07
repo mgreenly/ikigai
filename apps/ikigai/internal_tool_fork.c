@@ -24,7 +24,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 // Fork handler: create child agent with prompt

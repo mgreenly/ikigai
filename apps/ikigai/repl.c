@@ -30,7 +30,6 @@
 #include <talloc.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 void ik_repl_handle_control_socket_events(ik_repl_ctx_t *repl, fd_set *read_fds)
 {

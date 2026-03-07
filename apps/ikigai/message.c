@@ -9,7 +9,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char *text)
 {

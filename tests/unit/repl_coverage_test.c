@@ -66,7 +66,10 @@ int posix_ioctl_(int fd, unsigned long request, void *argp)
     return 0;
 }
 
-int posix_close_(int fd) { (void)fd; return 0; }
+int posix_close_(int fd)
+{
+    (void)fd; return 0;
+}
 
 int posix_tcgetattr_(int fd, struct termios *termios_p)
 {
@@ -228,24 +231,29 @@ static ik_repl_ctx_t *create_repl(TALLOC_CTX *ctx)
     test_paths_setup_env();
     ik_paths_t *paths = NULL;
     res_t res = ik_paths_init(ctx, &paths);
-    if (is_err(&res)) { talloc_free(res.err); return NULL; }
+    if (is_err(&res)) {
+        talloc_free(res.err); return NULL;
+    }
 
     ik_credentials_t *creds = talloc_zero_(ctx, sizeof(ik_credentials_t));
     if (creds == NULL) return NULL;
 
     ik_shared_ctx_t *shared = NULL;
     res = ik_shared_ctx_init(ctx, cfg, creds, paths, logger, &shared);
-    if (is_err(&res)) { talloc_free(res.err); return NULL; }
+    if (is_err(&res)) {
+        talloc_free(res.err); return NULL;
+    }
 
     res = ik_repl_init(ctx, shared, &repl);
-    if (is_err(&res)) { talloc_free(res.err); return NULL; }
+    if (is_err(&res)) {
+        talloc_free(res.err); return NULL;
+    }
 
     return repl;
 }
 
 // Test: handle_control_socket_events with NULL control_socket (early return)
-START_TEST(test_handle_control_socket_events_null)
-{
+START_TEST(test_handle_control_socket_events_null) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -271,8 +279,7 @@ static ik_control_socket_t *create_dummy_control_socket(TALLOC_CTX *ctx)
 }
 
 // Test: handle_control_socket_events with accept error
-START_TEST(test_handle_control_socket_events_accept_error)
-{
+START_TEST(test_handle_control_socket_events_accept_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -291,8 +298,7 @@ START_TEST(test_handle_control_socket_events_accept_error)
 END_TEST
 
 // Test: handle_control_socket_events with handle_client error
-START_TEST(test_handle_control_socket_events_client_error)
-{
+START_TEST(test_handle_control_socket_events_client_error) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -311,8 +317,7 @@ START_TEST(test_handle_control_socket_events_client_error)
 END_TEST
 
 // Test: handle_control_socket_events with accept success
-START_TEST(test_handle_control_socket_events_accept_ok)
-{
+START_TEST(test_handle_control_socket_events_accept_ok) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -331,8 +336,7 @@ START_TEST(test_handle_control_socket_events_accept_ok)
 END_TEST
 
 // Test: handle_control_socket_events with client handling success
-START_TEST(test_handle_control_socket_events_client_ok)
-{
+START_TEST(test_handle_control_socket_events_client_ok) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -351,8 +355,7 @@ START_TEST(test_handle_control_socket_events_client_ok)
 END_TEST
 
 // Test: handle_key_injection with render_frame failure
-START_TEST(test_handle_key_injection_render_fails)
-{
+START_TEST(test_handle_key_injection_render_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -373,8 +376,7 @@ START_TEST(test_handle_key_injection_render_fails)
 END_TEST
 
 // Test: handle_key_injection with NULL buffer (early return)
-START_TEST(test_handle_key_injection_null_buf)
-{
+START_TEST(test_handle_key_injection_null_buf) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -390,8 +392,7 @@ START_TEST(test_handle_key_injection_null_buf)
 END_TEST
 
 // Test: handle_key_injection with empty buffer (no pending)
-START_TEST(test_handle_key_injection_empty)
-{
+START_TEST(test_handle_key_injection_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -406,8 +407,7 @@ START_TEST(test_handle_key_injection_empty)
 END_TEST
 
 // Test: handle_key_injection with pending bytes (processes one)
-START_TEST(test_handle_key_injection_with_bytes)
-{
+START_TEST(test_handle_key_injection_with_bytes) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -430,8 +430,7 @@ START_TEST(test_handle_key_injection_with_bytes)
 END_TEST
 
 // Test: handle_key_injection with ESC byte (IK_INPUT_UNKNOWN)
-START_TEST(test_handle_key_injection_unknown_action)
-{
+START_TEST(test_handle_key_injection_unknown_action) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -451,8 +450,7 @@ START_TEST(test_handle_key_injection_unknown_action)
 END_TEST
 
 // Test: handle_key_injection with process_action failure
-START_TEST(test_handle_key_injection_process_action_fails)
-{
+START_TEST(test_handle_key_injection_process_action_fails) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);
@@ -473,8 +471,7 @@ START_TEST(test_handle_key_injection_process_action_fails)
 END_TEST
 
 // Test: submit_line with dead agent (silent rejection)
-START_TEST(test_submit_line_dead_agent)
-{
+START_TEST(test_submit_line_dead_agent) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_repl_ctx_t *repl = create_repl(ctx);
     ck_assert_ptr_nonnull(repl);

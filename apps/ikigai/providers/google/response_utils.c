@@ -13,7 +13,6 @@
 #include <string.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 /**
  * Generate random 22-character base64url tool call ID

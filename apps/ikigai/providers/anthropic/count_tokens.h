@@ -22,9 +22,7 @@
  * @param token_count_out Output: token count
  * @return                OK(NULL) always (fallback on error)
  */
-res_t ik_anthropic_count_tokens(void *ctx,
-                                const ik_request_t *req,
-                                int32_t *token_count_out);
+res_t ik_anthropic_count_tokens(void *ctx, const ik_request_t *req, int32_t *token_count_out);
 
 /**
  * Perform the HTTP POST to the count_tokens endpoint.

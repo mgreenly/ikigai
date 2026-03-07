@@ -16,7 +16,6 @@
 #include <talloc.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 /**
  * Generate ISO 8601 timestamp for current time
@@ -197,7 +196,11 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
 
     // Render system message first (if configured)
     if (repl->shared->cfg != NULL && repl->shared->cfg->openai_system_message != NULL) {
-        result = ik_event_render(repl->current->scrollback, "system", repl->shared->cfg->openai_system_message, "{}", false);
+        result = ik_event_render(repl->current->scrollback,
+                                 "system",
+                                 repl->shared->cfg->openai_system_message,
+                                 "{}",
+                                 false);
         if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
     }
 
@@ -212,7 +215,11 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
             case IK_ROLE_TOOL: kind = "tool_result"; break;
         }
         if (kind != NULL && msg->content_count > 0 && msg->content_blocks[0].type == IK_CONTENT_TEXT) {
-            result = ik_event_render(repl->current->scrollback, kind, msg->content_blocks[0].data.text.text, "{}", msg->interrupted);
+            result = ik_event_render(repl->current->scrollback,
+                                     kind,
+                                     msg->content_blocks[0].data.text.text,
+                                     "{}",
+                                     msg->interrupted);
             if (is_err(&result)) return result;  /* LCOV_EXCL_BR_LINE */
         }
     }

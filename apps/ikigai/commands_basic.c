@@ -29,7 +29,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 /*
@@ -44,7 +43,7 @@
  * On LLM or DB failure, logs a warning and returns without storing anything.
  */
 static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
-                                            ik_db_ctx_t *db)
+                                           ik_db_ctx_t *db)
 {
     /* Skip if no model configured — can't generate a summary without one */
     if (agent->model == NULL) {
@@ -75,8 +74,8 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
     /* Query all messages in the current epoch from the database */
     ik_replay_range_t range = {
         .agent_uuid = agent->uuid,
-        .start_id   = last_clear_id,
-        .end_id     = 0,
+        .start_id = last_clear_id,
+        .end_id = 0,
     };
     ik_msg_t **epoch_msgs = NULL;
     size_t epoch_count = 0;
@@ -100,7 +99,7 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
     }
 
     int64_t start_msg_id = epoch_msgs[0]->id;
-    int64_t end_msg_id   = epoch_msgs[epoch_count - 1]->id;
+    int64_t end_msg_id = epoch_msgs[epoch_count - 1]->id;
 
     /* Require valid DB IDs (0 means no DB row, e.g. in unit tests) */
     if (start_msg_id <= 0 || end_msg_id <= 0) {
@@ -111,9 +110,9 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
     /* Generate summary via blocking LLM call */
     char *summary_text = NULL;
     res_t gen_res = ik_summary_generate(tmp, epoch_msgs, epoch_count,
-                                         provider, agent->model,
-                                         IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS,
-                                         &summary_text);
+                                        provider, agent->model,
+                                        IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS,
+                                        &summary_text);
     if (is_err(&gen_res)) {
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
@@ -130,8 +129,8 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
 
     /* Store summary in the database (enforces 5-entry cap internally) */
     res_t ins_res = ik_db_session_summary_insert(db, agent->uuid, summary_text,
-                                                  start_msg_id, end_msg_id,
-                                                  token_count);
+                                                 start_msg_id, end_msg_id,
+                                                 token_count);
     if (is_err(&ins_res)) {
         yyjson_mut_doc *log_doc = ik_log_create();
         yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
@@ -151,8 +150,8 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
         agent->session_summary_count = 0;
     }
     res_t load_res = ik_db_session_summary_load(db, agent, agent->uuid,
-                                                 &agent->session_summaries,
-                                                 &agent->session_summary_count);
+                                                &agent->session_summaries,
+                                                &agent->session_summary_count);
     if (is_err(&load_res)) {
         talloc_free(load_res.err);
     }
@@ -359,8 +358,8 @@ res_t ik_cmd_summary(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     // Recent summary header
     res_t res = ik_scrollback_append_line(agent->scrollback,
-        "\u2500\u2500 Recent Summary \u2500\u2500",
-        strlen("\u2500\u2500 Recent Summary \u2500\u2500"));
+                                          "\u2500\u2500 Recent Summary \u2500\u2500",
+                                          strlen("\u2500\u2500 Recent Summary \u2500\u2500"));
     if (is_err(&res)) return res;  // LCOV_EXCL_LINE
 
     // Recent summary text or "(none)"

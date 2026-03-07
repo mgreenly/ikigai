@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 #include "shared/poison.h"
 // Global terminal context for panic handler
 ik_term_ctx_t *g_term_ctx_for_panic = NULL;

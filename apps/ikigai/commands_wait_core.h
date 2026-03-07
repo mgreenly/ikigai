@@ -28,11 +28,21 @@ typedef struct {
 } ik_wait_result_t;
 
 // Core wait - next message mode
-void ik_wait_core_next_message(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id,
-                                const char *my_uuid, int32_t timeout_sec, bool *interrupted,
-                                ik_wait_result_t *result);
+void ik_wait_core_next_message(TALLOC_CTX *ctx,
+                               ik_db_ctx_t *db_ctx,
+                               int64_t session_id,
+                               const char *my_uuid,
+                               int32_t timeout_sec,
+                               bool *interrupted,
+                               ik_wait_result_t *result);
 
 // Core wait - fan-in mode
-void ik_wait_core_fanin(TALLOC_CTX *ctx, ik_db_ctx_t *db_ctx, int64_t session_id,
-                        const char *my_uuid, int32_t timeout_sec, char **target_uuids,
-                        size_t target_count, bool *interrupted, ik_wait_result_t *result);
+void ik_wait_core_fanin(TALLOC_CTX *ctx,
+                        ik_db_ctx_t *db_ctx,
+                        int64_t session_id,
+                        const char *my_uuid,
+                        int32_t timeout_sec,
+                        char **target_uuids,
+                        size_t target_count,
+                        bool *interrupted,
+                        ik_wait_result_t *result);

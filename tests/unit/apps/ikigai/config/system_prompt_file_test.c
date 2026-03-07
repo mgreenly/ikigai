@@ -78,7 +78,8 @@ START_TEST(test_system_prompt_default) {
     ck_assert_ptr_nonnull(cfg);
 
     // Verify default constant is used
-    ck_assert_str_eq(cfg->openai_system_message, "You are a personal agent and are operating inside the Ikigai orchestration platform.");
+    ck_assert_str_eq(cfg->openai_system_message,
+                     "You are a personal agent and are operating inside the Ikigai orchestration platform.");
 
     test_paths_cleanup_env();
     talloc_free(ctx);

@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Unicode box-drawing character U+2500 (─) in UTF-8: 0xE2 0x94 0x80
 #define BOX_DRAWING_LIGHT_HORIZONTAL "\xE2\x94\x80"
@@ -45,10 +44,10 @@ static size_t status_get_height(const ik_layer_t *layer, size_t width)
 }
 
 static void status_render(const ik_layer_t *layer,
-                         ik_output_buffer_t *output,
-                         size_t width,
-                         size_t start_row,
-                         size_t row_count)
+                          ik_output_buffer_t *output,
+                          size_t width,
+                          size_t start_row,
+                          size_t row_count)
 {
     assert(layer != NULL);       // LCOV_EXCL_BR_LINE
     assert(layer->data != NULL); // LCOV_EXCL_BR_LINE

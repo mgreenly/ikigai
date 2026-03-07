@@ -30,8 +30,7 @@ static void teardown(void)
 }
 
 // Test tool_call formatting when content is already formatted
-START_TEST(test_format_tool_call_already_formatted)
-{
+START_TEST(test_format_tool_call_already_formatted) {
     const char *tool_req_prefix = ik_output_prefix(IK_OUTPUT_TOOL_REQUEST);
     char *already_formatted = talloc_asprintf(test_ctx, "%s foo: bar=\"baz\"", tool_req_prefix);
 
@@ -43,8 +42,7 @@ START_TEST(test_format_tool_call_already_formatted)
 END_TEST
 
 // Test tool_call formatting with NULL data_json
-START_TEST(test_format_tool_call_null_data_json)
-{
+START_TEST(test_format_tool_call_null_data_json) {
     const char *raw_content = "some raw content";
     const char *result = ik_event_render_format_tool_call(test_ctx, raw_content, NULL);
 
@@ -54,8 +52,7 @@ START_TEST(test_format_tool_call_null_data_json)
 END_TEST
 
 // Test tool_call formatting with invalid JSON in data_json
-START_TEST(test_format_tool_call_invalid_json)
-{
+START_TEST(test_format_tool_call_invalid_json) {
     const char *raw_content = "raw";
     const char *bad_json = "not valid json{";
     const char *result = ik_event_render_format_tool_call(test_ctx, raw_content, bad_json);
@@ -66,8 +63,7 @@ START_TEST(test_format_tool_call_invalid_json)
 END_TEST
 
 // Test tool_call formatting with missing required fields
-START_TEST(test_format_tool_call_missing_fields)
-{
+START_TEST(test_format_tool_call_missing_fields) {
     const char *raw_content = "raw";
     // Missing tool_args field
     const char *incomplete_json = "{\"tool_call_id\":\"id123\",\"tool_name\":\"foo\"}";
@@ -79,11 +75,10 @@ START_TEST(test_format_tool_call_missing_fields)
 END_TEST
 
 // Test tool_call formatting with valid data_json
-START_TEST(test_format_tool_call_valid_data)
-{
+START_TEST(test_format_tool_call_valid_data) {
     const char *raw_content = "ignored";
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_name\":\"glob\","
-                           "\"tool_args\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}";
+                            "\"tool_args\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}";
 
     const char *result = ik_event_render_format_tool_call(test_ctx, raw_content, data_json);
 
@@ -94,8 +89,7 @@ START_TEST(test_format_tool_call_valid_data)
 END_TEST
 
 // Test tool_result formatting when content is already formatted
-START_TEST(test_format_tool_result_already_formatted)
-{
+START_TEST(test_format_tool_result_already_formatted) {
     const char *tool_resp_prefix = ik_output_prefix(IK_OUTPUT_TOOL_RESPONSE);
     char *already_formatted = talloc_asprintf(test_ctx, "%s grep: found it", tool_resp_prefix);
 
@@ -107,8 +101,7 @@ START_TEST(test_format_tool_result_already_formatted)
 END_TEST
 
 // Test tool_result formatting with NULL data_json
-START_TEST(test_format_tool_result_null_data_json)
-{
+START_TEST(test_format_tool_result_null_data_json) {
     const char *raw_content = "some raw content";
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, NULL);
 
@@ -121,8 +114,7 @@ START_TEST(test_format_tool_result_null_data_json)
 END_TEST
 
 // Test tool_result formatting with invalid JSON in data_json
-START_TEST(test_format_tool_result_invalid_json)
-{
+START_TEST(test_format_tool_result_invalid_json) {
     const char *raw_content = "raw";
     const char *bad_json = "not valid json{";
     const char *result = ik_event_render_format_tool_result(test_ctx, raw_content, bad_json);
@@ -136,8 +128,7 @@ START_TEST(test_format_tool_result_invalid_json)
 END_TEST
 
 // Test tool_result formatting with missing tool name
-START_TEST(test_format_tool_result_missing_name)
-{
+START_TEST(test_format_tool_result_missing_name) {
     const char *raw_content = "raw";
     // Missing name field
     const char *incomplete_json = "{\"output\":\"result data\"}";
@@ -152,8 +143,7 @@ START_TEST(test_format_tool_result_missing_name)
 END_TEST
 
 // Test tool_result formatting with valid data_json
-START_TEST(test_format_tool_result_valid_data)
-{
+START_TEST(test_format_tool_result_valid_data) {
     const char *raw_content = "ignored";
     const char *data_json = "{\"name\":\"read\",\"output\":\"file contents here\"}";
 
@@ -167,8 +157,7 @@ START_TEST(test_format_tool_result_valid_data)
 END_TEST
 
 // Test tool_result formatting with NULL output
-START_TEST(test_format_tool_result_null_output)
-{
+START_TEST(test_format_tool_result_null_output) {
     const char *raw_content = "ignored";
     const char *data_json = "{\"name\":\"read\"}";
 
@@ -182,10 +171,9 @@ START_TEST(test_format_tool_result_null_output)
 END_TEST
 
 // Test tool_call formatting with NULL content
-START_TEST(test_format_tool_call_null_content)
-{
+START_TEST(test_format_tool_call_null_content) {
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_name\":\"glob\","
-                           "\"tool_args\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}";
+                            "\"tool_args\":\"{\\\"pattern\\\":\\\"*.c\\\"}\"}";
 
     const char *result = ik_event_render_format_tool_call(test_ctx, NULL, data_json);
 
@@ -196,8 +184,7 @@ START_TEST(test_format_tool_call_null_content)
 END_TEST
 
 // Test tool_result formatting with NULL content
-START_TEST(test_format_tool_result_null_content)
-{
+START_TEST(test_format_tool_result_null_content) {
     const char *data_json = "{\"name\":\"read\",\"output\":\"result\"}";
 
     const char *result = ik_event_render_format_tool_result(test_ctx, NULL, data_json);
@@ -210,8 +197,7 @@ START_TEST(test_format_tool_result_null_content)
 END_TEST
 
 // Test tool_call formatting with only tool_name missing
-START_TEST(test_format_tool_call_name_null)
-{
+START_TEST(test_format_tool_call_name_null) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_args\":\"{}\"}";
 
@@ -223,8 +209,7 @@ START_TEST(test_format_tool_call_name_null)
 END_TEST
 
 // Test tool_call formatting with only tool_args missing
-START_TEST(test_format_tool_call_args_null)
-{
+START_TEST(test_format_tool_call_args_null) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_name\":\"foo\"}";
 
@@ -236,8 +221,7 @@ START_TEST(test_format_tool_call_args_null)
 END_TEST
 
 // Test tool_call formatting with only tool_call_id missing
-START_TEST(test_format_tool_call_id_null)
-{
+START_TEST(test_format_tool_call_id_null) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_name\":\"foo\",\"tool_args\":\"{}\"}";
 
@@ -249,8 +233,7 @@ START_TEST(test_format_tool_call_id_null)
 END_TEST
 
 // Test tool_call formatting with wrong type for tool_name
-START_TEST(test_format_tool_call_name_not_string)
-{
+START_TEST(test_format_tool_call_name_not_string) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_name\":123,\"tool_args\":\"{}\"}";
 
@@ -262,8 +245,7 @@ START_TEST(test_format_tool_call_name_not_string)
 END_TEST
 
 // Test tool_call formatting with wrong type for tool_args
-START_TEST(test_format_tool_call_args_not_string)
-{
+START_TEST(test_format_tool_call_args_not_string) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_call_id\":\"id123\",\"tool_name\":\"foo\",\"tool_args\":123}";
 
@@ -275,8 +257,7 @@ START_TEST(test_format_tool_call_args_not_string)
 END_TEST
 
 // Test tool_call formatting with wrong type for tool_call_id
-START_TEST(test_format_tool_call_id_not_string)
-{
+START_TEST(test_format_tool_call_id_not_string) {
     const char *raw_content = "raw";
     const char *data_json = "{\"tool_call_id\":123,\"tool_name\":\"foo\",\"tool_args\":\"{}\"}";
 
@@ -288,8 +269,7 @@ START_TEST(test_format_tool_call_id_not_string)
 END_TEST
 
 // Test tool_result formatting with name not a string
-START_TEST(test_format_tool_result_name_not_string)
-{
+START_TEST(test_format_tool_result_name_not_string) {
     const char *raw_content = "raw";
     const char *data_json = "{\"name\":123,\"output\":\"result\"}";
 
@@ -304,8 +284,7 @@ START_TEST(test_format_tool_result_name_not_string)
 END_TEST
 
 // Test tool_result formatting with output not a string
-START_TEST(test_format_tool_result_output_not_string)
-{
+START_TEST(test_format_tool_result_output_not_string) {
     const char *raw_content = "ignored";
     const char *data_json = "{\"name\":\"read\",\"output\":123}";
 
@@ -319,8 +298,7 @@ START_TEST(test_format_tool_result_output_not_string)
 END_TEST
 
 // Test tool_result raw formatting applies truncation to long content
-START_TEST(test_format_tool_result_raw_truncates_long_content)
-{
+START_TEST(test_format_tool_result_raw_truncates_long_content) {
     // Create content longer than 400 chars
     char *long_content = talloc_array(test_ctx, char, 600);
     memset(long_content, 'x', 599);
@@ -338,8 +316,7 @@ START_TEST(test_format_tool_result_raw_truncates_long_content)
 END_TEST
 
 // Test tool_result raw formatting with NULL content
-START_TEST(test_format_tool_result_raw_null_content)
-{
+START_TEST(test_format_tool_result_raw_null_content) {
     const char *result = ik_event_render_format_tool_result_raw(test_ctx, NULL);
 
     // Should return formatted content with (no output)
@@ -350,8 +327,7 @@ START_TEST(test_format_tool_result_raw_null_content)
 END_TEST
 
 // Test tool_result raw formatting truncates at 3 lines
-START_TEST(test_format_tool_result_raw_truncates_at_lines)
-{
+START_TEST(test_format_tool_result_raw_truncates_at_lines) {
     const char *content = "line1\nline2\nline3\nline4\nline5";
     const char *result = ik_event_render_format_tool_result_raw(test_ctx, content);
 

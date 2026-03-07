@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Helper Functions
@@ -47,9 +46,9 @@ const char *ik_google_role_to_string(ik_role_t role, const char *model)
  * Find function name for a tool_call_id by scanning previous messages
  */
 static const char *find_function_name_for_tool_call(const ik_message_t *messages,
-                                                     size_t message_count,
-                                                     size_t current_idx,
-                                                     const char *tool_call_id)
+                                                    size_t message_count,
+                                                    size_t current_idx,
+                                                    const char *tool_call_id)
 {
     // Scan backwards from current message to find matching tool call
     for (size_t i = 0; i < current_idx && i < message_count; i++) {
@@ -295,7 +294,7 @@ bool ik_google_serialize_message_parts(yyjson_mut_doc *doc, yyjson_mut_val *cont
     // Add regular content blocks
     for (size_t i = 0; i < message->content_count; i++) {
         if (!ik_google_serialize_content_block(doc, parts_arr, &message->content_blocks[i],
-                                                model, messages, message_count, current_msg_idx)) {
+                                               model, messages, message_count, current_msg_idx)) {
             return false;
         }
     }

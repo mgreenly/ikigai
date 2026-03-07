@@ -52,8 +52,7 @@ static ik_request_t *create_basic_request(TALLOC_CTX *ctx)
  * Backward compatibility: system_prompt used when no blocks
  * ================================================================ */
 
-START_TEST(test_fallback_to_system_prompt_when_no_blocks)
-{
+START_TEST(test_fallback_to_system_prompt_when_no_blocks) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = talloc_strdup(req, "Legacy system prompt");
     req->system_block_count = 0;
@@ -85,8 +84,7 @@ END_TEST
  * Single system block becomes a single parts entry
  * ================================================================ */
 
-START_TEST(test_single_system_block)
-{
+START_TEST(test_single_system_block) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 1;
     req->system_blocks = talloc_array(req, ik_system_block_t, 1);
@@ -118,8 +116,7 @@ END_TEST
  * Multiple system blocks become multiple parts entries
  * ================================================================ */
 
-START_TEST(test_multiple_system_blocks_order)
-{
+START_TEST(test_multiple_system_blocks_order) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 3;
     req->system_blocks = talloc_array(req, ik_system_block_t, 3);
@@ -164,8 +161,7 @@ END_TEST
  * Blocks override system_prompt
  * ================================================================ */
 
-START_TEST(test_blocks_override_system_prompt)
-{
+START_TEST(test_blocks_override_system_prompt) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = talloc_strdup(req, "Should not appear");
     req->system_block_count = 1;
@@ -197,8 +193,7 @@ END_TEST
  * No system content: no systemInstruction field
  * ================================================================ */
 
-START_TEST(test_no_system_content)
-{
+START_TEST(test_no_system_content) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_prompt = NULL;
     req->system_block_count = 0;

@@ -19,7 +19,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Message Deep Copy

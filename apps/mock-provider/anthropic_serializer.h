@@ -27,8 +27,6 @@ void anthropic_serialize_text(TALLOC_CTX *ctx, const char *content, int fd);
  * Writes: message_start, then for each tool call: content_block_start,
  * content_block_delta, content_block_stop, then message_delta, message_stop.
  */
-void anthropic_serialize_tool_calls(TALLOC_CTX *ctx,
-                                    const mock_tool_call_t *tool_calls,
-                                    int32_t count, int fd);
+void anthropic_serialize_tool_calls(TALLOC_CTX *ctx, const mock_tool_call_t *tool_calls, int32_t count, int fd);
 
 #endif /* MOCK_ANTHROPIC_SERIALIZER_H */

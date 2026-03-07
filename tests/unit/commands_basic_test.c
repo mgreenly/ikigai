@@ -45,8 +45,7 @@ static ik_repl_ctx_t *make_repl(TALLOC_CTX *ctx, ik_agent_ctx_t *agent)
 
 /* ---- /summary: no summaries ---- */
 
-START_TEST(test_summary_no_summaries)
-{
+START_TEST(test_summary_no_summaries) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;
@@ -87,8 +86,7 @@ END_TEST
 
 /* ---- /summary: agent with summaries ---- */
 
-START_TEST(test_summary_with_summaries)
-{
+START_TEST(test_summary_with_summaries) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;
@@ -152,8 +150,7 @@ END_TEST
 
 /* ---- Fork: child does not inherit summary fields ---- */
 
-START_TEST(test_fork_child_no_summary_inheritance)
-{
+START_TEST(test_fork_child_no_summary_inheritance) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     /* Create parent with summary state */
@@ -193,8 +190,7 @@ END_TEST
 
 /* ---- Rewind: resets recent_summary, does not generate session summary ---- */
 
-START_TEST(test_rewind_clears_recent_summary)
-{
+START_TEST(test_rewind_clears_recent_summary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     ik_agent_ctx_t *agent = NULL;

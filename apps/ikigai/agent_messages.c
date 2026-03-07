@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 res_t ik_agent_add_message(ik_agent_ctx_t *agent, ik_message_t *msg)
 {
@@ -95,7 +94,7 @@ static ik_message_t *clone_message(const ik_message_t *src_msg, TALLOC_CTX *ctx)
     dest_msg->role = src_msg->role;
     dest_msg->content_count = src_msg->content_count;
     dest_msg->content_blocks = talloc_zero_array(dest_msg, ik_content_block_t,
-                                            (unsigned int)src_msg->content_count);
+                                                 (unsigned int)src_msg->content_count);
     if (!dest_msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (size_t j = 0; j < src_msg->content_count; j++) {

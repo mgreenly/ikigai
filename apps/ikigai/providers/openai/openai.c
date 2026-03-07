@@ -18,7 +18,6 @@
 #include <string.h>
 #include <sys/select.h>
 
-
 #include "shared/poison.h"
 /* ================================================================
  * Forward Declarations - Vtable Methods
@@ -93,7 +92,7 @@ res_t ik_openai_create_with_options(TALLOC_CTX *ctx, const char *api_key,
     // Set base URL (allow override for testing with mock provider)
     const char *base_url_override = getenv_("OPENAI_BASE_URL");
     impl_ctx->base_url = talloc_strdup(impl_ctx,
-        base_url_override != NULL ? base_url_override : IK_OPENAI_BASE_URL);
+                                       base_url_override != NULL ? base_url_override : IK_OPENAI_BASE_URL);
     if (impl_ctx->base_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     // Set API mode

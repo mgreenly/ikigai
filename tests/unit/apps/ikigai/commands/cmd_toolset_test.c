@@ -151,7 +151,7 @@ END_TEST
 START_TEST(test_toolset_capacity_overflow) {
     char cmd[512];
     int32_t n = snprintf(cmd, sizeof(cmd),
-        "/toolset t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18");
+                         "/toolset t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16,t17,t18");
     ck_assert_int_gt(n, 0);
     ck_assert_int_lt(n, (int32_t)sizeof(cmd));
 

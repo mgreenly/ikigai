@@ -39,7 +39,7 @@ static ik_paths_t *create_test_paths(TALLOC_CTX *ctx, const char *tmpdir)
 }
 
 static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
-                                       ik_control_socket_t **ctl_out)
+                                      ik_control_socket_t **ctl_out)
 {
     ik_paths_t *paths = create_test_paths(ctx, tmpdir);
     ck_assert_ptr_nonnull(paths);
@@ -49,7 +49,7 @@ static int32_t setup_connected_socket(TALLOC_CTX *ctx, const char *tmpdir,
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd, 0);
@@ -93,8 +93,7 @@ static ik_repl_ctx_t *create_test_repl(TALLOC_CTX *ctx)
     return repl;
 }
 
-START_TEST(test_wait_idle_already_idle)
-{
+START_TEST(test_wait_idle_already_idle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -123,8 +122,7 @@ START_TEST(test_wait_idle_already_idle)
 }
 END_TEST
 
-START_TEST(test_wait_idle_deferred_then_idle)
-{
+START_TEST(test_wait_idle_deferred_then_idle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -167,8 +165,7 @@ START_TEST(test_wait_idle_deferred_then_idle)
 }
 END_TEST
 
-START_TEST(test_wait_idle_timeout)
-{
+START_TEST(test_wait_idle_timeout) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -202,8 +199,7 @@ START_TEST(test_wait_idle_timeout)
 }
 END_TEST
 
-START_TEST(test_wait_idle_already_pending)
-{
+START_TEST(test_wait_idle_already_pending) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -226,7 +222,7 @@ START_TEST(test_wait_idle_already_pending)
 
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd2 = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd2, 0);
@@ -257,8 +253,7 @@ START_TEST(test_wait_idle_already_pending)
 }
 END_TEST
 
-START_TEST(test_wait_idle_missing_timeout_ms)
-{
+START_TEST(test_wait_idle_missing_timeout_ms) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -286,8 +281,7 @@ START_TEST(test_wait_idle_missing_timeout_ms)
 }
 END_TEST
 
-START_TEST(test_tick_client_closed_before_idle_fire)
-{
+START_TEST(test_tick_client_closed_before_idle_fire) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -318,8 +312,7 @@ START_TEST(test_tick_client_closed_before_idle_fire)
 }
 END_TEST
 
-START_TEST(test_tick_client_closed_before_timeout_fire)
-{
+START_TEST(test_tick_client_closed_before_timeout_fire) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -349,8 +342,7 @@ START_TEST(test_tick_client_closed_before_timeout_fire)
 }
 END_TEST
 
-START_TEST(test_handle_client_eof_resets_wait_idle)
-{
+START_TEST(test_handle_client_eof_resets_wait_idle) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -383,7 +375,7 @@ START_TEST(test_handle_client_eof_resets_wait_idle)
     ck_assert_ptr_nonnull(paths);
     int32_t pid = (int32_t)getpid();
     char *socket_path = talloc_asprintf(ctx, "%s/ikigai-%d.sock",
-                                         ik_paths_get_runtime_dir(paths), pid);
+                                        ik_paths_get_runtime_dir(paths), pid);
 
     int32_t client_fd2 = socket(AF_UNIX, SOCK_STREAM, 0);
     ck_assert_int_ge(client_fd2, 0);
@@ -415,8 +407,7 @@ START_TEST(test_handle_client_eof_resets_wait_idle)
 }
 END_TEST
 
-START_TEST(test_handle_client_write_fails_closes_cleanly)
-{
+START_TEST(test_handle_client_write_fails_closes_cleanly) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));
@@ -441,8 +432,7 @@ START_TEST(test_handle_client_write_fails_closes_cleanly)
 }
 END_TEST
 
-START_TEST(test_tick_idempotent_after_fire)
-{
+START_TEST(test_tick_idempotent_after_fire) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char tmpdir[] = "/tmp/ik_test_XXXXXX";
     ck_assert_ptr_nonnull(mkdtemp(tmpdir));

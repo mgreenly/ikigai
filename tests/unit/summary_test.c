@@ -11,32 +11,28 @@
 
 /* ---- Boundaries tests ---- */
 
-START_TEST(test_boundaries_zero_context_start)
-{
+START_TEST(test_boundaries_zero_context_start) {
     ik_summary_range_t r = ik_summary_boundaries(10, 0);
     ck_assert_uint_eq(r.start, 0);
     ck_assert_uint_eq(r.end, 0);
 }
 END_TEST
 
-START_TEST(test_boundaries_context_start_one)
-{
+START_TEST(test_boundaries_context_start_one) {
     ik_summary_range_t r = ik_summary_boundaries(5, 1);
     ck_assert_uint_eq(r.start, 0);
     ck_assert_uint_eq(r.end, 1);
 }
 END_TEST
 
-START_TEST(test_boundaries_context_start_equals_count)
-{
+START_TEST(test_boundaries_context_start_equals_count) {
     ik_summary_range_t r = ik_summary_boundaries(5, 5);
     ck_assert_uint_eq(r.start, 0);
     ck_assert_uint_eq(r.end, 5);
 }
 END_TEST
 
-START_TEST(test_boundaries_zero_count_zero_index)
-{
+START_TEST(test_boundaries_zero_count_zero_index) {
     ik_summary_range_t r = ik_summary_boundaries(0, 0);
     ck_assert_uint_eq(r.start, 0);
     ck_assert_uint_eq(r.end, 0);
@@ -45,8 +41,7 @@ END_TEST
 
 /* ---- Transcript tests ---- */
 
-START_TEST(test_transcript_empty)
-{
+START_TEST(test_transcript_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_msg_t *msgs[] = { NULL };
     char *t = ik_summary_transcript(ctx, msgs, 0);
@@ -55,8 +50,7 @@ START_TEST(test_transcript_empty)
 }
 END_TEST
 
-START_TEST(test_transcript_single_user)
-{
+START_TEST(test_transcript_single_user) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char kind[] = "user";
     char content[] = "Hello";
@@ -69,19 +63,18 @@ START_TEST(test_transcript_single_user)
 }
 END_TEST
 
-START_TEST(test_transcript_excludes_metadata)
-{
+START_TEST(test_transcript_excludes_metadata) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char ku[] = "user";      char cu[] = "hello";
     char kc[] = "clear";     char cc[] = "cleared";
     char km[] = "mark";      char cm[] = "marked";
     char kr[] = "rewind";    char cr[] = "rewound";
     char ka[] = "assistant"; char ca[] = "world";
-    ik_msg_t user_msg   = { .id = 1, .kind = ku, .content = cu, .data_json = NULL, .interrupted = false };
-    ik_msg_t clear_msg  = { .id = 2, .kind = kc, .content = cc, .data_json = NULL, .interrupted = false };
-    ik_msg_t mark_msg   = { .id = 3, .kind = km, .content = cm, .data_json = NULL, .interrupted = false };
+    ik_msg_t user_msg = { .id = 1, .kind = ku, .content = cu, .data_json = NULL, .interrupted = false };
+    ik_msg_t clear_msg = { .id = 2, .kind = kc, .content = cc, .data_json = NULL, .interrupted = false };
+    ik_msg_t mark_msg = { .id = 3, .kind = km, .content = cm, .data_json = NULL, .interrupted = false };
     ik_msg_t rewind_msg = { .id = 4, .kind = kr, .content = cr, .data_json = NULL, .interrupted = false };
-    ik_msg_t asst_msg   = { .id = 5, .kind = ka, .content = ca, .data_json = NULL, .interrupted = false };
+    ik_msg_t asst_msg = { .id = 5, .kind = ka, .content = ca, .data_json = NULL, .interrupted = false };
     ik_msg_t *msgs[] = { &user_msg, &clear_msg, &mark_msg, &rewind_msg, &asst_msg };
 
     char *t = ik_summary_transcript(ctx, msgs, 5);
@@ -94,8 +87,7 @@ START_TEST(test_transcript_excludes_metadata)
 }
 END_TEST
 
-START_TEST(test_transcript_only_metadata_produces_empty)
-{
+START_TEST(test_transcript_only_metadata_produces_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     char kind[] = "clear";
     char content[] = "cleared";
@@ -108,8 +100,7 @@ START_TEST(test_transcript_only_metadata_produces_empty)
 }
 END_TEST
 
-START_TEST(test_prompt_non_empty)
-{
+START_TEST(test_prompt_non_empty) {
     ck_assert(strlen(IK_SUMMARY_PROMPT) > 0);
     ck_assert_ptr_nonnull(strstr(IK_SUMMARY_PROMPT, "key decisions"));
     ck_assert_ptr_nonnull(strstr(IK_SUMMARY_PROMPT, "unresolved"));
@@ -122,8 +113,8 @@ END_TEST
 
 typedef struct {
     const ik_request_t *captured_req;
-    const char         *response_text;
-    bool                should_fail;
+    const char *response_text;
+    bool should_fail;
 } mock_ctx_t;
 
 static res_t mock_fdset(void *ctx, fd_set *r, fd_set *w, fd_set *e, int *max_fd)
@@ -161,7 +152,7 @@ static res_t mock_start_request(void *ctx, const ik_request_t *req,
     if (m->should_fail) {
         char err_msg[] = "mock provider error";
         ik_provider_completion_t completion = {
-            .success       = false,
+            .success = false,
             .error_message = err_msg,
         };
         cb(&completion, cb_ctx);
@@ -174,10 +165,10 @@ static res_t mock_start_request(void *ctx, const ik_request_t *req,
     block->type = IK_CONTENT_TEXT;
     block->data.text.text = talloc_strdup(tmp, m->response_text);
     resp->content_blocks = block;
-    resp->content_count  = 1;
+    resp->content_count = 1;
 
     ik_provider_completion_t completion = {
-        .success  = true,
+        .success = true,
         .response = resp,
     };
     cb(&completion, cb_ctx);
@@ -203,21 +194,20 @@ static res_t mock_count_tokens(void *ctx, const ik_request_t *req,
 }
 
 static const ik_provider_vtable_t mock_vt = {
-    .fdset          = mock_fdset,
-    .timeout        = mock_timeout,
-    .perform        = mock_perform,
-    .info_read      = mock_info_read,
-    .start_request  = mock_start_request,
-    .start_stream   = mock_start_stream,
-    .count_tokens   = mock_count_tokens,
-    .cleanup        = NULL,
-    .cancel         = NULL,
+    .fdset = mock_fdset,
+    .timeout = mock_timeout,
+    .perform = mock_perform,
+    .info_read = mock_info_read,
+    .start_request = mock_start_request,
+    .start_stream = mock_start_stream,
+    .count_tokens = mock_count_tokens,
+    .cleanup = NULL,
+    .cancel = NULL,
 };
 
 /* ---- Generate: request structure ---- */
 
-START_TEST(test_generate_request_structure)
-{
+START_TEST(test_generate_request_structure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char ku[] = "user";      char cu[] = "hello world";
@@ -262,8 +252,7 @@ END_TEST
 
 /* ---- Generate: summary within token limit passes through unchanged ---- */
 
-START_TEST(test_generate_within_limit)
-{
+START_TEST(test_generate_within_limit) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char ku[] = "user"; char cu[] = "hi";
@@ -290,8 +279,7 @@ END_TEST
 
 /* ---- Generate: oversized summary truncated at last sentence boundary ---- */
 
-START_TEST(test_generate_oversized_truncated_at_sentence)
-{
+START_TEST(test_generate_oversized_truncated_at_sentence) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char ku[] = "user"; char cu[] = "question";
@@ -324,8 +312,7 @@ END_TEST
 
 /* ---- Generate: provider failure returns ERR ---- */
 
-START_TEST(test_generate_provider_failure)
-{
+START_TEST(test_generate_provider_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
     char ku[] = "user"; char cu[] = "hi";

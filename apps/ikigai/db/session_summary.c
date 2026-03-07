@@ -16,11 +16,11 @@
 #define SESSION_SUMMARY_CAP 5
 
 res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
-                                   const char  *agent_uuid,
-                                   const char  *summary,
-                                   int64_t      start_msg_id,
-                                   int64_t      end_msg_id,
-                                   int          token_count)
+                                   const char *agent_uuid,
+                                   const char *summary,
+                                   int64_t start_msg_id,
+                                   int64_t end_msg_id,
+                                   int token_count)
 {
     assert(db != NULL);           // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);     // LCOV_EXCL_BR_LINE
@@ -56,8 +56,8 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp,
-            pq_exec_params_(db->conn, insert_query, 5,
-                            NULL, params, NULL, NULL, 0));
+                             pq_exec_params_(db->conn, insert_query, 5,
+                                             NULL, params, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     if (PQresultStatus_(res) != PGRES_COMMAND_OK) {
@@ -83,8 +83,8 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
 
     ik_pg_result_wrapper_t *cap_wrapper =
         ik_db_wrap_pg_result(tmp,
-            pq_exec_params_(db->conn, cap_query_str, 1,
-                            NULL, cap_params, NULL, NULL, 0));
+                             pq_exec_params_(db->conn, cap_query_str, 1,
+                                             NULL, cap_params, NULL, NULL, 0));
     PGresult *cap_res = cap_wrapper->pg_result;
 
     if (PQresultStatus_(cap_res) != PGRES_COMMAND_OK) {
@@ -98,11 +98,11 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
     return OK(NULL);
 }
 
-res_t ik_db_session_summary_load(ik_db_ctx_t          *db,
-                                 TALLOC_CTX           *ctx,
-                                 const char           *agent_uuid,
+res_t ik_db_session_summary_load(ik_db_ctx_t *db,
+                                 TALLOC_CTX *ctx,
+                                 const char *agent_uuid,
                                  ik_session_summary_t ***out,
-                                 size_t               *count)
+                                 size_t *count)
 {
     assert(db != NULL);          // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);    // LCOV_EXCL_BR_LINE
@@ -124,8 +124,8 @@ res_t ik_db_session_summary_load(ik_db_ctx_t          *db,
 
     ik_pg_result_wrapper_t *res_wrapper =
         ik_db_wrap_pg_result(tmp,
-            pq_exec_params_(db->conn, query, 1,
-                            NULL, params, NULL, NULL, 0));
+                             pq_exec_params_(db->conn, query, 1,
+                                             NULL, params, NULL, NULL, 0));
     PGresult *res = res_wrapper->pg_result;
 
     if (PQresultStatus_(res) != PGRES_TUPLES_OK) {
@@ -161,8 +161,8 @@ res_t ik_db_session_summary_load(ik_db_ctx_t          *db,
         if (s->summary == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
         s->start_msg_id = strtoll(PQgetvalue(res, i, 3), NULL, 10);
-        s->end_msg_id   = strtoll(PQgetvalue(res, i, 4), NULL, 10);
-        s->token_count  = (int)strtol(PQgetvalue(res, i, 5), NULL, 10);
+        s->end_msg_id = strtoll(PQgetvalue(res, i, 4), NULL, 10);
+        s->token_count = (int)strtol(PQgetvalue(res, i, 5), NULL, 10);
 
         summaries[i] = s;
     }

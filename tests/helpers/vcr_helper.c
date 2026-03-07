@@ -168,7 +168,7 @@ bool vcr_has_more(void)
 }
 
 void vcr_record_request(const char *method, const char *url,
-                       const char *headers, const char *body)
+                        const char *headers, const char *body)
 {
     if (!g_vcr_state || !g_vcr_state->recording || !g_vcr_state->fp) {
         return;
@@ -339,7 +339,7 @@ static const char *find_end_quote_with_escapes(const char *start)
 {
     const char *p = start;
     while (*p) {
-        if (*p == '"' && (p == start || *(p-1) != '\\')) {
+        if (*p == '"' && (p == start || *(p - 1) != '\\')) {
             return p;
         }
         p++;
@@ -388,7 +388,7 @@ static void add_to_chunk_queue(vcr_state_t *state, char *chunk)
 {
     state->chunk_queue->count++;
     state->chunk_queue->chunks = realloc(state->chunk_queue->chunks,
-                                         state->chunk_queue->count * sizeof(char*));
+                                         state->chunk_queue->count * sizeof(char *));
     state->chunk_queue->chunks[state->chunk_queue->count - 1] = chunk;
 }
 

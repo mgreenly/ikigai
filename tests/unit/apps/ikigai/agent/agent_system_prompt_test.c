@@ -33,10 +33,10 @@ static int mock_template_return_null = 0;
 
 // Mock implementation of ik_template_process for testing error paths
 res_t ik_template_process_(TALLOC_CTX *ctx,
-                          const char *text,
-                          void *agent,
-                          void *config,
-                          void **out)
+                           const char *text,
+                           void *agent,
+                           void *config,
+                           void **out)
 {
     if (mock_template_return_error) {
         *out = NULL;

@@ -11,9 +11,7 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
-
 
 /* ================================================================
  * Vtable Implementations (Stubs for Future Tasks)
@@ -34,4 +32,3 @@ res_t ik_google_start_request(void *impl_ctx, const ik_request_t *req,
     // Stub: Will be implemented in google-http.md task
     return OK(NULL);
 }
-

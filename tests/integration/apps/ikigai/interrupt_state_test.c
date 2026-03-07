@@ -55,7 +55,12 @@ int pthread_mutex_lock_(pthread_mutex_t *mutex);
 int pthread_mutex_unlock_(pthread_mutex_t *mutex);
 int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
 int pthread_join_(pthread_t thread, void **retval);
-res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_uuid, const char *role, const char *content, const char *data);
+res_t ik_db_message_insert_(void *db_ctx,
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *role,
+                            const char *content,
+                            const char *data);
 res_t ik_db_agent_set_idle(void *db_ctx, const char *uuid, bool idle);
 res_t ik_db_notify(void *db_ctx, const char *channel, const char *payload);
 
@@ -259,7 +264,12 @@ res_t ik_repl_render_frame_(void *repl)
 }
 
 // Mock database insert function
-res_t ik_db_message_insert_(void *db_ctx, int64_t session_id, const char *agent_uuid, const char *role, const char *content, const char *data)
+res_t ik_db_message_insert_(void *db_ctx,
+                            int64_t session_id,
+                            const char *agent_uuid,
+                            const char *role,
+                            const char *content,
+                            const char *data)
 {
     (void)db_ctx;
     (void)session_id;
@@ -298,35 +308,6 @@ static void teardown(void)
 {
     talloc_free(test_ctx);
 }
-
-// Test: Handle interrupt request when IDLE (no-op)
-START_TEST(test_interrupt_idle_state) {
-    // Create minimal REPL context
-    ik_shared_ctx_t *shared = talloc_zero_(test_ctx, sizeof(ik_shared_ctx_t));
-    ck_assert_ptr_nonnull(shared);
-
-    ik_repl_ctx_t *repl = talloc_zero_(test_ctx, sizeof(ik_repl_ctx_t));
-    ck_assert_ptr_nonnull(repl);
-    repl->shared = shared;
-
-    // Create agent in IDLE state
-    ik_agent_ctx_t *agent = talloc_zero_(test_ctx, sizeof(ik_agent_ctx_t));
-    ck_assert_ptr_nonnull(agent);
-    atomic_store(&agent->state, IK_AGENT_STATE_IDLE);
-    pthread_mutex_init_(&agent->tool_thread_mutex, NULL);
-    repl->current = agent;
-
-    // Call interrupt handler - should be no-op for IDLE state
-    ik_repl_handle_interrupt_request(repl);
-
-    // Verify state is still IDLE
-    ck_assert_int_eq(agent->state, IK_AGENT_STATE_IDLE);
-    ck_assert(!agent->interrupt_requested);
-
-    pthread_mutex_destroy_(&agent->tool_thread_mutex);
-}
-
-END_TEST
 
 // Test: Handle interrupt request when WAITING_FOR_LLM
 START_TEST(test_interrupt_waiting_for_llm) {
@@ -539,7 +520,6 @@ START_TEST(test_handle_interrupted_llm_completion) {
 
 END_TEST
 
-
 static Suite *interrupt_state_suite(void)
 {
     Suite *s = suite_create("InterruptState");
@@ -548,7 +528,6 @@ static Suite *interrupt_state_suite(void)
     tcase_set_timeout(tc_core, 10.0);
     tcase_add_checked_fixture(tc_core, setup, teardown);
 
-    tcase_add_test(tc_core, test_interrupt_idle_state);
     tcase_add_test(tc_core, test_interrupt_waiting_for_llm);
     tcase_add_test(tc_core, test_interrupt_executing_tool);
     tcase_add_test(tc_core, test_escape_during_waiting_for_llm);

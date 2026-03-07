@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Completion layer data
 typedef struct {

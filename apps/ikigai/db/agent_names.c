@@ -15,8 +15,8 @@
 #include "shared/poison.h"
 
 res_t ik_db_agent_get_names_batch(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
-                                   char **uuids, size_t uuid_count,
-                                   ik_db_agent_name_entry_t **out, size_t *out_count)
+                                  char **uuids, size_t uuid_count,
+                                  ik_db_agent_name_entry_t **out, size_t *out_count)
 {
     assert(db_ctx != NULL);    // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE

@@ -5,7 +5,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 /**
  * Response Builder Implementation

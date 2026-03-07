@@ -29,26 +29,26 @@ typedef enum {
 static inline const char *ik_output_prefix(ik_output_category_t category)
 {
     switch (category) {
-    case IK_OUTPUT_USER_INPUT:
-        return "❯";
-    case IK_OUTPUT_MODEL_TEXT:
-        return "●";
-    case IK_OUTPUT_TOOL_REQUEST:
-        return "→";
-    case IK_OUTPUT_TOOL_RESPONSE:
-        return "←";
-    case IK_OUTPUT_WARNING:
-        return "⚠";
-    case IK_OUTPUT_SLASH_CMD:
-        return NULL;
-    case IK_OUTPUT_SLASH_OUTPUT:
-        return NULL;
-    case IK_OUTPUT_SYSTEM_PROMPT:
-        return NULL;
-    case IK_OUTPUT_CANCELLED:
-        return "✗";
-    case IK_OUTPUT_COUNT:
-        return NULL;
+        case IK_OUTPUT_USER_INPUT:
+            return "❯";
+        case IK_OUTPUT_MODEL_TEXT:
+            return "●";
+        case IK_OUTPUT_TOOL_REQUEST:
+            return "→";
+        case IK_OUTPUT_TOOL_RESPONSE:
+            return "←";
+        case IK_OUTPUT_WARNING:
+            return "⚠";
+        case IK_OUTPUT_SLASH_CMD:
+            return NULL;
+        case IK_OUTPUT_SLASH_OUTPUT:
+            return NULL;
+        case IK_OUTPUT_SYSTEM_PROMPT:
+            return NULL;
+        case IK_OUTPUT_CANCELLED:
+            return "✗";
+        case IK_OUTPUT_COUNT:
+            return NULL;
     }
     return NULL;
 }
@@ -62,26 +62,26 @@ static inline const char *ik_output_prefix(ik_output_category_t category)
 static inline int32_t ik_output_color(ik_output_category_t category)
 {
     switch (category) {
-    case IK_OUTPUT_USER_INPUT:
-        return -1;  // white/default
-    case IK_OUTPUT_MODEL_TEXT:
-        return -1;  // white/default
-    case IK_OUTPUT_TOOL_REQUEST:
-        return 242;  // gray
-    case IK_OUTPUT_TOOL_RESPONSE:
-        return 242;  // gray
-    case IK_OUTPUT_WARNING:
-        return 179;  // subdued yellow (golden/olive)
-    case IK_OUTPUT_SLASH_CMD:
-        return 242;  // gray
-    case IK_OUTPUT_SLASH_OUTPUT:
-        return 242;  // gray
-    case IK_OUTPUT_SYSTEM_PROMPT:
-        return 153;  // soft blue
-    case IK_OUTPUT_CANCELLED:
-        return 242;  // gray
-    case IK_OUTPUT_COUNT:
-        return -1;
+        case IK_OUTPUT_USER_INPUT:
+            return -1; // white/default
+        case IK_OUTPUT_MODEL_TEXT:
+            return -1; // white/default
+        case IK_OUTPUT_TOOL_REQUEST:
+            return 242; // gray
+        case IK_OUTPUT_TOOL_RESPONSE:
+            return 242; // gray
+        case IK_OUTPUT_WARNING:
+            return 179; // subdued yellow (golden/olive)
+        case IK_OUTPUT_SLASH_CMD:
+            return 242; // gray
+        case IK_OUTPUT_SLASH_OUTPUT:
+            return 242; // gray
+        case IK_OUTPUT_SYSTEM_PROMPT:
+            return 153; // soft blue
+        case IK_OUTPUT_CANCELLED:
+            return 242; // gray
+        case IK_OUTPUT_COUNT:
+            return -1;
     }
     return -1;
 }

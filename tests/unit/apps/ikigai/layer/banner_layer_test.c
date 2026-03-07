@@ -418,7 +418,8 @@ START_TEST(test_banner_layer_render_zero_rows_at_end) {
 }
 END_TEST
 
-static Suite *banner_layer_suite(void) {
+static Suite *banner_layer_suite(void)
+{
     Suite *s = suite_create("banner_layer");
 
     TCase *tc_basic = tcase_create("basic");
@@ -444,7 +445,8 @@ static Suite *banner_layer_suite(void) {
     return s;
 }
 
-int main(void) {
+int main(void)
+{
     int number_failed;
     Suite *s = banner_layer_suite();
     SRunner *sr = srunner_create(s);

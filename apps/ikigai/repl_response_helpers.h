@@ -13,8 +13,7 @@ typedef struct ik_response ik_response_t;
 /**
  * Flush accumulated line content to scrollback with optional model prefix
  */
-void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
-                                      size_t start, size_t chunk_len);
+void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk, size_t start, size_t chunk_len);
 
 /**
  * Handle text delta in streaming response

@@ -12,7 +12,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 /**
  * Request Builder Implementation

@@ -222,7 +222,7 @@ res_t ik_db_agent_list_running(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx,
 }
 
 res_t ik_db_agent_list_active(ik_db_ctx_t *db_ctx, TALLOC_CTX *ctx, int64_t session_id,
-                               ik_db_agent_row_t ***out, size_t *count)
+                              ik_db_agent_row_t ***out, size_t *count)
 {
     assert(db_ctx != NULL);  // LCOV_EXCL_BR_LINE
     assert(ctx != NULL);     // LCOV_EXCL_BR_LINE

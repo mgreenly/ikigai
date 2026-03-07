@@ -18,7 +18,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // /agents command implementation - displays agent hierarchy tree
 res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
@@ -51,7 +50,7 @@ res_t ik_cmd_agents(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_db_agent_row_t **all_agents = NULL;
     size_t all_count = 0;
     res = ik_db_agent_list_active(repl->shared->db_ctx, tmp_ctx, repl->shared->session_id,
-                                   &all_agents, &all_count);
+                                  &all_agents, &all_count);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
         talloc_free(tmp_ctx);     // LCOV_EXCL_LINE
         return res;     // LCOV_EXCL_LINE

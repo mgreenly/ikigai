@@ -125,7 +125,13 @@ START_TEST(test_successful_execution) {
     ck_assert(!is_err(&add_res));
 
     // Execute the tool
-    char *result = ik_tool_execute_from_registry(test_ctx, registry, paths, "agent1", "test_tool", "{\"test\":\"data\"}", NULL);
+    char *result = ik_tool_execute_from_registry(test_ctx,
+                                                 registry,
+                                                 paths,
+                                                 "agent1",
+                                                 "test_tool",
+                                                 "{\"test\":\"data\"}",
+                                                 NULL);
     ck_assert_ptr_nonnull(result);
 
     // Verify success
@@ -144,7 +150,12 @@ END_TEST
 // Mock for tool execution failure or long result
 static int mock_tool_exec_fail = 0;
 static int mock_tool_long_result = 0;
-res_t ik_tool_external_exec_(TALLOC_CTX *ctx, const char *tool_path, const char *agent_id, const char *arguments_json, pid_t *child_pid_out, char **out_result)
+res_t ik_tool_external_exec_(TALLOC_CTX *ctx,
+                             const char *tool_path,
+                             const char *agent_id,
+                             const char *arguments_json,
+                             pid_t *child_pid_out,
+                             char **out_result)
 {
     (void)tool_path;
     (void)agent_id;

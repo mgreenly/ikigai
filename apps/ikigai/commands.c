@@ -30,7 +30,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Public declaration for ik_cmd_fork (non-static, declared in commands.h)
 res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args);

@@ -186,8 +186,7 @@ static ik_repl_ctx_t *create_test_repl(const char *agent0_uuid)
 /*
  * After restore, agent->session_summaries[] must be populated from DB.
  */
-START_TEST(test_restore_loads_session_summaries)
-{
+START_TEST(test_restore_loads_session_summaries) {
     SKIP_IF_NO_DB();
 
     const char *uuid = "restore-summary-agent";
@@ -195,7 +194,7 @@ START_TEST(test_restore_loads_session_summaries)
 
     /* Insert two messages to establish valid start/end IDs */
     int64_t start_id = insert_msg_id(uuid, "clear", NULL);
-    int64_t end_id   = insert_msg_id(uuid, "user", "Hello");
+    int64_t end_id = insert_msg_id(uuid, "user", "Hello");
 
     /* Insert a session summary for the agent */
     res_t res = ik_db_session_summary_insert(db, uuid,
@@ -220,8 +219,7 @@ END_TEST
  * After restore with no summaries in DB, agent->session_summaries must be NULL
  * and session_summary_count must be 0.
  */
-START_TEST(test_restore_no_summaries_leaves_empty)
-{
+START_TEST(test_restore_no_summaries_leaves_empty) {
     SKIP_IF_NO_DB();
 
     const char *uuid = "restore-no-summary-agent";
@@ -242,7 +240,7 @@ END_TEST
 
 static Suite *replay_session_summary_suite(void)
 {
-    Suite *s  = suite_create("replay_session_summary");
+    Suite *s = suite_create("replay_session_summary");
     TCase *tc = tcase_create("ReplayLoad");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
@@ -258,10 +256,10 @@ static Suite *replay_session_summary_suite(void)
 
 int main(void)
 {
-    Suite   *s  = replay_session_summary_suite();
+    Suite *s = replay_session_summary_suite();
     SRunner *sr = srunner_create(s);
     srunner_set_xml(sr,
-        "reports/check/integration/apps/ikigai/replay_session_summary_test.xml");
+                    "reports/check/integration/apps/ikigai/replay_session_summary_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

@@ -50,8 +50,8 @@ static void teardown(void)
 
 // Helper: create response with tool call
 static ik_response_t *create_tool_call_response(TALLOC_CTX *ctx, const char *id,
-                                                  const char *name, const char *args,
-                                                  const char *thought_sig)
+                                                const char *name, const char *args,
+                                                const char *thought_sig)
 {
     ik_response_t *response = talloc_zero(ctx, ik_response_t);
     response->content_count = 1;
@@ -74,7 +74,7 @@ static ik_response_t *create_tool_call_response(TALLOC_CTX *ctx, const char *id,
 // Test: tool call with thought_signature (lines 226-229)
 START_TEST(test_tool_call_with_thought_signature) {
     ik_response_t *response = create_tool_call_response(test_ctx, "call_123",
-                                                          "test_tool", "{}", "sig_abc");
+                                                        "test_tool", "{}", "sig_abc");
 
     ik_repl_extract_tool_calls(agent, response);
 
@@ -89,7 +89,7 @@ END_TEST
 // Test: tool call without thought_signature (line 226 false branch)
 START_TEST(test_tool_call_without_thought_signature) {
     ik_response_t *response = create_tool_call_response(test_ctx, "call_123",
-                                                          "test_tool", "{}", NULL);
+                                                        "test_tool", "{}", NULL);
 
     ik_repl_extract_tool_calls(agent, response);
 
@@ -107,7 +107,7 @@ START_TEST(test_clear_existing_thought_signature) {
 
     // Create response with new thought_signature
     ik_response_t *response = create_tool_call_response(test_ctx, "call_123",
-                                                          "test_tool", "{}", "new_sig");
+                                                        "test_tool", "{}", "new_sig");
 
     ik_repl_extract_tool_calls(agent, response);
 
@@ -150,7 +150,7 @@ END_TEST
 // Test: process_tool_call_block returns true (line 251)
 START_TEST(test_process_tool_call_returns_true) {
     ik_response_t *response = create_tool_call_response(test_ctx, "call_123",
-                                                          "test_tool", "{}", NULL);
+                                                        "test_tool", "{}", NULL);
 
     ik_repl_extract_tool_calls(agent, response);
 

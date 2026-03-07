@@ -60,18 +60,18 @@ static void clear_mock_info_read(void *ctx, ik_logger_t *logger)
 }
 
 static res_t clear_mock_start_request(void *ctx, const ik_request_t *req,
-                                       ik_provider_completion_cb_t cb, void *cb_ctx)
+                                      ik_provider_completion_cb_t cb, void *cb_ctx)
 {
     clear_mock_ctx_t *m = ctx;
     (void)req;
 
-    TALLOC_CTX *tmp       = talloc_new(NULL);
-    ik_response_t *resp   = talloc_zero(tmp, ik_response_t);
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     ik_content_block_t *b = talloc_zero(tmp, ik_content_block_t);
-    b->type               = IK_CONTENT_TEXT;
-    b->data.text.text     = talloc_strdup(tmp, m->response_text);
-    resp->content_blocks  = b;
-    resp->content_count   = 1;
+    b->type = IK_CONTENT_TEXT;
+    b->data.text.text = talloc_strdup(tmp, m->response_text);
+    resp->content_blocks = b;
+    resp->content_count = 1;
 
     ik_provider_completion_t completion = { .success = true, .response = resp };
     cb(&completion, cb_ctx);
@@ -81,8 +81,8 @@ static res_t clear_mock_start_request(void *ctx, const ik_request_t *req,
 }
 
 static res_t clear_mock_start_stream(void *ctx, const ik_request_t *req,
-                                      ik_stream_cb_t scb, void *sctx,
-                                      ik_provider_completion_cb_t ccb, void *cctx)
+                                     ik_stream_cb_t scb, void *sctx,
+                                     ik_provider_completion_cb_t ccb, void *cctx)
 {
     (void)ctx; (void)req; (void)scb; (void)sctx; (void)ccb; (void)cctx;
     return ERR(NULL, PROVIDER, "mock does not support streaming");
@@ -96,15 +96,15 @@ static res_t clear_mock_count_tokens(void *ctx, const ik_request_t *req, int32_t
 }
 
 static const ik_provider_vtable_t clear_mock_vt = {
-    .fdset         = clear_mock_fdset,
-    .timeout       = clear_mock_timeout,
-    .perform       = clear_mock_perform,
-    .info_read     = clear_mock_info_read,
+    .fdset = clear_mock_fdset,
+    .timeout = clear_mock_timeout,
+    .perform = clear_mock_perform,
+    .info_read = clear_mock_info_read,
     .start_request = clear_mock_start_request,
-    .start_stream  = clear_mock_start_stream,
-    .count_tokens  = clear_mock_count_tokens,
-    .cleanup       = NULL,
-    .cancel        = NULL,
+    .start_stream = clear_mock_start_stream,
+    .count_tokens = clear_mock_count_tokens,
+    .cleanup = NULL,
+    .cancel = NULL,
 };
 
 /* ---- DB / test setup ---- */
@@ -210,9 +210,9 @@ static ik_repl_ctx_t *build_repl(void)
 
     ik_shared_ctx_t *shared = talloc_zero(repl, ik_shared_ctx_t);
     ck_assert_ptr_nonnull(shared);
-    shared->db_ctx     = db;
+    shared->db_ctx = db;
     shared->session_id = session_id;
-    shared->logger     = ik_logger_create(shared, "/tmp");
+    shared->logger = ik_logger_create(shared, "/tmp");
     ck_assert_ptr_nonnull(shared->logger);
     shared->cfg = ik_test_create_config(shared);
 
@@ -222,11 +222,11 @@ static ik_repl_ctx_t *build_repl(void)
     res_t res = ik_agent_create(repl, shared, NULL, &agent);
     ck_assert(is_ok(&res));
 
-    repl->agents        = talloc_array(repl, ik_agent_ctx_t *, 4);
-    repl->agents[0]     = agent;
-    repl->agent_count   = 1;
+    repl->agents = talloc_array(repl, ik_agent_ctx_t *, 4);
+    repl->agents[0] = agent;
+    repl->agent_count = 1;
     repl->agent_capacity = 4;
-    repl->current       = agent;
+    repl->current = agent;
 
     /* Insert agent row so FK constraints are satisfied for message inserts */
     res = ik_db_agent_insert(db, agent);
@@ -243,21 +243,20 @@ static ik_repl_ctx_t *build_repl(void)
  * - insert a row into session_summaries
  * - populate agent->session_summaries[]
  */
-START_TEST(test_clear_generates_session_summary)
-{
+START_TEST(test_clear_generates_session_summary) {
     SKIP_IF_NO_DB();
 
-    ik_repl_ctx_t *repl   = build_repl();
+    ik_repl_ctx_t *repl = build_repl();
     ik_agent_ctx_t *agent = repl->current;
 
     /* Inject mock provider */
-    clear_mock_ctx_t mock  = { .response_text = "Summary of the conversation." };
-    ik_provider_t *prov    = talloc_zero(agent, ik_provider_t);
-    prov->name             = "mock";
-    prov->vt               = &clear_mock_vt;
-    prov->ctx              = &mock;
+    clear_mock_ctx_t mock = { .response_text = "Summary of the conversation." };
+    ik_provider_t *prov = talloc_zero(agent, ik_provider_t);
+    prov->name = "mock";
+    prov->vt = &clear_mock_vt;
+    prov->ctx = &mock;
     agent->provider_instance = prov;
-    agent->model             = talloc_strdup(agent, "test-model");
+    agent->model = talloc_strdup(agent, "test-model");
 
     /* Insert epoch: clear → user → assistant */
     res_t res = ik_db_message_insert(db, session_id, agent->uuid, "clear", NULL, "{}");
@@ -291,21 +290,20 @@ END_TEST
  * /clear on an empty epoch (no user/assistant messages) must skip
  * summary generation — session_summaries stays empty.
  */
-START_TEST(test_clear_empty_epoch_skips_summary)
-{
+START_TEST(test_clear_empty_epoch_skips_summary) {
     SKIP_IF_NO_DB();
 
-    ik_repl_ctx_t *repl   = build_repl();
+    ik_repl_ctx_t *repl = build_repl();
     ik_agent_ctx_t *agent = repl->current;
 
     /* Inject mock provider (must NOT be invoked) */
-    clear_mock_ctx_t mock  = { .response_text = "Should not be generated." };
-    ik_provider_t *prov    = talloc_zero(agent, ik_provider_t);
-    prov->name             = "mock";
-    prov->vt               = &clear_mock_vt;
-    prov->ctx              = &mock;
+    clear_mock_ctx_t mock = { .response_text = "Should not be generated." };
+    ik_provider_t *prov = talloc_zero(agent, ik_provider_t);
+    prov->name = "mock";
+    prov->vt = &clear_mock_vt;
+    prov->ctx = &mock;
     agent->provider_instance = prov;
-    agent->model             = talloc_strdup(agent, "test-model");
+    agent->model = talloc_strdup(agent, "test-model");
 
     /* No conversation messages — epoch is empty */
 
@@ -325,7 +323,7 @@ END_TEST
 
 static Suite *clear_summary_wiring_suite(void)
 {
-    Suite *s  = suite_create("clear_summary_wiring");
+    Suite *s = suite_create("clear_summary_wiring");
     TCase *tc = tcase_create("ClearFlow");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
 
@@ -341,10 +339,10 @@ static Suite *clear_summary_wiring_suite(void)
 
 int main(void)
 {
-    Suite   *s  = clear_summary_wiring_suite();
+    Suite *s = clear_summary_wiring_suite();
     SRunner *sr = srunner_create(s);
     srunner_set_xml(sr,
-        "reports/check/integration/apps/ikigai/clear_summary_wiring_test.xml");
+                    "reports/check/integration/apps/ikigai/clear_summary_wiring_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

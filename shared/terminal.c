@@ -16,7 +16,6 @@
 #include "shared/terminal.h"
 #include "shared/wrapper.h"
 
-
 #include "shared/poison.h"
 // Terminal escape sequences
 #define ESC_ALT_SCREEN_ENTER "\x1b[?1049h"

@@ -8,7 +8,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-
 #include "shared/poison.h"
 // Unicode box-drawing character U+2500 (─) in UTF-8: 0xE2 0x94 0x80
 #define BOX_DRAWING_LIGHT_HORIZONTAL "\xE2\x94\x80"

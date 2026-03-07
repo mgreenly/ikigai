@@ -47,8 +47,7 @@ mock_queue_t *mock_queue_create(TALLOC_CTX *ctx);
  * Parse /_mock/expect JSON body and append responses to the queue.
  * Returns 0 on success, -1 on parse error.
  */
-int mock_queue_load(mock_queue_t *queue, const char *json_body,
-                    size_t json_len);
+int mock_queue_load(mock_queue_t *queue, const char *json_body, size_t json_len);
 
 /**
  * Pop the next response from the queue.

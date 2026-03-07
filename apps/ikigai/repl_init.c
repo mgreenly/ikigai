@@ -18,7 +18,6 @@
 #include <assert.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Destructor for REPL context - handles cleanup on exit or Ctrl+C
 static int repl_destructor(ik_repl_ctx_t *repl)

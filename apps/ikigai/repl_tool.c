@@ -23,7 +23,6 @@
 #include <talloc.h>
 #include "vendor/yyjson/yyjson.h"
 
-
 #include "shared/poison.h"
 // Worker thread arguments - strings owned by ctx, safe for thread use.
 typedef struct {
@@ -42,7 +41,7 @@ static void *tool_thread_worker(void *arg)
 
     // Lookup tool type
     ik_tool_registry_entry_t *entry = args->registry ?
-        ik_tool_registry_lookup(args->registry, args->tool_name) : NULL;
+                                      ik_tool_registry_lookup(args->registry, args->tool_name) : NULL;
     char *result_json = NULL;
 
     if (entry && entry->type == IK_TOOL_INTERNAL) {

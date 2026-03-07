@@ -5,7 +5,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 res_t ik_repl_add_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent)
 {

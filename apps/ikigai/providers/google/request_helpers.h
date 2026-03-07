@@ -34,9 +34,12 @@ const char *ik_google_role_to_string(ik_role_t role, const char *model);
  * @param current_msg_idx  Index of current message being serialized
  * @return                 true on success, false on failure
  */
-bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
-                                       const ik_content_block_t *block, const char *model,
-                                       const ik_message_t *messages, size_t message_count,
+bool ik_google_serialize_content_block(yyjson_mut_doc *doc,
+                                       yyjson_mut_val *arr,
+                                       const ik_content_block_t *block,
+                                       const char *model,
+                                       const ik_message_t *messages,
+                                       size_t message_count,
                                        size_t current_msg_idx);
 
 /**

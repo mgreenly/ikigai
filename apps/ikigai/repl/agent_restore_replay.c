@@ -13,7 +13,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 
 void ik_agent_restore_populate_conversation(

@@ -91,7 +91,7 @@ size_t ik_key_inject_pending(ik_key_inject_buf_t *buf)
 }
 
 res_t ik_key_inject_unescape(TALLOC_CTX *ctx, const char *input, size_t input_len,
-                               char **out, size_t *out_len)
+                             char **out, size_t *out_len)
 {
     if (!input || !out || !out_len) {
         return ERR(ctx, INVALID_ARG, "NULL pointer");

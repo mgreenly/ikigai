@@ -17,7 +17,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 ik_format_buffer_t *ik_format_buffer_create(void *parent)
 {

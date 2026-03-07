@@ -9,7 +9,6 @@
 #include <assert.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 // Forward declarations to avoid type conflicts during migration
 typedef struct ik_provider ik_provider_t;

@@ -24,7 +24,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 // Helper to query database for mark's message ID
 static int64_t get_mark_db_id(TALLOC_CTX *ctx, ik_repl_ctx_t *repl, const char *label)

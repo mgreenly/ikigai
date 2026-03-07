@@ -4,7 +4,6 @@
 #include "shared/panic.h"
 #include <assert.h>
 
-
 #include "shared/poison.h"
 // Scrollback layer data
 typedef struct {

@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #include "shared/poison.h"
 #ifndef NDEBUG
 // LCOV_EXCL_START

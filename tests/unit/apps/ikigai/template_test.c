@@ -70,7 +70,6 @@ START_TEST(test_no_variables) {
 }
 END_TEST
 
-
 START_TEST(test_config_db_host) {
     const char *input = "Database: ${config.db_host}:${config.db_port}";
     ik_template_result_t *result = NULL;
@@ -163,25 +162,25 @@ END_TEST
 
 START_TEST(test_agent_all_fields) {
     const char *input = "${agent.uuid}:${agent.name}:${agent.parent_uuid}:"
-                       "${agent.provider}:${agent.model}:${agent.created_at}";
+                        "${agent.provider}:${agent.model}:${agent.created_at}";
     ik_template_result_t *result = NULL;
 
     res_t res = ik_template_process(ctx, input, agent, config, &result);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result->processed, "test-uuid-1234:TestAgent:parent-uuid-5678:"
-                                        "anthropic:claude-sonnet-4-5:1704067200");
+                     "anthropic:claude-sonnet-4-5:1704067200");
     ck_assert_int_eq((int32_t)result->unresolved_count, 0);
 }
 END_TEST
 
 START_TEST(test_config_all_fields) {
     const char *input = "${config.openai_model}:${config.db_name}:${config.db_user}:"
-                       "${config.default_provider}:${config.max_tool_turns}:"
-                       "${config.max_output_size}:${config.history_size}:"
-                       "${config.listen_address}:${config.listen_port}:"
-                       "${config.openai_temperature}:${config.openai_max_completion_tokens}:"
-                       "${config.openai_system_message}";
+                        "${config.default_provider}:${config.max_tool_turns}:"
+                        "${config.max_output_size}:${config.history_size}:"
+                        "${config.listen_address}:${config.listen_port}:"
+                        "${config.openai_temperature}:${config.openai_max_completion_tokens}:"
+                        "${config.openai_system_message}";
     ik_template_result_t *result = NULL;
 
     res_t res = ik_template_process(ctx, input, agent, config, &result);

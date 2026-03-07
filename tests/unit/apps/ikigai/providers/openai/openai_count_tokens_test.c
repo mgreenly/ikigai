@@ -325,7 +325,7 @@ int main(void)
     Suite *s = openai_count_tokens_suite();
     SRunner *sr = srunner_create(s);
     srunner_set_xml(sr,
-        "reports/check/unit/apps/ikigai/providers/openai/openai_count_tokens_test.xml");
+                    "reports/check/unit/apps/ikigai/providers/openai/openai_count_tokens_test.xml");
 
     srunner_run_all(sr, CK_NORMAL);
     int number_failed = srunner_ntests_failed(sr);

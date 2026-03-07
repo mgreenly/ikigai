@@ -25,7 +25,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 #include "shared/poison.h"
 // Collect all descendants of a given agent in depth-first order
 static size_t collect_descendants(ik_repl_ctx_t *repl,

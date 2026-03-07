@@ -193,8 +193,8 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
         mock_response_t *resp = mock_queue_pop(queue);
         if (resp == NULL) {
             http_respond_error(client_fd, 503,
-                "Response queue empty - load responses with "
-                "/_mock/expect first");
+                               "Response queue empty - load responses with "
+                               "/_mock/expect first");
             talloc_free(tmp);
             return;
         }
@@ -219,8 +219,8 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
         mock_response_t *resp = mock_queue_pop(queue);
         if (resp == NULL) {
             http_respond_error(client_fd, 503,
-                "Response queue empty - load responses with "
-                "/_mock/expect first");
+                               "Response queue empty - load responses with "
+                               "/_mock/expect first");
             talloc_free(tmp);
             return;
         }
@@ -246,8 +246,8 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
         mock_response_t *resp = mock_queue_pop(queue);
         if (resp == NULL) {
             http_respond_error(client_fd, 503,
-                "Response queue empty - load responses with "
-                "/_mock/expect first");
+                               "Response queue empty - load responses with "
+                               "/_mock/expect first");
             talloc_free(tmp);
             return;
         }
@@ -272,8 +272,8 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
         mock_response_t *resp = mock_queue_pop(queue);
         if (resp == NULL) {
             http_respond_error(client_fd, 503,
-                "Response queue empty - load responses with "
-                "/_mock/expect first");
+                               "Response queue empty - load responses with "
+                               "/_mock/expect first");
             talloc_free(tmp);
             return;
         }

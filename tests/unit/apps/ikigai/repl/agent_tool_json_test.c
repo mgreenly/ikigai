@@ -349,7 +349,7 @@ static void setup_internal_tool_with_db(void)
     ik_tool_registry_t *registry = ik_tool_registry_create(agent_a->shared);
     yyjson_doc *schema = create_internal_tool_schema(registry, "test_internal");
     ik_tool_registry_add_internal(registry, "test_internal", schema,
-                                   mock_internal_handler_success, NULL);
+                                  mock_internal_handler_success, NULL);
     agent_a->shared->tool_registry = registry;
 
     talloc_free(agent_a->pending_tool_call);
@@ -368,7 +368,7 @@ START_TEST(test_internal_tool_handler_success) {
 
     ck_assert_ptr_nonnull(captured_tool_result_data_json);
     yyjson_doc *doc = yyjson_read(captured_tool_result_data_json,
-                                   strlen(captured_tool_result_data_json), 0);
+                                  strlen(captured_tool_result_data_json), 0);
     ck_assert_ptr_nonnull(doc);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *success_val = yyjson_obj_get(root, "success");
@@ -392,7 +392,7 @@ START_TEST(test_internal_tool_handler_null) {
     ik_tool_registry_t *registry = agent_a->shared->tool_registry;
     yyjson_doc *schema = create_internal_tool_schema(registry, "test_null_tool");
     ik_tool_registry_add_internal(registry, "test_null_tool", schema,
-                                   mock_internal_handler_null, NULL);
+                                  mock_internal_handler_null, NULL);
 
     talloc_free(agent_a->pending_tool_call);
     agent_a->pending_tool_call = ik_tool_call_create(agent_a,
@@ -408,7 +408,7 @@ START_TEST(test_internal_tool_handler_null) {
 
     ck_assert_ptr_nonnull(captured_tool_result_data_json);
     yyjson_doc *doc = yyjson_read(captured_tool_result_data_json,
-                                   strlen(captured_tool_result_data_json), 0);
+                                  strlen(captured_tool_result_data_json), 0);
     ck_assert_ptr_nonnull(doc);
     yyjson_val *root = yyjson_doc_get_root(doc);
     yyjson_val *success_val = yyjson_obj_get(root, "success");

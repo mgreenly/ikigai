@@ -4,7 +4,6 @@
 
 #include <string.h>
 
-
 #include "shared/poison.h"
 /**
  * Model capability lookup table

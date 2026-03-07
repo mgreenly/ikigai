@@ -246,7 +246,8 @@ START_TEST(test_toolset_replay_fork_non_string_elements) {
     insert_agent(child_uuid);
 
     // Fork message with mixed types in array
-    const char *fork_data = "{\"parent_uuid\":\"" "parent-nonstr" "\",\"toolset_filter\":[\"tool1\",123,\"tool2\",null,\"tool3\"]}";
+    const char *fork_data =
+        "{\"parent_uuid\":\"" "parent-nonstr" "\",\"toolset_filter\":[\"tool1\",123,\"tool2\",null,\"tool3\"]}";
     insert_message(child_uuid, "fork", fork_data);
 
     ik_agent_ctx_t *agent = create_test_agent(child_uuid);

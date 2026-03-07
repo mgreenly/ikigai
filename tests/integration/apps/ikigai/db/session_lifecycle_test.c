@@ -99,13 +99,12 @@ static void test_teardown(void)
 }
 
 // Helper macro to skip test if DB not available
-#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while(0)
+#define SKIP_IF_NO_DB() do { if (db == NULL) return; } while (0)
 
 // ========== Tests ==========
 
 // Test 1: Session create returns valid ID
-START_TEST(test_session_create_returns_valid_id)
-{
+START_TEST(test_session_create_returns_valid_id) {
     SKIP_IF_NO_DB();
 
     int64_t session_id = 0;
@@ -116,8 +115,7 @@ START_TEST(test_session_create_returns_valid_id)
 END_TEST
 
 // Test 2: Session has started_at timestamp
-START_TEST(test_session_has_started_at)
-{
+START_TEST(test_session_has_started_at) {
     SKIP_IF_NO_DB();
 
     int64_t session_id = 0;
@@ -140,8 +138,7 @@ START_TEST(test_session_has_started_at)
 END_TEST
 
 // Test 3: Session has ended_at = NULL initially
-START_TEST(test_session_ended_at_null_initially)
-{
+START_TEST(test_session_ended_at_null_initially) {
     SKIP_IF_NO_DB();
 
     int64_t session_id = 0;
@@ -164,8 +161,7 @@ START_TEST(test_session_ended_at_null_initially)
 END_TEST
 
 // Test 6: Transaction isolation - no data persists after rollback
-START_TEST(test_transaction_isolation)
-{
+START_TEST(test_transaction_isolation) {
     SKIP_IF_NO_DB();
 
     // Create a session within this test's transaction

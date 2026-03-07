@@ -11,10 +11,9 @@
 #include "apps/ikigai/providers/provider_vtable.h"
 #include "shared/error.h"
 
-
-static int32_t g_mock_count  = 0;
-static bool    g_mock_fail   = false;
-static int     g_mock_calls  = 0;
+static int32_t g_mock_count = 0;
+static bool g_mock_fail = false;
+static int g_mock_calls = 0;
 static TALLOC_CTX *g_err_ctx = NULL;
 
 static res_t mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
@@ -28,7 +27,6 @@ static res_t mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
 
 static const ik_provider_vtable_t g_mock_vtable = { .count_tokens = mock_count_tokens };
 static struct ik_provider g_mock_provider = { .name = "mock", .vt = &g_mock_vtable };
-
 
 static TALLOC_CTX *test_ctx;
 
@@ -60,7 +58,7 @@ static void add_user(ik_agent_ctx_t *a, const char *text)
     size_t idx = a->message_count++;
     a->message_capacity = a->message_count;
     a->messages = talloc_realloc(a, a->messages, ik_message_t *,
-                                  (unsigned int)a->message_count);
+                                 (unsigned int)a->message_count);
     ik_message_t *m = talloc_zero(a, ik_message_t);
     m->role = IK_ROLE_USER;
     m->content_count = 1;
@@ -70,18 +68,14 @@ static void add_user(ik_agent_ctx_t *a, const char *text)
     a->messages[idx] = m;
 }
 
-
-START_TEST(test_create_basic)
-{
+START_TEST(test_create_basic) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ck_assert_ptr_nonnull(c);
     ck_assert_int_eq(ik_token_cache_get_total(c), 0); /* mock=0, no turns */
 }
 END_TEST
 
-
-START_TEST(test_record_and_get_turn)
-{
+START_TEST(test_record_and_get_turn) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_add_turn(c);
     ik_token_cache_add_turn(c);
@@ -92,8 +86,7 @@ START_TEST(test_record_and_get_turn)
 }
 END_TEST
 
-START_TEST(test_record_invalidates_total)
-{
+START_TEST(test_record_invalidates_total) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_add_turn(c);
     ik_token_cache_record_turn(c, 0, 50);
@@ -104,9 +97,7 @@ START_TEST(test_record_invalidates_total)
 }
 END_TEST
 
-
-START_TEST(test_system_api_result_cached)
-{
+START_TEST(test_system_api_result_cached) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_count = 75;
     ck_assert_int_eq(ik_token_cache_get_system_tokens(c), 75);
@@ -116,8 +107,7 @@ START_TEST(test_system_api_result_cached)
 }
 END_TEST
 
-START_TEST(test_tool_api_result_cached)
-{
+START_TEST(test_tool_api_result_cached) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_count = 30;
     ck_assert_int_eq(ik_token_cache_get_tool_tokens(c), 30);
@@ -127,8 +117,7 @@ START_TEST(test_tool_api_result_cached)
 }
 END_TEST
 
-START_TEST(test_turn_api_result_cached)
-{
+START_TEST(test_turn_api_result_cached) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "hello");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -141,9 +130,7 @@ START_TEST(test_turn_api_result_cached)
 }
 END_TEST
 
-
-START_TEST(test_system_bytes_fallback_not_cached)
-{
+START_TEST(test_system_bytes_fallback_not_cached) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_fail = true;
     ik_token_cache_get_system_tokens(c);
@@ -153,8 +140,7 @@ START_TEST(test_system_bytes_fallback_not_cached)
 }
 END_TEST
 
-START_TEST(test_turn_bytes_fallback_not_cached)
-{
+START_TEST(test_turn_bytes_fallback_not_cached) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "hello");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -167,8 +153,7 @@ START_TEST(test_turn_bytes_fallback_not_cached)
 }
 END_TEST
 
-START_TEST(test_no_provider_no_api_calls)
-{
+START_TEST(test_no_provider_no_api_calls) {
     ik_agent_ctx_t *a = talloc_zero(test_ctx, ik_agent_ctx_t);
     a->provider_instance = NULL;
     a->model = talloc_strdup(a, "test");
@@ -179,9 +164,7 @@ START_TEST(test_no_provider_no_api_calls)
 }
 END_TEST
 
-
-START_TEST(test_total_sum)
-{
+START_TEST(test_total_sum) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_add_turn(c);
     ik_token_cache_record_turn(c, 0, 50);
@@ -190,8 +173,7 @@ START_TEST(test_total_sum)
 }
 END_TEST
 
-START_TEST(test_total_cached)
-{
+START_TEST(test_total_cached) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_add_turn(c);
     ik_token_cache_record_turn(c, 0, 50);
@@ -203,8 +185,7 @@ START_TEST(test_total_cached)
 }
 END_TEST
 
-START_TEST(test_total_recomputed_after_invalidate)
-{
+START_TEST(test_total_recomputed_after_invalidate) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "hello");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -220,9 +201,7 @@ START_TEST(test_total_recomputed_after_invalidate)
 }
 END_TEST
 
-
-START_TEST(test_invalidate_all)
-{
+START_TEST(test_invalidate_all) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_add_turn(c);
     g_mock_count = 50;
@@ -237,8 +216,7 @@ START_TEST(test_invalidate_all)
 }
 END_TEST
 
-START_TEST(test_invalidate_system_only)
-{
+START_TEST(test_invalidate_system_only) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_count = 40;
     ik_token_cache_get_system_tokens(c);
@@ -252,8 +230,7 @@ START_TEST(test_invalidate_system_only)
 }
 END_TEST
 
-START_TEST(test_invalidate_tools_only)
-{
+START_TEST(test_invalidate_tools_only) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_count = 40;
     ik_token_cache_get_system_tokens(c);
@@ -267,9 +244,7 @@ START_TEST(test_invalidate_tools_only)
 }
 END_TEST
 
-
-START_TEST(test_prune_oldest_turn)
-{
+START_TEST(test_prune_oldest_turn) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "t0");
     add_user(a, "t1");
@@ -286,8 +261,7 @@ START_TEST(test_prune_oldest_turn)
 }
 END_TEST
 
-START_TEST(test_prune_uncached_turn_invalidates_total)
-{
+START_TEST(test_prune_uncached_turn_invalidates_total) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "t0");
     add_user(a, "t1");
@@ -304,8 +278,7 @@ START_TEST(test_prune_uncached_turn_invalidates_total)
 }
 END_TEST
 
-START_TEST(test_prune_last_turn)
-{
+START_TEST(test_prune_last_turn) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "only");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -316,16 +289,14 @@ START_TEST(test_prune_last_turn)
 }
 END_TEST
 
-START_TEST(test_prune_empty_noop)
-{
+START_TEST(test_prune_empty_noop) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_prune_oldest_turn(c); /* no crash */
     ck_assert_int_eq(ik_token_cache_get_total(c), 0);
 }
 END_TEST
 
-START_TEST(test_multiple_turns_sequence)
-{
+START_TEST(test_multiple_turns_sequence) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
@@ -346,9 +317,7 @@ START_TEST(test_multiple_turns_sequence)
 }
 END_TEST
 
-
-START_TEST(test_clone_preserves_state)
-{
+START_TEST(test_clone_preserves_state) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     ik_token_cache_t *src = ik_token_cache_create(test_ctx, a);
     ik_token_cache_add_turn(src);
@@ -367,8 +336,7 @@ START_TEST(test_clone_preserves_state)
 }
 END_TEST
 
-START_TEST(test_clone_independent)
-{
+START_TEST(test_clone_independent) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     ik_token_cache_t *src = ik_token_cache_create(test_ctx, a);
     ik_token_cache_add_turn(src);
@@ -379,24 +347,19 @@ START_TEST(test_clone_independent)
 }
 END_TEST
 
-
-START_TEST(test_get_turn_oob)
-{
+START_TEST(test_get_turn_oob) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_get_turn_tokens(c, 0); /* PANIC */
 }
 END_TEST
 
-START_TEST(test_record_turn_oob)
-{
+START_TEST(test_record_turn_oob) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     ik_token_cache_record_turn(c, 0, 10); /* PANIC */
 }
 END_TEST
 
-
-START_TEST(test_reset_clears_all)
-{
+START_TEST(test_reset_clears_all) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
     add_user(a, "u0");
     add_user(a, "u1");
@@ -417,8 +380,7 @@ START_TEST(test_reset_clears_all)
 }
 END_TEST
 
-START_TEST(test_add_turn_invalidates_total)
-{
+START_TEST(test_add_turn_invalidates_total) {
     ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
     g_mock_count = 5;
     ck_assert_int_eq(ik_token_cache_get_total(c), 10); /* sys(5)+tools(5) */
@@ -427,7 +389,6 @@ START_TEST(test_add_turn_invalidates_total)
     ck_assert_int_eq(ik_token_cache_get_total(c), 60);
 }
 END_TEST
-
 
 static Suite *token_cache_suite(void)
 {

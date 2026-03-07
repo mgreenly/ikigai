@@ -55,9 +55,14 @@ char *ik_serialize_build_line_json(char *json, line_t *line, TALLOC_CTX *tmp);
 void ik_serialize_handle_escape_sequence(parse_state_t *state, const uint8_t *fb, size_t *i, size_t len);
 void ik_serialize_parse_framebuffer(parse_state_t *state, const uint8_t *fb, size_t len, int32_t rows);
 void ik_serialize_ensure_empty_rows(line_t *lines, int32_t rows);
-char *ik_serialize_build_json(TALLOC_CTX *ctx, line_t *lines, int32_t rows, int32_t cols,
-                               int32_t cursor_row, int32_t cursor_col, bool cursor_visible,
-                               TALLOC_CTX *tmp);
+char *ik_serialize_build_json(TALLOC_CTX *ctx,
+                              line_t *lines,
+                              int32_t rows,
+                              int32_t cols,
+                              int32_t cursor_row,
+                              int32_t cursor_col,
+                              bool cursor_visible,
+                              TALLOC_CTX *tmp);
 
 void ik_serialize_flush_span(parse_state_t *state)
 {
@@ -84,7 +89,10 @@ void ik_serialize_add_char(parse_state_t *state, char c)
 {
     if (state->current_span.text_len >= state->current_span.text_cap) {
         state->current_span.text_cap *= 2;
-        state->current_span.text = talloc_realloc(state->tmp, state->current_span.text, char, state->current_span.text_cap);
+        state->current_span.text = talloc_realloc(state->tmp,
+                                                  state->current_span.text,
+                                                  char,
+                                                  state->current_span.text_cap);
         if (state->current_span.text == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     }
     state->current_span.text[state->current_span.text_len++] = c;
@@ -304,13 +312,13 @@ void ik_serialize_ensure_empty_rows(line_t *lines, int32_t rows)
 }
 
 char *ik_serialize_build_json(TALLOC_CTX *ctx, line_t *lines, int32_t rows, int32_t cols,
-                               int32_t cursor_row, int32_t cursor_col, bool cursor_visible,
-                               TALLOC_CTX *tmp)
+                              int32_t cursor_row, int32_t cursor_col, bool cursor_visible,
+                              TALLOC_CTX *tmp)
 {
     char *json = talloc_asprintf(ctx,
-        "{\"type\":\"framebuffer\",\"rows\":%" PRId32 ",\"cols\":%" PRId32 ","
-        "\"cursor\":{\"row\":%" PRId32 ",\"col\":%" PRId32 ",\"visible\":%s},\"lines\":[",
-        rows, cols, cursor_row, cursor_col, cursor_visible ? "true" : "false");
+                                 "{\"type\":\"framebuffer\",\"rows\":%" PRId32 ",\"cols\":%" PRId32 ","
+                                 "\"cursor\":{\"row\":%" PRId32 ",\"col\":%" PRId32 ",\"visible\":%s},\"lines\":[",
+                                 rows, cols, cursor_row, cursor_col, cursor_visible ? "true" : "false");
     if (json == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     for (int32_t r = 0; r < rows; r++) {
@@ -328,13 +336,13 @@ char *ik_serialize_build_json(TALLOC_CTX *ctx, line_t *lines, int32_t rows, int3
 }
 
 res_t ik_serialize_framebuffer(TALLOC_CTX *ctx,
-                                const uint8_t *framebuffer,
-                                size_t framebuffer_len,
-                                int32_t rows,
-                                int32_t cols,
-                                int32_t cursor_row,
-                                int32_t cursor_col,
-                                bool cursor_visible)
+                               const uint8_t *framebuffer,
+                               size_t framebuffer_len,
+                               int32_t rows,
+                               int32_t cols,
+                               int32_t cursor_row,
+                               int32_t cursor_col,
+                               bool cursor_visible)
 {
     if (framebuffer == NULL) {
         return ERR(ctx, INVALID_ARG, "framebuffer is NULL");

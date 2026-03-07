@@ -51,7 +51,7 @@ static void *wait_worker(void *arg)
     if (args->target_count == 0) {
         args->result->is_fanin = false;
         ik_wait_core_next_message(args->ctx, args->db_ctx, args->session_id, args->my_uuid,
-                                   args->timeout_sec, args->interrupted, args->result);
+                                  args->timeout_sec, args->interrupted, args->result);
     } else {
         args->result->is_fanin = true;
         ik_wait_core_fanin(args->ctx, args->db_ctx, args->session_id, args->my_uuid,

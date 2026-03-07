@@ -18,7 +18,6 @@
 #include <string.h>
 #include <talloc.h>
 
-
 #include "shared/poison.h"
 res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 {

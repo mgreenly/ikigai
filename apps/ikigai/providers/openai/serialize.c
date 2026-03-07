@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-
 #include "shared/poison.h"
 static const char *map_role_to_string(ik_role_t role)
 {
@@ -27,7 +26,7 @@ static const char *map_role_to_string(ik_role_t role)
 }
 
 static void add_tool_result_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                   const ik_message_t *msg)
+                                    const ik_message_t *msg)
 {
     if (msg->content_count > 0 && msg->content_blocks[0].type == IK_CONTENT_TOOL_RESULT) {
         const ik_content_block_t *block = &msg->content_blocks[0];
@@ -83,7 +82,7 @@ static void add_tool_call_to_array(yyjson_mut_doc *doc, yyjson_mut_val *tool_cal
 }
 
 static void add_tool_calls_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                                  const ik_message_t *msg)
+                                   const ik_message_t *msg)
 {
     if (!yyjson_mut_obj_add_null(doc, msg_obj, "content")) {  // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");  // LCOV_EXCL_LINE
@@ -135,7 +134,7 @@ static void concatenate_text_blocks(const ik_message_t *msg, char *content)
 }
 
 static void add_text_content(yyjson_mut_doc *doc, yyjson_mut_val *msg_obj,
-                            const ik_message_t *msg)
+                             const ik_message_t *msg)
 {
     size_t total_len = calculate_text_content_length(msg);
 

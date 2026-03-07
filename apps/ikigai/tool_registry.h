@@ -56,8 +56,11 @@ yyjson_mut_val *ik_tool_registry_build_all(ik_tool_registry_t *registry, yyjson_
 res_t ik_tool_registry_add(ik_tool_registry_t *registry, const char *name, const char *path, yyjson_doc *schema_doc);
 
 // Add internal tool to registry
-res_t ik_tool_registry_add_internal(ik_tool_registry_t *registry, const char *name, yyjson_doc *schema_doc,
-                                    ik_tool_internal_fn handler, ik_tool_complete_fn on_complete);
+res_t ik_tool_registry_add_internal(ik_tool_registry_t *registry,
+                                    const char *name,
+                                    yyjson_doc *schema_doc,
+                                    ik_tool_internal_fn handler,
+                                    ik_tool_complete_fn on_complete);
 
 // Clear all entries (for /refresh)
 void ik_tool_registry_clear(ik_tool_registry_t *registry);

@@ -187,9 +187,9 @@ START_TEST(test_message_insert_with_agent_uuid) {
 
     // First insert an agent into agents table
     char *insert_agent = talloc_asprintf(test_ctx,
-        "INSERT INTO agents (uuid, status, created_at, session_id) "
-        "VALUES ('test-agent-uuid-12345', 'running', 1234567890, %lld)",
-        (long long)session_id);
+                                         "INSERT INTO agents (uuid, status, created_at, session_id) "
+                                         "VALUES ('test-agent-uuid-12345', 'running', 1234567890, %lld)",
+                                         (long long)session_id);
 
     PGresult *agent_result = PQexec(db->conn, insert_agent);
     ck_assert_int_eq(PQresultStatus(agent_result), PGRES_COMMAND_OK);

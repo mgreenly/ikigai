@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <strings.h>
 
-
 #include "shared/poison.h"
 // Internal struct for sorting
 typedef struct {

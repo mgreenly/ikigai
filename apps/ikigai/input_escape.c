@@ -3,7 +3,6 @@
 #include "apps/ikigai/input_xkb.h"
 #include <assert.h>
 
-
 #include "shared/poison.h"
 static void reset_escape_state(ik_input_parser_t *parser)
 {
@@ -150,7 +149,9 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
         }
     }
     modifiers &= ~128;  // Mask NumLock
-    if (keycode > 50000) { action_out->type = IK_INPUT_UNKNOWN; return true; }
+    if (keycode > 50000) {
+        action_out->type = IK_INPUT_UNKNOWN; return true;
+    }
     if (keycode == 13) {
         action_out->type = (modifiers == 1) ? IK_INPUT_NEWLINE : IK_INPUT_INSERT_NEWLINE;
         return true;
@@ -169,9 +170,15 @@ static bool parse_csi_u_sequence(ik_input_parser_t *parser,
         }
     }
     if (modifiers == 1) {
-        if (keycode == 9) { action_out->type = IK_INPUT_TAB; return true; }
-        if (keycode == 127) { action_out->type = IK_INPUT_BACKSPACE; return true; }
-        if (keycode == 27) { action_out->type = IK_INPUT_ESCAPE; return true; }
+        if (keycode == 9) {
+            action_out->type = IK_INPUT_TAB; return true;
+        }
+        if (keycode == 127) {
+            action_out->type = IK_INPUT_BACKSPACE; return true;
+        }
+        if (keycode == 27) {
+            action_out->type = IK_INPUT_ESCAPE; return true;
+        }
         if (keycode >= 32 && keycode <= 126) {
             action_out->type = IK_INPUT_CHAR;
             action_out->codepoint = (uint32_t)keycode;
@@ -253,7 +260,9 @@ void ik_input_parse_escape_sequence(ik_input_parser_t *parser, char byte,
     if (parse_mouse_sgr(parser, byte, action_out)) return;
     if (parse_tilde_sequences(parser, byte, action_out)) return;
     if (byte == 'u') {
-        if (parse_csi_u_sequence(parser, action_out)) { reset_escape_state(parser); return; }
+        if (parse_csi_u_sequence(parser, action_out)) {
+            reset_escape_state(parser); return;
+        }
         action_out->type = IK_INPUT_UNKNOWN;
         reset_escape_state(parser);
         return;
