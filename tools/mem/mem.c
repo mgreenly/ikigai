@@ -1,5 +1,6 @@
 #include "mem.h"
 
+#include "apps/ikigai/version.h"
 #include "shared/json_allocator.h"
 #include "shared/panic.h"
 #include "shared/wrapper_curl.h"
@@ -99,6 +100,7 @@ static int32_t do_request(void *ctx, const char *method, const char *url, const 
     }
 
     curl_easy_setopt_(curl, CURLOPT_URL, url);
+    curl_easy_setopt_(curl, CURLOPT_USERAGENT, "ikigai/" IK_VERSION);
     curl_easy_setopt_(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt_(curl, CURLOPT_WRITEDATA, &response);
     curl_easy_setopt_(curl, CURLOPT_TIMEOUT, 10L);
