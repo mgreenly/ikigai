@@ -63,9 +63,13 @@ static int32_t run_tool_env(const char *input, char **output, int32_t *exit_code
         close(pipe_out[1]);
 
         if (scheme != NULL) setenv("RALPH_REMEMBERS_SCHEME", scheme, 1);
+        else unsetenv("RALPH_REMEMBERS_SCHEME");
         if (host != NULL) setenv("RALPH_REMEMBERS_HOST", host, 1);
+        else unsetenv("RALPH_REMEMBERS_HOST");
         if (port != NULL) setenv("RALPH_REMEMBERS_PORT", port, 1);
+        else unsetenv("RALPH_REMEMBERS_PORT");
         if (project != NULL) setenv("RALPH_REMEMBERS_PROJECT", project, 1);
+        else unsetenv("RALPH_REMEMBERS_PROJECT");
 
         execl(tool_path, tool_path, (char *)NULL);
         exit(127);
