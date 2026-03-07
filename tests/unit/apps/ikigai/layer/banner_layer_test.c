@@ -2,7 +2,7 @@
 // Tests for banner layer functionality
 #include "apps/ikigai/layer_wrappers.h"
 #include "shared/error.h"
-#include "apps/ikigai/version.h"
+#include "shared/version.h"
 #include <check.h>
 #include <talloc.h>
 #include <string.h>

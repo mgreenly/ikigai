@@ -4,7 +4,7 @@
 #include "apps/ikigai/ansi.h"
 #include "apps/ikigai/layer.h"
 #include "shared/panic.h"
-#include "apps/ikigai/version.h"
+#include "shared/version.h"
 
 #include <assert.h>
 #include <inttypes.h>

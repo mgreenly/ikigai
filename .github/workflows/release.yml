@@ -18,10 +18,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Extract version from src/version.h
+    - name: Extract version from shared/version.h
       id: get_version
       run: |
-        VERSION=$(grep '#define IK_VERSION "' src/version.h | cut -d'"' -f2)
+        VERSION=$(grep '#define IK_VERSION "' shared/version.h | cut -d'"' -f2)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
         if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then

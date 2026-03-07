@@ -1,6 +1,6 @@
 #include "mem.h"
 
-#include "apps/ikigai/version.h"
+#include "shared/version.h"
 #include "shared/json_allocator.h"
 #include "shared/panic.h"
 #include "shared/wrapper_curl.h"
