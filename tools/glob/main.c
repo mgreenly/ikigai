@@ -19,7 +19,7 @@ int32_t main(int32_t argc, char **argv)
     if (argc == 2 && strcmp(argv[1], "--schema") == 0) {
         printf("{\n");
         printf("  \"name\": \"glob\",\n");
-        printf("  \"description\": \"Find files matching a glob pattern\",\n");
+        printf("  \"description\": \"Find files matching a glob pattern. Hidden files and directories (dotfiles) are included by default. Note: '**' does not recurse (POSIX glob limitation).\",\n");
         printf("  \"parameters\": {\n");
         printf("    \"type\": \"object\",\n");
         printf("    \"properties\": {\n");

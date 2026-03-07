@@ -439,6 +439,69 @@ START_TEST(test_many_matches) {
 }
 END_TEST
 
+START_TEST(test_dotfile_matched_by_wildcard) {
+    // Create a hidden file in /tmp
+    const char *testdir = "/tmp/glob_test_dotdir_XXXXXX";
+    char tmpdir[64];
+    strncpy(tmpdir, testdir, sizeof(tmpdir) - 1);
+    tmpdir[sizeof(tmpdir) - 1] = '\0';
+    char *dir = mkdtemp(tmpdir);
+    ck_assert_ptr_nonnull(dir);
+
+    // Create a dotfile inside the temp dir
+    char hidden_path[128];
+    snprintf(hidden_path, sizeof(hidden_path), "%s/.hidden", dir);
+    FILE *f = fopen(hidden_path, "w");
+    ck_assert_ptr_nonnull(f);
+    fclose(f);
+
+    // Create a regular file too
+    char regular_path[128];
+    snprintf(regular_path, sizeof(regular_path), "%s/regular", dir);
+    FILE *f2 = fopen(regular_path, "w");
+    ck_assert_ptr_nonnull(f2);
+    fclose(f2);
+
+    // Glob with * — should match both regular and dotfile
+    char input[256];
+    snprintf(input, sizeof(input), "{\"pattern\":\"*\",\"path\":\"%s\"}", dir);
+
+    char *output;
+    size_t output_len;
+    int32_t exit_code;
+
+    run_tool_with_args(NULL, input, &output, &output_len, &exit_code);
+
+    ck_assert_int_eq(exit_code, 0);
+    ck_assert_ptr_nonnull(strstr(output, ".hidden"));
+    ck_assert_ptr_nonnull(strstr(output, "regular"));
+
+    unlink(hidden_path);
+    unlink(regular_path);
+    rmdir(dir);
+}
+END_TEST
+
+START_TEST(test_gitignore_found_by_wildcard) {
+    // Glob * in repo root — .gitignore must be present
+    char *output;
+    size_t output_len;
+    int32_t exit_code;
+
+    // Get current working directory as path
+    char cwd[PATH_MAX];
+    ck_assert_ptr_nonnull(getcwd(cwd, sizeof(cwd)));
+
+    char input[PATH_MAX + 32];
+    snprintf(input, sizeof(input), "{\"pattern\":\"*\",\"path\":\"%s\"}", cwd);
+
+    run_tool_with_args(NULL, input, &output, &output_len, &exit_code);
+
+    ck_assert_int_eq(exit_code, 0);
+    ck_assert_ptr_nonnull(strstr(output, ".gitignore"));
+}
+END_TEST
+
 static Suite *glob_tool_suite(void)
 {
     Suite *s = suite_create("GlobTool");
@@ -461,6 +524,8 @@ static Suite *glob_tool_suite(void)
     tcase_add_test(tc_core, test_empty_path_parameter);
     tcase_add_test(tc_core, test_large_input);
     tcase_add_test(tc_core, test_many_matches);
+    tcase_add_test(tc_core, test_dotfile_matched_by_wildcard);
+    tcase_add_test(tc_core, test_gitignore_found_by_wildcard);
 
     suite_add_tcase(s, tc_core);
     return s;

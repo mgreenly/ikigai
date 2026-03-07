@@ -30,7 +30,7 @@ int32_t glob_execute(void *ctx, const char *pattern, const char *path)
 
     // Execute glob
     glob_t glob_result;
-    int32_t glob_ret = glob_(full_pattern, 0, NULL, &glob_result);
+    int32_t glob_ret = glob_(full_pattern, GLOB_PERIOD, NULL, &glob_result);
 
     if (glob_ret == GLOB_NOSPACE) {
         globfree_(&glob_result);
