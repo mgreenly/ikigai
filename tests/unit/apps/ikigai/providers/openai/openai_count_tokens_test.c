@@ -146,6 +146,8 @@ static void build_request(ik_request_t *req, ik_message_t *msg, ik_content_block
     msg->interrupted = false;
 
     req->system_prompt = NULL;
+    req->system_blocks = NULL;
+    req->system_block_count = 0;
     req->messages = msg;
     req->message_count = 1;
     req->model = talloc_strdup(test_ctx, "gpt-4o");

@@ -185,6 +185,46 @@ static void add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root,
     }
 }
 
+// Helper: add system field (blocks array or legacy string)
+static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
+                               yyjson_mut_val *root, const ik_request_t *req)
+{
+    if (req->system_block_count == 0) {
+        if (req->system_prompt != NULL) {
+            if (!yyjson_mut_obj_add_str(doc, root, "system", req->system_prompt)) // LCOV_EXCL_BR_LINE
+                return ERR(ctx, PARSE, "Failed to add system field"); // LCOV_EXCL_LINE
+        }
+        return OK(NULL);
+    }
+
+    yyjson_mut_val *sys_arr = yyjson_mut_arr(doc);
+    if (!sys_arr) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < req->system_block_count; i++) {
+        yyjson_mut_val *block = yyjson_mut_obj(doc);
+        if (!block) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, block, "type", "text")) // LCOV_EXCL_BR_LINE
+            return ERR(ctx, PARSE, "Failed to add block type"); // LCOV_EXCL_LINE
+        if (!yyjson_mut_obj_add_str(doc, block, "text", req->system_blocks[i].text)) // LCOV_EXCL_BR_LINE
+            return ERR(ctx, PARSE, "Failed to add block text"); // LCOV_EXCL_LINE
+        if (req->system_blocks[i].cacheable) {
+            yyjson_mut_val *cc = yyjson_mut_obj(doc);
+            if (!cc) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            if (!yyjson_mut_obj_add_str(doc, cc, "type", "ephemeral")) // LCOV_EXCL_BR_LINE
+                return ERR(ctx, PARSE, "Failed to add cache_control type"); // LCOV_EXCL_LINE
+            if (!yyjson_mut_obj_add_val(doc, block, "cache_control", cc)) // LCOV_EXCL_BR_LINE
+                return ERR(ctx, PARSE, "Failed to add cache_control"); // LCOV_EXCL_LINE
+        }
+        if (!yyjson_mut_arr_add_val(sys_arr, block)) // LCOV_EXCL_BR_LINE
+            return ERR(ctx, PARSE, "Failed to add block to system array"); // LCOV_EXCL_LINE
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, root, "system", sys_arr)) // LCOV_EXCL_BR_LINE
+        return ERR(ctx, PARSE, "Failed to add system array"); // LCOV_EXCL_LINE
+
+    return OK(NULL);
+}
+
 // Helper: add tools array to request
 static res_t add_tools(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
                       yyjson_mut_val *root, const ik_request_t *req)
@@ -255,11 +295,10 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
         }
     }
 
-    if (req->system_prompt != NULL) {
-        if (!yyjson_mut_obj_add_str(doc, root, "system", req->system_prompt)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add system field"); // LCOV_EXCL_LINE
-        }
+    res_t sys_res = add_system_field(ctx, doc, root, req);
+    if (is_err(&sys_res)) {
+        yyjson_mut_doc_free(doc);
+        return sys_res;
     }
 
     if (!ik_anthropic_serialize_messages(doc, root, req)) {

@@ -189,6 +189,39 @@ static bool serialize_chat_tool(yyjson_mut_doc *doc, yyjson_mut_val *tools_arr,
 }
 
 /**
+ * Add a single system/developer role message to the messages array
+ */
+static bool add_sys_message(yyjson_mut_doc *doc, yyjson_mut_val *arr,
+                             const char *role, const char *text)
+{
+    yyjson_mut_val *msg = yyjson_mut_obj(doc);
+    if (!msg) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, msg, "role", role)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    if (!yyjson_mut_obj_add_str(doc, msg, "content", text)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    if (!yyjson_mut_arr_add_val(arr, msg)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    return true;
+}
+
+/**
+ * Add streaming configuration to request
+ */
+static bool add_streaming_options(yyjson_mut_doc *doc, yyjson_mut_val *root)
+{
+    if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    yyjson_mut_val *stream_opts = yyjson_mut_obj(doc);
+    if (!stream_opts) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_bool(doc, stream_opts, "include_usage", true)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    if (!yyjson_mut_obj_add_val(doc, root, "stream_options", stream_opts)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    return true;
+}
+
+/**
  * Add tool_choice field to request
  */
 static bool add_tool_choice(yyjson_mut_doc *doc, yyjson_mut_val *root, int tool_choice_mode)
@@ -258,27 +291,18 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
-    // Add system message if system_prompt is present
-    if (req->system_prompt != NULL && strlen(req->system_prompt) > 0) {
-        yyjson_mut_val *sys_msg = yyjson_mut_obj(doc);
-        if (!sys_msg) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
+    // Add system messages: use system_blocks if present, fall back to system_prompt
+    if (req->system_block_count > 0) {
+        for (size_t i = 0; i < req->system_block_count; i++) {
+            if (!add_sys_message(doc, messages_arr, "system", req->system_blocks[i].text)) {
+                yyjson_mut_doc_free(doc);
+                return ERR(ctx, PARSE, "Failed to add system block message");
+            }
         }
-
-        if (!yyjson_mut_obj_add_str(doc, sys_msg, "role", "system")) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add system role"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_obj_add_str(doc, sys_msg, "content", req->system_prompt)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add system content"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_arr_add_val(messages_arr, sys_msg)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add system message"); // LCOV_EXCL_LINE
+    } else if (req->system_prompt != NULL && req->system_prompt[0] != '\0') {
+        if (!add_sys_message(doc, messages_arr, "system", req->system_prompt)) {
+            yyjson_mut_doc_free(doc);
+            return ERR(ctx, PARSE, "Failed to add system message");
         }
     }
 
@@ -307,26 +331,9 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
 
     // Add streaming configuration
     if (streaming) {
-        if (!yyjson_mut_obj_add_bool(doc, root, "stream", true)) { // LCOV_EXCL_BR_LINE
+        if (!add_streaming_options(doc, root)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add stream field"); // LCOV_EXCL_LINE
-        }
-
-        // Add stream_options for usage tracking
-        yyjson_mut_val *stream_opts = yyjson_mut_obj(doc);
-        if (!stream_opts) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_obj_add_bool(doc, stream_opts, "include_usage", true)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add include_usage"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_obj_add_val(doc, root, "stream_options", stream_opts)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            return ERR(ctx, PARSE, "Failed to add stream_options"); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add streaming options"); // LCOV_EXCL_LINE
         }
     }
 

@@ -30,6 +30,17 @@
 /**
  * Serialize system instruction
  */
+static bool add_system_part(yyjson_mut_doc *doc, yyjson_mut_val *parts_arr, const char *text)
+{
+    yyjson_mut_val *part_obj = yyjson_mut_obj(doc);
+    if (!part_obj) return false; // LCOV_EXCL_BR_LINE
+    if (!yyjson_mut_obj_add_str(doc, part_obj, "text", text)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    if (!yyjson_mut_arr_add_val(parts_arr, part_obj)) // LCOV_EXCL_BR_LINE
+        return false; // LCOV_EXCL_LINE
+    return true;
+}
+
 static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *root,
                                          const ik_request_t *req)
 {
@@ -37,8 +48,10 @@ static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *ro
     assert(root != NULL); // LCOV_EXCL_BR_LINE
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
 
-    if (req->system_prompt == NULL || req->system_prompt[0] == '\0') {
-        return true;
+    if (req->system_block_count == 0) {
+        if (req->system_prompt == NULL || req->system_prompt[0] == '\0') {
+            return true;
+        }
     }
 
     yyjson_mut_val *sys_obj = yyjson_mut_obj(doc);
@@ -47,15 +60,14 @@ static bool serialize_system_instruction(yyjson_mut_doc *doc, yyjson_mut_val *ro
     yyjson_mut_val *parts_arr = yyjson_mut_arr(doc);
     if (!parts_arr) return false; // LCOV_EXCL_BR_LINE
 
-    yyjson_mut_val *part_obj = yyjson_mut_obj(doc);
-    if (!part_obj) return false; // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, part_obj, "text", req->system_prompt)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_LINE
-    }
-
-    if (!yyjson_mut_arr_add_val(parts_arr, part_obj)) { // LCOV_EXCL_BR_LINE
-        return false; // LCOV_EXCL_LINE
+    if (req->system_block_count > 0) {
+        for (size_t i = 0; i < req->system_block_count; i++) {
+            if (!add_system_part(doc, parts_arr, req->system_blocks[i].text)) // LCOV_EXCL_BR_LINE
+                return false; // LCOV_EXCL_LINE
+        }
+    } else {
+        if (!add_system_part(doc, parts_arr, req->system_prompt)) // LCOV_EXCL_BR_LINE
+            return false; // LCOV_EXCL_LINE
     }
 
     if (!yyjson_mut_obj_add_val(doc, sys_obj, "parts", parts_arr)) { // LCOV_EXCL_BR_LINE

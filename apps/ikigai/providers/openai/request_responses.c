@@ -269,6 +269,15 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
         PANIC("Out of memory"); // LCOV_EXCL_LINE
     }
 
+    /* Remaining system blocks (1..n) become developer role messages */
+    for (size_t i = 1; i < req->system_block_count; i++) {
+        yyjson_mut_val *dev_msg = yyjson_mut_obj(doc);
+        if (!dev_msg) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, dev_msg, "role", "developer")) return false; // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, dev_msg, "content", req->system_blocks[i].text)) return false; // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_arr_add_val(input_arr, dev_msg)) return false; // LCOV_EXCL_BR_LINE
+    }
+
     for (size_t i = 0; i < req->message_count; i++) {
         if (!ik_openai_serialize_responses_message(doc, &req->messages[i], input_arr)) { // LCOV_EXCL_BR_LINE
             return false; // LCOV_EXCL_LINE
@@ -285,7 +294,11 @@ static bool add_array_input(yyjson_mut_doc *doc, yyjson_mut_val *root,
 static bool add_input_field(yyjson_mut_doc *doc, yyjson_mut_val *root,
                            const ik_request_t *req)
 {
-    bool use_string_input = (req->message_count == 1 &&
+    /* Force array input when remaining system blocks need developer messages prepended */
+    bool has_extra_blocks = (req->system_block_count > 1);
+
+    bool use_string_input = (!has_extra_blocks &&
+                             req->message_count == 1 &&
                              req->messages[0].role == IK_ROLE_USER &&
                              req->messages[0].content_count > 0);
 
@@ -381,7 +394,12 @@ res_t ik_openai_serialize_responses_request(TALLOC_CTX *ctx, const ik_request_t 
         return ERR(ctx, PARSE, "Failed to add model field"); // LCOV_EXCL_LINE
     }
 
-    if (req->system_prompt != NULL && strlen(req->system_prompt) > 0) {
+    if (req->system_block_count > 0) {
+        if (!yyjson_mut_obj_add_str(doc, root, "instructions", req->system_blocks[0].text)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            return ERR(ctx, PARSE, "Failed to add instructions field"); // LCOV_EXCL_LINE
+        }
+    } else if (req->system_prompt != NULL && strlen(req->system_prompt) > 0) {
         if (!yyjson_mut_obj_add_str(doc, root, "instructions", req->system_prompt)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             return ERR(ctx, PARSE, "Failed to add instructions field"); // LCOV_EXCL_LINE
