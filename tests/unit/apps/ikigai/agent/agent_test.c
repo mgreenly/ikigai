@@ -460,6 +460,26 @@ START_TEST(test_agent_repl_backpointer_null_initially) {
 }
 
 END_TEST
+START_TEST(test_agent_summary_fields_initialized) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_shared_ctx_t *shared = talloc_zero(ctx, ik_shared_ctx_t);
+    ik_agent_ctx_t *agent = NULL;
+    ik_agent_create(ctx, shared, NULL, &agent);
+    ck_assert_ptr_null(agent->recent_summary);
+    ck_assert_int_eq(agent->recent_summary_tokens, 0);
+    ck_assert_uint_eq(agent->recent_summary_generation, 0);
+    ck_assert_ptr_null(agent->session_summaries);
+    ck_assert_uint_eq(agent->session_summary_count, 0);
+    ck_assert(agent->summary_thread_running == false);
+    ck_assert(agent->summary_thread_complete == false);
+    ck_assert_uint_eq(agent->summary_thread_generation, 0);
+    ck_assert_ptr_null(agent->summary_thread_result);
+    ck_assert_int_eq(pthread_mutex_lock(&agent->summary_thread_mutex), 0);
+    pthread_mutex_unlock(&agent->summary_thread_mutex);
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *agent_suite(void)
 {
@@ -490,6 +510,7 @@ static Suite *agent_suite(void)
     tcase_add_test(tc_core, test_agent_tool_thread_mutex_initialized);
     tcase_add_test(tc_core, test_agent_create_sets_created_at);
     tcase_add_test(tc_core, test_agent_repl_backpointer_null_initially);
+    tcase_add_test(tc_core, test_agent_summary_fields_initialized);
     suite_add_tcase(s, tc_core);
 
     return s;

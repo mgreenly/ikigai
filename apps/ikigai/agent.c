@@ -75,6 +75,10 @@ static int agent_destructor(ik_agent_ctx_t *agent)
     pthread_mutex_lock_(&agent->tool_thread_mutex);
     pthread_mutex_unlock_(&agent->tool_thread_mutex);
     pthread_mutex_destroy_(&agent->tool_thread_mutex);
+
+    pthread_mutex_lock_(&agent->summary_thread_mutex);
+    pthread_mutex_unlock_(&agent->summary_thread_mutex);
+    pthread_mutex_destroy_(&agent->summary_thread_mutex);
     return 0;
 }
 
@@ -134,7 +138,15 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
         return ERR(ctx, IO, "Failed to initialize tool thread mutex");     // LCOV_EXCL_LINE
     }
 
-    // Set destructor to clean up mutex (only after successful init)
+    int summary_mutex_result = pthread_mutex_init_(&agent->summary_thread_mutex, NULL);
+    if (summary_mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
+        pthread_mutex_destroy_(&agent->tool_thread_mutex);     // LCOV_EXCL_LINE
+        talloc_free(agent);     // LCOV_EXCL_LINE
+        *out = NULL;     // LCOV_EXCL_LINE
+        return ERR(ctx, IO, "Failed to initialize summary thread mutex");     // LCOV_EXCL_LINE
+    }
+
+    // Set destructor to clean up mutexes (only after successful init)
     talloc_set_destructor(agent, agent_destructor);
 
     // Create token cache (parented to agent, lifetime tied to agent)
@@ -210,7 +222,15 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
         return ERR(ctx, IO, "Failed to initialize tool thread mutex");     // LCOV_EXCL_LINE
     }
 
-    // Set destructor to clean up mutex (only after successful init)
+    int summary_mutex_result = pthread_mutex_init_(&agent->summary_thread_mutex, NULL);
+    if (summary_mutex_result != 0) {     // LCOV_EXCL_BR_LINE - Pthread failure tested in pthread tests
+        pthread_mutex_destroy_(&agent->tool_thread_mutex);     // LCOV_EXCL_LINE
+        talloc_free(agent);     // LCOV_EXCL_LINE
+        *out = NULL;     // LCOV_EXCL_LINE
+        return ERR(ctx, IO, "Failed to initialize summary thread mutex");     // LCOV_EXCL_LINE
+    }
+
+    // Set destructor to clean up mutexes (only after successful init)
     talloc_set_destructor(agent, agent_destructor);
 
     // Create token cache (parented to agent, lifetime tied to agent)

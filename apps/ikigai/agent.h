@@ -35,6 +35,12 @@ typedef struct {
     char *timestamp;          // ISO 8601 timestamp
 } ik_mark_t;
 
+// Previous-session summary (one per completed clear epoch)
+typedef struct {
+    char *summary;        // Summary text
+    int32_t token_count;  // Token count for budget math
+} ik_session_summary_t;
+
 /**
  * Per-agent context for ikigai.
  *
@@ -167,6 +173,23 @@ typedef struct ik_agent_ctx {
 
     // Token cache (per-agent, NULL until initialized)
     ik_token_cache_t *token_cache;
+
+    // Context summary state (per-agent)
+    char *recent_summary;               // Current epoch's pruned-history summary (NULL = none)
+    int32_t recent_summary_tokens;      // Token count of recent_summary (0 = none)
+    uint32_t recent_summary_generation; // Incremented on every prune
+
+    // Previous-session summaries (loaded from DB at startup, updated on /clear)
+    ik_session_summary_t *session_summaries;  // Up to 5 entries, oldest-first
+    size_t session_summary_count;
+
+    // Background summary thread (mirrors tool_thread pattern)
+    pthread_t summary_thread;
+    pthread_mutex_t summary_thread_mutex;
+    bool summary_thread_running;
+    bool summary_thread_complete;
+    uint32_t summary_thread_generation;  // Generation at time of dispatch
+    char *summary_thread_result;         // Result text (read by main loop on completion)
 } ik_agent_ctx_t;
 
 // Create agent context
