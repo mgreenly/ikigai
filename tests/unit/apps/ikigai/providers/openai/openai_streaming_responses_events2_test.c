@@ -53,6 +53,47 @@ START_TEST(test_output_item_done_edge_cases) {
 END_TEST
 
 
+START_TEST(test_response_completed_with_usage) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    const char *json = "{"
+                       "\"response\":{"
+                       "\"usage\":{"
+                       "\"input_tokens\":100,"
+                       "\"output_tokens\":50,"
+                       "\"total_tokens\":150,"
+                       "\"output_tokens_details\":{"
+                       "\"reasoning_tokens\":20"
+                       "}"
+                       "}"
+                       "}"
+                       "}";
+
+    ik_openai_responses_stream_process_event(ctx, "response.completed", json);
+
+    ck_assert_int_eq(ctx->usage.input_tokens, 100);
+    ck_assert_int_eq(ctx->usage.output_tokens, 50);
+    ck_assert_int_eq(ctx->usage.total_tokens, 150);
+    ck_assert_int_eq(ctx->usage.thinking_tokens, 20);
+}
+
+END_TEST
+
+START_TEST(test_response_completed_without_usage) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    ik_openai_responses_stream_process_event(ctx, "response.completed", "{}");
+
+    ck_assert_int_eq(ctx->usage.input_tokens, 0);
+    ck_assert_int_eq(ctx->usage.output_tokens, 0);
+    ck_assert_int_eq(ctx->usage.total_tokens, 0);
+    ck_assert_int_eq(ctx->usage.thinking_tokens, 0);
+}
+
+END_TEST
+
 static Suite *openai_streaming_responses_events2_suite(void)
 {
     Suite *s = suite_create("OpenAI Streaming Responses Events Part 2");
@@ -62,6 +103,8 @@ static Suite *openai_streaming_responses_events2_suite(void)
     tcase_add_checked_fixture(tc, setup, teardown);
     tcase_add_test(tc, test_function_call_arguments_done_is_noop);
     tcase_add_test(tc, test_output_item_done_edge_cases);
+    tcase_add_test(tc, test_response_completed_with_usage);
+    tcase_add_test(tc, test_response_completed_without_usage);
     suite_add_tcase(s, tc);
 
     return s;

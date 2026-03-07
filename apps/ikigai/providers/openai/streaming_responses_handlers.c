@@ -228,6 +228,49 @@ void ik_openai_responses_handle_output_item_done(ik_openai_responses_stream_ctx_
 
 
 /**
+ * Handle response.completed event - extract usage statistics
+ */
+void ik_openai_responses_handle_response_completed(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root)
+{
+    assert(sctx != NULL); // LCOV_EXCL_BR_LINE
+    assert(root != NULL); // LCOV_EXCL_BR_LINE
+
+    yyjson_val *response_val = yyjson_obj_get(root, "response");
+    if (response_val == NULL || !yyjson_is_obj(response_val)) {
+        return;
+    }
+
+    yyjson_val *usage_val = yyjson_obj_get(response_val, "usage");
+    if (usage_val == NULL || !yyjson_is_obj(usage_val)) {
+        return;
+    }
+
+    yyjson_val *input_val = yyjson_obj_get(usage_val, "input_tokens");
+    if (input_val != NULL && yyjson_is_int(input_val)) {
+        sctx->usage.input_tokens = (int32_t)yyjson_get_int(input_val);
+    }
+
+    yyjson_val *output_val = yyjson_obj_get(usage_val, "output_tokens");
+    if (output_val != NULL && yyjson_is_int(output_val)) {
+        sctx->usage.output_tokens = (int32_t)yyjson_get_int(output_val);
+    }
+
+    yyjson_val *total_val = yyjson_obj_get(usage_val, "total_tokens");
+    if (total_val != NULL && yyjson_is_int(total_val)) {
+        sctx->usage.total_tokens = (int32_t)yyjson_get_int(total_val);
+    }
+
+    yyjson_val *details_val = yyjson_obj_get(usage_val, "output_tokens_details");
+    if (details_val != NULL && yyjson_is_obj(details_val)) {
+        yyjson_val *reasoning_val = yyjson_obj_get(details_val, "reasoning_tokens");
+        if (reasoning_val != NULL && yyjson_is_int(reasoning_val)) {
+            sctx->usage.thinking_tokens = (int32_t)yyjson_get_int(reasoning_val);
+        }
+    }
+}
+
+
+/**
  * Handle error event
  */
 void ik_openai_responses_handle_error_event(ik_openai_responses_stream_ctx_t *sctx, yyjson_val *root)

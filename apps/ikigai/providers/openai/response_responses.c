@@ -30,14 +30,14 @@ static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage)
         return; // All zeros
     }
 
-    // Extract prompt_tokens
-    yyjson_val *prompt_val = yyjson_obj_get(usage_val, "prompt_tokens");
+    // Extract input_tokens
+    yyjson_val *prompt_val = yyjson_obj_get(usage_val, "input_tokens");
     if (prompt_val != NULL && yyjson_is_int(prompt_val)) {
         out_usage->input_tokens = (int32_t)yyjson_get_int(prompt_val);
     }
 
-    // Extract completion_tokens
-    yyjson_val *completion_val = yyjson_obj_get(usage_val, "completion_tokens");
+    // Extract output_tokens
+    yyjson_val *completion_val = yyjson_obj_get(usage_val, "output_tokens");
     if (completion_val != NULL && yyjson_is_int(completion_val)) {
         out_usage->output_tokens = (int32_t)yyjson_get_int(completion_val);
     }
@@ -48,8 +48,8 @@ static void parse_usage(yyjson_val *usage_val, ik_usage_t *out_usage)
         out_usage->total_tokens = (int32_t)yyjson_get_int(total_val);
     }
 
-    // Extract reasoning_tokens from completion_tokens_details (optional)
-    yyjson_val *details_val = yyjson_obj_get(usage_val, "completion_tokens_details");
+    // Extract reasoning_tokens from output_tokens_details (optional)
+    yyjson_val *details_val = yyjson_obj_get(usage_val, "output_tokens_details");
     if (details_val != NULL) {
         yyjson_val *reasoning_val = yyjson_obj_get(details_val, "reasoning_tokens");
         if (reasoning_val != NULL && yyjson_is_int(reasoning_val)) {

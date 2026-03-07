@@ -31,9 +31,9 @@ static void teardown(void)
  * ================================================================ */
 
 START_TEST(test_usage_missing_tokens_fields) {
-    // Missing prompt_tokens
+    // Missing input_tokens
     const char *json1 = "{\"model\":\"gpt-4o\",\"status\":\"completed\",\"output\":[],"
-                        "\"usage\":{\"completion_tokens\":10,\"total_tokens\":15}}";
+                        "\"usage\":{\"output_tokens\":10,\"total_tokens\":15}}";
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_responses_response(test_ctx, json1, strlen(json1), &resp);
     ck_assert(!is_err(&result));
@@ -41,9 +41,9 @@ START_TEST(test_usage_missing_tokens_fields) {
     ck_assert_int_eq(resp->usage.output_tokens, 10);
     talloc_free(resp);
 
-    // Missing completion_tokens
+    // Missing output_tokens
     const char *json2 = "{\"model\":\"gpt-4o\",\"status\":\"completed\",\"output\":[],"
-                        "\"usage\":{\"prompt_tokens\":5,\"total_tokens\":15}}";
+                        "\"usage\":{\"input_tokens\":5,\"total_tokens\":15}}";
     result = ik_openai_parse_responses_response(test_ctx, json2, strlen(json2), &resp);
     ck_assert(!is_err(&result));
     ck_assert_int_eq(resp->usage.input_tokens, 5);
@@ -52,7 +52,7 @@ START_TEST(test_usage_missing_tokens_fields) {
 
     // Missing total_tokens
     const char *json3 = "{\"model\":\"gpt-4o\",\"status\":\"completed\",\"output\":[],"
-                        "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":10}}";
+                        "\"usage\":{\"input_tokens\":5,\"output_tokens\":10}}";
     result = ik_openai_parse_responses_response(test_ctx, json3, strlen(json3), &resp);
     ck_assert(!is_err(&result));
     ck_assert_int_eq(resp->usage.total_tokens, 0);
@@ -60,19 +60,19 @@ START_TEST(test_usage_missing_tokens_fields) {
 END_TEST
 
 START_TEST(test_usage_missing_reasoning_details) {
-    // Missing completion_tokens_details
+    // Missing output_tokens_details
     const char *json1 = "{\"model\":\"gpt-4o\",\"status\":\"completed\",\"output\":[],"
-                        "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":10,\"total_tokens\":15}}";
+                        "\"usage\":{\"input_tokens\":5,\"output_tokens\":10,\"total_tokens\":15}}";
     ik_response_t *resp = NULL;
     res_t result = ik_openai_parse_responses_response(test_ctx, json1, strlen(json1), &resp);
     ck_assert(!is_err(&result));
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
     talloc_free(resp);
 
-    // Empty completion_tokens_details
+    // Empty output_tokens_details
     const char *json2 = "{\"model\":\"gpt-4o\",\"status\":\"completed\",\"output\":[],"
-                        "\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":10,\"total_tokens\":15,"
-                        "\"completion_tokens_details\":{}}}";
+                        "\"usage\":{\"input_tokens\":5,\"output_tokens\":10,\"total_tokens\":15,"
+                        "\"output_tokens_details\":{}}}";
     result = ik_openai_parse_responses_response(test_ctx, json2, strlen(json2), &resp);
     ck_assert(!is_err(&result));
     ck_assert_int_eq(resp->usage.thinking_tokens, 0);
