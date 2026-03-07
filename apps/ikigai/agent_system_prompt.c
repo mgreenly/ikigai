@@ -202,8 +202,8 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
 
     // Blocks N+1..M: Previous-session summaries (oldest first, cacheable)
     for (size_t i = 0; i < agent->session_summary_count; i++) {
-        if (agent->session_summaries[i].summary != NULL) {
-            res = ik_request_add_system_block(req, agent->session_summaries[i].summary, true);
+        if (agent->session_summaries[i]->summary != NULL) {
+            res = ik_request_add_system_block(req, agent->session_summaries[i]->summary, true);
             if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
         }
     }

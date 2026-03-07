@@ -2,9 +2,12 @@
 
 #include "apps/ikigai/ansi.h"
 #include "apps/ikigai/event_render.h"
+#include "apps/ikigai/msg.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/summary.h"
+#include "apps/ikigai/summary_worker.h"
 #include "apps/ikigai/token_cache.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
@@ -12,6 +15,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -160,6 +164,71 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
     }
 }
 
+/* Build a malloc'd snapshot of ik_msg_t stubs from agent->messages[0..count-1].
+ * Stores results in agent->summary_msgs_stubs and agent->summary_msgs_ptrs.
+ * Returns the number of stubs actually populated (conversation kinds only).
+ * Previous snapshot buffers are freed before building a new one. */
+static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
+{
+    /* Free any previous snapshot (from an already-completed thread). */
+    free(agent->summary_msgs_stubs);
+    agent->summary_msgs_stubs = NULL;
+    free(agent->summary_msgs_ptrs);
+    agent->summary_msgs_ptrs = NULL;
+
+    if (count == 0) return 0;
+
+    ik_msg_t *stubs = malloc(count * sizeof(ik_msg_t));
+    ik_msg_t **ptrs = malloc(count * sizeof(ik_msg_t *));
+    if (stubs == NULL || ptrs == NULL) {
+        free(stubs);
+        free(ptrs);
+        return 0;
+    }
+
+    size_t stub_count = 0;
+    for (size_t i = 0; i < count; i++) {
+        ik_message_t *m = agent->messages[i];
+        if (m == NULL || m->content_count == 0) continue;
+
+        ik_content_block_t *block = &m->content_blocks[0];
+        const char *kind    = NULL;
+        const char *content = NULL;
+
+        switch (m->role) {
+            case IK_ROLE_USER:
+                kind = "user";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_ASSISTANT:
+                kind = "assistant";
+                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
+                break;
+            case IK_ROLE_TOOL:
+                kind = "tool_result";
+                if (block->type == IK_CONTENT_TOOL_RESULT)
+                    content = block->data.tool_result.content;
+                break;
+        }
+
+        if (kind == NULL || content == NULL) continue;
+
+        stubs[stub_count].id         = 0;
+        /* ik_msg_t.kind and .content are char*, not const char*. Safe to cast
+         * since the worker only reads these fields (never modifies them). */
+        stubs[stub_count].kind       = (char *)(uintptr_t)kind;
+        stubs[stub_count].content    = (char *)(uintptr_t)content;
+        stubs[stub_count].data_json  = NULL;
+        stubs[stub_count].interrupted = false;
+        ptrs[stub_count] = &stubs[stub_count];
+        stub_count++;
+    }
+
+    agent->summary_msgs_stubs = stubs;
+    agent->summary_msgs_ptrs  = ptrs;
+    return stub_count;
+}
+
 void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
 {
     if (agent->token_cache == NULL) return;
@@ -169,6 +238,20 @@ void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
         ik_token_cache_prune_oldest_turn(agent->token_cache);
     }
     refresh_scrollback_with_hr(agent);
+
+    /* Trigger background summary regeneration if anything was pruned. */
+    size_t ctx_idx = ik_token_cache_get_context_start_index(agent->token_cache);
+    if (ctx_idx > 0 && agent->model != NULL) {
+        ik_provider_t *provider = NULL;
+        res_t res = ik_agent_get_provider(agent, &provider);
+        if (is_ok(&res) && provider != NULL) {
+            size_t stub_count = build_summary_msg_snapshot(agent, ctx_idx);
+            ik_summary_worker_dispatch(agent, provider, agent->model,
+                                       (ik_msg_t * const *)agent->summary_msgs_ptrs,
+                                       stub_count,
+                                       IK_SUMMARY_RECENT_MAX_TOKENS);
+        }
+    }
 }
 
 void ik_agent_record_and_prune_token_cache(ik_agent_ctx_t *agent, bool was_success)

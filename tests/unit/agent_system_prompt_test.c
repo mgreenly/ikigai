@@ -197,12 +197,14 @@ START_TEST(test_session_summaries_and_recent_summary)
     ck_assert(is_ok(&res));
 
     /* Set up two previous-session summaries (oldest first) */
-    agent->session_summaries = talloc_array(agent, ik_session_summary_t, 2);
+    agent->session_summaries = talloc_array(agent, ik_session_summary_t *, 2);
     ck_assert_ptr_nonnull(agent->session_summaries);
-    agent->session_summaries[0].summary = talloc_strdup(agent, "Session one summary.");
-    agent->session_summaries[0].token_count = 10;
-    agent->session_summaries[1].summary = talloc_strdup(agent, "Session two summary.");
-    agent->session_summaries[1].token_count = 12;
+    agent->session_summaries[0] = talloc(agent, ik_session_summary_t);
+    agent->session_summaries[0]->summary = talloc_strdup(agent, "Session one summary.");
+    agent->session_summaries[0]->token_count = 10;
+    agent->session_summaries[1] = talloc(agent, ik_session_summary_t);
+    agent->session_summaries[1]->summary = talloc_strdup(agent, "Session two summary.");
+    agent->session_summaries[1]->token_count = 12;
     agent->session_summary_count = 2;
 
     /* Set recent summary */

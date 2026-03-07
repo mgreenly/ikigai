@@ -22,6 +22,9 @@ typedef struct ik_request ik_request_t;
 struct ik_openai_multi;
 struct ik_repl_ctx_t;
 
+// Session summary DB type (reuse DB struct for in-memory storage)
+#include "apps/ikigai/db/session_summary.h"
+
 // Agent state machine
 typedef enum {
     IK_AGENT_STATE_IDLE,              // Normal input mode
@@ -35,12 +38,6 @@ typedef struct {
     char *label;              // Optional user label (or NULL for unlabeled mark)
     char *timestamp;          // ISO 8601 timestamp
 } ik_mark_t;
-
-// Previous-session summary (one per completed clear epoch)
-typedef struct {
-    char *summary;        // Summary text
-    int32_t token_count;  // Token count for budget math
-} ik_session_summary_t;
 
 /**
  * Per-agent context for ikigai.
@@ -181,7 +178,7 @@ typedef struct ik_agent_ctx {
     uint32_t recent_summary_generation; // Incremented on every prune
 
     // Previous-session summaries (loaded from DB at startup, updated on /clear)
-    ik_session_summary_t *session_summaries;  // Up to 5 entries, oldest-first
+    ik_session_summary_t **session_summaries;  // Up to 5 entries, oldest-first
     size_t session_summary_count;
 
     // Background summary thread (mirrors tool_thread pattern)
@@ -191,6 +188,10 @@ typedef struct ik_agent_ctx {
     bool summary_thread_complete;
     uint32_t summary_thread_generation;  // Generation at time of dispatch
     char *summary_thread_result;         // Result text (read by main loop on completion)
+
+    // Owned message snapshot for background summary (freed in poll after thread joins)
+    void *summary_msgs_stubs;   /* malloc'd ik_msg_t[] stubs, freed after thread join */
+    void *summary_msgs_ptrs;    /* malloc'd ik_msg_t*[] pointer array, freed after thread join */
 } ik_agent_ctx_t;
 
 // Create agent context

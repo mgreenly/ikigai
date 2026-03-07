@@ -148,6 +148,12 @@ void ik_summary_worker_poll(ik_agent_ctx_t *agent)
         free(args);
     }
 
+    /* Free owned message snapshot buffers set by prune wiring (NULL-safe). */
+    free(agent->summary_msgs_stubs);
+    agent->summary_msgs_stubs = NULL;
+    free(agent->summary_msgs_ptrs);
+    agent->summary_msgs_ptrs = NULL;
+
     bool accept = (agent->summary_thread_generation ==
                    agent->recent_summary_generation);
 

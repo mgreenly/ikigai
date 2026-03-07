@@ -101,12 +101,14 @@ START_TEST(test_summary_with_summaries)
     ck_assert_ptr_nonnull(agent->recent_summary);
 
     /* Set two session summaries (oldest-first) */
-    agent->session_summaries = talloc_array(agent, ik_session_summary_t, 2);
+    agent->session_summaries = talloc_array(agent, ik_session_summary_t *, 2);
     ck_assert_ptr_nonnull(agent->session_summaries);
-    agent->session_summaries[0].summary = talloc_strdup(agent, "first session");
-    agent->session_summaries[0].token_count = 100;
-    agent->session_summaries[1].summary = talloc_strdup(agent, "second session");
-    agent->session_summaries[1].token_count = 200;
+    agent->session_summaries[0] = talloc(agent, ik_session_summary_t);
+    agent->session_summaries[0]->summary = talloc_strdup(agent, "first session");
+    agent->session_summaries[0]->token_count = 100;
+    agent->session_summaries[1] = talloc(agent, ik_session_summary_t);
+    agent->session_summaries[1]->summary = talloc_strdup(agent, "second session");
+    agent->session_summaries[1]->token_count = 200;
     agent->session_summary_count = 2;
 
     ik_scrollback_clear(agent->scrollback);
@@ -163,10 +165,11 @@ START_TEST(test_fork_child_no_summary_inheritance)
     parent->recent_summary_tokens = 42;
     parent->recent_summary_generation = 3;
 
-    parent->session_summaries = talloc_array(parent, ik_session_summary_t, 1);
+    parent->session_summaries = talloc_array(parent, ik_session_summary_t *, 1);
     ck_assert_ptr_nonnull(parent->session_summaries);
-    parent->session_summaries[0].summary = talloc_strdup(parent, "old session");
-    parent->session_summaries[0].token_count = 10;
+    parent->session_summaries[0] = talloc(parent, ik_session_summary_t);
+    parent->session_summaries[0]->summary = talloc_strdup(parent, "old session");
+    parent->session_summaries[0]->token_count = 10;
     parent->session_summary_count = 1;
 
     /* Create child and copy conversation (simulates fork) */

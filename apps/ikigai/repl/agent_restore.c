@@ -109,6 +109,19 @@ static void restore_agent_zero(
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
     ik_agent_prune_token_cache(agent);
+
+    // Load session summaries from DB
+    res = ik_db_session_summary_load(db_ctx, agent, uuid,
+                                     &agent->session_summaries,
+                                     &agent->session_summary_count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *sum_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *sum_root = yyjson_mut_doc_get_root(sum_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(sum_log, sum_root, "event", "agent0_session_summary_load_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(sum_log, sum_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, sum_log);     // LCOV_EXCL_LINE
+    }
+
     DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
               agent->uuid, replay_ctx->count, agent->mark_count);
 
@@ -194,6 +207,20 @@ static void restore_child_agent(
     ik_agent_restore_populate_scrollback(agent, replay_ctx, repl->shared->logger);
     ik_agent_restore_marks(agent, replay_ctx);
     ik_agent_prune_token_cache(agent);
+
+    // Load session summaries from DB
+    res = ik_db_session_summary_load(db_ctx, agent, agent->uuid,
+                                     &agent->session_summaries,
+                                     &agent->session_summary_count);
+    if (is_err(&res)) {     // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc *sum_log = ik_log_create();     // LCOV_EXCL_LINE
+        yyjson_mut_val *sum_root = yyjson_mut_doc_get_root(sum_log);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(sum_log, sum_root, "event", "agent_session_summary_load_failed");     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(sum_log, sum_root, "agent_uuid", agent->uuid);     // LCOV_EXCL_LINE
+        yyjson_mut_obj_add_str(sum_log, sum_root, "error", error_message(res.err));     // LCOV_EXCL_LINE
+        ik_logger_warn_json(repl->shared->logger, sum_log);     // LCOV_EXCL_LINE
+    }
+
     DEBUG_LOG("[agent_restore] uuid=%s messages=%zu marks=%zu",
               agent->uuid, replay_ctx->count, agent->mark_count);
 
