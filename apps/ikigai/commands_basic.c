@@ -14,6 +14,7 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/summary.h"
+#include "apps/ikigai/summary_worker.h"
 #include "shared/logger.h"
 #include "shared/panic.h"
 #include "apps/ikigai/repl.h"
@@ -32,32 +33,18 @@
 #include "shared/poison.h"
 
 /*
- * Generate a previous-session summary for the current epoch and store it in
- * the database.  Called at the top of /clear before state is wiped.
- *
- * Skips silently if:
- *   - The epoch has no conversation-kind messages
- *   - The agent has no provider or model configured
- *   - Message IDs are invalid (0) — can happen in tests without a real DB
- *
- * On LLM or DB failure, logs a warning and returns without storing anything.
+ * Dispatch a background session summary for the current epoch (non-blocking).
+ * Called at the top of /clear.  poll() stores result to DB on completion.
+ * Skips silently if epoch is empty, no provider/model, or IDs are invalid.
  */
 static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
                                            ik_db_ctx_t *db)
 {
-    /* Skip if no model configured — can't generate a summary without one */
+    /* Skip if no model or provider configured */
     if (agent->model == NULL) {
         return;
     }
-
-    /* Get provider early — skip if unavailable (no API keys, etc.) */
-    ik_provider_t *provider = NULL;
-    res_t prov_res = ik_agent_get_provider(agent, &provider);
-    if (is_err(&prov_res)) {
-        talloc_free(prov_res.err);
-        return;
-    }
-    if (provider == NULL) {
+    if (agent->provider == NULL || agent->provider[0] == '\0') {
         return;
     }
 
@@ -107,56 +94,53 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
         return;
     }
 
-    /* Generate summary via blocking LLM call */
-    char *summary_text = NULL;
-    res_t gen_res = ik_summary_generate(tmp, epoch_msgs, epoch_count,
-                                        provider, agent->model,
-                                        IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS,
-                                        &summary_text);
-    if (is_err(&gen_res)) {
-        yyjson_mut_doc *log_doc = ik_log_create();
-        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-        yyjson_mut_obj_add_str_(log_doc, log_root, "event", "session_summary_generate_failed");
-        yyjson_mut_obj_add_str_(log_doc, log_root, "command", "clear");
-        yyjson_mut_obj_add_str_(log_doc, log_root, "error", error_message(gen_res.err));
-        ik_log_warn_json(log_doc);
-        talloc_free(tmp);
-        return;
+    /* Build malloc stubs: strdup kind/content so tmp can be freed now. */
+    ik_msg_t *stubs = malloc(epoch_count * sizeof(ik_msg_t));
+    ik_msg_t **ptrs  = malloc(epoch_count * sizeof(ik_msg_t *));
+    if (stubs == NULL || ptrs == NULL) {          // LCOV_EXCL_BR_LINE
+        free(stubs);                              // LCOV_EXCL_LINE
+        free(ptrs);                               // LCOV_EXCL_LINE
+        talloc_free(tmp);                         // LCOV_EXCL_LINE
+        return;                                   // LCOV_EXCL_LINE
     }
 
-    /* Estimate token count (bytes / 4) */
-    int token_count = (int)(strlen(summary_text) / 4);
-
-    /* Store summary in the database (enforces 5-entry cap internally) */
-    res_t ins_res = ik_db_session_summary_insert(db, agent->uuid, summary_text,
-                                                 start_msg_id, end_msg_id,
-                                                 token_count);
-    if (is_err(&ins_res)) {
-        yyjson_mut_doc *log_doc = ik_log_create();
-        yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);
-        yyjson_mut_obj_add_str_(log_doc, log_root, "event", "session_summary_store_failed");
-        yyjson_mut_obj_add_str_(log_doc, log_root, "command", "clear");
-        yyjson_mut_obj_add_str_(log_doc, log_root, "error", error_message(ins_res.err));
-        ik_log_warn_json(log_doc);
-        talloc_free(ins_res.err);
-        talloc_free(tmp);
-        return;
+    size_t stub_count = 0;
+    bool oom = false;
+    for (size_t i = 0; i < epoch_count; i++) {
+        stubs[stub_count].id = epoch_msgs[i]->id;
+        stubs[stub_count].kind    = strdup(epoch_msgs[i]->kind    ? epoch_msgs[i]->kind    : "");
+        stubs[stub_count].content = strdup(epoch_msgs[i]->content ? epoch_msgs[i]->content : "");
+        stubs[stub_count].data_json   = NULL;
+        stubs[stub_count].interrupted = false;
+        if (stubs[stub_count].kind == NULL || stubs[stub_count].content == NULL) { // LCOV_EXCL_BR_LINE
+            oom = true;                   // LCOV_EXCL_LINE
+            free(stubs[stub_count].kind); // LCOV_EXCL_LINE
+            free(stubs[stub_count].content); // LCOV_EXCL_LINE
+            break;                        // LCOV_EXCL_LINE
+        }
+        ptrs[stub_count] = &stubs[stub_count];
+        stub_count++;
     }
 
-    /* Reload session_summaries from DB into agent (drop old array first) */
-    if (agent->session_summaries != NULL) {
-        talloc_free(agent->session_summaries);
-        agent->session_summaries = NULL;
-        agent->session_summary_count = 0;
-    }
-    res_t load_res = ik_db_session_summary_load(db, agent, agent->uuid,
-                                                &agent->session_summaries,
-                                                &agent->session_summary_count);
-    if (is_err(&load_res)) {
-        talloc_free(load_res.err);
+    if (oom) {                                                                      // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < stub_count; i++) {                                  // LCOV_EXCL_LINE
+            free(stubs[i].kind);                                                    // LCOV_EXCL_LINE
+            free(stubs[i].content);                                                 // LCOV_EXCL_LINE
+        }                                                                           // LCOV_EXCL_LINE
+        free(stubs);                                                                // LCOV_EXCL_LINE
+        free(ptrs);                                                                 // LCOV_EXCL_LINE
+        talloc_free(tmp);                                                           // LCOV_EXCL_LINE
+        return;                                                                     // LCOV_EXCL_LINE
     }
 
-    talloc_free(tmp);
+    talloc_free(tmp);  /* stubs own the strings; DB msgs no longer needed */
+
+    /* Ownership of stubs/ptrs transfers to dispatch; freed by poll() on join. */
+    ik_session_summary_dispatch(agent, agent->model,
+                                (ik_msg_t * const *)ptrs, stub_count,
+                                stubs, ptrs,
+                                IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS,
+                                start_msg_id, end_msg_id);
 }
 
 res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)

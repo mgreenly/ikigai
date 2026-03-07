@@ -238,18 +238,16 @@ void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
     }
     refresh_scrollback_with_hr(agent);
 
-    /* Trigger background summary regeneration if anything was pruned. */
+    /* Trigger background summary regeneration if anything was pruned.
+     * dispatch() creates its own independent provider instance — no shared
+     * access to agent->provider_instance from the worker thread. */
     size_t ctx_idx = ik_token_cache_get_context_start_index(agent->token_cache);
-    if (ctx_idx > 0 && agent->model != NULL) {
-        ik_provider_t *provider = NULL;
-        res_t res = ik_agent_get_provider(agent, &provider);
-        if (is_ok(&res) && provider != NULL) {
-            size_t stub_count = build_summary_msg_snapshot(agent, ctx_idx);
-            ik_summary_worker_dispatch(agent, provider, agent->model,
-                                       (ik_msg_t * const *)agent->summary_msgs_ptrs,
-                                       stub_count,
-                                       IK_SUMMARY_RECENT_MAX_TOKENS);
-        }
+    if (ctx_idx > 0 && agent->model != NULL && agent->provider != NULL) {
+        size_t stub_count = build_summary_msg_snapshot(agent, ctx_idx);
+        ik_summary_worker_dispatch(agent, agent->model,
+                                   (ik_msg_t * const *)agent->summary_msgs_ptrs,
+                                   stub_count,
+                                   IK_SUMMARY_RECENT_MAX_TOKENS);
     }
 }
 

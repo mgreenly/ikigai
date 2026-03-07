@@ -137,6 +137,56 @@ static void wait_for_complete(ik_agent_ctx_t *a)
     }
 }
 
+/*
+ * Helper: spawn the worker thread directly with a borrowed mock provider.
+ * Used by poll tests that need to inject a mock — bypasses dispatch() since
+ * dispatch() creates a real provider from agent->provider name.
+ * Sets owns_provider = false so poll() does not free the stack-allocated mock.
+ */
+static void dispatch_with_mock(ik_agent_ctx_t *agent,
+                               ik_provider_t *provider,
+                               ik_msg_t * const *msgs,
+                               size_t msg_count,
+                               int32_t max_tokens)
+{
+    agent->recent_summary_generation++;
+
+    ik_summary_worker_args_t *args = malloc(sizeof(ik_summary_worker_args_t));
+    if (args == NULL) return;
+
+    args->msgs = msgs;
+    args->msg_count = msg_count;
+    args->provider = provider;
+    args->owns_provider = false;
+    args->model = strdup("test-model");
+    args->max_tokens = max_tokens;
+    args->agent = agent;
+    args->generation = agent->recent_summary_generation;
+    args->is_session_summary = false;
+    args->start_msg_id = 0;
+    args->end_msg_id = 0;
+    args->session_msgs_stubs = NULL;
+    args->session_msgs_ptrs = NULL;
+
+    if (args->model == NULL) { free(args); return; }
+
+    pthread_mutex_lock(&agent->summary_thread_mutex);
+    agent->summary_thread_running = true;
+    agent->summary_thread_complete = false;
+    agent->summary_thread_result = NULL;
+    pthread_mutex_unlock(&agent->summary_thread_mutex);
+
+    int ret = pthread_create(&agent->summary_thread, NULL,
+                             ik_summary_worker_fn, args);
+    if (ret != 0) {
+        pthread_mutex_lock(&agent->summary_thread_mutex);
+        agent->summary_thread_running = false;
+        pthread_mutex_unlock(&agent->summary_thread_mutex);
+        free(args->model);
+        free(args);
+    }
+}
+
 /* ---- Worker: result written and complete flag set on success ---- */
 
 START_TEST(test_worker_fn_success) {
@@ -221,15 +271,14 @@ START_TEST(test_dispatch_skips_when_running) {
 
     uint32_t gen_before = agent->recent_summary_generation;
 
-    mock_ctx_t mock = { .response_text = "x", .should_fail = false };
-    ik_provider_t provider = { .name = "mock", .vt = &mock_vt, .ctx = &mock };
     char ku[] = "user";
     char cu[] = "hi";
     ik_msg_t msg = { .id = 1, .kind = ku, .content = cu,
                      .data_json = NULL, .interrupted = false };
     ik_msg_t *msgs[] = { &msg };
 
-    ik_summary_worker_dispatch(agent, &provider, "model",
+    /* dispatch() exits early because summary_thread_running is true */
+    ik_summary_worker_dispatch(agent, "model",
                                (ik_msg_t * const *)msgs, 1, 100);
 
     /* Generation must NOT have been incremented (dispatch skipped) */
@@ -259,8 +308,8 @@ START_TEST(test_poll_accepts_matching_generation) {
     mock_ctx_t mock = { .response_text = "Real summary.", .should_fail = false };
     ik_provider_t provider = { .name = "mock", .vt = &mock_vt, .ctx = &mock };
 
-    ik_summary_worker_dispatch(agent, &provider, "model",
-                               (ik_msg_t * const *)msgs, 1, 1000);
+    dispatch_with_mock(agent, &provider,
+                       (ik_msg_t * const *)msgs, 1, 1000);
 
     wait_for_complete(agent);
     ck_assert(agent->summary_thread_complete);
@@ -293,8 +342,8 @@ START_TEST(test_poll_stale_generation_discards) {
     ik_provider_t provider = { .name = "mock", .vt = &mock_vt, .ctx = &mock };
 
     /* Dispatch increments generation to 1 */
-    ik_summary_worker_dispatch(agent, &provider, "model",
-                               (ik_msg_t * const *)msgs, 1, 1000);
+    dispatch_with_mock(agent, &provider,
+                       (ik_msg_t * const *)msgs, 1, 1000);
 
     wait_for_complete(agent);
 
@@ -330,8 +379,8 @@ START_TEST(test_poll_failure_keeps_previous_summary) {
     mock_ctx_t mock = { .response_text = NULL, .should_fail = true };
     ik_provider_t provider = { .name = "mock", .vt = &mock_vt, .ctx = &mock };
 
-    ik_summary_worker_dispatch(agent, &provider, "model",
-                               (ik_msg_t * const *)msgs, 1, 1000);
+    dispatch_with_mock(agent, &provider,
+                       (ik_msg_t * const *)msgs, 1, 1000);
 
     wait_for_complete(agent);
 

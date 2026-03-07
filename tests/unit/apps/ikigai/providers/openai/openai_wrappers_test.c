@@ -82,6 +82,8 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
     msg->provider_metadata = NULL;
 
     req->system_prompt = NULL;
+    req->system_blocks = NULL;
+    req->system_block_count = 0;
     req->messages = msg;
     req->message_count = 1;
     req->model = talloc_strdup(test_ctx, model);

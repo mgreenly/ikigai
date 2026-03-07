@@ -152,7 +152,11 @@ START_TEST(test_prune_triggers_dispatch) {
     provider->ctx = &mock;
     agent->provider_instance = provider;
 
-    /* Set model (required by prune dispatch guard) */
+    /* Set provider and model (required by prune dispatch guard).
+     * If ANTHROPIC_API_KEY is set, a real provider is created and the
+     * thread makes a live API call; otherwise provider creation fails
+     * after the generation increment, no thread runs, and cleanup is safe. */
+    agent->provider = talloc_strdup(agent, "anthropic");
     agent->model = talloc_strdup(agent, "test-model");
 
     /* Set budget very low so pruning occurs */

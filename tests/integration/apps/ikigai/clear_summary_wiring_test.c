@@ -7,10 +7,12 @@
  */
 
 #include <check.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
 #include <talloc.h>
+#include <time.h>
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands_basic.h"
@@ -20,9 +22,12 @@
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/db/session.h"
 #include "apps/ikigai/db/session_summary.h"
+#include "apps/ikigai/msg.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/summary.h"
+#include "apps/ikigai/summary_worker.h"
 #include "shared/error.h"
 #include "shared/logger.h"
 #include "tests/helpers/test_utils_helper.h"
@@ -106,6 +111,87 @@ static const ik_provider_vtable_t clear_mock_vt = {
     .cleanup = NULL,
     .cancel = NULL,
 };
+
+/* Spin until summary_thread_complete is set (max 2 s). */
+static void clear_wait_for_complete(ik_agent_ctx_t *a)
+{
+    for (int i = 0; i < 2000; i++) {
+        pthread_mutex_lock(&a->summary_thread_mutex);
+        bool done = a->summary_thread_complete;
+        pthread_mutex_unlock(&a->summary_thread_mutex);
+        if (done) return;
+        struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
+        nanosleep(&ts, NULL);
+    }
+}
+
+/*
+ * Spawn the session summary worker thread directly with a borrowed mock
+ * provider, bypassing ik_session_summary_dispatch (which calls
+ * ik_provider_create).  Builds malloc stubs from the given msgs so the
+ * thread owns its inputs.  Sets is_session_summary=true so poll() stores
+ * the result to DB.
+ */
+static void session_dispatch_with_mock(ik_agent_ctx_t *agent,
+                                       ik_provider_t *provider,
+                                       ik_db_ctx_t *db_ctx,
+                                       int64_t start_msg_id,
+                                       int64_t end_msg_id)
+{
+    /* Build two-message stubs for the session summary (user + assistant). */
+    const char *kinds[]    = { "user",          "assistant" };
+    const char *contents[] = { "Hello, world",  "Hi there!" };
+    size_t n = 2;
+
+    ik_msg_t *stubs = malloc(n * sizeof(ik_msg_t));
+    ik_msg_t **ptrs  = malloc(n * sizeof(ik_msg_t *));
+    ck_assert_ptr_nonnull(stubs);
+    ck_assert_ptr_nonnull(ptrs);
+    for (size_t i = 0; i < n; i++) {
+        stubs[i].id          = (int64_t)(i + 1);
+        stubs[i].kind        = strdup(kinds[i]);
+        stubs[i].content     = strdup(contents[i]);
+        stubs[i].data_json   = NULL;
+        stubs[i].interrupted = false;
+        ptrs[i] = &stubs[i];
+    }
+
+    ik_summary_worker_args_t *args = malloc(sizeof(ik_summary_worker_args_t));
+    ck_assert_ptr_nonnull(args);
+
+    args->msgs              = (ik_msg_t * const *)ptrs;
+    args->msg_count         = n;
+    args->provider          = provider;
+    args->owns_provider     = false; /* borrowed mock; poll() must not free it */
+    args->model             = strdup("test-model");
+    args->max_tokens        = IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS;
+    args->agent             = agent;
+    args->generation        = 0;
+    args->is_session_summary = true;
+    args->start_msg_id      = start_msg_id;
+    args->end_msg_id        = end_msg_id;
+    args->session_msgs_stubs = stubs;
+    args->session_msgs_ptrs  = ptrs;
+
+    /* Wire up agent->shared->db_ctx so poll() can store to DB. */
+    agent->shared->db_ctx = db_ctx;
+
+    pthread_mutex_lock(&agent->summary_thread_mutex);
+    agent->summary_thread_running  = true;
+    agent->summary_thread_complete = false;
+    agent->summary_thread_result   = NULL;
+    pthread_mutex_unlock(&agent->summary_thread_mutex);
+
+    int ret = pthread_create(&agent->summary_thread, NULL,
+                             ik_summary_worker_fn, args);
+    if (ret != 0) {
+        pthread_mutex_lock(&agent->summary_thread_mutex);
+        agent->summary_thread_running = false;
+        pthread_mutex_unlock(&agent->summary_thread_mutex);
+        for (size_t i = 0; i < n; i++) { free(stubs[i].kind); free(stubs[i].content); }
+        free(stubs); free(ptrs); free(args->model); free(args);
+    }
+}
 
 /* ---- DB / test setup ---- */
 
@@ -238,10 +324,12 @@ static ik_repl_ctx_t *build_repl(void)
 /* ---- Tests ---- */
 
 /*
- * /clear with user + assistant messages in the current epoch must:
- * - call the provider to generate a summary
- * - insert a row into session_summaries
- * - populate agent->session_summaries[]
+ * Session summary dispatch+poll must insert a row into session_summaries and
+ * populate agent->session_summaries[].  Tests the async path directly using
+ * a mock provider so no real API call is needed.
+ *
+ * This mirrors what /clear triggers but isolates dispatch+poll from the
+ * /clear command so the test works regardless of provider credentials.
  */
 START_TEST(test_clear_generates_session_summary) {
     SKIP_IF_NO_DB();
@@ -249,30 +337,37 @@ START_TEST(test_clear_generates_session_summary) {
     ik_repl_ctx_t *repl = build_repl();
     ik_agent_ctx_t *agent = repl->current;
 
-    /* Inject mock provider */
-    clear_mock_ctx_t mock = { .response_text = "Summary of the conversation." };
-    ik_provider_t *prov = talloc_zero(agent, ik_provider_t);
-    prov->name = "mock";
-    prov->vt = &clear_mock_vt;
-    prov->ctx = &mock;
-    agent->provider_instance = prov;
-    agent->model = talloc_strdup(agent, "test-model");
-
-    /* Insert epoch: clear → user → assistant */
-    res_t res = ik_db_message_insert(db, session_id, agent->uuid, "clear", NULL, "{}");
-    ck_assert(is_ok(&res));
-
-    res = ik_db_message_insert(db, session_id, agent->uuid, "user", "Hello, world", "{}");
+    /* Insert two epoch messages so the session summary has something to store. */
+    res_t res = ik_db_message_insert(db, session_id, agent->uuid, "user", "Hello, world", "{}");
     ck_assert(is_ok(&res));
 
     res = ik_db_message_insert(db, session_id, agent->uuid, "assistant", "Hi there!", "{}");
     ck_assert(is_ok(&res));
 
-    /* Execute /clear */
-    res = ik_cmd_clear(test_ctx, repl, NULL);
-    ck_assert(is_ok(&res));
+    /* Fake start/end message IDs (the stubs in session_dispatch_with_mock use
+     * index-based IDs; use 1 and 2 as stable values for the DB insert). */
+    int64_t start_id = 1;
+    int64_t end_id   = 2;
 
-    /* A session_summaries row must have been inserted */
+    /* Use a mock provider that instantly returns the summary text. */
+    clear_mock_ctx_t mock = { .response_text = "Summary of the conversation." };
+    ik_provider_t prov = {
+        .name = "mock",
+        .vt   = &clear_mock_vt,
+        .ctx  = &mock,
+    };
+
+    /* Dispatch the background session summary thread with the mock. */
+    session_dispatch_with_mock(agent, &prov, db, start_id, end_id);
+
+    /* Wait for the thread to complete (mock is synchronous — finishes fast). */
+    clear_wait_for_complete(agent);
+    ck_assert(agent->summary_thread_complete);
+
+    /* Poll: stores result to DB and reloads agent->session_summaries. */
+    ik_summary_worker_poll(agent);
+
+    /* A session_summaries row must have been inserted. */
     ik_session_summary_t **summaries = NULL;
     size_t count = 0;
     res = ik_db_session_summary_load(db, test_ctx, agent->uuid, &summaries, &count);
@@ -280,7 +375,7 @@ START_TEST(test_clear_generates_session_summary) {
     ck_assert_int_eq((int)count, 1);
     ck_assert_str_eq(summaries[0]->summary, "Summary of the conversation.");
 
-    /* agent->session_summaries must also be populated */
+    /* agent->session_summaries must also be populated. */
     ck_assert_int_eq((int)agent->session_summary_count, 1);
     ck_assert_str_eq(agent->session_summaries[0]->summary, "Summary of the conversation.");
 }
