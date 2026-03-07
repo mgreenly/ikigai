@@ -93,7 +93,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl);
 res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_out);
 
 // Calculate total document height (all layers)
-size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl);
+// Derives spinner and input buffer visibility from agent state and dead flag
+// rather than reading stale struct fields, eliminating TOCTOU between frames.
+size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl, ik_agent_state_t state, bool dead);
 
 // Submit current input buffer line to scrollback (Phase 4 Task 4.6)
 res_t ik_repl_submit_line(ik_repl_ctx_t *repl);

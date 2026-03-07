@@ -14,14 +14,33 @@
 #include "shared/poison.h"
 // Calculate total document height.
 // Layer order: banner, scrollback, spinner, separator, input, completion, status.
-size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl)
+// Visibility is derived from state+dead (not stale struct flags). No default
+// case in switch so the compiler warns if a new state is added.
+size_t ik_repl_calculate_document_height(const ik_repl_ctx_t *repl, ik_agent_state_t state, bool dead)
 {
+    bool spinner_visible = false;
+    bool input_buf_visible = false;
+
+    if (!dead) {
+        switch (state) {
+            case IK_AGENT_STATE_IDLE:
+                spinner_visible = false;
+                input_buf_visible = true;
+                break;
+            case IK_AGENT_STATE_WAITING_FOR_LLM:
+            case IK_AGENT_STATE_EXECUTING_TOOL:
+                spinner_visible = true;
+                input_buf_visible = false;
+                break;
+        }
+    }
+
     size_t banner_rows = repl->current->banner_visible ? 6 : 0;
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
-    size_t spinner_rows = repl->current->spinner_state.visible ? 1 : 0;
+    size_t spinner_rows = spinner_visible ? 1 : 0;
     size_t separator_rows = 1;  // Always visible
     size_t input_buffer_rows = ik_input_buffer_get_physical_lines(repl->current->input_buffer);
-    size_t input_rows = repl->current->input_buffer_visible
+    size_t input_rows = input_buf_visible
                         ? ((input_buffer_rows == 0) ? 1 : input_buffer_rows)
                         : 0;
     size_t completion_rows = (repl->current->completion != NULL) ? repl->current->completion->count : 0;
@@ -44,54 +63,47 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
     // Ensure scrollback layout is up to date
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
 
+    // Derive visibility from state (not stale struct flags)
+    ik_agent_state_t state = atomic_load(&repl->current->state);
+    bool dead = repl->current->dead;
+    bool spinner_visible = !dead && (state == IK_AGENT_STATE_WAITING_FOR_LLM ||
+                                     state == IK_AGENT_STATE_EXECUTING_TOOL);
+
     // Get component sizes (must match layer cake order)
     size_t banner_rows = repl->current->banner_visible ? 6 : 0;
     size_t scrollback_rows = ik_scrollback_get_total_physical_lines(repl->current->scrollback);
     size_t scrollback_line_count = ik_scrollback_get_line_count(repl->current->scrollback);
-    size_t spinner_rows = repl->current->spinner_state.visible ? 1 : 0;
+    size_t spinner_rows = spinner_visible ? 1 : 0;
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     // Calculate document dimensions (must match layer cake order: banner, scrollback, spinner, separator, input, ...)
     size_t separator_row = banner_rows + scrollback_rows + spinner_rows;  // Separator is at this document row (0-indexed)
     size_t input_buffer_start_doc_row = separator_row + 1;  // Input buffer starts after separator
-    size_t document_height = ik_repl_calculate_document_height(repl);
+    size_t document_height = ik_repl_calculate_document_height(repl, state, dead);
 
-    // Calculate visible document range
-    // viewport_offset = how many rows scrolled UP from bottom
+    // viewport_offset = rows scrolled UP from bottom; 0 = show bottom of document
     size_t first_visible_row, last_visible_row;
 
     if (document_height <= (size_t)terminal_rows) {
-        // Entire document fits on screen
         first_visible_row = 0;
         last_visible_row = document_height > 0 ? document_height - 1 : 0;  /* LCOV_EXCL_BR_LINE */
     } else {
-        // Document overflows - calculate window
-        // Clamp viewport_offset to valid range
         size_t max_offset = document_height - (size_t)terminal_rows;
         size_t offset = repl->current->viewport_offset;
         if (offset > max_offset) {
             offset = max_offset;
         }
-
-        // When offset=0, show last terminal_rows of document
-        // When offset=N, scroll up by N rows
         last_visible_row = document_height - 1 - offset;
         first_visible_row = last_visible_row + 1 - (size_t)terminal_rows;
     }
 
-    // Determine which scrollback lines are visible
     // Scrollback occupies document rows [banner_rows, separator_row - 1]
     if (first_visible_row >= separator_row || scrollback_rows == 0) {
-        // Viewport starts at or after separator - no scrollback visible
         viewport_out->scrollback_start_line = 0;
         viewport_out->scrollback_lines_count = 0;
     } else {
-        // Some scrollback is visible
-        // Find logical line at first visible scrollback row
         size_t start_line = 0;
         size_t row_offset = 0;
-
-        // Convert document row to scrollback-relative row
         size_t scrollback_first_row = (first_visible_row > banner_rows)
                                         ? first_visible_row - banner_rows
                                         : 0;
@@ -121,26 +133,17 @@ res_t ik_repl_calculate_viewport(ik_repl_ctx_t *repl, ik_viewport_t *viewport_ou
         viewport_out->scrollback_lines_count = lines_count;
     }
 
-    // Calculate where input buffer appears in viewport
-    // Input buffer always occupies at least 1 row in document (even when empty)
+    // Input buffer position in viewport
     if (input_buffer_start_doc_row <= last_visible_row) {
-        // Input buffer is at least partially visible
         if (input_buffer_start_doc_row >= first_visible_row) {
-            // Input buffer starts within viewport
             viewport_out->input_buffer_start_row = input_buffer_start_doc_row - first_visible_row;
         } else {
-            // Input buffer starts before viewport
-            // This can occur when scrolling with a large input buffer
             viewport_out->input_buffer_start_row = 0;
         }
     } else {
-        // Input buffer is completely off-screen
         viewport_out->input_buffer_start_row = (size_t)terminal_rows;
     }
 
-    // Calculate separator visibility
-    // Separator is at document row separator_row
-    // It's visible if it's in the range [first_visible_row, last_visible_row]
     viewport_out->separator_visible = separator_row >= first_visible_row &&
                                       separator_row <= last_visible_row;
 
@@ -152,6 +155,9 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->shared->render != NULL);   /* LCOV_EXCL_BR_LINE */
     assert(repl->current->input_buffer != NULL);   /* LCOV_EXCL_BR_LINE */
+
+    // Read state once to pass consistently to both document height calls.
+    ik_agent_state_t current_state = atomic_load(&repl->current->state);
 
     // Calculate viewport to determine what to render
     ik_viewport_t viewport;
@@ -188,8 +194,6 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->current->separator_visible = separator_visible;
 
     // State-based visibility (Phase 1.6 Task 6.4)
-    ik_agent_state_t current_state = atomic_load(&repl->current->state);
-
     // Dead agents: suppress both input and spinner (scrollback only)
     if (repl->current->dead) {
         repl->current->spinner_state.visible = false;
@@ -210,8 +214,8 @@ res_t ik_repl_render_frame(ik_repl_ctx_t *repl)
     repl->current->input_text = (text != NULL) ? text : "";
     repl->current->input_text_len = text_len;
 
-    // Calculate document dimensions for layer cake viewport
-    size_t document_height = ik_repl_calculate_document_height(repl);
+    // Calculate document dimensions for layer cake viewport using pre-read state
+    size_t document_height = ik_repl_calculate_document_height(repl, current_state, repl->current->dead);
     int32_t terminal_rows = repl->shared->term->screen_rows;
 
     size_t first_visible_row;

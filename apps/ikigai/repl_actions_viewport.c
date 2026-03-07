@@ -26,7 +26,9 @@ size_t ik_repl_calculate_max_viewport_offset(ik_repl_ctx_t *repl)
     ik_scrollback_ensure_layout(repl->current->scrollback, repl->shared->term->screen_cols);
     ik_input_buffer_ensure_layout(repl->current->input_buffer, repl->shared->term->screen_cols);
 
-    size_t document_height = ik_repl_calculate_document_height(repl);
+    ik_agent_state_t state = atomic_load(&repl->current->state);
+    bool dead = repl->current->dead;
+    size_t document_height = ik_repl_calculate_document_height(repl, state, dead);
 
     if (document_height > (size_t)repl->shared->term->screen_rows) {
         return document_height - (size_t)repl->shared->term->screen_rows;
