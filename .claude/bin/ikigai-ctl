@@ -99,20 +99,42 @@ ensure
   sock&.close
 end
 
+def tokenize_keys(str)
+  tokens = []
+  i = 0
+  bytes = str.bytes
+  while i < bytes.size
+    if bytes[i] == 0x1b && i + 1 < bytes.size && bytes[i + 1] == 0x5b
+      # CSI sequence: ESC [ ... final_byte (0x40-0x7e)
+      j = i + 2
+      j += 1 while j < bytes.size && bytes[j] < 0x40
+      j += 1 if j < bytes.size
+      tokens << bytes[i...j].pack("C*")
+      i = j
+    else
+      tokens << bytes[i, 1].pack("C*")
+      i += 1
+    end
+  end
+  tokens
+end
+
 case message_type
 when "send_keys"
   interpreted = message_arg
+    .gsub(/\\x([0-9a-fA-F]{2})/) { [$1.to_i(16)].pack("C") }
     .gsub("\\r", "\r")
     .gsub("\\n", "\n")
     .gsub("\\t", "\t")
     .gsub("\\e", "\e")
     .gsub("\\\\", "\\")
 
+  tokens = tokenize_keys(interpreted)
   response = nil
-  interpreted.each_char.with_index do |char, i|
-    request = JSON.generate({ type: "send_keys", keys: char })
+  tokens.each_with_index do |token, i|
+    request = JSON.generate({ type: "send_keys", keys: token })
     response = send_request(socket_path, request)
-    sleep 0.05 if i < interpreted.size - 1
+    sleep 0.05 if i < tokens.size - 1
   end
   puts response
 
