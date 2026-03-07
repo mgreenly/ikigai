@@ -25,7 +25,7 @@ int32_t main(int32_t argc, char **argv)
         printf("    \"properties\": {\n");
         printf("      \"pattern\": {\n");
         printf("        \"type\": \"string\",\n");
-        printf("        \"description\": \"Glob pattern (e.g., '*.txt', 'src/**/*.c')\"\n");
+        printf("        \"description\": \"Glob pattern (e.g., '*.txt', 'src/*.c')\"\n");
         printf("      },\n");
         printf("      \"path\": {\n");
         printf("        \"type\": \"string\",\n");

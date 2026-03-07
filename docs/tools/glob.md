@@ -12,7 +12,7 @@ glob - find files matching a glob pattern
 
 ## DESCRIPTION
 
-`glob` searches for files whose paths match a glob pattern and returns a list of matching paths. It supports standard glob syntax including `*` (any characters except `/`), `**` (any path component including `/`), and `?` (any single character).
+`glob` searches for files whose paths match a glob pattern and returns a list of matching paths. It supports standard glob syntax including `*` (any characters except `/`), `?` (any single character), and `[...]` (character class). Dotfiles are included by default. Note: `**` is treated the same as `*` — it does not recurse into subdirectories (POSIX glob limitation).
 
 Use `glob` to discover files by name or extension — for example, finding all C source files, all test files, or all Markdown documents. To search file *contents*, use `grep`.
 
@@ -22,7 +22,7 @@ By default, the search is rooted at the ikigai working directory. Use `path` to 
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `pattern` | string | yes | Glob pattern to match against file paths. Examples: `*.c`, `src/**/*.h`, `tests/*_test.c`. |
+| `pattern` | string | yes | Glob pattern to match against file paths. Examples: `*.c`, `*.h`, `tests/*_test.c`. |
 | `path` | string | no | Directory to search in. Default: current working directory. |
 
 ## RETURNS
@@ -31,13 +31,14 @@ A list of matching file paths, sorted by modification time (most recently modifi
 
 ## EXAMPLES
 
-Find all C source files in the project:
+Find all C source files in a directory:
 
 ```json
 {
   "name": "glob",
   "arguments": {
-    "pattern": "**/*.c"
+    "pattern": "*.c",
+    "path": "apps/ikigai"
   }
 }
 ```
@@ -60,7 +61,7 @@ Find all Markdown documentation:
 {
   "name": "glob",
   "arguments": {
-    "pattern": "**/*.md",
+    "pattern": "*.md",
     "path": "docs"
   }
 }
@@ -80,7 +81,7 @@ Find all header files in a specific module:
 
 ## NOTES
 
-`**` matches across directory boundaries — `**/*.c` finds all `.c` files at any depth. `*.c` (without `**`) matches only in the root of the search path.
+`*` matches any characters except `/` — it does not cross directory boundaries. To search a subtree, use `path` to point at the subdirectory and match with `*.c` or similar. `**` is treated identically to `*` and does not recurse.
 
 Results are sorted by modification time, not alphabetically. The most recently changed files appear first.
 
