@@ -102,6 +102,8 @@ res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out)
     if (!req->model) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     req->system_prompt = NULL;
+    req->system_blocks = NULL;
+    req->system_block_count = 0;
     req->messages = NULL;
     req->message_count = 0;
     req->tools = NULL;
@@ -127,6 +129,26 @@ res_t ik_request_set_system(ik_request_t *req, const char *text)
 
     req->system_prompt = talloc_strdup(req, text);
     if (!req->system_prompt) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    return OK(NULL);
+}
+
+res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable)
+{
+    assert(req != NULL);  // LCOV_EXCL_BR_LINE
+    assert(text != NULL); // LCOV_EXCL_BR_LINE
+
+    size_t new_count = req->system_block_count + 1;
+    req->system_blocks = talloc_realloc(req, req->system_blocks, ik_system_block_t,
+                                        (unsigned int)new_count);
+    if (!req->system_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    ik_system_block_t *block = &req->system_blocks[req->system_block_count];
+    block->text = talloc_strdup(req->system_blocks, text);
+    if (!block->text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    block->cacheable = cacheable;
+    req->system_block_count = new_count;
 
     return OK(NULL);
 }

@@ -89,6 +89,19 @@ res_t ik_request_create(TALLOC_CTX *ctx, const char *model, ik_request_t **out);
 res_t ik_request_set_system(ik_request_t *req, const char *text);
 
 /**
+ * Add system block
+ *
+ * Appends a system prompt block to the request's system_blocks array.
+ * Multiple blocks are serialized in order by provider serializers.
+ *
+ * @param req       Request to modify
+ * @param text      System block text (will be copied)
+ * @param cacheable Enable prompt caching for this block
+ * @return          OK on success, ERR on allocation failure
+ */
+res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable);
+
+/**
  * Add simple text message
  *
  * Creates a message with a single text content block and appends

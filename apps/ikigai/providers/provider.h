@@ -174,10 +174,20 @@ struct ik_tool_def {
 };
 
 /**
+ * System prompt block with optional cache control
+ */
+struct ik_system_block {
+    char *text;       /* System prompt text */
+    bool cacheable;   /* Enable prompt caching for this block */
+};
+
+/**
  * Request to provider
  */
 struct ik_request {
-    char *system_prompt;               /* System prompt */
+    char *system_prompt;               /* System prompt (legacy, kept for backward compatibility) */
+    ik_system_block_t *system_blocks;  /* Array of system blocks */
+    size_t system_block_count;         /* Number of system blocks */
     ik_message_t *messages;            /* Array of messages */
     size_t message_count;              /* Number of messages */
     char *model;                       /* Model identifier */

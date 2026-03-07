@@ -21,5 +21,6 @@ typedef struct ik_provider_completion ik_provider_completion_t;
 typedef struct ik_usage ik_usage_t;
 typedef struct ik_thinking_config ik_thinking_config_t;
 typedef struct ik_provider_error ik_provider_error_t;
+typedef struct ik_system_block ik_system_block_t;
 
 #endif /* IK_PROVIDER_TYPES_H */
