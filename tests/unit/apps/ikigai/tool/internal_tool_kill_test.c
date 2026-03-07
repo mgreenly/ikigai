@@ -49,7 +49,7 @@ res_t ik_db_agent_get(ik_db_ctx_t *db, void *ctx, const char *uuid, ik_db_agent_
     // For caller agent (when testing parent kill protection)
     else if (strcmp(uuid, "parent-uuid") == 0) {
         row->parent_uuid = mock_killing_parent ? talloc_strdup(row, "target-uuid") : NULL;
-    }else  {
+    }else {
         row->parent_uuid = talloc_strdup(row, "default-parent");
     }
 
