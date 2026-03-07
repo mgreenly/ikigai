@@ -90,13 +90,6 @@ START_TEST(test_start_request_returns_immediately) {
 }
 END_TEST
 
-/* DISABLED: test_start_request_event_loop
- * This test is disabled because ik_google_start_request() is currently a stub
- * that doesn't make HTTP requests or call the completion callback.
- * See src/providers/google/response.c:280 - "Stub: Will be implemented in google-http.md task"
- * Re-enable this test when google non-streaming requests are fully implemented.
- */
-#if 0
 START_TEST(test_start_request_event_loop) {
     vcr_init("request_basic", "google");
 
@@ -145,9 +138,7 @@ START_TEST(test_start_request_event_loop) {
 
     vcr_finish();
 }
-
 END_TEST
-#endif
 
 /* ================================================================
  * Test Suite Setup
@@ -161,7 +152,7 @@ static Suite *google_vtable_suite(void)
     tcase_set_timeout(tc_request, IK_TEST_TIMEOUT);
     tcase_add_unchecked_fixture(tc_request, setup, teardown);
     tcase_add_test(tc_request, test_start_request_returns_immediately);
-    /* test_start_request_event_loop is disabled - see comment above */
+    tcase_add_test(tc_request, test_start_request_event_loop);
     suite_add_tcase(s, tc_request);
 
     return s;
