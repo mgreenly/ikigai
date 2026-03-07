@@ -204,6 +204,49 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
+res_t ik_cmd_summary(void *ctx, ik_repl_ctx_t *repl, const char *args)
+{
+    assert(ctx != NULL);      // LCOV_EXCL_BR_LINE
+    assert(repl != NULL);     // LCOV_EXCL_BR_LINE
+    (void)args;
+
+    ik_agent_ctx_t *agent = repl->current;
+
+    // Recent summary header
+    res_t res = ik_scrollback_append_line(agent->scrollback,
+        "\u2500\u2500 Recent Summary \u2500\u2500",
+        strlen("\u2500\u2500 Recent Summary \u2500\u2500"));
+    if (is_err(&res)) return res;  // LCOV_EXCL_LINE
+
+    // Recent summary text or "(none)"
+    const char *recent_text = (agent->recent_summary != NULL) ? agent->recent_summary : "(none)";
+    res = ik_scrollback_append_line(agent->scrollback, recent_text, strlen(recent_text));
+    if (is_err(&res)) return res;  // LCOV_EXCL_LINE
+
+    // Blank separator
+    res = ik_scrollback_append_line(agent->scrollback, "", 0);
+    if (is_err(&res)) return res;  // LCOV_EXCL_LINE
+
+    // Previous sessions header
+    size_t n = agent->session_summary_count;
+    char *sessions_header = talloc_asprintf(ctx, "\u2500\u2500 Previous Sessions (%zu/5) \u2500\u2500", n);
+    if (sessions_header == NULL) PANIC("OOM");  // LCOV_EXCL_BR_LINE
+    res = ik_scrollback_append_line(agent->scrollback, sessions_header, strlen(sessions_header));
+    talloc_free(sessions_header);
+    if (is_err(&res)) return res;  // LCOV_EXCL_LINE
+
+    // Each session summary
+    for (size_t i = 0; i < n; i++) {
+        char *line = talloc_asprintf(ctx, "[%zu] %s", i + 1, agent->session_summaries[i].summary);
+        if (line == NULL) PANIC("OOM");  // LCOV_EXCL_BR_LINE
+        res = ik_scrollback_append_line(agent->scrollback, line, strlen(line));
+        talloc_free(line);
+        if (is_err(&res)) return res;  // LCOV_EXCL_LINE
+    }
+
+    return OK(NULL);
+}
+
 res_t ik_cmd_exit(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);      // LCOV_EXCL_BR_LINE

@@ -165,6 +165,14 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         ik_token_cache_remove_turns_from(repl->current->token_cache, new_turn_count);
     }
 
+    // Reset recent summary: rewind may remove messages it covers
+    if (repl->current->recent_summary != NULL) {
+        talloc_free(repl->current->recent_summary);
+        repl->current->recent_summary = NULL;
+    }
+    repl->current->recent_summary_tokens = 0;
+    repl->current->recent_summary_generation++;
+
     // Remove marks after the target position (but keep the target mark itself)
     size_t target_index = 0;
     bool found = false;

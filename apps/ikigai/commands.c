@@ -70,6 +70,7 @@ static const ik_command_t commands[] = {
     {"pin", "Manage pinned documents (usage: /pin [path])", ik_cmd_pin},
     {"unpin", "Remove pinned document (usage: /unpin <path>)", ik_cmd_unpin},
     {"toolset", "Filter tools visible to LLM (usage: /toolset [tool1, tool2, ...])", ik_cmd_toolset},
+    {"summary", "Display current summary state (recent + previous sessions)", ik_cmd_summary},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

@@ -42,6 +42,19 @@ res_t ik_cmd_help(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t ik_cmd_debug(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
+ * Summary command handler - displays current summary state to scrollback
+ *
+ * Shows recent summary and previous-session summaries.
+ * Display only — not added to message history.
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Command arguments (unused)
+ * @return OK on success, ERR on failure
+ */
+res_t ik_cmd_summary(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
+/**
  * Exit command handler - exits the application
  *
  * @param ctx Parent context for talloc allocations

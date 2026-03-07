@@ -195,10 +195,10 @@ START_TEST(test_help_lists_system) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 16 should be /system (alphabetically: ..., rewind, send, system, tool, ...)
+    // Line 17 should be /system (alphabetically: ..., send, summary, system, tool, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 16, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 17, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
