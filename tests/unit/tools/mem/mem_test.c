@@ -34,7 +34,7 @@ static void teardown(void)
 // Helper: Run tool with input, optional env overrides, and capture output
 static int32_t run_tool_env(const char *input, char **output, int32_t *exit_code,
                             const char *scheme, const char *host, const char *port,
-                            const char *project)
+                            const char *project, const char *agent)
 {
     int32_t pipe_in[2];
     int32_t pipe_out[2];
@@ -70,6 +70,8 @@ static int32_t run_tool_env(const char *input, char **output, int32_t *exit_code
         else unsetenv("RALPH_REMEMBERS_PORT");
         if (project != NULL) setenv("RALPH_REMEMBERS_PROJECT", project, 1);
         else unsetenv("RALPH_REMEMBERS_PROJECT");
+        if (agent != NULL) setenv("IKIGAI_AGENT_ID", agent, 1);
+        else unsetenv("IKIGAI_AGENT_ID");
 
         execl(tool_path, tool_path, (char *)NULL);
         exit(127);
@@ -108,7 +110,8 @@ static int32_t run_tool_env(const char *input, char **output, int32_t *exit_code
 // Helper: Run tool with default env set to a non-listening port
 static int32_t run_tool(const char *input, char **output, int32_t *exit_code)
 {
-    return run_tool_env(input, output, exit_code, "http", "127.0.0.1", "19999", "test/project");
+    return run_tool_env(input, output, exit_code, "http", "127.0.0.1", "19999",
+                        "test/project", "test-agent-id");
 }
 
 // Test: --schema outputs valid JSON
@@ -149,6 +152,11 @@ START_TEST(test_schema_output) {
     ck_assert_msg(strstr(buffer, "\"get\"") != NULL, "Schema missing get enum value");
     ck_assert_msg(strstr(buffer, "\"list\"") != NULL, "Schema missing list enum value");
     ck_assert_msg(strstr(buffer, "\"delete\"") != NULL, "Schema missing delete enum value");
+    ck_assert_msg(strstr(buffer, "\"path\"") != NULL, "Schema missing path property");
+    ck_assert_msg(strstr(buffer, "\"scope\"") != NULL, "Schema missing scope property");
+    ck_assert_msg(strstr(buffer, "\"global\"") != NULL, "Schema missing global scope value");
+    ck_assert_msg(strstr(buffer, "\"id\"") == NULL, "Schema should not contain id property");
+    ck_assert_msg(strstr(buffer, "\"title\"") == NULL, "Schema should not contain title property");
 }
 END_TEST
 
@@ -158,7 +166,7 @@ START_TEST(test_missing_env_vars) {
     int32_t exit_code = 0;
 
     int32_t result = run_tool_env("{\"action\":\"list\"}", &output, &exit_code,
-                                  NULL, NULL, NULL, NULL);
+                                  NULL, NULL, NULL, NULL, NULL);
 
     ck_assert_int_eq(result, 0);
     ck_assert_int_eq(exit_code, 0);
@@ -183,8 +191,8 @@ START_TEST(test_create_missing_body) {
 }
 END_TEST
 
-// Test: Missing id for get → JSON error
-START_TEST(test_get_missing_id) {
+// Test: Missing path for get → JSON error
+START_TEST(test_get_missing_path) {
     char *output = NULL;
     int32_t exit_code = 0;
 
@@ -198,8 +206,8 @@ START_TEST(test_get_missing_id) {
 }
 END_TEST
 
-// Test: Missing id for delete → JSON error
-START_TEST(test_delete_missing_id) {
+// Test: Missing path for delete → JSON error
+START_TEST(test_delete_missing_path) {
     char *output = NULL;
     int32_t exit_code = 0;
 
@@ -264,7 +272,8 @@ START_TEST(test_get_connection_refused) {
     char *output = NULL;
     int32_t exit_code = 0;
 
-    int32_t result = run_tool("{\"action\":\"get\",\"id\":\"some-uuid\"}", &output, &exit_code);
+    int32_t result = run_tool("{\"action\":\"get\",\"path\":\"notes/session.md\"}", &output,
+                              &exit_code);
 
     ck_assert_int_eq(result, 0);
     ck_assert_int_eq(exit_code, 0);
@@ -279,7 +288,41 @@ START_TEST(test_delete_connection_refused) {
     char *output = NULL;
     int32_t exit_code = 0;
 
-    int32_t result = run_tool("{\"action\":\"delete\",\"id\":\"some-uuid\"}", &output, &exit_code);
+    int32_t result = run_tool("{\"action\":\"delete\",\"path\":\"notes/session.md\"}", &output,
+                              &exit_code);
+
+    ck_assert_int_eq(result, 0);
+    ck_assert_int_eq(exit_code, 0);
+    ck_assert_ptr_nonnull(output);
+    ck_assert_msg(strstr(output, "\"error\"") != NULL, "Missing error field");
+    ck_assert_msg(strstr(output, "ERR_IO") != NULL, "Wrong error code");
+}
+END_TEST
+
+// Test: global scope uses zero UUIDs
+START_TEST(test_global_scope_connection_refused) {
+    char *output = NULL;
+    int32_t exit_code = 0;
+
+    // global scope should still attempt the request (and fail with ERR_IO since server isn't up)
+    int32_t result = run_tool("{\"action\":\"list\",\"scope\":\"global\"}", &output, &exit_code);
+
+    ck_assert_int_eq(result, 0);
+    ck_assert_int_eq(exit_code, 0);
+    ck_assert_ptr_nonnull(output);
+    ck_assert_msg(strstr(output, "\"error\"") != NULL, "Missing error field");
+    ck_assert_msg(strstr(output, "ERR_IO") != NULL, "Wrong error code");
+}
+END_TEST
+
+// Test: default scope with path for create connection refused
+START_TEST(test_create_with_path_connection_refused) {
+    char *output = NULL;
+    int32_t exit_code = 0;
+
+    int32_t result = run_tool(
+        "{\"action\":\"create\",\"path\":\"my/doc.md\",\"body\":\"content\"}",
+        &output, &exit_code);
 
     ck_assert_int_eq(result, 0);
     ck_assert_int_eq(exit_code, 0);
@@ -300,13 +343,15 @@ static Suite *mem_suite(void)
     tcase_add_test(tc_core, test_schema_output);
     tcase_add_test(tc_core, test_missing_env_vars);
     tcase_add_test(tc_core, test_create_missing_body);
-    tcase_add_test(tc_core, test_get_missing_id);
-    tcase_add_test(tc_core, test_delete_missing_id);
+    tcase_add_test(tc_core, test_get_missing_path);
+    tcase_add_test(tc_core, test_delete_missing_path);
     tcase_add_test(tc_core, test_connection_refused);
     tcase_add_test(tc_core, test_list_connection_refused);
     tcase_add_test(tc_core, test_create_connection_refused);
     tcase_add_test(tc_core, test_get_connection_refused);
     tcase_add_test(tc_core, test_delete_connection_refused);
+    tcase_add_test(tc_core, test_global_scope_connection_refused);
+    tcase_add_test(tc_core, test_create_with_path_connection_refused);
 
     suite_add_tcase(s, tc_core);
 

@@ -11,11 +11,16 @@ typedef enum {
     MEM_ACTION_DELETE,
 } mem_action_t;
 
+typedef enum {
+    MEM_SCOPE_DEFAULT,
+    MEM_SCOPE_GLOBAL,
+} mem_scope_t;
+
 typedef struct {
     mem_action_t action;
-    const char *id;    // For get and delete
+    const char *path;  // Document identifier (required for create, get, delete)
     const char *body;  // For create (required)
-    const char *title; // For create (optional)
+    mem_scope_t scope; // default or global
 } mem_params_t;
 
 // Execute mem operation and output result to stdout

@@ -17,10 +17,12 @@ static const char *SCHEMA_JSON =
     "\"parameters\":{\"type\":\"object\",\"properties\":{"
     "\"action\":{\"type\":\"string\",\"enum\":[\"create\",\"get\",\"list\",\"delete\"],"
     "\"description\":\"The operation to perform\"},"
-    "\"id\":{\"type\":\"string\",\"description\":\"Document ID. Required for get and delete.\"},"
+    "\"path\":{\"type\":\"string\","
+    "\"description\":\"Document path identifier. Required for create, get, and delete.\"},"
     "\"body\":{\"type\":\"string\",\"description\":\"Document content. Required for create.\"},"
-    "\"title\":{\"type\":\"string\","
-    "\"description\":\"Short label for the document. Optional, used with create.\"}"
+    "\"scope\":{\"type\":\"string\",\"enum\":[\"global\",\"default\"],"
+    "\"description\":\"Document scope. Use global for cross-agent documents, default for "
+    "agent/project-scoped documents. Defaults to default.\"}"
     "},\"required\":[\"action\"]}}\n";
 
 /* LCOV_EXCL_START */
@@ -107,9 +109,9 @@ int32_t main(int32_t argc, char **argv)
         return 1;
     }
 
-    yyjson_val *id_val = yyjson_obj_get(root, "id");
-    if (id_val != NULL && yyjson_is_str(id_val)) {
-        params.id = yyjson_get_str(id_val);
+    yyjson_val *path_val = yyjson_obj_get(root, "path");
+    if (path_val != NULL && yyjson_is_str(path_val)) {
+        params.path = yyjson_get_str(path_val);
     }
 
     yyjson_val *body_val = yyjson_obj_get(root, "body");
@@ -117,9 +119,14 @@ int32_t main(int32_t argc, char **argv)
         params.body = yyjson_get_str(body_val);
     }
 
-    yyjson_val *title_val = yyjson_obj_get(root, "title");
-    if (title_val != NULL && yyjson_is_str(title_val)) {
-        params.title = yyjson_get_str(title_val);
+    yyjson_val *scope_val = yyjson_obj_get(root, "scope");
+    if (scope_val != NULL && yyjson_is_str(scope_val)) {
+        const char *scope_str = yyjson_get_str(scope_val);
+        if (strcmp(scope_str, "global") == 0) {
+            params.scope = MEM_SCOPE_GLOBAL;
+        } else {
+            params.scope = MEM_SCOPE_DEFAULT;
+        }
     }
 
     mem_execute(ctx, &params);
