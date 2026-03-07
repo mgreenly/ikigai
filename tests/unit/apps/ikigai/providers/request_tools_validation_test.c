@@ -92,8 +92,8 @@ START_TEST(test_valid_model_success) {
 END_TEST
 
 /**
- * Test with system message (now uses pinned documents instead of cfg)
- * With the fallback chain, default system message is always set
+ * Test with no pinned docs: agent with no pinned docs produces single block
+ * (base prompt only). Block 0 is not cacheable.
  */
 START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -103,7 +103,7 @@ START_TEST(test_with_system_message) {
     agent->messages = NULL;
     agent->message_count = 0;
 
-    // Pinned documents system - no pinned paths means fallback to default
+    // No pinned paths: base prompt only
     agent->pinned_paths = NULL;
     agent->pinned_count = 0;
     agent->doc_cache = NULL;
@@ -112,14 +112,16 @@ START_TEST(test_with_system_message) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    // With fallback chain, default system message is always set
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
+    // Single block: base prompt is block 0, not cacheable
+    ck_assert_uint_eq(req->system_block_count, 1);
+    ck_assert_ptr_nonnull(req->system_blocks[0].text);
+    ck_assert(strstr(req->system_blocks[0].text, "Ikigai") != NULL);
+    ck_assert(req->system_blocks[0].cacheable == false);
 }
 END_TEST
 
 /**
- * Test with NULL shared context - still gets default system message
+ * Test with NULL shared context - still gets default system message as block 0
  */
 START_TEST(test_null_shared_context) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -133,14 +135,16 @@ START_TEST(test_null_shared_context) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    // With fallback chain, default system message is always set
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
+    // Single block: base prompt is block 0, not cacheable
+    ck_assert_uint_eq(req->system_block_count, 1);
+    ck_assert_ptr_nonnull(req->system_blocks[0].text);
+    ck_assert(strstr(req->system_blocks[0].text, "Ikigai") != NULL);
+    ck_assert(req->system_blocks[0].cacheable == false);
 }
 END_TEST
 
 /**
- * Test with NULL config - still gets default system message
+ * Test with NULL config - still gets default system message as block 0
  */
 START_TEST(test_null_config) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -155,14 +159,16 @@ START_TEST(test_null_config) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    // With fallback chain, default system message is always set
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
+    // Single block: base prompt is block 0, not cacheable
+    ck_assert_uint_eq(req->system_block_count, 1);
+    ck_assert_ptr_nonnull(req->system_blocks[0].text);
+    ck_assert(strstr(req->system_blocks[0].text, "Ikigai") != NULL);
+    ck_assert(req->system_blocks[0].cacheable == false);
 }
 END_TEST
 
 /**
- * Test without config system message - falls back to default
+ * Test without config system message - falls back to default as block 0
  */
 START_TEST(test_without_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
@@ -178,9 +184,11 @@ START_TEST(test_without_system_message) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    // With fallback chain, default system message is always set
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert_ptr_nonnull(strstr(req->system_prompt, "Ikigai"));
+    // Single block: base prompt is block 0, not cacheable
+    ck_assert_uint_eq(req->system_block_count, 1);
+    ck_assert_ptr_nonnull(req->system_blocks[0].text);
+    ck_assert(strstr(req->system_blocks[0].text, "Ikigai") != NULL);
+    ck_assert(req->system_blocks[0].cacheable == false);
 }
 END_TEST
 
@@ -233,7 +241,8 @@ START_TEST(test_skip_null_message) {
 END_TEST
 
 /**
- * Test with pinned documents - system prompt built from doc_cache
+ * Test with pinned documents: base prompt is block 0, pinned doc is block 1
+ * with cacheable=true.
  */
 START_TEST(test_with_pinned_documents) {
     // Create temp file with content
@@ -272,8 +281,14 @@ START_TEST(test_with_pinned_documents) {
     res_t result = ik_request_build_from_conversation(test_ctx, agent, NULL, &req);
 
     ck_assert(!is_err(&result));
-    ck_assert_ptr_nonnull(req->system_prompt);
-    ck_assert(strstr(req->system_prompt, doc_content) != NULL);
+    // Block 0: base system prompt (not cacheable)
+    // Block 1: pinned doc (cacheable)
+    ck_assert_uint_eq(req->system_block_count, 2);
+    ck_assert_ptr_nonnull(req->system_blocks[0].text);
+    ck_assert(req->system_blocks[0].cacheable == false);
+    ck_assert_ptr_nonnull(req->system_blocks[1].text);
+    ck_assert(strstr(req->system_blocks[1].text, doc_content) != NULL);
+    ck_assert(req->system_blocks[1].cacheable == true);
 
     unlink(tmpfile);
 }

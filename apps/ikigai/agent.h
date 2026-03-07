@@ -18,6 +18,7 @@ typedef struct ik_shared_ctx ik_shared_ctx_t;
 typedef struct ik_input_buffer_t ik_input_buffer_t;
 typedef struct ik_message ik_message_t;
 typedef struct ik_token_cache ik_token_cache_t;
+typedef struct ik_request ik_request_t;
 struct ik_openai_multi;
 struct ik_repl_ctx_t;
 
@@ -420,3 +421,19 @@ res_t ik_agent_clone_messages(ik_agent_ctx_t *dest, const ik_agent_ctx_t *src);
  * @return      OK on success (even if *out is NULL), ERR on failure
  */
 res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out);
+
+/**
+ * Build system blocks on request from agent's system prompt configuration
+ *
+ * Adds an ordered array of system blocks to the request:
+ *   Block 0: Base system prompt (prompt.md / config / default), not cacheable
+ *   Block 1..N: Pinned documents in order, each with cacheable=true
+ *
+ * This replaces the single-string system prompt approach. Providers serialize
+ * these blocks into their native multi-block system prompt formats.
+ *
+ * @param req   Request to add system blocks to (must not be NULL)
+ * @param agent Agent context (must not be NULL)
+ * @return      OK on success, ERR on allocation failure
+ */
+res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent);

@@ -118,30 +118,9 @@ static res_t build_system_prompt_from_agent(ik_request_t *req, ik_agent_ctx_t *a
     assert(req != NULL);   // LCOV_EXCL_BR_LINE
     assert(agent != NULL); // LCOV_EXCL_BR_LINE
 
-    // Use effective system prompt with fallback chain:
-    // 1. Pinned files (if any)
-    // 2. $IKIGAI_DATA_DIR/system/prompt.md (if exists)
-    // 3. cfg->openai_system_message (config fallback)
-    char *system_prompt = NULL;
-    res_t prompt_res = ik_agent_get_effective_system_prompt(agent, &system_prompt);
-    if (is_err(&prompt_res)) {  // LCOV_EXCL_BR_LINE - ik_agent_get_effective_system_prompt always succeeds
-        return prompt_res;  // LCOV_EXCL_LINE
-    }
-
-    if (system_prompt != NULL && strlen(system_prompt) > 0) {
-        // Copy to request context since ik_agent_get_effective_system_prompt
-        // allocates on agent context
-        char *req_prompt = talloc_strdup(req, system_prompt);
-        talloc_free(system_prompt);
-        if (req_prompt == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-        res_t res = ik_request_set_system(req, req_prompt);
-        if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
-    } else if (system_prompt != NULL) {
-        talloc_free(system_prompt);
-    }
-
-    return OK(NULL);
+    // Build system blocks: base prompt as block 0, each pinned doc as
+    // a separate cacheable block.
+    return ik_agent_build_system_blocks(req, agent);
 }
 
 static res_t add_tools_from_registry(ik_request_t *req, ik_tool_registry_t *registry, ik_agent_ctx_t *agent)
