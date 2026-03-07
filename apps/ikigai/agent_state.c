@@ -4,6 +4,7 @@
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/providers/provider.h"
+#include "apps/ikigai/repl_response_helpers.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/summary.h"
@@ -161,6 +162,7 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
             ik_event_render(agent->scrollback, kind, content, "{}", m->interrupted);
         }
     }
+    ik_repl_render_usage_event(agent);
 }
 
 /* Build a malloc'd snapshot of ik_msg_t stubs from agent->messages[0..count-1].

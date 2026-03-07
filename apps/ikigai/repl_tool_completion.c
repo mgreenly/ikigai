@@ -8,6 +8,7 @@
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/repl_callbacks.h"
 #include "apps/ikigai/repl_event_handlers.h"
+#include "apps/ikigai/repl_response_helpers.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/shared.h"
 #include "shared/wrapper.h"
@@ -156,6 +157,7 @@ void ik_repl_handle_interrupted_tool_completion(ik_repl_ctx_t *repl, ik_agent_ct
             ik_event_render(agent->scrollback, kind, content, "{}", m->interrupted);
         }
     }
+    ik_repl_render_usage_event(agent);
 
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,

@@ -15,6 +15,7 @@
 #include "apps/ikigai/repl_actions.h"
 #include "apps/ikigai/repl_actions_internal.h"
 #include "apps/ikigai/repl_callbacks.h"
+#include "apps/ikigai/repl_response_helpers.h"
 #include "apps/ikigai/repl_tool_completion.h"
 #include "apps/ikigai/scroll_detector.h"
 #include "apps/ikigai/shared.h"
@@ -258,7 +259,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         agent->assistant_response = NULL;
     }
 
-    // Find most recent user message (start of interrupted turn)
+    // Find most recent user message
     size_t turn_start = 0;
     bool found_user = false;
     for (size_t i = agent->message_count; i > 0; i--) {
@@ -270,7 +271,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         }
     }
 
-    // Mark interrupted turn messages (don't remove)
+    // Mark interrupted turn messages
     if (found_user && turn_start < agent->message_count) {
         for (size_t i = turn_start; i < agent->message_count; i++) {
             if (agent->messages[i] != NULL) {
@@ -307,6 +308,7 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
             ik_event_render(agent->scrollback, kind, content, "{}", m->interrupted);
         }
     }
+    ik_repl_render_usage_event(agent);
 
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
         res_t db_res = ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
