@@ -11,6 +11,7 @@ User documentation for ikigai, a Linux coding agent with terminal UI.
   - [Google Gemini](gemini.md) - Gemini models and reasoning level mappings
 - [Editor](editor.md) - REPL editor keybindings and text editing
 - [Context Window](context-window.md) - How long conversations are managed within provider token limits
+- [Skills](skills.md) - Loading working knowledge into the system prompt with `!load`/`!unload`
 
 ## Reference
 
