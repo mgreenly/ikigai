@@ -47,6 +47,34 @@ void ik_commands_fork_copy_loaded_skills(ik_agent_ctx_t *child, const ik_agent_c
 }
 
 /**
+ * Copy parent's skillset_catalog to child (no-prompt fork only).
+ * load_position is reset to 0 so no /rewind in the child can drop inherited entries.
+ */
+void ik_commands_fork_copy_skillset_catalog(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+{
+    if (parent->skillset_catalog_count == 0) {
+        return;
+    }
+
+    child->skillset_catalog = talloc_zero_array(child, ik_skillset_catalog_entry_t *,
+                                                (unsigned int)parent->skillset_catalog_count);
+    if (child->skillset_catalog == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < parent->skillset_catalog_count; i++) {
+        ik_skillset_catalog_entry_t *src = parent->skillset_catalog[i];
+        ik_skillset_catalog_entry_t *dst = talloc_zero(child, ik_skillset_catalog_entry_t);
+        if (dst == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->skill_name = talloc_strdup(dst, src->skill_name);
+        if (dst->skill_name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->description = talloc_strdup(dst, src->description);
+        if (dst->description == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->load_position = 0;
+        child->skillset_catalog[child->skillset_catalog_count] = dst;
+        child->skillset_catalog_count++;
+    }
+}
+
+/**
  * Helper to convert thinking level enum to string
  */
 const char *ik_commands_thinking_level_to_string(ik_thinking_level_t level)

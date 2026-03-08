@@ -174,6 +174,14 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         talloc_free(repl->current->loaded_skills[repl->current->loaded_skill_count]);
     }
 
+    // Trim catalog entries added after the rewind target position
+    while (repl->current->skillset_catalog_count > 0 &&
+           repl->current->skillset_catalog[repl->current->skillset_catalog_count - 1]->load_position
+               >= target_mark->message_index) {
+        repl->current->skillset_catalog_count--;
+        talloc_free(repl->current->skillset_catalog[repl->current->skillset_catalog_count]);
+    }
+
     // Reset recent summary: rewind may remove messages it covers
     if (repl->current->recent_summary != NULL) {
         talloc_free(repl->current->recent_summary);

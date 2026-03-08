@@ -286,6 +286,7 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     if (prompt == NULL || prompt[0] == '\0') {
         ik_commands_fork_copy_loaded_skills(child, parent);
+        ik_commands_fork_copy_skillset_catalog(child, parent);
     }
 
     // Insert into registry

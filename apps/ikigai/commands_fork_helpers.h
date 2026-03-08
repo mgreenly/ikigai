@@ -21,6 +21,12 @@
 void ik_commands_fork_copy_loaded_skills(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
 
 /**
+ * Copy parent's skillset_catalog to child with load_position reset to 0.
+ * Used for no-prompt fork where child inherits parent's skill catalog.
+ */
+void ik_commands_fork_copy_skillset_catalog(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent);
+
+/**
  * Helper to convert thinking level enum to string
  */
 const char *ik_commands_thinking_level_to_string(ik_thinking_level_t level);

@@ -227,6 +227,28 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
         }
     }
 
+    // Skill catalog block: list of available-but-not-loaded skills (cacheable)
+    if (agent->skillset_catalog_count > 0) {
+        char *catalog = talloc_strdup(agent,
+                                      "## Available Skills\n"
+                                      "Load these with /load <name> when relevant to the current task.\n");
+        if (catalog == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < agent->skillset_catalog_count; i++) {
+            ik_skillset_catalog_entry_t *entry = agent->skillset_catalog[i];
+            char *line = talloc_asprintf(agent, "- %s: %s\n",
+                                         entry->skill_name, entry->description);
+            if (line == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            char *extended = talloc_asprintf(agent, "%s%s", catalog, line);
+            if (extended == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            talloc_free(catalog);
+            talloc_free(line);
+            catalog = extended;
+        }
+        res = ik_request_add_system_block(req, catalog, true);
+        talloc_free(catalog);
+        if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
+    }
+
     // Blocks N+1..M: Previous-session summaries (oldest first, cacheable)
     for (size_t i = 0; i < agent->session_summary_count; i++) {
         if (agent->session_summaries[i]->summary != NULL) {

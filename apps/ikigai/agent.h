@@ -46,6 +46,13 @@ typedef struct {
     size_t load_position; // agent->message_count at time of load
 } ik_loaded_skill_t;
 
+// Skill catalog entry (advertised available-but-not-loaded skill)
+typedef struct {
+    char *skill_name;     // Skill name (e.g., "database")
+    char *description;    // Short description for system prompt
+    size_t load_position; // agent->message_count at time of advertisement
+} ik_skillset_catalog_entry_t;
+
 /**
  * Per-agent context for ikigai.
  *
@@ -120,6 +127,8 @@ typedef struct ik_agent_ctx {
     size_t mark_count;
     ik_loaded_skill_t **loaded_skills;  // Array of pointers (like marks[], pinned_paths[])
     size_t loaded_skill_count;
+    ik_skillset_catalog_entry_t **skillset_catalog;  // Array of pointers (like loaded_skills[])
+    size_t skillset_catalog_count;
 
     // LLM interaction state (per-agent)
     int curl_still_running;
