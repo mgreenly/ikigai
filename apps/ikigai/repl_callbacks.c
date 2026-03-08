@@ -119,6 +119,8 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
             }
         }
     }
+    size_t lines_before_completion = agent->scrollback->total_physical_lines;
+
     if (agent->streaming_line_buffer != NULL) {
         size_t buffer_len = strlen(agent->streaming_line_buffer);
         const char *model_prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
@@ -163,6 +165,11 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
         ik_repl_store_response_metadata(agent, completion->response);
         ik_repl_render_usage_event(agent);
         ik_repl_extract_tool_calls(agent, completion->response);
+    }
+
+    // Adjust viewport_offset to keep the display stable when scrolled up
+    if (agent->viewport_offset > 0) {
+        agent->viewport_offset += agent->scrollback->total_physical_lines - lines_before_completion;
     }
 
     return OK(NULL);
