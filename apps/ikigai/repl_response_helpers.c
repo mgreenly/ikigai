@@ -17,6 +17,7 @@
 void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
                                       size_t start, size_t chunk_len)
 {
+    size_t lines_before = agent->scrollback->total_physical_lines;
     const char *model_prefix = ik_output_prefix(IK_OUTPUT_MODEL_TEXT);
     size_t prefix_bytes = agent->streaming_first_line && model_prefix ? strlen(model_prefix) + 1 : 0;
 
@@ -66,6 +67,9 @@ void ik_repl_flush_line_to_scrollback(ik_agent_ctx_t *agent, const char *chunk,
     }
 
     agent->streaming_first_line = false;
+    if (agent->viewport_offset > 0) {
+        agent->viewport_offset += agent->scrollback->total_physical_lines - lines_before;
+    }
 }
 
 void ik_repl_handle_text_delta(ik_agent_ctx_t *agent, const char *chunk, size_t chunk_len)
