@@ -1,6 +1,6 @@
 /**
  * @file bang_commands_test.c
- * @brief Unit tests for bang command handlers (!unload)
+ * @brief Unit tests for slash skill command handlers (/unload, /skills)
  */
 
 #include <check.h>
@@ -9,7 +9,7 @@
 #include <talloc.h>
 
 #include "apps/ikigai/agent.h"
-#include "apps/ikigai/bang_commands.h"
+#include "apps/ikigai/commands.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
 #include "tests/helpers/test_utils_helper.h"
@@ -55,7 +55,7 @@ static void add_skill(ik_agent_ctx_t *agent, const char *name, size_t load_posit
     agent->loaded_skill_count++;
 }
 
-/* ---- !skills: no skills loaded ---- */
+/* ---- /skills: no skills loaded ---- */
 
 START_TEST(test_skills_empty) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -67,7 +67,7 @@ START_TEST(test_skills_empty) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!skills");
+    res = ik_cmd_dispatch(ctx, repl, "/skills");
     ck_assert(is_ok(&res));
 
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
@@ -87,7 +87,7 @@ START_TEST(test_skills_empty) {
 }
 END_TEST
 
-/* ---- !skills: one skill loaded ---- */
+/* ---- /skills: one skill loaded ---- */
 
 START_TEST(test_skills_one) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -101,7 +101,7 @@ START_TEST(test_skills_one) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!skills");
+    res = ik_cmd_dispatch(ctx, repl, "/skills");
     ck_assert(is_ok(&res));
 
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
@@ -121,7 +121,7 @@ START_TEST(test_skills_one) {
 }
 END_TEST
 
-/* ---- !skills: multiple skills loaded ---- */
+/* ---- /skills: multiple skills loaded ---- */
 
 START_TEST(test_skills_multiple) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -136,7 +136,7 @@ START_TEST(test_skills_multiple) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!skills");
+    res = ik_cmd_dispatch(ctx, repl, "/skills");
     ck_assert(is_ok(&res));
 
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
@@ -156,7 +156,7 @@ START_TEST(test_skills_multiple) {
 }
 END_TEST
 
-/* ---- !unload: no skill name given ---- */
+/* ---- /unload: no skill name given ---- */
 
 START_TEST(test_unload_no_name) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -168,7 +168,7 @@ START_TEST(test_unload_no_name) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!unload");
+    res = ik_cmd_dispatch(ctx, repl, "/unload");
     ck_assert(is_ok(&res));
 
     /* Should show usage warning in scrollback (after the echoed command line) */
@@ -179,7 +179,7 @@ START_TEST(test_unload_no_name) {
     bool found = false;
     for (size_t i = 0; i < count; i++) {
         const char *line = get_line(agent->scrollback, i);
-        if (line && strstr(line, "Usage:") && strstr(line, "!unload")) {
+        if (line && strstr(line, "Usage:") && strstr(line, "/unload")) {
             found = true;
             break;
         }
@@ -191,7 +191,7 @@ START_TEST(test_unload_no_name) {
 }
 END_TEST
 
-/* ---- !unload: skill not loaded ---- */
+/* ---- /unload: skill not loaded ---- */
 
 START_TEST(test_unload_not_loaded) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -203,7 +203,7 @@ START_TEST(test_unload_not_loaded) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!unload nonexistent");
+    res = ik_cmd_dispatch(ctx, repl, "/unload nonexistent");
     ck_assert(is_ok(&res));
 
     /* Should show "Skill not loaded" warning */
@@ -225,7 +225,7 @@ START_TEST(test_unload_not_loaded) {
 }
 END_TEST
 
-/* ---- !unload: successful unload ---- */
+/* ---- /unload: successful unload ---- */
 
 START_TEST(test_unload_success) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -242,7 +242,7 @@ START_TEST(test_unload_success) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!unload database");
+    res = ik_cmd_dispatch(ctx, repl, "/unload database");
     ck_assert(is_ok(&res));
 
     /* Skill count should drop by one */
@@ -267,7 +267,7 @@ START_TEST(test_unload_success) {
 }
 END_TEST
 
-/* ---- !unload: middle skill removed, array shifts correctly ---- */
+/* ---- /unload: middle skill removed, array shifts correctly ---- */
 
 START_TEST(test_unload_middle_skill) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -284,7 +284,7 @@ START_TEST(test_unload_middle_skill) {
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     ik_scrollback_clear(agent->scrollback);
 
-    res = ik_bang_dispatch(ctx, repl, "!unload errors");
+    res = ik_cmd_dispatch(ctx, repl, "/unload errors");
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(agent->loaded_skill_count, 2);

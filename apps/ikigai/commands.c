@@ -8,6 +8,7 @@
 #include "apps/ikigai/ansi.h"
 #include "apps/ikigai/commands_basic.h"
 #include "apps/ikigai/commands_mark.h"
+#include "apps/ikigai/commands_skill.h"
 #include "apps/ikigai/commands_model.h"
 #include "apps/ikigai/commands_pin.h"
 #include "apps/ikigai/commands_tool.h"
@@ -70,6 +71,9 @@ static const ik_command_t commands[] = {
     {"unpin", "Remove pinned document (usage: /unpin <path>)", ik_cmd_unpin},
     {"toolset", "Filter tools visible to LLM (usage: /toolset [tool1, tool2, ...])", ik_cmd_toolset},
     {"summary", "Display current summary state (recent + previous sessions)", ik_cmd_summary},
+    {"load", "Load a skill (usage: /load <skill-name> [args...])", ik_cmd_load},
+    {"unload", "Unload a skill (usage: /unload <skill-name>)", ik_cmd_unload},
+    {"skills", "List loaded skills", ik_cmd_skills},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

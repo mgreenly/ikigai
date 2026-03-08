@@ -148,8 +148,8 @@ static res_t render_skill_event(ik_scrollback_t *scrollback, const char *kind, c
 
     const char *verb = (strcmp(kind, "skill_load") == 0) ? "load" : "unload";
     char *text = (skill_name != NULL && skill_name[0] != '\0')
-        ? talloc_asprintf(tmp, "!%s %s", verb, skill_name)
-        : talloc_asprintf(tmp, "!%s", verb);
+        ? talloc_asprintf(tmp, "/%s %s", verb, skill_name)
+        : talloc_asprintf(tmp, "/%s", verb);
     if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     res_t result = ik_scrollback_append_line_(scrollback, text, strlen(text));

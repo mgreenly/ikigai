@@ -127,10 +127,10 @@ START_TEST(test_help_lists_mark) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 9 should be /mark (alphabetically: ..., kill, mark, ...)
+    // Line 10 should be /mark (alphabetically: ..., load, mark, model, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 9, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 10, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -144,10 +144,10 @@ START_TEST(test_help_lists_rewind) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 14 should be /rewind (alphabetically: ..., reap, refresh, rewind, ...)
+    // Line 15 should be /rewind (alphabetically: ..., reap, refresh, rewind, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 14, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 15, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -178,10 +178,10 @@ START_TEST(test_help_lists_model) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 10 should be /model (alphabetically: ..., mark, model, pin, ...)
+    // Line 11 should be /model (alphabetically: ..., mark, model, pin, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 10, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 11, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 
@@ -195,10 +195,10 @@ START_TEST(test_help_lists_system) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
     ck_assert(is_ok(&res));
 
-    // Line 17 should be /system (alphabetically: ..., send, summary, system, tool, ...)
+    // Line 19 should be /system (alphabetically: ..., skills, summary, system, tool, ...)
     const char *line = NULL;
     size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 17, &line, &length);
+    res = ik_scrollback_get_line_text(repl->current->scrollback, 19, &line, &length);
     ck_assert(is_ok(&res));
     ck_assert_ptr_nonnull(line);
 

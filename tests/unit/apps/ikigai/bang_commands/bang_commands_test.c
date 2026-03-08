@@ -1,9 +1,9 @@
 /**
  * @file bang_commands_test.c
- * @brief Unit tests for !load and !unload bang command handlers
+ * @brief Unit tests for /load and /unload slash command handlers
  */
 
-#include "apps/ikigai/bang_commands.h"
+#include "apps/ikigai/commands.h"
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/paths.h"
@@ -100,27 +100,27 @@ static void teardown(void)
     paths = NULL;
 }
 
-/* Test: !load with no args shows usage warning */
+/* Test: /load with no args shows usage warning */
 START_TEST(test_load_no_args) {
-    res_t res = ik_bang_dispatch(ctx, repl, "!load");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 0);
 }
 END_TEST
 
-/* Test: !load with a missing skill shows warning, no entry added */
+/* Test: /load with a missing skill shows warning, no entry added */
 START_TEST(test_load_missing_skill) {
-    res_t res = ik_bang_dispatch(ctx, repl, "!load nonexistent-skill");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load nonexistent-skill");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 0);
 }
 END_TEST
 
-/* Test: !load successfully loads a skill */
+/* Test: /load successfully loads a skill */
 START_TEST(test_load_success) {
     create_skill_file("my-skill", "This is the skill content.\n");
 
-    res_t res = ik_bang_dispatch(ctx, repl, "!load my-skill");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load my-skill");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 1);
     ck_assert_str_eq(repl->current->loaded_skills[0]->name, "my-skill");
@@ -130,11 +130,11 @@ START_TEST(test_load_success) {
 }
 END_TEST
 
-/* Test: !load duplicate replaces skill in-place */
+/* Test: /load duplicate replaces skill in-place */
 START_TEST(test_load_duplicate_replaces) {
     create_skill_file("dup-skill", "Version 1 content.\n");
 
-    res_t res = ik_bang_dispatch(ctx, repl, "!load dup-skill");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load dup-skill");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 1);
 
@@ -154,7 +154,7 @@ START_TEST(test_load_duplicate_replaces) {
     /* Set a different message_count to verify load_position is updated */
     repl->current->message_count = 5;
 
-    res = ik_bang_dispatch(ctx, repl, "!load dup-skill");
+    res = ik_cmd_dispatch(ctx, repl, "/load dup-skill");
     ck_assert(is_ok(&res));
 
     /* Still only one entry */
@@ -165,11 +165,11 @@ START_TEST(test_load_duplicate_replaces) {
 }
 END_TEST
 
-/* Test: !load with positional args substitutes ${1}, ${2} */
+/* Test: /load with positional args substitutes ${1}, ${2} */
 START_TEST(test_load_positional_args) {
     create_skill_file("tmpl-skill", "Table: ${1}\nColumn: ${2}\n");
 
-    res_t res = ik_bang_dispatch(ctx, repl, "!load tmpl-skill users email");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load tmpl-skill users email");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 1);
 
@@ -182,12 +182,12 @@ START_TEST(test_load_positional_args) {
 }
 END_TEST
 
-/* Test: !load positional args - unreplaced placeholder stays as literal */
+/* Test: /load positional args - unreplaced placeholder stays as literal */
 START_TEST(test_load_positional_args_unreplaced) {
     create_skill_file("partial-skill", "First: ${1} Second: ${2}\n");
 
     /* Only provide one arg */
-    res_t res = ik_bang_dispatch(ctx, repl, "!load partial-skill alpha");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load partial-skill alpha");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 1);
 
@@ -199,15 +199,15 @@ START_TEST(test_load_positional_args_unreplaced) {
 }
 END_TEST
 
-/* Test: !load multiple different skills */
+/* Test: /load multiple different skills */
 START_TEST(test_load_multiple_skills) {
     create_skill_file("skill-a", "Content A\n");
     create_skill_file("skill-b", "Content B\n");
 
-    res_t res = ik_bang_dispatch(ctx, repl, "!load skill-a");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load skill-a");
     ck_assert(is_ok(&res));
 
-    res = ik_bang_dispatch(ctx, repl, "!load skill-b");
+    res = ik_cmd_dispatch(ctx, repl, "/load skill-b");
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(repl->current->loaded_skill_count, 2);
@@ -216,15 +216,15 @@ START_TEST(test_load_multiple_skills) {
 }
 END_TEST
 
-/* Test: !unload removes a loaded skill */
+/* Test: /unload removes a loaded skill */
 START_TEST(test_unload_removes_skill) {
     create_skill_file("removable", "Remove me.\n");
 
-    res_t res = ik_bang_dispatch(ctx, repl, "!load removable");
+    res_t res = ik_cmd_dispatch(ctx, repl, "/load removable");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 1);
 
-    res = ik_bang_dispatch(ctx, repl, "!unload removable");
+    res = ik_cmd_dispatch(ctx, repl, "/unload removable");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(repl->current->loaded_skill_count, 0);
 }

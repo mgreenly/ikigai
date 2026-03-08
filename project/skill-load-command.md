@@ -1,26 +1,26 @@
-# !load / !unload — Skill Loading Commands
+# /load / /unload — Skill Loading Commands
 
 ## Overview
 
-`!load` reads a skill file from disk, applies template processing (including positional argument substitution), and injects the content as a system prompt block. `!unload` removes a previously loaded skill. Skills are stored in a separate `loaded_skills[]` array on the agent struct (parallel to `pinned_paths[]`), with a `load_position` tracking where in the conversation the load occurred. Skills survive sliding window pruning but are dropped by `/clear` and `/rewind`.
+`/load` reads a skill file from disk, applies template processing (including positional argument substitution), and injects the content as a system prompt block. `/unload` removes a previously loaded skill. Skills are stored in a separate `loaded_skills[]` array on the agent struct (parallel to `pinned_paths[]`), with a `load_position` tracking where in the conversation the load occurred. Skills survive sliding window pruning but are dropped by `/clear` and `/rewind`.
 
 ## Syntax
 
 ```
-!load <skill-name> [arg1 arg2 ...]
+/load <skill-name> [arg1 arg2 ...]
 ```
 
 **Examples:**
 
 ```
-!load database
-!load database users
-!load deploy staging us-east-1
+/load database
+/load database users
+/load deploy staging us-east-1
 ```
 
 ## Behavior
 
-### !load
+### /load
 
 1. Parse skill name and positional arguments from input
 2. Construct URI: `ik://skills/<skill-name>/SKILL.md`
@@ -35,7 +35,7 @@
 
 **Template freeze note:** Both positional substitution and template variables are resolved at load time. The fully resolved content is stored in the database event. Template variables (e.g., `${func.now}`) reflect values at the time of loading, not at the time of each LLM request. Per-turn re-evaluation is a potential future enhancement.
 
-### !unload
+### /unload
 
 1. Parse skill name from input
 2. Scan `loaded_skills[]` by name
@@ -44,14 +44,14 @@
 5. Call `ik_token_cache_invalidate_system()` to force token recount
 6. Display confirmation in scrollback
 
-Rewind past an `!unload` restores the skill — the original `skill_load` event is still in history and the `skill_unload` event gets dropped by the rewind.
+Rewind past a `/unload` restores the skill — the original `skill_load` event is still in history and the `skill_unload` event gets dropped by the rewind.
 
 ## Skill Resolution
 
 Skills are identified by short name. Resolution constructs a `ik://` URI and resolves through the standard path translation:
 
 ```
-!load database  →  ik://skills/database/SKILL.md
+/load database  →  ik://skills/database/SKILL.md
                 →  ik_paths_translate_ik_uri_to_path()
                 →  $IKIGAI_STATE_DIR/skills/database/SKILL.md
 ```
@@ -89,10 +89,10 @@ Skill URIs (`ik://skills/database/SKILL.md`) use the generic namespace, resolvin
 
 ## Template Processing
 
-Skill files are processed through the existing template engine (`ik_template_process_()` at `agent_system_prompt.c:52-70`), the same engine used for pinned documents. Positional arguments from `!load` are injected as numeric template variables (`${1}`, `${2}`, etc.) alongside the standard namespaces.
+Skill files are processed through the existing template engine (`ik_template_process_()` at `agent_system_prompt.c:52-70`), the same engine used for pinned documents. Positional arguments from `/load` are injected as numeric template variables (`${1}`, `${2}`, etc.) alongside the standard namespaces.
 
 **Available variables:**
-- `${1}`, `${2}`, `${3}`, ... — positional arguments from `!load`
+- `${1}`, `${2}`, `${3}`, ... — positional arguments from `/load`
 - `${agent.*}` — agent properties (uuid, name, etc.)
 - `${config.*}` — configuration values
 - `${env.*}` — environment variables
@@ -110,7 +110,7 @@ Agent: ${agent.uuid}
 
 **Invocation:**
 ```
-!load database users
+/load database users
 ```
 
 **Result after substitution:**
@@ -219,7 +219,7 @@ The fork DB event includes the skill snapshot (like it does for `pinned_paths`) 
 
 ### Contrast with `/pin`
 
-| Property | `/pin` | `!load` |
+| Property | `/pin` | `/load` |
 |----------|--------|---------|
 | Lifecycle | Durable — survives `/clear`, restarts | Ephemeral — dropped by `/clear` and `/rewind` |
 | Survives pruning | Yes (not in messages[]) | Yes (not in messages[]) |
@@ -228,7 +228,7 @@ The fork DB event includes the skill snapshot (like it does for `pinned_paths`) 
 | Storage | `pinned_paths[]` (paths, content resolved on demand) | `loaded_skills[]` (content captured at load time) |
 | Input | File path | Skill name (resolved via `ik://` URI) |
 | Template processing | `${...}` variables resolved on demand (every turn) | `${...}` variables resolved at load time (frozen) |
-| Prefix | `/` (system operation) | `!` (context operation) |
+| Prefix | `/` (system operation) | `/` (slash command) |
 
 ## System Prompt Assembly
 
@@ -259,7 +259,7 @@ Blocks are appended via `ik_request_add_system_block()` (`request.h:92-102`). Ea
 
 **`ik_agent_get_effective_system_prompt()`** — `agent_system_prompt.c:76-141` — returns a single flattened string for token counting. Priority: pinned files → `ik://system/prompt.md` → config → hardcoded default.
 
-### With `!load`
+### With `/load`
 
 `ik_agent_build_system_blocks()` becomes:
 
@@ -271,11 +271,11 @@ Blocks are appended via `ik_request_add_system_block()` (`request.h:92-102`). Ea
 
 Each loaded skill becomes a separate cacheable system block. The LLM sees them as part of the system prompt, not as conversation messages.
 
-**Token accounting:** `ik_token_cache_get_system_tokens()` (`token_cache.c:196-225`) calls `ik_agent_get_effective_system_prompt()`, which returns a single flattened string for token counting. With `!load`, this function must also concatenate loaded skill content (same `talloc_asprintf` pattern used for pinned docs at `agent_system_prompt.c:88-101`). The token cache code itself (`token_cache.c`) requires no changes. Both `!load` and `!unload` call `ik_token_cache_invalidate_system()` after modifying `loaded_skills[]` to force a recount on next access.
+**Token accounting:** `ik_token_cache_get_system_tokens()` (`token_cache.c:196-225`) calls `ik_agent_get_effective_system_prompt()`, which returns a single flattened string for token counting. With `/load`, this function must also concatenate loaded skill content (same `talloc_asprintf` pattern used for pinned docs at `agent_system_prompt.c:88-101`). The token cache code itself (`token_cache.c`) requires no changes. Both `/load` and `/unload` call `ik_token_cache_invalidate_system()` after modifying `loaded_skills[]` to force a recount on next access.
 
 ## Doc Cache
 
-The doc cache already exists and is used by pinned documents. `!load` uses it to read skill files before applying positional substitution.
+The doc cache already exists and is used by pinned documents. `/load` uses it to read skill files before applying positional substitution.
 
 - **`ik_doc_cache_get()`** — `doc_cache.c:41-94`, declared in `doc_cache.h`
   ```c
@@ -356,7 +356,7 @@ typedef struct {
 
 ### skill_load Event
 
-The `!load` event follows the same pattern — kind `skill_load` (added to `VALID_KINDS[]`), metadata classification in `msg.c`, structured JSON payload in `data_json`:
+The `/load` event follows the same pattern — kind `skill_load` (added to `VALID_KINDS[]`), metadata classification in `msg.c`, structured JSON payload in `data_json`:
 
 ```json
 {
@@ -370,7 +370,7 @@ The fully resolved content (positional args + template variables) is captured at
 
 ### skill_unload Event
 
-The `!unload` event uses kind `skill_unload` (also added to `VALID_KINDS[]` and classified as metadata in `msg.c`):
+The `/unload` event uses kind `skill_unload` (also added to `VALID_KINDS[]` and classified as metadata in `msg.c`):
 
 ```json
 {
@@ -382,18 +382,16 @@ No content field — the unload just records which skill was removed. During rep
 
 ## Input Dispatch
 
-The `!` prefix is a new input category. The dispatch point in `repl_actions_llm.c` (`ik_repl_handle_newline_action()`, currently at line ~219) checks for `/` to detect slash commands. A new check for `!` routes to the bang command dispatcher.
+Skill commands are slash commands, dispatched via the existing `ik_cmd_dispatch()` infrastructure.
 
 ```
 User input
   ├── starts with '/' → slash command dispatch (ik_cmd_dispatch)
-  ├── starts with '!' → bang command dispatch (new)
+  ├── starts with '!' → bang command dispatch (reserved for future use)
   └── anything else   → send to LLM
 ```
 
-The bang dispatcher parses the command name and routes to the appropriate handler. Initially `!load` and `!unload` exist; `!skillset` and others come later.
-
-The bang command dispatcher follows the same mechanical patterns as the existing slash command dispatcher (`commands.c`): null-terminated input copy before buffer clear, echo to scrollback within the dispatcher, whitespace skipping after prefix, and error message for empty command (`!` alone). See `repl_actions_llm.c:~212-232` and `commands.c:96-107` for the patterns to mirror.
+`/load`, `/unload`, and `/skills` are registered in the command registry in `commands.c` alongside other slash commands.
 
 ## Error Handling
 
@@ -401,21 +399,22 @@ The bang command dispatcher follows the same mechanical patterns as the existing
 |-------|----------|
 | Skill not found | Warning in scrollback: "Skill not found: database" |
 | File read failure | Warning in scrollback with error detail |
-| No skill name given (`!load` alone) | Warning: "Usage: !load <skill-name> [args...]" |
-| `!unload` skill not loaded | Warning in scrollback: "Skill not loaded: database" |
-| No skill name given (`!unload` alone) | Warning: "Usage: !unload <skill-name>" |
-| Empty bang command (`!` alone) | Warning in scrollback |
+| No skill name given (`/load` alone) | Warning: "Usage: /load <skill-name> [args...]" |
+| `/unload` skill not loaded | Warning in scrollback: "Skill not loaded: database" |
+| No skill name given (`/unload` alone) | Warning: "Usage: /unload <skill-name>" |
 
 Errors are displayed in scrollback. No event is created in the database. No error is sent to the LLM.
 
 ## File Structure (Implementation)
 
 New files:
-- `apps/ikigai/bang_commands.c` — Bang command dispatcher, `!load` and `!unload` handlers
-- `apps/ikigai/bang_commands.h` — Public interface
+- `apps/ikigai/commands_skill.c` — `/load`, `/unload`, and `/skills` slash command handlers
+- `apps/ikigai/commands_skill.h` — Public interface
 
 Modified files:
-- `apps/ikigai/repl_actions_llm.c` — Add `!` prefix detection in input dispatch
+- `apps/ikigai/commands.c` — Register `/load`, `/unload`, `/skills` in command registry
+- `apps/ikigai/bang_commands.c` — Dispatcher retained for future bang commands; skill handlers removed
+- `apps/ikigai/repl_actions_llm.c` — Bang routing remains intact; slash commands handle skill loading
 - `apps/ikigai/agent.h` — Add `ik_loaded_skill_t` struct, `loaded_skills[]` (pointer array) and `loaded_skill_count` to `ik_agent_ctx_t`
 - `apps/ikigai/agent_system_prompt.c` — Iterate `loaded_skills[]` in both `ik_agent_build_system_blocks()` (between pinned docs and session summaries) and `ik_agent_get_effective_system_prompt()` (for token counting)
 - `apps/ikigai/marks.c` — Trim `loaded_skills[]` in rewind handler (`load_position >= target`)
@@ -423,7 +422,7 @@ Modified files:
 - `apps/ikigai/commands_fork.c` — Copy `loaded_skills[]` to child on bare `/fork` (no prompt); skip on `/fork <prompt>`
 - `apps/ikigai/db/message.c` — Add `"skill_load"` and `"skill_unload"` to `VALID_KINDS[]`
 - `apps/ikigai/msg.c` — Classify `"skill_load"` and `"skill_unload"` as metadata (not conversation)
-- `apps/ikigai/event_render.c` — Render `skill_load` and `skill_unload` events during replay
+- `apps/ikigai/event_render.c` — Render `skill_load` and `skill_unload` events during replay with `/` prefix
 - `apps/ikigai/repl/agent_restore_replay.c` — Handle `skill_load` and `skill_unload` events during session restore
 
 ## Skill File Format
@@ -445,8 +444,7 @@ The `SKILL.md` file is plain markdown. No frontmatter required. Template placeho
 
 ## Not In Scope
 
-- `!skillset` (composite bundles) — future command
-- Skill discovery / listing (`!skills`) — future command
+- `/skillset` (composite bundles) — future command
 - Per-turn re-evaluation of template variables in loaded skills — future enhancement (currently frozen at load time)
 - Multiple search paths (project-local, user-global) — future enhancement
 - Tab completion for skill names — future enhancement

@@ -1,6 +1,6 @@
 # Skills
 
-Skills are chunks of working knowledge that you inject into the LLM's system prompt on demand. Use `!load` to add a skill, `!unload` to remove it, and the LLM will follow that knowledge for the rest of the session.
+Skills are chunks of working knowledge that you inject into the LLM's system prompt on demand. Use `/load` to add a skill, `/unload` to remove it, and the LLM will follow that knowledge for the rest of the session.
 
 ## What are skills?
 
@@ -10,7 +10,7 @@ Skills are **ephemeral working knowledge**. They are dropped when you `/clear` o
 
 This contrasts with [`/pin`](commands.md#pin), which is **durable identity**. Pinned documents survive restarts and `/clear` — they are part of who the agent is. Skills are what the agent knows right now.
 
-| Property | `/pin` | `!load` |
+| Property | `/pin` | `/load` |
 |----------|--------|---------|
 | Lifecycle | Durable — survives `/clear` and restarts | Ephemeral — dropped by `/clear` and `/rewind` |
 | Purpose | Agent identity and permanent context | Session working knowledge |
@@ -19,60 +19,68 @@ This contrasts with [`/pin`](commands.md#pin), which is **durable identity**. Pi
 
 ## Using skills
 
-### !load
+### /load
 
 ```
-!load <skill-name> [arg1 arg2 ...]
+/load <skill-name> [arg1 arg2 ...]
 ```
 
 Loads a skill by name. Optional positional arguments are substituted into the skill file as `${1}`, `${2}`, etc.
 
 ```
-!load database
-!load database users
-!load deploy staging us-east-1
+/load database
+/load database users
+/load deploy staging us-east-1
 ```
 
-If the skill is already loaded, `!load` replaces it in place with the new arguments (if any).
+If the skill is already loaded, `/load` replaces it in place with the new arguments (if any).
 
-### !unload
+### /unload
 
 ```
-!unload <skill-name>
+/unload <skill-name>
 ```
 
 Removes a previously loaded skill from the system prompt.
 
 ```
-!unload database
+/unload database
 ```
 
 If the skill is not currently loaded, a warning is displayed and nothing changes.
+
+### /skills
+
+```
+/skills
+```
+
+Lists all currently loaded skills with their sizes.
 
 ### Common workflows
 
 Load a general-purpose skill for the session:
 
 ```
-!load database
+/load database
 ```
 
 Load a parameterized skill targeting a specific resource:
 
 ```
-!load deploy staging us-east-1
+/load deploy staging us-east-1
 ```
 
 Replace a loaded skill with updated arguments:
 
 ```
-!load database orders
+/load database orders
 ```
 
 Remove a skill you no longer need:
 
 ```
-!unload deploy
+/unload deploy
 ```
 
 ## Lifecycle behavior
@@ -87,7 +95,7 @@ Remove a skill you no longer need:
 
 For example, if you loaded a skill after mark `A` and then rewound to mark `A`, that skill would be gone. A skill loaded before `A` would survive.
 
-Rewinding past an `!unload` restores the skill — the `skill_load` event is still in history and the `skill_unload` event gets dropped by the rewind.
+Rewinding past a `/unload` restores the skill — the `skill_load` event is still in history and the `skill_unload` event gets dropped by the rewind.
 
 ### Sliding window pruning — skills survive
 
@@ -133,7 +141,7 @@ $IKIGAI_STATE_DIR/
 
 In local development, `IKIGAI_STATE_DIR` is typically `$PWD/state`, so skills live at `state/skills/`.
 
-Each skill is a directory named after the skill, containing a single `SKILL.md` file. The skill name used in `!load` matches the directory name.
+Each skill is a directory named after the skill, containing a single `SKILL.md` file. The skill name used in `/load` matches the directory name.
 
 ### File format
 
@@ -151,10 +159,10 @@ Connection pooling is managed by the application layer — do not open raw conne
 
 Skill files support template substitution. Variables are resolved at load time.
 
-**Positional arguments** — passed as `!load` arguments:
+**Positional arguments** — passed as `/load` arguments:
 
 ```
-!load deploy staging us-east-1
+/load deploy staging us-east-1
 ```
 
 | Variable | Value |
@@ -186,7 +194,7 @@ Deploy via the standard pipeline — no manual server access.
 Invoked as:
 
 ```
-!load deploy staging us-east-1
+/load deploy staging us-east-1
 ```
 
 Resolves to:
@@ -208,10 +216,10 @@ Unreferenced arguments are ignored. Unreplaced placeholders (e.g., `${2}` when o
 All template variables — including `${func.now}` and `${env.*}` — are resolved **at load time**. The content is captured once and stays frozen for the rest of the session. The system prompt does not re-evaluate skill templates on each turn.
 
 This means:
-- `${func.now}` captures the timestamp when you typed `!load`, not the current time on each request.
+- `${func.now}` captures the timestamp when you typed `/load`, not the current time on each request.
 - `${env.FOO}` captures the environment variable's value at load time.
 
-If you need updated values, `!unload` and `!load` again.
+If you need updated values, `/unload` and `/load` again.
 
 ### Best practices
 
@@ -229,9 +237,9 @@ If you need updated values, `!unload` and `!load` again.
 |-----------|---------|
 | Skill file not found | `Skill not found: <name>` |
 | File read failure | Warning with error detail |
-| `!load` with no name | `Usage: !load <skill-name> [args...]` |
-| `!unload` skill not loaded | `Skill not loaded: <name>` |
-| `!unload` with no name | `Usage: !unload <skill-name>` |
+| `/load` with no name | `Usage: /load <skill-name> [args...]` |
+| `/unload` skill not loaded | `Skill not loaded: <name>` |
+| `/unload` with no name | `Usage: /unload <skill-name>` |
 
 Errors appear in the scrollback. No database event is created. Nothing is sent to the LLM.
 

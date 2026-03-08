@@ -94,7 +94,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 19);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, summary, exit
+    ck_assert_uint_eq(count, 22);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, summary, load, unload, skills, exit
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -115,7 +115,10 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[15].name, "unpin");
     ck_assert_str_eq(cmds[16].name, "toolset");
     ck_assert_str_eq(cmds[17].name, "summary");
-    ck_assert_str_eq(cmds[18].name, "exit");
+    ck_assert_str_eq(cmds[18].name, "load");
+    ck_assert_str_eq(cmds[19].name, "unload");
+    ck_assert_str_eq(cmds[20].name, "skills");
+    ck_assert_str_eq(cmds[21].name, "exit");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);
