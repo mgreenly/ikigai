@@ -40,15 +40,13 @@ NOT `jj describe` (only updates description without creating commit).
 ## Prohibited Operations
 
 This skill does NOT permit:
-- Modifying the `main` bookmark locally
-- Merging into main locally
 - Force pushing to main
 - Restoring/reverting files you didn't change (destroys other agents' work)
 
-**Merges to main only happen via GitHub PRs.** All work is done on feature bookmarks, pushed to origin, and merged through pull requests on GitHub. Never merge locally.
-
 ## Permitted Operations
 
+- Commit directly to main (In this repo we're always on main and push directly to main)
+- Push directly to main@origin
 - Commit to feature/fix bookmarks
 - Push feature/fix bookmarks to remote
 - Create new bookmarks
