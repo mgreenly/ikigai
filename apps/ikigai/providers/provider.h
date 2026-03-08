@@ -157,6 +157,7 @@ struct ik_content_block {
  */
 struct ik_message {
     ik_role_t role;                     /* Message role */
+    char *kind;                         /* DB message kind (e.g., "user", "assistant", "tool_call", "tool_result") */
     ik_content_block_t *content_blocks; /* Array of content blocks */
     size_t content_count;               /* Number of content blocks */
     char *provider_metadata;            /* Provider-specific metadata (JSON) */

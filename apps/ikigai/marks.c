@@ -223,13 +223,7 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
             ik_agent_append_context_hr(repl->current);
         }
         ik_message_t *msg = repl->current->messages[i];
-        // Convert role to kind for rendering
-        const char *kind = NULL;
-        switch (msg->role) {
-            case IK_ROLE_USER: kind = "user"; break;
-            case IK_ROLE_ASSISTANT: kind = "assistant"; break;
-            case IK_ROLE_TOOL: kind = "tool_result"; break;
-        }
+        const char *kind = msg->kind;
         if (kind != NULL && msg->content_count > 0 && msg->content_blocks[0].type == IK_CONTENT_TEXT) {
             result = ik_event_render(repl->current->scrollback,
                                      kind,

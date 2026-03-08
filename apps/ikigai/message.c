@@ -18,6 +18,11 @@ ik_message_t *ik_message_create_text(TALLOC_CTX *ctx, ik_role_t role, const char
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = role;
+    // Default kind from role
+    const char *default_kind = (role == IK_ROLE_USER) ? "user" :
+                               (role == IK_ROLE_ASSISTANT) ? "assistant" : "tool_result";
+    msg->kind = talloc_strdup(msg, default_kind);
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -41,6 +46,8 @@ ik_message_t *ik_message_create_tool_call(TALLOC_CTX *ctx, const char *id,
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_ASSISTANT;
+    msg->kind = talloc_strdup(msg, "tool_call");
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -76,6 +83,8 @@ ik_message_t *ik_message_create_tool_call_with_thinking(
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_ASSISTANT;
+    msg->kind = talloc_strdup(msg, "tool_call");
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, (unsigned int)block_count);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_count = block_count;
@@ -132,6 +141,8 @@ ik_message_t *ik_message_create_tool_result(TALLOC_CTX *ctx, const char *tool_ca
     if (!msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     msg->role = IK_ROLE_TOOL;
+    msg->kind = talloc_strdup(msg, "tool_result");
+    if (!msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     msg->content_blocks = talloc_zero_array(msg, ik_content_block_t, 1);
     if (!msg->content_blocks) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
@@ -162,6 +173,7 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             return ERR(ctx, PARSE, "User message missing content");
         }
         *out = ik_message_create_text(ctx, IK_ROLE_USER, db_msg->content);
+        // kind already set to "user" by create function
         return OK(*out);
     }
 
@@ -171,6 +183,7 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             return ERR(ctx, PARSE, "Assistant message missing content");
         }
         *out = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, db_msg->content);
+        // kind already set to "assistant" by create function
         return OK(*out);
     }
 
@@ -232,6 +245,7 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         } else {
             *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
         }
+        // kind already set to "tool_call" by create function
 
         yyjson_doc_free(doc);
         return OK(*out);
@@ -271,6 +285,10 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         bool is_error = success_val ? !yyjson_get_bool(success_val) : false;
 
         *out = ik_message_create_tool_result(ctx, tool_call_id, output, is_error); // LCOV_EXCL_BR_LINE
+        // Override kind with exact DB kind (preserves "tool" vs "tool_result" distinction)
+        talloc_free((*out)->kind);
+        (*out)->kind = talloc_strdup(*out, db_msg->kind);
+        if (!(*out)->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
         yyjson_doc_free(doc);
         return OK(*out);
     }

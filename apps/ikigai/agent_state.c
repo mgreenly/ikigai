@@ -140,22 +140,13 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
         if (m == NULL || m->content_count == 0) continue;
 
         ik_content_block_t *block = &m->content_blocks[0];
-        const char *kind = NULL;
+        const char *kind = m->kind;
         const char *content = NULL;
 
-        switch (m->role) {
-            case IK_ROLE_USER:
-                kind = "user";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_ASSISTANT:
-                kind = "assistant";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_TOOL:
-                kind = "tool_result";
-                if (block->type == IK_CONTENT_TOOL_RESULT) content = block->data.tool_result.content;
-                break;
+        if (block->type == IK_CONTENT_TEXT) {
+            content = block->data.text.text;
+        } else if (block->type == IK_CONTENT_TOOL_RESULT) {
+            content = block->data.tool_result.content;
         }
 
         if (kind != NULL && content != NULL) {
@@ -193,23 +184,13 @@ static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
         if (m == NULL || m->content_count == 0) continue;
 
         ik_content_block_t *block = &m->content_blocks[0];
-        const char *kind = NULL;
+        const char *kind = m->kind;
         const char *content = NULL;
 
-        switch (m->role) {
-            case IK_ROLE_USER:
-                kind = "user";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_ASSISTANT:
-                kind = "assistant";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_TOOL:
-                kind = "tool_result";
-                if (block->type == IK_CONTENT_TOOL_RESULT)
-                    content = block->data.tool_result.content;
-                break;
+        if (block->type == IK_CONTENT_TEXT) {
+            content = block->data.text.text;
+        } else if (block->type == IK_CONTENT_TOOL_RESULT) {
+            content = block->data.tool_result.content;
         }
 
         if (kind == NULL || content == NULL) continue;

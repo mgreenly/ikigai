@@ -92,6 +92,12 @@ static ik_message_t *clone_message(const ik_message_t *src_msg, TALLOC_CTX *ctx)
     if (!dest_msg) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     dest_msg->role = src_msg->role;
+    if (src_msg->kind != NULL) {
+        dest_msg->kind = talloc_strdup(dest_msg, src_msg->kind);
+        if (!dest_msg->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    } else {
+        dest_msg->kind = NULL;
+    }
     dest_msg->content_count = src_msg->content_count;
     dest_msg->content_blocks = talloc_zero_array(dest_msg, ik_content_block_t,
                                                  (unsigned int)src_msg->content_count);

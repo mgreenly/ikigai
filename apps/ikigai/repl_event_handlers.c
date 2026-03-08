@@ -286,22 +286,13 @@ void ik_repl_handle_interrupted_llm_completion(ik_repl_ctx_t *repl, ik_agent_ctx
         if (m == NULL || m->content_count == 0) continue;  // LCOV_EXCL_BR_LINE - defensive: test messages are always valid
 
         ik_content_block_t *block = &m->content_blocks[0];
-        const char *kind = NULL;
+        const char *kind = m->kind;
         const char *content = NULL;
 
-        switch (m->role) {
-            case IK_ROLE_USER:
-                kind = "user";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_ASSISTANT:
-                kind = "assistant";
-                if (block->type == IK_CONTENT_TEXT) content = block->data.text.text;
-                break;
-            case IK_ROLE_TOOL:
-                kind = "tool_result";
-                if (block->type == IK_CONTENT_TOOL_RESULT) content = block->data.tool_result.content;
-                break;
+        if (block->type == IK_CONTENT_TEXT) {
+            content = block->data.text.text;
+        } else if (block->type == IK_CONTENT_TOOL_RESULT) {
+            content = block->data.tool_result.content;
         }
 
         if (kind != NULL && content != NULL) {
