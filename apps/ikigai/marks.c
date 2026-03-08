@@ -166,6 +166,14 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
         ik_token_cache_clamp_context_start(repl->current->token_cache, new_msg_count);
     }
 
+    // Trim skills loaded after the rewind target position
+    while (repl->current->loaded_skill_count > 0 &&
+           repl->current->loaded_skills[repl->current->loaded_skill_count - 1]->load_position
+               >= target_mark->message_index) {
+        repl->current->loaded_skill_count--;
+        talloc_free(repl->current->loaded_skills[repl->current->loaded_skill_count]);
+    }
+
     // Reset recent summary: rewind may remove messages it covers
     if (repl->current->recent_summary != NULL) {
         talloc_free(repl->current->recent_summary);

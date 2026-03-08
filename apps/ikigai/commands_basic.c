@@ -184,6 +184,14 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         repl->current->mark_count = 0;
     }
 
+    // Clear loaded skills
+    if (repl->current->loaded_skills != NULL) {  // LCOV_EXCL_BR_LINE
+        for (size_t i = 0; i < repl->current->loaded_skill_count; i++) {
+            talloc_free(repl->current->loaded_skills[i]);
+        }
+        repl->current->loaded_skill_count = 0;
+    }
+
     // Reset recent summary (current epoch ends with /clear)
     if (repl->current->recent_summary != NULL) {
         talloc_free(repl->current->recent_summary);

@@ -241,6 +241,137 @@ START_TEST(test_rewind_clears_recent_summary) {
 }
 END_TEST
 
+/* Helper: add a loaded skill entry to an agent */
+static void add_skill(ik_agent_ctx_t *agent, const char *name, size_t load_position)
+{
+    size_t cap = agent->loaded_skill_count + 1;
+    agent->loaded_skills = talloc_realloc(agent, agent->loaded_skills,
+                                          ik_loaded_skill_t *, (unsigned int)cap);
+    ik_loaded_skill_t *skill = talloc_zero(agent, ik_loaded_skill_t);
+    skill->name = talloc_strdup(skill, name);
+    skill->content = talloc_strdup(skill, "skill content");
+    skill->load_position = load_position;
+    agent->loaded_skills[agent->loaded_skill_count] = skill;
+    agent->loaded_skill_count++;
+}
+
+/* ---- /clear: drops all loaded skills ---- */
+
+START_TEST(test_clear_drops_skills) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    add_skill(agent, "database", 0);
+    add_skill(agent, "style", 2);
+    ck_assert_uint_eq(agent->loaded_skill_count, 2);
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+
+    res = ik_cmd_clear(ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    ck_assert_uint_eq(agent->loaded_skill_count, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ---- /rewind: trims skills loaded after target ---- */
+
+START_TEST(test_rewind_trims_skills_after_target) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+
+    /* Mark at message_index=0 */
+    res = ik_mark_create(repl, "checkpoint");
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(agent->mark_count, 1);
+
+    /* Simulate adding messages */
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_USER, "hello");
+    ck_assert_ptr_nonnull(msg1);
+    res = ik_agent_add_message(agent, msg1);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(agent->message_count, 1);
+
+    /* skill loaded before mark (load_position=0, same as mark) */
+    add_skill(agent, "database", 0);
+    /* skill loaded after mark (load_position=1) */
+    add_skill(agent, "style", 1);
+    ck_assert_uint_eq(agent->loaded_skill_count, 2);
+
+    /* Rewind to the checkpoint (message_index=0) */
+    ik_mark_t *target = agent->marks[0];
+    res = ik_mark_rewind_to_mark(repl, target);
+    ck_assert(is_ok(&res));
+
+    /* "style" was loaded at position 1 >= 0, so it should be trimmed */
+    /* "database" was loaded at position 0 >= 0 (mark's message_index), also trimmed */
+    /* Both are >= target_mark->message_index (0), so both trimmed */
+    ck_assert_uint_eq(agent->loaded_skill_count, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ---- /rewind: retains skills loaded before target ---- */
+
+START_TEST(test_rewind_retains_skills_before_target) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+
+    /* Add two assistant messages (non-user role avoids token cache turn counting) */
+    ik_message_t *msg1 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "reply1");
+    ck_assert_ptr_nonnull(msg1);
+    res = ik_agent_add_message(agent, msg1);
+    ck_assert(is_ok(&res));
+
+    ik_message_t *msg2 = ik_message_create_text(ctx, IK_ROLE_ASSISTANT, "reply2");
+    ck_assert_ptr_nonnull(msg2);
+    res = ik_agent_add_message(agent, msg2);
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(agent->message_count, 2);
+
+    /* Mark at position 2 (after both messages) */
+    res = ik_mark_create(repl, "checkpoint");
+    ck_assert(is_ok(&res));
+    ck_assert_uint_eq(agent->mark_count, 1);
+    ck_assert_uint_eq(agent->marks[0]->message_index, 2);
+
+    /* Override mark to be at position 1 so skill at 0 is before it */
+    agent->marks[0]->message_index = 1;
+
+    /* Skill at position 0 (< 1): should be retained */
+    add_skill(agent, "database", 0);
+    /* Skill at position 1 (>= 1): should be trimmed */
+    add_skill(agent, "style", 1);
+    ck_assert_uint_eq(agent->loaded_skill_count, 2);
+
+    ik_mark_t *target = agent->marks[0];
+    res = ik_mark_rewind_to_mark(repl, target);
+    ck_assert(is_ok(&res));
+
+    /* "style" (position=1 >= 1) trimmed, "database" (position=0 < 1) retained */
+    ck_assert_uint_eq(agent->loaded_skill_count, 1);
+    ck_assert_str_eq(agent->loaded_skills[0]->name, "database");
+
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *commands_basic_suite(void)
 {
     Suite *s = suite_create("commands_basic");
@@ -260,6 +391,13 @@ static Suite *commands_basic_suite(void)
     tcase_add_unchecked_fixture(tc_rewind, suite_setup, NULL);
     tcase_add_test(tc_rewind, test_rewind_clears_recent_summary);
     suite_add_tcase(s, tc_rewind);
+
+    TCase *tc_skills = tcase_create("Skills");
+    tcase_add_unchecked_fixture(tc_skills, suite_setup, NULL);
+    tcase_add_test(tc_skills, test_clear_drops_skills);
+    tcase_add_test(tc_skills, test_rewind_trims_skills_after_target);
+    tcase_add_test(tc_skills, test_rewind_retains_skills_before_target);
+    suite_add_tcase(s, tc_skills);
 
     return s;
 }

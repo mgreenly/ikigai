@@ -5,9 +5,12 @@
 
 #include "apps/ikigai/bang_commands.h"
 
+#include "apps/ikigai/db/message.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/scrollback_utils.h"
+#include "apps/ikigai/shared.h"
+#include "apps/ikigai/token_cache.h"
 #include "shared/error.h"
 #include "shared/panic.h"
 
@@ -29,11 +32,72 @@ static res_t handle_load_(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
 static res_t handle_unload_(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
-    (void)args;
-    const char *msg = "!unload: not yet implemented";
-    ik_scrollback_append_line(repl->current->scrollback, msg, strlen(msg));
+    // Require a skill name
+    if (args == NULL) {
+        const char *usage = "Usage: !unload <skill-name>";
+        char *warn = ik_scrollback_format_warning(ctx, usage);
+        ik_scrollback_append_line(repl->current->scrollback, warn, strlen(warn));
+        talloc_free(warn);
+        return OK(NULL);
+    }
+
+    ik_agent_ctx_t *agent = repl->current;
+
+    // Find skill by name
+    size_t found_idx = agent->loaded_skill_count; // sentinel: not found
+    for (size_t i = 0; i < agent->loaded_skill_count; i++) {
+        if (strcmp(agent->loaded_skills[i]->name, args) == 0) {
+            found_idx = i;
+            break;
+        }
+    }
+
+    if (found_idx == agent->loaded_skill_count) {
+        // Not found: display warning, no DB event
+        char *text = talloc_asprintf(ctx, "Skill not loaded: %s", args);
+        if (!text) PANIC("OOM");  /* LCOV_EXCL_LINE */
+        char *warn = ik_scrollback_format_warning(ctx, text);
+        talloc_free(text);
+        ik_scrollback_append_line(repl->current->scrollback, warn, strlen(warn));
+        talloc_free(warn);
+        return OK(NULL);
+    }
+
+    // Free the entry and shift remaining entries down
+    talloc_free(agent->loaded_skills[found_idx]);
+    for (size_t i = found_idx; i + 1 < agent->loaded_skill_count; i++) {
+        agent->loaded_skills[i] = agent->loaded_skills[i + 1];
+    }
+    agent->loaded_skill_count--;
+
+    // Persist skill_unload event to database
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *data_json = talloc_asprintf(ctx, "{\"skill\":\"%s\"}", args);
+        if (!data_json) PANIC("OOM");  /* LCOV_EXCL_LINE */
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx,
+                                            repl->shared->session_id,
+                                            agent->uuid,
+                                            "skill_unload",
+                                            NULL,
+                                            data_json);
+        talloc_free(data_json);
+        if (is_err(&db_res)) {
+            talloc_free(db_res.err);
+        }
+    }
+
+    // Invalidate token cache so system prompt is recounted
+    if (agent->token_cache != NULL) {
+        ik_token_cache_invalidate_system(agent->token_cache);
+    }
+
+    // Confirm to scrollback
+    char *confirm = talloc_asprintf(ctx, "Skill unloaded: %s", args);
+    if (!confirm) PANIC("OOM");  /* LCOV_EXCL_LINE */
+    ik_scrollback_append_line(repl->current->scrollback, confirm, strlen(confirm));
+    talloc_free(confirm);
+
     return OK(NULL);
-    (void)ctx;
 }
 
 res_t ik_bang_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
