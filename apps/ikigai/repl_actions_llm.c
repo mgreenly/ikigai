@@ -192,6 +192,117 @@ void send_to_llm_for_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent, const cha
 }
 
 /**
+ * @brief Send bang command resolved content to LLM for specific agent
+ *
+ * Like send_to_llm_for_agent() but records the DB event as "bang_command"
+ * with data_json containing the original command string.
+ *
+ * @param repl           REPL context
+ * @param agent          Target agent
+ * @param resolved_text  Fully resolved template content (sent to LLM)
+ * @param original_input Original user input e.g. "!greet Alice" (stored in data_json)
+ */
+void send_to_llm_for_agent_bang(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent,
+                                const char *resolved_text, const char *original_input)
+{
+    assert(repl != NULL);           // LCOV_EXCL_BR_LINE
+    assert(agent != NULL);          // LCOV_EXCL_BR_LINE
+    assert(resolved_text != NULL);  // LCOV_EXCL_BR_LINE
+    assert(original_input != NULL); // LCOV_EXCL_BR_LINE
+
+    if (agent->model == NULL || strlen(agent->model) == 0) {
+        const char *err_msg = "Error: No model configured";
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        return;
+    }
+
+    ik_message_t *user_msg = ik_message_create_text(agent, IK_ROLE_USER, resolved_text);
+    // Override kind to preserve bang_command distinction for rendering
+    talloc_free(user_msg->kind);
+    user_msg->kind = talloc_strdup(user_msg, "bang_command");
+    if (!user_msg->kind) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_agent_add_message(agent, user_msg);
+    if (is_err(&result)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+
+    if (agent->token_cache != NULL) {
+        ik_token_cache_add_turn(agent->token_cache);
+    }
+
+    // Persist as bang_command with original input in data_json
+    if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
+        char *data_json = talloc_asprintf(repl, "{\"command\":\"%s\"}", original_input);
+        if (!data_json) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        res_t db_res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
+                                            agent->uuid, "bang_command", resolved_text, data_json);
+        if (is_err(&db_res)) {
+            yyjson_mut_doc *log_doc = ik_log_create();  // LCOV_EXCL_LINE
+            yyjson_mut_val *log_root = yyjson_mut_doc_get_root(log_doc);  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "event", "db_persist_failed");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "context", "send_to_llm_bang");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "operation", "persist_bang_command");  // LCOV_EXCL_LINE
+            yyjson_mut_obj_add_str(log_doc, log_root, "error", error_message(db_res.err));  // LCOV_EXCL_LINE
+            ik_log_warn_json(log_doc);  // LCOV_EXCL_LINE
+            talloc_free(db_res.err);  // LCOV_EXCL_LINE
+        }
+        talloc_free(data_json);
+    }
+
+    if (agent->assistant_response != NULL) {
+        talloc_free(agent->assistant_response);
+        agent->assistant_response = NULL;
+    }
+    if (agent->streaming_line_buffer != NULL) {
+        talloc_free(agent->streaming_line_buffer);
+        agent->streaming_line_buffer = NULL;
+    }
+
+    agent->tool_iteration_count = 0;
+
+    if (repl->shared->db_ctx != NULL) {
+        res_t idle_res = ik_db_agent_set_idle(repl->shared->db_ctx, agent->uuid, false);
+        if (is_err(&idle_res)) {  // LCOV_EXCL_BR_LINE
+            talloc_free(idle_res.err);  // LCOV_EXCL_LINE
+        }
+    }
+
+    ik_agent_transition_to_waiting_for_llm(agent);
+
+    ik_provider_t *provider = NULL;
+    result = ik_agent_get_provider(agent, &provider);
+    if (is_err(&result)) {
+        const char *err_msg = error_message(result.err);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
+        talloc_free(result.err);
+        return;
+    }
+
+    ik_request_t *req = NULL;
+    result = ik_request_build_from_conversation(agent, agent, agent->shared->tool_registry, &req);
+    if (is_err(&result)) {
+        const char *err_msg = error_message(result.err);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
+        talloc_free(result.err);
+        return;
+    }
+
+    result = provider->vt->start_stream(provider->ctx, req,
+                                        ik_repl_stream_callback, agent,
+                                        ik_repl_completion_callback, agent);
+    if (is_err(&result)) {
+        const char *err_msg = error_message(result.err);
+        ik_scrollback_append_line(agent->scrollback, err_msg, strlen(err_msg));
+        ik_agent_transition_to_idle(agent);
+        talloc_free(result.err);
+    } else {
+        agent->curl_still_running = 1;
+    }
+}
+
+/**
  * @brief Send user message to LLM (uses current agent)
  *
  * @param repl REPL context

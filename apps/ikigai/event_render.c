@@ -71,32 +71,24 @@ static char *apply_style(TALLOC_CTX *ctx, const char *content, uint8_t color)
     return result;
 }
 
-// Helper: extract label from data_json
-static char *extract_label_from_json(TALLOC_CTX *ctx, const char *data_json)
+// Helper: extract a string field from data_json by key
+static char *extract_json_str(TALLOC_CTX *ctx, const char *data_json, const char *key)
 {
-    if (data_json == NULL) {
-        return NULL;
-    }
-
+    if (data_json == NULL) return NULL;
     yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
-    if (doc == NULL) {
-        return NULL;
-    }
-
+    if (doc == NULL) return NULL;
     yyjson_val *root = yyjson_doc_get_root_(doc);
-    yyjson_val *label_val = yyjson_obj_get_(root, "label");
-
-    char *label = NULL;
-    if (label_val != NULL && yyjson_is_str(label_val)) {
-        const char *label_str = yyjson_get_str_(label_val);
-        if (label_str != NULL && label_str[0] != '\0') {
-            label = talloc_strdup(ctx, label_str);
-            if (label == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    yyjson_val *val = yyjson_obj_get_(root, key);
+    char *str = NULL;
+    if (val != NULL && yyjson_is_str(val)) {
+        const char *s = yyjson_get_str_(val);
+        if (s != NULL && s[0] != '\0') {
+            str = talloc_strdup(ctx, s);
+            if (str == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         }
     }
-
     yyjson_doc_free(doc);
-    return label;
+    return str;
 }
 
 // Helper: render mark event
@@ -105,7 +97,7 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     TALLOC_CTX *tmp = tmp_ctx_create();
 
     // Extract label from data_json
-    char *label = extract_label_from_json(tmp, data_json);
+    char *label = extract_json_str(tmp, data_json, "label");
 
     // Format as "/mark LABEL" or "/mark" if no label
     char *text;
@@ -135,17 +127,7 @@ static res_t render_skill_event(ik_scrollback_t *scrollback, const char *kind, c
 {
     TALLOC_CTX *tmp = tmp_ctx_create();
 
-    // Extract skill name from data_json
-    const char *skill_name = NULL;
-    yyjson_doc *doc = (data_json != NULL) ? yyjson_read_(data_json, strlen(data_json), 0) : NULL;
-    if (doc != NULL) {
-        yyjson_val *root = yyjson_doc_get_root_(doc);
-        yyjson_val *skill_val = yyjson_obj_get_(root, "skill");
-        if (skill_val != NULL && yyjson_is_str(skill_val)) {
-            skill_name = yyjson_get_str_(skill_val);
-        }
-    }
-
+    char *skill_name = extract_json_str(tmp, data_json, "skill");
     const char *verb = (strcmp(kind, "skill_load") == 0) ? "load" : "unload";
     char *text = (skill_name != NULL && skill_name[0] != '\0')
         ? talloc_asprintf(tmp, "/%s %s", verb, skill_name)
@@ -153,7 +135,6 @@ static res_t render_skill_event(ik_scrollback_t *scrollback, const char *kind, c
     if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     res_t result = ik_scrollback_append_line_(scrollback, text, strlen(text));
-    if (doc != NULL) yyjson_doc_free(doc);
     if (is_err(&result)) {
         talloc_free(tmp);
         return result;
@@ -169,23 +150,7 @@ static res_t render_command_event(ik_scrollback_t *scrollback, const char *conte
 {
     TALLOC_CTX *tmp = tmp_ctx_create();
 
-    // Extract echo from data_json
-    char *echo = NULL;
-    if (data_json != NULL) {
-        yyjson_doc *doc = yyjson_read_(data_json, strlen(data_json), 0);
-        if (doc != NULL) {
-            yyjson_val *root = yyjson_doc_get_root_(doc);
-            yyjson_val *echo_val = yyjson_obj_get_(root, "echo");
-            if (echo_val != NULL && yyjson_is_str(echo_val)) {
-                const char *echo_str = yyjson_get_str_(echo_val);
-                if (echo_str != NULL && echo_str[0] != '\0') {
-                    echo = talloc_strdup(tmp, echo_str);
-                    if (echo == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-                }
-            }
-            yyjson_doc_free(doc);
-        }
-    }
+    char *echo = extract_json_str(tmp, data_json, "echo");
 
     // Render echo in gray if present
     if (echo != NULL) {
@@ -333,6 +298,19 @@ static res_t render_content_event(ik_scrollback_t *scrollback, const char *conte
     return result;
 }
 
+// Helper: render bang_command event
+static res_t render_bang_command_event(ik_scrollback_t *scrollback, const char *content, const char *data_json)
+{
+    TALLOC_CTX *tmp = tmp_ctx_create();
+    char *display = extract_json_str(tmp, data_json, "command");
+    int32_t color_code = ik_output_color(IK_OUTPUT_USER_INPUT);
+    uint8_t color = (color_code >= 0) ? (uint8_t)color_code : 0; // LCOV_EXCL_BR_LINE
+    res_t result = render_content_event(scrollback, display ? display : content,
+                                        color, ik_output_prefix(IK_OUTPUT_USER_INPUT));
+    talloc_free(tmp);
+    return result;
+}
+
 res_t ik_event_render(ik_scrollback_t *scrollback,
                       const char *kind,
                       const char *content,
@@ -380,6 +358,10 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         strcmp(kind, "user") == 0 ||
         strcmp(kind, "fork") == 0) {
         return render_content_event(scrollback, content, color, prefix);
+    }
+
+    if (strcmp(kind, "bang_command") == 0) {
+        return render_bang_command_event(scrollback, content, data_json);
     }
 
     if (strcmp(kind, "tool_call") == 0) {

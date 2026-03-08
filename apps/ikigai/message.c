@@ -177,6 +177,19 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         return OK(*out);
     }
 
+    // Handle bang_command messages - send resolved content as user message
+    if (strcmp(db_msg->kind, "bang_command") == 0) {
+        if (db_msg->content == NULL) {
+            return ERR(ctx, PARSE, "Bang command message missing content");
+        }
+        *out = ik_message_create_text(ctx, IK_ROLE_USER, db_msg->content);
+        // Override kind to preserve bang_command distinction
+        talloc_free((*out)->kind);
+        (*out)->kind = talloc_strdup(*out, "bang_command");
+        if (!(*out)->kind) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        return OK(*out);
+    }
+
     // Handle assistant messages
     if (strcmp(db_msg->kind, "assistant") == 0) {
         if (db_msg->content == NULL) {

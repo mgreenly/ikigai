@@ -47,3 +47,9 @@ typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 // Send user message to LLM for specific agent
 void send_to_llm_for_agent(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent, const char *message_text);
+
+// Send bang command resolved content to LLM, recording DB event as "bang_command"
+// resolved_text: fully substituted and template-processed content (sent to LLM)
+// original_input: raw user input e.g. "!greet Alice" (stored in data_json)
+void send_to_llm_for_agent_bang(ik_repl_ctx_t *repl, ik_agent_ctx_t *agent,
+                                const char *resolved_text, const char *original_input);

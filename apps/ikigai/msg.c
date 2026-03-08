@@ -22,7 +22,8 @@ bool ik_msg_is_conversation_kind(const char *kind)
         strcmp(kind, "assistant") == 0 ||
         strcmp(kind, "tool_call") == 0 ||
         strcmp(kind, "tool_result") == 0 ||
-        strcmp(kind, "tool") == 0) {  /* Legacy/wire-format tool messages */
+        strcmp(kind, "tool") == 0 ||  /* Legacy/wire-format tool messages */
+        strcmp(kind, "bang_command") == 0) {
         return true;
     }
 
