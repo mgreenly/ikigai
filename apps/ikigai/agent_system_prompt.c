@@ -73,6 +73,22 @@ static char *process_pinned_content(ik_agent_ctx_t *agent, const char *content)
  * Public API
  * ================================================================ */
 
+/* Append loaded skill content to a base prompt string for token counting. */
+static char *append_loaded_skills_(ik_agent_ctx_t *agent, char *base)
+{
+    char *result = base;
+    for (size_t i = 0; i < agent->loaded_skill_count; i++) {
+        if (agent->loaded_skills[i]->content != NULL) {
+            char *extended = talloc_asprintf(agent, "%s%s", result,
+                                             agent->loaded_skills[i]->content);
+            if (extended == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+            talloc_free(result);
+            result = extended;
+        }
+    }
+    return result;
+}
+
 res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
 {
     assert(agent != NULL);  // LCOV_EXCL_BR_LINE
@@ -101,7 +117,7 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
         }
 
         if (strlen(assembled) > 0) {
-            *out = assembled;
+            *out = append_loaded_skills_(agent, assembled);
             return OK(*out);
         }
         talloc_free(assembled);
@@ -118,8 +134,9 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
         talloc_free(prompt_path);
 
         if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
-            *out = process_pinned_content(agent, content);
+            char *base = process_pinned_content(agent, content);
             talloc_free(content);
+            *out = append_loaded_skills_(agent, base);
             return OK(*out);
         }
         if (content != NULL) {
@@ -130,13 +147,15 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
     // Priority 3: Config fallback
     if (agent->shared != NULL && agent->shared->cfg != NULL &&
         agent->shared->cfg->openai_system_message != NULL) {
-        *out = process_pinned_content(agent, agent->shared->cfg->openai_system_message);
+        char *base = process_pinned_content(agent, agent->shared->cfg->openai_system_message);
+        *out = append_loaded_skills_(agent, base);
         return OK(*out);
     }
 
     // Priority 4: Hardcoded default
-    *out = talloc_strdup(agent, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
-    if (*out == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    char *base = talloc_strdup(agent, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    if (base == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    *out = append_loaded_skills_(agent, base);
     return OK(*out);
 }
 
@@ -197,6 +216,14 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
                 talloc_free(processed);
                 if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
             }
+        }
+    }
+
+    // Loaded skills: each as a separate cacheable block, after pinned docs
+    for (size_t i = 0; i < agent->loaded_skill_count; i++) {
+        if (agent->loaded_skills[i]->content != NULL) {
+            res = ik_request_add_system_block(req, agent->loaded_skills[i]->content, true);
+            if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
         }
     }
 
