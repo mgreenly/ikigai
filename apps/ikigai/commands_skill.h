@@ -10,6 +10,7 @@
 
 // Forward declarations
 typedef struct ik_repl_ctx_t ik_repl_ctx_t;
+typedef struct ik_agent_ctx ik_agent_ctx_t;
 
 /**
  * Load command handler - loads a skill into the agent context
@@ -40,5 +41,30 @@ res_t ik_cmd_unload(void *ctx, ik_repl_ctx_t *repl, const char *args);
  * @return OK on success, ERR on failure
  */
 res_t ik_cmd_skills(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
+/**
+ * Skillset command handler - loads a skillset (preloads skills, populates catalog)
+ *
+ * @param ctx Parent context for talloc allocations
+ * @param repl REPL context
+ * @param args Skillset name
+ * @return OK on success, ERR on failure
+ */
+res_t ik_cmd_skillset(void *ctx, ik_repl_ctx_t *repl, const char *args);
+
+/**
+ * Load a single skill by name into the agent (no positional args).
+ *
+ * Reads the skill file, applies template processing, stores in loaded_skills[],
+ * and persists a skill_load DB event. Used internally by /skillset.
+ *
+ * @param ctx    Talloc parent context
+ * @param repl   REPL context
+ * @param agent  Agent to load the skill into
+ * @param skill_name Skill name (e.g., "database")
+ * @return true on success, false if skill file not found
+ */
+bool ik_skill_load_by_name(void *ctx, ik_repl_ctx_t *repl, ik_agent_ctx_t *agent,
+                           const char *skill_name);
 
 #endif // IK_COMMANDS_SKILL_H

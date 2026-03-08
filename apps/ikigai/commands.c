@@ -74,6 +74,7 @@ static const ik_command_t commands[] = {
     {"load", "Load a skill (usage: /load <skill-name> [args...])", ik_cmd_load},
     {"unload", "Unload a skill (usage: /unload <skill-name>)", ik_cmd_unload},
     {"skills", "List loaded skills", ik_cmd_skills},
+    {"skillset", "Load a skillset (usage: /skillset <name>)", ik_cmd_skillset},
     {"exit", "Exit the application", ik_cmd_exit},
 };
 

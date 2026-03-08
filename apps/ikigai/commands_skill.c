@@ -367,3 +367,35 @@ res_t ik_cmd_unload(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     return OK(NULL);
 }
+
+/* Load a single named skill without positional args (used by /skillset). */
+bool ik_skill_load_by_name(void *ctx, ik_repl_ctx_t *repl, ik_agent_ctx_t *agent,
+                           const char *skill_name)
+{
+    char *uri = talloc_asprintf(ctx, "ik://skills/%s/SKILL.md", skill_name);
+    if (!uri) PANIC("OOM");  /* LCOV_EXCL_LINE */
+
+    char *file_content = NULL;
+    res_t read_res = ik_doc_cache_get(agent->doc_cache, uri, &file_content);
+    if (is_err(&read_res) || file_content == NULL) {
+        if (is_err(&read_res)) talloc_free(read_res.err);
+        talloc_free(uri);
+        return false;
+    }
+    talloc_free(uri);
+
+    ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;
+    ik_template_result_t *template_result = NULL;
+    res_t template_res = ik_template_process(ctx, file_content, agent, config, &template_result);
+    const char *resolved_content = file_content;
+    if (is_ok(&template_res) && template_result != NULL) {
+        resolved_content = template_result->processed;
+    }
+
+    store_loaded_skill_(agent, skill_name, resolved_content);
+    persist_skill_load_event_(ctx, repl, agent, skill_name, NULL, 0, resolved_content);
+
+    if (template_result != NULL) talloc_free(template_result);
+
+    return true;
+}
