@@ -294,6 +294,50 @@ START_TEST(test_render_mark_label_not_string) {
 }
 
 END_TEST
+// Test: Render skillset event with name from data_json
+START_TEST(test_render_skillset_event) {
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    res_t result = ik_event_render(scrollback, "skillset", NULL,
+                                   "{\"skillset\":\"developer\",\"catalog_entries\":[]}", false);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
+
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
+    ck_assert_ptr_nonnull(strstr(text, "/skillset developer"));
+
+    // Second line should be blank
+    ik_scrollback_get_line_text(scrollback, 1, &text, &length);
+    ck_assert_uint_eq(length, 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: Render skillset event with NULL data_json
+START_TEST(test_render_skillset_event_null_json) {
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    res_t result = ik_event_render(scrollback, "skillset", NULL, NULL, false);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_eq(ik_scrollback_get_line_count(scrollback), 2);
+
+    const char *text;
+    size_t length;
+    ik_scrollback_get_line_text(scrollback, 0, &text, &length);
+    ck_assert_uint_eq(length, 9);
+    ck_assert_mem_eq(text, "/skillset", 9);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test: NULL kind returns error
 START_TEST(test_render_null_kind_returns_error) {
     void *ctx = talloc_new(NULL);
@@ -331,6 +375,8 @@ static Suite *event_render_basic_suite(void)
     tcase_add_test(tc_render, test_render_unknown_kind);
     tcase_add_test(tc_render, test_render_mark_invalid_json);
     tcase_add_test(tc_render, test_render_mark_label_not_string);
+    tcase_add_test(tc_render, test_render_skillset_event);
+    tcase_add_test(tc_render, test_render_skillset_event_null_json);
     suite_add_tcase(s, tc_render);
 
     TCase *tc_errors = tcase_create("Error Handling");

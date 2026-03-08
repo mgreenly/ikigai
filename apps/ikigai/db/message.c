@@ -33,6 +33,7 @@ static const char *VALID_KINDS[] = {
     "interrupted",
     "skill_load",
     "skill_unload",
+    "skillset",
     "bang_command",
     NULL
 };

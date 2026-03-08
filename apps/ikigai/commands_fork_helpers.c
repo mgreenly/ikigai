@@ -218,21 +218,48 @@ res_t ik_commands_insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
 
+    // Build skillset_catalog JSON array from child's catalog (inherited or empty)
+    yyjson_mut_doc *catalog_doc = yyjson_mut_doc_new(NULL);
+    if (catalog_doc == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    yyjson_mut_val *catalog_arr = yyjson_mut_arr(catalog_doc);
+    yyjson_mut_doc_set_root(catalog_doc, catalog_arr);
+    for (size_t i = 0; i < child->skillset_catalog_count; i++) {
+        ik_skillset_catalog_entry_t *ce = child->skillset_catalog[i];
+        yyjson_mut_val *obj = yyjson_mut_obj(catalog_doc);
+        yyjson_mut_obj_add_str(catalog_doc, obj, "skill", ce->skill_name ? ce->skill_name : "");
+        yyjson_mut_obj_add_str(catalog_doc, obj, "description", ce->description ? ce->description : "");
+        yyjson_mut_arr_append(catalog_arr, obj);
+    }
+    size_t catalog_json_len = 0;
+    char *catalog_json_raw = yyjson_mut_write(catalog_doc, 0, &catalog_json_len);
+    yyjson_mut_doc_free(catalog_doc);
+    char *final_catalog_json = catalog_json_raw
+        ? talloc_strndup(ctx, catalog_json_raw, catalog_json_len)
+        : talloc_strdup(ctx, "[]");
+    free(catalog_json_raw);
+    if (final_catalog_json == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+
     char *child_data = talloc_asprintf(ctx,
                                        "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64
                                        ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s"
-                                       ",\"loaded_skills\":%s}",
+                                       ",\"loaded_skills\":%s,\"skillset_catalog\":%s}",
                                        parent->uuid,
                                        fork_message_id,
                                        final_pins_json,
                                        final_toolset_json,
-                                       final_skills_json);
+                                       final_skills_json,
+                                       final_catalog_json);
     if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
     talloc_free(final_pins_json);
     talloc_free(final_toolset_json);
     talloc_free(final_skills_json);
+    talloc_free(final_catalog_json);
 
     res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                child->uuid, "fork", child_content, child_data);

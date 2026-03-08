@@ -82,6 +82,16 @@ static void replay_trim_skills_at(ik_agent_ctx_t *agent, size_t target_conv_coun
     }
 }
 
+// Helper: trim skillset catalog entries loaded at or after target_conv_count (rewind side effect)
+static void replay_trim_catalog_at(ik_agent_ctx_t *agent, size_t target_conv_count)
+{
+    while (agent->skillset_catalog_count > 0 &&
+           agent->skillset_catalog[agent->skillset_catalog_count - 1]->load_position >= target_conv_count) {
+        agent->skillset_catalog_count--;
+        talloc_free(agent->skillset_catalog[agent->skillset_catalog_count]);
+    }
+}
+
 // Helper: parse target_message_id from rewind event data_json
 static int64_t parse_rewind_target_id(const char *data_json)
 {
@@ -140,12 +150,18 @@ void ik_agent_restore_populate_scrollback(
             ik_agent_restore_replay_skill_unload(agent, msg);
         }
 
-        // Replay rewind: trim skills loaded after the rewind target position
+        // Replay skillset: populate skillset_catalog[] at current conversation position
+        if (msg->kind != NULL && strcmp(msg->kind, "skillset") == 0) {
+            ik_agent_restore_replay_skillset(agent, msg, running_conv_count);
+        }
+
+        // Replay rewind: trim skills and catalog entries loaded after the rewind target position
         if (msg->kind != NULL && strcmp(msg->kind, "rewind") == 0) {
             int64_t target_id = parse_rewind_target_id(msg->data_json);
             if (target_id >= 0) {
                 size_t target_conv_count = replay_conv_count_before_id(replay_ctx, target_id);
                 replay_trim_skills_at(agent, target_conv_count);
+                replay_trim_catalog_at(agent, target_conv_count);
             }
         }
 

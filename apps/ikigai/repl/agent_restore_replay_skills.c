@@ -70,6 +70,28 @@ static void skill_unload_entry(ik_agent_ctx_t *agent, const char *skill_name)
     agent->loaded_skill_count--;
 }
 
+// Public: add a catalog entry directly (used by fork event replay and skillset replay)
+void ik_agent_restore_replay_catalog_entry_add(ik_agent_ctx_t *agent, const char *skill_name,
+                                               const char *description, size_t conv_count)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    if (skill_name == NULL) return;
+
+    ik_skillset_catalog_entry_t **new_catalog = talloc_realloc(
+        agent, agent->skillset_catalog, ik_skillset_catalog_entry_t *,
+        (unsigned int)(agent->skillset_catalog_count + 1));
+    if (new_catalog == NULL) return;  // LCOV_EXCL_LINE
+    agent->skillset_catalog = new_catalog;
+
+    ik_skillset_catalog_entry_t *e = talloc_zero(agent, ik_skillset_catalog_entry_t);
+    if (e == NULL) return;  // LCOV_EXCL_LINE
+    e->skill_name = talloc_strdup(e, skill_name);
+    e->description = talloc_strdup(e, description ? description : "");
+    e->load_position = conv_count;
+    agent->skillset_catalog[agent->skillset_catalog_count] = e;
+    agent->skillset_catalog_count++;
+}
+
 // Public: add skill by name+content directly (used by fork event replay)
 void ik_agent_restore_replay_skill_load_named(ik_agent_ctx_t *agent, const char *skill_name,
                                               const char *content, size_t conv_count)
@@ -96,6 +118,42 @@ void ik_agent_restore_replay_skill_load(ik_agent_ctx_t *agent, ik_msg_t *msg, si
         const char *skill_name = yyjson_get_str(skill_val);
         const char *content = yyjson_get_str(content_val);
         skill_load_entry(agent, skill_name, content, conv_count);
+    }
+
+    yyjson_doc_free(doc);
+}
+
+// Public: replay skillset event - populate skillset_catalog[] from catalog_entries
+void ik_agent_restore_replay_skillset(ik_agent_ctx_t *agent, ik_msg_t *msg, size_t conv_count)
+{
+    assert(agent != NULL);  // LCOV_EXCL_BR_LINE
+    assert(msg != NULL);    // LCOV_EXCL_BR_LINE
+
+    if (msg->data_json == NULL) return;
+
+    yyjson_doc *doc = yyjson_read(msg->data_json, strlen(msg->data_json), 0);
+    if (doc == NULL) return;
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    if (root == NULL) {
+        yyjson_doc_free(doc);
+        return;
+    }
+
+    yyjson_val *entries_val = yyjson_obj_get_(root, "catalog_entries");
+    if (!yyjson_is_arr(entries_val)) {
+        yyjson_doc_free(doc);
+        return;
+    }
+
+    size_t idx = 0;
+    size_t max_idx = 0;
+    yyjson_val *entry_val = NULL;
+    yyjson_arr_foreach(entries_val, idx, max_idx, entry_val) {  // LCOV_EXCL_BR_LINE
+        if (!yyjson_is_obj(entry_val)) continue;  // LCOV_EXCL_BR_LINE
+        const char *sn = yyjson_get_str(yyjson_obj_get_(entry_val, "skill"));
+        const char *desc = yyjson_get_str(yyjson_obj_get_(entry_val, "description"));
+        ik_agent_restore_replay_catalog_entry_add(agent, sn, desc, conv_count);
     }
 
     yyjson_doc_free(doc);

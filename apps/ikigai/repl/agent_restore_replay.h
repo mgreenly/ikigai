@@ -82,6 +82,26 @@ void ik_agent_restore_replay_skill_load(ik_agent_ctx_t *agent, ik_msg_t *msg, si
 void ik_agent_restore_replay_skill_unload(ik_agent_ctx_t *agent, ik_msg_t *msg);
 
 /**
+ * Replay skillset event: populate skillset_catalog[] from catalog_entries
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param msg Message containing skillset event (must not be NULL)
+ * @param conv_count Conversation message count at time of this event
+ */
+void ik_agent_restore_replay_skillset(ik_agent_ctx_t *agent, ik_msg_t *msg, size_t conv_count);
+
+/**
+ * Add a single catalog entry to skillset_catalog[] (used by fork and skillset replay)
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param skill_name Skill name (may be NULL, no-op)
+ * @param description Short description (may be NULL, stored as empty string)
+ * @param conv_count Conversation message count at time of this event
+ */
+void ik_agent_restore_replay_catalog_entry_add(ik_agent_ctx_t *agent, const char *skill_name,
+                                               const char *description, size_t conv_count);
+
+/**
  * Replay all pin/unpin commands for an agent (independent of clear boundaries)
  *
  * Queries the agent's fork event to extract initial pinned_paths snapshot,

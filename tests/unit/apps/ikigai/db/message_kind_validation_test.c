@@ -128,6 +128,13 @@ START_TEST(test_valid_skill_unload) {
 
 END_TEST
 
+START_TEST(test_valid_skillset) {
+    bool result = ik_db_message_is_valid_kind("skillset");
+    ck_assert(result);
+}
+
+END_TEST
+
 // Test: Case sensitivity
 START_TEST(test_kind_case_sensitive) {
     // Uppercase should be invalid
@@ -167,6 +174,7 @@ static Suite *message_kind_validation_suite(void)
     tcase_add_test(tc_valid, test_valid_interrupted);
     tcase_add_test(tc_valid, test_valid_skill_load);
     tcase_add_test(tc_valid, test_valid_skill_unload);
+    tcase_add_test(tc_valid, test_valid_skillset);
     suite_add_tcase(s, tc_valid);
 
     return s;

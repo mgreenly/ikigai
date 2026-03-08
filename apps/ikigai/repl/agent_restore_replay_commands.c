@@ -21,6 +21,7 @@
 static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root);
 static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val);
 static void replay_fork_skills(ik_agent_ctx_t *agent, yyjson_val *skills_val);
+static void replay_fork_catalog(ik_agent_ctx_t *agent, yyjson_val *catalog_val);
 static void replay_model_command(ik_agent_ctx_t *agent, const char *args, ik_logger_t *logger);
 static void replay_pin_command(ik_agent_ctx_t *agent, const char *args);
 static void replay_unpin_command(ik_agent_ctx_t *agent, const char *args);
@@ -68,6 +69,9 @@ static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root)
 
     yyjson_val *skills_val = yyjson_obj_get_(root, "loaded_skills");
     replay_fork_skills(agent, skills_val);
+
+    yyjson_val *catalog_val = yyjson_obj_get_(root, "skillset_catalog");
+    replay_fork_catalog(agent, catalog_val);
 }
 
 // Helper: Replay loaded_skills from fork event snapshot
@@ -106,6 +110,32 @@ static void replay_fork_skills(ik_agent_ctx_t *agent, yyjson_val *skills_val)
         const char *content = yyjson_get_str(content_val);
         if (skill_name == NULL) continue;     // LCOV_EXCL_BR_LINE
         ik_agent_restore_replay_skill_load_named(agent, skill_name, content, 0);
+    }
+}
+
+// Helper: Replay skillset_catalog from fork event snapshot
+static void replay_fork_catalog(ik_agent_ctx_t *agent, yyjson_val *catalog_val)
+{
+    if (!yyjson_is_arr(catalog_val)) return;
+
+    for (size_t i = 0; i < agent->skillset_catalog_count; i++) {
+        talloc_free(agent->skillset_catalog[i]);
+    }
+    agent->skillset_catalog_count = 0;
+    if (agent->skillset_catalog != NULL) {
+        talloc_free(agent->skillset_catalog);
+        agent->skillset_catalog = NULL;
+    }
+
+    size_t idx = 0;
+    size_t max_idx = 0;
+    yyjson_val *entry_val = NULL;
+    yyjson_arr_foreach(catalog_val, idx, max_idx, entry_val) {     // LCOV_EXCL_BR_LINE
+        if (!yyjson_is_obj(entry_val)) continue;     // LCOV_EXCL_BR_LINE
+        const char *sn = yyjson_get_str(yyjson_obj_get_(entry_val, "skill"));
+        const char *desc = yyjson_get_str(yyjson_obj_get_(entry_val, "description"));
+        if (sn == NULL) continue;     // LCOV_EXCL_BR_LINE
+        ik_agent_restore_replay_catalog_entry_add(agent, sn, desc, 0);
     }
 }
 

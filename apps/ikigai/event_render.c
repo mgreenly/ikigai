@@ -122,15 +122,17 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     return result;
 }
 
-// Helper: render skill_load or skill_unload event
+// Helper: render skill_load, skill_unload, or skillset event
 static res_t render_skill_event(ik_scrollback_t *scrollback, const char *kind, const char *data_json)
 {
     TALLOC_CTX *tmp = tmp_ctx_create();
 
-    char *skill_name = extract_json_str(tmp, data_json, "skill");
-    const char *verb = (strcmp(kind, "skill_load") == 0) ? "load" : "unload";
-    char *text = (skill_name != NULL && skill_name[0] != '\0')
-        ? talloc_asprintf(tmp, "/%s %s", verb, skill_name)
+    bool is_skillset = (strcmp(kind, "skillset") == 0);
+    char *name = extract_json_str(tmp, data_json, is_skillset ? "skillset" : "skill");
+    const char *verb = is_skillset ? "skillset"
+                     : (strcmp(kind, "skill_load") == 0) ? "load" : "unload";
+    char *text = (name != NULL && name[0] != '\0')
+        ? talloc_asprintf(tmp, "/%s %s", verb, name)
         : talloc_asprintf(tmp, "/%s", verb);
     if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
@@ -386,7 +388,8 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
         return render_command_event(scrollback, content, data_json);
     }
 
-    if (strcmp(kind, "skill_load") == 0 || strcmp(kind, "skill_unload") == 0) {
+    if (strcmp(kind, "skill_load") == 0 || strcmp(kind, "skill_unload") == 0 ||
+        strcmp(kind, "skillset") == 0) {
         return render_skill_event(scrollback, kind, data_json);
     }
 
