@@ -33,8 +33,8 @@ static void warn_(void *ctx, ik_agent_ctx_t *agent, const char *text)
 }
 
 /* Add a catalog entry to agent->skillset_catalog[]. */
-static void store_catalog_entry_(ik_agent_ctx_t *agent, const char *skill_name,
-                                 const char *description)
+void ik_skillset_store_catalog_entry(ik_agent_ctx_t *agent, const char *skill_name,
+                                     const char *description)
 {
     ik_skillset_catalog_entry_t **new_catalog = talloc_realloc(
         agent, agent->skillset_catalog, ik_skillset_catalog_entry_t *,
@@ -132,7 +132,7 @@ static size_t add_catalog_entries_(ik_agent_ctx_t *agent,
         const char *sn = yyjson_get_str(yyjson_obj_get(entry, "skill"));
         const char *desc = yyjson_get_str(yyjson_obj_get(entry, "description"));
         if (sn == NULL) continue;  /* LCOV_EXCL_BR_LINE */
-        store_catalog_entry_(agent, sn, desc);
+        ik_skillset_store_catalog_entry(agent, sn, desc);
 
         yyjson_mut_val *e_obj = yyjson_mut_obj(out_doc);
         yyjson_mut_obj_add_str(out_doc, e_obj, "skill", sn);

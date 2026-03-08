@@ -6,6 +6,7 @@
 #include "apps/ikigai/internal_tools.h"
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/internal_tool_skill.h"
 #include "apps/ikigai/commands.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/connection.h"
@@ -358,4 +359,7 @@ void ik_internal_tools_register(ik_tool_registry_t *registry)
 
     // Clean up temporary schema buffers (docs are now owned by registry)
     talloc_free(tmp_ctx);
+
+    // Register skill management tools (schemas defined in internal_tool_skill_register.c)
+    ik_skill_tools_register(registry);
 }

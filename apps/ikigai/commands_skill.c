@@ -122,8 +122,8 @@ static char **parse_pos_args_(TALLOC_CTX *ctx, const char *rest, size_t *out_cou
 }
 
 /* Add or replace a skill entry in agent->loaded_skills[]. */
-static void store_loaded_skill_(ik_agent_ctx_t *agent, const char *skill_name,
-                                const char *content)
+void ik_skill_store_loaded(ik_agent_ctx_t *agent, const char *skill_name,
+                           const char *content)
 {
     for (size_t i = 0; i < agent->loaded_skill_count; i++) {
         if (strcmp(agent->loaded_skills[i]->name, skill_name) == 0) {
@@ -257,7 +257,7 @@ res_t ik_cmd_load(void *ctx, ik_repl_ctx_t *repl, const char *args)
         resolved_content = template_result->processed;
     }
 
-    store_loaded_skill_(agent, skill_name, resolved_content);
+    ik_skill_store_loaded(agent, skill_name, resolved_content);
     persist_skill_load_event_(ctx, repl, agent, skill_name, pos_args, pos_arg_count,
                               resolved_content);
 
@@ -392,7 +392,7 @@ bool ik_skill_load_by_name(void *ctx, ik_repl_ctx_t *repl, ik_agent_ctx_t *agent
         resolved_content = template_result->processed;
     }
 
-    store_loaded_skill_(agent, skill_name, resolved_content);
+    ik_skill_store_loaded(agent, skill_name, resolved_content);
     persist_skill_load_event_(ctx, repl, agent, skill_name, NULL, 0, resolved_content);
 
     if (template_result != NULL) talloc_free(template_result);

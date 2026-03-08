@@ -32,7 +32,7 @@ START_TEST(test_register_all_tools) {
 
     ik_internal_tools_register(registry);
 
-    ck_assert_uint_eq(registry->count, 4);
+    ck_assert_uint_eq(registry->count, 8);
 
     // Verify fork tool
     ik_tool_registry_entry_t *fork_entry = ik_tool_registry_lookup(registry, "fork");
@@ -183,11 +183,11 @@ START_TEST(test_register_twice_overwrites) {
     ik_tool_registry_t *registry = ik_tool_registry_create(test_ctx);
 
     ik_internal_tools_register(registry);
-    ck_assert_uint_eq(registry->count, 4);
+    ck_assert_uint_eq(registry->count, 8);
 
     // Register again - should override, not duplicate
     ik_internal_tools_register(registry);
-    ck_assert_uint_eq(registry->count, 4);
+    ck_assert_uint_eq(registry->count, 8);
 
     ik_tool_registry_entry_t *entry = ik_tool_registry_lookup(registry, "fork");
     ck_assert_ptr_nonnull(entry);

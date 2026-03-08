@@ -7,6 +7,7 @@
 #define IK_INTERNAL_TOOLS_H
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/internal_tool_skill.h"
 #include "apps/ikigai/tool_registry.h"
 
 #include <talloc.h>

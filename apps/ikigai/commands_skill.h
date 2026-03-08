@@ -53,6 +53,28 @@ res_t ik_cmd_skills(void *ctx, ik_repl_ctx_t *repl, const char *args);
 res_t ik_cmd_skillset(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
+ * Add or replace a skill entry in agent->loaded_skills[].
+ * Safe to call from on_complete hooks (main thread).
+ *
+ * @param agent      Agent context
+ * @param skill_name Skill name (e.g., "database")
+ * @param content    Fully resolved skill content
+ */
+void ik_skill_store_loaded(ik_agent_ctx_t *agent, const char *skill_name,
+                           const char *content);
+
+/**
+ * Add a catalog entry to agent->skillset_catalog[].
+ * Safe to call from on_complete hooks (main thread).
+ *
+ * @param agent       Agent context
+ * @param skill_name  Skill name (e.g., "style")
+ * @param description Short description for system prompt
+ */
+void ik_skillset_store_catalog_entry(ik_agent_ctx_t *agent, const char *skill_name,
+                                     const char *description);
+
+/**
  * Load a single skill by name into the agent (no positional args).
  *
  * Reads the skill file, applies template processing, stores in loaded_skills[],
