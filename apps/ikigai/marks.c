@@ -207,7 +207,13 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
     }
 
     // Render conversation messages using event renderer (no role prefixes)
+    size_t ctx_idx = (repl->current->token_cache != NULL)
+        ? ik_token_cache_get_context_start_index(repl->current->token_cache)
+        : 0;
     for (size_t i = 0; i < repl->current->message_count; i++) {
+        if (i == ctx_idx && ctx_idx > 0) {
+            ik_agent_append_context_hr(repl->current);
+        }
         ik_message_t *msg = repl->current->messages[i];
         // Convert role to kind for rendering
         const char *kind = NULL;

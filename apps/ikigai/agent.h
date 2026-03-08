@@ -438,3 +438,15 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out);
  * @return      OK on success, ERR on allocation failure
  */
 res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent);
+
+/**
+ * Append a full-width context HR (light blue) to the agent's scrollback.
+ *
+ * Inserts a blank line, a centered "── context ──" separator, and another
+ * blank line. Used to mark the boundary between pruned history and the
+ * active LLM context window. Caller is responsible for only calling this
+ * when context_start_index > 0.
+ *
+ * @param agent Agent context (must not be NULL)
+ */
+void ik_agent_append_context_hr(ik_agent_ctx_t *agent);

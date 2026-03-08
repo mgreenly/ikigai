@@ -75,7 +75,7 @@ void ik_agent_transition_to_executing_tool(ik_agent_ctx_t *agent)
 }
 
 /* Append a full-width context HR (light blue) to the scrollback. */
-static void append_context_hr(ik_agent_ctx_t *agent)
+void ik_agent_append_context_hr(ik_agent_ctx_t *agent)
 {
     int cols = (agent->shared != NULL && agent->shared->term != NULL)
         ? agent->shared->term->screen_cols : 80;
@@ -133,7 +133,7 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
         if (i == ctx_idx) {
             /* Build a full-width HR with " context " centered.
              * ─ (U+2500) is 3 UTF-8 bytes: 0xE2 0x94 0x80. */
-            append_context_hr(agent);
+            ik_agent_append_context_hr(agent);
         }
 
         ik_message_t *m = agent->messages[i];
