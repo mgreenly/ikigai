@@ -25,8 +25,7 @@
 
 #include "shared/poison.h"
 
-/* If p points to ${N} where N is a positive integer in range, return the
- * corresponding positional arg. Returns NULL if not a numeric var or out of range. */
+/* Match ${N} numeric positional var; returns NULL if non-numeric or out of range. */
 static const char *match_positional_var_(const char *p, const char *end,
                                          char **pos_args, size_t pos_arg_count)
 {
@@ -43,9 +42,7 @@ static const char *match_positional_var_(const char *p, const char *end,
     return pos_args[idx - 1];
 }
 
-/* Replace ${N} positional placeholders in content with the corresponding
- * positional argument. Unreferenced args are ignored. Unreplaced placeholders
- * (N > pos_arg_count) remain as literal text. */
+/* Replace ${N} positional placeholders; unreferenced args ignored, unresolved remain literal. */
 static char *apply_positional_args_(TALLOC_CTX *ctx, const char *content,
                                     char **pos_args, size_t pos_arg_count)
 {
@@ -90,14 +87,12 @@ static char *apply_positional_args_(TALLOC_CTX *ctx, const char *content,
     return result;
 }
 
-/* Parse positional args from a whitespace-separated string into an array.
- * Modifies args_copy in-place (null-terminates each token). */
+/* Parse whitespace-separated args into array, null-terminating each token. */
 static char **parse_pos_args_(TALLOC_CTX *ctx, const char *rest, size_t *out_count)
 {
     *out_count = 0;
     if (rest == NULL || *rest == '\0') return NULL;
 
-    /* Count tokens */
     size_t count = 0;
     const char *scan = rest;
     while (*scan != '\0') {
@@ -203,7 +198,6 @@ static void persist_skill_load_event_(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
 
 static res_t handle_load_(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
-    /* Require a skill name */
     if (args == NULL) {
         const char *usage = "Usage: !load <skill-name> [args...]";
         char *warn = ik_scrollback_format_warning(ctx, usage);
@@ -214,7 +208,6 @@ static res_t handle_load_(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     ik_agent_ctx_t *agent = repl->current;
 
-    /* Parse first word as skill name, rest as positional args */
     const char *p = args;
     while (*p && !isspace((unsigned char)*p)) p++;
     char *skill_name = talloc_strndup(ctx, args, (size_t)(p - args));
@@ -277,6 +270,27 @@ static res_t handle_load_(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ik_scrollback_append_line(agent->scrollback, confirm, strlen(confirm));
     talloc_free(confirm);
 
+    return OK(NULL);
+}
+
+static res_t handle_skills_(void *ctx, ik_repl_ctx_t *repl)
+{
+    ik_agent_ctx_t *agent = repl->current;
+    if (agent->loaded_skill_count == 0) {
+        const char *msg = "No skills loaded.";
+        ik_scrollback_append_line(agent->scrollback, msg, strlen(msg));
+        return OK(NULL);
+    }
+    for (size_t i = 0; i < agent->loaded_skill_count; i++) {
+        ik_loaded_skill_t *s = agent->loaded_skills[i];
+        size_t n = strlen(s->content);
+        char *line = (n >= 1024)
+            ? talloc_asprintf(ctx, "%s (%zu KB)", s->name, n / 1024)
+            : talloc_asprintf(ctx, "%s (%zu B)", s->name, n);
+        if (!line) PANIC("OOM");  /* LCOV_EXCL_LINE */
+        ik_scrollback_append_line(agent->scrollback, line, strlen(line));
+        talloc_free(line);
+    }
     return OK(NULL);
 }
 
@@ -402,6 +416,8 @@ res_t ik_bang_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
         result = handle_load_(ctx, repl, args);
     } else if (strcmp(cmd_name, "unload") == 0) {
         result = handle_unload_(ctx, repl, args);
+    } else if (strcmp(cmd_name, "skills") == 0) {
+        result = handle_skills_(ctx, repl);
     } else {
         char *err_text = talloc_asprintf(ctx, "Unknown bang command '%s'", cmd_name);
         if (!err_text) {  /* LCOV_EXCL_BR_LINE */

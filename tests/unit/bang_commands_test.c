@@ -55,6 +55,107 @@ static void add_skill(ik_agent_ctx_t *agent, const char *name, size_t load_posit
     agent->loaded_skill_count++;
 }
 
+/* ---- !skills: no skills loaded ---- */
+
+START_TEST(test_skills_empty) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+    ik_scrollback_clear(agent->scrollback);
+
+    res = ik_bang_dispatch(ctx, repl, "!skills");
+    ck_assert(is_ok(&res));
+
+    size_t count = ik_scrollback_get_line_count(agent->scrollback);
+    ck_assert_uint_ge(count, 2);
+
+    bool found = false;
+    for (size_t i = 0; i < count; i++) {
+        const char *line = get_line(agent->scrollback, i);
+        if (line && strstr(line, "No skills loaded.")) {
+            found = true;
+            break;
+        }
+    }
+    ck_assert_msg(found, "Expected 'No skills loaded.' in scrollback");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ---- !skills: one skill loaded ---- */
+
+START_TEST(test_skills_one) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    add_skill(agent, "database", 0);
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+    ik_scrollback_clear(agent->scrollback);
+
+    res = ik_bang_dispatch(ctx, repl, "!skills");
+    ck_assert(is_ok(&res));
+
+    size_t count = ik_scrollback_get_line_count(agent->scrollback);
+    ck_assert_uint_ge(count, 2);
+
+    bool found = false;
+    for (size_t i = 0; i < count; i++) {
+        const char *line = get_line(agent->scrollback, i);
+        if (line && strstr(line, "database") && strstr(line, "B")) {
+            found = true;
+            break;
+        }
+    }
+    ck_assert_msg(found, "Expected skill entry for 'database' in scrollback");
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ---- !skills: multiple skills loaded ---- */
+
+START_TEST(test_skills_multiple) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    add_skill(agent, "memory", 0);
+    add_skill(agent, "errors", 1);
+
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+    ik_scrollback_clear(agent->scrollback);
+
+    res = ik_bang_dispatch(ctx, repl, "!skills");
+    ck_assert(is_ok(&res));
+
+    size_t count = ik_scrollback_get_line_count(agent->scrollback);
+    ck_assert_uint_ge(count, 3);
+
+    bool found_memory = false;
+    bool found_errors = false;
+    for (size_t i = 0; i < count; i++) {
+        const char *line = get_line(agent->scrollback, i);
+        if (line && strstr(line, "memory")) found_memory = true;
+        if (line && strstr(line, "errors")) found_errors = true;
+    }
+    ck_assert_msg(found_memory, "Expected skill entry for 'memory' in scrollback");
+    ck_assert_msg(found_errors, "Expected skill entry for 'errors' in scrollback");
+
+    talloc_free(ctx);
+}
+END_TEST
+
 /* ---- !unload: no skill name given ---- */
 
 START_TEST(test_unload_no_name) {
@@ -197,6 +298,13 @@ END_TEST
 static Suite *bang_commands_suite(void)
 {
     Suite *s = suite_create("bang_commands");
+
+    TCase *tc_skills = tcase_create("Skills");
+    tcase_add_unchecked_fixture(tc_skills, suite_setup, NULL);
+    tcase_add_test(tc_skills, test_skills_empty);
+    tcase_add_test(tc_skills, test_skills_one);
+    tcase_add_test(tc_skills, test_skills_multiple);
+    suite_add_tcase(s, tc_skills);
 
     TCase *tc_unload = tcase_create("Unload");
     tcase_add_unchecked_fixture(tc_unload, suite_setup, NULL);
