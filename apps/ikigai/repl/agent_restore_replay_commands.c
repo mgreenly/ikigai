@@ -20,6 +20,7 @@
 // Forward declarations
 static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root);
 static void replay_fork_toolset(ik_agent_ctx_t *agent, yyjson_val *toolset_val);
+static void replay_fork_skills(ik_agent_ctx_t *agent, yyjson_val *skills_val);
 static void replay_model_command(ik_agent_ctx_t *agent, const char *args, ik_logger_t *logger);
 static void replay_pin_command(ik_agent_ctx_t *agent, const char *args);
 static void replay_unpin_command(ik_agent_ctx_t *agent, const char *args);
@@ -64,6 +65,48 @@ static void replay_fork_event(ik_agent_ctx_t *agent, yyjson_val *root)
 
     yyjson_val *toolset_val = yyjson_obj_get_(root, "toolset_filter");
     replay_fork_toolset(agent, toolset_val);
+
+    yyjson_val *skills_val = yyjson_obj_get_(root, "loaded_skills");
+    replay_fork_skills(agent, skills_val);
+}
+
+// Helper: Replay loaded_skills from fork event snapshot
+static void replay_fork_skills(ik_agent_ctx_t *agent, yyjson_val *skills_val)
+{
+    if (!yyjson_is_arr(skills_val)) {
+        return;
+    }
+
+    // Clear any existing skills
+    for (size_t i = 0; i < agent->loaded_skill_count; i++) {
+        talloc_free(agent->loaded_skills[i]);
+    }
+    agent->loaded_skill_count = 0;
+    if (agent->loaded_skills != NULL) {
+        talloc_free(agent->loaded_skills);
+        agent->loaded_skills = NULL;
+    }
+
+    size_t arr_size = yyjson_arr_size(skills_val);
+    if (arr_size == 0) {
+        return;
+    }
+
+    agent->loaded_skills = talloc_zero_array(agent, ik_loaded_skill_t *, (unsigned int)arr_size);
+    if (agent->loaded_skills == NULL) return;  // LCOV_EXCL_LINE
+
+    size_t idx = 0;
+    size_t max_idx = 0;
+    yyjson_val *entry_val = NULL;
+    yyjson_arr_foreach(skills_val, idx, max_idx, entry_val) {     // LCOV_EXCL_BR_LINE
+        if (!yyjson_is_obj(entry_val)) continue;     // LCOV_EXCL_BR_LINE
+        yyjson_val *skill_name_val = yyjson_obj_get_(entry_val, "skill");
+        yyjson_val *content_val = yyjson_obj_get_(entry_val, "content");
+        const char *skill_name = yyjson_get_str(skill_name_val);
+        const char *content = yyjson_get_str(content_val);
+        if (skill_name == NULL) continue;     // LCOV_EXCL_BR_LINE
+        ik_agent_restore_replay_skill_load_named(agent, skill_name, content, 0);
+    }
 }
 
 // Helper: Replay toolset from fork event

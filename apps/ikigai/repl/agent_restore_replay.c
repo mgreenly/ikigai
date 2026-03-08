@@ -55,6 +55,55 @@ void ik_agent_restore_populate_conversation(
     }
 }
 
+// Helper: count conversation messages before a given message ID in the replay context
+// Returns the number of non-interrupted conversation messages that appear before target_id.
+static size_t replay_conv_count_before_id(ik_replay_context_t *replay_ctx, int64_t target_id)
+{
+    size_t conv_count = 0;
+    for (size_t i = 0; i < replay_ctx->count; i++) {
+        ik_msg_t *m = replay_ctx->messages[i];
+        if (m->id == target_id) {
+            return conv_count;
+        }
+        if (ik_msg_is_conversation_kind(m->kind) && !m->interrupted) {
+            conv_count++;
+        }
+    }
+    return conv_count;  // target not found - return full count
+}
+
+// Helper: trim skills loaded at or after target_conv_count (rewind side effect)
+static void replay_trim_skills_at(ik_agent_ctx_t *agent, size_t target_conv_count)
+{
+    while (agent->loaded_skill_count > 0 &&
+           agent->loaded_skills[agent->loaded_skill_count - 1]->load_position >= target_conv_count) {
+        agent->loaded_skill_count--;
+        talloc_free(agent->loaded_skills[agent->loaded_skill_count]);
+    }
+}
+
+// Helper: parse target_message_id from rewind event data_json
+static int64_t parse_rewind_target_id(const char *data_json)
+{
+    if (data_json == NULL) return -1;
+
+    yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
+    if (doc == NULL) return -1;
+
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    int64_t target_id = -1;
+
+    if (root != NULL) {
+        yyjson_val *id_val = yyjson_obj_get_(root, "target_message_id");
+        if (id_val != NULL && yyjson_is_int(id_val)) {
+            target_id = yyjson_get_int(id_val);
+        }
+    }
+
+    yyjson_doc_free(doc);
+    return target_id;
+}
+
 void ik_agent_restore_populate_scrollback(
     ik_agent_ctx_t *agent,
     ik_replay_context_t *replay_ctx,
@@ -62,6 +111,11 @@ void ik_agent_restore_populate_scrollback(
 {
     assert(agent != NULL);          // LCOV_EXCL_BR_LINE
     assert(replay_ctx != NULL);     // LCOV_EXCL_BR_LINE
+
+    // Track conversation message count as we replay events in order.
+    // This mirrors agent->message_count at each point in time during the original session,
+    // used as load_position for skill_load events and trim threshold for rewind.
+    size_t running_conv_count = 0;
 
     for (size_t j = 0; j < replay_ctx->count; j++) {
         ik_msg_t *msg = replay_ctx->messages[j];
@@ -74,6 +128,30 @@ void ik_agent_restore_populate_scrollback(
         // Replay fork event side effects (extract pinned_paths from child fork event)
         if (msg->kind != NULL && strcmp(msg->kind, "fork") == 0) {
             ik_agent_restore_replay_command_effects(agent, msg, logger);
+        }
+
+        // Replay skill_load: add to loaded_skills[] at current conversation position
+        if (msg->kind != NULL && strcmp(msg->kind, "skill_load") == 0) {
+            ik_agent_restore_replay_skill_load(agent, msg, running_conv_count);
+        }
+
+        // Replay skill_unload: remove from loaded_skills[]
+        if (msg->kind != NULL && strcmp(msg->kind, "skill_unload") == 0) {
+            ik_agent_restore_replay_skill_unload(agent, msg);
+        }
+
+        // Replay rewind: trim skills loaded after the rewind target position
+        if (msg->kind != NULL && strcmp(msg->kind, "rewind") == 0) {
+            int64_t target_id = parse_rewind_target_id(msg->data_json);
+            if (target_id >= 0) {
+                size_t target_conv_count = replay_conv_count_before_id(replay_ctx, target_id);
+                replay_trim_skills_at(agent, target_conv_count);
+            }
+        }
+
+        // Track conversation message count for load_position
+        if (ik_msg_is_conversation_kind(msg->kind) && !msg->interrupted) {
+            running_conv_count++;
         }
 
         res_t res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json, msg->interrupted);

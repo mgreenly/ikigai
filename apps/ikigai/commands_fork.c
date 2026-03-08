@@ -284,6 +284,10 @@ res_t ik_cmd_fork(void *ctx, ik_repl_ctx_t *repl, const char *args)
     // Copy parent's toolset_filter to child (in-memory optimization)
     copy_toolset_filter(child, parent);
 
+    if (prompt == NULL || prompt[0] == '\0') {
+        ik_commands_fork_copy_loaded_skills(child, parent);
+    }
+
     // Insert into registry
     res = ik_db_agent_insert(repl->shared->db_ctx, child);
     if (is_err(&res)) {     // LCOV_EXCL_BR_LINE

@@ -130,6 +130,40 @@ static res_t render_mark_event(ik_scrollback_t *scrollback, const char *data_jso
     return result;
 }
 
+// Helper: render skill_load or skill_unload event
+static res_t render_skill_event(ik_scrollback_t *scrollback, const char *kind, const char *data_json)
+{
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    // Extract skill name from data_json
+    const char *skill_name = NULL;
+    yyjson_doc *doc = (data_json != NULL) ? yyjson_read_(data_json, strlen(data_json), 0) : NULL;
+    if (doc != NULL) {
+        yyjson_val *root = yyjson_doc_get_root_(doc);
+        yyjson_val *skill_val = yyjson_obj_get_(root, "skill");
+        if (skill_val != NULL && yyjson_is_str(skill_val)) {
+            skill_name = yyjson_get_str_(skill_val);
+        }
+    }
+
+    const char *verb = (strcmp(kind, "skill_load") == 0) ? "load" : "unload";
+    char *text = (skill_name != NULL && skill_name[0] != '\0')
+        ? talloc_asprintf(tmp, "!%s %s", verb, skill_name)
+        : talloc_asprintf(tmp, "!%s", verb);
+    if (text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    res_t result = ik_scrollback_append_line_(scrollback, text, strlen(text));
+    if (doc != NULL) yyjson_doc_free(doc);
+    if (is_err(&result)) {
+        talloc_free(tmp);
+        return result;
+    }
+
+    result = ik_scrollback_append_line_(scrollback, "", 0);
+    talloc_free(tmp);
+    return result;
+}
+
 // Helper: render command event
 static res_t render_command_event(ik_scrollback_t *scrollback, const char *content, const char *data_json)
 {
@@ -368,6 +402,10 @@ res_t ik_event_render(ik_scrollback_t *scrollback,
 
     if (strcmp(kind, "command") == 0) {
         return render_command_event(scrollback, content, data_json);
+    }
+
+    if (strcmp(kind, "skill_load") == 0 || strcmp(kind, "skill_unload") == 0) {
+        return render_skill_event(scrollback, kind, data_json);
     }
 
     if (strcmp(kind, "mark") == 0) {

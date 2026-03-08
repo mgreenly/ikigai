@@ -10,12 +10,42 @@
 #include "apps/ikigai/db/message.h"
 #include "shared/panic.h"
 #include "apps/ikigai/shared.h"
+#include "shared/wrapper_json.h"
 
 #include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "shared/poison.h"
+/**
+ * Copy parent's loaded_skills to child (no-prompt fork only).
+ * load_position is reset to 0 so no /rewind in the child can drop inherited skills.
+ */
+void ik_commands_fork_copy_loaded_skills(ik_agent_ctx_t *child, const ik_agent_ctx_t *parent)
+{
+    if (parent->loaded_skill_count == 0) {
+        return;
+    }
+
+    child->loaded_skills = talloc_zero_array(child, ik_loaded_skill_t *,
+                                             (unsigned int)parent->loaded_skill_count);
+    if (child->loaded_skills == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    for (size_t i = 0; i < parent->loaded_skill_count; i++) {
+        ik_loaded_skill_t *src = parent->loaded_skills[i];
+        ik_loaded_skill_t *dst = talloc_zero(child, ik_loaded_skill_t);
+        if (dst == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->name = talloc_strdup(dst, src->name);
+        if (dst->name == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->content = talloc_strdup(dst, src->content);
+        if (dst->content == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+        dst->load_position = 0;
+        child->loaded_skills[child->loaded_skill_count] = dst;
+        child->loaded_skill_count++;
+    }
+}
+
 /**
  * Helper to convert thinking level enum to string
  */
@@ -134,18 +164,47 @@ res_t ik_commands_insert_fork_events(TALLOC_CTX *ctx, ik_repl_ctx_t *repl,
     }
     talloc_free(toolset_json);
 
+    // Build loaded_skills JSON array from child's skills (inherited or empty)
+    // Use yyjson mutation API to correctly escape skill content (may contain newlines, quotes, etc.)
+    yyjson_mut_doc *skills_doc = yyjson_mut_doc_new(NULL);
+    if (skills_doc == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+    yyjson_mut_val *skills_arr = yyjson_mut_arr(skills_doc);
+    yyjson_mut_doc_set_root(skills_doc, skills_arr);
+    for (size_t i = 0; i < child->loaded_skill_count; i++) {
+        ik_loaded_skill_t *sk = child->loaded_skills[i];
+        yyjson_mut_val *obj = yyjson_mut_obj(skills_doc);
+        yyjson_mut_obj_add_str(skills_doc, obj, "skill", sk->name ? sk->name : "");
+        yyjson_mut_obj_add_str(skills_doc, obj, "content", sk->content ? sk->content : "");
+        yyjson_mut_arr_append(skills_arr, obj);
+    }
+    size_t skills_json_len = 0;
+    char *skills_json_raw = yyjson_mut_write(skills_doc, 0, &skills_json_len);
+    yyjson_mut_doc_free(skills_doc);
+    char *final_skills_json = skills_json_raw
+        ? talloc_strndup(ctx, skills_json_raw, skills_json_len)
+        : talloc_strdup(ctx, "[]");
+    free(skills_json_raw);
+    if (final_skills_json == NULL) {     // LCOV_EXCL_BR_LINE
+        PANIC("Out of memory");     // LCOV_EXCL_LINE
+    }
+
     char *child_data = talloc_asprintf(ctx,
                                        "{\"parent_uuid\":\"%s\",\"fork_message_id\":%" PRId64
-                                       ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s}",
+                                       ",\"role\":\"child\",\"pinned_paths\":%s,\"toolset_filter\":%s"
+                                       ",\"loaded_skills\":%s}",
                                        parent->uuid,
                                        fork_message_id,
                                        final_pins_json,
-                                       final_toolset_json);
+                                       final_toolset_json,
+                                       final_skills_json);
     if (child_data == NULL) {     // LCOV_EXCL_BR_LINE
         PANIC("Out of memory");     // LCOV_EXCL_LINE
     }
     talloc_free(final_pins_json);
     talloc_free(final_toolset_json);
+    talloc_free(final_skills_json);
 
     res = ik_db_message_insert(repl->shared->db_ctx, repl->shared->session_id,
                                child->uuid, "fork", child_content, child_data);

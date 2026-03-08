@@ -54,6 +54,34 @@ void ik_agent_restore_marks(ik_agent_ctx_t *agent, ik_replay_context_t *replay_c
 void ik_agent_restore_replay_command_effects(ik_agent_ctx_t *agent, ik_msg_t *msg, ik_logger_t *logger);
 
 /**
+ * Replay skill_load by name and content directly (used by fork event replay)
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param skill_name Skill name to add (may be NULL, no-op)
+ * @param content Resolved skill content (may be NULL, stored as empty string)
+ * @param conv_count Conversation message count at time of this event
+ */
+void ik_agent_restore_replay_skill_load_named(ik_agent_ctx_t *agent, const char *skill_name,
+                                              const char *content, size_t conv_count);
+
+/**
+ * Replay skill_load event: add skill to loaded_skills[]
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param msg Message containing skill_load event (must not be NULL)
+ * @param conv_count Conversation message count at time of this event
+ */
+void ik_agent_restore_replay_skill_load(ik_agent_ctx_t *agent, ik_msg_t *msg, size_t conv_count);
+
+/**
+ * Replay skill_unload event: remove skill from loaded_skills[]
+ *
+ * @param agent Agent context (must not be NULL)
+ * @param msg Message containing skill_unload event (must not be NULL)
+ */
+void ik_agent_restore_replay_skill_unload(ik_agent_ctx_t *agent, ik_msg_t *msg);
+
+/**
  * Replay all pin/unpin commands for an agent (independent of clear boundaries)
  *
  * Queries the agent's fork event to extract initial pinned_paths snapshot,
