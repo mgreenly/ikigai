@@ -19,6 +19,8 @@ START_TEST(test_metadata_kinds) {
     ck_assert(ik_msg_is_conversation_kind("rewind") == false);
     ck_assert(ik_msg_is_conversation_kind("agent_killed") == false);
     ck_assert(ik_msg_is_conversation_kind("interrupted") == false);
+    ck_assert(ik_msg_is_conversation_kind("skill_load") == false);
+    ck_assert(ik_msg_is_conversation_kind("skill_unload") == false);
 }
 
 END_TEST

@@ -31,6 +31,8 @@ static const char *VALID_KINDS[] = {
     "fork",
     "usage",
     "interrupted",
+    "skill_load",
+    "skill_unload",
     NULL
 };
 

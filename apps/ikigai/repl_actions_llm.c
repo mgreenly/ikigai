@@ -10,6 +10,7 @@
 #include "shared/wrapper.h"
 #include "apps/ikigai/format.h"
 #include "apps/ikigai/commands.h"
+#include "apps/ikigai/bang_commands.h"
 #include "apps/ikigai/db/agent.h"
 #include "apps/ikigai/db/message.h"
 #include "apps/ikigai/input_buffer/core.h"
@@ -217,8 +218,9 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
     size_t text_len = ik_byte_array_size(repl->current->input_buffer->text);
 
     bool is_slash_command = (text_len > 0 && text[0] == '/');
+    bool is_bang_command = (text_len > 0 && text[0] == '!');
     char *command_text = NULL;
-    if (is_slash_command) {
+    if (is_slash_command || is_bang_command) {
         command_text = talloc_zero_(repl, text_len + 1);
         if (command_text == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
         memcpy(command_text, text, text_len);
@@ -227,7 +229,7 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
 
     ik_repl_dismiss_completion(repl);
 
-    if (is_slash_command) {
+    if (is_slash_command || is_bang_command) {
         ik_input_buffer_clear(repl->current->input_buffer);
         repl->current->viewport_offset = 0;
     } else {
@@ -236,6 +238,12 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
 
     if (is_slash_command) {
         handle_slash_cmd_(repl, command_text);
+        talloc_free(command_text);
+    } else if (is_bang_command) {
+        res_t result = ik_bang_dispatch(repl, repl, command_text);
+        if (is_err(&result)) {
+            talloc_free(result.err);
+        }
         talloc_free(command_text);
     } else if (text_len > 0 && repl->shared->cfg != NULL) {
         char *message_text = talloc_zero_(repl, text_len + 1);

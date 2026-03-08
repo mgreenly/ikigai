@@ -39,6 +39,13 @@ typedef struct {
     char *timestamp;          // ISO 8601 timestamp
 } ik_mark_t;
 
+// Loaded skill entry (ephemeral, dropped by /clear and /rewind)
+typedef struct {
+    char *name;           // Skill name (e.g., "database")
+    char *content;        // Fully resolved content (captured at load time)
+    size_t load_position; // agent->message_count at time of load
+} ik_loaded_skill_t;
+
 /**
  * Per-agent context for ikigai.
  *
@@ -111,6 +118,8 @@ typedef struct ik_agent_ctx {
     size_t message_capacity;      // Allocated capacity
     ik_mark_t **marks;
     size_t mark_count;
+    ik_loaded_skill_t **loaded_skills;  // Array of pointers (like marks[], pinned_paths[])
+    size_t loaded_skill_count;
 
     // LLM interaction state (per-agent)
     int curl_still_running;
