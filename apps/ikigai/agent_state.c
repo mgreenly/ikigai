@@ -2,6 +2,7 @@
 
 #include "apps/ikigai/ansi.h"
 #include "apps/ikigai/event_render.h"
+#include "apps/ikigai/format.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/repl_response_helpers.h"
@@ -10,6 +11,7 @@
 #include "apps/ikigai/summary.h"
 #include "apps/ikigai/summary_worker.h"
 #include "apps/ikigai/token_cache.h"
+#include "apps/ikigai/tool.h"
 #include "apps/ikigai/wrapper_pthread.h"
 
 #include "apps/ikigai/debug_log.h"
@@ -147,6 +149,17 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
             content = block->data.text.text;
         } else if (block->type == IK_CONTENT_TOOL_RESULT) {
             content = block->data.tool_result.content;
+        } else if (block->type == IK_CONTENT_TOOL_CALL) {
+            ik_tool_call_t tc = {
+                .id        = block->data.tool_call.id,
+                .name      = block->data.tool_call.name,
+                .arguments = block->data.tool_call.arguments,
+            };
+            const char *formatted = ik_format_tool_call(agent, &tc);
+            if (formatted != NULL) {
+                ik_event_render(agent->scrollback, "tool_call", formatted, "{}", m->interrupted);
+            }
+            continue;
         }
 
         if (kind != NULL && content != NULL) {
