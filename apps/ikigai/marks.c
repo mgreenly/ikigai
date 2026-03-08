@@ -162,6 +162,8 @@ res_t ik_mark_rewind_to_mark(ik_repl_ctx_t *repl, ik_mark_t *target_mark)
             }
         }
         ik_token_cache_remove_turns_from(repl->current->token_cache, new_turn_count);
+        /* Explicit clamp: if mark lands before context_start_index, reset it */
+        ik_token_cache_clamp_context_start(repl->current->token_cache, new_msg_count);
     }
 
     // Reset recent summary: rewind may remove messages it covers

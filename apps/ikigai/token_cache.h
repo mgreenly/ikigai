@@ -162,6 +162,19 @@ void ik_token_cache_add_turn(ik_token_cache_t *cache);
  */
 void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index);
 
+/**
+ * Explicitly clamp context_start_index if it exceeds message_count.
+ *
+ * Called by the rewind path after ik_token_cache_remove_turns_from() to make
+ * the invariant explicit: context_start_index must never exceed the live
+ * message array length. Resets context_start_index and pruned_turn_count to 0
+ * when the mark lands before the sliding window boundary.
+ *
+ * @param cache         Token cache
+ * @param message_count New message array length after truncation
+ */
+void ik_token_cache_clamp_context_start(ik_token_cache_t *cache, size_t message_count);
+
 /* ================================================================
  * Introspection — read-only access to cache internals
  * Used by control socket read_token_cache command.

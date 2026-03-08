@@ -400,7 +400,7 @@ void ik_token_cache_prune_oldest_turn(ik_token_cache_t *cache)
 
     cache->pruned_turn_count++;
 
-    /* Remove first turn entry (shift left) */
+    /* Shift left */
     cache->turn_count--;
     if (cache->turn_count > 0) {
         memmove(&cache->turn_tokens[0], &cache->turn_tokens[1],
@@ -437,7 +437,7 @@ void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index
         return; /* no-op */
     }
 
-    /* Update cached total — subtract known costs, invalidate on sentinel */
+    /* Update total */
     for (size_t i = turn_index; i < cache->turn_count; i++) {
         if (cache->turn_tokens[i] == TOKEN_UNCACHED) {
             cache->total_tokens = TOKEN_UNCACHED;
@@ -454,6 +454,15 @@ void ik_token_cache_remove_turns_from(ik_token_cache_t *cache, size_t turn_index
     cache->turn_count = turn_index;
 
     if (cache->turn_count == 0 && cache->context_start_index > 0) {
+        cache->context_start_index = 0;
+        cache->pruned_turn_count = 0;
+    }
+}
+
+void ik_token_cache_clamp_context_start(ik_token_cache_t *cache, size_t message_count)
+{
+    assert(cache != NULL); // LCOV_EXCL_BR_LINE
+    if (cache->context_start_index > message_count) {
         cache->context_start_index = 0;
         cache->pruned_turn_count = 0;
     }

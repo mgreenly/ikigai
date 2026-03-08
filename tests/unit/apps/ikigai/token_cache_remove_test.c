@@ -148,6 +148,52 @@ START_TEST(test_remove_turns_from_all_resets_context_start) {
 }
 END_TEST
 
+/* clamp_context_start: resets when message_count < context_start_index */
+START_TEST(test_clamp_context_start_resets_when_mark_before_boundary) {
+    ik_agent_ctx_t *a = make_agent(test_ctx);
+    /* Three messages: mark will land at index 0, before pruned boundary */
+    add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 0, 10);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 1, 20);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 2, 30);
+    /* Prune oldest: context_start_index advances past msg[0] to msg[1] */
+    ik_token_cache_prune_oldest_turn(c);
+    ck_assert_int_gt((int)ik_token_cache_get_context_start_index(c), 0);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_turn(c), 1);
+
+    /* Simulate rewind to mark at msg[0] (before context_start_index):
+     * No user messages in [csi=1, new_msg_count=0), so new_turn_count=0.
+     * Sequence matches marks.c rewind path. */
+    size_t new_msg_count = 0;
+    ik_token_cache_remove_turns_from(c, 0);
+    ik_token_cache_clamp_context_start(c, new_msg_count);
+
+    ck_assert_int_eq((int)ik_token_cache_get_turn_count(c), 0);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_index(c), 0);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_turn(c), 0);
+}
+END_TEST
+
+/* clamp_context_start: no-op when message_count >= context_start_index */
+START_TEST(test_clamp_context_start_noop_when_above_boundary) {
+    ik_agent_ctx_t *a = make_agent(test_ctx);
+    add_user(a, "u0"); add_user(a, "u1"); add_user(a, "u2");
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, a);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 0, 10);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 1, 20);
+    ik_token_cache_add_turn(c); ik_token_cache_record_turn(c, 2, 30);
+    ik_token_cache_prune_oldest_turn(c);
+    size_t csi = ik_token_cache_get_context_start_index(c);
+    ck_assert_int_gt((int)csi, 0);
+
+    /* Clamp with message_count == context_start_index: must be a no-op */
+    ik_token_cache_clamp_context_start(c, csi);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_index(c), (int)csi);
+    ck_assert_int_eq((int)ik_token_cache_get_context_start_turn(c), 1);
+}
+END_TEST
+
 /* Rewind within pruning boundary keeps context_start_index unchanged */
 START_TEST(test_remove_turns_from_partial_keeps_context_start) {
     ik_agent_ctx_t *a = make_agent(test_ctx);
@@ -181,6 +227,8 @@ static Suite *token_cache_remove_suite(void)
     tcase_add_test(tc, test_remove_turns_from_noop_at_turn_count);
     tcase_add_test(tc, test_remove_turns_from_all_resets_context_start);
     tcase_add_test(tc, test_remove_turns_from_partial_keeps_context_start);
+    tcase_add_test(tc, test_clamp_context_start_resets_when_mark_before_boundary);
+    tcase_add_test(tc, test_clamp_context_start_noop_when_above_boundary);
     suite_add_tcase(s, tc);
 
     TCase *tc_panic = tcase_create("PANIC");
