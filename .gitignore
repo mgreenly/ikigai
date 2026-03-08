@@ -10,6 +10,8 @@ tags
 /cache/
 /state/*
 !/state/skills/
+!/state/skillsets/
+!/state/commands/
 
 **/*.py
 __pycache__/

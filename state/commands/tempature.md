@@ -1,0 +1,1 @@
+Please use an internet search to determine the temperature in ${1} and report it back to me.
