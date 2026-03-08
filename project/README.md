@@ -56,6 +56,7 @@ Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - paste like Claude Code (bracketed paste with preview before submit)
 - auto-complete model names in `/model` command
 - auto-complete agent UUIDs in `/switch`, `/kill`, `/send`, and similar commands
+- fix scrolling when scrolled up
 
 
 ### rel-18: Codebase Refactor & MVP Release (future)
