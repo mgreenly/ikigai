@@ -19,7 +19,7 @@ typedef struct {
     char *summary;
     int64_t start_msg_id;
     int64_t end_msg_id;
-    int token_count;
+    int32_t token_count;
 } ik_session_summary_t;
 
 /**
@@ -44,7 +44,7 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
                                    const char *summary,
                                    int64_t start_msg_id,
                                    int64_t end_msg_id,
-                                   int token_count);
+                                   int32_t token_count);
 
 /**
  * Load all session summaries for an agent, ordered oldest-first.

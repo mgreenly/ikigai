@@ -1,5 +1,6 @@
 #include "apps/ikigai/db/session_summary.h"
 #include "apps/ikigai/db/pg_result.h"
+#include "apps/ikigai/summary.h"
 #include "shared/error.h"
 #include "apps/ikigai/tmp_ctx.h"
 #include "shared/wrapper.h"
@@ -12,15 +13,12 @@
 #include <stdlib.h>
 #include <talloc.h>
 
-// Maximum number of summaries to retain per agent
-#define SESSION_SUMMARY_CAP 5
-
 res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
                                    const char *agent_uuid,
                                    const char *summary,
                                    int64_t start_msg_id,
                                    int64_t end_msg_id,
-                                   int token_count)
+                                   int32_t token_count)
 {
     assert(db != NULL);           // LCOV_EXCL_BR_LINE
     assert(db->conn != NULL);     // LCOV_EXCL_BR_LINE
@@ -67,16 +65,18 @@ res_t ik_db_session_summary_insert(ik_db_ctx_t *db,
         return error_res;
     }
 
-    // Enforce cap: delete oldest rows if count exceeds SESSION_SUMMARY_CAP
-    const char *cap_query_str =
+    // Enforce cap: delete oldest rows if count exceeds IK_SUMMARY_PREVIOUS_SESSION_MAX_COUNT
+    char *cap_query_str = talloc_asprintf(tmp,
         "DELETE FROM session_summaries "
         "WHERE agent_uuid = $1 "
         "  AND id NOT IN ( "
         "    SELECT id FROM session_summaries "
         "    WHERE agent_uuid = $1 "
         "    ORDER BY created_at DESC "
-        "    LIMIT 5 "
-        "  )";
+        "    LIMIT %d "
+        "  )",
+        IK_SUMMARY_PREVIOUS_SESSION_MAX_COUNT);
+    if (cap_query_str == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     const char *cap_params[1];
     cap_params[0] = agent_uuid;
@@ -162,7 +162,7 @@ res_t ik_db_session_summary_load(ik_db_ctx_t *db,
 
         s->start_msg_id = strtoll(PQgetvalue(res, i, 3), NULL, 10);
         s->end_msg_id = strtoll(PQgetvalue(res, i, 4), NULL, 10);
-        s->token_count = (int)strtol(PQgetvalue(res, i, 5), NULL, 10);
+        s->token_count = (int32_t)strtol(PQgetvalue(res, i, 5), NULL, 10);
 
         summaries[i] = s;
     }

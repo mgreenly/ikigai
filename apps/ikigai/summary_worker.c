@@ -264,7 +264,7 @@ static void poll_apply_session(ik_agent_ctx_t *agent,
         return;
     }
     char *text = agent->summary_thread_result;
-    int token_count = (int)(strlen(text) / 4);
+    int32_t token_count = (int32_t)(strlen(text) / 4);
     res_t ins = ik_db_session_summary_insert(agent->shared->db_ctx,
                                              agent->uuid, text,
                                              start_id, end_id, token_count);

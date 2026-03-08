@@ -21,6 +21,12 @@
 #define IK_SUMMARY_PREVIOUS_SESSION_MAX_TOKENS 2000
 
 /**
+ * Maximum number of previous-session summaries retained per agent.
+ * Older summaries are pruned after each insert to enforce this cap.
+ */
+#define IK_SUMMARY_PREVIOUS_SESSION_MAX_COUNT 5
+
+/**
  * Range of message indices [start, end).
  * An empty range has start == end.
  */
