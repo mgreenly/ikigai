@@ -64,6 +64,7 @@ START_TEST(test_no_pinned_docs_single_block) {
     ck_assert_ptr_nonnull(req->system_blocks);
     ck_assert(req->system_blocks[0].cacheable == false);
     ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     talloc_free(ctx);
 }
@@ -113,10 +114,12 @@ START_TEST(test_one_pinned_doc_two_blocks) {
     /* Block 0: base system prompt, not cacheable */
     ck_assert(req->system_blocks[0].cacheable == false);
     ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     /* Block 1: pinned doc, cacheable */
     ck_assert(req->system_blocks[1].cacheable == true);
     ck_assert_str_eq(req->system_blocks[1].text, "Pinned content.");
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_PINNED_DOC);
 
     test_paths_cleanup_env();
     talloc_free(ctx);
@@ -167,14 +170,17 @@ START_TEST(test_two_pinned_docs_order_preserved) {
 
     /* Block 0: base, not cacheable */
     ck_assert(req->system_blocks[0].cacheable == false);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     /* Block 1: first pinned doc, cacheable, in order */
     ck_assert(req->system_blocks[1].cacheable == true);
     ck_assert_str_eq(req->system_blocks[1].text, "First doc.");
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_PINNED_DOC);
 
     /* Block 2: second pinned doc, cacheable, in order */
     ck_assert(req->system_blocks[2].cacheable == true);
     ck_assert_str_eq(req->system_blocks[2].text, "Second doc.");
+    ck_assert_int_eq(req->system_blocks[2].type, IK_SYSTEM_BLOCK_PINNED_DOC);
 
     test_paths_cleanup_env();
     talloc_free(ctx);
@@ -220,18 +226,22 @@ START_TEST(test_session_summaries_and_recent_summary) {
     /* Block 0: base system prompt, not cacheable */
     ck_assert(req->system_blocks[0].cacheable == false);
     ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     /* Block 1: first session summary, cacheable */
     ck_assert(req->system_blocks[1].cacheable == true);
     ck_assert_str_eq(req->system_blocks[1].text, "Session one summary.");
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_SESSION_SUMMARY);
 
     /* Block 2: second session summary, cacheable */
     ck_assert(req->system_blocks[2].cacheable == true);
     ck_assert_str_eq(req->system_blocks[2].text, "Session two summary.");
+    ck_assert_int_eq(req->system_blocks[2].type, IK_SYSTEM_BLOCK_SESSION_SUMMARY);
 
     /* Block 3: recent summary, not cacheable */
     ck_assert(req->system_blocks[3].cacheable == false);
     ck_assert_str_eq(req->system_blocks[3].text, "Recent summary text.");
+    ck_assert_int_eq(req->system_blocks[3].type, IK_SYSTEM_BLOCK_RECENT_SUMMARY);
 
     talloc_free(ctx);
 }
@@ -261,10 +271,12 @@ START_TEST(test_only_recent_summary_no_sessions) {
     /* Block 0: base system prompt, not cacheable */
     ck_assert(req->system_blocks[0].cacheable == false);
     ck_assert_str_eq(req->system_blocks[0].text, IK_DEFAULT_OPENAI_SYSTEM_MESSAGE);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     /* Block 1: recent summary, not cacheable */
     ck_assert(req->system_blocks[1].cacheable == false);
     ck_assert_str_eq(req->system_blocks[1].text, "Only recent summary.");
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_RECENT_SUMMARY);
 
     talloc_free(ctx);
 }

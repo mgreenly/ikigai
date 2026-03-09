@@ -168,6 +168,8 @@ START_TEST(test_catalog_block_built_correctly) {
     ck_assert(strstr(catalog_text, "coverage") != NULL);
     ck_assert(strstr(catalog_text, "90% coverage requirement") != NULL);
     ck_assert(req->system_blocks[1].cacheable == true);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_SKILL_CATALOG);
 }
 END_TEST
 
@@ -199,6 +201,9 @@ START_TEST(test_catalog_block_after_loaded_skills) {
     ck_assert(strstr(req->system_blocks[1].text, "Style Guide") != NULL);
     ck_assert(strstr(req->system_blocks[2].text, "## Available Skills") != NULL);
     ck_assert(strstr(req->system_blocks[2].text, "database") != NULL);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_SKILL);
+    ck_assert_int_eq(req->system_blocks[2].type, IK_SYSTEM_BLOCK_SKILL_CATALOG);
 }
 END_TEST
 
