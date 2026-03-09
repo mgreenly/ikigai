@@ -114,6 +114,7 @@ START_TEST(test_single_system_block_cacheable) {
     req->system_blocks = talloc_array(req, ik_system_block_t, 1);
     req->system_blocks[0].text = talloc_strdup(req, "Cache me.");
     req->system_blocks[0].cacheable = true;
+    req->system_blocks[0].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
 
     char *json = NULL;
     res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);

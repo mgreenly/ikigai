@@ -22,6 +22,7 @@
 #include "apps/ikigai/scrollback_utils.h"
 #include "apps/ikigai/shared.h"
 #include "shared/wrapper.h"
+#include "shared/wrapper_internal.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -52,7 +53,7 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
 
     /* Find the last clear event to establish epoch start boundary */
     int64_t last_clear_id = 0;
-    res_t find_res = ik_agent_find_clear(db, tmp, agent->uuid, 0, &last_clear_id);
+    res_t find_res = ik_agent_find_clear_(db, tmp, agent->uuid, 0, &last_clear_id);
     if (is_err(&find_res)) {
         talloc_free(find_res.err);
         last_clear_id = 0;
@@ -66,7 +67,7 @@ static void clear_generate_session_summary(void *ctx, ik_agent_ctx_t *agent,
     };
     ik_msg_t **epoch_msgs = NULL;
     size_t epoch_count = 0;
-    res_t query_res = ik_agent_query_range(db, tmp, &range, &epoch_msgs, &epoch_count);
+    res_t query_res = ik_agent_query_range_(db, tmp, &range, (void ***)&epoch_msgs, &epoch_count);
     if (is_err(&query_res)) {
         talloc_free(query_res.err);
         talloc_free(tmp);

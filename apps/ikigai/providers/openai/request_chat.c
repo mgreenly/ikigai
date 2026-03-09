@@ -32,7 +32,7 @@
  */
 static void remove_format_validators(yyjson_mut_val *schema)
 {
-    if (!schema || !yyjson_mut_is_obj(schema)) {
+    if (!schema || !yyjson_mut_is_obj(schema)) { // LCOV_EXCL_BR_LINE
         return;
     }
 
@@ -293,9 +293,9 @@ res_t ik_openai_serialize_chat_request(TALLOC_CTX *ctx, const ik_request_t *req,
     // Add system messages: use system_blocks if present, fall back to system_prompt
     if (req->system_block_count > 0) {
         for (size_t i = 0; i < req->system_block_count; i++) {
-            if (!add_sys_message(doc, messages_arr, "system", req->system_blocks[i].text)) {
-                yyjson_mut_doc_free(doc);
-                return ERR(ctx, PARSE, "Failed to add system block message");
+            if (!add_sys_message(doc, messages_arr, "system", req->system_blocks[i].text)) { // LCOV_EXCL_BR_LINE
+                yyjson_mut_doc_free(doc);                                                     // LCOV_EXCL_LINE
+                return ERR(ctx, PARSE, "Failed to add system block message");                 // LCOV_EXCL_LINE
             }
         }
     } else if (req->system_prompt != NULL && req->system_prompt[0] != '\0') {

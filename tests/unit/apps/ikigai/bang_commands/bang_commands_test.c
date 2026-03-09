@@ -3,6 +3,7 @@
  * @brief Unit tests for /load and /unload slash command handlers
  */
 
+#include "apps/ikigai/bang_commands.h"
 #include "apps/ikigai/commands.h"
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/doc_cache.h"
@@ -216,6 +217,159 @@ START_TEST(test_load_multiple_skills) {
 }
 END_TEST
 
+/* Helper: create a command file at $IKIGAI_STATE_DIR/commands/<name>.md */
+static void create_command_file(const char *cmd_name, const char *content)
+{
+    const char *ikigai_state_dir = getenv("IKIGAI_STATE_DIR");
+    if (!ikigai_state_dir) return;
+
+    char path[512];
+    snprintf(path, sizeof(path), "%s/commands", ikigai_state_dir);
+    mkdir(path, 0755);
+    snprintf(path, sizeof(path), "%s/commands/%s.md", ikigai_state_dir, cmd_name);
+    FILE *f = fopen(path, "w");
+    if (f) {
+        fputs(content, f);
+        fclose(f);
+    }
+}
+
+/* Test: !nonexistent returns "command not found" error */
+START_TEST(test_bang_command_not_found) {
+    res_t res = ik_bang_dispatch(ctx, repl, "!nonexistent_cmd_xyz");
+    ck_assert(is_err(&res));
+    talloc_free(res.err);
+}
+END_TEST
+
+/* Test: ! alone (empty command) returns "Empty command" error */
+START_TEST(test_bang_empty_command) {
+    res_t res = ik_bang_dispatch(ctx, repl, "!");
+    ck_assert(is_err(&res));
+    talloc_free(res.err);
+}
+END_TEST
+
+/* Test: valid command dispatches successfully */
+START_TEST(test_bang_command_success) {
+    create_command_file("greet", "Hello from bang command.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!greet");
+    /* send_to_llm_for_agent_bang returns early (no model configured), so OK */
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: command with positional args applies ${1} substitution */
+START_TEST(test_bang_command_with_args) {
+    create_command_file("greet_pos", "Hello ${1}.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!greet_pos world");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: whitespace after ! is skipped before command name */
+START_TEST(test_bang_leading_whitespace) {
+    create_command_file("greet_ws", "Hi.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "! greet_ws");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: positional arg index out-of-range stays as literal */
+START_TEST(test_bang_arg_out_of_range) {
+    create_command_file("greet_oob", "A=${1} B=${5}.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!greet_oob hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: non-digit var is not replaced (passed through to template engine) */
+START_TEST(test_bang_non_digit_var) {
+    create_command_file("greet_var", "Value=${notdigit}.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!greet_var hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: substitution with no trailing text (p == start at loop end) */
+START_TEST(test_bang_substitution_no_trailing_text) {
+    create_command_file("just_arg", "${1}");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!just_arg hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: ${N} where N is out-of-range stays as literal */
+START_TEST(test_bang_arg_index_high_out_of_range) {
+    create_command_file("high_idx", "${99} world\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!high_idx hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: unclosed ${ has no closing } so end==NULL */
+START_TEST(test_bang_unclosed_brace) {
+    create_command_file("no_close", "Value=${notclosed\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!no_close hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: multiple args to exercise parse_pos_args_ loop thoroughly */
+START_TEST(test_bang_multiple_args) {
+    create_command_file("multi_arg", "${1} and ${2}.\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!multi_arg foo bar");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: var_len >= 10 (long var name) triggers match_positional_var_ early-exit */
+START_TEST(test_bang_long_var_name) {
+    create_command_file("long_var", "${1234567890} suffix\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!long_var hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: ${0} triggers idx < 1 exit in match_positional_var_ */
+START_TEST(test_bang_zero_index_var) {
+    create_command_file("zero_idx", "${0} text\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!zero_idx hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: args with leading/trailing whitespace exercises parse_pos_args_ edge cases */
+START_TEST(test_bang_args_with_spaces) {
+    create_command_file("spaces_cmd", "${1}\n");
+
+    /* Multiple spaces between args exercises the whitespace-skip loops */
+    res_t res = ik_bang_dispatch(ctx, repl, "!spaces_cmd  foo  bar");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
+/* Test: content with lone $ (not followed by {) exercises the false branch of p[1] == '{' */
+START_TEST(test_bang_lone_dollar_sign) {
+    /* Content has $abc (lone $, not ${) before a valid positional arg ${1} */
+    create_command_file("dollar_cmd", "$abc ${1} done\n");
+
+    res_t res = ik_bang_dispatch(ctx, repl, "!dollar_cmd hello");
+    ck_assert(!is_err(&res));
+}
+END_TEST
+
 /* Test: /unload removes a loaded skill */
 START_TEST(test_unload_removes_skill) {
     create_skill_file("removable", "Remove me.\n");
@@ -246,6 +400,21 @@ static Suite *bang_commands_suite(void)
     tcase_add_test(tc, test_load_positional_args_unreplaced);
     tcase_add_test(tc, test_load_multiple_skills);
     tcase_add_test(tc, test_unload_removes_skill);
+    tcase_add_test(tc, test_bang_command_not_found);
+    tcase_add_test(tc, test_bang_empty_command);
+    tcase_add_test(tc, test_bang_command_success);
+    tcase_add_test(tc, test_bang_command_with_args);
+    tcase_add_test(tc, test_bang_leading_whitespace);
+    tcase_add_test(tc, test_bang_arg_out_of_range);
+    tcase_add_test(tc, test_bang_non_digit_var);
+    tcase_add_test(tc, test_bang_substitution_no_trailing_text);
+    tcase_add_test(tc, test_bang_arg_index_high_out_of_range);
+    tcase_add_test(tc, test_bang_unclosed_brace);
+    tcase_add_test(tc, test_bang_multiple_args);
+    tcase_add_test(tc, test_bang_long_var_name);
+    tcase_add_test(tc, test_bang_zero_index_var);
+    tcase_add_test(tc, test_bang_args_with_spaces);
+    tcase_add_test(tc, test_bang_lone_dollar_sign);
 
     suite_add_tcase(s, tc);
     return s;

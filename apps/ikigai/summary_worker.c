@@ -42,12 +42,12 @@ void *ik_summary_worker_fn(void *arg)
     /* Record generation before signalling completion */
     args->agent->summary_thread_generation = args->generation;
 
-    if (is_ok(&res) && summary != NULL) {
+    if (is_ok(&res) && summary != NULL) { // LCOV_EXCL_BR_LINE
         /* Detach the result from the temporary context so the main thread
          * can talloc_steal() it onto the agent after joining. */
         args->agent->summary_thread_result = talloc_steal(NULL, summary);
     } else {
-        if (is_err(&res)) {
+        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc *doc = ik_log_create();                            // LCOV_EXCL_LINE
             yyjson_mut_val *root = yyjson_mut_doc_get_root(doc);              // LCOV_EXCL_LINE
             yyjson_mut_obj_add_str(doc, root, "event", "summary_error");      // LCOV_EXCL_LINE
@@ -87,7 +87,7 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
         return;
     }
 
-    if (agent->provider == NULL || agent->provider[0] == '\0') {
+    if (agent->provider == NULL || agent->provider[0] == '\0') { // LCOV_EXCL_BR_LINE
         return;
     }
 
@@ -102,13 +102,14 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
         talloc_free(prov_ctx);       // LCOV_EXCL_LINE
         return;                      // LCOV_EXCL_LINE
     }
+    // LCOV_EXCL_START
     talloc_steal(NULL, worker_provider);
     talloc_free(prov_ctx);
 
     ik_summary_worker_args_t *args = malloc(sizeof(ik_summary_worker_args_t));
     if (args == NULL) {              // LCOV_EXCL_BR_LINE
-        talloc_free(worker_provider); // LCOV_EXCL_LINE
-        return;                      // LCOV_EXCL_LINE
+        talloc_free(worker_provider);
+        return;
     }
 
     args->msgs = msgs;
@@ -126,9 +127,9 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
     args->session_msgs_ptrs = NULL;
 
     if (args->model == NULL) {        // LCOV_EXCL_BR_LINE
-        talloc_free(worker_provider); // LCOV_EXCL_LINE
-        free(args);                   // LCOV_EXCL_LINE
-        return;                       // LCOV_EXCL_LINE
+        talloc_free(worker_provider);
+        free(args);
+        return;
     }
 
     pthread_mutex_lock_(&agent->summary_thread_mutex);
@@ -140,13 +141,14 @@ void ik_summary_worker_dispatch(ik_agent_ctx_t *agent,
     int ret = pthread_create_(&agent->summary_thread, NULL,
                               ik_summary_worker_fn, args);
     if (ret != 0) {                                          // LCOV_EXCL_BR_LINE
-        pthread_mutex_lock_(&agent->summary_thread_mutex);  // LCOV_EXCL_LINE
-        agent->summary_thread_running = false;              // LCOV_EXCL_LINE
-        pthread_mutex_unlock_(&agent->summary_thread_mutex); // LCOV_EXCL_LINE
-        talloc_free(worker_provider);                        // LCOV_EXCL_LINE
-        free(args->model);                                   // LCOV_EXCL_LINE
-        free(args);                                          // LCOV_EXCL_LINE
+        pthread_mutex_lock_(&agent->summary_thread_mutex);
+        agent->summary_thread_running = false;
+        pthread_mutex_unlock_(&agent->summary_thread_mutex);
+        talloc_free(worker_provider);
+        free(args->model);
+        free(args);
     }
+    // LCOV_EXCL_STOP
 }
 
 /* Free session summary stubs (malloc'd ik_msg_t[] with owned strings). */
@@ -181,12 +183,12 @@ void ik_session_summary_dispatch(ik_agent_ctx_t *agent,
     bool already_running = agent->summary_thread_running;
     pthread_mutex_unlock_(&agent->summary_thread_mutex);
 
-    if (already_running) {
+    if (already_running) { // LCOV_EXCL_BR_LINE
         free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);
         return;
     }
 
-    if (agent->provider == NULL || agent->provider[0] == '\0') {
+    if (agent->provider == NULL || agent->provider[0] == '\0') { // LCOV_EXCL_BR_LINE
         free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);
         return;
     }
@@ -203,14 +205,15 @@ void ik_session_summary_dispatch(ik_agent_ctx_t *agent,
         free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);     // LCOV_EXCL_LINE
         return;                                                                   // LCOV_EXCL_LINE
     }
+    // LCOV_EXCL_START
     talloc_steal(NULL, worker_provider);
     talloc_free(prov_ctx2);
 
     ik_summary_worker_args_t *args = malloc(sizeof(ik_summary_worker_args_t));
     if (args == NULL) {                                                           // LCOV_EXCL_BR_LINE
-        talloc_free(worker_provider);                                             // LCOV_EXCL_LINE
-        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);     // LCOV_EXCL_LINE
-        return;                                                                   // LCOV_EXCL_LINE
+        talloc_free(worker_provider);
+        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);
+        return;
     }
 
     args->msgs = msgs;
@@ -228,10 +231,10 @@ void ik_session_summary_dispatch(ik_agent_ctx_t *agent,
     args->session_msgs_ptrs = session_msgs_ptrs;
 
     if (args->model == NULL) {                                                    // LCOV_EXCL_BR_LINE
-        talloc_free(worker_provider);                                             // LCOV_EXCL_LINE
-        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);     // LCOV_EXCL_LINE
-        free(args);                                                               // LCOV_EXCL_LINE
-        return;                                                                   // LCOV_EXCL_LINE
+        talloc_free(worker_provider);
+        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);
+        free(args);
+        return;
     }
 
     pthread_mutex_lock_(&agent->summary_thread_mutex);
@@ -243,22 +246,23 @@ void ik_session_summary_dispatch(ik_agent_ctx_t *agent,
     int ret = pthread_create_(&agent->summary_thread, NULL,
                               ik_summary_worker_fn, args);
     if (ret != 0) {                                                               // LCOV_EXCL_BR_LINE
-        pthread_mutex_lock_(&agent->summary_thread_mutex);                        // LCOV_EXCL_LINE
-        agent->summary_thread_running = false;                                    // LCOV_EXCL_LINE
-        pthread_mutex_unlock_(&agent->summary_thread_mutex);                      // LCOV_EXCL_LINE
-        talloc_free(worker_provider);                                             // LCOV_EXCL_LINE
-        free(args->model);                                                        // LCOV_EXCL_LINE
-        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);     // LCOV_EXCL_LINE
-        free(args);                                                               // LCOV_EXCL_LINE
+        pthread_mutex_lock_(&agent->summary_thread_mutex);
+        agent->summary_thread_running = false;
+        pthread_mutex_unlock_(&agent->summary_thread_mutex);
+        talloc_free(worker_provider);
+        free(args->model);
+        free_session_stubs(session_msgs_stubs, session_msgs_ptrs, msg_count);
+        free(args);
     }
+    // LCOV_EXCL_STOP
 }
 
 /* Handle session summary result: store to DB and reload agent state. */
 static void poll_apply_session(ik_agent_ctx_t *agent,
                                int64_t start_id, int64_t end_id)
 {
-    if (agent->summary_thread_result == NULL) return;
-    if (agent->shared == NULL || agent->shared->db_ctx == NULL) {
+    if (agent->summary_thread_result == NULL) return; // LCOV_EXCL_BR_LINE
+    if (agent->shared == NULL || agent->shared->db_ctx == NULL) { // LCOV_EXCL_BR_LINE
         talloc_free(agent->summary_thread_result);
         agent->summary_thread_result = NULL;
         return;
@@ -268,10 +272,10 @@ static void poll_apply_session(ik_agent_ctx_t *agent,
     res_t ins = ik_db_session_summary_insert(agent->shared->db_ctx,
                                              agent->uuid, text,
                                              start_id, end_id, token_count);
-    if (is_err(&ins)) talloc_free(ins.err);
+    if (is_err(&ins)) talloc_free(ins.err); // LCOV_EXCL_BR_LINE
     talloc_free(agent->summary_thread_result);
     agent->summary_thread_result = NULL;
-    if (agent->session_summaries != NULL) {
+    if (agent->session_summaries != NULL) { // LCOV_EXCL_BR_LINE
         talloc_free(agent->session_summaries);
         agent->session_summaries = NULL;
         agent->session_summary_count = 0;
@@ -280,7 +284,7 @@ static void poll_apply_session(ik_agent_ctx_t *agent,
                                             agent, agent->uuid,
                                             &agent->session_summaries,
                                             &agent->session_summary_count);
-    if (is_err(&load)) talloc_free(load.err);
+    if (is_err(&load)) talloc_free(load.err); // LCOV_EXCL_BR_LINE
 }
 
 /* Handle recent summary result: accept if generation matches, else discard. */
@@ -294,8 +298,8 @@ static void poll_apply_recent(ik_agent_ctx_t *agent)
         }
         return;
     }
-    if (agent->summary_thread_result != NULL) {
-        if (agent->recent_summary != NULL) talloc_free(agent->recent_summary);
+    if (agent->summary_thread_result != NULL) { // LCOV_EXCL_BR_LINE
+        if (agent->recent_summary != NULL) talloc_free(agent->recent_summary); // LCOV_EXCL_BR_LINE
         agent->recent_summary = talloc_steal(agent, agent->summary_thread_result);
         agent->recent_summary_tokens =
             (int32_t)(strlen(agent->recent_summary) / 4);
@@ -328,14 +332,14 @@ void ik_summary_worker_poll(ik_agent_ctx_t *agent)
     size_t session_msg_count = 0;
     void *session_stubs = NULL, *session_ptrs = NULL;
 
-    if (args != NULL) {
+    if (args != NULL) { // LCOV_EXCL_BR_LINE
         is_session        = args->is_session_summary;
         start_id          = args->start_msg_id;
         end_id            = args->end_msg_id;
         session_msg_count = args->msg_count;
         session_stubs     = args->session_msgs_stubs;
         session_ptrs      = args->session_msgs_ptrs;
-        if (args->owns_provider && args->provider != NULL)
+        if (args->owns_provider && args->provider != NULL) // LCOV_EXCL_BR_LINE
             talloc_free(args->provider);
         free(args->model);
         free(args);

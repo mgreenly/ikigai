@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "apps/ikigai/providers/factory.h"
+#include "apps/ikigai/providers/stubs.h"
 #include "shared/error.h"
 
 // Helper macro to check if a string contains a substring
@@ -393,6 +394,24 @@ START_TEST(test_create_success_google) {
 END_TEST
 
 /* ================================================================
+ * Stub Tests
+ * ================================================================ */
+
+START_TEST(test_count_tokens_stub_returns_not_implemented) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    int32_t token_count = 0;
+    res_t r = ik_provider_count_tokens_stub(ctx, NULL, &token_count);
+
+    ck_assert_msg(is_err(&r), "stub should return ERR");
+    ck_assert_int_eq(token_count, 0);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+/* ================================================================
  * Test Suite Setup
  * ================================================================ */
 
@@ -433,6 +452,11 @@ static Suite *factory_suite(void)
     tcase_add_test(tc_create, test_create_success_anthropic);
     tcase_add_test(tc_create, test_create_success_google);
     suite_add_tcase(s, tc_create);
+
+    TCase *tc_stubs = tcase_create("Stubs");
+    tcase_set_timeout(tc_stubs, IK_TEST_TIMEOUT);
+    tcase_add_test(tc_stubs, test_count_tokens_stub_returns_not_implemented);
+    suite_add_tcase(s, tc_stubs);
 
     return s;
 }

@@ -107,10 +107,9 @@ void ik_agent_append_context_hr(ik_agent_ctx_t *agent)
         char color_seq[16];
         ik_ansi_fg_256(color_seq, sizeof(color_seq), 153);
         colored_hr = talloc_asprintf(agent, "%s%s%s", color_seq, hr, IK_ANSI_RESET);
-        if (colored_hr != NULL) {
-            hr_line = colored_hr;
-            hr_line_len = strlen(colored_hr);
-        }
+        if (colored_hr == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        hr_line = colored_hr;
+        hr_line_len = strlen(colored_hr);
     }
 
     ik_scrollback_append_line(agent->scrollback, "", 0);
@@ -125,7 +124,8 @@ void ik_agent_append_context_hr(ik_agent_ctx_t *agent)
  * simplified re-render pattern as interrupt recovery. */
 static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
 {
-    if (agent->token_cache == NULL || agent->scrollback == NULL) return;
+    if (agent->token_cache == NULL) PANIC("token_cache is NULL"); // LCOV_EXCL_BR_LINE
+    if (agent->scrollback == NULL) return;
     size_t ctx_idx = ik_token_cache_get_context_start_index(agent->token_cache);
     if (ctx_idx == 0) return;
 
@@ -139,7 +139,8 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
         }
 
         ik_message_t *m = agent->messages[i];
-        if (m == NULL || m->content_count == 0) continue;
+        if (m == NULL) PANIC("NULL message"); // LCOV_EXCL_BR_LINE
+        if (m->content_count == 0) continue;
 
         ik_content_block_t *block = &m->content_blocks[0];
         const char *kind = m->kind;
@@ -156,9 +157,8 @@ static void refresh_scrollback_with_hr(ik_agent_ctx_t *agent)
                 .arguments = block->data.tool_call.arguments,
             };
             const char *formatted = ik_format_tool_call(agent, &tc);
-            if (formatted != NULL) {
-                ik_event_render(agent->scrollback, "tool_call", formatted, "{}", m->interrupted);
-            }
+            if (formatted == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            ik_event_render(agent->scrollback, "tool_call", formatted, "{}", m->interrupted);
             continue;
         }
 
@@ -181,20 +181,18 @@ static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
     free(agent->summary_msgs_ptrs);
     agent->summary_msgs_ptrs = NULL;
 
-    if (count == 0) return 0;
+    assert(count > 0); // LCOV_EXCL_BR_LINE
 
     ik_msg_t *stubs = malloc(count * sizeof(ik_msg_t));
+    if (stubs == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
     ik_msg_t **ptrs = malloc(count * sizeof(ik_msg_t *));
-    if (stubs == NULL || ptrs == NULL) {
-        free(stubs);
-        free(ptrs);
-        return 0;
-    }
+    if (ptrs == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     size_t stub_count = 0;
     for (size_t i = 0; i < count; i++) {
         ik_message_t *m = agent->messages[i];
-        if (m == NULL || m->content_count == 0) continue;
+        if (m == NULL) PANIC("NULL message"); // LCOV_EXCL_BR_LINE
+        if (m->content_count == 0) continue;
 
         ik_content_block_t *block = &m->content_blocks[0];
         const char *kind = m->kind;
@@ -206,7 +204,8 @@ static size_t build_summary_msg_snapshot(ik_agent_ctx_t *agent, size_t count)
             content = block->data.tool_result.content;
         }
 
-        if (kind == NULL || content == NULL) continue;
+        if (kind == NULL) PANIC("NULL message kind"); // LCOV_EXCL_BR_LINE
+        if (content == NULL) continue;
 
         stubs[stub_count].id = 0;
         /* ik_msg_t.kind and .content are char*, not const char*. Safe to cast
@@ -244,6 +243,18 @@ void ik_agent_prune_token_cache(ik_agent_ctx_t *agent)
                                    (ik_msg_t * const *)agent->summary_msgs_ptrs,
                                    stub_count,
                                    IK_SUMMARY_RECENT_MAX_TOKENS);
+        /* If dispatch did not start a thread (e.g. provider creation failed),
+         * free the snapshot buffers now — ik_summary_worker_poll will never
+         * run to clean them up. */
+        pthread_mutex_lock_(&agent->summary_thread_mutex);
+        bool running = agent->summary_thread_running;
+        pthread_mutex_unlock_(&agent->summary_thread_mutex);
+        if (!running) {
+            free(agent->summary_msgs_stubs);
+            agent->summary_msgs_stubs = NULL;
+            free(agent->summary_msgs_ptrs);
+            agent->summary_msgs_ptrs = NULL;
+        }
     }
 }
 

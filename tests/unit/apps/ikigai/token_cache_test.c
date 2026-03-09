@@ -390,6 +390,20 @@ START_TEST(test_add_turn_invalidates_total) {
 }
 END_TEST
 
+/* ----------------------------------------------------------------
+ * Test: add_turn grows the internal array (lines 411-418)
+ * TURN_CAP_INITIAL=8 so the 9th add triggers realloc.
+ * ---------------------------------------------------------------- */
+START_TEST(test_add_turn_grows_array) {
+    ik_token_cache_t *c = ik_token_cache_create(test_ctx, make_agent(test_ctx));
+    /* Add 9 turns to exceed the initial capacity of 8 */
+    for (int i = 0; i < 9; i++) {
+        ik_token_cache_add_turn(c);
+    }
+    ck_assert_uint_eq(ik_token_cache_get_turn_count(c), 9);
+}
+END_TEST
+
 static Suite *token_cache_suite(void)
 {
     Suite *s = suite_create("Token Cache");
@@ -421,6 +435,7 @@ static Suite *token_cache_suite(void)
     tcase_add_test(tc, test_multiple_turns_sequence);
     tcase_add_test(tc, test_clone_preserves_state);
     tcase_add_test(tc, test_clone_independent);
+    tcase_add_test(tc, test_add_turn_grows_array);
     suite_add_tcase(s, tc);
 
     TCase *tc_panic = tcase_create("PANIC");

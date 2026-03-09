@@ -10,10 +10,13 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands_basic.h"
+#include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/marks.h"
 #include "apps/ikigai/message.h"
+#include "apps/ikigai/msg.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
+#include "shared/wrapper_internal.h"
 #include "tests/helpers/test_utils_helper.h"
 
 static void suite_setup(void)

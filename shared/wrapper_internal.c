@@ -13,6 +13,8 @@
 #include "apps/ikigai/config.h"
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/agent_replay.h"
+#include "apps/ikigai/doc_cache.h"
 #include "shared/logger.h"
 #include "apps/ikigai/message.h"
 #include "apps/ikigai/msg.h"
@@ -101,6 +103,18 @@ MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger)
     ik_http_multi_info_read((ik_http_multi_t *)http_multi, (ik_logger_t *)logger);
 }
 
+MOCKABLE res_t ik_http_multi_add_request_(void *multi,
+                                           const ik_http_request_t *req,
+                                           ik_http_write_cb_t write_cb,
+                                           void *write_ctx,
+                                           ik_http_completion_cb_t completion_cb,
+                                           void *completion_ctx)
+{
+    return ik_http_multi_add_request((ik_http_multi_t *)multi, req,
+                                     write_cb, write_ctx,
+                                     completion_cb, completion_ctx);
+}
+
 MOCKABLE void ik_agent_start_tool_execution_(void *agent)
 {
     ik_agent_start_tool_execution((ik_agent_ctx_t *)agent);
@@ -144,6 +158,31 @@ MOCKABLE res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
 {
     return ik_anthropic_count_tokens_http(ctx, url, api_key, body,
                                           response_out, http_status_out);
+}
+
+MOCKABLE res_t ik_agent_find_clear_(void *db_ctx,
+                                    TALLOC_CTX *ctx,
+                                    const char *agent_uuid,
+                                    int64_t max_id,
+                                    int64_t *clear_id_out)
+{
+    return ik_agent_find_clear((ik_db_ctx_t *)db_ctx, ctx, agent_uuid, max_id, clear_id_out);
+}
+
+MOCKABLE res_t ik_agent_query_range_(void *db_ctx,
+                                     TALLOC_CTX *ctx,
+                                     const void *range,
+                                     void ***messages_out,
+                                     size_t *count_out)
+{
+    return ik_agent_query_range((ik_db_ctx_t *)db_ctx, ctx,
+                                (const ik_replay_range_t *)range,
+                                (ik_msg_t ***)messages_out, count_out);
+}
+
+MOCKABLE res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
+{
+    return ik_doc_cache_get((ik_doc_cache_t *)cache, path, out_content);
 }
 
 // LCOV_EXCL_STOP

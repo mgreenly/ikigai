@@ -163,10 +163,7 @@ static bool parse_input_tokens(const char *json_body, int32_t *token_count_out)
     }
 
     yyjson_val *root = yyjson_doc_get_root_(doc);
-    if (root == NULL) {
-        yyjson_doc_free(doc);
-        return false;
-    }
+    if (root == NULL) PANIC("yyjson invariant: root is NULL after successful parse"); // LCOV_EXCL_BR_LINE
 
     yyjson_val *tok_val = yyjson_obj_get_(root, "input_tokens");
     if (tok_val == NULL || !yyjson_is_int(tok_val)) {

@@ -111,6 +111,55 @@ START_TEST(test_output_item_done_not_in_tool_call) {
 }
 END_TEST
 
+/* Covers branch: response_val == NULL (no "response" key in root) */
+START_TEST(test_response_completed_no_response_key) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    ik_openai_responses_stream_process_event(ctx, "response.completed", "{}");
+    /* No crash; usage remains zeroed */
+    ck_assert_int_eq(ctx->usage.input_tokens, 0);
+}
+END_TEST
+
+/* Covers branch: usage_val == NULL (response present but no "usage" key) */
+START_TEST(test_response_completed_no_usage_key) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    ik_openai_responses_stream_process_event(ctx, "response.completed",
+                                             "{\"response\":{}}");
+    ck_assert_int_eq(ctx->usage.input_tokens, 0);
+}
+END_TEST
+
+/* Covers branches: individual token fields absent (input/output/total/details NULL) */
+START_TEST(test_response_completed_usage_no_token_fields) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    ik_openai_responses_stream_process_event(ctx, "response.completed",
+                                             "{\"response\":{\"usage\":{}}}");
+    /* All fields stay zero */
+    ck_assert_int_eq(ctx->usage.input_tokens, 0);
+    ck_assert_int_eq(ctx->usage.output_tokens, 0);
+    ck_assert_int_eq(ctx->usage.total_tokens, 0);
+    ck_assert_int_eq(ctx->usage.thinking_tokens, 0);
+}
+END_TEST
+
+/* Covers branch: type does not match any known error category (else path at line 294) */
+START_TEST(test_error_unknown_type) {
+    ik_openai_responses_stream_ctx_t *ctx = ik_openai_responses_stream_ctx_create(
+        test_ctx, stream_cb, events);
+
+    ik_openai_responses_stream_process_event(ctx, "error",
+                                             "{\"error\":{\"type\":\"unknown_type\",\"message\":\"oops\"}}");
+    ck_assert_int_eq((int)events->count, 1);
+    ck_assert_int_eq(events->items[0].type, IK_STREAM_ERROR);
+}
+END_TEST
+
 static Suite *openai_streaming_responses_events_branches_suite(void)
 {
     Suite *s = suite_create("OpenAI Streaming Responses Events Branches");
@@ -125,6 +174,10 @@ static Suite *openai_streaming_responses_events_branches_suite(void)
     tcase_add_test(tc, test_text_delta_with_empty_string);
     tcase_add_test(tc, test_thinking_delta_with_empty_string);
     tcase_add_test(tc, test_output_item_done_not_in_tool_call);
+    tcase_add_test(tc, test_response_completed_no_response_key);
+    tcase_add_test(tc, test_response_completed_no_usage_key);
+    tcase_add_test(tc, test_response_completed_usage_no_token_fields);
+    tcase_add_test(tc, test_error_unknown_type);
     suite_add_tcase(s, tc);
 
     return s;

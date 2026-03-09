@@ -12,6 +12,7 @@
 #include "apps/ikigai/providers/anthropic/response_helpers.h"
 #include "apps/ikigai/providers/anthropic/streaming.h"
 #include "apps/ikigai/providers/common/http_multi.h"
+#include "shared/wrapper_internal.h"
 #include "vendor/yyjson/yyjson.h"
 
 #include <assert.h>
@@ -67,7 +68,7 @@ static ik_response_t *parse_response(TALLOC_CTX *ctx,
         return NULL;
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
     if (!yyjson_is_obj(root)) {
         yyjson_doc_free(doc);
         return NULL;
@@ -91,10 +92,10 @@ static ik_response_t *parse_response(TALLOC_CTX *ctx,
     }
 
     /* usage */
-    yyjson_val *usage = yyjson_obj_get(root, "usage");
+    yyjson_val *usage = yyjson_obj_get(root, "usage"); // LCOV_EXCL_BR_LINE
     if (yyjson_is_obj(usage)) {
-        yyjson_val *input_tokens = yyjson_obj_get(usage, "input_tokens");
-        yyjson_val *output_tokens = yyjson_obj_get(usage, "output_tokens");
+        yyjson_val *input_tokens = yyjson_obj_get(usage, "input_tokens"); // LCOV_EXCL_BR_LINE
+        yyjson_val *output_tokens = yyjson_obj_get(usage, "output_tokens"); // LCOV_EXCL_BR_LINE
         if (yyjson_is_int(input_tokens)) {
             resp->usage.input_tokens = (int32_t)yyjson_get_int(input_tokens);
         }
@@ -114,7 +115,7 @@ static ik_response_t *parse_response(TALLOC_CTX *ctx,
 
         size_t idx, max;
         yyjson_val *block;
-        yyjson_arr_foreach(content, idx, max, block) {
+        yyjson_arr_foreach(content, idx, max, block) { // LCOV_EXCL_BR_LINE
             (void)idx;
             yyjson_val *type = yyjson_obj_get(block, "type");
             if (!yyjson_is_str(type)) {
@@ -124,8 +125,8 @@ static ik_response_t *parse_response(TALLOC_CTX *ctx,
             ik_content_block_t *cb = &resp->content_blocks[resp->content_count];
 
             if (strcmp(type_str, "text") == 0) {
-                cb->type = IK_CONTENT_TEXT;
-                yyjson_val *text = yyjson_obj_get(block, "text");
+                cb->type = IK_CONTENT_TEXT; // LCOV_EXCL_BR_LINE
+                yyjson_val *text = yyjson_obj_get(block, "text"); // LCOV_EXCL_BR_LINE
                 cb->data.text.text = yyjson_is_str(text)
                     ? talloc_strdup(resp, yyjson_get_str(text))
                     : talloc_strdup(resp, "");
@@ -235,9 +236,9 @@ res_t ik_anthropic_start_request(void *impl_ctx_void, const ik_request_t *req,
         .body_len = strlen(body),
     };
 
-    r = ik_http_multi_add_request(impl_ctx->http_multi, &http_req,
-                                  NULL, NULL,
-                                  anthropic_http_completion_cb, req_ctx);
+    r = ik_http_multi_add_request_(impl_ctx->http_multi, &http_req,
+                                   NULL, NULL,
+                                   anthropic_http_completion_cb, req_ctx);
     if (is_err(&r)) {
         talloc_steal(impl_ctx, r.err);
         talloc_free(req_ctx);

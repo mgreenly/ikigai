@@ -338,6 +338,36 @@ START_TEST(test_render_skillset_event_null_json) {
 
 END_TEST
 
+// Test: Render bang_command event
+START_TEST(test_render_bang_command_event) {
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    // With data_json containing "command" field
+    res_t result = ik_event_render(scrollback, "bang_command", "/foo",
+                                  "{\"command\":\"/foo\"}", false);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_gt(ik_scrollback_get_line_count(scrollback), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
+// Test: Render bang_command event with null data_json (falls back to content)
+START_TEST(test_render_bang_command_event_no_json) {
+    void *ctx = talloc_new(NULL);
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 80);
+
+    res_t result = ik_event_render(scrollback, "bang_command", "/bar", NULL, false);
+    ck_assert(!is_err(&result));
+    ck_assert_uint_gt(ik_scrollback_get_line_count(scrollback), 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
+
 // Test: NULL kind returns error
 START_TEST(test_render_null_kind_returns_error) {
     void *ctx = talloc_new(NULL);
@@ -377,6 +407,8 @@ static Suite *event_render_basic_suite(void)
     tcase_add_test(tc_render, test_render_mark_label_not_string);
     tcase_add_test(tc_render, test_render_skillset_event);
     tcase_add_test(tc_render, test_render_skillset_event_null_json);
+    tcase_add_test(tc_render, test_render_bang_command_event);
+    tcase_add_test(tc_render, test_render_bang_command_event_no_json);
     suite_add_tcase(s, tc_render);
 
     TCase *tc_errors = tcase_create("Error Handling");

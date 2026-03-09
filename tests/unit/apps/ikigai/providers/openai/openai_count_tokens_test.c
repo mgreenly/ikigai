@@ -36,6 +36,7 @@ static ik_provider_t *provider;
 
 /* Control variables */
 static bool g_curl_init_should_fail = false;
+static bool g_slist_should_fail = false;
 static CURLcode g_perform_result = CURLE_OK;
 static long g_http_code = 200;
 static const char *g_response_body = NULL;
@@ -103,6 +104,24 @@ CURLcode curl_easy_perform_(CURL *curl)
     return CURLE_OK;
 }
 
+struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *string)
+{
+    if (g_slist_should_fail) {
+        return NULL;
+    }
+    return curl_slist_append(list, string);
+}
+
+void curl_slist_free_all_(struct curl_slist *list)
+{
+    curl_slist_free_all(list);
+}
+
+void curl_easy_cleanup_(CURL *curl)
+{
+    curl_easy_cleanup(curl);
+}
+
 CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
 {
     va_list ap;
@@ -127,11 +146,28 @@ CURLcode curl_easy_getinfo_(CURL *curl, CURLINFO info, ...)
 static void reset_mocks(void)
 {
     g_curl_init_should_fail = false;
+    g_slist_should_fail = false;
     g_perform_result = CURLE_OK;
     g_http_code = 200;
     g_response_body = NULL;
     g_write_cb = NULL;
     g_write_ctx = NULL;
+}
+
+/* Build a 600-byte JSON response to trigger write_callback buffer growth */
+static char g_large_resp_buf[700];
+static const char *make_large_response(void)
+{
+    const char *prefix = "{\"input_tokens\":55,\"pad\":\"";
+    const char *suffix = "\"}";
+    size_t plen = strlen(prefix);
+    size_t slen = strlen(suffix);
+    size_t total = sizeof(g_large_resp_buf) - 1;
+    memcpy(g_large_resp_buf, prefix, plen);
+    memset(g_large_resp_buf + plen, 'A', total - plen - slen);
+    memcpy(g_large_resp_buf + total - slen, suffix, slen);
+    g_large_resp_buf[total] = '\0';
+    return g_large_resp_buf;
 }
 
 static void build_request(ik_request_t *req, ik_message_t *msg, ik_content_block_t *content)
@@ -298,6 +334,84 @@ START_TEST(test_count_tokens_curl_init_fail_fallback) {
 }
 END_TEST
 
+/**
+ * Large response (> 256 bytes) triggers write_callback buffer growth.
+ */
+START_TEST(test_count_tokens_large_response) {
+    g_response_body = make_large_response();
+
+    ik_request_t req;
+    ik_message_t msg;
+    ik_content_block_t content;
+    build_request(&req, &msg, &content);
+
+    int32_t count = -1;
+    res_t r = provider->vt->count_tokens(provider->ctx, &req, &count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(count, 55);
+}
+END_TEST
+
+/**
+ * curl_slist_append failure falls back to bytes estimate and returns OK.
+ */
+START_TEST(test_count_tokens_slist_fail) {
+    g_slist_should_fail = true;
+    g_response_body = "{\"input_tokens\":42}";
+
+    ik_request_t req;
+    ik_message_t msg;
+    ik_content_block_t content;
+    build_request(&req, &msg, &content);
+
+    int32_t count = -1;
+    res_t r = provider->vt->count_tokens(provider->ctx, &req, &count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_ge(count, 0);
+}
+END_TEST
+
+/**
+ * HTTP status < 200 falls back to bytes estimate (short-circuit branch).
+ */
+START_TEST(test_count_tokens_http_lt_200) {
+    g_http_code = 100;
+    g_response_body = "{\"input_tokens\":42}";
+
+    ik_request_t req;
+    ik_message_t msg;
+    ik_content_block_t content;
+    build_request(&req, &msg, &content);
+
+    int32_t count = -1;
+    res_t r = provider->vt->count_tokens(provider->ctx, &req, &count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_ge(count, 0);
+}
+END_TEST
+
+/**
+ * input_tokens field is a string instead of int — falls back to estimate.
+ */
+START_TEST(test_count_tokens_non_int_field) {
+    g_response_body = "{\"input_tokens\":\"not-a-number\"}";
+
+    ik_request_t req;
+    ik_message_t msg;
+    ik_content_block_t content;
+    build_request(&req, &msg, &content);
+
+    int32_t count = -1;
+    res_t r = provider->vt->count_tokens(provider->ctx, &req, &count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_ge(count, 0);
+}
+END_TEST
+
 /* ================================================================
  * Test Suite
  * ================================================================ */
@@ -315,6 +429,10 @@ static Suite *openai_count_tokens_suite(void)
     tcase_add_test(tc, test_count_tokens_malformed_json_fallback);
     tcase_add_test(tc, test_count_tokens_missing_field_fallback);
     tcase_add_test(tc, test_count_tokens_curl_init_fail_fallback);
+    tcase_add_test(tc, test_count_tokens_large_response);
+    tcase_add_test(tc, test_count_tokens_slist_fail);
+    tcase_add_test(tc, test_count_tokens_http_lt_200);
+    tcase_add_test(tc, test_count_tokens_non_int_field);
     suite_add_tcase(s, tc);
 
     return s;

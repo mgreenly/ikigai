@@ -38,6 +38,8 @@ void curl_slist_free_all_(struct curl_slist *list);
 static long g_mock_http_status = 200;
 static const char *g_mock_response_body = "{\"totalTokens\":42}";
 static CURLcode g_mock_perform_result = CURLE_OK;
+static int g_mock_curl_init_fail = 0;
+static int g_mock_slist_fail = 0;
 
 /* Track write callback registered via CURLOPT_WRITEFUNCTION/WRITEDATA */
 static size_t (*g_mock_write_cb)(char *, size_t, size_t, void *) = NULL;
@@ -52,6 +54,7 @@ static struct curl_slist g_fake_slist;
 
 CURL *curl_easy_init_(void)
 {
+    if (g_mock_curl_init_fail) return NULL;
     return (CURL *)1; /* Non-null fake handle */
 }
 
@@ -118,6 +121,7 @@ struct curl_slist *curl_slist_append_(struct curl_slist *list, const char *strin
 {
     (void)list;
     (void)string;
+    if (g_mock_slist_fail) return NULL;
     return &g_fake_slist; /* Non-null: success */
 }
 
@@ -160,6 +164,8 @@ static void setup(void)
     g_mock_http_status = 200;
     g_mock_response_body = "{\"totalTokens\":42}";
     g_mock_perform_result = CURLE_OK;
+    g_mock_curl_init_fail = 0;
+    g_mock_slist_fail = 0;
     g_mock_write_cb = NULL;
     g_mock_write_data = NULL;
 }
@@ -284,6 +290,55 @@ START_TEST(test_count_tokens_missing_total_tokens_field_falls_back) {
 END_TEST
 
 /* ================================================================
+ * Tests: curl init and slist failures
+ * ================================================================ */
+
+START_TEST(test_count_tokens_curl_init_fail_uses_bytes_estimate) {
+    g_mock_curl_init_fail = 1;
+
+    int32_t token_count = 0;
+    res_t r = provider->vt->count_tokens(provider->ctx, request, &token_count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_ge(token_count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_slist_fail_uses_bytes_estimate) {
+    g_mock_slist_fail = 1;
+
+    int32_t token_count = 0;
+    res_t r = provider->vt->count_tokens(provider->ctx, request, &token_count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_ge(token_count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_large_response_triggers_buffer_growth) {
+    /* Build a response body > 512 bytes (the initial cap) to trigger realloc */
+    /* Format: {"totalTokens":99,"notes":"AAAA...AAAA"} */
+    static char big_response[600];
+    int prefix_len = snprintf(big_response, sizeof(big_response),
+                              "{\"totalTokens\":99,\"notes\":\"");
+    int pad_len = (int)(sizeof(big_response) - (size_t)prefix_len - 3);
+    memset(big_response + prefix_len, 'A', (size_t)pad_len);
+    big_response[prefix_len + pad_len] = '"';
+    big_response[prefix_len + pad_len + 1] = '}';
+    big_response[prefix_len + pad_len + 2] = '\0';
+
+    g_mock_response_body = big_response;
+    g_mock_http_status = 200;
+
+    int32_t token_count = 0;
+    res_t r = provider->vt->count_tokens(provider->ctx, request, &token_count);
+
+    ck_assert(!is_err(&r));
+    ck_assert_int_eq(token_count, 99);
+}
+END_TEST
+
+/* ================================================================
  * Test Suite Setup
  * ================================================================ */
 
@@ -318,6 +373,14 @@ static Suite *google_count_tokens_suite(void)
     tcase_add_test(tc_malformed, test_count_tokens_malformed_json_falls_back_to_bytes_estimate);
     tcase_add_test(tc_malformed, test_count_tokens_missing_total_tokens_field_falls_back);
     suite_add_tcase(s, tc_malformed);
+
+    TCase *tc_infra = tcase_create("infra_failures");
+    tcase_set_timeout(tc_infra, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_infra, setup, teardown);
+    tcase_add_test(tc_infra, test_count_tokens_curl_init_fail_uses_bytes_estimate);
+    tcase_add_test(tc_infra, test_count_tokens_slist_fail_uses_bytes_estimate);
+    tcase_add_test(tc_infra, test_count_tokens_large_response_triggers_buffer_growth);
+    suite_add_tcase(s, tc_infra);
 
     return s;
 }

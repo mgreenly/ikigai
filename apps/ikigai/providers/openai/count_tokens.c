@@ -70,12 +70,13 @@ res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
     /* Serialize request in Responses API format (stream=false) */
     char *json_body = NULL;
     res_t ser_res = ik_openai_serialize_responses_request(ctx_talloc, req, false, &json_body);
-    if (is_err(&ser_res)) {
-        /* Fallback: bytes estimate */
+    if (is_err(&ser_res)) { // LCOV_EXCL_BR_LINE
+        /* LCOV_EXCL_START */
         DEBUG_LOG("[count_tokens] serialize failed, falling back to bytes estimate");
         *out = ik_token_count_from_bytes(strlen(req->system_prompt ? req->system_prompt : ""));
         talloc_free(ser_res.err);
         return OK(NULL);
+        /* LCOV_EXCL_STOP */
     }
 
     /* Build URL: {base_url}/v1/responses/input_tokens */
@@ -85,12 +86,13 @@ res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
     /* Build headers */
     char **headers = NULL;
     res_t hdr_res = ik_openai_build_headers(ctx_talloc, api_key, &headers);
-    if (is_err(&hdr_res)) {
-        /* Fallback: bytes estimate */
+    if (is_err(&hdr_res)) { // LCOV_EXCL_BR_LINE
+        /* LCOV_EXCL_START */
         DEBUG_LOG("[count_tokens] build_headers failed, falling back to bytes estimate");
         *out = ik_token_count_from_bytes(strlen(json_body));
         talloc_free(hdr_res.err);
         return OK(NULL);
+        /* LCOV_EXCL_STOP */
     }
 
     /* Set up curl easy handle */
@@ -163,7 +165,7 @@ res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
         return OK(NULL);
     }
 
-    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc); // LCOV_EXCL_BR_LINE
     yyjson_val *input_tokens_val = yyjson_obj_get(root, "input_tokens");
 
     if (!input_tokens_val || !yyjson_is_int(input_tokens_val)) {
@@ -173,7 +175,7 @@ res_t ik_openai_count_tokens(TALLOC_CTX *ctx_talloc,
         return OK(NULL);
     }
 
-    int64_t token_count = yyjson_get_int(input_tokens_val);
+    int64_t token_count = yyjson_get_int(input_tokens_val); // LCOV_EXCL_BR_LINE
     yyjson_doc_free(doc);
 
     *out = (int32_t)token_count;

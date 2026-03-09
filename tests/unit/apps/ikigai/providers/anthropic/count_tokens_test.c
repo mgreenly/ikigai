@@ -29,6 +29,7 @@
 static const char *g_mock_response_body = NULL;
 static long g_mock_http_status = 200;
 static bool g_mock_http_error = false;    /* If true, return ERR */
+static bool g_mock_response_null = false; /* If true, return NULL response (OK) */
 
 /* ================================================================
  * Mock: ik_http_multi_create_ (needed for ik_anthropic_create)
@@ -70,6 +71,10 @@ res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
     }
 
     *http_status_out = g_mock_http_status;
+    if (g_mock_response_null) {
+        *response_out = NULL;
+        return OK(NULL);
+    }
     *response_out = talloc_strdup(ctx, g_mock_response_body ? g_mock_response_body : "");
     return OK(NULL);
 }
@@ -87,6 +92,7 @@ static void setup(void)
     g_mock_response_body = NULL;
     g_mock_http_status = 200;
     g_mock_http_error = false;
+    g_mock_response_null = false;
 
     res_t r = ik_anthropic_create(test_ctx, "test-api-key", &provider);
     ck_assert_msg(!is_err(&r), "Failed to create provider");
@@ -248,6 +254,137 @@ START_TEST(test_count_tokens_empty_response) {
 }
 END_TEST
 
+START_TEST(test_count_tokens_negative_count) {
+    /* Negative input_tokens from API -> fallback to bytes estimator */
+    g_mock_response_body = "{\"input_tokens\": -1}";
+    g_mock_http_status = 200;
+
+    ik_request_t *req = make_request(test_ctx);
+    int32_t count = 0;
+
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK on negative count");
+    ck_assert_int_gt(count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_serialization_failure) {
+    /* A tool with invalid JSON parameters forces serialization to fail,
+     * triggering estimate_request_bytes fallback */
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(test_ctx, "claude-sonnet-4-6");
+    req->system_prompt = talloc_strdup(test_ctx, "You are helpful");
+
+    req->tools = talloc_zero_array(test_ctx, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(test_ctx, "bad_tool");
+    req->tools[0].description = talloc_strdup(test_ctx, "A tool with bad params");
+    req->tools[0].parameters = talloc_strdup(test_ctx, "INVALID {{{{");
+
+    req->messages = talloc_zero_array(test_ctx, ik_message_t, 1);
+    req->message_count = 1;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(test_ctx, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[0].content_blocks[0].data.text.text =
+        talloc_strdup(test_ctx, "Hello world");
+
+    int32_t count = 0;
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK on serialization failure");
+    ck_assert_int_gt(count, 0);
+}
+END_TEST
+
+/* ================================================================
+ * Tests: Additional coverage branches
+ * ================================================================ */
+
+START_TEST(test_count_tokens_null_response) {
+    /* Null response_out with OK status triggers json_body==NULL branch
+     * in parse_input_tokens, falling back to bytes estimator */
+    g_mock_response_null = true;
+    g_mock_http_status = 200;
+
+    ik_request_t *req = make_request(test_ctx);
+    int32_t count = 0;
+
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK on null response");
+    ck_assert_int_gt(count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_non_int_field) {
+    /* input_tokens is a string (not int) → tok_val != NULL but !yyjson_is_int */
+    g_mock_response_body = "{\"input_tokens\": \"notanint\"}";
+    g_mock_http_status = 200;
+
+    ik_request_t *req = make_request(test_ctx);
+    int32_t count = 0;
+
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK on non-int field");
+    ck_assert_int_gt(count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_http_status_too_low) {
+    /* HTTP status < 200 triggers the http_status < 200 branch */
+    g_mock_http_status = 100;
+    g_mock_response_body = "{}";
+
+    ik_request_t *req = make_request(test_ctx);
+    int32_t count = 0;
+
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK on 1xx status");
+    ck_assert_int_gt(count, 0);
+}
+END_TEST
+
+START_TEST(test_count_tokens_serialization_failure_no_sysprompt) {
+    /* Serialization failure with NULL system_prompt covers the
+     * system_prompt==NULL branch in estimate_request_bytes */
+    ik_request_t *req = talloc_zero(test_ctx, ik_request_t);
+    req->model = talloc_strdup(test_ctx, "claude-sonnet-4-6");
+    req->system_prompt = NULL; /* No system prompt */
+
+    req->tools = talloc_zero_array(test_ctx, ik_tool_def_t, 1);
+    req->tool_count = 1;
+    req->tools[0].name = talloc_strdup(test_ctx, "bad_tool2");
+    req->tools[0].description = talloc_strdup(test_ctx, "bad params");
+    req->tools[0].parameters = talloc_strdup(test_ctx, "NOT_JSON");
+
+    /* Content block with non-TEXT type to cover the !IK_CONTENT_TEXT branch */
+    req->messages = talloc_zero_array(test_ctx, ik_message_t, 2);
+    req->message_count = 2;
+    req->messages[0].role = IK_ROLE_USER;
+    req->messages[0].content_blocks = talloc_zero_array(test_ctx, ik_content_block_t, 1);
+    req->messages[0].content_count = 1;
+    req->messages[0].content_blocks[0].type = IK_CONTENT_TOOL_CALL; /* Not TEXT */
+    req->messages[0].content_blocks[0].data.text.text = NULL;
+
+    req->messages[1].role = IK_ROLE_USER;
+    req->messages[1].content_blocks = talloc_zero_array(test_ctx, ik_content_block_t, 1);
+    req->messages[1].content_count = 1;
+    req->messages[1].content_blocks[0].type = IK_CONTENT_TEXT;
+    req->messages[1].content_blocks[0].data.text.text = NULL; /* NULL text */
+
+    int32_t count = 0;
+    res_t r = provider->vt->count_tokens(provider->ctx, req, &count);
+
+    ck_assert_msg(!is_err(&r), "count_tokens should return OK");
+    ck_assert_int_ge(count, 0);
+}
+END_TEST
+
 /* ================================================================
  * Test: vtable entry is non-NULL
  * ================================================================ */
@@ -287,7 +424,23 @@ static Suite *count_tokens_suite(void)
     tcase_add_test(tc_malformed, test_count_tokens_malformed_json);
     tcase_add_test(tc_malformed, test_count_tokens_missing_field);
     tcase_add_test(tc_malformed, test_count_tokens_empty_response);
+    tcase_add_test(tc_malformed, test_count_tokens_negative_count);
     suite_add_tcase(s, tc_malformed);
+
+    TCase *tc_fallback = tcase_create("Serialization Fallback");
+    tcase_set_timeout(tc_fallback, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_fallback, setup, teardown);
+    tcase_add_test(tc_fallback, test_count_tokens_serialization_failure);
+    tcase_add_test(tc_fallback, test_count_tokens_serialization_failure_no_sysprompt);
+    suite_add_tcase(s, tc_fallback);
+
+    TCase *tc_branches = tcase_create("Branch Coverage");
+    tcase_set_timeout(tc_branches, IK_TEST_TIMEOUT);
+    tcase_add_unchecked_fixture(tc_branches, setup, teardown);
+    tcase_add_test(tc_branches, test_count_tokens_null_response);
+    tcase_add_test(tc_branches, test_count_tokens_non_int_field);
+    tcase_add_test(tc_branches, test_count_tokens_http_status_too_low);
+    suite_add_tcase(s, tc_branches);
 
     return s;
 }

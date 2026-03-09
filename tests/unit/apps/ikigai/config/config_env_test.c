@@ -345,6 +345,113 @@ START_TEST(test_config_with_env_port_too_high) {
 
 END_TEST
 
+START_TEST(test_config_with_env_sliding_tokens) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    test_paths_setup_env();
+    setenv("IKIGAI_SLIDING_CONTEXT_TOKENS", "50000", 1);
+
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    ck_assert_int_eq(cfg->sliding_context_tokens, 50000);
+
+    unsetenv("IKIGAI_SLIDING_CONTEXT_TOKENS");
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_env_sliding_tokens_invalid) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    test_paths_setup_env();
+    setenv("IKIGAI_SLIDING_CONTEXT_TOKENS", "not_a_number", 1);
+
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Invalid value should be ignored, default used
+    ck_assert_int_eq(cfg->sliding_context_tokens, 100000);
+
+    unsetenv("IKIGAI_SLIDING_CONTEXT_TOKENS");
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_env_sliding_tokens_zero) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    test_paths_setup_env();
+    setenv("IKIGAI_SLIDING_CONTEXT_TOKENS", "0", 1);
+
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Zero value should be ignored, default used
+    ck_assert_int_eq(cfg->sliding_context_tokens, 100000);
+
+    unsetenv("IKIGAI_SLIDING_CONTEXT_TOKENS");
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
+START_TEST(test_config_with_env_sliding_tokens_trailing_chars) {
+
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ck_assert_ptr_nonnull(ctx);
+
+    test_paths_setup_env();
+    setenv("IKIGAI_SLIDING_CONTEXT_TOKENS", "50000abc", 1);
+
+    ik_paths_t *paths = NULL;
+    res_t paths_result = ik_paths_init(ctx, &paths);
+    ck_assert(is_ok(&paths_result));
+
+    ik_config_t *cfg = NULL;
+    res_t result = ik_config_load(ctx, paths, &cfg);
+    ck_assert(!result.is_err);
+    ck_assert_ptr_nonnull(cfg);
+
+    // Trailing chars should cause parse rejection, default used
+    ck_assert_int_eq(cfg->sliding_context_tokens, 100000);
+
+    unsetenv("IKIGAI_SLIDING_CONTEXT_TOKENS");
+    test_paths_cleanup_env();
+    talloc_free(ctx);
+}
+
+END_TEST
+
 static Suite *config_suite(void)
 {
     Suite *s = suite_create("Config Environment Variables");
@@ -359,6 +466,10 @@ static Suite *config_suite(void)
     tcase_add_test(tc_core, test_config_with_env_port_trailing_chars);
     tcase_add_test(tc_core, test_config_with_env_port_too_low);
     tcase_add_test(tc_core, test_config_with_env_port_too_high);
+    tcase_add_test(tc_core, test_config_with_env_sliding_tokens);
+    tcase_add_test(tc_core, test_config_with_env_sliding_tokens_invalid);
+    tcase_add_test(tc_core, test_config_with_env_sliding_tokens_zero);
+    tcase_add_test(tc_core, test_config_with_env_sliding_tokens_trailing_chars);
 
     suite_add_tcase(s, tc_core);
     return s;

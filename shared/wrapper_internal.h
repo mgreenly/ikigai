@@ -2,6 +2,7 @@
 #ifndef IK_WRAPPER_INTERNAL_H
 #define IK_WRAPPER_INTERNAL_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <talloc.h>
@@ -11,7 +12,9 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/db/message.h"
+#include "apps/ikigai/db/agent_replay.h"
 #include "apps/ikigai/config.h"
+#include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/providers/request.h"
 #include "apps/ikigai/providers/common/http_multi.h"
@@ -22,6 +25,7 @@
 #include "apps/ikigai/template.h"
 #include "shared/logger.h"
 #include "apps/ikigai/tool_external.h"
+#include "apps/ikigai/commands_skill.h"
 
 MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out)
 {
@@ -92,6 +96,18 @@ MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger)
     ik_http_multi_info_read((ik_http_multi_t *)http_multi, (ik_logger_t *)logger);
 }
 
+MOCKABLE res_t ik_http_multi_add_request_(void *multi,
+                                           const ik_http_request_t *req,
+                                           ik_http_write_cb_t write_cb,
+                                           void *write_ctx,
+                                           ik_http_completion_cb_t completion_cb,
+                                           void *completion_ctx)
+{
+    return ik_http_multi_add_request((ik_http_multi_t *)multi, req,
+                                     write_cb, write_ctx,
+                                     completion_cb, completion_ctx);
+}
+
 MOCKABLE void ik_agent_start_tool_execution_(void *agent)
 {
     ik_agent_start_tool_execution((ik_agent_ctx_t *)agent);
@@ -137,10 +153,41 @@ MOCKABLE res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
                                           response_out, http_status_out);
 }
 
+MOCKABLE res_t ik_agent_find_clear_(void *db_ctx,
+                                    TALLOC_CTX *ctx,
+                                    const char *agent_uuid,
+                                    int64_t max_id,
+                                    int64_t *clear_id_out)
+{
+    return ik_agent_find_clear((ik_db_ctx_t *)db_ctx, ctx, agent_uuid, max_id, clear_id_out);
+}
+
+MOCKABLE res_t ik_agent_query_range_(void *db_ctx,
+                                     TALLOC_CTX *ctx,
+                                     const void *range,
+                                     void ***messages_out,
+                                     size_t *count_out)
+{
+    return ik_agent_query_range((ik_db_ctx_t *)db_ctx, ctx,
+                                (const ik_replay_range_t *)range,
+                                (ik_msg_t ***)messages_out, count_out);
+}
+
+MOCKABLE res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
+{
+    return ik_doc_cache_get((ik_doc_cache_t *)cache, path, out_content);
+}
+
+MOCKABLE bool ik_skill_load_by_name_(void *ctx, void *repl, void *agent, const char *skill_name)
+{
+    return ik_skill_load_by_name(ctx, (ik_repl_ctx_t *)repl, (ik_agent_ctx_t *)agent, skill_name);
+}
+
 #else
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
 #include "shared/error.h"
+#include "apps/ikigai/providers/common/http_multi.h"
 
 MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out);
 MOCKABLE res_t ik_paths_translate_path_to_ik_uri_(TALLOC_CTX *ctx, void *paths, const char *input, char **out);
@@ -163,6 +210,12 @@ MOCKABLE res_t ik_agent_get_provider_(void *agent, void **provider_out);
 MOCKABLE res_t ik_request_build_from_conversation_(TALLOC_CTX *ctx, void *agent, void *registry, void **req_out);
 MOCKABLE res_t ik_http_multi_create_(void *parent, void **out);
 MOCKABLE void ik_http_multi_info_read_(void *http_multi, void *logger);
+MOCKABLE res_t ik_http_multi_add_request_(void *multi,
+                                           const ik_http_request_t *req,
+                                           ik_http_write_cb_t write_cb,
+                                           void *write_ctx,
+                                           ik_http_completion_cb_t completion_cb,
+                                           void *completion_ctx);
 MOCKABLE void ik_agent_start_tool_execution_(void *agent);
 MOCKABLE int ik_agent_should_continue_tool_loop_(const void *agent);
 MOCKABLE void ik_repl_submit_tool_loop_continuation_(void *repl, void *agent);
@@ -175,6 +228,18 @@ MOCKABLE res_t ik_anthropic_count_tokens_http_(TALLOC_CTX *ctx,
                                                const char *body,
                                                char **response_out,
                                                long *http_status_out);
+MOCKABLE res_t ik_agent_find_clear_(void *db_ctx,
+                                    TALLOC_CTX *ctx,
+                                    const char *agent_uuid,
+                                    int64_t max_id,
+                                    int64_t *clear_id_out);
+MOCKABLE res_t ik_agent_query_range_(void *db_ctx,
+                                     TALLOC_CTX *ctx,
+                                     const void *range,
+                                     void ***messages_out,
+                                     size_t *count_out);
+MOCKABLE res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content);
+MOCKABLE bool ik_skill_load_by_name_(void *ctx, void *repl, void *agent, const char *skill_name);
 #endif
 
 #endif // IK_WRAPPER_INTERNAL_H

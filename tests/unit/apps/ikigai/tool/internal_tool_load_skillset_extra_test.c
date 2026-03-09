@@ -1,6 +1,6 @@
 /**
- * @file internal_tool_load_skillset_test.c
- * @brief Unit tests for load_skillset handler and on_complete hook
+ * @file internal_tool_load_skillset_extra_test.c
+ * @brief Additional coverage tests for load_skillset handler and on_complete
  */
 
 #include "tests/test_constants.h"
@@ -30,7 +30,6 @@
 
 static bool mock_doc_cache_fail = false;
 static bool mock_doc_cache_fail_skills = false;
-static bool mock_yyjson_read_fail = false;
 static bool mock_template_return_result = false;
 static int mock_skill_store_loaded_calls = 0;
 static int mock_catalog_store_calls = 0;
@@ -45,7 +44,6 @@ static const char *mock_skill_content = "# Skill\nContent.";
 
 yyjson_doc *yyjson_read_(const char *dat, size_t len, yyjson_read_flag flg)
 {
-    if (mock_yyjson_read_fail) return NULL;
     return yyjson_read(dat, len, flg);
 }
 
@@ -125,12 +123,12 @@ static void setup(void)
 {
     mock_doc_cache_fail = false;
     mock_doc_cache_fail_skills = false;
-    mock_yyjson_read_fail = false;
     mock_template_return_result = false;
     mock_skill_store_loaded_calls = 0;
     mock_catalog_store_calls = 0;
     mock_token_cache_invalidate_calls = 0;
     mock_skillset_json = NULL;
+    mock_skill_content = "# Skill\nContent.";
 
     test_ctx = talloc_new(NULL);
     shared = talloc_zero(test_ctx, ik_shared_ctx_t);
@@ -155,53 +153,34 @@ static void teardown(void)
 }
 
 /* ================================================================
- * load_skillset handler tests
+ * Coverage tests: additional branch paths
  * ================================================================ */
 
-START_TEST(test_load_skillset_success) {
-    mock_skillset_json =
-        "{\"preload\":[\"style\"],"
-        "\"advertise\":[{\"skill\":\"database\",\"description\":\"DB\"}]}";
+START_TEST(test_load_skillset_template_returns_result) {
+    mock_skillset_json = "{\"preload\":[\"style\"],\"advertise\":[]}";
+    mock_template_return_result = true;
     char *result = ik_internal_tool_load_skillset_handler(
         test_ctx, agent, "{\"skillset\":\"developer\"}");
     ck_assert_ptr_nonnull(result);
-
     yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
     yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
-    ck_assert_ptr_nonnull(agent->tool_deferred_data);
     yyjson_doc_free(doc);
 }
 END_TEST
 
-START_TEST(test_load_skillset_missing_param) {
-    char *result = ik_internal_tool_load_skillset_handler(test_ctx, agent,
-                                                          "{}");
+START_TEST(test_load_skillset_name_not_string) {
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":42}");
     ck_assert_ptr_nonnull(result);
     ck_assert(strstr(result, "INVALID_ARG") != NULL);
 }
 END_TEST
 
-START_TEST(test_load_skillset_invalid_json) {
-    mock_yyjson_read_fail = true;
-    char *result = ik_internal_tool_load_skillset_handler(test_ctx, agent,
-                                                          "{bad}");
-    ck_assert_ptr_nonnull(result);
-    ck_assert(strstr(result, "PARSE_ERROR") != NULL);
-}
-END_TEST
-
-START_TEST(test_load_skillset_not_found) {
-    mock_doc_cache_fail = true;
-    char *result = ik_internal_tool_load_skillset_handler(
-        test_ctx, agent, "{\"skillset\":\"nope\"}");
-    ck_assert_ptr_nonnull(result);
-    ck_assert(strstr(result, "SKILLSET_NOT_FOUND") != NULL);
-}
-END_TEST
-
-START_TEST(test_load_skillset_no_doc_cache) {
-    agent->doc_cache = NULL;
+START_TEST(test_load_skillset_skillset_null_content) {
+    mock_skillset_json = NULL;
+    mock_skill_content = NULL;
     char *result = ik_internal_tool_load_skillset_handler(
         test_ctx, agent, "{\"skillset\":\"developer\"}");
     ck_assert_ptr_nonnull(result);
@@ -209,77 +188,155 @@ START_TEST(test_load_skillset_no_doc_cache) {
 }
 END_TEST
 
-START_TEST(test_load_skillset_malformed_json) {
-    mock_skillset_json = "not-json";
+START_TEST(test_load_skillset_preload_skill_null_content) {
+    mock_skillset_json = "{\"preload\":[\"style\"],\"advertise\":[]}";
+    mock_skill_content = NULL;
     char *result = ik_internal_tool_load_skillset_handler(
-        test_ctx, agent, "{\"skillset\":\"bad\"}");
-    ck_assert_ptr_nonnull(result);
-    ck_assert(strstr(result, "SKILLSET_MALFORMED") != NULL);
-}
-END_TEST
-
-/* ================================================================
- * load_skillset on_complete tests
- * ================================================================ */
-
-START_TEST(test_load_skillset_on_complete_stores_all) {
-    ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
-    repl->shared = shared;
-
-    mock_skillset_json =
-        "{\"preload\":[\"style\",\"errors\"],"
-        "\"advertise\":[{\"skill\":\"database\",\"description\":\"DB\"}]}";
-    ik_internal_tool_load_skillset_handler(test_ctx, agent,
-                                           "{\"skillset\":\"developer\"}");
-    ck_assert_ptr_nonnull(agent->tool_deferred_data);
-
-    ik_internal_tool_load_skillset_on_complete(repl, agent);
-
-    ck_assert_int_eq(mock_skill_store_loaded_calls, 2);
-    ck_assert_int_eq(mock_catalog_store_calls, 1);
-    ck_assert_int_eq(mock_token_cache_invalidate_calls, 1);
-    ck_assert_ptr_null(agent->tool_deferred_data);
-}
-END_TEST
-
-START_TEST(test_load_skillset_on_complete_null_data) {
-    ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
-    repl->shared = shared;
-    agent->tool_deferred_data = NULL;
-    ik_internal_tool_load_skillset_on_complete(repl, agent);
-    ck_assert_int_eq(mock_skill_store_loaded_calls, 0);
-    ck_assert_int_eq(mock_catalog_store_calls, 0);
-}
-END_TEST
-
-START_TEST(test_load_skillset_empty_preload) {
-    mock_skillset_json = "{\"preload\":[],\"advertise\":[]}";
-    char *result = ik_internal_tool_load_skillset_handler(
-        test_ctx, agent, "{\"skillset\":\"empty\"}");
+        test_ctx, agent, "{\"skillset\":\"developer\"}");
     ck_assert_ptr_nonnull(result);
     yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
+    uint64_t n = yyjson_get_uint(yyjson_obj_get(root, "skills_loaded"));
+    ck_assert_int_eq((int)n, 0);
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_load_skillset_preload_skill_missing) {
+    mock_skillset_json = "{\"preload\":[\"style\"],\"advertise\":[]}";
+    mock_doc_cache_fail_skills = true;
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":\"developer\"}");
+    ck_assert_ptr_nonnull(result);
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
+    uint64_t n = yyjson_get_uint(yyjson_obj_get(root, "skills_loaded"));
+    ck_assert_int_eq((int)n, 0);
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_load_skillset_preload_not_array) {
+    mock_skillset_json = "{\"preload\":\"notarray\",\"advertise\":[]}";
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(result);
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
     yyjson_val *root = yyjson_doc_get_root(doc);
     ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
     yyjson_doc_free(doc);
 }
 END_TEST
 
-static Suite *internal_tool_load_skillset_suite(void)
-{
-    Suite *s = suite_create("InternalToolLoadSkillset");
+START_TEST(test_load_skillset_advertise_not_array) {
+    mock_skillset_json = "{\"preload\":[],\"advertise\":\"notarray\"}";
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(result);
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
+    yyjson_doc_free(doc);
+}
+END_TEST
 
-    TCase *tc = tcase_create("LoadSkillset");
+START_TEST(test_load_skillset_advertise_no_desc) {
+    mock_skillset_json =
+        "{\"preload\":[],"
+        "\"advertise\":[{\"skill\":\"foo\"}]}";
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(result);
+    yyjson_doc *doc = yyjson_read(result, strlen(result), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    ck_assert(yyjson_get_bool(yyjson_obj_get(root, "tool_success")));
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+START_TEST(test_load_skillset_sdoc_not_object) {
+    mock_skillset_json = "[1,2,3]";
+    char *result = ik_internal_tool_load_skillset_handler(
+        test_ctx, agent, "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(result);
+    ck_assert(strstr(result, "SKILLSET_MALFORMED") != NULL);
+}
+END_TEST
+
+START_TEST(test_on_complete_no_token_cache) {
+    ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
+    repl->shared = shared;
+
+    mock_skillset_json = "{\"preload\":[],\"advertise\":[]}";
+    ik_internal_tool_load_skillset_handler(test_ctx, agent,
+                                           "{\"skillset\":\"test\"}");
+    agent->token_cache = NULL;
+
+    ik_internal_tool_load_skillset_on_complete(repl, agent);
+    ck_assert_int_eq(mock_token_cache_invalidate_calls, 0);
+    ck_assert_ptr_null(agent->tool_deferred_data);
+}
+END_TEST
+
+START_TEST(test_on_complete_no_db_ctx) {
+    ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
+    repl->shared = shared;
+    shared->db_ctx = NULL;
+
+    mock_skillset_json =
+        "{\"preload\":[],"
+        "\"advertise\":[{\"skill\":\"db\",\"description\":\"DB\"}]}";
+    ik_internal_tool_load_skillset_handler(test_ctx, agent,
+                                           "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(agent->tool_deferred_data);
+
+    ik_internal_tool_load_skillset_on_complete(repl, agent);
+    ck_assert_int_eq(mock_catalog_store_calls, 1);
+    ck_assert_ptr_null(agent->tool_deferred_data);
+}
+END_TEST
+
+START_TEST(test_on_complete_session_id_zero) {
+    ik_repl_ctx_t *repl = talloc_zero(test_ctx, ik_repl_ctx_t);
+    repl->shared = shared;
+    shared->session_id = 0;
+
+    mock_skillset_json = "{\"preload\":[],\"advertise\":[]}";
+    ik_internal_tool_load_skillset_handler(test_ctx, agent,
+                                           "{\"skillset\":\"test\"}");
+    ck_assert_ptr_nonnull(agent->tool_deferred_data);
+
+    ik_internal_tool_load_skillset_on_complete(repl, agent);
+    ck_assert_ptr_null(agent->tool_deferred_data);
+}
+END_TEST
+
+static Suite *internal_tool_load_skillset_extra_suite(void)
+{
+    Suite *s = suite_create("InternalToolLoadSkillsetExtra");
+
+    TCase *tc = tcase_create("LoadSkillsetExtra");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
-    tcase_add_test(tc, test_load_skillset_success);
-    tcase_add_test(tc, test_load_skillset_missing_param);
-    tcase_add_test(tc, test_load_skillset_invalid_json);
-    tcase_add_test(tc, test_load_skillset_not_found);
-    tcase_add_test(tc, test_load_skillset_no_doc_cache);
-    tcase_add_test(tc, test_load_skillset_malformed_json);
-    tcase_add_test(tc, test_load_skillset_on_complete_stores_all);
-    tcase_add_test(tc, test_load_skillset_on_complete_null_data);
-    tcase_add_test(tc, test_load_skillset_empty_preload);
+    tcase_add_test(tc, test_load_skillset_template_returns_result);
+    tcase_add_test(tc, test_load_skillset_name_not_string);
+    tcase_add_test(tc, test_load_skillset_skillset_null_content);
+    tcase_add_test(tc, test_load_skillset_preload_skill_null_content);
+    tcase_add_test(tc, test_load_skillset_preload_skill_missing);
+    tcase_add_test(tc, test_load_skillset_preload_not_array);
+    tcase_add_test(tc, test_load_skillset_advertise_not_array);
+    tcase_add_test(tc, test_load_skillset_advertise_no_desc);
+    tcase_add_test(tc, test_load_skillset_sdoc_not_object);
+    tcase_add_test(tc, test_on_complete_no_token_cache);
+    tcase_add_test(tc, test_on_complete_no_db_ctx);
+    tcase_add_test(tc, test_on_complete_session_id_zero);
     suite_add_tcase(s, tc);
 
     return s;
@@ -288,10 +345,11 @@ static Suite *internal_tool_load_skillset_suite(void)
 int main(void)
 {
     int number_failed;
-    Suite *s = internal_tool_load_skillset_suite();
+    Suite *s = internal_tool_load_skillset_extra_suite();
     SRunner *sr = srunner_create(s);
     srunner_set_xml(sr,
-        "reports/check/unit/apps/ikigai/tool/internal_tool_load_skillset_test.xml");
+        "reports/check/unit/apps/ikigai/tool/"
+        "internal_tool_load_skillset_extra_test.xml");
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);

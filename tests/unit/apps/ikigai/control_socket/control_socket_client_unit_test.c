@@ -223,6 +223,73 @@ START_TEST(test_send_keys_write_failure) {
 }
 END_TEST
 
+// Test: ik_ctl_read_token_cache success (response with newline)
+START_TEST(test_read_token_cache) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    int fds[2];
+    int r = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    ck_assert_int_eq(r, 0);
+
+    const char *fake_response = "{\"type\":\"token_cache\",\"data\":{}}\n";
+    write(fds[1], fake_response, strlen(fake_response));
+
+    char *response = NULL;
+    res_t res = ik_ctl_read_token_cache(ctx, fds[0], &response);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(response);
+    talloc_free(response);
+
+    close(fds[0]);
+    close(fds[1]);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: ik_ctl_read_token_cache with write failure (server closed)
+START_TEST(test_read_token_cache_write_failure) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    int fds[2];
+    int r = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    ck_assert_int_eq(r, 0);
+
+    close(fds[1]);
+    signal(SIGPIPE, SIG_IGN);
+
+    char *response = NULL;
+    res_t res = ik_ctl_read_token_cache(ctx, fds[0], &response);
+    ck_assert(is_err(&res));
+    talloc_free(res.err);
+    close(fds[0]);
+
+    signal(SIGPIPE, SIG_DFL);
+    talloc_free(ctx);
+}
+END_TEST
+
+// Test: ik_ctl_read_token_cache with EOF before newline (n==0 branch)
+START_TEST(test_read_token_cache_eof) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    int fds[2];
+    int r = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
+    ck_assert_int_eq(r, 0);
+
+    write(fds[1], "no newline data", 14);
+    shutdown(fds[1], SHUT_WR);
+
+    char *response = NULL;
+    res_t res = ik_ctl_read_token_cache(ctx, fds[0], &response);
+    ck_assert(is_ok(&res));
+    talloc_free(response);
+    close(fds[0]);
+    close(fds[1]);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 // Test: ik_ctl_send_keys with read failure (server closed after receiving write)
 START_TEST(test_send_keys_read_failure) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -266,6 +333,9 @@ static Suite *control_socket_client_unit_suite(void)
     tcase_add_test(tc_core, test_send_keys_error_response);
     tcase_add_test(tc_core, test_send_keys_write_failure);
     tcase_add_test(tc_core, test_send_keys_read_failure);
+    tcase_add_test(tc_core, test_read_token_cache);
+    tcase_add_test(tc_core, test_read_token_cache_write_failure);
+    tcase_add_test(tc_core, test_read_token_cache_eof);
     suite_add_tcase(s, tc_core);
 
     return s;

@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "apps/ikigai/control_socket.h"
+#include "apps/ikigai/control_socket_client.h"
 #include "apps/ikigai/key_inject.h"
 #include "apps/ikigai/paths.h"
 #include "apps/ikigai/repl.h"
@@ -393,6 +394,28 @@ START_TEST(test_handle_client_after_disconnect) {
 }
 END_TEST
 
+START_TEST(test_ctl_read_token_cache_ok) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    int sockets[2];
+    ck_assert_int_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets), 0);
+
+    const char *resp = "{\"type\":\"token_cache\",\"data\":{}}\n";
+    write(sockets[1], resp, strlen(resp));
+    shutdown(sockets[1], SHUT_WR);
+
+    char *response = NULL;
+    res_t res = ik_ctl_read_token_cache(ctx, sockets[0], &response);
+    ck_assert(is_ok(&res));
+    ck_assert_ptr_nonnull(response);
+    ck_assert(strstr(response, "token_cache") != NULL);
+
+    close(sockets[0]);
+    close(sockets[1]);
+    talloc_free(ctx);
+}
+END_TEST
+
 static Suite *control_socket_client_suite(void)
 {
     Suite *s = suite_create("control_socket_client");
@@ -409,6 +432,7 @@ static Suite *control_socket_client_suite(void)
     tcase_add_test(tc, test_handle_client_null_type);
     tcase_add_test(tc, test_handle_client_no_client);
     tcase_add_test(tc, test_handle_client_after_disconnect);
+    tcase_add_test(tc, test_ctl_read_token_cache_ok);
     suite_add_tcase(s, tc);
 
     return s;
