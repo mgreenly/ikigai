@@ -272,14 +272,13 @@ START_TEST(test_recent_summary_tokens_in_total) {
     /* Compute baseline (system prompt overhead from env, no summaries) */
     int32_t baseline = ik_token_cache_get_total(cache);
 
-    /* Set recent_summary_tokens — summary tokens are read fresh, no invalidation
-     * needed; the base (system+tools+turns) stays cached */
+    /* Setting recent_summary_tokens must NOT affect get_total() — summaries
+     * have an independent budget and are not counted against the window */
     agent->recent_summary_tokens = 500;
-    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 500);
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline);
 
-    /* Change it and verify the new value is reflected immediately */
     agent->recent_summary_tokens = 750;
-    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 750);
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline);
 
     talloc_free(ctx);
 }
@@ -303,8 +302,8 @@ START_TEST(test_session_summary_tokens_in_total) {
     agent->session_summaries = summaries;
     agent->session_summary_count = 2;
 
-    /* Total should include both session summary token counts: baseline + 300 + 200 */
-    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 500);
+    /* Session summaries must NOT affect get_total() — independent budget */
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline);
 
     talloc_free(ctx);
 }
@@ -322,7 +321,7 @@ START_TEST(test_summary_tokens_combined_with_turns) {
     ik_token_cache_add_turn(cache);
     ik_token_cache_record_turn(cache, 0, 100);
 
-    /* Set recent summary tokens and one session summary (all read fresh) */
+    /* Set recent summary tokens and one session summary */
     agent->recent_summary_tokens = 400;
     ik_session_summary_t **summaries = talloc_array(agent, ik_session_summary_t *, 1);
     ik_session_summary_t *ss = talloc_zero(summaries, ik_session_summary_t);
@@ -331,8 +330,8 @@ START_TEST(test_summary_tokens_combined_with_turns) {
     agent->session_summaries = summaries;
     agent->session_summary_count = 1;
 
-    /* Total: baseline + 100 (turn) + 400 (recent_summary) + 150 (session_summary) */
-    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 650);
+    /* Total: baseline + 100 (turn only — summaries not counted against window) */
+    ck_assert_int_eq(ik_token_cache_get_total(cache), baseline + 100);
 
     talloc_free(ctx);
 }
@@ -347,13 +346,11 @@ START_TEST(test_pruning_with_summary_tokens) {
 
     ik_token_cache_t *cache = ik_token_cache_create(ctx, agent);
 
-    /* Set budget to fit one turn but not two when summaries are present.
-     * overhead + 600 (summary) + 2 * 100 (turns) = overhead+800 > budget.
-     * After pruning one turn: overhead + 600 + 100 > budget (still).
-     * Pruning is limited to turn_count > 1, so we need 3 turns. */
-    int32_t budget = overhead + 600 + 150; /* only one turn fits alongside summaries */
+    /* Budget fits two turns but not three (overhead + 3*100 > overhead + 250).
+     * Summary tokens must NOT count against this budget. */
+    int32_t budget = overhead + 250; /* fits two 100-token turns, not three */
     ik_token_cache_set_budget(cache, budget);
-    agent->recent_summary_tokens = 600;
+    agent->recent_summary_tokens = 600; /* large summary — must not affect pruning */
 
     /* Add three turns of 100 tokens each */
     ik_token_cache_add_turn(cache);
@@ -363,14 +360,10 @@ START_TEST(test_pruning_with_summary_tokens) {
     ik_token_cache_add_turn(cache);
     ik_token_cache_record_turn(cache, 2, 100);
 
-    /* Total should exceed budget: overhead + 600 + 300 > overhead + 750 */
+    /* Total (window only) should exceed budget: overhead + 300 > overhead + 250 */
     ck_assert_int_gt(ik_token_cache_get_total(cache), budget);
 
-    /* Prune oldest turn (100 removed from base); should still be over budget */
-    ik_token_cache_prune_oldest_turn(cache);
-    ck_assert_int_gt(ik_token_cache_get_total(cache), budget);
-
-    /* Prune again; now two turns removed: overhead + 600 + 100 <= overhead + 750 */
+    /* Prune oldest turn: overhead + 200 <= overhead + 250 — now fits */
     ik_token_cache_prune_oldest_turn(cache);
     ck_assert_int_le(ik_token_cache_get_total(cache), budget);
 

@@ -298,12 +298,7 @@ int32_t ik_token_cache_get_total(ik_token_cache_t *cache)
         cache->total_tokens = base;
     }
 
-    /* Summary tokens read fresh so changes take effect without invalidation. */
-    int32_t total = cache->total_tokens + cache->agent->recent_summary_tokens;
-    for (size_t i = 0; i < cache->agent->session_summary_count; i++)
-        if (cache->agent->session_summaries[i] != NULL)
-            total += (int32_t)cache->agent->session_summaries[i]->token_count;
-    return total;
+    return cache->total_tokens;
 }
 
 /* --- Record --- */
