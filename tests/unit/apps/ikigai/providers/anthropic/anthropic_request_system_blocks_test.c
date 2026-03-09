@@ -136,19 +136,23 @@ START_TEST(test_single_system_block_cacheable) {
 END_TEST
 
 /* ================================================================
- * Multiple system blocks: order preserved, cache_control correct
+ * Multiple blocks same category: consolidated into one block
  * ================================================================ */
 
 START_TEST(test_multiple_system_blocks) {
     ik_request_t *req = create_basic_request(test_ctx);
     req->system_block_count = 3;
     req->system_blocks = talloc_array(req, ik_system_block_t, 3);
+    /* All BASE_PROMPT type, two cacheable — consolidates into 1 block */
     req->system_blocks[0].text = talloc_strdup(req, "Block one.");
     req->system_blocks[0].cacheable = true;
+    req->system_blocks[0].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
     req->system_blocks[1].text = talloc_strdup(req, "Block two.");
     req->system_blocks[1].cacheable = false;
+    req->system_blocks[1].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
     req->system_blocks[2].text = talloc_strdup(req, "Block three.");
     req->system_blocks[2].cacheable = true;
+    req->system_blocks[2].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
 
     char *json = NULL;
     res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
@@ -160,19 +164,170 @@ START_TEST(test_multiple_system_blocks) {
     yyjson_val *system = yyjson_obj_get(root, "system");
     ck_assert_ptr_nonnull(system);
     ck_assert(yyjson_is_arr(system));
-    ck_assert_uint_eq(yyjson_arr_size(system), 3);
+    /* Three blocks of the same category → 1 consolidated block */
+    ck_assert_uint_eq(yyjson_arr_size(system), 1);
 
     yyjson_val *b0 = yyjson_arr_get(system, 0);
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b0, "text")), "Block one.");
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b0, "text")),
+                     "Block one.\n\nBlock two.\n\nBlock three.");
+    ck_assert_ptr_nonnull(yyjson_obj_get(b0, "cache_control"));
+
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+/* ================================================================
+ * All categories present: at most 3 cacheable + 1 uncacheable
+ * ================================================================ */
+
+START_TEST(test_all_categories_consolidated) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->system_block_count = 6;
+    req->system_blocks = talloc_array(req, ik_system_block_t, 6);
+
+    req->system_blocks[0].text = talloc_strdup(req, "Base prompt.");
+    req->system_blocks[0].cacheable = true;
+    req->system_blocks[0].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
+
+    req->system_blocks[1].text = talloc_strdup(req, "Pinned doc.");
+    req->system_blocks[1].cacheable = true;
+    req->system_blocks[1].type = IK_SYSTEM_BLOCK_PINNED_DOC;
+
+    req->system_blocks[2].text = talloc_strdup(req, "Skill A.");
+    req->system_blocks[2].cacheable = true;
+    req->system_blocks[2].type = IK_SYSTEM_BLOCK_SKILL;
+
+    req->system_blocks[3].text = talloc_strdup(req, "Catalog.");
+    req->system_blocks[3].cacheable = true;
+    req->system_blocks[3].type = IK_SYSTEM_BLOCK_SKILL_CATALOG;
+
+    req->system_blocks[4].text = talloc_strdup(req, "Summary.");
+    req->system_blocks[4].cacheable = true;
+    req->system_blocks[4].type = IK_SYSTEM_BLOCK_SESSION_SUMMARY;
+
+    req->system_blocks[5].text = talloc_strdup(req, "Recent.");
+    req->system_blocks[5].cacheable = false;
+    req->system_blocks[5].type = IK_SYSTEM_BLOCK_RECENT_SUMMARY;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+    ck_assert(!is_err(&r));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *system = yyjson_obj_get(root, "system");
+    ck_assert_ptr_nonnull(system);
+    ck_assert(yyjson_is_arr(system));
+    /* 6 input blocks → 4 output blocks (3 cacheable + 1 uncacheable) */
+    ck_assert_uint_eq(yyjson_arr_size(system), 4);
+
+    /* Block 0: BASE_PROMPT + PINNED_DOC, cacheable */
+    yyjson_val *b0 = yyjson_arr_get(system, 0);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b0, "text")),
+                     "Base prompt.\n\nPinned doc.");
+    ck_assert_ptr_nonnull(yyjson_obj_get(b0, "cache_control"));
+
+    /* Block 1: SKILL + SKILL_CATALOG, cacheable */
+    yyjson_val *b1 = yyjson_arr_get(system, 1);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b1, "text")),
+                     "Skill A.\n\nCatalog.");
+    ck_assert_ptr_nonnull(yyjson_obj_get(b1, "cache_control"));
+
+    /* Block 2: SESSION_SUMMARY, cacheable */
+    yyjson_val *b2 = yyjson_arr_get(system, 2);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b2, "text")), "Summary.");
+    ck_assert_ptr_nonnull(yyjson_obj_get(b2, "cache_control"));
+
+    /* Block 3: RECENT_SUMMARY, not cacheable */
+    yyjson_val *b3 = yyjson_arr_get(system, 3);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b3, "text")), "Recent.");
+    ck_assert_ptr_null(yyjson_obj_get(b3, "cache_control"));
+
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+/* ================================================================
+ * Missing categories: empty groups are omitted
+ * ================================================================ */
+
+START_TEST(test_empty_categories_omitted) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->system_block_count = 2;
+    req->system_blocks = talloc_array(req, ik_system_block_t, 2);
+
+    /* Only BASE_PROMPT and RECENT_SUMMARY — groups 1 and 2 are empty */
+    req->system_blocks[0].text = talloc_strdup(req, "Base.");
+    req->system_blocks[0].cacheable = true;
+    req->system_blocks[0].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
+
+    req->system_blocks[1].text = talloc_strdup(req, "Recent.");
+    req->system_blocks[1].cacheable = false;
+    req->system_blocks[1].type = IK_SYSTEM_BLOCK_RECENT_SUMMARY;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+    ck_assert(!is_err(&r));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *system = yyjson_obj_get(root, "system");
+    ck_assert_ptr_nonnull(system);
+    ck_assert(yyjson_is_arr(system));
+    /* Groups 1 and 2 are empty → only 2 output blocks */
+    ck_assert_uint_eq(yyjson_arr_size(system), 2);
+
+    yyjson_val *b0 = yyjson_arr_get(system, 0);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b0, "text")), "Base.");
     ck_assert_ptr_nonnull(yyjson_obj_get(b0, "cache_control"));
 
     yyjson_val *b1 = yyjson_arr_get(system, 1);
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b1, "text")), "Block two.");
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b1, "text")), "Recent.");
     ck_assert_ptr_null(yyjson_obj_get(b1, "cache_control"));
 
-    yyjson_val *b2 = yyjson_arr_get(system, 2);
-    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b2, "text")), "Block three.");
-    ck_assert_ptr_nonnull(yyjson_obj_get(b2, "cache_control"));
+    yyjson_doc_free(doc);
+}
+END_TEST
+
+/* ================================================================
+ * No cacheable blocks: emit individually as-is
+ * ================================================================ */
+
+START_TEST(test_no_cacheable_blocks_emitted_as_is) {
+    ik_request_t *req = create_basic_request(test_ctx);
+    req->system_block_count = 2;
+    req->system_blocks = talloc_array(req, ik_system_block_t, 2);
+
+    req->system_blocks[0].text = talloc_strdup(req, "Base.");
+    req->system_blocks[0].cacheable = false;
+    req->system_blocks[0].type = IK_SYSTEM_BLOCK_BASE_PROMPT;
+
+    req->system_blocks[1].text = talloc_strdup(req, "Recent.");
+    req->system_blocks[1].cacheable = false;
+    req->system_blocks[1].type = IK_SYSTEM_BLOCK_RECENT_SUMMARY;
+
+    char *json = NULL;
+    res_t r = ik_anthropic_serialize_request_stream(test_ctx, req, &json);
+    ck_assert(!is_err(&r));
+
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *system = yyjson_obj_get(root, "system");
+    ck_assert_ptr_nonnull(system);
+    ck_assert(yyjson_is_arr(system));
+    /* No cacheable blocks → individual blocks, no consolidation */
+    ck_assert_uint_eq(yyjson_arr_size(system), 2);
+
+    yyjson_val *b0 = yyjson_arr_get(system, 0);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b0, "text")), "Base.");
+    ck_assert_ptr_null(yyjson_obj_get(b0, "cache_control"));
+
+    yyjson_val *b1 = yyjson_arr_get(system, 1);
+    ck_assert_str_eq(yyjson_get_str(yyjson_obj_get(b1, "text")), "Recent.");
+    ck_assert_ptr_null(yyjson_obj_get(b1, "cache_control"));
 
     yyjson_doc_free(doc);
 }
@@ -221,6 +376,9 @@ static Suite *anthropic_system_blocks_suite(void)
     tcase_add_test(tc, test_single_system_block_cacheable);
     tcase_add_test(tc, test_multiple_system_blocks);
     tcase_add_test(tc, test_system_blocks_override_system_prompt);
+    tcase_add_test(tc, test_all_categories_consolidated);
+    tcase_add_test(tc, test_empty_categories_omitted);
+    tcase_add_test(tc, test_no_cacheable_blocks_emitted_as_is);
     suite_add_tcase(s, tc);
 
     return s;
