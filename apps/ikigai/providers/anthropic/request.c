@@ -13,104 +13,14 @@
 
 #include "apps/ikigai/providers/anthropic/request.h"
 #include "apps/ikigai/providers/anthropic/request_serialize.h"
-#include "apps/ikigai/providers/anthropic/thinking.h"
 #include "apps/ikigai/providers/anthropic/error.h"
+#include "apps/ikigai/debug_log.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
 #include <string.h>
 #include <assert.h>
 
 #include "shared/poison.h"
-// Helper: calculate max_tokens with thinking budget adjustment
-static int32_t calculate_max_tokens(const ik_request_t *req)
-{
-    int32_t max_tokens = req->max_output_tokens;
-    if (max_tokens <= 0) {
-        max_tokens = 4096;
-    }
-
-    // Only adjust for budget-based models, not adaptive models
-    if (req->thinking.level != IK_THINKING_MIN && !ik_anthropic_is_adaptive_model(req->model)) {
-        int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
-        if (budget > 0 && max_tokens <= budget) {
-            max_tokens = budget + 4096;
-        }
-    }
-
-    return max_tokens;
-}
-
-// Helper: add thinking configuration to request
-static void add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
-                                const ik_request_t *req)
-{
-    if (req->thinking.level == IK_THINKING_MIN) {
-        return;
-    }
-
-    // Check if model uses adaptive thinking (effort-based)
-    if (ik_anthropic_is_adaptive_model(req->model)) {
-        const char *effort = ik_anthropic_thinking_effort(req->model, req->thinking.level);
-        if (effort == NULL) {
-            return; // Omit thinking parameter
-        }
-
-        // Adaptive thinking: {"thinking": {"type": "adaptive"}}
-        yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
-        if (!thinking_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        if (!yyjson_mut_obj_add_str(doc, thinking_obj, "type", "adaptive")) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        // Effort goes in output_config, not inside thinking
-        yyjson_mut_val *output_config = yyjson_mut_obj(doc);
-        if (!output_config) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        if (!yyjson_mut_obj_add_str(doc, output_config, "effort", effort)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        if (!yyjson_mut_obj_add_val(doc, root, "output_config", output_config)) { // LCOV_EXCL_BR_LINE
-            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-            PANIC("Out of memory"); // LCOV_EXCL_LINE
-        }
-
-        return;
-    }
-
-    // Budget-based thinking (sonnet-4-5, haiku-4-5, opus-4-5)
-    int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
-    if (budget == -1) {
-        return;
-    }
-
-    yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
-    if (!thinking_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (!yyjson_mut_obj_add_str(doc, thinking_obj, "type", "enabled")) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    if (!yyjson_mut_obj_add_int(doc, thinking_obj, "budget_tokens", budget)) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-
-    if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
-        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
-        PANIC("Out of memory"); // LCOV_EXCL_LINE
-    }
-}
-
 // Helper: serialize single tool definition
 static res_t serialize_tool(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
                             yyjson_mut_val *tools_arr,
@@ -263,6 +173,9 @@ static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
         }
     }
 
+    DEBUG_LOG("[anthropic_system] pre-consolidation: %zu input blocks (any_cacheable=%s)",
+              req->system_block_count, any_cacheable ? "true" : "false");
+
     yyjson_mut_val *sys_arr = yyjson_mut_arr(doc);
     if (!sys_arr) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
@@ -272,6 +185,12 @@ static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
             res_t r = emit_system_block(ctx, doc, sys_arr,
                                         req->system_blocks[i].text, false);
             if (is_err(&r)) return r;
+        }
+        DEBUG_LOG("[anthropic_system] consolidated %zu blocks into %zu (0 cached, %zu uncached)",
+                  req->system_block_count, req->system_block_count, req->system_block_count);
+        for (size_t i = 0; i < req->system_block_count; i++) {
+            DEBUG_LOG("[anthropic_system] block[%zu] len=%zu cache_control=false",
+                      i, strlen(req->system_blocks[i].text));
         }
     } else {
         // Consolidate by category into at most 4 groups.
@@ -285,8 +204,22 @@ static res_t add_system_field(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
             groups[g] = group_append(ctx, groups[g], req->system_blocks[i].text);
         }
 
+        size_t out_count = 0, cached_count = 0;
+        for (int g = 0; g < 4; g++) {
+            if (groups[g] != NULL) {
+                out_count++;
+                if (group_cacheable[g]) cached_count++;
+            }
+        }
+        DEBUG_LOG("[anthropic_system] consolidated %zu blocks into %zu (%zu cached, %zu uncached)",
+                  req->system_block_count, out_count, cached_count, out_count - cached_count);
+
+        size_t out_idx = 0;
         for (int g = 0; g < 4; g++) {
             if (groups[g] == NULL) continue;
+            DEBUG_LOG("[anthropic_system] block[%zu] len=%zu cache_control=%s",
+                      out_idx, strlen(groups[g]), group_cacheable[g] ? "true" : "false");
+            out_idx++;
             res_t r = emit_system_block(ctx, doc, sys_arr,
                                         groups[g], group_cacheable[g]);
             if (is_err(&r)) return r;
@@ -317,6 +250,8 @@ static res_t add_tools(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
             return res;
         }
     }
+    DEBUG_LOG("[anthropic_tools] cache_control on tool[%zu] (last of %zu)",
+              req->tool_count - 1, req->tool_count);
 
     if (!yyjson_mut_obj_add_val(doc, root, "tools", tools_arr)) { // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
@@ -360,7 +295,7 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
     }
 
     if (!skip_output_fields) {
-        int32_t max_tokens = calculate_max_tokens(req);
+        int32_t max_tokens = ik_anthropic_calculate_max_tokens(req);
         if (!yyjson_mut_obj_add_int(doc, root, "max_tokens", max_tokens)) { // LCOV_EXCL_BR_LINE
             yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
             return ERR(ctx, PARSE, "Failed to add max_tokens field"); // LCOV_EXCL_LINE
@@ -385,7 +320,7 @@ static res_t serialize_request_internal(TALLOC_CTX *ctx, const ik_request_t *req
         return ERR(ctx, PARSE, "Failed to serialize messages");
     }
 
-    add_thinking_config(doc, root, req);
+    ik_anthropic_add_thinking_config(doc, root, req);
 
     res_t tools_res = add_tools(ctx, doc, root, req);
     if (is_err(&tools_res)) {

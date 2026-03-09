@@ -8,6 +8,7 @@
 #include "apps/ikigai/providers/anthropic/request_serialize.h"
 
 #include "apps/ikigai/providers/anthropic/error.h"
+#include "apps/ikigai/providers/anthropic/thinking.h"
 #include "shared/panic.h"
 #include "shared/wrapper_json.h"
 
@@ -15,6 +16,94 @@
 #include <string.h>
 
 #include "shared/poison.h"
+
+int32_t ik_anthropic_calculate_max_tokens(const ik_request_t *req)
+{
+    int32_t max_tokens = req->max_output_tokens;
+    if (max_tokens <= 0) {
+        max_tokens = 4096;
+    }
+
+    // Only adjust for budget-based models, not adaptive models
+    if (req->thinking.level != IK_THINKING_MIN && !ik_anthropic_is_adaptive_model(req->model)) {
+        int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
+        if (budget > 0 && max_tokens <= budget) {
+            max_tokens = budget + 4096;
+        }
+    }
+
+    return max_tokens;
+}
+
+void ik_anthropic_add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
+                                      const ik_request_t *req)
+{
+    if (req->thinking.level == IK_THINKING_MIN) {
+        return;
+    }
+
+    // Check if model uses adaptive thinking (effort-based)
+    if (ik_anthropic_is_adaptive_model(req->model)) {
+        const char *effort = ik_anthropic_thinking_effort(req->model, req->thinking.level);
+        if (effort == NULL) {
+            return; // Omit thinking parameter
+        }
+
+        // Adaptive thinking: {"thinking": {"type": "adaptive"}}
+        yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
+        if (!thinking_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        if (!yyjson_mut_obj_add_str(doc, thinking_obj, "type", "adaptive")) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+
+        if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+
+        // Effort goes in output_config, not inside thinking
+        yyjson_mut_val *output_config = yyjson_mut_obj(doc);
+        if (!output_config) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+        if (!yyjson_mut_obj_add_str(doc, output_config, "effort", effort)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+
+        if (!yyjson_mut_obj_add_val(doc, root, "output_config", output_config)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+
+        return;
+    }
+
+    // Budget-based thinking (sonnet-4-5, haiku-4-5, opus-4-5)
+    int32_t budget = ik_anthropic_thinking_budget(req->model, req->thinking.level);
+    if (budget == -1) {
+        return;
+    }
+
+    yyjson_mut_val *thinking_obj = yyjson_mut_obj(doc);
+    if (!thinking_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    if (!yyjson_mut_obj_add_str(doc, thinking_obj, "type", "enabled")) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    if (!yyjson_mut_obj_add_int(doc, thinking_obj, "budget_tokens", budget)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    if (!yyjson_mut_obj_add_val(doc, root, "thinking", thinking_obj)) { // LCOV_EXCL_BR_LINE
+        yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+        PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+}
 
 static bool serialize_text_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
                                  const ik_content_block_t *block)

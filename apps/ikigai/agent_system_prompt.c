@@ -10,9 +10,11 @@
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/config.h"
 #include "apps/ikigai/config_defaults.h"
+#include "apps/ikigai/debug_log.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/file_utils.h"
 #include "apps/ikigai/paths.h"
+#include "apps/ikigai/providers/provider.h"
 #include "apps/ikigai/providers/request.h"
 #include "apps/ikigai/scrollback_utils.h"
 #include "apps/ikigai/shared.h"
@@ -277,6 +279,22 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
                                           IK_SYSTEM_BLOCK_RECENT_SUMMARY);
         if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
     }
+
+    size_t cnt_base = 0, cnt_pinned = 0, cnt_skills = 0;
+    size_t cnt_catalog = 0, cnt_summaries = 0, cnt_recent = 0;
+    for (size_t i = 0; i < req->system_block_count; i++) {
+        switch (req->system_blocks[i].type) {
+            case IK_SYSTEM_BLOCK_BASE_PROMPT:    cnt_base++;     break;
+            case IK_SYSTEM_BLOCK_PINNED_DOC:     cnt_pinned++;   break;
+            case IK_SYSTEM_BLOCK_SKILL:          cnt_skills++;   break;
+            case IK_SYSTEM_BLOCK_SKILL_CATALOG:  cnt_catalog++;  break;
+            case IK_SYSTEM_BLOCK_SESSION_SUMMARY: cnt_summaries++; break;
+            case IK_SYSTEM_BLOCK_RECENT_SUMMARY: cnt_recent++;   break;
+        }
+    }
+    DEBUG_LOG("[system_blocks] built %zu blocks: base=%zu pinned=%zu skills=%zu catalog=%zu summaries=%zu recent=%zu",
+              req->system_block_count,
+              cnt_base, cnt_pinned, cnt_skills, cnt_catalog, cnt_summaries, cnt_recent);
 
     return OK(NULL);
 }
