@@ -25,6 +25,7 @@
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/repl_tool_completion.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/commands_skill.h"
 #include "apps/ikigai/template.h"
 #include "apps/ikigai/tool_external.h"
 #include "apps/ikigai/tool_registry.h"
@@ -183,6 +184,11 @@ MOCKABLE res_t ik_agent_query_range_(void *db_ctx,
 MOCKABLE res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
 {
     return ik_doc_cache_get((ik_doc_cache_t *)cache, path, out_content);
+}
+
+MOCKABLE bool ik_skill_load_by_name_(void *ctx, void *repl, void *agent, const char *skill_name)
+{
+    return ik_skill_load_by_name(ctx, (ik_repl_ctx_t *)repl, (ik_agent_ctx_t *)agent, skill_name);
 }
 
 // LCOV_EXCL_STOP
