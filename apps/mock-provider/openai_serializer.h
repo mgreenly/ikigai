@@ -20,6 +20,12 @@
  * ================================================================ */
 
 /**
+ * Return a plain JSON chat.completion response (non-streaming).
+ * Caller must free or let talloc manage the returned string.
+ */
+char *openai_serialize_text_json(TALLOC_CTX *ctx, const char *content);
+
+/**
  * Stream a text response as OpenAI Chat Completions SSE chunks.
  * Writes: role chunk, content chunk, stop chunk, [DONE] sentinel.
  */
@@ -35,6 +41,12 @@ void openai_serialize_tool_calls(TALLOC_CTX *ctx, const mock_tool_call_t *tool_c
 /* ================================================================
  * Responses API (/v1/responses)
  * ================================================================ */
+
+/**
+ * Return a plain JSON response object (non-streaming).
+ * Caller must free or let talloc manage the returned string.
+ */
+char *openai_responses_serialize_text_json(TALLOC_CTX *ctx, const char *content);
 
 /**
  * Stream a text response as OpenAI Responses API SSE events.

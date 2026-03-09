@@ -199,14 +199,21 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
             return;
         }
 
-        http_respond_sse_start(client_fd);
+        bool streaming = req->body != NULL &&
+                         strstr(req->body, "\"stream\":true") != NULL;
 
-        if (resp->type == MOCK_TEXT) {
-            openai_serialize_text(tmp, resp->content, client_fd);
-        } else if (resp->type == MOCK_TOOL_CALLS) {
-            openai_serialize_tool_calls(tmp, resp->tool_calls,
-                                        resp->tool_call_count,
-                                        client_fd);
+        if (!streaming && resp->type == MOCK_TEXT) {
+            char *json = openai_serialize_text_json(tmp, resp->content);
+            http_respond_json(client_fd, 200, json);
+        } else {
+            http_respond_sse_start(client_fd);
+            if (resp->type == MOCK_TEXT) {
+                openai_serialize_text(tmp, resp->content, client_fd);
+            } else if (resp->type == MOCK_TOOL_CALLS) {
+                openai_serialize_tool_calls(tmp, resp->tool_calls,
+                                            resp->tool_call_count,
+                                            client_fd);
+            }
         }
 
         talloc_free(resp);
@@ -225,15 +232,23 @@ static void handle_request(TALLOC_CTX *ctx, int client_fd,
             return;
         }
 
-        http_respond_sse_start(client_fd);
+        bool streaming = req->body != NULL &&
+                         strstr(req->body, "\"stream\":true") != NULL;
 
-        if (resp->type == MOCK_TEXT) {
-            openai_responses_serialize_text(tmp, resp->content,
-                                            client_fd);
-        } else if (resp->type == MOCK_TOOL_CALLS) {
-            openai_responses_serialize_tool_calls(tmp, resp->tool_calls,
-                                                  resp->tool_call_count,
-                                                  client_fd);
+        if (!streaming && resp->type == MOCK_TEXT) {
+            char *json = openai_responses_serialize_text_json(tmp,
+                                                              resp->content);
+            http_respond_json(client_fd, 200, json);
+        } else {
+            http_respond_sse_start(client_fd);
+            if (resp->type == MOCK_TEXT) {
+                openai_responses_serialize_text(tmp, resp->content,
+                                                client_fd);
+            } else if (resp->type == MOCK_TOOL_CALLS) {
+                openai_responses_serialize_tool_calls(tmp, resp->tool_calls,
+                                                      resp->tool_call_count,
+                                                      client_fd);
+            }
         }
 
         talloc_free(resp);

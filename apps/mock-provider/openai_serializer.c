@@ -240,6 +240,92 @@ static char *build_tool_call_stop_chunk(TALLOC_CTX *ctx)
     return result;
 }
 
+char *openai_serialize_text_json(TALLOC_CTX *ctx, const char *content)
+{
+    assert(ctx != NULL);
+    assert(content != NULL);
+
+    yyjson_alc alc = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    yyjson_mut_doc_set_root(doc, root);
+
+    yyjson_mut_obj_add_str(doc, root, "id", "mock-1");
+    yyjson_mut_obj_add_str(doc, root, "object", "chat.completion");
+    yyjson_mut_obj_add_str(doc, root, "model", "mock");
+
+    yyjson_mut_val *choices = yyjson_mut_arr(doc);
+    yyjson_mut_val *choice = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_int(doc, choice, "index", 0);
+
+    yyjson_mut_val *message = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, message, "role", "assistant");
+    yyjson_mut_obj_add_str(doc, message, "content", content);
+    yyjson_mut_obj_add_val(doc, choice, "message", message);
+    yyjson_mut_obj_add_str(doc, choice, "finish_reason", "stop");
+    yyjson_mut_arr_append(choices, choice);
+
+    yyjson_mut_obj_add_val(doc, root, "choices", choices);
+
+    yyjson_mut_val *usage = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_int(doc, usage, "prompt_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "completion_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "total_tokens", 0);
+    yyjson_mut_obj_add_val(doc, root, "usage", usage);
+
+    size_t len = 0;
+    char *json = yyjson_mut_write(doc, 0, &len);
+    char *result = talloc_strdup(ctx, json);
+    free(json);
+
+    return result;
+}
+
+char *openai_responses_serialize_text_json(TALLOC_CTX *ctx,
+                                           const char *content)
+{
+    assert(ctx != NULL);
+    assert(content != NULL);
+
+    yyjson_alc alc = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    yyjson_mut_doc_set_root(doc, root);
+
+    yyjson_mut_obj_add_str(doc, root, "id", "mock-1");
+    yyjson_mut_obj_add_str(doc, root, "object", "response");
+    yyjson_mut_obj_add_str(doc, root, "status", "completed");
+
+    yyjson_mut_val *output = yyjson_mut_arr(doc);
+    yyjson_mut_val *item = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, item, "type", "message");
+    yyjson_mut_obj_add_str(doc, item, "role", "assistant");
+
+    yyjson_mut_val *content_arr = yyjson_mut_arr(doc);
+    yyjson_mut_val *content_item = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, content_item, "type", "output_text");
+    yyjson_mut_obj_add_str(doc, content_item, "text", content);
+    yyjson_mut_arr_append(content_arr, content_item);
+
+    yyjson_mut_obj_add_val(doc, item, "content", content_arr);
+    yyjson_mut_arr_append(output, item);
+
+    yyjson_mut_obj_add_val(doc, root, "output", output);
+
+    yyjson_mut_val *usage = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_int(doc, usage, "input_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "output_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "total_tokens", 0);
+    yyjson_mut_obj_add_val(doc, root, "usage", usage);
+
+    size_t len = 0;
+    char *json = yyjson_mut_write(doc, 0, &len);
+    char *result = talloc_strdup(ctx, json);
+    free(json);
+
+    return result;
+}
+
 void openai_serialize_text(TALLOC_CTX *ctx, const char *content, int fd)
 {
     assert(ctx != NULL);
