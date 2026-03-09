@@ -178,8 +178,9 @@ struct ik_tool_def {
  * System prompt block with optional cache control
  */
 struct ik_system_block {
-    char *text;       /* System prompt text */
-    bool cacheable;   /* Enable prompt caching for this block */
+    char *text;                  /* System prompt text */
+    bool cacheable;              /* Enable prompt caching for this block */
+    ik_system_block_type_t type; /* Semantic category of this block */
 };
 
 /**

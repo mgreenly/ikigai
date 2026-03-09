@@ -37,13 +37,14 @@ START_TEST(test_one_system_block) {
     res_t res = ik_request_create(ctx, "test-model", &req);
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "You are helpful.", true);
+    res = ik_request_add_system_block(req, "You are helpful.", true, IK_SYSTEM_BLOCK_BASE_PROMPT);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(req->system_block_count, 1);
     ck_assert_ptr_nonnull(req->system_blocks);
     ck_assert_str_eq(req->system_blocks[0].text, "You are helpful.");
     ck_assert(req->system_blocks[0].cacheable == true);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     talloc_free(ctx);
 }
@@ -56,12 +57,13 @@ START_TEST(test_one_system_block_not_cacheable) {
     res_t res = ik_request_create(ctx, "test-model", &req);
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "Plain block.", false);
+    res = ik_request_add_system_block(req, "Plain block.", false, IK_SYSTEM_BLOCK_BASE_PROMPT);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(req->system_block_count, 1);
     ck_assert_str_eq(req->system_blocks[0].text, "Plain block.");
     ck_assert(req->system_blocks[0].cacheable == false);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     talloc_free(ctx);
 }
@@ -78,13 +80,13 @@ START_TEST(test_multiple_system_blocks) {
     res_t res = ik_request_create(ctx, "test-model", &req);
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "Block one.", true);
+    res = ik_request_add_system_block(req, "Block one.", true, IK_SYSTEM_BLOCK_BASE_PROMPT);
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "Block two.", false);
+    res = ik_request_add_system_block(req, "Block two.", false, IK_SYSTEM_BLOCK_PINNED_DOC);
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "Block three.", true);
+    res = ik_request_add_system_block(req, "Block three.", true, IK_SYSTEM_BLOCK_SKILL);
     ck_assert(is_ok(&res));
 
     ck_assert_uint_eq(req->system_block_count, 3);
@@ -92,12 +94,15 @@ START_TEST(test_multiple_system_blocks) {
 
     ck_assert_str_eq(req->system_blocks[0].text, "Block one.");
     ck_assert(req->system_blocks[0].cacheable == true);
+    ck_assert_int_eq(req->system_blocks[0].type, IK_SYSTEM_BLOCK_BASE_PROMPT);
 
     ck_assert_str_eq(req->system_blocks[1].text, "Block two.");
     ck_assert(req->system_blocks[1].cacheable == false);
+    ck_assert_int_eq(req->system_blocks[1].type, IK_SYSTEM_BLOCK_PINNED_DOC);
 
     ck_assert_str_eq(req->system_blocks[2].text, "Block three.");
     ck_assert(req->system_blocks[2].cacheable == true);
+    ck_assert_int_eq(req->system_blocks[2].type, IK_SYSTEM_BLOCK_SKILL);
 
     talloc_free(ctx);
 }
@@ -117,7 +122,7 @@ START_TEST(test_system_blocks_independent_of_system_prompt) {
     res = ik_request_set_system(req, "Legacy system prompt.");
     ck_assert(is_ok(&res));
 
-    res = ik_request_add_system_block(req, "New block.", false);
+    res = ik_request_add_system_block(req, "New block.", false, IK_SYSTEM_BLOCK_BASE_PROMPT);
     ck_assert(is_ok(&res));
 
     ck_assert_str_eq(req->system_prompt, "Legacy system prompt.");

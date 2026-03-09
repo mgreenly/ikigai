@@ -150,7 +150,7 @@ res_t ik_summary_generate(TALLOC_CTX *ctx,
     /* Build the summarization request */
     ik_request_t *req = NULL;
     CHECK(ik_request_create(ctx, model, &req));
-    CHECK(ik_request_add_system_block(req, IK_SUMMARY_PROMPT, false));
+    CHECK(ik_request_add_system_block(req, IK_SUMMARY_PROMPT, false, IK_SYSTEM_BLOCK_BASE_PROMPT));
     CHECK(ik_request_add_message(req, IK_ROLE_USER, transcript));
     req->max_output_tokens = max_tokens;
 

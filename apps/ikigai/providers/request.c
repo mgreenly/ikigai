@@ -132,7 +132,8 @@ res_t ik_request_set_system(ik_request_t *req, const char *text)
     return OK(NULL);
 }
 
-res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable)
+res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable,
+                                  ik_system_block_type_t type)
 {
     assert(req != NULL);  // LCOV_EXCL_BR_LINE
     assert(text != NULL); // LCOV_EXCL_BR_LINE
@@ -147,6 +148,7 @@ res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cach
     if (!block->text) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
     block->cacheable = cacheable;
+    block->type = type;
     req->system_block_count = new_count;
 
     return OK(NULL);

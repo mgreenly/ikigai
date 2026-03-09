@@ -8,6 +8,18 @@
  * without the full type definitions.
  */
 
+/**
+ * Semantic category of a system prompt block
+ */
+typedef enum {
+    IK_SYSTEM_BLOCK_BASE_PROMPT,
+    IK_SYSTEM_BLOCK_PINNED_DOC,
+    IK_SYSTEM_BLOCK_SKILL,
+    IK_SYSTEM_BLOCK_SKILL_CATALOG,
+    IK_SYSTEM_BLOCK_SESSION_SUMMARY,
+    IK_SYSTEM_BLOCK_RECENT_SUMMARY,
+} ik_system_block_type_t;
+
 // Forward declarations
 typedef struct ik_provider ik_provider_t;
 typedef struct ik_provider_vtable ik_provider_vtable_t;

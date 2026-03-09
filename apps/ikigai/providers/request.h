@@ -97,9 +97,11 @@ res_t ik_request_set_system(ik_request_t *req, const char *text);
  * @param req       Request to modify
  * @param text      System block text (will be copied)
  * @param cacheable Enable prompt caching for this block
+ * @param type      Semantic category of this block
  * @return          OK on success, ERR on allocation failure
  */
-res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable);
+res_t ik_request_add_system_block(ik_request_t *req, const char *text, bool cacheable,
+                                  ik_system_block_type_t type);
 
 /**
  * Add simple text message
