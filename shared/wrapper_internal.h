@@ -187,6 +187,7 @@ MOCKABLE bool ik_skill_load_by_name_(void *ctx, void *repl, void *agent, const c
 // Note: These use void* because the actual types are defined in headers that may
 // not be included when wrapper.h is processed
 #include "shared/error.h"
+#include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/providers/common/http_multi.h"
 
 MOCKABLE res_t ik_paths_translate_ik_uri_to_path_(TALLOC_CTX *ctx, void *paths, const char *input, char **out);
@@ -198,7 +199,7 @@ MOCKABLE res_t ik_tool_external_exec_(TALLOC_CTX *ctx,
                                       pid_t *child_pid_out,
                                       char **out_result);
 MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char *data_dir, void **out_ctx);
-MOCKABLE res_t ik_db_message_insert_(void *db,
+MOCKABLE res_t ik_db_message_insert_(ik_db_ctx_t *db,
                                      int64_t session_id,
                                      const char *agent_uuid,
                                      const char *kind,

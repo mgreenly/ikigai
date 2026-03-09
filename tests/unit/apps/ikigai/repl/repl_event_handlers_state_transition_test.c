@@ -51,7 +51,7 @@ res_t ik_db_agent_set_idle(ik_db_ctx_t *db, const char *uuid, bool idle);
 res_t ik_db_notify(ik_db_ctx_t *db, const char *channel, const char *payload);
 
 /* Mock database insert that succeeds */
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,

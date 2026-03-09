@@ -41,7 +41,7 @@ static ik_agent_ctx_t *agent;
 static ik_db_ctx_t *fake_db;
 
 /* Mock database insert that succeeds */
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,

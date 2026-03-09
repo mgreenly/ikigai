@@ -60,14 +60,14 @@ MOCKABLE res_t ik_db_init_(TALLOC_CTX *mem_ctx, const char *conn_str, const char
     return ik_db_init(mem_ctx, conn_str, data_dir, (ik_db_ctx_t **)out_ctx);
 }
 
-MOCKABLE res_t ik_db_message_insert_(void *db,
+MOCKABLE res_t ik_db_message_insert_(ik_db_ctx_t *db,
                                      int64_t session_id,
                                      const char *agent_uuid,
                                      const char *kind,
                                      const char *content,
                                      const char *data_json)
 {
-    return ik_db_message_insert((ik_db_ctx_t *)db, session_id, agent_uuid, kind, content, data_json);
+    return ik_db_message_insert(db, session_id, agent_uuid, kind, content, data_json);
 }
 
 MOCKABLE res_t ik_scrollback_append_line_(void *scrollback, const char *text, size_t length)

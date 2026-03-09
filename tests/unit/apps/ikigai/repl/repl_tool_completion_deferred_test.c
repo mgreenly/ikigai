@@ -21,7 +21,7 @@
 #include <talloc.h>
 
 /* Forward declarations for mocks */
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,
@@ -30,7 +30,7 @@ res_t ik_db_message_insert_(void *db,
 res_t ik_repl_render_frame_(void *repl);
 
 /* Mock db message insert */
-res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
+res_t ik_db_message_insert_(ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
                             const char *kind, const char *content, const char *data_json)
 {
     (void)db; (void)session_id; (void)agent_uuid;

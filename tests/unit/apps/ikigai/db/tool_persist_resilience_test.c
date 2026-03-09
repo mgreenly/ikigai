@@ -30,7 +30,7 @@ static bool fail_tool_result = false;
 static bool fail_all = false;
 
 // Mock ik_db_message_insert to simulate database failures
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,

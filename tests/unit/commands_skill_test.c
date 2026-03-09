@@ -65,7 +65,7 @@ res_t ik_template_process_(TALLOC_CTX *ctx, const char *text, void *agent,
 static int g_insert_call_count = 0;
 static bool g_insert_fail = false;
 
-res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
+res_t ik_db_message_insert_(ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
                              const char *kind, const char *content, const char *data_json)
 {
     (void)db; (void)session_id; (void)agent_uuid;

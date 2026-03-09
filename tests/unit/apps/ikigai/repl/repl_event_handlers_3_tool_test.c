@@ -70,7 +70,7 @@ res_t ik_agent_add_message_(void *agent_ptr, void *msg_ptr)
 }
 
 /* Mock database insert that succeeds */
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,

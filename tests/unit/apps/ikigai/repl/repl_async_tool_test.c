@@ -29,7 +29,7 @@ static char *last_insert_content = NULL;
 static char *last_insert_data_json = NULL;
 
 /* Mock implementation of ik_db_message_insert_ */
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *kind,

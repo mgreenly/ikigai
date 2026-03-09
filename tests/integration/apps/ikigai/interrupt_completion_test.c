@@ -55,7 +55,7 @@ int pthread_mutex_lock_(pthread_mutex_t *mutex);
 int pthread_mutex_unlock_(pthread_mutex_t *mutex);
 int pthread_create_(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg);
 int pthread_join_(pthread_t thread, void **retval);
-res_t ik_db_message_insert_(void *db_ctx,
+res_t ik_db_message_insert_(ik_db_ctx_t *db_ctx,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *role,
@@ -264,7 +264,7 @@ res_t ik_repl_render_frame_(void *repl)
 }
 
 // Mock database insert function
-res_t ik_db_message_insert_(void *db_ctx,
+res_t ik_db_message_insert_(ik_db_ctx_t *db_ctx,
                             int64_t session_id,
                             const char *agent_uuid,
                             const char *role,

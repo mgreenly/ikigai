@@ -21,7 +21,7 @@
 static int g_insert_call_count = 0;
 static bool g_insert_fail = false;
 
-res_t ik_db_message_insert_(void *db,
+res_t ik_db_message_insert_(ik_db_ctx_t *db,
                              int64_t session_id,
                              const char *agent_uuid,
                              const char *kind,

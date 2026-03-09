@@ -42,7 +42,7 @@ res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
     return OK(NULL);
 }
 
-res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
+res_t ik_db_message_insert_(ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
                              const char *kind, const char *content, const char *data_json)
 {
     (void)db; (void)session_id; (void)agent_uuid;

@@ -38,7 +38,7 @@ static char *captured_tool_result_data_json;
 static int db_insert_call_count;
 
 /* Mock for db message insert - captures data_json for verification */
-res_t ik_db_message_insert_(void *db, int64_t session_id, const char *agent_uuid,
+res_t ik_db_message_insert_(ik_db_ctx_t *db, int64_t session_id, const char *agent_uuid,
                             const char *kind, const char *content, const char *data_json)
 {
     (void)db; (void)session_id; (void)agent_uuid; (void)content;
