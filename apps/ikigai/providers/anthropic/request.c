@@ -114,7 +114,7 @@ static void add_thinking_config(yyjson_mut_doc *doc, yyjson_mut_val *root,
 // Helper: serialize single tool definition
 static res_t serialize_tool(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
                             yyjson_mut_val *tools_arr,
-                            const ik_tool_def_t *tool)
+                            const ik_tool_def_t *tool, bool is_last)
 {
     yyjson_mut_val *tool_obj = yyjson_mut_obj(doc);
     if (!tool_obj) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -143,6 +143,19 @@ static res_t serialize_tool(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
     if (!yyjson_mut_obj_add_val(doc, tool_obj, "input_schema", params_mut)) { // LCOV_EXCL_BR_LINE
         yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
         PANIC("Out of memory"); // LCOV_EXCL_LINE
+    }
+
+    if (is_last) {
+        yyjson_mut_val *cc = yyjson_mut_obj(doc);
+        if (!cc) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        if (!yyjson_mut_obj_add_str(doc, cc, "type", "ephemeral")) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
+        if (!yyjson_mut_obj_add_val(doc, tool_obj, "cache_control", cc)) { // LCOV_EXCL_BR_LINE
+            yyjson_mut_doc_free(doc); // LCOV_EXCL_LINE
+            PANIC("Out of memory"); // LCOV_EXCL_LINE
+        }
     }
 
     if (!yyjson_mut_arr_add_val(tools_arr, tool_obj)) { // LCOV_EXCL_BR_LINE
@@ -298,7 +311,8 @@ static res_t add_tools(TALLOC_CTX *ctx, yyjson_mut_doc *doc,
     if (!tools_arr) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
 
     for (size_t i = 0; i < req->tool_count; i++) {
-        res_t res = serialize_tool(ctx, doc, tools_arr, &req->tools[i]);
+        bool is_last = (i == req->tool_count - 1);
+        res_t res = serialize_tool(ctx, doc, tools_arr, &req->tools[i], is_last);
         if (is_err(&res)) {
             return res;
         }
