@@ -135,9 +135,32 @@ START_TEST(test_serialize_request_streaming_with_verification) {
 }
 END_TEST
 
-// Note: We cannot test the non-streaming path directly as serialize_request_internal
-// is a static function. The non-streaming path appears to be dead code since
-// only ik_anthropic_serialize_request_stream is exposed in the public API.
+START_TEST(test_serialize_request_non_stream) {
+    /* Tests ik_anthropic_serialize_request_non_stream (lines 362-364) and the
+     * include_stream=false branch at line 304. */
+    ik_request_t *req = create_basic_request(test_ctx);
+    char *json = NULL;
+
+    res_t r = ik_anthropic_serialize_request_non_stream(test_ctx, req, &json);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(json);
+
+    /* Non-streaming request must NOT have a "stream" field */
+    yyjson_doc *doc = yyjson_read(json, strlen(json), 0);
+    ck_assert_ptr_nonnull(doc);
+
+    yyjson_val *root = yyjson_doc_get_root(doc);
+    yyjson_val *stream_field = yyjson_obj_get(root, "stream");
+    ck_assert_ptr_null(stream_field);
+
+    /* max_tokens must be present */
+    yyjson_val *max_tokens = yyjson_obj_get(root, "max_tokens");
+    ck_assert_ptr_nonnull(max_tokens);
+
+    yyjson_doc_free(doc);
+}
+END_TEST
 
 /* ================================================================
  * Test Suite Setup
@@ -152,6 +175,7 @@ static Suite *request_coverage_suite(void)
     tcase_add_unchecked_fixture(tc_coverage, setup, teardown);
     tcase_add_test(tc_coverage, test_serialize_messages_failure);
     tcase_add_test(tc_coverage, test_serialize_request_streaming_with_verification);
+    tcase_add_test(tc_coverage, test_serialize_request_non_stream);
     suite_add_tcase(s, tc_coverage);
 
     return s;

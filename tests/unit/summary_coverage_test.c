@@ -104,6 +104,21 @@ static res_t mock_non_text_block(void *ctx, const ik_request_t *req,
     return OK(NULL);
 }
 
+static res_t mock_stream_event_start(void *ctx, const ik_request_t *req,
+                                      ik_stream_cb_t scb, void *sctx,
+                                      ik_provider_completion_cb_t cb, void *cb_ctx)
+{
+    (void)ctx; (void)req;
+    /* Exercise summary_noop_stream_cb by calling the stream callback */
+    ik_stream_event_t ev = { .type = IK_STREAM_TEXT_DELTA, .index = 0 };
+    ev.data.delta.text = "hello";
+    scb(&ev, sctx);
+
+    ik_provider_completion_t c = { .success = false, .error_message = NULL };
+    cb(&c, cb_ctx);
+    return OK(NULL);
+}
+
 static int g_deferred_count = 0;
 
 static res_t mock_deferred_start(void *ctx, const ik_request_t *req,
@@ -218,6 +233,22 @@ START_TEST(test_loop_body_via_deferred_callback) {
 }
 END_TEST
 
+START_TEST(test_stream_callback_invoked) {
+    /* Exercises summary_noop_stream_cb by using a mock that calls the callback */
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_msg_t *msg = make_user_msg(ctx);
+    ik_msg_t *msgs[] = { msg };
+    ik_provider_vtable_t vt = base_vt;
+    vt.start_stream = mock_stream_event_start;
+    ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = NULL };
+    char *summary = NULL;
+    res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 1000, &summary);
+    ck_assert(is_err(&res));
+    talloc_free(res.err);
+    talloc_free(ctx);
+}
+END_TEST
+
 START_TEST(test_truncate_no_sentence_boundary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_msg_t *msg = make_user_msg(ctx);
@@ -264,6 +295,7 @@ static Suite *summary_coverage_suite(void)
     tcase_add_test(tc, test_no_text_block_gives_error);
     tcase_add_test(tc, test_non_text_block_gives_error);
     tcase_add_test(tc, test_loop_body_via_deferred_callback);
+    tcase_add_test(tc, test_stream_callback_invoked);
     tcase_add_test(tc, test_truncate_no_sentence_boundary);
     tcase_add_test(tc, test_sentence_boundary_at_tab);
     suite_add_tcase(s, tc);
