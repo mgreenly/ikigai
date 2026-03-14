@@ -68,10 +68,16 @@ static void output_error(void *ctx, const char *error, const char *error_code)
     printf("%s\n", json_str);
 }
 
-// Perform an HTTP request and return the response body as a talloc'd string.
-// On network/HTTP error, outputs a JSON error and returns NULL.
-static char *do_request_raw(void *ctx, const char *method, const char *url, const char *body)
+// Core HTTP request implementation.
+// Returns response body on 2xx, NULL otherwise.
+// Network errors: prints error and returns NULL with *out_http_code = 0.
+// HTTP errors (>=400): returns NULL with *out_http_code set; does NOT print error.
+// out_http_code must not be NULL.
+static char *do_request_impl(void *ctx, const char *method, const char *url,
+                              const char *body, long *out_http_code)
 {
+    *out_http_code = 0;
+
     CURL *curl = curl_easy_init_();
     if (curl == NULL) { // LCOV_EXCL_BR_LINE
         output_error(ctx, "Failed to initialize HTTP client", "ERR_IO");
@@ -94,6 +100,10 @@ static char *do_request_raw(void *ctx, const char *method, const char *url, cons
     if (strcmp(method, "POST") == 0) {
         headers = curl_slist_append_(NULL, "Content-Type: application/json");
         curl_easy_setopt_(curl, CURLOPT_POST, 1L);
+        curl_easy_setopt_(curl, CURLOPT_POSTFIELDS, body);
+    } else if (strcmp(method, "PUT") == 0) {
+        headers = curl_slist_append_(NULL, "Content-Type: application/json");
+        curl_easy_setopt_(curl, CURLOPT_CUSTOMREQUEST, "PUT");
         curl_easy_setopt_(curl, CURLOPT_POSTFIELDS, body);
     } else if (strcmp(method, "DELETE") == 0) {
         curl_easy_setopt_(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -123,18 +133,28 @@ static char *do_request_raw(void *ctx, const char *method, const char *url, cons
         return NULL;
     }
 
-    long http_code = 0;
-    curl_easy_getinfo_(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_easy_getinfo_(curl, CURLINFO_RESPONSE_CODE, out_http_code);
     curl_easy_cleanup_(curl);
 
-    if (http_code >= 400) {
-        char error_msg[256];
-        snprintf(error_msg, sizeof(error_msg), "HTTP %ld error", http_code);
-        output_error(ctx, error_msg, "ERR_IO");
+    if (*out_http_code >= 400) {
         return NULL;
     }
 
     return response.data;
+}
+
+// Perform an HTTP request and return the response body as a talloc'd string.
+// On network/HTTP error, outputs a JSON error and returns NULL.
+static char *do_request_raw(void *ctx, const char *method, const char *url, const char *body)
+{
+    long http_code = 0;
+    char *result = do_request_impl(ctx, method, url, body, &http_code);
+    if (result == NULL && http_code >= 400) {
+        char error_msg[256];
+        snprintf(error_msg, sizeof(error_msg), "HTTP %ld error", http_code);
+        output_error(ctx, error_msg, "ERR_IO");
+    }
+    return result;
 }
 
 static int32_t do_request(void *ctx, const char *method, const char *url, const char *body)
@@ -159,17 +179,287 @@ static char *url_encode(void *ctx, const char *input)
     return result;
 }
 
+// Build the document list URL with agent/project scope.
+static char *build_scope_url(void *ctx, const char *base_url, const char *project,
+                              const char *agent)
+{
+    char *encoded_project = url_encode(ctx, project);
+    char *url;
+    if (agent != NULL) {
+        char *encoded_agent = url_encode(ctx, agent);
+        url = talloc_asprintf(ctx, "%s/documents?agent=%s&project=%s",
+                              base_url, encoded_agent, encoded_project);
+    } else {
+        url = talloc_asprintf(ctx, "%s/documents?project=%s",
+                              base_url, encoded_project);
+    }
+    if (url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    return url;
+}
+
+// Build the document lookup URL filtered by title within scope.
+static char *build_title_lookup_url(void *ctx, const char *base_url, const char *title,
+                                     const char *project, const char *agent)
+{
+    char *encoded_title = url_encode(ctx, title);
+    char *url = build_scope_url(ctx, base_url, project, agent);
+    char *new_url = talloc_asprintf(ctx, "%s&title=%s", url, encoded_title);
+    if (new_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    return new_url;
+}
+
+// Look up a document by title and return its UUID as a talloc'd string.
+// Returns NULL if not found or on error (error already printed).
+static const char *lookup_doc_id_by_title(void *ctx, const char *base_url,
+                                           const char *title, const char *project,
+                                           const char *agent)
+{
+    char *lookup_url = build_title_lookup_url(ctx, base_url, title, project, agent);
+
+    char *lookup_body = do_request_raw(ctx, "GET", lookup_url, NULL);
+    if (lookup_body == NULL) {
+        return NULL; // error already printed
+    }
+
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_doc *resp_doc = yyjson_read_opts(lookup_body, strlen(lookup_body),
+                                            0, &allocator, NULL);
+    if (resp_doc == NULL) {
+        output_error(ctx, "Failed to parse lookup response", "ERR_IO");
+        return NULL;
+    }
+
+    yyjson_val *root = yyjson_doc_get_root(resp_doc);
+    yyjson_val *items = yyjson_obj_get(root, "items");
+    if (items == NULL || !yyjson_is_arr(items) || yyjson_arr_size(items) == 0) {
+        output_error(ctx, "Document not found", "ERR_NOT_FOUND");
+        return NULL;
+    }
+
+    yyjson_val *first = yyjson_arr_get_first(items);
+    yyjson_val *id_val = yyjson_obj_get(first, "id");
+    if (id_val == NULL || !yyjson_is_str(id_val)) {
+        output_error(ctx, "Unexpected response format", "ERR_IO");
+        return NULL;
+    }
+
+    return talloc_strdup(ctx, yyjson_get_str(id_val));
+}
+
+static int32_t handle_create(void *ctx, const char *base_url, const char *project,
+                              const char *agent, const mem_params_t *params)
+{
+    if (params->body == NULL) {
+        output_error(ctx, "body is required for create action", "ERR_PARAMS");
+        return 0;
+    }
+
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *req_doc = yyjson_mut_doc_new(&allocator);
+    if (req_doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *req_obj = yyjson_mut_obj(req_doc);
+    if (req_obj == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_obj_add_str(req_doc, req_obj, "body", params->body);
+    yyjson_mut_obj_add_str(req_doc, req_obj, "project", project);
+
+    if (agent != NULL) {
+        yyjson_mut_obj_add_str(req_doc, req_obj, "agent", agent);
+    }
+
+    if (params->path != NULL) {
+        yyjson_mut_obj_add_str(req_doc, req_obj, "title", params->path);
+    }
+
+    yyjson_mut_doc_set_root(req_doc, req_obj);
+
+    char *req_json = yyjson_mut_write_opts(req_doc, 0, &allocator, NULL, NULL);
+    if (req_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    char *url = talloc_asprintf(ctx, "%s/documents", base_url);
+    if (url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    long http_code = 0;
+    char *result = do_request_impl(ctx, "POST", url, req_json, &http_code);
+    if (result == NULL) {
+        if (http_code == 409) {
+            output_error(ctx, "Document already exists (duplicate title)", "ERR_CONFLICT");
+        } else if (http_code >= 400) {
+            char error_msg[256];
+            snprintf(error_msg, sizeof(error_msg), "HTTP %ld error", http_code);
+            output_error(ctx, error_msg, "ERR_IO");
+        }
+        return 0;
+    }
+    printf("%s\n", result);
+    return 0;
+}
+
+static int32_t handle_get(void *ctx, const char *base_url, const char *project,
+                           const char *agent, const mem_params_t *params)
+{
+    if (params->path == NULL) {
+        output_error(ctx, "path is required for get action", "ERR_PARAMS");
+        return 0;
+    }
+
+    char *url = build_title_lookup_url(ctx, base_url, params->path, project, agent);
+    return do_request(ctx, "GET", url, NULL);
+}
+
+static int32_t handle_list(void *ctx, const char *base_url, const char *project,
+                            const char *agent, const mem_params_t *params)
+{
+    char *url = build_scope_url(ctx, base_url, project, agent);
+
+    if (params->search != NULL) {
+        char *encoded_search = url_encode(ctx, params->search);
+        char *new_url = talloc_asprintf(ctx, "%s&q=%s", url, encoded_search);
+        if (new_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        url = new_url;
+    }
+
+    if (params->path != NULL) {
+        char *encoded_path = url_encode(ctx, params->path);
+        char *new_url = talloc_asprintf(ctx, "%s&title=%s", url, encoded_path);
+        if (new_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        url = new_url;
+    }
+
+    if (params->limit > 0) {
+        char *new_url = talloc_asprintf(ctx, "%s&limit=%" PRId32, url, params->limit);
+        if (new_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        url = new_url;
+    }
+
+    if (params->offset > 0) {
+        char *new_url = talloc_asprintf(ctx, "%s&offset=%" PRId32, url, params->offset);
+        if (new_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        url = new_url;
+    }
+
+    return do_request(ctx, "GET", url, NULL);
+}
+
+static int32_t handle_delete(void *ctx, const char *base_url, const char *project,
+                              const char *agent, const mem_params_t *params)
+{
+    if (params->path == NULL) {
+        output_error(ctx, "path is required for delete action", "ERR_PARAMS");
+        return 0;
+    }
+
+    const char *doc_id = lookup_doc_id_by_title(ctx, base_url, params->path,
+                                                 project, agent);
+    if (doc_id == NULL) {
+        return 0; // error already printed
+    }
+
+    char *delete_url = talloc_asprintf(ctx, "%s/documents/%s", base_url, doc_id);
+    if (delete_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    return do_request(ctx, "DELETE", delete_url, NULL);
+}
+
+static int32_t handle_update(void *ctx, const char *base_url, const char *project,
+                              const char *agent, const mem_params_t *params)
+{
+    if (params->path == NULL) {
+        output_error(ctx, "path is required for update action", "ERR_PARAMS");
+        return 0;
+    }
+    if (params->body == NULL) {
+        output_error(ctx, "body is required for update action", "ERR_PARAMS");
+        return 0;
+    }
+
+    const char *doc_id = lookup_doc_id_by_title(ctx, base_url, params->path,
+                                                 project, agent);
+    if (doc_id == NULL) {
+        return 0; // error already printed
+    }
+
+    yyjson_alc allocator = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *req_doc = yyjson_mut_doc_new(&allocator);
+    if (req_doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_val *req_obj = yyjson_mut_obj(req_doc);
+    if (req_obj == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    yyjson_mut_obj_add_str(req_doc, req_obj, "body", params->body);
+
+    if (params->title != NULL) {
+        yyjson_mut_obj_add_str(req_doc, req_obj, "title", params->title);
+    }
+
+    yyjson_mut_doc_set_root(req_doc, req_obj);
+
+    char *req_json = yyjson_mut_write_opts(req_doc, 0, &allocator, NULL, NULL);
+    if (req_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    char *put_url = talloc_asprintf(ctx, "%s/documents/%s", base_url, doc_id);
+    if (put_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    return do_request(ctx, "PUT", put_url, req_json);
+}
+
+static int32_t handle_revisions(void *ctx, const char *base_url, const char *project,
+                                 const char *agent, const mem_params_t *params)
+{
+    if (params->path == NULL) {
+        output_error(ctx, "path is required for revisions action", "ERR_PARAMS");
+        return 0;
+    }
+
+    const char *doc_id = lookup_doc_id_by_title(ctx, base_url, params->path,
+                                                 project, agent);
+    if (doc_id == NULL) {
+        return 0; // error already printed
+    }
+
+    char *revisions_url = talloc_asprintf(ctx, "%s/documents/%s/revisions",
+                                          base_url, doc_id);
+    if (revisions_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    return do_request(ctx, "GET", revisions_url, NULL);
+}
+
+static int32_t handle_revision_get(void *ctx, const char *base_url, const char *project,
+                                    const char *agent, const mem_params_t *params)
+{
+    if (params->path == NULL) {
+        output_error(ctx, "path is required for revision_get action", "ERR_PARAMS");
+        return 0;
+    }
+    if (params->revision_id == NULL) {
+        output_error(ctx, "revision_id is required for revision_get action", "ERR_PARAMS");
+        return 0;
+    }
+
+    const char *doc_id = lookup_doc_id_by_title(ctx, base_url, params->path,
+                                                 project, agent);
+    if (doc_id == NULL) {
+        return 0; // error already printed
+    }
+
+    char *rev_url = talloc_asprintf(ctx, "%s/documents/%s/revisions/%s",
+                                    base_url, doc_id, params->revision_id);
+    if (rev_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    return do_request(ctx, "GET", rev_url, NULL);
+}
+
 int32_t mem_execute(void *ctx, const mem_params_t *params)
 {
-    const char *scheme = getenv("RALPH_REMEMBERS_SCHEME");
-    const char *host = getenv("RALPH_REMEMBERS_HOST");
-    const char *port_str = getenv("RALPH_REMEMBERS_PORT");
-    const char *env_project = getenv("RALPH_REMEMBERS_PROJECT");
+    const char *base_url = getenv("RALPH_REMEMBERS_URL");
+    const char *org = getenv("PROJECT_ORG");
+    const char *repo = getenv("PROJECT_REPO");
 
-    if (scheme == NULL || host == NULL || port_str == NULL || env_project == NULL) {
+    if (base_url == NULL || org == NULL || repo == NULL) {
         output_error(ctx,
-                     "Missing required environment variables: RALPH_REMEMBERS_SCHEME, "
-                     "RALPH_REMEMBERS_HOST, RALPH_REMEMBERS_PORT, RALPH_REMEMBERS_PROJECT",
+                     "Missing required environment variables: RALPH_REMEMBERS_URL, "
+                     "PROJECT_ORG, PROJECT_REPO",
                      "ERR_CONFIG");
         return 0;
     }
@@ -182,145 +472,28 @@ int32_t mem_execute(void *ctx, const mem_params_t *params)
         project = ZERO_UUID;
     } else {
         agent = getenv("IKIGAI_AGENT_ID");
-        project = env_project;
+        char *project_buf = talloc_asprintf(ctx, "%s/%s", org, repo);
+        if (project_buf == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        project = project_buf;
     }
 
-    char *base_url = talloc_asprintf(ctx, "%s://%s:%s", scheme, host, port_str);
-    if (base_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-    if (params->action == MEM_ACTION_CREATE) {
-        if (params->body == NULL) {
-            output_error(ctx, "body is required for create action", "ERR_PARAMS");
-            return 0;
-        }
-
-        yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-        yyjson_mut_doc *req_doc = yyjson_mut_doc_new(&allocator);
-        if (req_doc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        yyjson_mut_val *req_obj = yyjson_mut_obj(req_doc);
-        if (req_obj == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        yyjson_mut_obj_add_str(req_doc, req_obj, "body", params->body);
-        yyjson_mut_obj_add_str(req_doc, req_obj, "project", project);
-
-        if (agent != NULL) {
-            yyjson_mut_obj_add_str(req_doc, req_obj, "agent", agent);
-        }
-
-        if (params->path != NULL) {
-            yyjson_mut_obj_add_str(req_doc, req_obj, "title", params->path);
-        }
-
-        yyjson_mut_doc_set_root(req_doc, req_obj);
-
-        char *req_json = yyjson_mut_write_opts(req_doc, 0, &allocator, NULL, NULL);
-        if (req_json == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        char *url = talloc_asprintf(ctx, "%s/documents", base_url);
-        if (url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        return do_request(ctx, "POST", url, req_json);
+    switch (params->action) {
+    case MEM_ACTION_CREATE:
+        return handle_create(ctx, base_url, project, agent, params);
+    case MEM_ACTION_GET:
+        return handle_get(ctx, base_url, project, agent, params);
+    case MEM_ACTION_LIST:
+        return handle_list(ctx, base_url, project, agent, params);
+    case MEM_ACTION_DELETE:
+        return handle_delete(ctx, base_url, project, agent, params);
+    case MEM_ACTION_UPDATE:
+        return handle_update(ctx, base_url, project, agent, params);
+    case MEM_ACTION_REVISIONS:
+        return handle_revisions(ctx, base_url, project, agent, params);
+    case MEM_ACTION_REVISION_GET:
+        return handle_revision_get(ctx, base_url, project, agent, params);
+    default:
+        output_error(ctx, "Unknown action", "ERR_PARAMS");
+        return 0;
     }
-
-    if (params->action == MEM_ACTION_GET) {
-        if (params->path == NULL) {
-            output_error(ctx, "path is required for get action", "ERR_PARAMS");
-            return 0;
-        }
-
-        char *encoded_path = url_encode(ctx, params->path);
-        char *encoded_project = url_encode(ctx, project);
-
-        char *url;
-        if (agent != NULL) {
-            char *encoded_agent = url_encode(ctx, agent);
-            url = talloc_asprintf(ctx, "%s/documents?title=%s&agent=%s&project=%s",
-                                  base_url, encoded_path, encoded_agent, encoded_project);
-        } else {
-            url = talloc_asprintf(ctx, "%s/documents?title=%s&project=%s",
-                                  base_url, encoded_path, encoded_project);
-        }
-        if (url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        return do_request(ctx, "GET", url, NULL);
-    }
-
-    if (params->action == MEM_ACTION_LIST) {
-        char *encoded_project = url_encode(ctx, project);
-
-        char *url;
-        if (agent != NULL) {
-            char *encoded_agent = url_encode(ctx, agent);
-            url = talloc_asprintf(ctx, "%s/documents?agent=%s&project=%s",
-                                  base_url, encoded_agent, encoded_project);
-        } else {
-            url = talloc_asprintf(ctx, "%s/documents?project=%s",
-                                  base_url, encoded_project);
-        }
-        if (url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        return do_request(ctx, "GET", url, NULL);
-    }
-
-    if (params->action == MEM_ACTION_DELETE) {
-        if (params->path == NULL) {
-            output_error(ctx, "path is required for delete action", "ERR_PARAMS");
-            return 0;
-        }
-
-        // Step 1: Look up document by path to get its UUID
-        char *encoded_path = url_encode(ctx, params->path);
-        char *encoded_project = url_encode(ctx, project);
-
-        char *lookup_url;
-        if (agent != NULL) {
-            char *encoded_agent = url_encode(ctx, agent);
-            lookup_url = talloc_asprintf(ctx, "%s/documents?title=%s&agent=%s&project=%s",
-                                         base_url, encoded_path, encoded_agent, encoded_project);
-        } else {
-            lookup_url = talloc_asprintf(ctx, "%s/documents?title=%s&project=%s",
-                                         base_url, encoded_path, encoded_project);
-        }
-        if (lookup_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        char *lookup_body = do_request_raw(ctx, "GET", lookup_url, NULL);
-        if (lookup_body == NULL) {
-            return 0; // error already printed
-        }
-
-        // Step 2: Parse response to extract UUID
-        yyjson_alc allocator = ik_make_talloc_allocator(ctx);
-        yyjson_doc *resp_doc = yyjson_read_opts(lookup_body, strlen(lookup_body),
-                                                0, &allocator, NULL);
-        if (resp_doc == NULL) {
-            output_error(ctx, "Failed to parse lookup response", "ERR_IO");
-            return 0;
-        }
-
-        yyjson_val *root = yyjson_doc_get_root(resp_doc);
-        yyjson_val *items = yyjson_obj_get(root, "items");
-        if (items == NULL || !yyjson_is_arr(items) || yyjson_arr_size(items) == 0) {
-            output_error(ctx, "Document not found", "ERR_NOT_FOUND");
-            return 0;
-        }
-
-        yyjson_val *first = yyjson_arr_get_first(items);
-        yyjson_val *id_val = yyjson_obj_get(first, "id");
-        if (id_val == NULL || !yyjson_is_str(id_val)) {
-            output_error(ctx, "Unexpected response format", "ERR_IO");
-            return 0;
-        }
-
-        const char *doc_id = yyjson_get_str(id_val);
-
-        // Step 3: Delete by UUID
-        char *delete_url = talloc_asprintf(ctx, "%s/documents/%s", base_url, doc_id);
-        if (delete_url == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        return do_request(ctx, "DELETE", delete_url, NULL);
-    }
-
-    output_error(ctx, "Unknown action", "ERR_PARAMS");
-    return 0;
 }
