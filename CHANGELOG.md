@@ -4,6 +4,102 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [0.13.0] - 2026-03-14
+
+### Added
+
+#### Sliding Context Window (Complete)
+- **Token counting infrastructure**: Bytes estimator and provider vtable entry for per-provider token counting
+- **Anthropic count_tokens API**: Integration with Anthropic's count_tokens endpoint
+- **OpenAI count_tokens API**: Integration with OpenAI's token counting endpoint
+- **Google count_tokens API**: Integration with Google's token counting endpoint
+- **Token cache module**: Full token cache implementation with unit tests
+- **`read_token_cache` ikigai-ctl command**: Observability command for inspecting the live token cache state
+- **Token cache wired into agent**: IDLE pruning trims messages from the context start when budget is exceeded
+- **Token cache `/rewind` support**: Cache adjusted correctly when messages are rewound
+- **Token cache invalidation on `/model` switch**: Cache cleared when the active model changes
+- **Token cache reset on `/clear`**: Cache wiped on conversation clear
+- **Context start index filtering**: Request builder applies `start_index` to exclude messages outside the sliding window
+- **Context marker (horizontal rule)**: Visual boundary rendered at the context start — light blue, spanning full terminal width
+- **Token cache turn registration on restore**: Startup message replay registers turns in the token cache to restore accurate state
+
+#### Context Summaries (Complete)
+- **System blocks data types and builder**: Foundation types and constructor for multi-block system prompts
+- **Summary foundations**: Core summary data structures and lifecycle management
+- **Session summaries database layer**: Schema and queries for persisting session summaries
+- **Agent summary struct fields**: Summary-related fields added to `ik_agent_t`
+- **Provider serializers for system blocks**: Anthropic, OpenAI, and Google serializers emit structured system blocks
+- **Summary generation via LLM**: Automatic summarization of pruned conversation history using the active provider
+- **System blocks request builder refactor**: Request builder rewritten to use the new system block abstraction
+- **Summary injection into requests**: Generated summaries injected into the system block reserved region of each request
+- **Background summary worker**: Asynchronous worker generates summaries without blocking the UI
+- **Integration**: Prune wiring, `/clear` reset, and session replay all integrated with the summary system
+- **`/summary` command**: Force summary generation; fork and rewind support included
+
+#### Skill System (Complete)
+- **Skill loading foundation**: Data structures, event kinds, and bang-command dispatch infrastructure
+- **`!unload`, `/clear` skill drop, `/rewind` skill trim**: Skills removed from session on unload, clear, and rewind
+- **Skill session restore and `/fork` integration**: Loaded skills replayed from database on session restore and propagated to forked agents
+- **`!load` handler**: Bang command handler injects skill content into the system prompt
+- **`!skills` command**: Lists currently loaded skills
+- **Slash commands for skill management**: `!load`, `!unload`, and `!skills` promoted to `/load`, `/unload`, `/skills` slash commands
+- **Bang commands for user prompt injection**: Bang dispatch extended to support injecting content into user messages
+- **Skill catalog data structure and system prompt block**: Named skill registry with a dedicated system prompt block rendered per request
+- **Skillset DB event kind and session replay**: Skillset load events persisted and replayed on session restore
+- **`/skillset` slash command**: Load a named bundle of skills in one command
+- **Internal tools for skill management**: `load`, `unload`, `skillset`, and `skills` registered as internal tools available to LLMs
+- **Skill system documentation**: Skill authoring guide and reference added to project docs
+
+#### System Block Architecture
+- **`ik_system_block_type_t` enum**: Typed enum for system block categories; `type` field added to `ik_system_block_t`
+- **Correct block types in `ik_agent_build_system_blocks()`**: Each block assigned its proper category type
+- **Anthropic cache breakpoint consolidation**: System blocks grouped by category to respect the 4-breakpoint limit
+- **Anthropic tool definition cache**: `cache_control` added to the last tool definition in the tools array
+- **DEBUG_LOG for system block building**: Diagnostic output for system block construction and cache breakpoint placement
+
+#### Mem Tool (ralph-remembers Integration)
+- **ralph-remembers environment variables**: `RALPH_REMEMBERS_*` env vars wired into the environment
+- **`mem` external tool**: Document store tool backed by ralph-remembers HTTP API
+- **User-Agent header**: `mem` tool HTTP requests include a `User-Agent` header
+- **Path-based access and scope parameter**: `mem` tool supports path-scoped document access and a `scope` query parameter
+
+#### New Model Support
+- **GPT-5.3-codex, GPT-5.4, GPT-5.4-pro**: Three new OpenAI models added to the model registry
+
+#### Documentation
+- **Sliding context window user docs**: End-user documentation for the sliding context window feature
+- **Environment variable documentation**: Two rounds of env var documentation additions
+- **Tools section with per-tool sub-pages**: User docs reorganized with a dedicated tools section and individual tool pages
+- **Skill system docs**: User-facing documentation for the skill and skillset system
+
+### Changed
+
+- **Message kind field**: `ik_message_t` gains a `kind` field to distinguish message categories
+- **`version.h` relocated**: Moved from `apps/ikigai/` to `shared/` for cross-module access
+- **Summary cap and token_count type**: Summary cap constant extracted and `token_count` type normalized across the codebase
+- **Recent summary tokens in budget math**: `recent_summary_tokens` wired into the token cache budget calculation
+- **Glob tool hidden files**: Glob tool now includes hidden files by default via `GLOB_PERIOD`
+- **Template resolver `undefined` return**: Known but unset template variables now resolve to the string `'undefined'` instead of being left as literals
+- **Context HR restored after rewind**: Horizontal rule context marker restored in scrollback when a rewind lands before the context start
+- **Context `start_index` clamped after rewind**: `start_index` clamped to a valid position after rewind to prevent boundary errors
+
+### Fixed
+
+- **Summary generation stubs**: `start_request` stub added for Anthropic and Google to unblock summary LLM calls
+- **Token usage display wiped by scrollback rebuild**: Usage line preserved correctly when the scrollback buffer is rebuilt
+- **Summary worker data race and `/clear` deadlock**: Race condition in the summary worker fixed; `/clear` no longer blocks on an in-progress LLM summary call
+- **Cursor off-by-one after Page Up + Page Down**: Page navigation cursor position corrected
+- **Missing token usage display for OpenAI Responses API**: Usage metadata now parsed and displayed for the Responses API path
+- **ikigai-ctl `send_keys` escape sequence handling**: Escape sequences correctly passed through to the running process
+- **Summary tokens counted against active window budget**: Summary token allocation excluded from the sliding window message budget
+- **Mock provider non-streaming SSE**: Mock provider now returns SSE-formatted responses for non-streaming requests
+- **Missing tool call lines in scrollback rebuild**: Tool call and tool result lines now included when the scrollback buffer is rebuilt
+- **Viewport shift at stream completion when scrolled up**: Viewport no longer jumps when a stream finishes and the user has scrolled up
+- **Scroll position during LLM streaming**: Scroll position held stable while tokens arrive during an active stream
+- **Glob tool docs false claims**: Documentation corrected to remove inaccurate claims about `**` recursive glob behavior
+- **Logger directory creation**: Logger now creates `IKIGAI_LOG_DIR` recursively if intermediate directories are missing
+- **Debug log directory initialization**: `ik_debug_log_init` creates intermediate directories before opening the log file
+
 ## [rel-12] - 2026-02-22
 
 ### Added
