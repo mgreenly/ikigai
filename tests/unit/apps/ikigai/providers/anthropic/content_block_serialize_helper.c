@@ -217,8 +217,18 @@ START_TEST(test_serialize_content_block_tool_call_invalid_json) {
 
     bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
-    // Should fail because arguments are invalid JSON
-    ck_assert(!result);
+    // Should succeed with graceful fallback to empty object for invalid JSON
+    ck_assert(result);
+    ck_assert_int_eq((int)yyjson_mut_arr_size(arr), 1);
+
+    // Verify the input field exists and is an empty object (fallback)
+    yyjson_mut_val *obj = yyjson_mut_arr_get(arr, 0);
+    ck_assert_ptr_nonnull(obj);
+
+    yyjson_mut_val *input = yyjson_mut_obj_get(obj, "input");
+    ck_assert_ptr_nonnull(input);
+    ck_assert(yyjson_mut_is_obj(input));
+    ck_assert_int_eq((int)yyjson_mut_obj_size(input), 0);
 
     yyjson_mut_doc_free(doc);
 }

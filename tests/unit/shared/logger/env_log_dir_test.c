@@ -136,6 +136,45 @@ START_TEST(test_no_env_uses_default_location) {
 }
 
 END_TEST
+// Test: when IKIGAI_LOG_DIR points to a non-existent directory, logger creates it
+START_TEST(test_env_log_dir_creates_nonexistent_dir) {
+    char nonexistent_dir[256];
+    snprintf(nonexistent_dir, sizeof(nonexistent_dir),
+             "/tmp/ikigai_env_mkdir_p_test_%d/nested", getpid());
+
+    // Ensure the path does not exist
+    char parent_dir[256];
+    snprintf(parent_dir, sizeof(parent_dir), "/tmp/ikigai_env_mkdir_p_test_%d", getpid());
+    rmdir(nonexistent_dir);
+    rmdir(parent_dir);
+
+    setenv("IKIGAI_LOG_DIR", nonexistent_dir, 1);
+
+    snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_env_test_%d", getpid());
+    mkdir(test_dir, 0755);
+
+    ik_log_init(test_dir);
+
+    // Directory should now exist
+    struct stat st;
+    ck_assert_int_eq(stat(nonexistent_dir, &st), 0);
+    ck_assert(S_ISDIR(st.st_mode));
+
+    // Log file should be created
+    char log_file[512];
+    snprintf(log_file, sizeof(log_file), "%s/current.log", nonexistent_dir);
+    ck_assert_int_eq(stat(log_file, &st), 0);
+
+    ik_log_shutdown();
+    unsetenv("IKIGAI_LOG_DIR");
+
+    unlink(log_file);
+    rmdir(nonexistent_dir);
+    rmdir(parent_dir);
+    rmdir(test_dir);
+}
+END_TEST
+
 // Test: when IKIGAI_LOG_DIR is empty string, logger uses default location
 START_TEST(test_empty_env_uses_default_location) {
     snprintf(test_dir, sizeof(test_dir), "/tmp/ikigai_env_test_%d", getpid());
@@ -189,6 +228,7 @@ static Suite *env_log_dir_suite(void)
 
     tcase_add_test(tc_core, test_env_log_dir_overrides_default);
     tcase_add_test(tc_core, test_no_env_uses_default_location);
+    tcase_add_test(tc_core, test_env_log_dir_creates_nonexistent_dir);
     tcase_add_test(tc_core, test_empty_env_uses_default_location);
 
     suite_add_tcase(s, tc_core);
