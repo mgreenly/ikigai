@@ -156,7 +156,7 @@ static void setup(void)
     // Create mock provider (opaque pointer)
     static const ik_provider_vtable_t mock_vt = {
         .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
-        .start_request = NULL, .start_stream = db_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
+        .start_stream = db_test_mock_start_stream, .cleanup = NULL, .cancel = NULL,
     };
     ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
     mock_provider->name = "mock";

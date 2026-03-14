@@ -66,11 +66,12 @@ static void mock_info_read(void *ctx, ik_logger_t *logger)
     (void)ctx; (void)logger;
 }
 
-static res_t mock_start_request(void *ctx, const ik_request_t *req,
-                                ik_provider_completion_cb_t cb, void *cb_ctx)
+static res_t mock_start_stream(void *ctx, const ik_request_t *req,
+                               ik_stream_cb_t scb, void *sctx,
+                               ik_provider_completion_cb_t ccb, void *cctx)
 {
+    (void)req; (void)scb; (void)sctx;
     mock_ctx_t *m = ctx;
-    (void)req;
 
     if (m->should_fail) {
         char err_msg[] = "mock provider error";
@@ -78,7 +79,7 @@ static res_t mock_start_request(void *ctx, const ik_request_t *req,
             .success = false,
             .error_message = err_msg,
         };
-        cb(&completion, cb_ctx);
+        ccb(&completion, cctx);
         return OK(NULL);
     }
 
@@ -91,18 +92,10 @@ static res_t mock_start_request(void *ctx, const ik_request_t *req,
     resp->content_count = 1;
 
     ik_provider_completion_t completion = { .success = true, .response = resp };
-    cb(&completion, cb_ctx);
+    ccb(&completion, cctx);
 
     talloc_free(tmp);
     return OK(NULL);
-}
-
-static res_t mock_start_stream(void *ctx, const ik_request_t *req,
-                               ik_stream_cb_t scb, void *sctx,
-                               ik_provider_completion_cb_t ccb, void *cctx)
-{
-    (void)ctx; (void)req; (void)scb; (void)sctx; (void)ccb; (void)cctx;
-    return ERR(NULL, PROVIDER, "mock does not support streaming");
 }
 
 static res_t mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
@@ -117,7 +110,6 @@ static const ik_provider_vtable_t mock_vt = {
     .timeout = mock_timeout,
     .perform = mock_perform,
     .info_read = mock_info_read,
-    .start_request = mock_start_request,
     .start_stream = mock_start_stream,
     .count_tokens = mock_count_tokens,
     .cleanup = NULL,

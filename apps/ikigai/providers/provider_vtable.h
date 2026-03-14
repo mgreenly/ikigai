@@ -129,23 +129,6 @@ struct ik_provider_vtable {
      * ============================================================ */
 
     /**
-     * start_request - Initiate non-streaming request
-     *
-     * @param ctx           Provider context
-     * @param req           Request to send
-     * @param completion_cb Callback invoked when request completes
-     * @param completion_ctx User context for callback
-     * @return              OK(NULL) on success, ERR(...) on failure
-     *
-     * Returns immediately. Request progresses through perform().
-     * completion_cb is invoked from info_read() when transfer completes.
-     */
-    res_t (*start_request)(void *ctx,
-                           const ik_request_t *req,
-                           ik_provider_completion_cb_t completion_cb,
-                           void *completion_ctx);
-
-    /**
      * start_stream - Initiate streaming request
      *
      * @param ctx           Provider context
@@ -199,7 +182,7 @@ struct ik_provider_vtable {
      * count_tokens - Count input tokens for a request
      *
      * @param ctx             Provider context (opaque)
-     * @param req             Request to count (same format as start_request/start_stream)
+     * @param req             Request to count (same format as start_stream)
      * @param token_count_out Output: number of input tokens
      * @return                OK(NULL) on success, ERR(...) on failure
      *

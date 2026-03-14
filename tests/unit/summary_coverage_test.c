@@ -38,13 +38,6 @@ static void base_info_read(void *ctx, ik_logger_t *logger)
     (void)ctx; (void)logger;
 }
 
-static res_t base_start_request(void *ctx, const ik_request_t *req,
-                                 ik_provider_completion_cb_t cb, void *cb_ctx)
-{
-    (void)ctx; (void)req; (void)cb; (void)cb_ctx;
-    return OK(NULL);
-}
-
 static res_t base_start_stream(void *ctx, const ik_request_t *req,
                                 ik_stream_cb_t scb, void *sctx,
                                 ik_provider_completion_cb_t ccb, void *cctx)
@@ -62,7 +55,7 @@ static res_t base_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
 static const ik_provider_vtable_t base_vt = {
     .fdset = base_fdset, .timeout = base_timeout,
     .perform = base_perform, .info_read = base_info_read,
-    .start_request = base_start_request, .start_stream = base_start_stream,
+    .start_stream = base_start_stream,
     .count_tokens = base_count_tokens, .cleanup = NULL, .cancel = NULL,
 };
 
@@ -71,18 +64,20 @@ static const ik_provider_vtable_t base_vt = {
  * ---------------------------------------------------------------- */
 
 static res_t mock_null_response(void *ctx, const ik_request_t *req,
+                                ik_stream_cb_t scb, void *sctx,
                                 ik_provider_completion_cb_t cb, void *cb_ctx)
 {
-    (void)ctx; (void)req;
+    (void)ctx; (void)req; (void)scb; (void)sctx;
     ik_provider_completion_t c = { .success = true, .response = NULL };
     cb(&c, cb_ctx);
     return OK(NULL);
 }
 
 static res_t mock_no_text_block(void *ctx, const ik_request_t *req,
+                                ik_stream_cb_t scb, void *sctx,
                                 ik_provider_completion_cb_t cb, void *cb_ctx)
 {
-    (void)ctx; (void)req;
+    (void)ctx; (void)req; (void)scb; (void)sctx;
     TALLOC_CTX *tmp = talloc_new(NULL);
     ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     resp->content_count = 0;
@@ -93,9 +88,10 @@ static res_t mock_no_text_block(void *ctx, const ik_request_t *req,
 }
 
 static res_t mock_non_text_block(void *ctx, const ik_request_t *req,
+                                  ik_stream_cb_t scb, void *sctx,
                                   ik_provider_completion_cb_t cb, void *cb_ctx)
 {
-    (void)ctx; (void)req;
+    (void)ctx; (void)req; (void)scb; (void)sctx;
     TALLOC_CTX *tmp = talloc_new(NULL);
     ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     ik_content_block_t *block = talloc_zero(tmp, ik_content_block_t);
@@ -111,9 +107,10 @@ static res_t mock_non_text_block(void *ctx, const ik_request_t *req,
 static int g_deferred_count = 0;
 
 static res_t mock_deferred_start(void *ctx, const ik_request_t *req,
+                                  ik_stream_cb_t scb, void *sctx,
                                   ik_provider_completion_cb_t cb, void *cb_ctx)
 {
-    (void)ctx; (void)req; (void)cb; (void)cb_ctx;
+    (void)ctx; (void)req; (void)scb; (void)sctx; (void)cb; (void)cb_ctx;
     return OK(NULL);
 }
 
@@ -128,9 +125,10 @@ static res_t mock_deferred_perform(void *ctx, int *running_handles)
 typedef struct { const char *text; } text_ctx_t;
 
 static res_t mock_text_response(void *ctx, const ik_request_t *req,
+                                 ik_stream_cb_t scb, void *sctx,
                                  ik_provider_completion_cb_t cb, void *cb_ctx)
 {
-    (void)req;
+    (void)req; (void)scb; (void)sctx;
     text_ctx_t *tc = ctx;
     TALLOC_CTX *tmp = talloc_new(NULL);
     ik_response_t *resp = talloc_zero(tmp, ik_response_t);
@@ -162,7 +160,7 @@ START_TEST(test_null_response_gives_error) {
     ik_msg_t *msg = make_user_msg(ctx);
     ik_msg_t *msgs[] = { msg };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_null_response;
+    vt.start_stream = mock_null_response;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = NULL };
     char *summary = NULL;
     res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 1000, &summary);
@@ -177,7 +175,7 @@ START_TEST(test_no_text_block_gives_error) {
     ik_msg_t *msg = make_user_msg(ctx);
     ik_msg_t *msgs[] = { msg };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_no_text_block;
+    vt.start_stream = mock_no_text_block;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = NULL };
     char *summary = NULL;
     res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 1000, &summary);
@@ -192,7 +190,7 @@ START_TEST(test_non_text_block_gives_error) {
     ik_msg_t *msg = make_user_msg(ctx);
     ik_msg_t *msgs[] = { msg };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_non_text_block;
+    vt.start_stream = mock_non_text_block;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = NULL };
     char *summary = NULL;
     res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 1000, &summary);
@@ -207,7 +205,7 @@ START_TEST(test_loop_body_via_deferred_callback) {
     ik_msg_t *msg = make_user_msg(ctx);
     ik_msg_t *msgs[] = { msg };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_deferred_start;
+    vt.start_stream = mock_deferred_start;
     vt.perform = mock_deferred_perform;
     g_deferred_count = 0;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = NULL };
@@ -226,7 +224,7 @@ START_TEST(test_truncate_no_sentence_boundary) {
     ik_msg_t *msgs[] = { msg };
     text_ctx_t tc = { .text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_text_response;
+    vt.start_stream = mock_text_response;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = &tc };
     char *summary = NULL;
     res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 5, &summary);
@@ -242,7 +240,7 @@ START_TEST(test_sentence_boundary_at_tab) {
     ik_msg_t *msgs[] = { msg };
     text_ctx_t tc = { .text = "First sentence.\tSecond sentence that is quite long indeed." };
     ik_provider_vtable_t vt = base_vt;
-    vt.start_request = mock_text_response;
+    vt.start_stream = mock_text_response;
     ik_provider_t prov = { .name = "mock", .vt = &vt, .ctx = &tc };
     char *summary = NULL;
     res_t res = ik_summary_generate(ctx, msgs, 1, &prov, "m", 5, &summary);

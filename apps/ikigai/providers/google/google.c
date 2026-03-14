@@ -30,10 +30,6 @@ static res_t google_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set
 static res_t google_perform(void *ctx, int *running_handles);
 static res_t google_timeout(void *ctx, long *timeout_ms);
 static void google_info_read(void *ctx, ik_logger_t *logger);
-static res_t google_start_request(void *ctx,
-                                  const ik_request_t *req,
-                                  ik_provider_completion_cb_t completion_cb,
-                                  void *completion_ctx);
 static res_t google_start_stream(void *ctx,
                                  const ik_request_t *req,
                                  ik_stream_cb_t stream_cb,
@@ -53,7 +49,6 @@ static const ik_provider_vtable_t GOOGLE_VTABLE = {
     .perform = google_perform,
     .timeout = google_timeout,
     .info_read = google_info_read,
-    .start_request = google_start_request,
     .start_stream = google_start_stream,
     .cleanup = google_cleanup,
     .cancel = google_cancel,
@@ -256,18 +251,6 @@ static void google_info_read(void *ctx, ik_logger_t *logger)
         talloc_free(impl_ctx->active_stream);
         impl_ctx->active_stream = NULL;
     }
-}
-
-static res_t google_start_request(void *ctx, const ik_request_t *req,
-                                  ik_provider_completion_cb_t completion_cb,
-                                  void *completion_ctx)
-{
-    assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
-    assert(req != NULL);           // LCOV_EXCL_BR_LINE
-    assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
-
-    // Delegate to response module (non-streaming)
-    return ik_google_start_request(ctx, req, completion_cb, completion_ctx);
 }
 
 static res_t google_start_stream(void *ctx, const ik_request_t *req,

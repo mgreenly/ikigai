@@ -24,10 +24,11 @@ static res_t m_timeout(void *c, long *t) { (void)c; *t = 0; return OK(NULL); }
 static res_t m_perform(void *c, int *rh) { (void)c; *rh = 0; return OK(NULL); }
 static void  m_info_read(void *c, ik_logger_t *l) { (void)c; (void)l; }
 
-static res_t m_start_request(void *ctx, const ik_request_t *req,
-                               ik_provider_completion_cb_t cb, void *cb_ctx)
+static res_t m_start_stream(void *c, const ik_request_t *r,
+                             ik_stream_cb_t s, void *sc,
+                             ik_provider_completion_cb_t cc, void *cctx)
 {
-    (void)ctx; (void)req;
+    (void)c; (void)r; (void)s; (void)sc;
     TALLOC_CTX *tmp = talloc_new(NULL);
     ik_response_t *resp = talloc_zero(tmp, ik_response_t);
     ik_content_block_t *b = talloc_zero(tmp, ik_content_block_t);
@@ -35,17 +36,9 @@ static res_t m_start_request(void *ctx, const ik_request_t *req,
     b->data.text.text = talloc_strdup(tmp, "session summary text");
     resp->content_blocks = b; resp->content_count = 1;
     ik_provider_completion_t completion = { .success = true, .response = resp };
-    cb(&completion, cb_ctx);
+    cc(&completion, cctx);
     talloc_free(tmp);
     return OK(NULL);
-}
-
-static res_t m_start_stream(void *c, const ik_request_t *r,
-                             ik_stream_cb_t s, void *sc,
-                             ik_provider_completion_cb_t cc, void *cctx)
-{
-    (void)c; (void)r; (void)s; (void)sc; (void)cc; (void)cctx;
-    return ERR(NULL, PROVIDER, "no streaming");
 }
 
 static res_t m_count_tokens(void *c, const ik_request_t *r, int32_t *o)
@@ -55,7 +48,7 @@ static res_t m_count_tokens(void *c, const ik_request_t *r, int32_t *o)
 
 static const ik_provider_vtable_t mock_vt = {
     .fdset = m_fdset, .timeout = m_timeout, .perform = m_perform,
-    .info_read = m_info_read, .start_request = m_start_request,
+    .info_read = m_info_read,
     .start_stream = m_start_stream, .count_tokens = m_count_tokens,
     .cleanup = NULL, .cancel = NULL,
 };

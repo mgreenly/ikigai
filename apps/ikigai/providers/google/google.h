@@ -25,7 +25,7 @@
  * - Base URL: https://generativelanguage.googleapis.com/v1beta
  * - API key: Query parameter (?key=...)
  * - Async vtable with fdset/perform/timeout/info_read for event loop
- * - start_request/start_stream for non-blocking request initiation
+ * - start_stream for non-blocking request initiation
  */
 res_t ik_google_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 

@@ -27,10 +27,6 @@ static res_t openai_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_set
 static res_t openai_perform(void *ctx, int *running_handles);
 static res_t openai_timeout(void *ctx, long *timeout_ms);
 static void openai_info_read(void *ctx, ik_logger_t *logger);
-static res_t openai_start_request(void *ctx,
-                                  const ik_request_t *req,
-                                  ik_provider_completion_cb_t completion_cb,
-                                  void *completion_ctx);
 static res_t openai_start_stream(void *ctx,
                                  const ik_request_t *req,
                                  ik_stream_cb_t stream_cb,
@@ -49,7 +45,6 @@ static const ik_provider_vtable_t OPENAI_VTABLE = {
     .perform = openai_perform,
     .timeout = openai_timeout,
     .info_read = openai_info_read,
-    .start_request = openai_start_request,
     .start_stream = openai_start_stream,
     .cleanup = NULL,
     .cancel = openai_cancel,
@@ -157,112 +152,6 @@ static void openai_info_read(void *ctx, ik_logger_t *logger)
 
     ik_openai_ctx_t *impl_ctx = (ik_openai_ctx_t *)ctx;
     ik_http_multi_info_read(impl_ctx->http_multi, logger);
-}
-
-/* ================================================================
- * Start Request Implementation
- * ================================================================ */
-
-static res_t openai_start_request(void *ctx, const ik_request_t *req,
-                                  ik_provider_completion_cb_t completion_cb,
-                                  void *completion_ctx)
-{
-    assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
-    assert(req != NULL);           // LCOV_EXCL_BR_LINE
-    assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
-
-    ik_openai_ctx_t *impl_ctx = (ik_openai_ctx_t *)ctx;
-
-    // Determine which API to use
-    bool use_responses_api = impl_ctx->use_responses_api
-                             || ik_openai_use_responses_api(req->model);
-
-    // Create request context for tracking this request
-    ik_openai_request_ctx_t *req_ctx = talloc_zero(impl_ctx, ik_openai_request_ctx_t);
-    if (req_ctx == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
-
-    req_ctx->provider = impl_ctx;
-    req_ctx->use_responses_api = use_responses_api;
-    req_ctx->cb = completion_cb;
-    req_ctx->cb_ctx = completion_ctx;
-
-    // Serialize request to JSON
-    char *json_body = NULL;
-    res_t serialize_res;
-
-    if (use_responses_api) {
-        serialize_res = ik_openai_serialize_responses_request_(req_ctx, req, false, &json_body);
-    } else {
-        serialize_res = ik_openai_serialize_chat_request_(req_ctx, req, false, &json_body);
-    }
-
-    if (is_err(&serialize_res)) {
-        talloc_steal(impl_ctx, serialize_res.err);
-        talloc_free(req_ctx);
-        return serialize_res;
-    }
-
-    DEBUG_LOG("[llm_request] provider=openai model=%s", req->model ? req->model : "unknown");
-    DEBUG_LOG("[llm_request_body] %s", json_body);
-
-    // Build URL
-    char *url = NULL;
-    res_t url_res;
-
-    if (use_responses_api) {
-        url_res = ik_openai_build_responses_url_(req_ctx, impl_ctx->base_url, &url);
-    } else {
-        url_res = ik_openai_build_chat_url_(req_ctx, impl_ctx->base_url, &url);
-    }
-
-    if (is_err(&url_res)) {
-        talloc_steal(impl_ctx, url_res.err);
-        talloc_free(req_ctx);
-        return url_res;
-    }
-
-    // Build headers
-    char **headers_tmp = NULL;
-    res_t headers_res = ik_openai_build_headers_(req_ctx, impl_ctx->api_key, &headers_tmp);
-    if (is_err(&headers_res)) {
-        talloc_steal(impl_ctx, headers_res.err);
-        talloc_free(req_ctx);
-        return headers_res;
-    }
-
-    // Build HTTP request specification
-    // Note: headers_tmp is char ** but http_req expects const char **
-    // This cast is safe because we're not modifying the pointed-to strings
-    // Disable cast-qual warning for this specific cast
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-    const char **headers_const = (const char **)headers_tmp;
-#pragma GCC diagnostic pop
-
-    ik_http_request_t http_req = {
-        .url = url,
-        .method = "POST",
-        .headers = headers_const,
-        .body = json_body,
-        .body_len = strlen(json_body)
-    };
-
-    // Add request to multi handle
-    res_t add_res = ik_http_multi_add_request(impl_ctx->http_multi,
-                                              &http_req,
-                                              NULL,   // No streaming write callback
-                                              NULL,   // No write context
-                                              ik_openai_http_completion_handler,
-                                              req_ctx);
-
-    if (is_err(&add_res)) {
-        talloc_steal(impl_ctx, add_res.err);
-        talloc_free(req_ctx);
-        return add_res;
-    }
-
-    // Request successfully started (returns immediately)
-    return OK(NULL);
 }
 
 static res_t openai_start_stream(void *ctx, const ik_request_t *req,

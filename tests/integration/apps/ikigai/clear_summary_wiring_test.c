@@ -64,11 +64,12 @@ static void clear_mock_info_read(void *ctx, ik_logger_t *logger)
     (void)ctx; (void)logger;
 }
 
-static res_t clear_mock_start_request(void *ctx, const ik_request_t *req,
-                                      ik_provider_completion_cb_t cb, void *cb_ctx)
+static res_t clear_mock_start_stream(void *ctx, const ik_request_t *req,
+                                     ik_stream_cb_t scb, void *sctx,
+                                     ik_provider_completion_cb_t ccb, void *cctx)
 {
+    (void)req; (void)scb; (void)sctx;
     clear_mock_ctx_t *m = ctx;
-    (void)req;
 
     TALLOC_CTX *tmp = talloc_new(NULL);
     ik_response_t *resp = talloc_zero(tmp, ik_response_t);
@@ -79,18 +80,10 @@ static res_t clear_mock_start_request(void *ctx, const ik_request_t *req,
     resp->content_count = 1;
 
     ik_provider_completion_t completion = { .success = true, .response = resp };
-    cb(&completion, cb_ctx);
+    ccb(&completion, cctx);
 
     talloc_free(tmp);
     return OK(NULL);
-}
-
-static res_t clear_mock_start_stream(void *ctx, const ik_request_t *req,
-                                     ik_stream_cb_t scb, void *sctx,
-                                     ik_provider_completion_cb_t ccb, void *cctx)
-{
-    (void)ctx; (void)req; (void)scb; (void)sctx; (void)ccb; (void)cctx;
-    return ERR(NULL, PROVIDER, "mock does not support streaming");
 }
 
 static res_t clear_mock_count_tokens(void *ctx, const ik_request_t *req, int32_t *out)
@@ -105,7 +98,6 @@ static const ik_provider_vtable_t clear_mock_vt = {
     .timeout = clear_mock_timeout,
     .perform = clear_mock_perform,
     .info_read = clear_mock_info_read,
-    .start_request = clear_mock_start_request,
     .start_stream = clear_mock_start_stream,
     .count_tokens = clear_mock_count_tokens,
     .cleanup = NULL,

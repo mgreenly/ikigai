@@ -50,7 +50,6 @@ START_TEST(test_google_create_has_vtable) {
     ck_assert_ptr_nonnull(provider->vt->perform);
     ck_assert_ptr_nonnull(provider->vt->timeout);
     ck_assert_ptr_nonnull(provider->vt->info_read);
-    ck_assert_ptr_nonnull(provider->vt->start_request);
     ck_assert_ptr_nonnull(provider->vt->start_stream);
     ck_assert_ptr_nonnull(provider->vt->cleanup);
     ck_assert_ptr_nonnull(provider->vt->cancel);

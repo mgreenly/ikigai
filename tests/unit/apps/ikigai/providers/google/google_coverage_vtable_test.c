@@ -105,24 +105,6 @@ START_TEST(test_google_cleanup) {
 }
 END_TEST
 
-// Test google_start_request vtable method (wrapper - line 246-255)
-START_TEST(test_google_start_request) {
-    ik_provider_t *provider = NULL;
-    res_t result = ik_google_create(test_ctx, "test-api-key", &provider);
-    ck_assert(!is_err(&result));
-
-    // Create minimal request
-    ik_request_t req = {0};
-    req.model = talloc_strdup(test_ctx, "gemini-2.5-flash");
-
-    // Call start_request - delegates to ik_google_start_request (which is a stub)
-    res_t r = provider->vt->start_request(provider->ctx, &req, test_completion_cb, NULL);
-
-    // Should succeed (stub returns OK)
-    ck_assert(!is_err(&r));
-}
-END_TEST
-
 // Test google_start_stream vtable method (wrapper - lines 258-334)
 START_TEST(test_google_start_stream) {
     ik_provider_t *provider = NULL;
@@ -159,7 +141,6 @@ static Suite *google_coverage_vtable_suite(void)
     tcase_add_test(tc_vtable, test_google_perform);
     tcase_add_test(tc_vtable, test_google_timeout);
     tcase_add_test(tc_vtable, test_google_cleanup);
-    tcase_add_test(tc_vtable, test_google_start_request);
     tcase_add_test(tc_vtable, test_google_start_stream);
 
     suite_add_tcase(s, tc_vtable);

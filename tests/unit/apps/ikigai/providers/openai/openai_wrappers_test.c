@@ -5,7 +5,7 @@
  *
  * This test exercises the wrapper functions (ik_openai_serialize_chat_request_,
  * etc.) that are defined in openai.c but only called internally. These functions
- * are exercised by calling start_request without providing mock implementations.
+ * are exercised by calling start_stream without providing mock implementations.
  *
  * We mock at the curl layer (curl_easy_init_) to control HTTP behavior without
  * making actual network calls.
@@ -104,50 +104,6 @@ static void setup_minimal_request(ik_request_t *req, ik_message_t *msg,
  * the serialization wrappers are still exercised.
  * ================================================================ */
 
-START_TEST(test_wrappers_via_start_request_chat) {
-    /* This test calls start_request with a chat model, which exercises:
-     * - ik_openai_serialize_chat_request_
-     * - ik_openai_build_chat_url_
-     * - ik_openai_build_headers_
-     */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_request_t req;
-    ik_message_t msg;
-    ik_content_block_t content;
-    setup_minimal_request(&req, &msg, &content, "gpt-4");
-
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
-
-    /* We expect ERR since curl_easy_init fails, but serialization was exercised */
-    ck_assert(is_err(&r));
-}
-END_TEST
-
-START_TEST(test_wrappers_via_start_request_responses) {
-    /* This test calls start_request with responses API, which exercises:
-     * - ik_openai_serialize_responses_request_
-     * - ik_openai_build_responses_url_
-     * - ik_openai_build_headers_
-     */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create_with_options(test_ctx, "sk-test-key", true, &provider);
-    ck_assert(is_ok(&r));
-
-    ik_request_t req;
-    ik_message_t msg;
-    ik_content_block_t content;
-    setup_minimal_request(&req, &msg, &content, "o1-preview");
-
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
-
-    /* We expect ERR since curl_easy_init fails, but serialization was exercised */
-    ck_assert(is_err(&r));
-}
-END_TEST
-
 START_TEST(test_wrappers_via_start_stream_chat) {
     /* This test calls start_stream with a chat model */
     ik_provider_t *provider = NULL;
@@ -186,25 +142,6 @@ START_TEST(test_wrappers_via_start_stream_responses) {
 }
 END_TEST
 
-START_TEST(test_auto_prefer_responses_api_start_request) {
-    /* Test that o1 model auto-selects responses API even without use_responses_api flag
-     * This exercises the "|| ik_openai_use_responses_api(req->model)" branch */
-    ik_provider_t *provider = NULL;
-    res_t r = ik_openai_create(test_ctx, "sk-test-key", &provider);
-    ck_assert(is_ok(&r));
-
-    ik_request_t req;
-    ik_message_t msg;
-    ik_content_block_t content;
-    setup_minimal_request(&req, &msg, &content, "o1-preview");
-
-    r = provider->vt->start_request(provider->ctx, &req, dummy_completion_cb, NULL);
-
-    /* We expect ERR since curl_easy_init fails, but responses API path was exercised */
-    ck_assert(is_err(&r));
-}
-END_TEST
-
 START_TEST(test_auto_prefer_responses_api_start_stream) {
     /* Test that o1 model auto-selects responses API even without use_responses_api flag
      * This exercises the "|| ik_openai_use_responses_api(req->model)" branch */
@@ -236,11 +173,8 @@ static Suite *openai_wrappers_suite(void)
     TCase *tc_wrappers = tcase_create("Wrapper Functions");
     tcase_set_timeout(tc_wrappers, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_wrappers, setup, teardown);
-    tcase_add_test(tc_wrappers, test_wrappers_via_start_request_chat);
-    tcase_add_test(tc_wrappers, test_wrappers_via_start_request_responses);
     tcase_add_test(tc_wrappers, test_wrappers_via_start_stream_chat);
     tcase_add_test(tc_wrappers, test_wrappers_via_start_stream_responses);
-    tcase_add_test(tc_wrappers, test_auto_prefer_responses_api_start_request);
     tcase_add_test(tc_wrappers, test_auto_prefer_responses_api_start_stream);
     suite_add_tcase(s, tc_wrappers);
 

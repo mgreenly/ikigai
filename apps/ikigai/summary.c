@@ -57,6 +57,14 @@ char *ik_summary_transcript(TALLOC_CTX *ctx,
     return result;
 }
 
+/* No-op stream callback for summary generation (we don't need incremental events) */
+static res_t summary_noop_stream_cb(const ik_stream_event_t *event, void *ctx)
+{
+    (void)event;
+    (void)ctx;
+    return OK(NULL);
+}
+
 /* Internal context for the completion callback */
 typedef struct {
     TALLOC_CTX *ctx;
@@ -162,9 +170,10 @@ res_t ik_summary_generate(TALLOC_CTX *ctx,
         .done = false,
     };
 
-    /* Initiate the request */
-    CHECK(provider->vt->start_request(provider->ctx, req, // LCOV_EXCL_BR_LINE
-                                      generate_completion_cb, &cb));
+    /* Initiate the request (no-op stream callback; we only need the completion) */
+    CHECK(provider->vt->start_stream(provider->ctx, req, // LCOV_EXCL_BR_LINE
+                                     summary_noop_stream_cb, NULL,
+                                     generate_completion_cb, &cb));
 
     /* Drive the provider event loop synchronously until done */
     while (!cb.done) {

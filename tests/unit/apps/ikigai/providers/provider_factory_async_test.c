@@ -56,7 +56,6 @@ START_TEST(test_create_openai_provider) {
         ck_assert_ptr_nonnull(provider->vt->perform);
         ck_assert_ptr_nonnull(provider->vt->timeout);
         ck_assert_ptr_nonnull(provider->vt->info_read);
-        ck_assert_ptr_nonnull(provider->vt->start_request);
         ck_assert_ptr_nonnull(provider->vt->start_stream);
     }
 
@@ -254,7 +253,7 @@ START_TEST(test_async_vtable_complete_after_implementation) {
     /* Placeholder test documenting async flow tests to be added:
      *
      * test_provider_async_request_flow - Tests complete request lifecycle:
-     *   1. start_request() returns immediately
+     *   1. start_stream() returns immediately
      *   2. fdset() populates fd_sets
      *   3. perform() drives transfer
      *   4. info_read() invokes completion callback
@@ -275,7 +274,7 @@ START_TEST(test_async_pattern_documented) {
     /* This test documents the expected async pattern for providers:
      *
      * CORRECT (async/non-blocking):
-     * - start_request() / start_stream() - Initiate transfer, return immediately
+     * - start_stream() - Initiate transfer, return immediately
      * - fdset() - Get FDs for select()
      * - perform() - Process I/O after select()
      * - info_read() - Check for completions, invoke callbacks

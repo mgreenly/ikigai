@@ -25,7 +25,7 @@
  * - Base URL: https://api.anthropic.com
  * - API version: 2023-06-01
  * - Async vtable with fdset/perform/timeout/info_read for event loop
- * - start_request/start_stream for non-blocking request initiation
+ * - start_stream for non-blocking request initiation
  */
 res_t ik_anthropic_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 

@@ -72,7 +72,6 @@ static ik_provider_vtable_t mock_provider_vt = {
     .perform = NULL,
     .timeout = NULL,
     .info_read = NULL,
-    .start_request = NULL,
     .start_stream = mock_start_stream,
     .cleanup = NULL,
     .cancel = NULL,

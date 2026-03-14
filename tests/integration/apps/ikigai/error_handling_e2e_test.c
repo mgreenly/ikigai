@@ -300,7 +300,7 @@ START_TEST(test_rate_limit_anthropic_async) {
     /*
      * Test verifies rate limit handling:
      * - HTTP 429 response configured via mock curl_multi
-     * - start_request() returns OK immediately (non-blocking)
+     * - start_stream() returns OK immediately (non-blocking)
      * - Event loop drives fdset/perform/info_read cycle
      * - Completion callback receives IK_ERR_CAT_RATE_LIMIT
      * - retryable flag is true

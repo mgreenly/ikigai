@@ -50,7 +50,7 @@ typedef struct {
  * - Base URL: https://api.openai.com
  * - Endpoint: /v1/chat/completions (default)
  * - Async vtable with fdset/perform/timeout/info_read for event loop
- * - start_request/start_stream for non-blocking request initiation
+ * - start_stream for non-blocking request initiation
  */
 res_t ik_openai_create(TALLOC_CTX *ctx, const char *api_key, ik_provider_t **out);
 

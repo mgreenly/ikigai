@@ -248,7 +248,7 @@ START_TEST(test_cleanup_assistant_response) {
     // Create mock provider
     static const ik_provider_vtable_t mock_vt = {
         .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
-        .start_request = NULL, .start_stream = mock_start_stream, .cleanup = NULL, .cancel = NULL,
+        .start_stream = mock_start_stream, .cleanup = NULL, .cancel = NULL,
     };
     ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
     mock_provider->name = "mock";
@@ -284,7 +284,7 @@ START_TEST(test_cleanup_streaming_line_buffer) {
     // Create mock provider
     static const ik_provider_vtable_t mock_vt = {
         .fdset = NULL, .perform = NULL, .timeout = NULL, .info_read = NULL,
-        .start_request = NULL, .start_stream = mock_start_stream, .cleanup = NULL, .cancel = NULL,
+        .start_stream = mock_start_stream, .cleanup = NULL, .cancel = NULL,
     };
     ik_provider_t *mock_provider = talloc_zero(repl->current, ik_provider_t);
     mock_provider->name = "mock";

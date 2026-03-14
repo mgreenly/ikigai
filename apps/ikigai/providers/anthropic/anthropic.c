@@ -30,10 +30,6 @@ static res_t anthropic_fdset(void *ctx, fd_set *read_fds, fd_set *write_fds, fd_
 static res_t anthropic_perform(void *ctx, int *running_handles);
 static res_t anthropic_timeout(void *ctx, long *timeout_ms);
 static void anthropic_info_read(void *ctx, ik_logger_t *logger);
-static res_t anthropic_start_request(void *ctx,
-                                     const ik_request_t *req,
-                                     ik_provider_completion_cb_t completion_cb,
-                                     void *completion_ctx);
 static res_t anthropic_start_stream(void *ctx,
                                     const ik_request_t *req,
                                     ik_stream_cb_t stream_cb,
@@ -52,7 +48,6 @@ static const ik_provider_vtable_t ANTHROPIC_VTABLE = {
     .perform = anthropic_perform,
     .timeout = anthropic_timeout,
     .info_read = anthropic_info_read,
-    .start_request = anthropic_start_request,
     .start_stream = anthropic_start_stream,
     .cleanup = anthropic_cleanup,
     .cancel = anthropic_cancel,
@@ -252,18 +247,6 @@ static void anthropic_info_read(void *ctx, ik_logger_t *logger)
         talloc_free(impl_ctx->active_stream);
         impl_ctx->active_stream = NULL;
     }
-}
-
-static res_t anthropic_start_request(void *ctx, const ik_request_t *req,
-                                     ik_provider_completion_cb_t completion_cb,
-                                     void *completion_ctx)
-{
-    assert(ctx != NULL);           // LCOV_EXCL_BR_LINE
-    assert(req != NULL);           // LCOV_EXCL_BR_LINE
-    assert(completion_cb != NULL); // LCOV_EXCL_BR_LINE
-
-    // Delegate to response module (non-streaming)
-    return ik_anthropic_start_request(ctx, req, completion_cb, completion_ctx);
 }
 
 static res_t anthropic_start_stream(void *ctx, const ik_request_t *req,
