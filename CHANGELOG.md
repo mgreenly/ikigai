@@ -99,6 +99,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Glob tool docs false claims**: Documentation corrected to remove inaccurate claims about `**` recursive glob behavior
 - **Logger directory creation**: Logger now creates `IKIGAI_LOG_DIR` recursively if intermediate directories are missing
 - **Debug log directory initialization**: `ik_debug_log_init` creates intermediate directories before opening the log file
+- **Heap-use-after-free in `start_stream` error path**: Errors returned from provider `start_stream` reparented to a surviving talloc context before internal cleanup frees the originating context
+- **Invalid tool call arguments crash serializers**: Google and Anthropic serializers fall back to `{}` when tool call arguments contain invalid JSON instead of failing the entire request
 
 ## [rel-12] - 2026-02-22
 
