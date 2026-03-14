@@ -196,6 +196,7 @@ START_TEST(test_serialize_message_parts_invalid_block_stops) {
     message.content_blocks = blocks;
     message.content_count = 2;
 
+    // Invalid JSON falls back to {} — serialization must succeed
     bool result = ik_google_serialize_message_parts(doc,
                                                     content_obj,
                                                     &message,
@@ -205,7 +206,7 @@ START_TEST(test_serialize_message_parts_invalid_block_stops) {
                                                     NULL,
                                                     0,
                                                     0);
-    ck_assert(!result);
+    ck_assert(result);
 
     yyjson_mut_doc_free(doc);
 }

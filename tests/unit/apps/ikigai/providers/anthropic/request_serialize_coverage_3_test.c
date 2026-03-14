@@ -303,13 +303,14 @@ START_TEST(test_serialize_content_block_tool_call_invalid_json) {
     block.type = IK_CONTENT_TOOL_CALL;
     block.data.tool_call.id = talloc_strdup(test_ctx, "call_123");
     block.data.tool_call.name = talloc_strdup(test_ctx, "test_tool");
-    // Invalid JSON - should fail to parse
+    // Invalid JSON - falls back to {} so serialization must succeed
     block.data.tool_call.arguments = talloc_strdup(test_ctx, "{invalid json");
 
     bool result = ik_anthropic_serialize_content_block(doc, arr, &block, 0, 0);
 
-    // Should return false for invalid JSON
-    ck_assert(!result);
+    // Should succeed with empty object fallback
+    ck_assert(result);
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
 
     yyjson_mut_doc_free(doc);
 }

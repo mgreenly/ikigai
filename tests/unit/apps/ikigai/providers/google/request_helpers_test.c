@@ -164,8 +164,16 @@ START_TEST(test_serialize_content_tool_call_invalid_json) {
     block.data.tool_call.name = (char *)"get_weather";
     block.data.tool_call.arguments = (char *)"not valid json";
 
+    // Invalid JSON falls back to {} — serialization must succeed
     bool result = ik_google_serialize_content_block(doc, arr, &block, "gemini-2.5-pro", NULL, 0, 0);
-    ck_assert(!result);
+    ck_assert(result);
+    ck_assert_uint_eq(yyjson_mut_arr_size(arr), 1);
+
+    yyjson_mut_val *obj = yyjson_mut_arr_get_first(arr);
+    yyjson_mut_val *fc = yyjson_mut_obj_get(obj, "functionCall");
+    ck_assert(fc != NULL);
+    yyjson_mut_val *args = yyjson_mut_obj_get(fc, "args");
+    ck_assert(args != NULL);
 
     yyjson_mut_doc_free(doc);
 }

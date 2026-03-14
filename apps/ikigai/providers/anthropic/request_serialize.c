@@ -154,7 +154,11 @@ static bool serialize_tool_call_block(yyjson_mut_doc *doc, yyjson_mut_val *obj,
     if (args_str == NULL || args_str[0] == '\0') {
         args_str = "{}";
     }
+    // Fall back to empty object if arguments are invalid JSON
     yyjson_doc *args_doc = yyjson_read(args_str, strlen(args_str), 0);
+    if (!args_doc) {
+        args_doc = yyjson_read("{}", 2, 0);
+    }
     if (!args_doc) {
         return false;
     }

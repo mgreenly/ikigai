@@ -114,8 +114,12 @@ bool ik_google_serialize_content_block(yyjson_mut_doc *doc, yyjson_mut_val *arr,
             }
 
             // Parse arguments JSON string and add as object
-            yyjson_doc *args_doc = yyjson_read(block->data.tool_call.arguments,
-                                               strlen(block->data.tool_call.arguments), 0);
+            // Fall back to empty object if arguments are invalid JSON
+            const char *args_src = block->data.tool_call.arguments;
+            yyjson_doc *args_doc = yyjson_read(args_src, strlen(args_src), 0);
+            if (!args_doc) {
+                args_doc = yyjson_read("{}", 2, 0);
+            }
             if (!args_doc) return false; // LCOV_EXCL_BR_LINE
 
             yyjson_mut_val *args_mut = yyjson_val_mut_copy_(doc, yyjson_doc_get_root(args_doc));

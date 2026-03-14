@@ -92,7 +92,8 @@ START_TEST(test_content_blocks_and_errors) {
                               .data.tool_call = {.id = (char *)"c", .name = (char *)"t", .arguments = (char *)"{bad}"}};
     ik_message_t m3 = {.role = IK_ROLE_ASSISTANT, .content_blocks = &bad, .content_count = 1};
     ik_request_t r3 = {.model = (char *)"gemini-2.5-flash", .messages = &m3, .message_count = 1};
-    res = ik_google_serialize_request(test_ctx, &r3, &json); ck_assert(is_err(&res));
+    // Invalid JSON falls back to {} — serialization must succeed
+    res = ik_google_serialize_request(test_ctx, &r3, &json); ck_assert(is_ok(&res));
 }
 END_TEST
 
