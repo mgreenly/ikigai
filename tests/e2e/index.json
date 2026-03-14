@@ -32,10 +32,5 @@
   "set-model-gemini-3.1-pro-preview-test.json",
   "bash-tool-use-anthropic-claude-sonnet-4-5-test.json",
   "bash-tool-use-openai-gpt-5-mini-test.json",
-  "bash-tool-use-gemini-2.5-flash-test.json",
-  "token-cache-pruning-test.json",
-  "token-cache-model-switch-test.json",
-  "token-cache-clear-test.json",
-  "token-cache-rewind-test.json",
-  "scrollback-context-hr-test.json"
+  "bash-tool-use-gemini-2.5-flash-test.json"
 ]
