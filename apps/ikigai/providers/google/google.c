@@ -273,6 +273,7 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
     res_t r = ik_google_stream_ctx_create(active_stream, stream_cb, stream_ctx,
                                           &active_stream->stream_ctx);
     if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_stream_ctx_create only fails on OOM (PANIC)
+        talloc_steal(impl_ctx, r.err); // LCOV_EXCL_LINE
         talloc_free(active_stream); // LCOV_EXCL_LINE
         return r; // LCOV_EXCL_LINE
     }
@@ -289,6 +290,7 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
     r = ik_google_build_url(active_stream, impl_ctx->base_url, req->model,
                             impl_ctx->api_key, true, &url);
     if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_build_url only fails on OOM (PANIC)
+        talloc_steal(impl_ctx, r.err); // LCOV_EXCL_LINE
         talloc_free(active_stream); // LCOV_EXCL_LINE
         return r; // LCOV_EXCL_LINE
     }
@@ -296,9 +298,10 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
     // Serialize request JSON
     char *body = NULL;
     r = ik_google_serialize_request(active_stream, req, &body);
-    if (is_err(&r)) { // LCOV_EXCL_BR_LINE - ik_google_serialize_request only fails on OOM (PANIC) or req->model==NULL (excluded by assert in build_url)
-        talloc_free(active_stream); // LCOV_EXCL_LINE
-        return r; // LCOV_EXCL_LINE
+    if (is_err(&r)) {
+        talloc_steal(impl_ctx, r.err);
+        talloc_free(active_stream);
+        return r;
     }
 
     DEBUG_LOG("[llm_request] provider=google model=%s", req->model ? req->model : "unknown");
@@ -328,6 +331,7 @@ static res_t google_start_stream(void *ctx, const ik_request_t *req,
                                   ik_google_stream_completion_cb, active_stream);
     if (is_err(&r)) {
         impl_ctx->active_stream = NULL;
+        talloc_steal(impl_ctx, r.err);
         talloc_free(active_stream);
         return r;
     }
