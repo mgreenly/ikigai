@@ -136,7 +136,9 @@ Divide into chunks of 20, run sub-agents **serially** (shared instance — never
 
 ## Key Rules
 
-- **Never start ikigai** — the user manages the instance
+- **Never start ikigai** — there is exactly one ikigai instance running during e2e tests, regardless of mode:
+  - **Live mode**: the user manages the ikigai instance — never start one yourself
+  - **Mock mode**: the runner starts exactly one ikigai instance — never start additional instances
 - **Never use the runner script** — direct execution only
 - **One test file = one test** — self-contained, no dependencies
 - **Steps execute in order** — sequential, never parallel
