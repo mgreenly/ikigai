@@ -1,18 +1,6 @@
 # Roadmap to MVP
 
-Releases rel-01 through rel-12 are complete. See [CHANGELOG.md](../CHANGELOG.md) for details.
-
-### rel-13: Dynamic Sliding Context Window (in development)
-
-**Objective**: Manage context window efficiently with automatic history management
-
-**Features**:
-- History clipping (pruning oldest whole turns at IDLE transition)
-- Token counting infrastructure: bytes estimator + provider vtable `count_tokens` (Anthropic, OpenAI, Google) — **done** (goals #256–259)
-- Token cache module, pruning loop, IDLE integration, horizontal rule — not yet started
-
-**Summaries deferred**: Automatic summaries of pruned history are deferred to a future release.
-
+Releases rel-01 through rel-13 are complete. See [CHANGELOG.md](../CHANGELOG.md) for details.
 
 ### rel-14: Parallel Tool Execution (future)
 
