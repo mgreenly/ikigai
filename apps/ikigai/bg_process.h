@@ -66,6 +66,9 @@ typedef struct {
     int64_t          cursor;       /* last byte offset read by agent   */
 
     bool             stdin_open;   /* false after close-stdin          */
+
+    bool             sigterm_pending;  /* true after SIGTERM sent for TTL  */
+    struct timespec  sigterm_sent_at;  /* CLOCK_MONOTONIC when SIGTERM sent */
 } bg_process_t;
 
 /**
