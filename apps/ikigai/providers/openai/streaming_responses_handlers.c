@@ -265,6 +265,29 @@ void ik_openai_responses_handle_response_completed(ik_openai_responses_stream_ct
             sctx->usage.thinking_tokens = (int32_t)yyjson_get_int(reasoning_val);
         }
     }
+
+    yyjson_val *status_val = yyjson_obj_get(response_val, "status");
+    const char *status = yyjson_get_str_(status_val);
+
+    const char *incomplete_reason = NULL;
+    yyjson_val *incomplete_details_val = yyjson_obj_get(response_val, "incomplete_details");
+    if (incomplete_details_val != NULL && yyjson_is_obj(incomplete_details_val)) {
+        yyjson_val *reason_val = yyjson_obj_get(incomplete_details_val, "reason");
+        incomplete_reason = yyjson_get_str_(reason_val);
+    }
+
+    sctx->finish_reason = ik_openai_map_responses_status(status, incomplete_reason);
+
+    ik_openai_maybe_end_tool_call(sctx);
+
+    ik_stream_event_t done_event = {
+        .type = IK_STREAM_DONE,
+        .index = 0,
+        .data.done.finish_reason = sctx->finish_reason,
+        .data.done.usage = sctx->usage,
+        .data.done.provider_data = NULL
+    };
+    ik_openai_emit_event(sctx, &done_event);
 }
 
 /**
