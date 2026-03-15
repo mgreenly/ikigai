@@ -39,36 +39,62 @@ ik_response_t *ik_google_stream_build_response(TALLOC_CTX *ctx,
     resp->finish_reason = sctx->finish_reason;
     resp->usage = sctx->usage;
 
-    // Check if we have a tool call to include
-    if (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL) {
+    // Count total tool calls: completed + any still in progress
+    bool has_current = (sctx->current_tool_id != NULL && sctx->current_tool_name != NULL);
+    unsigned int total = (unsigned int)sctx->completed_tool_count + (has_current ? 1u : 0u);
+
+    if (total > 0u) {
         // Override finish_reason: Google returns "STOP" even for tool calls,
         // but we need IK_FINISH_TOOL_USE so the tool loop continues
         resp->finish_reason = IK_FINISH_TOOL_USE;
 
-        // Allocate content blocks array with one tool call
-        resp->content_blocks = talloc_zero_array(resp, ik_content_block_t, 1);
+        resp->content_blocks = talloc_zero_array(resp, ik_content_block_t, total);
         if (resp->content_blocks == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        resp->content_count = 1;
+        resp->content_count = (size_t)total;
 
-        // Populate tool call content block
-        ik_content_block_t *block = &resp->content_blocks[0];
-        block->type = IK_CONTENT_TOOL_CALL;
-        block->data.tool_call.id = talloc_strdup(resp->content_blocks, sctx->current_tool_id);
-        if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        block->data.tool_call.name = talloc_strdup(resp->content_blocks, sctx->current_tool_name);
-        if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
-                                                        sctx->current_tool_args !=
-                                                        NULL ? sctx->current_tool_args : "{}");
-        if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        block->data.tool_call.thought_signature = NULL;
-        if (sctx->current_tool_thought_sig != NULL) {
-            block->data.tool_call.thought_signature = talloc_strdup(resp->content_blocks,
-                                                                    sctx->current_tool_thought_sig);
-            if (block->data.tool_call.thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        // Populate completed tool calls
+        for (int32_t i = 0; i < sctx->completed_tool_count; i++) {
+            ik_google_completed_tool_t *ct = &sctx->completed_tools[i];
+            ik_content_block_t *block = &resp->content_blocks[i];
+            block->type = IK_CONTENT_TOOL_CALL;
+            block->data.tool_call.id = talloc_strdup(resp->content_blocks, ct->id);
+            if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.name = talloc_strdup(resp->content_blocks, ct->name);
+            if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
+                                                            ct->args != NULL ? ct->args : "{}");
+            if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.thought_signature = NULL;
+            if (ct->thought_sig != NULL) {
+                block->data.tool_call.thought_signature =
+                    talloc_strdup(resp->content_blocks, ct->thought_sig);
+                if (block->data.tool_call.thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+        }
+
+        // Populate current in-progress tool call (if any)
+        if (has_current) {
+            ik_content_block_t *block = &resp->content_blocks[sctx->completed_tool_count];
+            block->type = IK_CONTENT_TOOL_CALL;
+            block->data.tool_call.id = talloc_strdup(resp->content_blocks,
+                                                     sctx->current_tool_id);
+            if (block->data.tool_call.id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.name = talloc_strdup(resp->content_blocks,
+                                                       sctx->current_tool_name);
+            if (block->data.tool_call.name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.arguments = talloc_strdup(resp->content_blocks,
+                                                            sctx->current_tool_args != NULL
+                                                            ? sctx->current_tool_args : "{}");
+            if (block->data.tool_call.arguments == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            block->data.tool_call.thought_signature = NULL;
+            if (sctx->current_tool_thought_sig != NULL) {
+                block->data.tool_call.thought_signature =
+                    talloc_strdup(resp->content_blocks, sctx->current_tool_thought_sig);
+                if (block->data.tool_call.thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
         }
     } else {
-        // No tool call - empty content
+        // No tool calls - empty content
         resp->content_blocks = NULL;
         resp->content_count = 0;
     }
@@ -107,6 +133,7 @@ res_t ik_google_stream_ctx_create(TALLOC_CTX *ctx, ik_stream_cb_t cb, void *cb_c
     sctx->current_tool_args = NULL;
     sctx->current_tool_thought_sig = NULL;
     sctx->part_index = 0;
+    sctx->completed_tool_count = 0;
 
     *out_stream_ctx = sctx;
     return OK(sctx);

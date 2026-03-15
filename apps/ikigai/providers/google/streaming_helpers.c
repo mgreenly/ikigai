@@ -20,21 +20,37 @@
 /**
  * End any open tool call
  *
- * NOTE: This function marks the tool call as complete but preserves the
- * accumulated tool data (id, name, args) for the response builder.
+ * Saves the current tool call to the completed_tools array (for the response
+ * builder), clears current_tool_* fields, and emits IK_STREAM_TOOL_CALL_DONE.
  */
 void ik_google_stream_end_tool_call_if_needed(ik_google_stream_ctx_t *sctx)
 {
     assert(sctx != NULL); // LCOV_EXCL_BR_LINE
 
     if (sctx->in_tool_call) {
+        // Save current tool to completed array (if space remains)
+        if (sctx->completed_tool_count < IK_GOOGLE_MAX_TOOL_CALLS) {
+            ik_google_completed_tool_t *ct =
+                &sctx->completed_tools[sctx->completed_tool_count];
+            ct->id         = sctx->current_tool_id;
+            ct->name       = sctx->current_tool_name;
+            ct->args       = sctx->current_tool_args;
+            ct->thought_sig = sctx->current_tool_thought_sig;
+            sctx->completed_tool_count++;
+        }
+
+        // Clear current fields (data is now in completed_tools, still parented to sctx)
+        sctx->current_tool_id         = NULL;
+        sctx->current_tool_name       = NULL;
+        sctx->current_tool_args       = NULL;
+        sctx->current_tool_thought_sig = NULL;
+
         ik_stream_event_t event = {
             .type = IK_STREAM_TOOL_CALL_DONE,
             .index = sctx->part_index
         };
         sctx->user_cb(&event, sctx->user_ctx);
         sctx->in_tool_call = false;
-        // Do NOT clear tool data here - it's needed by the response builder
     }
 }
 
@@ -104,42 +120,60 @@ void ik_google_stream_process_error(ik_google_stream_ctx_t *sctx, yyjson_val *er
 
 /**
  * Process functionCall part
+ *
+ * thought_sig is the thoughtSignature for this specific function call (may be
+ * NULL). It must be passed in here rather than pre-set on sctx so that when
+ * a second functionCall arrives (in_tool_call=true), the first tool's
+ * thought_sig is still in sctx->current_tool_thought_sig at the point we
+ * save it to the completed array.
  */
-static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *function_call)
+static void process_function_call(ik_google_stream_ctx_t *sctx,
+                                  yyjson_val *function_call,
+                                  const char *thought_sig)
 {
     assert(sctx != NULL);          // LCOV_EXCL_BR_LINE
     assert(function_call != NULL); // LCOV_EXCL_BR_LINE
 
-    // If not already in a tool call, start one
-    if (!sctx->in_tool_call) {
-        // Generate tool call ID (22-char base64url)
-        sctx->current_tool_id = ik_google_generate_tool_id(sctx);
-        if (sctx->current_tool_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        // Extract function name
-        yyjson_val *name_val = yyjson_obj_get(function_call, "name");
-        if (name_val != NULL) {
-            const char *name = yyjson_get_str(name_val);
-            if (name != NULL) {
-                sctx->current_tool_name = talloc_strdup(sctx, name);
-                if (sctx->current_tool_name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-        }
-
-        // Initialize arguments accumulator
-        sctx->current_tool_args = talloc_strdup(sctx, "");
-        if (sctx->current_tool_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-
-        // Emit IK_STREAM_TOOL_CALL_START
-        ik_stream_event_t event = {
-            .type = IK_STREAM_TOOL_CALL_START,
-            .index = sctx->part_index,
-            .data.tool_start.id = sctx->current_tool_id,
-            .data.tool_start.name = sctx->current_tool_name
-        };
-        sctx->user_cb(&event, sctx->user_ctx);
-        sctx->in_tool_call = true;
+    // If already in a tool call, end it and start a new one
+    if (sctx->in_tool_call) {
+        ik_google_stream_end_tool_call_if_needed(sctx);
+        sctx->part_index++;
     }
+
+    // Generate tool call ID (22-char base64url)
+    sctx->current_tool_id = ik_google_generate_tool_id(sctx);
+    if (sctx->current_tool_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Extract function name
+    yyjson_val *name_val = yyjson_obj_get(function_call, "name");
+    if (name_val != NULL) {
+        const char *name = yyjson_get_str(name_val);
+        if (name != NULL) {
+            sctx->current_tool_name = talloc_strdup(sctx, name);
+            if (sctx->current_tool_name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        }
+    }
+
+    // Set thought signature for this tool call
+    sctx->current_tool_thought_sig = NULL;
+    if (thought_sig != NULL) {
+        sctx->current_tool_thought_sig = talloc_strdup(sctx, thought_sig);
+        if (sctx->current_tool_thought_sig == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+
+    // Initialize arguments accumulator
+    sctx->current_tool_args = talloc_strdup(sctx, "");
+    if (sctx->current_tool_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+
+    // Emit IK_STREAM_TOOL_CALL_START
+    ik_stream_event_t event = {
+        .type = IK_STREAM_TOOL_CALL_START,
+        .index = sctx->part_index,
+        .data.tool_start.id = sctx->current_tool_id,
+        .data.tool_start.name = sctx->current_tool_name
+    };
+    sctx->user_cb(&event, sctx->user_ctx);
+    sctx->in_tool_call = true;
 
     // Extract and emit arguments
     yyjson_val *args_val = yyjson_obj_get(function_call, "args");
@@ -158,12 +192,12 @@ static void process_function_call(ik_google_stream_ctx_t *sctx, yyjson_val *func
             sctx->current_tool_args = new_args;
 
             // Emit IK_STREAM_TOOL_CALL_DELTA
-            ik_stream_event_t event = {
+            ik_stream_event_t delta_event = {
                 .type = IK_STREAM_TOOL_CALL_DELTA,
                 .index = sctx->part_index,
                 .data.tool_delta.arguments = args_json
             };
-            sctx->user_cb(&event, sctx->user_ctx);
+            sctx->user_cb(&delta_event, sctx->user_ctx);
             free(args_json); // yyjson uses malloc
         }
     }
@@ -239,12 +273,9 @@ void ik_google_stream_process_parts(ik_google_stream_ctx_t *sctx, yyjson_val *pa
         // Check for functionCall
         yyjson_val *function_call = yyjson_obj_get(part, "functionCall");
         if (function_call != NULL) {
-            // Store thought signature in context before processing function call
-            if (thought_sig != NULL) {
-                sctx->current_tool_thought_sig = talloc_strdup(sctx, thought_sig);
-                if (sctx->current_tool_thought_sig == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-            }
-            process_function_call(sctx, function_call);
+            // Pass thought_sig into process_function_call so it is assigned
+            // AFTER any in-progress tool call is ended (preserving the old sig)
+            process_function_call(sctx, function_call, thought_sig);
             continue;
         }
 

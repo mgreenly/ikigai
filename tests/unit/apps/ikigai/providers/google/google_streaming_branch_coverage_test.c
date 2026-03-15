@@ -261,17 +261,18 @@ START_TEST(test_function_call_continued_with_more_args) {
     ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_START), 1);
     ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_DELTA), 1);
 
-    /* Reset to check continuation */
+    /* Reset to check second functionCall */
     captured_count = 0;
     memset(captured_events, 0, sizeof(captured_events));
 
-    /* Continue the same tool call with more args - covers line 119 false branch */
+    /* A new functionCall while in_tool_call=true ends the current and starts a new one */
     const char *chunk2 =
         "{\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"args\":{\"b\":2}}}]}}]}";
     process_chunk(sctx, chunk2);
 
-    /* Verify no new START, just another DELTA */
-    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_START), 0);
+    /* New functionCall triggers DONE (for previous) + START (for new) + DELTA (for new args) */
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_DONE), 1);
+    ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_START), 1);
     ck_assert_int_eq((int)count_events(IK_STREAM_TOOL_CALL_DELTA), 1);
 }
 

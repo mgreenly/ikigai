@@ -8,6 +8,19 @@
 
 #include "apps/ikigai/providers/google/streaming.h"
 
+/** Maximum number of tool calls in a single response */
+#define IK_GOOGLE_MAX_TOOL_CALLS 16
+
+/**
+ * A completed (ended) tool call stored for the response builder
+ */
+typedef struct {
+    char *id;          /* Generated tool call ID */
+    char *name;        /* Function name */
+    char *args;        /* Accumulated JSON arguments */
+    char *thought_sig; /* Thought signature (Gemini 3 only, may be NULL) */
+} ik_google_completed_tool_t;
+
 /**
  * Google streaming context structure
  */
@@ -25,6 +38,8 @@ struct ik_google_stream_ctx {
     char *current_tool_args;           /* Accumulated tool call arguments (JSON) */
     char *current_tool_thought_sig;    /* Thought signature for current tool call (Gemini 3 only) */
     int32_t part_index;                /* Current part index for events */
+    ik_google_completed_tool_t completed_tools[IK_GOOGLE_MAX_TOOL_CALLS]; /* Ended tool calls */
+    int32_t completed_tool_count;      /* Number of completed tool calls */
 };
 
 #endif /* IK_PROVIDERS_GOOGLE_STREAMING_INTERNAL_H */
