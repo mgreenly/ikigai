@@ -94,7 +94,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 28);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, summary, load, unload, skills, skillset, exit, ps, pread, pkill, pwrite, pclose
+    ck_assert_uint_eq(count, 27);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, tool, refresh, pin, unpin, toolset, summary, load, unload, skills, skillset, exit, ps, pread, pkill, pwrite, pclose
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -108,23 +108,22 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[8].name, "agents");
     ck_assert_str_eq(cmds[9].name, "help");
     ck_assert_str_eq(cmds[10].name, "model");
-    ck_assert_str_eq(cmds[11].name, "system");
-    ck_assert_str_eq(cmds[12].name, "tool");
-    ck_assert_str_eq(cmds[13].name, "refresh");
-    ck_assert_str_eq(cmds[14].name, "pin");
-    ck_assert_str_eq(cmds[15].name, "unpin");
-    ck_assert_str_eq(cmds[16].name, "toolset");
-    ck_assert_str_eq(cmds[17].name, "summary");
-    ck_assert_str_eq(cmds[18].name, "load");
-    ck_assert_str_eq(cmds[19].name, "unload");
-    ck_assert_str_eq(cmds[20].name, "skills");
-    ck_assert_str_eq(cmds[21].name, "skillset");
-    ck_assert_str_eq(cmds[22].name, "exit");
-    ck_assert_str_eq(cmds[23].name, "ps");
-    ck_assert_str_eq(cmds[24].name, "pread");
-    ck_assert_str_eq(cmds[25].name, "pkill");
-    ck_assert_str_eq(cmds[26].name, "pwrite");
-    ck_assert_str_eq(cmds[27].name, "pclose");
+    ck_assert_str_eq(cmds[11].name, "tool");
+    ck_assert_str_eq(cmds[12].name, "refresh");
+    ck_assert_str_eq(cmds[13].name, "pin");
+    ck_assert_str_eq(cmds[14].name, "unpin");
+    ck_assert_str_eq(cmds[15].name, "toolset");
+    ck_assert_str_eq(cmds[16].name, "summary");
+    ck_assert_str_eq(cmds[17].name, "load");
+    ck_assert_str_eq(cmds[18].name, "unload");
+    ck_assert_str_eq(cmds[19].name, "skills");
+    ck_assert_str_eq(cmds[20].name, "skillset");
+    ck_assert_str_eq(cmds[21].name, "exit");
+    ck_assert_str_eq(cmds[22].name, "ps");
+    ck_assert_str_eq(cmds[23].name, "pread");
+    ck_assert_str_eq(cmds[24].name, "pkill");
+    ck_assert_str_eq(cmds[25].name, "pwrite");
+    ck_assert_str_eq(cmds[26].name, "pclose");
 
     // Verify descriptions exist
     ck_assert_ptr_nonnull(cmds[0].description);
@@ -290,22 +289,6 @@ START_TEST(test_dispatch_rewind_with_arg) {
 }
 
 END_TEST
-// Test: Dispatch system command with multiword argument
-START_TEST(test_dispatch_system_with_multiword_arg) {
-    res_t res =
-        ik_cmd_dispatch(ctx, repl, "/system You are a helpful assistant");
-    ck_assert(is_ok(&res));
-
-    // Verify scrollback received the confirmation message (line 2, after echo and blank)
-    const char *line = NULL;
-    size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 2, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-    ck_assert_str_eq(line, "System message set to: You are a helpful assistant");
-}
-
-END_TEST
 // Test: Dispatch command with ANSI colors disabled
 START_TEST(test_dispatch_command_no_colors) {
     // Disable ANSI colors
@@ -341,7 +324,6 @@ static Suite *commands_dispatch_suite(void)
     tcase_add_test(tc, test_dispatch_command_with_whitespace);
     tcase_add_test(tc, test_dispatch_slash_whitespace);
     tcase_add_test(tc, test_dispatch_model_with_arg);
-    tcase_add_test(tc, test_dispatch_system_with_multiword_arg);
     tcase_add_test(tc, test_dispatch_command_no_colors);
 
     suite_add_tcase(s, tc);

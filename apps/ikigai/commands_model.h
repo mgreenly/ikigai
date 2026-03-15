@@ -22,16 +22,6 @@ typedef struct ik_repl_ctx_t ik_repl_ctx_t;
 res_t ik_cmd_model(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
- * System command handler - sets system message
- *
- * @param ctx Parent context for talloc allocations
- * @param repl REPL context
- * @param args System message text (NULL to clear)
- * @return OK on success, ERR on failure
- */
-res_t ik_cmd_system(void *ctx, ik_repl_ctx_t *repl, const char *args);
-
-/**
  * Parse MODEL/THINKING syntax
  *
  * Parses input like "claude-sonnet-4-5/med" into model and thinking components.

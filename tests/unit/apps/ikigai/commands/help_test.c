@@ -190,24 +190,6 @@ START_TEST(test_help_lists_model) {
 }
 
 END_TEST
-// Test: Help command lists system
-START_TEST(test_help_lists_system) {
-    res_t res = ik_cmd_dispatch(ctx, repl, "/help");
-    ck_assert(is_ok(&res));
-
-    // Line 25 should be /system (alphabetically: ..., skills, skillset, summary, system, tool, ...)
-    const char *line = NULL;
-    size_t length = 0;
-    res = ik_scrollback_get_line_text(repl->current->scrollback, 25, &line, &length);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(line);
-
-    // Should start with "  /system - "
-    ck_assert(strncmp(line, "  /system - ", 12) == 0);
-}
-
-END_TEST
-
 // Test: Help command lists exit
 START_TEST(test_help_lists_exit) {
     res_t res = ik_cmd_dispatch(ctx, repl, "/help");
@@ -256,7 +238,6 @@ static Suite *commands_help_suite(void)
     tcase_add_test(tc, test_help_lists_rewind);
     tcase_add_test(tc, test_help_lists_help);
     tcase_add_test(tc, test_help_lists_model);
-    tcase_add_test(tc, test_help_lists_system);
     tcase_add_test(tc, test_help_lists_exit);
     tcase_add_test(tc, test_help_with_arguments);
 
