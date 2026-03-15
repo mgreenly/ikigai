@@ -50,3 +50,14 @@ Releases rel-01 through rel-13 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 ### rel-18: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt before MVP release.
+
+
+### rel-19: Programmatic Tool Calling (future)
+
+**Objective**: Allow the model to orchestrate complex multi-tool workflows by writing Python code that calls tools programmatically inside a sandboxed execution environment
+
+**Features**:
+- Sandboxed code execution environment for model-authored tool orchestration
+- Model writes async Python to coordinate multiple tool calls via asyncio.gather()
+- Tool results processed inside sandbox without entering context window (token reduction)
+- Tools opt-in via allowed_callers annotation
