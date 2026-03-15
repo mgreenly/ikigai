@@ -114,9 +114,9 @@ START_TEST(test_context_empty_groups) {
         const char *line = get_line(agent->scrollback, i);
         if (line && strstr(line, "(empty)")) empty_count++;
     }
-    /* 6 groups should be empty: Pinned Docs, Skills, Skill Catalog,
+    /* 7 groups should be empty: Tools, Pinned Docs, Skills, Skill Catalog,
      * Session Summaries, Recent Summary, Message History */
-    ck_assert_int_ge(empty_count, 6);
+    ck_assert_int_ge(empty_count, 7);
 
     talloc_free(ctx);
 }

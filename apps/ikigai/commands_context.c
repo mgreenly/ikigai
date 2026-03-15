@@ -304,13 +304,13 @@ res_t ik_cmd_context(void *ctx, ik_repl_ctx_t *repl, const char *args)
     ctx_rend_init(&r, ctx, agent->scrollback, W);
 
     ctx_render_outer_title(&r);
+    render_tools(&r, repl->shared ? repl->shared->tool_registry : NULL, tool_tok);
     render_sys_prompt(&r, bt.sys);
     render_pinned_docs(&r, agent, req, bt.pinned);
     render_skills(&r, agent, bt.skill);
     render_skill_catalog(&r, agent, bt.catalog);
     render_session_summaries(&r, agent, bt.sess);
     render_recent_summary(&r, agent, bt.recent);
-    render_tools(&r, repl->shared ? repl->shared->tool_registry : NULL, tool_tok);
     render_message_history(&r, agent, &ms);
     ctx_render_outer_blank(&r);
     ctx_render_total_line(&r, grand_total);
