@@ -138,6 +138,21 @@ res_t ik_scrollback_append_line(ik_scrollback_t *scrollback,
     return OK(scrollback);
 }
 
+void ik_scrollback_append_subdued_line(ik_scrollback_t *scrollback, const char *text)
+{
+    assert(scrollback != NULL); // LCOV_EXCL_BR_LINE
+    assert(text != NULL);       // LCOV_EXCL_BR_LINE
+    TALLOC_CTX *t = talloc_new(NULL);
+    if (t && ik_ansi_colors_enabled()) {
+        char cs[16];
+        ik_ansi_fg_256(cs, sizeof(cs), IK_ANSI_GRAY_SUBDUED);
+        const char *s = talloc_asprintf(t, "%s%s%s", cs, text, IK_ANSI_RESET);
+        if (s) text = s;
+    }
+    ik_scrollback_append_line(scrollback, text, strlen(text));
+    talloc_free(t);
+}
+
 void ik_scrollback_ensure_layout(ik_scrollback_t *scrollback,
                                  int32_t terminal_width)
 {

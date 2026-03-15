@@ -50,11 +50,10 @@ static const char *entry_summary(TALLOC_CTX *ctx, const ik_schedule_entry_t *e)
     return result != NULL ? result : talloc_strdup(ctx, name);
 }
 
-// Append a line to scrollback followed by a blank separator line.
 static void append_with_blank(ik_tool_scheduler_t *sched, const char *line)
 {
-    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
-    ik_scrollback_append_line(sched->agent->scrollback, line, strlen(line));
+    if (!sched->agent || !sched->agent->scrollback) return;
+    ik_scrollback_append_subdued_line(sched->agent->scrollback, line);
     ik_scrollback_append_line(sched->agent->scrollback, "", 0);
 }
 
@@ -62,15 +61,13 @@ static void append_with_blank(ik_tool_scheduler_t *sched, const char *line)
 static void display_transition(ik_tool_scheduler_t *sched, int32_t idx,
                                 const char *label, const char *extra)
 {
-    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
-
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) return;
 
     const char *summary = entry_summary(tmp, &sched->entries[idx]);
     const char *line = (extra != NULL)
-        ? talloc_asprintf(tmp, "  %s: %s%s", label, summary, extra)
-        : talloc_asprintf(tmp, "  %s: %s", label, summary);
+        ? talloc_asprintf(tmp, "%s: %s%s", label, summary, extra)
+        : talloc_asprintf(tmp, "%s: %s", label, summary);
 
     if (line != NULL) append_with_blank(sched, line);
     talloc_free(tmp);
@@ -79,8 +76,6 @@ static void display_transition(ik_tool_scheduler_t *sched, int32_t idx,
 // Show "→ tool_name: args" input line with blank separator.
 static void display_tool_input(ik_tool_scheduler_t *sched, int32_t idx)
 {
-    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
-
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) return;
 
@@ -92,8 +87,6 @@ static void display_tool_input(ik_tool_scheduler_t *sched, int32_t idx)
 // Show "← tool_name: result" output line with blank separator.
 static void display_tool_output(ik_tool_scheduler_t *sched, int32_t idx)
 {
-    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
-
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp == NULL) return;
 

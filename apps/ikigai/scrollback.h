@@ -94,6 +94,18 @@ ik_scrollback_t *ik_scrollback_create(TALLOC_CTX *ctx, int32_t terminal_width);
 res_t ik_scrollback_append_line(ik_scrollback_t *scrollback, const char *text, size_t length);
 
 /**
+ * @brief Append a line wrapped in fg:242 subdued gray ANSI styling
+ *
+ * Wraps text in IK_ANSI_GRAY_SUBDUED color codes when colors are enabled,
+ * then appends to the scrollback buffer. Falls back to unstyled text when
+ * colors are disabled.
+ *
+ * @param scrollback Scrollback buffer
+ * @param text Line text (UTF-8)
+ */
+void ik_scrollback_append_subdued_line(ik_scrollback_t *scrollback, const char *text);
+
+/**
  * @brief Ensure layout cache is valid for given terminal width
  *
  * Recalculates physical_lines for all lines if terminal width has changed.
