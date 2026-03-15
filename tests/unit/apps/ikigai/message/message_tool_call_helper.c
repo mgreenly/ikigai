@@ -182,6 +182,48 @@ START_TEST(test_tool_call_valid) {
 }
 
 END_TEST
+// Test: tool_call with tool_thought_signature round-trips correctly
+START_TEST(test_tool_call_thought_signature_roundtrip) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+                                   "{\"tool_call_id\":\"call_456\",\"tool_name\":\"bash\","
+                                   "\"tool_args\":\"{}\","
+                                   "\"tool_thought_signature\":\"sig_abc123\"}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_int_eq(out->role, IK_ROLE_ASSISTANT);
+    ck_assert_uint_eq(out->content_count, 1);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_str_eq(out->content_blocks[0].data.tool_call.thought_signature, "sig_abc123");
+}
+
+END_TEST
+// Test: tool_call without tool_thought_signature has NULL thought_signature
+START_TEST(test_tool_call_no_thought_signature) {
+    ik_msg_t db_msg = {
+        .kind = talloc_strdup(test_ctx, "tool_call"),
+        .content = NULL,
+        .data_json = talloc_strdup(test_ctx,
+                                   "{\"tool_call_id\":\"call_789\",\"tool_name\":\"bash\",\"tool_args\":\"{}\"}"),
+    };
+
+    ik_message_t *out = NULL;
+    res_t r = ik_message_from_db_msg(test_ctx, &db_msg, &out);
+
+    ck_assert(is_ok(&r));
+    ck_assert_ptr_nonnull(out);
+    ck_assert_int_eq(out->content_blocks[0].type, IK_CONTENT_TOOL_CALL);
+    ck_assert_ptr_null(out->content_blocks[0].data.tool_call.thought_signature);
+}
+
+END_TEST
 
 TCase *create_tool_call_tcase(void)
 {
@@ -198,6 +240,8 @@ TCase *create_tool_call_tcase(void)
     tcase_add_test(tc, test_tool_call_invalid_name_type);
     tcase_add_test(tc, test_tool_call_invalid_arguments_type);
     tcase_add_test(tc, test_tool_call_valid);
+    tcase_add_test(tc, test_tool_call_thought_signature_roundtrip);
+    tcase_add_test(tc, test_tool_call_no_thought_signature);
 
     return tc;
 }

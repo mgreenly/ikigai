@@ -234,10 +234,12 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
         // Parse optional thinking blocks
         yyjson_val *thinking_obj = yyjson_obj_get_(root, "thinking");
         yyjson_val *redacted_obj = yyjson_obj_get_(root, "redacted_thinking");
+        yyjson_val *tool_sig_val = yyjson_obj_get_(root, "tool_thought_signature");
 
         const char *thinking_text = NULL;
         const char *thinking_sig = NULL;
         const char *redacted_data = NULL;
+        const char *tool_thought_sig = NULL;
 
         if (thinking_obj != NULL && yyjson_is_obj(thinking_obj)) {
             yyjson_val *text_val = yyjson_obj_get_(thinking_obj, "text");
@@ -251,10 +253,15 @@ res_t ik_message_from_db_msg(TALLOC_CTX *ctx, const ik_msg_t *db_msg, ik_message
             redacted_data = yyjson_get_str(data_val);
         }
 
+        if (tool_sig_val != NULL) {
+            tool_thought_sig = yyjson_get_str(tool_sig_val);
+        }
+
         // Create message with appropriate blocks
-        if (thinking_text != NULL || redacted_data != NULL) {
+        if (thinking_text != NULL || redacted_data != NULL || tool_thought_sig != NULL) {
             *out = ik_message_create_tool_call_with_thinking(
-                ctx, thinking_text, thinking_sig, redacted_data, id, name, arguments, NULL);
+                ctx, thinking_text, thinking_sig, redacted_data, id, name, arguments,
+                tool_thought_sig);
         } else {
             *out = ik_message_create_tool_call(ctx, id, name, arguments); // LCOV_EXCL_BR_LINE
         }

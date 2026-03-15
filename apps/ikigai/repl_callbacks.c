@@ -54,6 +54,31 @@ static void handle_tool_call_start(ik_agent_ctx_t *agent,
     }
 }
 
+// Copy thought_signature from response content blocks into scheduler entries.
+// Matches entries by tool call ID.  Called after streaming completes on the
+// scheduler path, where the full response (with per-tool thought_signature)
+// is available but was not accessible during streaming.
+static void populate_scheduler_thought_signatures(ik_tool_scheduler_t *sched,
+                                                  const ik_response_t *response)
+{
+    if (response == NULL || sched == NULL) return;
+    for (size_t bi = 0; bi < response->content_count; bi++) {
+        const ik_content_block_t *b = &response->content_blocks[bi];
+        if (b->type != IK_CONTENT_TOOL_CALL) continue;
+        if (b->data.tool_call.thought_signature == NULL) continue;
+        const char *id = b->data.tool_call.id;
+        if (id == NULL) continue;
+        for (int32_t ei = 0; ei < sched->count; ei++) {
+            ik_schedule_entry_t *e = &sched->entries[ei];
+            if (e->tool_call == NULL || e->tool_call->id == NULL) continue;
+            if (strcmp(e->tool_call->id, id) != 0) continue;
+            e->thought_signature = talloc_strdup(sched, b->data.tool_call.thought_signature);
+            if (e->thought_signature == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            break;
+        }
+    }
+}
+
 // Handle IK_STREAM_TOOL_CALL_DONE: create scheduler (if needed), add tool call.
 static void handle_tool_call_done(ik_agent_ctx_t *agent)
 {
@@ -237,8 +262,9 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
             // Non-scheduler path: extract tool calls for pending_tool_call mechanism
             ik_repl_extract_tool_calls(agent, completion->response);
         } else {
-            // Scheduler path: emit tool lifecycle display lines and start execution
-            // now, so they appear after the usage line rather than before it
+            // Scheduler path: copy per-tool thought_signatures from the full response
+            // (not available during streaming) then emit lifecycle display lines.
+            populate_scheduler_thought_signatures(agent->scheduler, completion->response);
             ik_tool_scheduler_begin(agent->scheduler);
         }
     }

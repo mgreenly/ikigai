@@ -16,7 +16,8 @@ char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
                                    const char *thinking_text,
                                    const char *thinking_signature,
                                    const char *redacted_data,
-                                   const char *batch_id)
+                                   const char *batch_id,
+                                   const char *tool_thought_signature)
 {
     yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
     if (doc == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
@@ -43,6 +44,9 @@ char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
     }
     if (batch_id != NULL) {
         if (!yyjson_mut_obj_add_str(doc, root, "batch_id", batch_id)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+    }
+    if (tool_thought_signature != NULL) {
+        if (!yyjson_mut_obj_add_str(doc, root, "tool_thought_signature", tool_thought_signature)) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
     }
 
     char *json = yyjson_mut_write(doc, 0, NULL);

@@ -76,6 +76,10 @@ typedef struct {
     char                 *result;            // JSON result (success path)
     char                 *error;             // Error message (error path)
 
+    // Thought signature for Gemini 3 tool calls (NULL for other providers)
+    // talloc'd on the scheduler context; populated after stream completes.
+    char                 *thought_signature;
+
     // Child process PID, for interrupt support
     pid_t                 child_pid;
 } ik_schedule_entry_t;

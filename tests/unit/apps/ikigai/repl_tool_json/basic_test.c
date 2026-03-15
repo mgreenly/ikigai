@@ -121,7 +121,7 @@ START_TEST(test_build_tool_call_data_json_basic) {
     ik_tool_call_t *tc = ik_tool_call_create(ctx, "call-abc", "example_tool", "{\"arg1\": \"value1\"}");
     ck_assert_ptr_nonnull(tc);
 
-    char *data_json = ik_build_tool_call_data_json(ctx, tc, NULL, NULL, NULL, NULL);
+    char *data_json = ik_build_tool_call_data_json(ctx, tc, NULL, NULL, NULL, NULL, NULL);
 
     ck_assert_ptr_nonnull(data_json);
 
@@ -167,7 +167,7 @@ START_TEST(test_build_tool_call_data_json_with_thinking) {
     const char *thinking_text = "This is my thought process";
     const char *thinking_sig = "signature-xyz";
 
-    char *data_json = ik_build_tool_call_data_json(ctx, tc, thinking_text, thinking_sig, NULL, NULL);
+    char *data_json = ik_build_tool_call_data_json(ctx, tc, thinking_text, thinking_sig, NULL, NULL, NULL);
 
     ck_assert_ptr_nonnull(data_json);
 

@@ -47,7 +47,8 @@ ik_message_t *ik_repl_build_multi_tool_call_msg(ik_agent_ctx_t *agent,
         b->data.tool_call.id = talloc_strdup(msg, e->tool_call->id);
         b->data.tool_call.name = talloc_strdup(msg, e->tool_call->name);
         b->data.tool_call.arguments = talloc_strdup(msg, e->tool_call->arguments);
-        b->data.tool_call.thought_signature = NULL;
+        b->data.tool_call.thought_signature = e->thought_signature != NULL
+            ? talloc_strdup(msg, e->thought_signature) : NULL;
         if (!b->data.tool_call.id || !b->data.tool_call.name ||
             !b->data.tool_call.arguments) {
             PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
@@ -119,7 +120,7 @@ static void persist_entry(ik_agent_ctx_t *agent, ik_tool_scheduler_t *sched,
     if (agent->shared->db_ctx == NULL || agent->shared->session_id <= 0) return;
     const char *formatted_call   = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
-    char *call_data   = ik_build_tool_call_data_json(agent, tc, NULL, NULL, NULL, batch_id);
+    char *call_data   = ik_build_tool_call_data_json(agent, tc, NULL, NULL, NULL, batch_id, e->thought_signature);
     char *result_data = ik_build_tool_result_data_json(agent, tc->id, tc->name,
                                                        result_json);
     ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
