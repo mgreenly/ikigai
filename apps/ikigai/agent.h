@@ -5,6 +5,7 @@
 #include "apps/ikigai/layer.h"
 #include "apps/ikigai/layer_wrappers.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/bg_process.h"
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_registry.h"
 #include "apps/ikigai/tool_scheduler.h"
@@ -207,6 +208,9 @@ typedef struct ik_agent_ctx {
     // Previous-session summaries (loaded from DB at startup, updated on /clear)
     ik_session_summary_t **session_summaries;  // Up to 5 entries, oldest-first
     size_t session_summary_count;
+
+    // Background process manager (NULL until first bg operation)
+    bg_manager_t *bg_manager;
 
     // Background summary thread (mirrors tool_thread pattern)
     pthread_t summary_thread;

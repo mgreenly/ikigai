@@ -12,6 +12,7 @@
 #include "apps/ikigai/db/connection.h"
 #include "apps/ikigai/internal_tool_fork.h"
 #include "apps/ikigai/internal_tool_wait.h"
+#include "apps/ikigai/internal_tools_bg.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/tool_registry.h"
@@ -362,4 +363,7 @@ void ik_internal_tools_register(ik_tool_registry_t *registry)
 
     // Register skill management tools (schemas defined in internal_tool_skill_register.c)
     ik_skill_tools_register(registry);
+
+    // Register background process tools
+    ik_bg_tools_register(registry);
 }
