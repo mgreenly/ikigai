@@ -5,14 +5,17 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <glob.h>
+#include <pty.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
+#include <sys/prctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -212,6 +215,27 @@ MOCKABLE int usleep_(useconds_t usec)
     return usleep(usec);
 }
 
+MOCKABLE pid_t forkpty_(int *amaster, char *name, struct termios *termp, struct winsize *winp)
+{
+    return forkpty(amaster, name, termp, winp);
+}
+
+MOCKABLE int pidfd_open_(pid_t pid, unsigned int flags)
+{
+    return (int)syscall(SYS_pidfd_open, pid, flags);
+}
+
+MOCKABLE int setpgid_(pid_t pid, pid_t pgid)
+{
+    return setpgid(pid, pgid);
+}
+
+MOCKABLE int prctl_(int option, unsigned long arg2, unsigned long arg3,
+                    unsigned long arg4, unsigned long arg5)
+{
+    return prctl(option, arg2, arg3, arg4, arg5);
+}
+
 #else
 
 MOCKABLE int posix_socket_(int domain, int type, int protocol);
@@ -252,6 +276,11 @@ MOCKABLE void globfree_(glob_t *pglob);
 MOCKABLE int kill_(pid_t pid, int sig);
 MOCKABLE pid_t waitpid_(pid_t pid, int *status, int options);
 MOCKABLE int usleep_(useconds_t usec);
+MOCKABLE pid_t forkpty_(int *amaster, char *name, struct termios *termp, struct winsize *winp);
+MOCKABLE int pidfd_open_(pid_t pid, unsigned int flags);
+MOCKABLE int setpgid_(pid_t pid, pid_t pgid);
+MOCKABLE int prctl_(int option, unsigned long arg2, unsigned long arg3,
+                    unsigned long arg4, unsigned long arg5);
 
 #endif
 
