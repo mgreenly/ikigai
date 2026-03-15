@@ -185,6 +185,7 @@ START_TEST(test_promote_blocker_completes_starts_dependent)
     ik_tool_scheduler_t *s = make_sched(ctx);
     int32_t i0 = add_call(s, "file_edit", "{\"file_path\":\"/f\"}");
     int32_t i1 = add_call(s, "file_read", "{\"file_path\":\"/f\"}");
+    ik_tool_scheduler_begin(s);
     ck_assert_int_eq(s->entries[i0].status, IK_SCHEDULE_RUNNING);
     ck_assert_int_eq(s->entries[i1].status, IK_SCHEDULE_QUEUED);
     ik_tool_scheduler_on_complete(s, i0, talloc_strdup(s, "{}"));
@@ -215,6 +216,7 @@ START_TEST(test_promote_concurrent_reads_all_running)
     add_call(s, "file_read", "{\"file_path\":\"/a\"}");
     add_call(s, "file_read", "{\"file_path\":\"/b\"}");
     add_call(s, "file_read", "{\"file_path\":\"/c\"}");
+    ik_tool_scheduler_begin(s);
     for (int32_t i = 0; i < s->count; i++)
         ck_assert_int_eq(s->entries[i].status, IK_SCHEDULE_RUNNING);
     ik_tool_scheduler_destroy(s);
@@ -240,6 +242,7 @@ START_TEST(test_promote_web_fetch_concurrent_with_writes)
     ik_tool_scheduler_t *s = make_sched(ctx);
     add_call(s, "file_edit", "{\"file_path\":\"/x\"}");
     int32_t i1 = add_call(s, "web_fetch", "{}");
+    ik_tool_scheduler_begin(s);
     ck_assert_int_eq(s->entries[i1].status, IK_SCHEDULE_RUNNING);
     ik_tool_scheduler_destroy(s);
     talloc_free(ctx);

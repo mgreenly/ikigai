@@ -142,7 +142,6 @@ static void ik_repl_complete_scheduler(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
     for (int32_t i = 0; i < sched->count; i++) {
         persist_entry(agent, sched, i);
     }
-    ik_repl_render_usage_event(agent);
     ik_tool_scheduler_destroy(sched);
     agent->scheduler = NULL;
     ik_agent_transition_from_executing_tool(agent);

@@ -231,13 +231,16 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
         ik_repl_store_response_metadata(agent, completion->response);
+        // Render usage immediately after LLM text response, before any tool output
+        ik_repl_render_usage_event(agent);
         if (agent->scheduler == NULL) {
-            // Non-scheduler path: render usage event now (no tool lifecycle lines follow)
-            ik_repl_render_usage_event(agent);
+            // Non-scheduler path: extract tool calls for pending_tool_call mechanism
             ik_repl_extract_tool_calls(agent, completion->response);
+        } else {
+            // Scheduler path: emit tool lifecycle display lines and start execution
+            // now, so they appear after the usage line rather than before it
+            ik_tool_scheduler_begin(agent->scheduler);
         }
-        // Scheduler path: usage event deferred to ik_repl_complete_scheduler(),
-        // after all tool output lines, to avoid interleaving with lifecycle lines.
     }
 
     // Adjust viewport_offset to keep the display stable when scrolled up

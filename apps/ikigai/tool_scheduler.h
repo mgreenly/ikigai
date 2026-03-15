@@ -162,6 +162,12 @@ void ik_tool_scheduler_on_error(ik_tool_scheduler_t *sched, int32_t index,
 // AND stream_complete has been set.
 bool ik_tool_scheduler_all_terminal(const ik_tool_scheduler_t *sched);
 
+// Emit display lines and start execution for all queued entries.
+// Call this after rendering usage in the completion callback so that
+// tool lifecycle lines (→ input, ▶ Running, ◇ Blocked) appear after the
+// usage line rather than interleaved with it during streaming.
+void ik_tool_scheduler_begin(ik_tool_scheduler_t *sched);
+
 // Return true for any terminal state (completed / errored / skipped).
 // Inlined here for use by both tool_scheduler.c and tool_scheduler_exec.c.
 static inline bool ik_schedule_is_terminal(ik_schedule_status_t status)

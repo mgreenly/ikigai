@@ -51,10 +51,11 @@ static const char *entry_summary(TALLOC_CTX *ctx, const ik_schedule_entry_t *e)
 }
 
 // Append a line to scrollback followed by a blank separator line.
-static void append_with_blank(ik_scrollback_t *sb, const char *line)
+static void append_with_blank(ik_tool_scheduler_t *sched, const char *line)
 {
-    ik_scrollback_append_line(sb, line, strlen(line));
-    ik_scrollback_append_line(sb, "", 0);
+    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
+    ik_scrollback_append_line(sched->agent->scrollback, line, strlen(line));
+    ik_scrollback_append_line(sched->agent->scrollback, "", 0);
 }
 
 // Append icon-labeled status line (▶/◇/✗/⊘) to scrollback with blank line.
@@ -71,7 +72,7 @@ static void display_transition(ik_tool_scheduler_t *sched, int32_t idx,
         ? talloc_asprintf(tmp, "  %s: %s%s", label, summary, extra)
         : talloc_asprintf(tmp, "  %s: %s", label, summary);
 
-    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
+    if (line != NULL) append_with_blank(sched, line);
     talloc_free(tmp);
 }
 
@@ -84,7 +85,7 @@ static void display_tool_input(ik_tool_scheduler_t *sched, int32_t idx)
     if (tmp == NULL) return;
 
     const char *line = ik_format_tool_call(tmp, sched->entries[idx].tool_call);
-    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
+    if (line != NULL) append_with_blank(sched, line);
     talloc_free(tmp);
 }
 
@@ -99,7 +100,7 @@ static void display_tool_output(ik_tool_scheduler_t *sched, int32_t idx)
     ik_schedule_entry_t *e = &sched->entries[idx];
     const char *result_json = e->result != NULL ? e->result : "{}";
     const char *line = ik_format_tool_result(tmp, e->tool_call->name, result_json);
-    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
+    if (line != NULL) append_with_blank(sched, line);
     talloc_free(tmp);
 }
 
@@ -342,24 +343,25 @@ res_t ik_tool_scheduler_add(ik_tool_scheduler_t *sched, ik_tool_call_t *tool_cal
     sched->count++;
     pthread_mutex_unlock_(&sched->mutex);
 
-    // Display tool input line first, then blocked status if needed
-    display_tool_input(sched, idx);
-    if (e->blocked_by_count > 0) {
-        TALLOC_CTX *tmp = talloc_new(NULL);
-        if (tmp != NULL) {
-            const char *blocker_sum = entry_summary(tmp, &sched->entries[e->blocked_by[0]]);
-            const char *extra = talloc_asprintf(tmp,
-                " \xe2\x80\x94 waiting on %s", blocker_sum);
-            display_transition(sched, idx, "◇ Blocked", extra);
-            talloc_free(tmp);
+    return OK(NULL);
+}
+
+void ik_tool_scheduler_begin(ik_tool_scheduler_t *sched)
+{
+    for (int32_t i = 0; i < sched->count; i++) {
+        display_tool_input(sched, i);
+        if (sched->entries[i].blocked_by_count > 0) {
+            TALLOC_CTX *tmp = talloc_new(NULL);
+            if (tmp != NULL) {
+                int32_t bi = sched->entries[i].blocked_by[0];
+                const char *bs = entry_summary(tmp, &sched->entries[bi]);
+                const char *ex = talloc_asprintf(tmp, " \xe2\x80\x94 waiting on %s", bs);
+                display_transition(sched, i, "◇ Blocked", ex);
+                talloc_free(tmp);
+            }
         }
     }
-    // Unblocked tools: no status line here — ▶ Running shown when start_entry() is called
-
-    // Start immediately if unblocked
     ik_tool_scheduler_promote(sched);
-
-    return OK(NULL);
 }
 
 // ---------------------------------------------------------------------------
@@ -386,10 +388,8 @@ void ik_tool_scheduler_on_error(ik_tool_scheduler_t *sched, int32_t index,
     assert(index >= 0 && index < sched->count); // LCOV_EXCL_BR_LINE
 
     ik_schedule_entry_t *e = &sched->entries[index];
-    if (e->thread_ctx != NULL) {
-        e->error = talloc_strdup(e->thread_ctx,
-                                  error_msg != NULL ? error_msg : "");
-    }
+    e->error = talloc_strdup(e->thread_ctx ? e->thread_ctx : (TALLOC_CTX *)sched,
+                              error_msg != NULL ? error_msg : "");
     e->status = IK_SCHEDULE_ERRORED;
     TALLOC_CTX *tmp = talloc_new(NULL);
     if (tmp != NULL) {
