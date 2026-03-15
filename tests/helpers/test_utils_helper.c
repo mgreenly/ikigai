@@ -246,7 +246,12 @@ res_t ik_test_create_agent(TALLOC_CTX *ctx, ik_agent_ctx_t **out)
     }
 
     // Create agent (ik_agent_create will initialize display state)
-    return ik_agent_create(ctx, shared, NULL, out);
+    res_t res = ik_agent_create(ctx, shared, NULL, out);
+    if (is_ok(&res) && *out != NULL) {
+        // Suppress AGENTS.md auto-loading in test agents (tests opt-in explicitly)
+        (*out)->agents_md_loaded = true;
+    }
+    return res;
 }
 
 // ========== Tool JSON Test Helpers ==========

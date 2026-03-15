@@ -212,6 +212,10 @@ typedef struct ik_agent_ctx {
     // Background process manager (NULL until first bg operation)
     bg_manager_t *bg_manager;
 
+    // AGENTS.md content cache (per-agent, loaded lazily from CWD on first build)
+    char *agents_md_content;  // Template-expanded content (NULL = not found or not loaded)
+    bool agents_md_loaded;    // True once load was attempted (avoids re-reading every build)
+
     // Background summary thread (mirrors tool_thread pattern)
     pthread_t summary_thread;
     pthread_mutex_t summary_thread_mutex;

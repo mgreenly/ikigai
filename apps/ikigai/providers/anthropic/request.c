@@ -114,7 +114,8 @@ static int system_block_group(ik_system_block_type_t type)
         case IK_SYSTEM_BLOCK_BASE_PROMPT:
         case IK_SYSTEM_BLOCK_PINNED_DOC:      return 0;
         case IK_SYSTEM_BLOCK_SKILL:
-        case IK_SYSTEM_BLOCK_SKILL_CATALOG:   return 1;
+        case IK_SYSTEM_BLOCK_SKILL_CATALOG:
+        case IK_SYSTEM_BLOCK_AGENTS_MD:       return 1;
         case IK_SYSTEM_BLOCK_SESSION_SUMMARY: return 2;
         case IK_SYSTEM_BLOCK_RECENT_SUMMARY:  return 3;
     }

@@ -21,8 +21,10 @@
 #include "apps/ikigai/template.h"
 #include "shared/panic.h"
 #include "shared/wrapper.h"
+#include "shared/wrapper_posix.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
 #include <talloc.h>
 
@@ -194,6 +196,33 @@ static char *resolve_base_prompt_(ik_agent_ctx_t *agent)
     return result;
 }
 
+static void load_agents_md_(ik_agent_ctx_t *agent)
+{
+    if (agent->agents_md_loaded) return;
+    agent->agents_md_loaded = true;
+
+    /* Skip for minimal test agents created without shared context */
+    if (agent->shared == NULL) return;
+
+    char cwd[PATH_MAX];
+    if (posix_getcwd_(cwd, sizeof(cwd)) == NULL) return;
+
+    char *path = talloc_asprintf(agent, "%s/AGENTS.md", cwd);
+    if (path == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
+
+    char *content = NULL;
+    res_t read_res = ik_file_read_all(agent, path, &content, NULL);
+    talloc_free(path);
+
+    if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
+        agent->agents_md_content = process_pinned_content(agent, content);
+        talloc_free(content);
+    } else {
+        if (content != NULL) talloc_free(content);
+        if (is_err(&read_res)) talloc_free(read_res.err);
+    }
+}
+
 static res_t add_pinned_doc_blocks_(ik_request_t *req, ik_agent_ctx_t *agent)
 {
     if (agent->pinned_count == 0 || agent->doc_cache == NULL) return OK(NULL);
@@ -264,6 +293,14 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
     res = add_skill_catalog_block_(req, agent);
     if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
 
+    // AGENTS.md block: loaded from CWD, cached until /clear (cacheable)
+    load_agents_md_(agent);
+    if (agent->agents_md_content != NULL) {
+        res = ik_request_add_system_block(req, agent->agents_md_content, true,
+                                          IK_SYSTEM_BLOCK_AGENTS_MD);
+        if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE
+    }
+
     // Blocks N+1..M: Previous-session summaries (oldest first, cacheable)
     for (size_t i = 0; i < agent->session_summary_count; i++) {
         if (agent->session_summaries[i]->summary != NULL) {
@@ -281,20 +318,21 @@ res_t ik_agent_build_system_blocks(ik_request_t *req, ik_agent_ctx_t *agent)
     }
 
     size_t cnt_base = 0, cnt_pinned = 0, cnt_skills = 0;
-    size_t cnt_catalog = 0, cnt_summaries = 0, cnt_recent = 0;
+    size_t cnt_catalog = 0, cnt_agents_md = 0, cnt_summaries = 0, cnt_recent = 0;
     for (size_t i = 0; i < req->system_block_count; i++) {
         switch (req->system_blocks[i].type) {
-            case IK_SYSTEM_BLOCK_BASE_PROMPT:    cnt_base++;     break;
-            case IK_SYSTEM_BLOCK_PINNED_DOC:     cnt_pinned++;   break;
-            case IK_SYSTEM_BLOCK_SKILL:          cnt_skills++;   break;
-            case IK_SYSTEM_BLOCK_SKILL_CATALOG:  cnt_catalog++;  break;
+            case IK_SYSTEM_BLOCK_BASE_PROMPT:    cnt_base++;      break;
+            case IK_SYSTEM_BLOCK_PINNED_DOC:     cnt_pinned++;    break;
+            case IK_SYSTEM_BLOCK_SKILL:          cnt_skills++;    break;
+            case IK_SYSTEM_BLOCK_SKILL_CATALOG:  cnt_catalog++;   break;
+            case IK_SYSTEM_BLOCK_AGENTS_MD:      cnt_agents_md++; break;
             case IK_SYSTEM_BLOCK_SESSION_SUMMARY: cnt_summaries++; break;
-            case IK_SYSTEM_BLOCK_RECENT_SUMMARY: cnt_recent++;   break;
+            case IK_SYSTEM_BLOCK_RECENT_SUMMARY: cnt_recent++;    break;
         }
     }
-    DEBUG_LOG("[system_blocks] built %zu blocks: base=%zu pinned=%zu skills=%zu catalog=%zu summaries=%zu recent=%zu",
+    DEBUG_LOG("[system_blocks] built %zu blocks: base=%zu pinned=%zu skills=%zu catalog=%zu agents_md=%zu summaries=%zu recent=%zu",
               req->system_block_count,
-              cnt_base, cnt_pinned, cnt_skills, cnt_catalog, cnt_summaries, cnt_recent);
+              cnt_base, cnt_pinned, cnt_skills, cnt_catalog, cnt_agents_md, cnt_summaries, cnt_recent);
 
     return OK(NULL);
 }

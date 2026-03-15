@@ -98,6 +98,7 @@ END_TEST
 START_TEST(test_with_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->agents_md_loaded = true;  /* suppress AGENTS.md loading from real CWD */
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
     agent->messages = NULL;
@@ -149,6 +150,7 @@ END_TEST
 START_TEST(test_null_config) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->agents_md_loaded = true;  /* suppress AGENTS.md loading from real CWD */
     agent->shared->cfg = NULL;  // NULL config
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
@@ -173,6 +175,7 @@ END_TEST
 START_TEST(test_without_system_message) {
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->agents_md_loaded = true;  /* suppress AGENTS.md loading from real CWD */
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
     agent->messages = NULL;
@@ -256,6 +259,7 @@ START_TEST(test_with_pinned_documents) {
 
     ik_agent_ctx_t *agent = talloc_zero(test_ctx, ik_agent_ctx_t);
     agent->shared = shared_ctx;
+    agent->agents_md_loaded = true;  /* suppress AGENTS.md loading from real CWD */
     agent->model = talloc_strdup(agent, "gpt-4");
     agent->thinking_level = 0;
     agent->messages = NULL;

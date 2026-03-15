@@ -208,6 +208,10 @@ res_t ik_cmd_clear(void *ctx, ik_repl_ctx_t *repl, const char *args)
         repl->current->recent_summary_tokens = 0;
     }
 
+    talloc_free(repl->current->agents_md_content);
+    repl->current->agents_md_content = NULL;
+    repl->current->agents_md_loaded = false;
+
     // Clear autocomplete state so suggestions don't persist
     if (repl->current->completion != NULL) {     // LCOV_EXCL_BR_LINE
         // LCOV_EXCL_START - Defensive cleanup, rarely occurs in practice
