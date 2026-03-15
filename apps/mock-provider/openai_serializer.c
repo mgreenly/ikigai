@@ -413,6 +413,35 @@ static char *build_responses_created(TALLOC_CTX *ctx)
 }
 
 /**
+ * Build response.completed event data:
+ * {"response":{"status":"completed","usage":{"input_tokens":0,...}}}
+ */
+static char *build_responses_completed(TALLOC_CTX *ctx)
+{
+    yyjson_alc alc = ik_make_talloc_allocator(ctx);
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(&alc);
+    yyjson_mut_val *root = yyjson_mut_obj(doc);
+    yyjson_mut_doc_set_root(doc, root);
+
+    yyjson_mut_val *response = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_str(doc, response, "status", "completed");
+
+    yyjson_mut_val *usage = yyjson_mut_obj(doc);
+    yyjson_mut_obj_add_int(doc, usage, "input_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "output_tokens", 0);
+    yyjson_mut_obj_add_int(doc, usage, "total_tokens", 0);
+    yyjson_mut_obj_add_val(doc, response, "usage", usage);
+
+    yyjson_mut_obj_add_val(doc, root, "response", response);
+
+    size_t len = 0;
+    char *json = yyjson_mut_write(doc, 0, &len);
+    char *result = talloc_strdup(ctx, json);
+    free(json);
+    return result;
+}
+
+/**
  * Build response.output_text.delta event data:
  * {"delta":"<text>","content_index":0}
  */
@@ -448,7 +477,8 @@ void openai_responses_serialize_text(TALLOC_CTX *ctx, const char *content,
     char *delta = build_responses_text_delta(tmp, content);
     write_sse_event(fd, "response.output_text.delta", delta);
 
-    write_sse_event(fd, "response.completed", "{}");
+    char *completed = build_responses_completed(tmp);
+    write_sse_event(fd, "response.completed", completed);
 
     talloc_free(tmp);
 }
@@ -521,7 +551,8 @@ void openai_responses_serialize_tool_calls(TALLOC_CTX *ctx,
         write_sse_event(fd, "response.output_item.done", result3);
     }
 
-    write_sse_event(fd, "response.completed", "{}");
+    char *completed = build_responses_completed(tmp);
+    write_sse_event(fd, "response.completed", completed);
 
     talloc_free(tmp);
 }
