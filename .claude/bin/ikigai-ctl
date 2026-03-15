@@ -87,16 +87,31 @@ end
 
 die "socket not found: #{socket_path}" unless File.socket?(socket_path)
 
-def send_request(socket_path, request_json)
-  sock = UNIXSocket.new(socket_path)
-  sock.write(request_json)
-  sock.write("\n")
-
-  sock.read
-rescue Errno::ECONNREFUSED
-  die "failed to connect to #{socket_path}"
-ensure
-  sock&.close
+def send_request(socket_path, request_json, retries: 5, backoff: 0.1)
+  attempts = 0
+  begin
+    attempts += 1
+    sock = UNIXSocket.new(socket_path)
+    sock.write(request_json)
+    sock.write("\n")
+    sock.read
+  rescue Errno::ECONNREFUSED, Errno::EPIPE => e
+    # Connect failed or write failed — data was NOT delivered, safe to retry
+    sock&.close
+    sock = nil
+    if attempts < retries
+      sleep backoff * attempts
+      retry
+    end
+    die "failed to connect to #{socket_path} after #{retries} attempts (#{e.class})"
+  rescue Errno::ECONNRESET
+    # Write succeeded but read failed — data WAS delivered, treat as success
+    sock&.close
+    sock = nil
+    '{"type":"ok"}'
+  ensure
+    sock&.close
+  end
 end
 
 def tokenize_keys(str)

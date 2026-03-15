@@ -1,0 +1,37 @@
+{
+  "name": "multi-agent weather comparison via fork with gemini 3.1-pro-preview",
+  "steps": [
+    {"send_keys": "/clear\\r"},
+    {"wait": 0.5},
+    {"send_keys": "/model gemini-3.1-pro-preview/low\\r"},
+    {"wait": 0.5},
+    {"mock_expect": {"responses": [
+      {
+        "tool_calls": [
+          {"name": "fork", "arguments": {"name": "weather-berlin", "prompt": "Search for the current weather in Berlin, Germany and report the temperature in Celsius."}},
+          {"name": "fork", "arguments": {"name": "weather-london", "prompt": "Search for the current weather in London, UK and report the temperature in Celsius."}},
+          {"name": "fork", "arguments": {"name": "weather-paris", "prompt": "Search for the current weather in Paris, France and report the temperature in Celsius."}}
+        ]
+      },
+      {
+        "content": "I have spawned three sub-agents to check the weather. Based on current conditions:\n\n| City | Temperature |\n|------|-------------|\n| Berlin | 5\u00b0C |\n| London | 8\u00b0C |\n| Paris | 12\u00b0C |\n\nBerlin is the coldest at 5\u00b0C."
+      },
+      {"content": "The current weather in Berlin is 5 degrees Celsius."},
+      {"content": "The current weather in London is 8 degrees Celsius."},
+      {"content": "The current weather in Paris is 12 degrees Celsius."}
+    ]}},
+    {"send_keys": "Use multiple sub-agents to determine the weather in Berlin, London and Paris then tell me which is the coldest.\\r"},
+    {"wait_idle": 30000},
+    {"read_framebuffer": true}
+  ],
+  "assert": [
+    {"contains": "gemini-3.1-pro-preview/low"},
+    {"line_prefix": "\u25cf"}
+  ],
+  "assert_mock": [
+    {"contains": "Berlin | 5\u00b0C"},
+    {"contains": "London | 8\u00b0C"},
+    {"contains": "Paris | 12\u00b0C"},
+    {"contains": "Berlin is the coldest"}
+  ]
+}
