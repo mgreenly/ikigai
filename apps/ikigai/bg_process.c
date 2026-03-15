@@ -385,7 +385,7 @@ res_t bg_process_start(bg_manager_t *mgr,
     posix_fcntl_(proc->master_fd, F_SETFL, O_NONBLOCK);
 
     /* Open output file (append, create) */
-    proc->output_fd = open(out_path, O_WRONLY | O_CREAT | O_APPEND, 0600);
+    proc->output_fd = open(out_path, O_RDWR | O_CREAT | O_APPEND, 0600);
     /* output_fd failure is non-fatal; output just won't be persisted */
 
     /* Record start time */

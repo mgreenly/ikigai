@@ -95,6 +95,11 @@ MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count)
     return read(fd, buf, count);
 }
 
+MOCKABLE ssize_t posix_pread_(int fd, void *buf, size_t count, off_t offset)
+{
+    return pread(fd, buf, count, offset);
+}
+
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {
     return select(nfds, readfds, writefds, exceptfds, timeout);
@@ -252,6 +257,7 @@ MOCKABLE int posix_ioctl_(int fd, unsigned long request, void *argp);
 MOCKABLE ssize_t posix_write_(int fd, const void *buf, size_t count);
 MOCKABLE ssize_t posix_send_(int sockfd, const void *buf, size_t len, int flags);
 MOCKABLE ssize_t posix_read_(int fd, void *buf, size_t count);
+MOCKABLE ssize_t posix_pread_(int fd, void *buf, size_t count, off_t offset);
 MOCKABLE int posix_select_(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 MOCKABLE int posix_sigaction_(int signum, const struct sigaction *act, struct sigaction *oldact);
 MOCKABLE int posix_pipe_(int pipefd[2]);
