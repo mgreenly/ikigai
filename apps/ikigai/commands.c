@@ -7,6 +7,7 @@
 
 #include "apps/ikigai/ansi.h"
 #include "apps/ikigai/commands_basic.h"
+#include "apps/ikigai/commands_bg.h"
 #include "apps/ikigai/commands_mark.h"
 #include "apps/ikigai/commands_skill.h"
 #include "apps/ikigai/commands_model.h"
@@ -76,6 +77,11 @@ static const ik_command_t commands[] = {
     {"skills", "List loaded skills", ik_cmd_skills},
     {"skillset", "Load a skillset (usage: /skillset <name>)", ik_cmd_skillset},
     {"exit", "Exit the application", ik_cmd_exit},
+    {"ps", "List background processes", ik_cmd_ps},
+    {"pinspect", "Inspect process output (usage: /pinspect <id> [--tail=N|--lines=S-E|--since-last|--full])", ik_cmd_pinspect},
+    {"pkill", "Terminate a background process (usage: /pkill <id>)", ik_cmd_pkill},
+    {"pwrite", "Write to process stdin (usage: /pwrite <id> [--raw] [--eof] <text>)", ik_cmd_pwrite},
+    {"pclose", "Send EOF to process stdin (usage: /pclose <id>)", ik_cmd_pclose},
 };
 
 static const size_t command_count =
