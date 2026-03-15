@@ -61,6 +61,10 @@ coverage_html/
 # Pipeline runtime cache (goal files, logs, ralph runtime files)
 .pipeline/cache/
 
+# Background process runtime data
+/run/*
+!/run/.keep
+
 # Debug log (DEBUG builds only)
 IKIGAI_DEBUG.LOG
 
