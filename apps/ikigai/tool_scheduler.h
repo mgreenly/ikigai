@@ -1,6 +1,7 @@
 #pragma once
 
 #include "apps/ikigai/tool.h"
+#include "apps/ikigai/tool_registry.h"
 #include "shared/error.h"
 
 #include <pthread.h>
@@ -82,6 +83,10 @@ typedef struct {
 
     // Child process PID, for interrupt support
     pid_t                 child_pid;
+
+    // Completion hook and deferred data for internal tools (NULL for external)
+    ik_tool_complete_fn   on_complete;    // Copied from registry at dispatch time
+    void                 *deferred_data;  // Captured from agent->tool_deferred_data after handler
 } ik_schedule_entry_t;
 
 // ---------------------------------------------------------------------------
@@ -174,6 +179,14 @@ bool ik_tool_scheduler_all_terminal(const ik_tool_scheduler_t *sched);
 // tool lifecycle lines (→ input, ▶ Running, ◇ Blocked) appear after the
 // usage line rather than interleaved with it during streaming.
 void ik_tool_scheduler_begin(ik_tool_scheduler_t *sched);
+
+// Invoke on_complete hooks for all entries that have one.
+// deferred_data_ptr must point to agent->tool_deferred_data so each hook
+// sees the data its handler deposited. Called from the main thread.
+void ik_tool_scheduler_call_on_complete_hooks(ik_tool_scheduler_t *sched,
+                                               ik_repl_ctx_t *repl,
+                                               ik_agent_ctx_t *agent,
+                                               void **deferred_data_ptr);
 
 // Return true for any terminal state (completed / errored / skipped).
 // Inlined here for use by both tool_scheduler.c and tool_scheduler_exec.c.

@@ -207,6 +207,96 @@ void ik_tool_scheduler_destroy(ik_tool_scheduler_t *sched)
 }
 
 // ---------------------------------------------------------------------------
+// Internal: grow entries array
+// ---------------------------------------------------------------------------
+
+static void ensure_capacity(ik_tool_scheduler_t *sched)
+{
+    if (sched->count < sched->capacity) return;
+
+    int32_t new_cap = sched->capacity == 0 ? 8 : sched->capacity * 2;
+    sched->entries = talloc_realloc(sched, sched->entries, ik_schedule_entry_t,
+                                    (unsigned int)new_cap);
+    if (sched->entries == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    sched->capacity = new_cap;
+}
+
+// ---------------------------------------------------------------------------
+// Public: add a tool call
+// ---------------------------------------------------------------------------
+
+res_t ik_tool_scheduler_add(ik_tool_scheduler_t *sched, ik_tool_call_t *tool_call)
+{
+    assert(sched != NULL);     // LCOV_EXCL_BR_LINE
+    assert(tool_call != NULL); // LCOV_EXCL_BR_LINE
+
+    pthread_mutex_lock_(&sched->mutex);
+    ensure_capacity(sched);
+
+    int32_t idx            = sched->count;
+    ik_schedule_entry_t *e = &sched->entries[idx];
+    memset(e, 0, sizeof(*e));
+
+    // Take ownership of the tool call
+    e->tool_call = tool_call;
+    talloc_steal(sched, tool_call);
+
+    // Classify resource access (path strings allocated on sched context)
+    e->access = ik_tool_scheduler_classify(sched, tool_call->name,
+                                            tool_call->arguments);
+
+    // Initialise per-entry mutex
+    int mret = pthread_mutex_init_(&e->mutex, NULL);
+    if (mret != 0) { // LCOV_EXCL_BR_LINE
+        pthread_mutex_unlock_(&sched->mutex); // LCOV_EXCL_LINE
+        return ERR(sched, INVALID_ARG, "pthread_mutex_init failed"); // LCOV_EXCL_LINE
+    }
+
+    // Detect conflicts with non-terminal predecessors; record blockers
+    e->blocked_by       = NULL;
+    e->blocked_by_count = 0;
+
+    for (int32_t i = 0; i < idx; i++) {
+        ik_schedule_entry_t *prev = &sched->entries[i];
+        if (ik_schedule_is_terminal(prev->status)) continue;
+        if (!ik_tool_scheduler_conflicts(&e->access, &prev->access)) continue;
+
+        e->blocked_by = talloc_realloc(sched, e->blocked_by, int32_t,
+                                        (unsigned int)(e->blocked_by_count + 1));
+        if (e->blocked_by == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+        e->blocked_by[e->blocked_by_count] = i;
+        e->blocked_by_count++;
+    }
+
+    e->status = IK_SCHEDULE_QUEUED;
+    sched->count++;
+    pthread_mutex_unlock_(&sched->mutex);
+
+    return OK(NULL);
+}
+
+// ---------------------------------------------------------------------------
+// Public: on_complete hook dispatch
+// ---------------------------------------------------------------------------
+
+void ik_tool_scheduler_call_on_complete_hooks(ik_tool_scheduler_t *sched,
+                                               ik_repl_ctx_t *repl,
+                                               ik_agent_ctx_t *agent,
+                                               void **deferred_data_ptr)
+{
+    assert(sched != NULL);            // LCOV_EXCL_BR_LINE
+    assert(deferred_data_ptr != NULL); // LCOV_EXCL_BR_LINE
+
+    for (int32_t i = 0; i < sched->count; i++) {
+        ik_schedule_entry_t *e = &sched->entries[i];
+        if (e->on_complete == NULL) continue;
+        *deferred_data_ptr = e->deferred_data;
+        e->on_complete(repl, agent);
+        *deferred_data_ptr = NULL;
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Public: terminal check
 // ---------------------------------------------------------------------------
 

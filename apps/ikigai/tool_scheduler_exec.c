@@ -7,6 +7,8 @@
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_executor.h"
+#include "apps/ikigai/tool_registry.h"
+#include "apps/ikigai/tool_wrapper.h"
 #include "apps/ikigai/wrapper_pthread.h"
 #include "shared/panic.h"
 #include "vendor/yyjson/yyjson.h"
@@ -98,21 +100,6 @@ static void display_tool_output(ik_tool_scheduler_t *sched, int32_t idx)
 }
 
 // ---------------------------------------------------------------------------
-// Internal: grow entries array
-// ---------------------------------------------------------------------------
-
-static void ensure_capacity(ik_tool_scheduler_t *sched)
-{
-    if (sched->count < sched->capacity) return;
-
-    int32_t new_cap = sched->capacity == 0 ? 8 : sched->capacity * 2;
-    sched->entries = talloc_realloc(sched, sched->entries, ik_schedule_entry_t,
-                                    (unsigned int)new_cap);
-    if (sched->entries == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-    sched->capacity = new_cap;
-}
-
-// ---------------------------------------------------------------------------
 // Internal: error cascading
 // ---------------------------------------------------------------------------
 
@@ -161,11 +148,31 @@ static void *sched_worker(void *arg)
 {
     sched_worker_args_t *a = (sched_worker_args_t *)arg;
     ik_schedule_entry_t *e = &a->scheduler->entries[a->entry_index];
+    ik_agent_ctx_t      *ag = a->scheduler->agent;
 
-    char *result = ik_tool_execute_from_registry(
-        a->ctx, a->registry, a->paths,
-        a->agent_uuid, a->tool_name, a->arguments,
-        &e->child_pid);
+    ik_tool_registry_entry_t *entry = a->registry ?
+        ik_tool_registry_lookup(a->registry, a->tool_name) : NULL;
+
+    char *result;
+    if (entry && entry->type == IK_TOOL_INTERNAL) {
+        // Internal: call handler directly (handlers return pre-wrapped JSON).
+        // Set tool_thread_ctx so handlers like fork can allocate on it.
+        ag->tool_thread_ctx = a->ctx;
+        char *handler_result = entry->handler(a->ctx, ag, a->arguments);
+        // Capture deferred data before clearing (for on_complete in main thread)
+        e->deferred_data = ag->tool_deferred_data;
+        e->on_complete   = entry->on_complete;
+        ag->tool_deferred_data = NULL;
+        ag->tool_thread_ctx    = NULL;
+        result = handler_result ? handler_result :
+            ik_tool_wrap_failure(a->ctx, "Handler returned NULL", "INTERNAL_ERROR");
+    } else {
+        // External: fork/exec
+        result = ik_tool_execute_from_registry(
+            a->ctx, a->registry, a->paths,
+            a->agent_uuid, a->tool_name, a->arguments,
+            &e->child_pid);
+    }
 
     if (result == NULL) {
         result = talloc_strdup(a->ctx,
@@ -290,60 +297,6 @@ void ik_tool_scheduler_promote(ik_tool_scheduler_t *sched)
 
         start_entry(sched, i);
     }
-}
-
-// ---------------------------------------------------------------------------
-// Public: add a tool call
-// ---------------------------------------------------------------------------
-
-res_t ik_tool_scheduler_add(ik_tool_scheduler_t *sched, ik_tool_call_t *tool_call)
-{
-    assert(sched != NULL);     // LCOV_EXCL_BR_LINE
-    assert(tool_call != NULL); // LCOV_EXCL_BR_LINE
-
-    pthread_mutex_lock_(&sched->mutex);
-    ensure_capacity(sched);
-
-    int32_t idx            = sched->count;
-    ik_schedule_entry_t *e = &sched->entries[idx];
-    memset(e, 0, sizeof(*e));
-
-    // Take ownership of the tool call
-    e->tool_call = tool_call;
-    talloc_steal(sched, tool_call);
-
-    // Classify resource access (path strings allocated on sched context)
-    e->access = ik_tool_scheduler_classify(sched, tool_call->name,
-                                            tool_call->arguments);
-
-    // Initialise per-entry mutex
-    int mret = pthread_mutex_init_(&e->mutex, NULL);
-    if (mret != 0) { // LCOV_EXCL_BR_LINE
-        pthread_mutex_unlock_(&sched->mutex); // LCOV_EXCL_LINE
-        return ERR(sched, INVALID_ARG, "pthread_mutex_init failed"); // LCOV_EXCL_LINE
-    }
-
-    // Detect conflicts with non-terminal predecessors; record blockers
-    e->blocked_by       = NULL;
-    e->blocked_by_count = 0;
-
-    for (int32_t i = 0; i < idx; i++) {
-        ik_schedule_entry_t *prev = &sched->entries[i];
-        if (ik_schedule_is_terminal(prev->status)) continue;
-        if (!ik_tool_scheduler_conflicts(&e->access, &prev->access)) continue;
-
-        e->blocked_by = talloc_realloc(sched, e->blocked_by, int32_t,
-                                        (unsigned int)(e->blocked_by_count + 1));
-        if (e->blocked_by == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
-        e->blocked_by[e->blocked_by_count] = i;
-        e->blocked_by_count++;
-    }
-
-    e->status = IK_SCHEDULE_QUEUED;
-    sched->count++;
-    pthread_mutex_unlock_(&sched->mutex);
-
-    return OK(NULL);
 }
 
 void ik_tool_scheduler_begin(ik_tool_scheduler_t *sched)

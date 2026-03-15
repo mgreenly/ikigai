@@ -115,8 +115,6 @@ static void persist_entry(ik_agent_ctx_t *agent, ik_tool_scheduler_t *sched,
     ik_tool_call_t      *tc      = e->tool_call;
     bool is_error                = false;
     const char *result_json      = entry_result_str(agent, sched, idx, &is_error);
-    // Scrollback display is handled live by the scheduler (display_tool_input/output).
-    // Only persist to DB here.
     if (agent->shared->db_ctx == NULL || agent->shared->session_id <= 0) return;
     const char *formatted_call   = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
@@ -144,6 +142,10 @@ static void ik_repl_complete_scheduler(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
     for (int32_t i = 0; i < sched->count; i++) {
         persist_entry(agent, sched, i, batch_id);
     }
+    // Call on_complete hooks for internal tools before destroying the scheduler.
+    ik_tool_scheduler_call_on_complete_hooks(sched, repl, agent,
+                                              &agent->tool_deferred_data);
+
     ik_tool_scheduler_destroy(sched);
     agent->scheduler = NULL;
     ik_agent_transition_from_executing_tool(agent);
