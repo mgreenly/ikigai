@@ -241,6 +241,10 @@ void ik_repl_handle_agent_request_success(ik_repl_ctx_t *repl, ik_agent_ctx_t *a
         ik_agent_start_tool_execution_(agent);
         return;
     }
+    if (agent->scheduler != NULL) {
+        ik_agent_transition_to_executing_tool(agent);
+        return;
+    }
     if (ik_agent_should_continue_tool_loop_(agent)) {
         agent->tool_iteration_count++;
         ik_repl_submit_tool_loop_continuation_(repl, agent);

@@ -7,6 +7,7 @@
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/tool.h"
 #include "apps/ikigai/tool_registry.h"
+#include "apps/ikigai/tool_scheduler.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -156,6 +157,14 @@ typedef struct ik_agent_ctx {
     char *pending_thinking_text;
     char *pending_thinking_signature;
     char *pending_redacted_data;
+
+    // Scheduler for parallel tool execution (created on first tool call, NULL when idle)
+    ik_tool_scheduler_t *scheduler;
+
+    // Streaming tool call accumulation (populated from TOOL_CALL_START/DELTA, cleared on DONE)
+    char *streaming_tool_id;
+    char *streaming_tool_name;
+    char *streaming_tool_args;
 
     // Tool execution state (per-agent)
     ik_tool_call_t *pending_tool_call;

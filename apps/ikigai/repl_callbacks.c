@@ -12,6 +12,8 @@
 #include "apps/ikigai/repl_actions.h"
 #include "apps/ikigai/repl_response_helpers.h"
 #include "apps/ikigai/shared.h"
+#include "apps/ikigai/tool.h"
+#include "apps/ikigai/tool_scheduler.h"
 #include "vendor/yyjson/yyjson.h"
 
 #include <assert.h>
@@ -19,6 +21,55 @@
 #include <talloc.h>
 
 #include "shared/poison.h"
+
+// Free and NULL out the three streaming tool accumulation fields.
+static void clear_streaming_tool(ik_agent_ctx_t *agent)
+{
+    if (agent->streaming_tool_id != NULL) {
+        talloc_free(agent->streaming_tool_id);
+        agent->streaming_tool_id = NULL;
+    }
+    if (agent->streaming_tool_name != NULL) {
+        talloc_free(agent->streaming_tool_name);
+        agent->streaming_tool_name = NULL;
+    }
+    if (agent->streaming_tool_args != NULL) {
+        talloc_free(agent->streaming_tool_args);
+        agent->streaming_tool_args = NULL;
+    }
+}
+
+// Handle IK_STREAM_TOOL_CALL_START: store id and name for later assembly.
+static void handle_tool_call_start(ik_agent_ctx_t *agent,
+                                   const ik_stream_event_t *event)
+{
+    clear_streaming_tool(agent);
+    if (event->data.tool_start.id != NULL) {
+        agent->streaming_tool_id = talloc_strdup(agent, event->data.tool_start.id);
+        if (agent->streaming_tool_id == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+    if (event->data.tool_start.name != NULL) {
+        agent->streaming_tool_name = talloc_strdup(agent, event->data.tool_start.name);
+        if (agent->streaming_tool_name == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    }
+}
+
+// Handle IK_STREAM_TOOL_CALL_DONE: create scheduler (if needed), add tool call.
+static void handle_tool_call_done(ik_agent_ctx_t *agent)
+{
+    if (agent->scheduler == NULL) {
+        agent->scheduler = ik_tool_scheduler_create(agent, agent);
+    }
+    const char *id   = agent->streaming_tool_id   != NULL ? agent->streaming_tool_id   : "";
+    const char *name = agent->streaming_tool_name != NULL ? agent->streaming_tool_name : "";
+    const char *args = agent->streaming_tool_args != NULL ? agent->streaming_tool_args : "{}";
+    ik_tool_call_t *tc = ik_tool_call_create(agent, id, name, args);
+    if (tc == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+    res_t add_res = ik_tool_scheduler_add(agent->scheduler, tc);
+    if (is_err(&add_res)) PANIC("scheduler add failed"); // LCOV_EXCL_BR_LINE
+    clear_streaming_tool(agent);
+}
+
 res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
 {
     assert(event != NULL);  /* LCOV_EXCL_BR_LINE */
@@ -47,15 +98,32 @@ res_t ik_repl_stream_callback(const ik_stream_event_t *event, void *ctx)
             break;
 
         case IK_STREAM_TOOL_CALL_START:
+            handle_tool_call_start(agent, event);
+            break;
+
         case IK_STREAM_TOOL_CALL_DELTA:
+            if (event->data.tool_delta.arguments != NULL) {
+                if (agent->streaming_tool_args == NULL) {
+                    agent->streaming_tool_args = talloc_strdup(agent, event->data.tool_delta.arguments);
+                } else {
+                    agent->streaming_tool_args = talloc_strdup_append(agent->streaming_tool_args,
+                                                                      event->data.tool_delta.arguments);
+                }
+                if (agent->streaming_tool_args == NULL) PANIC("Out of memory"); // LCOV_EXCL_BR_LINE
+            }
+            break;
+
         case IK_STREAM_TOOL_CALL_DONE:
-            // No-op: provider accumulates tool calls and builds response
+            handle_tool_call_done(agent);
             break;
 
         case IK_STREAM_DONE:
             agent->response_input_tokens = event->data.done.usage.input_tokens;
             agent->response_output_tokens = event->data.done.usage.output_tokens;
             agent->response_thinking_tokens = event->data.done.usage.thinking_tokens;
+            if (agent->scheduler != NULL) {
+                agent->scheduler->stream_complete = true;
+            }
             break;
 
         case IK_STREAM_ERROR:
@@ -164,7 +232,10 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
     if (completion->success && completion->response != NULL) {
         ik_repl_store_response_metadata(agent, completion->response);
         ik_repl_render_usage_event(agent);
-        ik_repl_extract_tool_calls(agent, completion->response);
+        // Scheduler already has tool calls from streaming; skip extraction when scheduler active
+        if (agent->scheduler == NULL) {
+            ik_repl_extract_tool_calls(agent, completion->response);
+        }
     }
 
     // Adjust viewport_offset to keep the display stable when scrolled up

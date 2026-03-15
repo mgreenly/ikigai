@@ -18,6 +18,11 @@
 #include <talloc.h>
 #include <string.h>
 
+int pthread_create_(pthread_t *t, const pthread_attr_t *a, void *(*s)(void *), void *g);
+int pthread_join_(pthread_t t, void **r);
+int pthread_create_(pthread_t *t, const pthread_attr_t *a, void *(*s)(void *), void *g)
+{ (void)a; (void)s; (void)g; memset(t, 0, sizeof(*t)); return 0; }
+int pthread_join_(pthread_t t, void **r) { (void)t; (void)r; return 0; }
 static void *ctx;
 static ik_agent_ctx_t *agent;
 
@@ -325,41 +330,37 @@ START_TEST(test_thinking_delta) {
 }
 
 END_TEST
-/* Test: IK_STREAM_TOOL_CALL_START is handled (no-op) */
 START_TEST(test_tool_call_start) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TOOL_CALL_START,
-        .data.tool_start.id = "call_123",
-        .data.tool_start.name = "glob"
+        .data.tool_start.id = "id",
+        .data.tool_start.name = "g"
     };
-
-    res_t result = ik_repl_stream_callback(&event, agent);
-    ck_assert(is_ok(&result));
+    res_t r = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&r));
+    ck_assert_str_eq(agent->streaming_tool_id, "id");
 }
-
 END_TEST
-/* Test: IK_STREAM_TOOL_CALL_DELTA is handled (no-op) */
 START_TEST(test_tool_call_delta) {
     ik_stream_event_t event = {
         .type = IK_STREAM_TOOL_CALL_DELTA,
-        .data.tool_delta.arguments = "{\"pattern\":"
+        .data.tool_delta.arguments = "{"
     };
-
-    res_t result = ik_repl_stream_callback(&event, agent);
-    ck_assert(is_ok(&result));
+    res_t r = ik_repl_stream_callback(&event, agent);
+    ck_assert(is_ok(&r));
+    ck_assert_str_eq(agent->streaming_tool_args, "{");
 }
-
 END_TEST
-/* Test: IK_STREAM_TOOL_CALL_DONE is handled (no-op) */
 START_TEST(test_tool_call_done) {
-    ik_stream_event_t event = {
-        .type = IK_STREAM_TOOL_CALL_DONE
-    };
-
-    res_t result = ik_repl_stream_callback(&event, agent);
-    ck_assert(is_ok(&result));
+    agent->streaming_tool_id = talloc_strdup(agent, "id");
+    agent->streaming_tool_name = talloc_strdup(agent, "g");
+    agent->streaming_tool_args = talloc_strdup(agent, "{}");
+    ik_stream_event_t event = { .type = IK_STREAM_TOOL_CALL_DONE };
+    ik_repl_stream_callback(&event, agent);
+    ck_assert_ptr_nonnull(agent->scheduler);
+    ck_assert_int_eq(agent->scheduler->count, 1);
+    ck_assert_ptr_null(agent->streaming_tool_id);
 }
-
 END_TEST
 /* Test: IK_STREAM_DONE stores token counts */
 START_TEST(test_stream_done_stores_tokens) {
@@ -447,10 +448,6 @@ static Suite *repl_stream_callback_suite(void)
     Suite *s = suite_create("repl_stream_callback");
 
     TCase *tc_stream = tcase_create("stream_events");
-    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
-    tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
     tcase_set_timeout(tc_stream, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc_stream, setup, teardown);
     tcase_add_test(tc_stream, test_stream_start_initializes);
