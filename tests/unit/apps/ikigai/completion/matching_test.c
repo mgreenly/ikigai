@@ -178,11 +178,12 @@ START_TEST(test_get_current) {
 END_TEST
 // Test: Single character prefix
 START_TEST(test_single_char_prefix) {
-    // "/c" should match only "clear" (mail commands now start with "mail-")
+    // "/c" should match "clear" and "context"
     ik_completion_t *comp = ik_completion_create_for_commands(ctx, "/c");
     ck_assert_ptr_nonnull(comp);
-    ck_assert_uint_eq(comp->count, 1);
+    ck_assert_uint_eq(comp->count, 2);
     ck_assert_str_eq(comp->candidates[0], "clear");
+    ck_assert_str_eq(comp->candidates[1], "context");
 }
 
 END_TEST
