@@ -105,7 +105,7 @@ At ~8 bytes per line, indexing is cheap. A process producing 1 million lines of 
 
 **Reading output:** `pread()` to the byte offset for the requested line range. No buffering, no copying — the OS page cache handles it.
 
-**ANSI handling:** Output is stored raw (with escape codes). When serving output to the LLM via tools, ANSI escape sequences are stripped. When serving to the user via `/pinspect`, raw output is preserved (the terminal interprets it naturally).
+**ANSI handling:** Output is stored raw (with escape codes). When serving output to the LLM via tools, ANSI escape sequences are stripped. When serving to the user via `/pread`, raw output is preserved (the terminal interprets it naturally).
 
 ### Process Lifecycle
 
@@ -311,14 +311,14 @@ ID  PID    STATUS       AGE      TTL LEFT  OUTPUT     COMMAND
 
 Columns: ID (for referencing), PID (for debugging), status (with exit code), wall-clock age, remaining TTL (`forever` for ttl=-1, `—` for terminal states), total output size, truncated command.
 
-### `/pinspect <id>` — Read process output
+### `/pread <id>` — Read process output
 
 Options:
-- `/pinspect 1` — last 50 lines (default)
-- `/pinspect 1 --tail=100` — last 100 lines
-- `/pinspect 1 --lines=500-550` — specific line range
-- `/pinspect 1 --since-last` — output since last inspect
-- `/pinspect 1 --full` — everything (warning if large)
+- `/pread 1` — last 50 lines (default)
+- `/pread 1 --tail=100` — last 100 lines
+- `/pread 1 --lines=500-550` — specific line range
+- `/pread 1 --since-last` — output since last read
+- `/pread 1 --full` — everything (warning if large)
 
 Header shows: status, exit code (if finished), total lines, total bytes, age.
 
@@ -379,13 +379,13 @@ Returns:
 }
 ```
 
-### `pinspect`
+### `pread`
 
 Read output and status of a background process.
 
 ```json
 {
-    "name": "pinspect",
+    "name": "pread",
     "description": "Check the status and read output of a background process.",
     "parameters": {
         "type": "object",
@@ -534,21 +534,21 @@ When a background process reaches a terminal state (exited, killed, timed out), 
 }
 ```
 
-The message includes a 20-line tail so the LLM often has enough context without a follow-up `pinspect` call.
+The message includes a 20-line tail so the LLM often has enough context without a follow-up `pread` call.
 
 ### LLM workflow patterns
 
 The LLM chooses how to handle background processes:
 
 - **Block on completion**: `pstart` → `/wait` → receive exit message → act on result
-- **Poll when ready**: `pstart` → do other work → `pinspect` later → discard stale exit message
+- **Poll when ready**: `pstart` → do other work → `pread` later → discard stale exit message
 - **Opportunistic**: `pstart` → do other work → notice exit message between turns
 
-The exit message is informational, not a gate. If the LLM already handled the result via `pinspect`, the message is stale and can be discarded.
+The exit message is informational, not a gate. If the LLM already handled the result via `pread`, the message is stale and can be discarded.
 
 ### No TTL warnings
 
-The LLM chose the TTL — it knows the clock is ticking. No warnings are sent at 80% or any other threshold. If the LLM wants to monitor TTL, it calls `pinspect` or `ps` to check `ttl_remaining_seconds`.
+The LLM chose the TTL — it knows the clock is ticking. No warnings are sent at 80% or any other threshold. If the LLM wants to monitor TTL, it calls `pread` or `ps` to check `ttl_remaining_seconds`.
 
 ## Process Ownership
 
@@ -590,7 +590,7 @@ Background process tools are internal (C functions called in-process), not exter
 | Tool | Purpose |
 |------|---------|
 | `pstart` | Start background process |
-| `pinspect` | Check status and read output |
+| `pread` | Check status and read output |
 | `pwrite` | Write to stdin |
 | `pkill` | Terminate process |
 | `ps` | List processes |
@@ -603,7 +603,7 @@ Background process tools are internal (C functions called in-process), not exter
 | `agent.c` | Initialize/destroy bg_manager with agent lifecycle |
 | `repl.c` | Register bg_manager's epoll fds with main event loop |
 | `message.c` | Send exit messages to owning agent via existing message system |
-| `slash_commands.c` | Register `/ps`, `/pinspect`, `/pkill`, `/pwrite`, `/pclose` |
+| `slash_commands.c` | Register `/ps`, `/pread`, `/pkill`, `/pwrite`, `/pclose` |
 | `schema.sql` | Add `background_processes` table |
 
 ### Internal vs external tool decision
@@ -611,7 +611,7 @@ Background process tools are internal (C functions called in-process), not exter
 Background process tools could be either internal (C functions) or external (separate executables). **Internal** is the right choice because:
 - They need direct access to the bg_manager's in-memory state (line index, master_fd, process table)
 - They modify shared process state (cursor position, stdin pipe)
-- The fork/exec overhead of external tools is acceptable for most tools but wasteful for pinspect, which may be called frequently
+- The fork/exec overhead of external tools is acceptable for most tools but wasteful for pread, which may be called frequently
 - They follow the same pattern as agent operations (fork, kill, send, wait) which are already internal tools
 
 ## Relationship to rel-14
@@ -652,7 +652,7 @@ TTL checks need ~1s resolution. The existing `ik_repl_calculate_select_timeout_m
 
 The codebase uses UUID (TEXT) as the primary key for agents everywhere. The design doc's `agent_id INTEGER` is incorrect for this codebase.
 
-Process IDs use `SERIAL PRIMARY KEY` — globally unique, monotonic, never reused. This is the handle the LLM and user reference (`pinspect 3`, `/pkill 3`). The design doc's "process IDs scoped per-agent" adds complexity for no benefit — a global SERIAL already guarantees uniqueness.
+Process IDs use `SERIAL PRIMARY KEY` — globally unique, monotonic, never reused. This is the handle the LLM and user reference (`pread 3`, `/pkill 3`). The design doc's "process IDs scoped per-agent" adds complexity for no benefit — a global SERIAL already guarantees uniqueness.
 
 **Decision:** `agent_uuid TEXT NOT NULL REFERENCES agents(uuid) ON DELETE CASCADE` in the schema. `char *agent_uuid` in the C struct. Global SERIAL for process IDs.
 

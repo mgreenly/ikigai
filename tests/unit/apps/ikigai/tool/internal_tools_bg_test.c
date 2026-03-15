@@ -174,11 +174,11 @@ START_TEST(test_pstart_start_failed) {
 } END_TEST
 
 /* ================================================================
- * pinspect tests
+ * pread tests
  * ================================================================ */
 
-START_TEST(test_pinspect_success) {
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"id\":1}");
+START_TEST(test_pread_success) {
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"id\":1}");
     ck_assert(result_success(r));
     yyjson_doc *doc = yyjson_read(r, strlen(r), 0);
     yyjson_val *res = yyjson_obj_get(yyjson_doc_get_root(doc), "result");
@@ -188,35 +188,35 @@ START_TEST(test_pinspect_success) {
     yyjson_doc_free(doc);
 } END_TEST
 
-START_TEST(test_pinspect_not_found) {
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"id\":999}");
+START_TEST(test_pread_not_found) {
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"id\":999}");
     ck_assert(!result_success(r));
     ck_assert(strstr(r, "NOT_FOUND") != NULL);
 } END_TEST
 
-START_TEST(test_pinspect_missing_id) {
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"mode\":\"tail\"}");
+START_TEST(test_pread_missing_id) {
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"mode\":\"tail\"}");
     ck_assert(!result_success(r));
 } END_TEST
 
-START_TEST(test_pinspect_ansi_stripped) {
+START_TEST(test_pread_ansi_stripped) {
     /* ANSI color codes — real bg_ansi_strip removes them */
     mock_read_data = "\x1b[31mred text\x1b[0m\nplain text\n";
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"id\":1}");
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"id\":1}");
     ck_assert(result_success(r));
     ck_assert(strstr(r, "\x1b[31m") == NULL);
     ck_assert(strstr(r, "red text") != NULL);
     ck_assert(strstr(r, "plain text") != NULL);
 } END_TEST
 
-START_TEST(test_pinspect_output_cap) {
+START_TEST(test_pread_output_cap) {
     /* Build a string larger than 50KB */
     unsigned big = 52 * 1024;
     char *big_data = talloc_array(test_ctx, char, big + 2);
     memset(big_data, 'x', big);
     big_data[big] = '\n'; big_data[big + 1] = '\0';
     mock_read_data = big_data;
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"id\":1}");
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"id\":1}");
     ck_assert(result_success(r));
     yyjson_doc *doc = yyjson_read(r, strlen(r), 0);
     yyjson_val *res = yyjson_obj_get(yyjson_doc_get_root(doc), "result");
@@ -224,9 +224,9 @@ START_TEST(test_pinspect_output_cap) {
     yyjson_doc_free(doc);
 } END_TEST
 
-START_TEST(test_pinspect_read_failed) {
+START_TEST(test_pread_read_failed) {
     mock_read_fail = true;
-    char *r = ik_bg_pinspect_handler(test_ctx, agent, "{\"id\":1}");
+    char *r = ik_bg_pread_handler(test_ctx, agent, "{\"id\":1}");
     ck_assert(!result_success(r));
     ck_assert(strstr(r, "READ_FAILED") != NULL);
 } END_TEST
@@ -344,15 +344,15 @@ static Suite *internal_tools_bg_suite(void)
     tcase_add_test(tc, test_pstart_start_failed);
     suite_add_tcase(s, tc);
 
-    tc = tcase_create("pinspect");
+    tc = tcase_create("pread");
     tcase_set_timeout(tc, IK_TEST_TIMEOUT);
     tcase_add_checked_fixture(tc, setup, teardown);
-    tcase_add_test(tc, test_pinspect_success);
-    tcase_add_test(tc, test_pinspect_not_found);
-    tcase_add_test(tc, test_pinspect_missing_id);
-    tcase_add_test(tc, test_pinspect_ansi_stripped);
-    tcase_add_test(tc, test_pinspect_output_cap);
-    tcase_add_test(tc, test_pinspect_read_failed);
+    tcase_add_test(tc, test_pread_success);
+    tcase_add_test(tc, test_pread_not_found);
+    tcase_add_test(tc, test_pread_missing_id);
+    tcase_add_test(tc, test_pread_ansi_stripped);
+    tcase_add_test(tc, test_pread_output_cap);
+    tcase_add_test(tc, test_pread_read_failed);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("pwrite");

@@ -2,7 +2,7 @@
  * @file internal_tools_bg.c
  * @brief Background process internal tool registration and pwrite/pkill/ps handlers
  *
- * pstart is in internal_tool_pstart.c, pinspect in internal_tool_pinspect.c.
+ * pstart is in internal_tool_pstart.c, pread in internal_tool_pread.c.
  * This file contains schemas, registration, helpers shared with pwrite/pkill/ps,
  * and the pwrite, pkill, and ps handler implementations.
  */
@@ -281,8 +281,8 @@ static const char *PSTART_SCHEMA =
     "\"required\":[\"command\",\"label\",\"ttl_seconds\"]"
     "}}";
 
-static const char *PINSPECT_SCHEMA =
-    "{\"name\":\"pinspect\","
+static const char *PREAD_SCHEMA =
+    "{\"name\":\"pread\","
     "\"description\":\"Check the status and read output of a background process.\","
     "\"parameters\":{"
     "\"type\":\"object\","
@@ -352,7 +352,7 @@ void ik_bg_tools_register(ik_tool_registry_t *registry)
         if (!var##_doc) PANIC("Failed to parse " #var " schema") /* LCOV_EXCL_BR_LINE */
 
     PARSE_SCHEMA(pstart,   PSTART_SCHEMA);
-    PARSE_SCHEMA(pinspect, PINSPECT_SCHEMA);
+    PARSE_SCHEMA(pread,    PREAD_SCHEMA);
     PARSE_SCHEMA(pwrite,   PWRITE_SCHEMA);
     PARSE_SCHEMA(pkill,    PKILL_SCHEMA);
     PARSE_SCHEMA(ps,       PS_SCHEMA);
@@ -367,7 +367,7 @@ void ik_bg_tools_register(ik_tool_registry_t *registry)
         } while (0)
 
     REG(pstart);
-    REG(pinspect);
+    REG(pread);
     REG(pwrite);
     REG(pkill);
     REG(ps);

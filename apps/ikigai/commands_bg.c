@@ -1,6 +1,6 @@
 /**
  * @file commands_bg.c
- * @brief Background process slash commands: /ps, /pinspect, /pkill, /pwrite, /pclose
+ * @brief Background process slash commands: /ps, /pread, /pkill, /pwrite, /pclose
  */
 
 #include "apps/ikigai/commands_bg.h"
@@ -152,23 +152,23 @@ res_t ik_cmd_ps(void *ctx, ik_repl_ctx_t *repl, const char *args)
     return OK(NULL);
 }
 
-/* /pinspect */
+/* /pread */
 
-typedef enum { PINSPECT_TAIL, PINSPECT_LINES, PINSPECT_SINCE_LAST, PINSPECT_FULL }
-    pinspect_mode_t;
+typedef enum { PREAD_TAIL, PREAD_LINES, PREAD_SINCE_LAST, PREAD_FULL }
+    pread_mode_t;
 
-typedef struct { int32_t id; pinspect_mode_t mode; int64_t tail_n, start, end; }
-    pinspect_args_t;
+typedef struct { int32_t id; pread_mode_t mode; int64_t tail_n, start, end; }
+    pread_args_t;
 
-static bool parse_pinspect(void *ctx, const char *args, pinspect_args_t *o, char **e)
+static bool parse_pread(void *ctx, const char *args, pread_args_t *o, char **e)
 {
     *e = NULL;
-    o->mode = PINSPECT_TAIL; o->tail_n = 50; o->start = 1; o->end = -1;
+    o->mode = PREAD_TAIL; o->tail_n = 50; o->start = 1; o->end = -1;
     const char *rest = NULL;
     int32_t id = parse_id(args, &rest);
     if (id < 0) {
         *e = talloc_strdup(ctx,
-            "Usage: /pinspect <id> [--tail=N|--lines=S-E|--since-last|--full]");
+            "Usage: /pread <id> [--tail=N|--lines=S-E|--since-last|--full]");
         return false;
     }
     o->id = id;
@@ -176,18 +176,18 @@ static bool parse_pinspect(void *ctx, const char *args, pinspect_args_t *o, char
     if (strncmp(rest, "--tail=", 7)==0) {
         char *p = NULL; long n = strtol(rest+7, &p, 10);
         if (p==rest+7 || n<=0) { *e=talloc_strdup(ctx,"Invalid --tail value: must be a positive integer"); return false; }
-        o->mode = PINSPECT_TAIL; o->tail_n = (int64_t)n;
+        o->mode = PREAD_TAIL; o->tail_n = (int64_t)n;
     } else if (strncmp(rest, "--lines=", 8)==0) {
         const char *q = rest+8; char *p = NULL;
         long s = strtol(q, &p, 10);
         if (p==q || *p!='-' || s<=0) { *e=talloc_strdup(ctx,"Invalid --lines value: use --lines=START-END"); return false; }
         q = p+1; long en = strtol(q, &p, 10);
         if (p==q || en<s) { *e=talloc_strdup(ctx,"Invalid --lines range: end must be >= start"); return false; }
-        o->mode = PINSPECT_LINES; o->start = (int64_t)s; o->end = (int64_t)en;
+        o->mode = PREAD_LINES; o->start = (int64_t)s; o->end = (int64_t)en;
     } else if (strcmp(rest, "--since-last")==0) {
-        o->mode = PINSPECT_SINCE_LAST;
+        o->mode = PREAD_SINCE_LAST;
     } else if (strcmp(rest, "--full")==0) {
-        o->mode = PINSPECT_FULL;
+        o->mode = PREAD_FULL;
     } else {
         *e = talloc_asprintf(ctx, "Unknown option: %s", rest);
         return false;
@@ -195,12 +195,12 @@ static bool parse_pinspect(void *ctx, const char *args, pinspect_args_t *o, char
     return true;
 }
 
-res_t ik_cmd_pinspect(void *ctx, ik_repl_ctx_t *repl, const char *args)
+res_t ik_cmd_pread(void *ctx, ik_repl_ctx_t *repl, const char *args)
 {
     assert(ctx != NULL);   // LCOV_EXCL_BR_LINE
     assert(repl != NULL);  // LCOV_EXCL_BR_LINE
-    char *em = NULL; pinspect_args_t pa;
-    if (!parse_pinspect(ctx, args, &pa, &em)) return warn_ok(ctx, repl, em);
+    char *em = NULL; pread_args_t pa;
+    if (!parse_pread(ctx, args, &pa, &em)) return warn_ok(ctx, repl, em);
 
     bg_manager_t *mgr = repl->current->bg_manager;
     if (!mgr) return warn_ok(ctx, repl, "No background processes.");
@@ -225,10 +225,10 @@ res_t ik_cmd_pinspect(void *ctx, ik_repl_ctx_t *repl, const char *args)
 
     bg_read_mode_t mode; int64_t tn=50, sl=1, el=tl;
     switch (pa.mode) {
-    case PINSPECT_TAIL:       mode=BG_READ_TAIL;       tn=pa.tail_n;                       break;
-    case PINSPECT_LINES:      mode=BG_READ_RANGE;      sl=pa.start; el=pa.end<0?tl:pa.end; break;
-    case PINSPECT_SINCE_LAST: mode=BG_READ_SINCE_LAST;                                     break;
-    case PINSPECT_FULL:       mode=BG_READ_TAIL;       tn=tl>0?tl:1;                       break;
+    case PREAD_TAIL:       mode=BG_READ_TAIL;       tn=pa.tail_n;                       break;
+    case PREAD_LINES:      mode=BG_READ_RANGE;      sl=pa.start; el=pa.end<0?tl:pa.end; break;
+    case PREAD_SINCE_LAST: mode=BG_READ_SINCE_LAST;                                     break;
+    case PREAD_FULL:       mode=BG_READ_TAIL;       tn=tl>0?tl:1;                       break;
     default: mode=BG_READ_TAIL; break; // LCOV_EXCL_LINE
     }
 

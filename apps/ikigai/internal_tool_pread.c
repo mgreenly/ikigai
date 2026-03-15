@@ -1,6 +1,6 @@
 /**
- * @file internal_tool_pinspect.c
- * @brief pinspect internal tool handler — read background process output
+ * @file internal_tool_pread.c
+ * @brief pread internal tool handler — read background process output
  */
 
 #include "apps/ikigai/internal_tools_bg.h"
@@ -25,9 +25,9 @@
 
 #include "shared/poison.h"
 
-#define PINSPECT_MAX_LINES   200
-#define PINSPECT_MAX_BYTES   (50 * 1024)
-#define PINSPECT_DEFAULT_TAIL 50
+#define PREAD_MAX_LINES   200
+#define PREAD_MAX_BYTES   (50 * 1024)
+#define PREAD_DEFAULT_TAIL 50
 
 /* Local helpers */
 
@@ -81,10 +81,10 @@ static char *json_from_mut_doc(TALLOC_CTX *ctx, yyjson_mut_doc *doc)
 }
 
 /* ================================================================
- * pinspect handler
+ * pread handler
  * ================================================================ */
 
-char *ik_bg_pinspect_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char *args_json)
+char *ik_bg_pread_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char *args_json)
 {
     assert(ctx != NULL);       // LCOV_EXCL_BR_LINE
     assert(agent != NULL);     // LCOV_EXCL_BR_LINE
@@ -97,7 +97,7 @@ char *ik_bg_pinspect_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char 
 
     yyjson_doc *doc = yyjson_read_(args_json, strlen(args_json), 0);
     if (doc == NULL) { // LCOV_EXCL_BR_LINE
-        return ik_tool_wrap_failure(ctx, "Failed to parse pinspect arguments", "PARSE_ERROR"); // LCOV_EXCL_LINE
+        return ik_tool_wrap_failure(ctx, "Failed to parse pread arguments", "PARSE_ERROR"); // LCOV_EXCL_LINE
     }
     yyjson_val *root = yyjson_doc_get_root_(doc);
 
@@ -117,7 +117,7 @@ char *ik_bg_pinspect_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char 
     const char *mode_str = (mode_val && yyjson_is_str(mode_val))
                            ? yyjson_get_str_(mode_val) : "tail";
     int64_t tail_lines   = (tail_val && yyjson_is_int(tail_val))
-                           ? yyjson_get_sint_(tail_val) : PINSPECT_DEFAULT_TAIL;
+                           ? yyjson_get_sint_(tail_val) : PREAD_DEFAULT_TAIL;
     int64_t start_line   = (sl_val && yyjson_is_int(sl_val))
                            ? yyjson_get_sint_(sl_val) : 1;
     int64_t end_line     = (el_val && yyjson_is_int(el_val))
@@ -136,12 +136,12 @@ char *ik_bg_pinspect_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char 
         read_mode = BG_READ_SINCE_LAST;
     } else if (strcmp(mode_str, "lines") == 0) {
         read_mode = BG_READ_RANGE;
-        if (end_line == 0) end_line = start_line + PINSPECT_MAX_LINES - 1;
-        if (end_line - start_line + 1 > PINSPECT_MAX_LINES)
-            end_line = start_line + PINSPECT_MAX_LINES - 1;
+        if (end_line == 0) end_line = start_line + PREAD_MAX_LINES - 1;
+        if (end_line - start_line + 1 > PREAD_MAX_LINES)
+            end_line = start_line + PREAD_MAX_LINES - 1;
     } else {
         read_mode = BG_READ_TAIL;
-        if (tail_lines > PINSPECT_MAX_LINES) tail_lines = PINSPECT_MAX_LINES;
+        if (tail_lines > PREAD_MAX_LINES) tail_lines = PREAD_MAX_LINES;
         if (tail_lines < 1) tail_lines = 1;
     }
 
@@ -166,9 +166,9 @@ char *ik_bg_pinspect_handler(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, const char 
     if (raw_buf != NULL && raw_len > 0) {
         char *s = bg_ansi_strip(ctx, (const char *)raw_buf, raw_len);
         stripped_len = strlen(s);
-        if (stripped_len > PINSPECT_MAX_BYTES) {
-            s[PINSPECT_MAX_BYTES] = '\0';
-            stripped_len = PINSPECT_MAX_BYTES;
+        if (stripped_len > PREAD_MAX_BYTES) {
+            s[PREAD_MAX_BYTES] = '\0';
+            stripped_len = PREAD_MAX_BYTES;
         }
         stripped = s;
     }

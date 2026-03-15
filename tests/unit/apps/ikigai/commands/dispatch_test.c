@@ -94,7 +94,7 @@ START_TEST(test_cmd_get_all) {
     const ik_command_t *cmds = ik_cmd_get_all(&count);
 
     ck_assert_ptr_nonnull(cmds);
-    ck_assert_uint_eq(count, 28);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, summary, load, unload, skills, skillset, exit, ps, pinspect, pkill, pwrite, pclose
+    ck_assert_uint_eq(count, 28);     // clear, mark, rewind, fork, kill, send, wait, reap, agents, help, model, system, tool, refresh, pin, unpin, toolset, summary, load, unload, skills, skillset, exit, ps, pread, pkill, pwrite, pclose
 
     // Verify command names
     ck_assert_str_eq(cmds[0].name, "clear");
@@ -121,7 +121,7 @@ START_TEST(test_cmd_get_all) {
     ck_assert_str_eq(cmds[21].name, "skillset");
     ck_assert_str_eq(cmds[22].name, "exit");
     ck_assert_str_eq(cmds[23].name, "ps");
-    ck_assert_str_eq(cmds[24].name, "pinspect");
+    ck_assert_str_eq(cmds[24].name, "pread");
     ck_assert_str_eq(cmds[25].name, "pkill");
     ck_assert_str_eq(cmds[26].name, "pwrite");
     ck_assert_str_eq(cmds[27].name, "pclose");

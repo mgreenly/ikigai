@@ -78,7 +78,7 @@ static const ik_command_t commands[] = {
     {"skillset", "Load a skillset (usage: /skillset <name>)", ik_cmd_skillset},
     {"exit", "Exit the application", ik_cmd_exit},
     {"ps", "List background processes", ik_cmd_ps},
-    {"pinspect", "Inspect process output (usage: /pinspect <id> [--tail=N|--lines=S-E|--since-last|--full])", ik_cmd_pinspect},
+    {"pread", "Read process output (usage: /pread <id> [--tail=N|--lines=S-E|--since-last|--full])", ik_cmd_pread},
     {"pkill", "Terminate a background process (usage: /pkill <id>)", ik_cmd_pkill},
     {"pwrite", "Write to process stdin (usage: /pwrite <id> [--raw] [--eof] <text>)", ik_cmd_pwrite},
     {"pclose", "Send EOF to process stdin (usage: /pclose <id>)", ik_cmd_pclose},

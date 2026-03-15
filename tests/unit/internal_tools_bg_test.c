@@ -167,26 +167,26 @@ START_TEST(test_pstart_concurrency_limit) {
 }
 END_TEST
 
-/* ---- pinspect ---- */
-START_TEST(test_pinspect_null_manager) {
+/* ---- pread ---- */
+START_TEST(test_pread_null_manager) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=talloc_zero(ctx,ik_agent_ctx_t);
-    char *r=ik_bg_pinspect_handler(ctx,a,"{\"id\":1}");
+    char *r=ik_bg_pread_handler(ctx,a,"{\"id\":1}");
     ck_assert(!tok(r)); ck_assert(ec(r,"NOT_INITIALIZED")); talloc_free(ctx);
 }
 END_TEST
-START_TEST(test_pinspect_missing_id) {
+START_TEST(test_pread_missing_id) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=make_agent(ctx);
-    char *r=ik_bg_pinspect_handler(ctx,a,"{}");
+    char *r=ik_bg_pread_handler(ctx,a,"{}");
     ck_assert(!tok(r)); ck_assert(ec(r,"INVALID_ARG")); talloc_free(ctx);
 }
 END_TEST
-START_TEST(test_pinspect_process_not_found) {
+START_TEST(test_pread_process_not_found) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=make_agent(ctx);
-    char *r=ik_bg_pinspect_handler(ctx,a,"{\"id\":99}");
+    char *r=ik_bg_pread_handler(ctx,a,"{\"id\":99}");
     ck_assert(!tok(r)); ck_assert(ec(r,"NOT_FOUND")); talloc_free(ctx);
 }
 END_TEST
-START_TEST(test_pinspect_returns_fields) {
+START_TEST(test_pread_returns_fields) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=make_agent(ctx);
     bg_process_t *proc=add_proc(a->bg_manager,5,BG_STATUS_RUNNING);
     char path[64]; int fd=tmpfd(path);
@@ -194,7 +194,7 @@ START_TEST(test_pinspect_returns_fields) {
     write(fd,text,strlen(text));
     proc->output_fd=fd; proc->total_bytes=(int64_t)strlen(text);
     bg_line_index_append(proc->line_index,(const uint8_t*)text,strlen(text));
-    char *r=ik_bg_pinspect_handler(ctx,a,"{\"id\":5}");
+    char *r=ik_bg_pread_handler(ctx,a,"{\"id\":5}");
     ck_assert(tok(r));
     char buf[32]; ck_assert_str_eq(rs(r,"status",buf,sizeof(buf)),"running");
     ck_assert_int_eq((int)ri(r,"id"),5);
@@ -202,7 +202,7 @@ START_TEST(test_pinspect_returns_fields) {
     close(fd); unlink(path); talloc_free(ctx);
 }
 END_TEST
-START_TEST(test_pinspect_ansi_stripped) {
+START_TEST(test_pread_ansi_stripped) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=make_agent(ctx);
     bg_process_t *proc=add_proc(a->bg_manager,3,BG_STATUS_RUNNING);
     char path[64]; int fd=tmpfd(path);
@@ -210,7 +210,7 @@ START_TEST(test_pinspect_ansi_stripped) {
     write(fd,text,strlen(text));
     proc->output_fd=fd; proc->total_bytes=(int64_t)strlen(text);
     bg_line_index_append(proc->line_index,(const uint8_t*)text,strlen(text));
-    char *r=ik_bg_pinspect_handler(ctx,a,"{\"id\":3}");
+    char *r=ik_bg_pread_handler(ctx,a,"{\"id\":3}");
     ck_assert(tok(r));
     yyjson_doc *doc=yyjson_read(r,strlen(r),0);
     const char *out=yyjson_get_str(yyjson_obj_get(
@@ -220,7 +220,7 @@ START_TEST(test_pinspect_ansi_stripped) {
     yyjson_doc_free(doc); close(fd); unlink(path); talloc_free(ctx);
 }
 END_TEST
-START_TEST(test_pinspect_truncates_at_50kb) {
+START_TEST(test_pread_truncates_at_50kb) {
     TALLOC_CTX *ctx=talloc_new(NULL); ik_agent_ctx_t *a=make_agent(ctx);
     bg_process_t *proc=add_proc(a->bg_manager,4,BG_STATUS_RUNNING);
     char path[64]; int fd=tmpfd(path);
@@ -233,7 +233,7 @@ START_TEST(test_pinspect_truncates_at_50kb) {
         total+=260;
     }
     proc->output_fd=fd; proc->total_bytes=(int64_t)total;
-    char *r=ik_bg_pinspect_handler(ctx,a,"{\"id\":4,\"tail_lines\":200}");
+    char *r=ik_bg_pread_handler(ctx,a,"{\"id\":4,\"tail_lines\":200}");
     ck_assert(tok(r));
     yyjson_doc *doc=yyjson_read(r,strlen(r),0);
     const char *out=yyjson_get_str(yyjson_obj_get(
@@ -328,13 +328,13 @@ static Suite *suite(void) {
     tcase_add_test(tc,test_pstart_concurrency_limit);
     suite_add_tcase(s,tc);
 
-    tc=tcase_create("pinspect");
-    tcase_add_test(tc,test_pinspect_null_manager);
-    tcase_add_test(tc,test_pinspect_missing_id);
-    tcase_add_test(tc,test_pinspect_process_not_found);
-    tcase_add_test(tc,test_pinspect_returns_fields);
-    tcase_add_test(tc,test_pinspect_ansi_stripped);
-    tcase_add_test(tc,test_pinspect_truncates_at_50kb);
+    tc=tcase_create("pread");
+    tcase_add_test(tc,test_pread_null_manager);
+    tcase_add_test(tc,test_pread_missing_id);
+    tcase_add_test(tc,test_pread_process_not_found);
+    tcase_add_test(tc,test_pread_returns_fields);
+    tcase_add_test(tc,test_pread_ansi_stripped);
+    tcase_add_test(tc,test_pread_truncates_at_50kb);
     suite_add_tcase(s,tc);
 
     tc=tcase_create("pwrite");

@@ -1,6 +1,6 @@
 /**
  * @file commands_bg_test.c
- * @brief Unit tests for /ps, /pinspect, /pkill, /pwrite, /pclose commands
+ * @brief Unit tests for /ps, /pread, /pkill, /pwrite, /pclose commands
  */
 
 #include <check.h>
@@ -132,40 +132,40 @@ START_TEST(test_ps_forever_ttl) {
 }
 END_TEST
 
-/* ================================================================ /pinspect ================================================================ */
+/* ================================================================ /pread ================================================================ */
 
-START_TEST(test_pinspect_bad_args) {
+START_TEST(test_pread_bad_args) {
     /* No args */
-    res_t r = run("/pinspect"); ck_assert(is_ok(&r)); ck_assert(sb_has("Usage:")); ck_assert(sb_has("/pinspect"));
+    res_t r = run("/pread"); ck_assert(is_ok(&r)); ck_assert(sb_has("Usage:")); ck_assert(sb_has("/pread"));
     /* Non-numeric id */
-    r = run("/pinspect abc"); ck_assert(is_ok(&r)); ck_assert(sb_has("Usage:"));
+    r = run("/pread abc"); ck_assert(is_ok(&r)); ck_assert(sb_has("Usage:"));
     /* Not found */
-    r = run("/pinspect 99"); ck_assert(is_ok(&r)); ck_assert(sb_has("not found"));
+    r = run("/pread 99"); ck_assert(is_ok(&r)); ck_assert(sb_has("not found"));
     /* Unknown option */
     add_proc(1, BG_STATUS_RUNNING, "cmd", 60);
-    r = run("/pinspect 1 --bogus"); ck_assert(is_ok(&r)); ck_assert(sb_has("Unknown option"));
+    r = run("/pread 1 --bogus"); ck_assert(is_ok(&r)); ck_assert(sb_has("Unknown option"));
     /* Bad --tail */
-    r = run("/pinspect 1 --tail=0"); ck_assert(is_ok(&r)); ck_assert(sb_has("Invalid --tail"));
+    r = run("/pread 1 --tail=0"); ck_assert(is_ok(&r)); ck_assert(sb_has("Invalid --tail"));
     /* Bad --lines */
-    r = run("/pinspect 1 --lines=50-10"); ck_assert(is_ok(&r)); ck_assert(sb_has("Invalid --lines"));
+    r = run("/pread 1 --lines=50-10"); ck_assert(is_ok(&r)); ck_assert(sb_has("Invalid --lines"));
 }
 END_TEST
 
-START_TEST(test_pinspect_modes) {
+START_TEST(test_pread_modes) {
     add_proc(2, BG_STATUS_EXITED,    "cargo test", 60);
     add_proc(3, BG_STATUS_RUNNING,   "watcher",    -1);
     add_proc(4, BG_STATUS_TIMED_OUT, "slow",       10);
 
     /* Default tail → header shows status */
-    res_t r = run("/pinspect 2"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 2:")); ck_assert(sb_has("exited(0)"));
+    res_t r = run("/pread 2"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 2:")); ck_assert(sb_has("exited(0)"));
     /* --tail=100 */
-    r = run("/pinspect 3 --tail=100"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 3:")); ck_assert(sb_has("running"));
+    r = run("/pread 3 --tail=100"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 3:")); ck_assert(sb_has("running"));
     /* --lines=1-10 */
-    r = run("/pinspect 2 --lines=1-10"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 2:"));
+    r = run("/pread 2 --lines=1-10"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 2:"));
     /* --since-last */
-    r = run("/pinspect 3 --since-last"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 3:"));
+    r = run("/pread 3 --since-last"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 3:"));
     /* --full */
-    r = run("/pinspect 4 --full"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 4:")); ck_assert(sb_has("timed_out"));
+    r = run("/pread 4 --full"); ck_assert(is_ok(&r)); ck_assert(sb_has("Process 4:")); ck_assert(sb_has("timed_out"));
 }
 END_TEST
 
@@ -241,11 +241,11 @@ static Suite *commands_bg_suite(void)
     tcase_add_test(tc_ps, test_ps_forever_ttl);
     suite_add_tcase(s, tc_ps);
 
-    TCase *tc_pi = tcase_create("pinspect");
+    TCase *tc_pi = tcase_create("pread");
     tcase_add_unchecked_fixture(tc_pi, setup, NULL);
     tcase_add_checked_fixture(tc_pi, test_setup, test_teardown);
-    tcase_add_test(tc_pi, test_pinspect_bad_args);
-    tcase_add_test(tc_pi, test_pinspect_modes);
+    tcase_add_test(tc_pi, test_pread_bad_args);
+    tcase_add_test(tc_pi, test_pread_modes);
     suite_add_tcase(s, tc_pi);
 
     TCase *tc_pk = tcase_create("pkill");

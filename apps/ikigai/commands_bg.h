@@ -1,6 +1,6 @@
 /**
  * @file commands_bg.h
- * @brief Background process slash command handlers (/ps, /pinspect, /pkill, /pwrite, /pclose)
+ * @brief Background process slash command handlers (/ps, /pread, /pkill, /pwrite, /pclose)
  */
 
 #ifndef IK_COMMANDS_BG_H
@@ -17,11 +17,11 @@ typedef struct ik_repl_ctx_t ik_repl_ctx_t;
 res_t ik_cmd_ps(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
- * Inspect a background process: show status header and output lines.
- * Usage: /pinspect <id> [--tail=N | --lines=S-E | --since-last | --full]
+ * Read a background process: show status header and output lines.
+ * Usage: /pread <id> [--tail=N | --lines=S-E | --since-last | --full]
  * Default: last 50 lines.
  */
-res_t ik_cmd_pinspect(void *ctx, ik_repl_ctx_t *repl, const char *args);
+res_t ik_cmd_pread(void *ctx, ik_repl_ctx_t *repl, const char *args);
 
 /**
  * Terminate a background process.
