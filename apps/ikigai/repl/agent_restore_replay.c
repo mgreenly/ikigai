@@ -5,6 +5,8 @@
 #include "apps/ikigai/message.h"
 #include "apps/ikigai/msg.h"
 #include "apps/ikigai/token_cache.h"
+#include "apps/ikigai/tool.h"
+#include "apps/ikigai/tool_scheduler.h"
 #include "shared/error.h"
 #include "shared/logger.h"
 #include "shared/wrapper_json.h"
@@ -14,6 +16,157 @@
 #include <talloc.h>
 
 #include "shared/poison.h"
+
+// ---------------------------------------------------------------------------
+// Parallel batch replay helpers
+// ---------------------------------------------------------------------------
+
+// Extract a string field from a JSON object string.
+static char *replay_extract_str(TALLOC_CTX *ctx, const char *data_json, const char *key)
+{
+    if (data_json == NULL) return NULL;
+    yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
+    if (doc == NULL) return NULL;
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    char *result = NULL;
+    yyjson_val *val = yyjson_obj_get_(root, key);
+    if (val != NULL && yyjson_is_str(val)) {
+        const char *s = yyjson_get_str_(val);
+        if (s != NULL) result = talloc_strdup(ctx, s);
+    }
+    yyjson_doc_free(doc);
+    return result;
+}
+
+// Extract a bool field from a JSON object string.
+static bool replay_extract_bool(const char *data_json, const char *key)
+{
+    if (data_json == NULL) return false;
+    yyjson_doc *doc = yyjson_read(data_json, strlen(data_json), 0);
+    if (doc == NULL) return false;
+    yyjson_val *root = yyjson_doc_get_root_(doc);
+    bool result = false;
+    yyjson_val *val = yyjson_obj_get_(root, key);
+    if (val != NULL && yyjson_is_bool(val)) {
+        result = yyjson_get_bool(val);
+    }
+    yyjson_doc_free(doc);
+    return result;
+}
+
+// Count consecutive tool_call+tool_result pairs with the given batch_id starting at start_idx.
+// Returns the total number of messages consumed (pair_count * 2).
+static size_t count_batch_messages(ik_replay_context_t *replay_ctx, size_t start_idx,
+                                   const char *batch_id)
+{
+    size_t count = 0;
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) return 0;
+    for (size_t i = start_idx; i + 1 < replay_ctx->count; i += 2) {
+        ik_msg_t *tc_msg = replay_ctx->messages[i];
+        ik_msg_t *tr_msg = replay_ctx->messages[i + 1];
+        if (tc_msg->kind == NULL || strcmp(tc_msg->kind, "tool_call") != 0) break;
+        if (tr_msg->kind == NULL || strcmp(tr_msg->kind, "tool_result") != 0) break;
+        char *bid = replay_extract_str(tmp, tc_msg->data_json, "batch_id");
+        if (bid == NULL || strcmp(bid, batch_id) != 0) break;
+        count += 2;
+    }
+    talloc_free(tmp);
+    return count;
+}
+
+// Replay a parallel batch using a dry-run scheduler to emit status display lines.
+// start_idx: index of the first tool_call in the batch.
+// batch_count: total number of messages (tool_call+tool_result pairs * 2).
+static void replay_parallel_batch(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx,
+                                   size_t start_idx, size_t batch_count)
+{
+    size_t pair_count = batch_count / 2;
+    if (pair_count == 0) return;
+
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) return;
+
+    ik_tool_scheduler_t *sched = ik_tool_scheduler_create(tmp, agent);
+    sched->replay_mode   = true;
+    sched->stream_complete = true;
+
+    const char **entry_outputs = talloc_zero_array(tmp, const char *, (unsigned int)pair_count);
+    bool *entry_success        = talloc_zero_array(tmp, bool, (unsigned int)pair_count);
+    if (entry_outputs == NULL || entry_success == NULL) { // LCOV_EXCL_BR_LINE
+        talloc_free(tmp); // LCOV_EXCL_LINE
+        return; // LCOV_EXCL_LINE
+    }
+
+    for (size_t i = 0; i < pair_count; i++) {
+        ik_msg_t *tc_msg = replay_ctx->messages[start_idx + i * 2];
+        ik_msg_t *tr_msg = replay_ctx->messages[start_idx + i * 2 + 1];
+
+        const char *tc_id   = replay_extract_str(tmp, tc_msg->data_json, "tool_call_id");
+        const char *tc_name = replay_extract_str(tmp, tc_msg->data_json, "tool_name");
+        const char *tc_args = replay_extract_str(tmp, tc_msg->data_json, "tool_args");
+        if (tc_id   == NULL) tc_id   = talloc_strdup(tmp, "");
+        if (tc_name == NULL) tc_name = talloc_strdup(tmp, "unknown");
+        if (tc_args == NULL) tc_args = talloc_strdup(tmp, "{}");
+
+        ik_tool_call_t *tc = ik_tool_call_create(tmp, tc_id, tc_name, tc_args);
+        res_t res = ik_tool_scheduler_add(sched, tc);
+        if (is_err(&res)) { // LCOV_EXCL_BR_LINE
+            talloc_free(tmp); // LCOV_EXCL_LINE
+            return; // LCOV_EXCL_LINE
+        }
+
+        entry_outputs[i] = replay_extract_str(tmp, tr_msg->data_json, "output");
+        if (entry_outputs[i] == NULL) entry_outputs[i] = "{}";
+        entry_success[i] = replay_extract_bool(tr_msg->data_json, "success");
+    }
+
+    ik_tool_scheduler_begin(sched);
+
+    for (int32_t i = 0; i < sched->count; i++) {
+        if (ik_schedule_is_terminal(sched->entries[i].status)) continue;
+        if (entry_success[(size_t)i]) {
+            char *result = talloc_strdup(sched, entry_outputs[(size_t)i]);
+            ik_tool_scheduler_on_complete(sched, i, result);
+        } else {
+            ik_tool_scheduler_on_error(sched, i, entry_outputs[(size_t)i]);
+        }
+    }
+
+    ik_tool_scheduler_destroy(sched);
+    talloc_free(tmp);
+}
+
+// If msg is the start of a parallel batch, replay it and return the number of messages consumed.
+// Also updates *conv_count_inout for the remaining batch messages.
+// Returns 0 if msg is not a parallel batch start.
+static size_t try_replay_batch(ik_agent_ctx_t *agent, ik_replay_context_t *replay_ctx,
+                                ik_msg_t *msg, size_t j, size_t *conv_count_inout)
+{
+    if (msg->kind == NULL || strcmp(msg->kind, "tool_call") != 0 || msg->interrupted) {
+        return 0;
+    }
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    char *batch_id = replay_extract_str(tmp, msg->data_json, "batch_id");
+    if (batch_id == NULL) {
+        talloc_free(tmp);
+        return 0;
+    }
+    size_t batch_count = count_batch_messages(replay_ctx, j, batch_id);
+    if (batch_count == 0) {
+        talloc_free(tmp);
+        return 0;
+    }
+    for (size_t k = j + 1; k < j + batch_count; k++) {
+        ik_msg_t *bm = replay_ctx->messages[k];
+        if (ik_msg_is_conversation_kind(bm->kind) && !bm->interrupted) {
+            (*conv_count_inout)++;
+        }
+    }
+    replay_parallel_batch(agent, replay_ctx, j, batch_count);
+    talloc_free(tmp);
+    return batch_count;
+}
 
 void ik_agent_restore_populate_conversation(
     ik_agent_ctx_t *agent,
@@ -168,6 +321,13 @@ void ik_agent_restore_populate_scrollback(
         // Track conversation message count for load_position
         if (ik_msg_is_conversation_kind(msg->kind) && !msg->interrupted) {
             running_conv_count++;
+        }
+
+        // Detect parallel batch: tool_call with batch_id triggers dry-run scheduler replay.
+        size_t batch_consumed = try_replay_batch(agent, replay_ctx, msg, j, &running_conv_count);
+        if (batch_consumed > 0) {
+            j += batch_consumed - 1;
+            continue;
         }
 
         res_t res = ik_event_render(agent->scrollback, msg->kind, msg->content, msg->data_json, msg->interrupted);

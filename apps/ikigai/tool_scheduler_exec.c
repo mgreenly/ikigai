@@ -190,6 +190,13 @@ static void *sched_worker(void *arg)
 static void start_entry(ik_tool_scheduler_t *sched, int32_t index)
 {
     ik_schedule_entry_t *e  = &sched->entries[index];
+
+    if (sched->replay_mode) {
+        e->status = IK_SCHEDULE_RUNNING;
+        display_transition(sched, index, "▶ Running", NULL);
+        return;
+    }
+
     ik_agent_ctx_t      *ag = sched->agent;
 
     e->thread_ctx = talloc_new(sched);

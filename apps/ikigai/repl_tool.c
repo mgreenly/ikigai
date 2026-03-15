@@ -103,7 +103,7 @@ void ik_repl_execute_pending_tool(ik_repl_ctx_t *repl)
     const char *formatted_result = ik_format_tool_result(repl, tc->name, result_json);
     ik_event_render(repl->current->scrollback, "tool_result", formatted_result, "{}", false);
     if (repl->shared->db_ctx != NULL && repl->shared->session_id > 0) {
-        char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL);
+        char *tool_call_data_json = ik_build_tool_call_data_json(repl, tc, NULL, NULL, NULL, NULL);
         char *tool_result_data_json = ik_build_tool_result_data_json(repl, tc->id, tc->name, result_json);
         ik_db_message_insert_(repl->shared->db_ctx, repl->shared->session_id,
                               repl->current->uuid, "tool_call", formatted_call, tool_call_data_json);
@@ -185,7 +185,7 @@ void ik_agent_complete_tool_execution(ik_agent_ctx_t *agent)
     if (agent->shared->db_ctx != NULL && agent->shared->session_id > 0) {
         char *tool_call_data_json = ik_build_tool_call_data_json(agent, tc, agent->pending_thinking_text,
                                                                  agent->pending_thinking_signature,
-                                                                 agent->pending_redacted_data);
+                                                                 agent->pending_redacted_data, NULL);
         char *tool_result_data_json = ik_build_tool_result_data_json(agent, tc->id, tc->name, result_json);
         ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
                               agent->uuid, "tool_call", formatted_call, tool_call_data_json);

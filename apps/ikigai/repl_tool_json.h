@@ -4,11 +4,13 @@
 #include <talloc.h>
 
 // Build tool_call data_json for database with thinking/redacted blocks.
+// batch_id: optional parallel-batch identifier (NULL for single tool calls).
 char *ik_build_tool_call_data_json(TALLOC_CTX *ctx,
                                    const ik_tool_call_t *tc,
                                    const char *thinking_text,
                                    const char *thinking_signature,
-                                   const char *redacted_data);
+                                   const char *redacted_data,
+                                   const char *batch_id);
 
 // Build tool_result data_json for database.
 char *ik_build_tool_result_data_json(TALLOC_CTX *ctx,

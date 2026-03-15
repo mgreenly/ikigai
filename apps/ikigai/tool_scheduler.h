@@ -96,6 +96,9 @@ typedef struct {
     // Set true when the LLM streaming is complete (message_stop received)
     bool                 stream_complete;
 
+    // Set true for dry-run replay: start_entry shows status but skips thread creation
+    bool                 replay_mode;
+
     // Guards structural changes to the entries array
     pthread_mutex_t      mutex;
 

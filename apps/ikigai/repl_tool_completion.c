@@ -108,7 +108,7 @@ ik_message_t *ik_repl_build_multi_tool_result_msg(ik_agent_ctx_t *agent,
 }
 
 static void persist_entry(ik_agent_ctx_t *agent, ik_tool_scheduler_t *sched,
-                           int32_t idx)
+                           int32_t idx, const char *batch_id)
 {
     ik_schedule_entry_t *e       = &sched->entries[idx];
     ik_tool_call_t      *tc      = e->tool_call;
@@ -119,7 +119,7 @@ static void persist_entry(ik_agent_ctx_t *agent, ik_tool_scheduler_t *sched,
     if (agent->shared->db_ctx == NULL || agent->shared->session_id <= 0) return;
     const char *formatted_call   = ik_format_tool_call(agent, tc);
     const char *formatted_result = ik_format_tool_result(agent, tc->name, result_json);
-    char *call_data   = ik_build_tool_call_data_json(agent, tc, NULL, NULL, NULL);
+    char *call_data   = ik_build_tool_call_data_json(agent, tc, NULL, NULL, NULL, batch_id);
     char *result_data = ik_build_tool_result_data_json(agent, tc->id, tc->name,
                                                        result_json);
     ik_db_message_insert_(agent->shared->db_ctx, agent->shared->session_id,
@@ -139,8 +139,9 @@ static void ik_repl_complete_scheduler(ik_repl_ctx_t *repl, ik_agent_ctx_t *agen
     if (is_err(&r)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
     r = ik_agent_add_message(agent, result_msg);
     if (is_err(&r)) PANIC("allocation failed"); // LCOV_EXCL_BR_LINE
+    const char *batch_id = (sched->count > 0) ? sched->entries[0].tool_call->id : NULL;
     for (int32_t i = 0; i < sched->count; i++) {
-        persist_entry(agent, sched, i);
+        persist_entry(agent, sched, i, batch_id);
     }
     ik_tool_scheduler_destroy(sched);
     agent->scheduler = NULL;
