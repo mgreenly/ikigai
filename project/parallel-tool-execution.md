@@ -115,22 +115,52 @@ Results are matched by ID, not position — they can be sent in any order.
 
 ## Display
 
-Sequential status lines appended to the scrollback as state transitions occur. No fancy multi-line live display — just explicit text:
+Sequential lines appended to the scrollback as state transitions occur. Every line is separated by one blank line. The `←` output line IS the completion signal — there is no separate "Completed" line.
 
+Line ordering for each tool call:
+1. `→ tool_name: args_summary` — tool input (shown when added to scheduler)
+2. Lifecycle status line: `▶ Running`, `◇ Blocked`, `✗ Errored`, or `⊘ Skipped`
+3. `← tool_name: result` — tool output (shown on completion; serves as "Completed" signal)
+
+Unblocked tools skip straight to `▶ Running` — no "Queued" line.
+
+Example (parallel batch with conflict):
 ```
-Queued: file_read(/src/main.c)
-Running: file_read(/src/main.c)
-Running: file_read(/src/util.c)
-Blocked: file_edit(/src/parser.c) — waiting on file_read(/src/main.c)
-Completed: file_read(/src/util.c)
-Completed: file_read(/src/main.c)
-Running: file_edit(/src/parser.c)
-Completed: file_edit(/src/parser.c)
-Errored: bash(make test) — exit code 1
-Skipped: file_read(/src/output.log) — prerequisite failed: bash(make test)
+→ file_read: file_path="/src/main.c"
+
+▶ Running: file_read(/src/main.c)
+
+→ file_read: file_path="/src/util.c"
+
+▶ Running: file_read(/src/util.c)
+
+→ file_edit: file_path="/src/main.c"
+
+◇ Blocked: file_edit(/src/main.c) — waiting on file_read(/src/main.c)
+
+← file_read: {tool_success:true, ...}
+
+← file_read: {tool_success:true, ...}
+
+▶ Running: file_edit(/src/main.c)
+
+← file_edit: {tool_success:true, ...}
 ```
 
-Every state transition is visible. The user sees what's running, what's waiting and why, and what finished.
+Example (error with cascade):
+```
+→ bash: command="make test"
+
+▶ Running: bash(make test)
+
+✗ Errored: bash(make test) — exit code 1
+
+→ file_read: file_path="/src/output.log"
+
+⊘ Skipped: file_read(/src/output.log) — prerequisite failed: bash(make test)
+```
+
+The token count line (`Tokens: N in + N out = N`) appears after all tool output lines are complete, never interleaved between lifecycle lines.
 
 ## API Constraints (all providers)
 

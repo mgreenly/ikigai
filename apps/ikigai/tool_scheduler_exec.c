@@ -2,6 +2,7 @@
 #include "apps/ikigai/tool_scheduler.h"
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/format.h"
 #include "apps/ikigai/scrollback.h"
 #include "apps/ikigai/shared.h"
 #include "apps/ikigai/tool.h"
@@ -49,9 +50,14 @@ static const char *entry_summary(TALLOC_CTX *ctx, const ik_schedule_entry_t *e)
     return result != NULL ? result : talloc_strdup(ctx, name);
 }
 
-// Append a scheduler status line to the agent scrollback.
-// label: "Queued", "Running", "Completed", "Errored", "Skipped", "Blocked"
-// extra: optional suffix (e.g. " — error message"), or NULL
+// Append a line to scrollback followed by a blank separator line.
+static void append_with_blank(ik_scrollback_t *sb, const char *line)
+{
+    ik_scrollback_append_line(sb, line, strlen(line));
+    ik_scrollback_append_line(sb, "", 0);
+}
+
+// Append icon-labeled status line (▶/◇/✗/⊘) to scrollback with blank line.
 static void display_transition(ik_tool_scheduler_t *sched, int32_t idx,
                                 const char *label, const char *extra)
 {
@@ -65,9 +71,35 @@ static void display_transition(ik_tool_scheduler_t *sched, int32_t idx,
         ? talloc_asprintf(tmp, "  %s: %s%s", label, summary, extra)
         : talloc_asprintf(tmp, "  %s: %s", label, summary);
 
-    if (line != NULL) {
-        ik_scrollback_append_line(sched->agent->scrollback, line, strlen(line));
-    }
+    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
+    talloc_free(tmp);
+}
+
+// Show "→ tool_name: args" input line with blank separator.
+static void display_tool_input(ik_tool_scheduler_t *sched, int32_t idx)
+{
+    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
+
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) return;
+
+    const char *line = ik_format_tool_call(tmp, sched->entries[idx].tool_call);
+    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
+    talloc_free(tmp);
+}
+
+// Show "← tool_name: result" output line with blank separator.
+static void display_tool_output(ik_tool_scheduler_t *sched, int32_t idx)
+{
+    if (sched->agent == NULL || sched->agent->scrollback == NULL) return;
+
+    TALLOC_CTX *tmp = talloc_new(NULL);
+    if (tmp == NULL) return;
+
+    ik_schedule_entry_t *e = &sched->entries[idx];
+    const char *result_json = e->result != NULL ? e->result : "{}";
+    const char *line = ik_format_tool_result(tmp, e->tool_call->name, result_json);
+    if (line != NULL) append_with_blank(sched->agent->scrollback, line);
     talloc_free(tmp);
 }
 
@@ -105,7 +137,7 @@ static void cascade_skips(ik_tool_scheduler_t *sched, int32_t skipped_index)
                 if (tmp != NULL) {
                     const char *extra = talloc_asprintf(tmp,
                         " \xe2\x80\x94 prerequisite failed: %s", cause_name);
-                    display_transition(sched, i, "Skipped", extra);
+                    display_transition(sched, i, "⊘ Skipped", extra);
                     talloc_free(tmp);
                 }
                 cascade_skips(sched, i);
@@ -191,7 +223,7 @@ static void start_entry(ik_tool_scheduler_t *sched, int32_t index)
     e->status          = IK_SCHEDULE_RUNNING;
     pthread_mutex_unlock_(&e->mutex);
 
-    display_transition(sched, index, "Running", NULL);
+    display_transition(sched, index, "▶ Running", NULL);
 
     int ret = pthread_create_(&e->thread, NULL, sched_worker, args);
     if (ret != 0) { // LCOV_EXCL_BR_LINE
@@ -248,7 +280,7 @@ void ik_tool_scheduler_promote(ik_tool_scheduler_t *sched)
             if (tmp != NULL) {
                 const char *extra = talloc_asprintf(tmp,
                     " \xe2\x80\x94 prerequisite failed: %s", prereq_name);
-                display_transition(sched, i, "Skipped", extra);
+                display_transition(sched, i, "⊘ Skipped", extra);
                 talloc_free(tmp);
             }
             cascade_skips(sched, i);
@@ -310,19 +342,19 @@ res_t ik_tool_scheduler_add(ik_tool_scheduler_t *sched, ik_tool_call_t *tool_cal
     sched->count++;
     pthread_mutex_unlock_(&sched->mutex);
 
-    // Display initial status line
+    // Display tool input line first, then blocked status if needed
+    display_tool_input(sched, idx);
     if (e->blocked_by_count > 0) {
         TALLOC_CTX *tmp = talloc_new(NULL);
         if (tmp != NULL) {
             const char *blocker_sum = entry_summary(tmp, &sched->entries[e->blocked_by[0]]);
             const char *extra = talloc_asprintf(tmp,
                 " \xe2\x80\x94 waiting on %s", blocker_sum);
-            display_transition(sched, idx, "Blocked", extra);
+            display_transition(sched, idx, "◇ Blocked", extra);
             talloc_free(tmp);
         }
-    } else {
-        display_transition(sched, idx, "Queued", NULL);
     }
+    // Unblocked tools: no status line here — ▶ Running shown when start_entry() is called
 
     // Start immediately if unblocked
     ik_tool_scheduler_promote(sched);
@@ -343,7 +375,7 @@ void ik_tool_scheduler_on_complete(ik_tool_scheduler_t *sched, int32_t index,
     ik_schedule_entry_t *e = &sched->entries[index];
     e->result = result;
     e->status = IK_SCHEDULE_COMPLETED;
-    display_transition(sched, index, "Completed", NULL);
+    display_tool_output(sched, index);
     ik_tool_scheduler_promote(sched);
 }
 
@@ -363,7 +395,7 @@ void ik_tool_scheduler_on_error(ik_tool_scheduler_t *sched, int32_t index,
     if (tmp != NULL) {
         const char *msg = error_msg != NULL ? error_msg : "unknown error";
         const char *extra = talloc_asprintf(tmp, " \xe2\x80\x94 %s", msg);
-        display_transition(sched, index, "Errored", extra);
+        display_transition(sched, index, "✗ Errored", extra);
         talloc_free(tmp);
     }
     cascade_skips(sched, index);

@@ -231,11 +231,13 @@ res_t ik_repl_completion_callback(const ik_provider_completion_t *completion, vo
     // Store response metadata for database persistence (on success only)
     if (completion->success && completion->response != NULL) {
         ik_repl_store_response_metadata(agent, completion->response);
-        ik_repl_render_usage_event(agent);
-        // Scheduler already has tool calls from streaming; skip extraction when scheduler active
         if (agent->scheduler == NULL) {
+            // Non-scheduler path: render usage event now (no tool lifecycle lines follow)
+            ik_repl_render_usage_event(agent);
             ik_repl_extract_tool_calls(agent, completion->response);
         }
+        // Scheduler path: usage event deferred to ik_repl_complete_scheduler(),
+        // after all tool output lines, to avoid interleaving with lifecycle lines.
     }
 
     // Adjust viewport_offset to keep the display stable when scrolled up
