@@ -166,4 +166,21 @@ res_t bg_process_kill(bg_process_t *proc);
  */
 res_t bg_process_apply_transition(bg_process_t *proc, bg_status_t new_status);
 
+/**
+ * Terminate all active processes owned by this manager.
+ *
+ * Sends SIGTERM to every RUNNING or STARTING process group, waits up to
+ * grace_seconds for them to exit, then SIGKILLs any survivors. All affected
+ * processes are marked KILLED in memory and in the database (if db != NULL).
+ *
+ * Intended for agent session-end cleanup. Safe to call with no active
+ * processes (no-op).
+ *
+ * @param mgr            Manager instance. Must not be NULL.
+ * @param db             DB context. May be NULL (skips DB update).
+ * @param grace_seconds  Seconds to wait between SIGTERM and SIGKILL.
+ */
+void bg_manager_terminate_all(bg_manager_t *mgr, ik_db_ctx_t *db,
+                              int grace_seconds);
+
 #endif /* IK_BG_PROCESS_H */

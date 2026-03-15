@@ -26,6 +26,11 @@ MOCKABLE char *PQgetvalue_(const PGresult *res, int row_number, int column_numbe
     return PQgetvalue(res, row_number, column_number);
 }
 
+MOCKABLE int PQntuples_(const PGresult *res)
+{
+    return PQntuples(res);
+}
+
 MOCKABLE PGresult *pq_exec_params_(PGconn *conn,
                                    const char *command,
                                    int nParams,

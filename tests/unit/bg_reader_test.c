@@ -233,7 +233,7 @@ START_TEST(test_handle_ready_drains_output_to_disk)
     FD_ZERO(&rfds);
     FD_SET(pipefd[0], &rfds);
 
-    res_t r = bg_reader_handle_ready(mgr, &rfds);
+    res_t r = bg_reader_handle_ready(mgr, &rfds, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(proc->total_bytes, (int64_t)strlen(data));
@@ -264,7 +264,7 @@ START_TEST(test_handle_ready_pidfd_transitions_exited)
     FD_ZERO(&rfds);
     FD_SET(pidfd_pipe[0], &rfds);
 
-    res_t r = bg_reader_handle_ready(mgr, &rfds);
+    res_t r = bg_reader_handle_ready(mgr, &rfds, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(proc->status, BG_STATUS_EXITED);
@@ -294,7 +294,7 @@ START_TEST(test_handle_ready_pidfd_transitions_killed)
     FD_ZERO(&rfds);
     FD_SET(pidfd_pipe[0], &rfds);
 
-    res_t r = bg_reader_handle_ready(mgr, &rfds);
+    res_t r = bg_reader_handle_ready(mgr, &rfds, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(proc->status, BG_STATUS_KILLED);
@@ -334,7 +334,7 @@ START_TEST(test_handle_ready_output_drained_after_exit)
     FD_ZERO(&rfds);
     FD_SET(pidfd_pipe[0], &rfds);
 
-    res_t r = bg_reader_handle_ready(mgr, &rfds);
+    res_t r = bg_reader_handle_ready(mgr, &rfds, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(proc->status, BG_STATUS_EXITED);
@@ -360,7 +360,7 @@ START_TEST(test_check_ttls_not_expired)
     bg_process_t *proc = make_running_proc(mgr, -1, -1, -1);
     proc->ttl_seconds = 60; /* just started, far from expired */
 
-    res_t r = bg_reader_check_ttls(mgr);
+    res_t r = bg_reader_check_ttls(mgr, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(g_kill_count, 0);
@@ -379,7 +379,7 @@ START_TEST(test_check_ttls_expired_sends_sigterm)
     /* Simulate started 10 seconds ago */
     proc->started_at.tv_sec -= 10;
 
-    res_t r = bg_reader_check_ttls(mgr);
+    res_t r = bg_reader_check_ttls(mgr, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert(proc->sigterm_pending);
@@ -405,7 +405,7 @@ START_TEST(test_check_ttls_no_ttl_never_expires)
     /* Running for a long time — still no expiry */
     proc->started_at.tv_sec -= 3600;
 
-    res_t r = bg_reader_check_ttls(mgr);
+    res_t r = bg_reader_check_ttls(mgr, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(g_kill_count, 0);
@@ -428,7 +428,7 @@ START_TEST(test_check_ttls_sigkill_escalation)
     clock_gettime(CLOCK_MONOTONIC, &proc->sigterm_sent_at);
     proc->sigterm_sent_at.tv_sec -= 6;
 
-    res_t r = bg_reader_check_ttls(mgr);
+    res_t r = bg_reader_check_ttls(mgr, NULL, 0);
 
     ck_assert(is_ok(&r));
     ck_assert_int_eq(proc->status, BG_STATUS_TIMED_OUT);

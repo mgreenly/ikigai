@@ -1,3 +1,4 @@
+#include "apps/ikigai/bg_startup.h"
 #include "apps/ikigai/config.h"
 #include "shared/credentials.h"
 #include "apps/ikigai/debug_log.h"
@@ -133,6 +134,9 @@ int main(int argc, char *argv[])
         log_error_and_cleanup(logger, "shared_ctx_init_error", result.err, root_ctx, logger_ctx);
         return EXIT_FAILURE;
     }
+
+    // Recover orphaned background processes from previous sessions
+    bg_startup_recover(shared->db_ctx);
 
     // Create REPL context with shared context
     ik_repl_ctx_t *repl = NULL;

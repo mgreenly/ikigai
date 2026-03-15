@@ -408,6 +408,27 @@ res_t bg_process_start(bg_manager_t *mgr,
     return OK(NULL);
 }
 
+/* Update status to 'killed'. */
+static void db_update_killed(ik_db_ctx_t *db, int32_t id)
+{
+    if (db == NULL) return;
+
+    TALLOC_CTX *tmp = tmp_ctx_create();
+
+    const char *query =
+        "UPDATE background_processes SET status = 'killed' WHERE id = $1";
+
+    char id_str[32];
+    snprintf(id_str, sizeof(id_str), "%" PRId32, id); // NOLINT
+
+    const char *params[1] = { id_str };
+    ik_pg_result_wrapper_t *wr =
+        ik_db_wrap_pg_result(tmp, pq_exec_params_(db->conn, query, 1,
+                                                   NULL, params, NULL, NULL, 0));
+    (void)wr;
+    talloc_free(tmp);
+}
+
 /* ================================================================
  * bg_process_kill
  * ================================================================ */
@@ -423,4 +444,65 @@ res_t bg_process_kill(bg_process_t *proc)
     kill_(-(proc->pid), SIGTERM);
 
     return OK(NULL);
+}
+
+/* ================================================================
+ * bg_manager_terminate_all
+ * ================================================================ */
+
+void bg_manager_terminate_all(bg_manager_t *mgr, ik_db_ctx_t *db,
+                              int grace_seconds)
+{
+    assert(mgr != NULL); // LCOV_EXCL_BR_LINE
+
+    /* Send SIGTERM to all active process groups */
+    for (int i = 0; i < mgr->count; i++) {
+        bg_process_t *proc = mgr->processes[i];
+        if ((proc->status == BG_STATUS_RUNNING ||
+             proc->status == BG_STATUS_STARTING) && proc->pid > 0) {
+            kill_(-(proc->pid), SIGTERM);
+        }
+    }
+
+    /* Wait up to grace_seconds for processes to exit */
+    struct timespec deadline;
+    clock_gettime(CLOCK_MONOTONIC, &deadline);
+    deadline.tv_sec += grace_seconds;
+
+    for (;;) {
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        if (now.tv_sec > deadline.tv_sec ||
+            (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec)) {
+            break;
+        }
+
+        bool any_alive = false;
+        for (int i = 0; i < mgr->count; i++) {
+            bg_process_t *proc = mgr->processes[i];
+            if ((proc->status == BG_STATUS_RUNNING ||
+                 proc->status == BG_STATUS_STARTING) && proc->pid > 0 &&
+                kill_(proc->pid, 0) == 0) {
+                any_alive = true;
+                break;
+            }
+        }
+        if (!any_alive) break;
+
+        struct timespec sleep_ts = { .tv_sec = 0, .tv_nsec = 100000000 }; /* 100ms */
+        nanosleep(&sleep_ts, NULL);
+    }
+
+    /* SIGKILL survivors and mark all still-active processes as KILLED */
+    for (int i = 0; i < mgr->count; i++) {
+        bg_process_t *proc = mgr->processes[i];
+        if (proc->status != BG_STATUS_RUNNING && proc->status != BG_STATUS_STARTING) {
+            continue;
+        }
+        if (proc->pid > 0 && kill_(proc->pid, 0) == 0) {
+            kill_(-(proc->pid), SIGKILL);
+        }
+        proc->status = BG_STATUS_KILLED;
+        db_update_killed(db, proc->id);
+    }
 }

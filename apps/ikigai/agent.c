@@ -160,6 +160,9 @@ res_t ik_agent_create(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
     agent->token_cache = ik_token_cache_create(agent, agent);
     ik_token_cache_set_budget(agent->token_cache, budget);
 
+    // Create background process manager (talloc child of agent, destroyed with agent)
+    agent->bg_manager = bg_manager_create(agent);
+
     *out = agent;
     return OK(agent);
 }
@@ -243,6 +246,9 @@ res_t ik_agent_restore(TALLOC_CTX *ctx, ik_shared_ctx_t *shared,
         : IK_DEFAULT_SLIDING_CONTEXT_TOKENS;
     agent->token_cache = ik_token_cache_create(agent, agent);
     ik_token_cache_set_budget(agent->token_cache, budget);
+
+    // Create background process manager (talloc child of agent, destroyed with agent)
+    agent->bg_manager = bg_manager_create(agent);
 
     *out = agent;
     return OK(agent);

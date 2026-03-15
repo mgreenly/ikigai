@@ -2,6 +2,8 @@
 #include "apps/ikigai/repl_internal.h"
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/bg_process.h"
+#include "apps/ikigai/bg_reader.h"
 #include "apps/ikigai/control_socket.h"
 #include "apps/ikigai/event_render.h"
 #include "apps/ikigai/history_io.h"
@@ -76,6 +78,32 @@ res_t ik_repl_handle_key_injection(ik_repl_ctx_t *repl, bool *handled)
     return OK(NULL);
 }
 
+static void bg_collect_fds_for_agents(ik_repl_ctx_t *repl, fd_set *read_fds, int *max_fd)
+{
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        if (repl->agents[i]->bg_manager != NULL) {
+            int bg_max = bg_reader_collect_fds(repl->agents[i]->bg_manager, read_fds);
+            if (bg_max > *max_fd) *max_fd = bg_max;
+        }
+    }
+}
+
+static res_t bg_handle_events_for_agents(ik_repl_ctx_t *repl, fd_set *read_fds)
+{
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *agent = repl->agents[i];
+        if (agent->bg_manager != NULL) {
+            CHECK(bg_reader_handle_ready(agent->bg_manager, read_fds,
+                                        agent->worker_db_ctx,
+                                        repl->shared->session_id));
+            CHECK(bg_reader_check_ttls(agent->bg_manager,
+                                      agent->worker_db_ctx,
+                                      repl->shared->session_id));
+        }
+    }
+    return OK(NULL);
+}
+
 res_t ik_repl_run(ik_repl_ctx_t *repl)
 {
     assert(repl != NULL);   /* LCOV_EXCL_BR_LINE */
@@ -118,6 +146,9 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         int max_fd;
         CHECK(ik_repl_setup_fd_sets(repl, &read_fds, &write_fds, &exc_fds, &max_fd));  // LCOV_EXCL_BR_LINE
 
+        // Add background process fds for each agent
+        bg_collect_fds_for_agents(repl, &read_fds, &max_fd);
+
         // Calculate minimum curl timeout across ALL agents
         long curl_timeout_ms = -1;
         CHECK(ik_repl_calculate_curl_min_timeout(repl, &curl_timeout_ms));
@@ -159,6 +190,9 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
         // Handle curl_multi events
         CHECK(ik_repl_handle_curl_events(repl, ready));  // LCOV_EXCL_BR_LINE
 
+        // Handle background process I/O and TTL expiry
+        CHECK(bg_handle_events_for_agents(repl, &read_fds));
+
         // Time-based spinner advancement (independent of select timeout)
         if (repl->current->spinner_state.visible) {
             struct timespec ts;
@@ -185,6 +219,14 @@ res_t ik_repl_run(ik_repl_ctx_t *repl)
                 send_to_llm_for_agent(repl, agent, prompt);
                 talloc_free(prompt);
             }
+        }
+    }
+
+    // Terminate all background processes for each agent (SIGTERM → 5s grace → SIGKILL)
+    for (size_t i = 0; i < repl->agent_count; i++) {
+        ik_agent_ctx_t *agent = repl->agents[i];
+        if (agent->bg_manager != NULL) {
+            bg_manager_terminate_all(agent->bg_manager, agent->worker_db_ctx, 5);
         }
     }
 
