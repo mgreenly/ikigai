@@ -14,6 +14,7 @@
 #include "apps/ikigai/commands_context_box.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/scrollback_utils.h"
 #include "shared/terminal.h"
 #include "tests/helpers/test_utils_helper.h"
 
@@ -51,66 +52,46 @@ static void set_term_width(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, int width)
 
 START_TEST(test_context_basic_render) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Should produce multiple lines */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     ck_assert_uint_gt(count, 10);
-
-    /* First line should be outer box title containing "Context" */
     const char *line0 = get_line(agent->scrollback, 0);
     ck_assert_ptr_nonnull(line0);
     ck_assert_ptr_nonnull(strstr(line0, "Context"));
-
-    /* Last line should be outer box close (contains BOX_BR) */
     const char *last = get_line(agent->scrollback, count - 1);
     ck_assert_ptr_nonnull(last);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_empty_groups) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
-    /* Fresh agent: no pinned docs, skills, skill catalog, summaries, messages */
     ck_assert_uint_eq(agent->pinned_count, 0);
     ck_assert_uint_eq(agent->loaded_skill_count, 0);
     ck_assert_uint_eq(agent->skillset_catalog_count, 0);
     ck_assert_uint_eq(agent->session_summary_count, 0);
     ck_assert_ptr_null(agent->recent_summary);
     ck_assert_uint_eq(agent->message_count, 0);
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Scan all lines for "(empty)" markers */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int empty_count = 0;
     for (size_t i = 0; i < count; i++) {
         const char *line = get_line(agent->scrollback, i);
         if (line && strstr(line, "(empty)")) empty_count++;
     }
-    /* 7 groups should be empty: Tools, Pinned Docs, Skills, Skill Catalog,
-     * Session Summaries, Recent Summary, Message History */
     ck_assert_int_ge(empty_count, 7);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -377,6 +358,14 @@ START_TEST(test_context_skill_catalog) {
 }
 END_TEST
 
+static int line_disp_width(ik_scrollback_t *sb, size_t idx)
+{
+    const char *t = NULL; size_t n = 0;
+    res_t r = ik_scrollback_get_line_text(sb, idx, &t, &n);
+    if (is_err(&r)) { talloc_free(r.err); return -1; }
+    return (int)ik_scrollback_calculate_display_width(t, n);
+}
+
 START_TEST(test_line_widths) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_agent_ctx_t *agent = NULL;
@@ -384,17 +373,20 @@ START_TEST(test_line_widths) {
     ck_assert(is_ok(&res));
     ctx_rend_t r;
     ctx_rend_init(&r, ctx, agent->scrollback, 80);
-    ik_scrollback_clear(agent->scrollback);
-    ctx_render_group_row(&r, "label", "42 tok");
-    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 80);
-    ik_scrollback_clear(agent->scrollback);
-    ctx_render_total_line(&r, 1234567);
-    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 80);
+#define CLR ik_scrollback_clear(agent->scrollback)
+#define WID line_disp_width(agent->scrollback, 0)
+    CLR; ctx_render_outer_title(&r);                          ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_outer_blank(&r);                          ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_outer_close(&r);                          ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_group_header(&r, "Tools", "0 tok");       ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_group_row(&r, "label", "42 tok");         ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_group_footer(&r);                         ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_total_line(&r, 1234567);                  ck_assert_int_eq(WID, 80);
     ctx_rend_t r2;
     ctx_rend_init(&r2, ctx, agent->scrollback, 60);
-    ik_scrollback_clear(agent->scrollback);
-    ctx_render_budget_line(&r2, 2000000000, 1000000000);
-    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 60);
+    CLR; ctx_render_budget_line(&r2, 2000000000, 1000000000); ck_assert_int_eq(WID, 60);
+#undef CLR
+#undef WID
     talloc_free(ctx);
 }
 END_TEST

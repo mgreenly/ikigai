@@ -270,7 +270,7 @@ res_t ik_cmd_context(void *ctx, ik_repl_ctx_t *repl, const char *args)
     int W = CTX_MIN_WIDTH;
     if (repl->shared && repl->shared->term &&
         repl->shared->term->screen_cols > CTX_MIN_WIDTH) {
-        W = repl->shared->term->screen_cols;
+        W = repl->shared->term->screen_cols - 1;
     }
 
     /* Build system blocks for content + token estimates */
