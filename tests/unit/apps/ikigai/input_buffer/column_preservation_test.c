@@ -47,7 +47,6 @@ START_TEST(test_cursor_up_down_column_preservation) {
      * Line 2 starts at byte 6 (after "short\n")
      * Column 10 means byte 6 + 10 = 16
      */
-    input_buffer->cursor_byte_offset = 16;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
@@ -104,7 +103,6 @@ START_TEST(test_column_preservation_resets_on_horizontal_move) {
     }
 
     /* Position at column 10 of line 2 (byte 6 + 10 = 16) */
-    input_buffer->cursor_byte_offset = 16;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 16);
@@ -180,7 +178,6 @@ START_TEST(test_multiple_vertical_movements) {
      * Line 4: "another very long line" = 22 bytes (28-49)
      * Column 10 of line 4 = byte 28 + 10 = 38
      */
-    input_buffer->cursor_byte_offset = 38;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 38);

@@ -348,7 +348,6 @@ START_TEST(test_repl_process_action_arrow_down) {
     ik_repl_process_action(repl, &action);
 
     // Move cursor to start (byte 0)
-    input_buf->cursor_byte_offset = 0;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buf, &text_len);
     ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 0);

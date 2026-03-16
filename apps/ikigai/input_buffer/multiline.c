@@ -194,7 +194,6 @@ res_t ik_input_buffer_cursor_up(ik_input_buffer_t *input_buffer)
                                                                target_column);
 
     // Update cursor position
-    input_buffer->cursor_byte_offset = new_pos;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, new_pos);
 
     return OK(NULL);
@@ -251,7 +250,6 @@ res_t ik_input_buffer_cursor_down(ik_input_buffer_t *input_buffer)
                                                                target_column);
 
     // Update cursor position
-    input_buffer->cursor_byte_offset = new_pos;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, new_pos);
 
     return OK(NULL);
@@ -281,7 +279,6 @@ res_t ik_input_buffer_cursor_to_line_start(ik_input_buffer_t *input_buffer)
     }
 
     // Update cursor position to line start
-    input_buffer->cursor_byte_offset = line_start;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, line_start);
 
     // Reset target column on horizontal movement
@@ -314,7 +311,6 @@ res_t ik_input_buffer_cursor_to_line_end(ik_input_buffer_t *input_buffer)
     }
 
     // Update cursor position to line end
-    input_buffer->cursor_byte_offset = line_end;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, line_end);
 
     // Reset target column on horizontal movement
@@ -354,7 +350,6 @@ res_t ik_input_buffer_kill_to_line_end(ik_input_buffer_t *input_buffer)
 
     // Update cursor (text changed, need to resync cursor object)
     text = ik_input_buffer_get_text(input_buffer, &text_len); // Never fails
-    input_buffer->cursor_byte_offset = cursor_pos;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, cursor_pos);
 
     // Reset target column on text modification
@@ -403,7 +398,6 @@ res_t ik_input_buffer_kill_line(ik_input_buffer_t *input_buffer)
 
     // Ensure cursor position doesn't exceed new text length
     size_t new_cursor_pos = (line_start <= text_len) ? line_start : text_len;
-    input_buffer->cursor_byte_offset = new_cursor_pos;
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, new_cursor_pos);
 
     // Reset target column on text modification

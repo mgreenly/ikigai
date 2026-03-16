@@ -25,7 +25,6 @@
 typedef struct ik_input_buffer_t {
     ik_byte_array_t *text;       /**< UTF-8 text buffer */
     ik_input_buffer_cursor_t *cursor;         /**< Cursor position (byte and grapheme offsets) */
-    size_t cursor_byte_offset;   /**< Legacy byte offset - deprecated, use cursor instead */
     size_t target_column;        /**< Preserved column position for multi-line navigation (0 = use current) */
     size_t physical_lines;       /**< Cached number of physical lines (accounting for wrapping) */
     int32_t cached_width;        /**< Terminal width used for last layout calculation */

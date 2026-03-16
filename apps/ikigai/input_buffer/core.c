@@ -24,7 +24,6 @@ ik_input_buffer_t *ik_input_buffer_create(void *parent)
 
     input_buffer->cursor = ik_input_buffer_cursor_create(input_buffer);
 
-    input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;
     input_buffer->physical_lines = 0;
     input_buffer->cached_width = 0;
@@ -41,7 +40,6 @@ const char *ik_input_buffer_get_text(ik_input_buffer_t *input_buffer, size_t *le
 void ik_input_buffer_clear(ik_input_buffer_t *input_buffer)
 {
     ik_byte_array_clear(input_buffer->text);
-    input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;
     ik_input_buffer_invalidate_layout(input_buffer);
 
@@ -65,7 +63,6 @@ res_t ik_input_buffer_set_text(ik_input_buffer_t *input_buffer, const char *text
     }
 
     /* Reset cursor to position 0 */
-    input_buffer->cursor_byte_offset = 0;
     input_buffer->target_column = 0;
     input_buffer->cursor->byte_offset = 0;
     input_buffer->cursor->grapheme_offset = 0;
@@ -124,12 +121,12 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
 
     /* Insert bytes at cursor position */
     for (size_t i = 0; i < num_bytes; i++) {
-        res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset + i, utf8_bytes[i]);
+        res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor->byte_offset + i, utf8_bytes[i]);
         if (is_err(&res)) PANIC("alloc fail"); // LCOV_EXCL_BR_LINE
     }
 
     /* Advance cursor by number of bytes inserted */
-    input_buffer->cursor_byte_offset += num_bytes;
+    input_buffer->cursor->byte_offset += num_bytes;
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
@@ -138,7 +135,7 @@ res_t ik_input_buffer_insert_codepoint(ik_input_buffer_t *input_buffer, uint32_t
     /* Update cursor position */
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
-    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor->byte_offset);
 
     return OK(NULL);
 }
@@ -148,11 +145,11 @@ res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
     assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* Insert newline byte at cursor position */
-    res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor_byte_offset, '\n');
+    res_t res = ik_byte_array_insert(input_buffer->text, input_buffer->cursor->byte_offset, '\n');
     if (is_err(&res)) PANIC("alloc fail"); // LCOV_EXCL_BR_LINE
 
     /* Advance cursor by 1 byte */
-    input_buffer->cursor_byte_offset += 1;
+    input_buffer->cursor->byte_offset += 1;
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
@@ -161,7 +158,7 @@ res_t ik_input_buffer_insert_newline(ik_input_buffer_t *input_buffer)
     /* Update cursor position */
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
-    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor->byte_offset);
 
     return OK(NULL);
 }
@@ -194,22 +191,19 @@ res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer)
     assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If cursor is at start, this is a no-op */
-    if (input_buffer->cursor_byte_offset == 0) {
+    if (input_buffer->cursor->byte_offset == 0) {
         return OK(NULL);
     }
 
     /* Find the start of the previous UTF-8 character */
     const uint8_t *data = input_buffer->text->data;
-    size_t prev_char_start = find_prev_char_start(data, input_buffer->cursor_byte_offset);
+    size_t prev_char_start = find_prev_char_start(data, input_buffer->cursor->byte_offset);
 
     /* Delete all bytes from prev_char_start to cursor */
-    size_t num_bytes_to_delete = input_buffer->cursor_byte_offset - prev_char_start;
+    size_t num_bytes_to_delete = input_buffer->cursor->byte_offset - prev_char_start;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
         ik_byte_array_delete(input_buffer->text, prev_char_start);
     }
-
-    /* Update cursor to the start of the deleted character */
-    input_buffer->cursor_byte_offset = prev_char_start;
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;
@@ -218,7 +212,7 @@ res_t ik_input_buffer_backspace(ik_input_buffer_t *input_buffer)
     /* Update cursor position */
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
-    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, prev_char_start);
 
     return OK(NULL);
 }
@@ -268,18 +262,18 @@ res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer)
     size_t text_len = ik_byte_array_size(input_buffer->text);
 
     /* If cursor is at end, this is a no-op */
-    if (input_buffer->cursor_byte_offset >= text_len) {
+    if (input_buffer->cursor->byte_offset >= text_len) {
         return OK(NULL);
     }
 
     /* Find the end of the current UTF-8 character */
     const uint8_t *data = input_buffer->text->data;
-    size_t next_char_end = find_next_char_end(data, text_len, input_buffer->cursor_byte_offset);
+    size_t next_char_end = find_next_char_end(data, text_len, input_buffer->cursor->byte_offset);
 
     /* Delete all bytes from cursor to next_char_end */
-    size_t num_bytes_to_delete = next_char_end - input_buffer->cursor_byte_offset;
+    size_t num_bytes_to_delete = next_char_end - input_buffer->cursor->byte_offset;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
-        ik_byte_array_delete(input_buffer->text, input_buffer->cursor_byte_offset);
+        ik_byte_array_delete(input_buffer->text, input_buffer->cursor->byte_offset);
     }
 
     /* Cursor stays at same position (deleted forward, not backward) */
@@ -290,7 +284,7 @@ res_t ik_input_buffer_delete(ik_input_buffer_t *input_buffer)
 
     /* Update cursor position */
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
-    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor->byte_offset);
 
     return OK(NULL);
 }
@@ -312,9 +306,6 @@ res_t ik_input_buffer_cursor_left(ik_input_buffer_t *input_buffer)
 
     ik_input_buffer_cursor_move_left(input_buffer->cursor, text, text_len);
 
-    /* Update legacy cursor_byte_offset for backward compatibility */
-    input_buffer->cursor_byte_offset = input_buffer->cursor->byte_offset;
-
     /* Reset target column on horizontal movement */
     input_buffer->target_column = 0;
 
@@ -334,9 +325,6 @@ res_t ik_input_buffer_cursor_right(ik_input_buffer_t *input_buffer)
     }
 
     ik_input_buffer_cursor_move_right(input_buffer->cursor, text, text_len);
-
-    /* Update legacy cursor_byte_offset for backward compatibility */
-    input_buffer->cursor_byte_offset = input_buffer->cursor->byte_offset;
 
     /* Reset target column on horizontal movement */
     input_buffer->target_column = 0;
@@ -420,12 +408,12 @@ res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *input_buffer)
     assert(input_buffer != NULL); /* LCOV_EXCL_BR_LINE */
 
     /* If cursor is at start, this is a no-op */
-    if (input_buffer->cursor_byte_offset == 0) {
+    if (input_buffer->cursor->byte_offset == 0) {
         return OK(NULL);
     }
 
     const uint8_t *data = input_buffer->text->data;
-    size_t pos = input_buffer->cursor_byte_offset;
+    size_t pos = input_buffer->cursor->byte_offset;
 
     /* Step 1: Skip trailing whitespace (always skip whitespace first) */
     while (pos > 0) {
@@ -462,16 +450,15 @@ res_t ik_input_buffer_delete_word_backward(ik_input_buffer_t *input_buffer)
 
 delete_range:
     /* Delete from pos to cursor */
-    size_t num_bytes_to_delete = input_buffer->cursor_byte_offset - pos;
+    size_t num_bytes_to_delete = input_buffer->cursor->byte_offset - pos;
     for (size_t i = 0; i < num_bytes_to_delete; i++) {
         ik_byte_array_delete(input_buffer->text, pos);
     }
 
     /* Update cursor */
-    input_buffer->cursor_byte_offset = pos;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
-    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, input_buffer->cursor_byte_offset);
+    ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, pos);
 
     /* Reset target column on text modification */
     input_buffer->target_column = 0;

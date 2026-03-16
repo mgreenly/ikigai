@@ -32,7 +32,7 @@ START_TEST(test_backspace_ascii) {
     ck_assert_mem_eq(text, "ab", 2);
 
     /* Verify cursor at position 2 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 2);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 2); }
 
     talloc_free(ctx);
 }
@@ -63,7 +63,7 @@ START_TEST(test_backspace_utf8) {
     text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 3);
     ck_assert_mem_eq(text, "a\xC3\xA9", 3);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 3);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 3); }
 
     /* Backspace again (should delete both bytes of é) */
     res = ik_input_buffer_backspace(input_buffer);
@@ -73,7 +73,7 @@ START_TEST(test_backspace_utf8) {
     text = ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 1);
     ck_assert_mem_eq(text, "a", 1);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 1);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 1); }
 
     talloc_free(ctx);
 }
@@ -93,7 +93,7 @@ START_TEST(test_backspace_emoji) {
     size_t len = 0;
     (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 4);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 4);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 4); }
 
     /* Backspace once (should delete all 4 bytes) */
     res_t res = ik_input_buffer_backspace(input_buffer);
@@ -102,7 +102,7 @@ START_TEST(test_backspace_emoji) {
     /* Verify text is empty */
     (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -116,7 +116,7 @@ START_TEST(test_backspace_at_start) {
     input_buffer = ik_input_buffer_create(ctx);
 
     /* Cursor is at start (position 0) */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     /* Backspace should be a no-op */
     res_t res = ik_input_buffer_backspace(input_buffer);
@@ -126,7 +126,7 @@ START_TEST(test_backspace_at_start) {
     size_t len = 0;
     (void)ik_input_buffer_get_text(input_buffer, &len);
     ck_assert_uint_eq(len, 0);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -145,7 +145,7 @@ START_TEST(test_delete_ascii) {
     ik_input_buffer_insert_codepoint(input_buffer, 'c');
 
     /* Move cursor to position 0 (before 'a') */
-    input_buffer->cursor_byte_offset = 0;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 0); }
 
     /* Delete once (should delete 'a') */
     res_t res = ik_input_buffer_delete(input_buffer);
@@ -158,7 +158,7 @@ START_TEST(test_delete_ascii) {
     ck_assert_mem_eq(text, "bc", 2);
 
     /* Verify cursor still at position 0 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -177,7 +177,7 @@ START_TEST(test_delete_utf8) {
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
 
     /* Move cursor to position 1 (after 'a', before é) */
-    input_buffer->cursor_byte_offset = 1;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 1); }
 
     /* Delete once (should delete both bytes of é) */
     res_t res = ik_input_buffer_delete(input_buffer);
@@ -190,7 +190,7 @@ START_TEST(test_delete_utf8) {
     ck_assert_mem_eq(text, "ab", 2);
 
     /* Verify cursor still at position 1 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 1);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 1); }
 
     talloc_free(ctx);
 }
@@ -209,7 +209,7 @@ START_TEST(test_delete_utf8_3byte) {
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
 
     /* Move cursor to position 1 (after 'a', before ☃) */
-    input_buffer->cursor_byte_offset = 1;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 1); }
 
     /* Delete once (should delete all 3 bytes of ☃) */
     res_t res = ik_input_buffer_delete(input_buffer);
@@ -222,7 +222,7 @@ START_TEST(test_delete_utf8_3byte) {
     ck_assert_mem_eq(text, "ab", 2);
 
     /* Verify cursor still at position 1 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 1);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 1); }
 
     talloc_free(ctx);
 }
@@ -239,7 +239,7 @@ START_TEST(test_delete_emoji) {
     ik_input_buffer_insert_codepoint(input_buffer, 0x1F389);
 
     /* Move cursor to position 0 */
-    input_buffer->cursor_byte_offset = 0;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 0); }
 
     /* Delete once (should delete all 4 bytes) */
     res_t res = ik_input_buffer_delete(input_buffer);
@@ -251,7 +251,7 @@ START_TEST(test_delete_emoji) {
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor still at position 0 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -270,7 +270,7 @@ START_TEST(test_delete_at_end) {
     ik_input_buffer_insert_codepoint(input_buffer, 'c');
 
     /* Cursor is at end (position 3) */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 3);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 3); }
 
     /* Delete should be a no-op */
     res_t res = ik_input_buffer_delete(input_buffer);
@@ -283,7 +283,7 @@ START_TEST(test_delete_at_end) {
     ck_assert_mem_eq(text, "abc", 3);
 
     /* Verify cursor still at position 3 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 3);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 3); }
 
     talloc_free(ctx);
 }

@@ -203,7 +203,6 @@ START_TEST(test_repl_process_action_ctrl_k) {
     // Move to byte 8 (after "hello\nwo")
     size_t text_len = 0;
     const char *text = ik_input_buffer_get_text(input_buf, &text_len);
-    input_buf->cursor_byte_offset = 8;
     ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8
@@ -287,7 +286,6 @@ START_TEST(test_repl_process_action_ctrl_u) {
     // Move cursor to middle of "world" line (after "wo")
     size_t text_len = 0;
     const char *text = ik_input_buffer_get_text(input_buf, &text_len);
-    input_buf->cursor_byte_offset = 8;
     ik_input_buffer_cursor_set_position(input_buf->cursor, text, text_len, 8);
 
     // Verify cursor is at byte 8

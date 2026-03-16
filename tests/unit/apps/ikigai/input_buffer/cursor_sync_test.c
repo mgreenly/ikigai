@@ -193,7 +193,6 @@ START_TEST(test_cursor_after_delete) {
     ik_input_buffer_insert_codepoint(input_buffer, 'c');
 
     /* Move cursor to middle (byte 1, after 'a') */
-    input_buffer->cursor_byte_offset = 1;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 1);

@@ -22,7 +22,7 @@ START_TEST(test_create) {
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor at position 0 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -60,7 +60,7 @@ START_TEST(test_clear) {
     for (size_t i = 0; i < 5; i++) {
         ik_byte_array_append(input_buffer->text, test_data[i]);
     }
-    input_buffer->cursor_byte_offset = 3;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 3); }
 
     /* Clear the input_buffer */
     ik_input_buffer_clear(input_buffer);
@@ -71,7 +71,7 @@ START_TEST(test_clear) {
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor at 0 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }

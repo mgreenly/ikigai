@@ -27,7 +27,7 @@ START_TEST(test_insert_ascii) {
     ck_assert_mem_eq(text, "a", 1);
 
     /* Verify cursor at end */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 1);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 1); }
 
     /* Insert 'b' */
     res = ik_input_buffer_insert_codepoint(input_buffer, 'b');
@@ -39,7 +39,7 @@ START_TEST(test_insert_ascii) {
     ck_assert_mem_eq(text, "ab", 2);
 
     /* Verify cursor at end */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 2);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 2); }
 
     talloc_free(ctx);
 }
@@ -62,7 +62,7 @@ START_TEST(test_insert_utf8) {
     ck_assert_uint_eq(len, 2);
     ck_assert_uint_eq((uint8_t)text[0], 0xC3);
     ck_assert_uint_eq((uint8_t)text[1], 0xA9);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 2);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 2); }
 
     /* Insert 🎉 (U+1F389) - 4-byte UTF-8 sequence */
     res = ik_input_buffer_insert_codepoint(input_buffer, 0x1F389);
@@ -75,7 +75,7 @@ START_TEST(test_insert_utf8) {
     ck_assert_uint_eq((uint8_t)text[3], 0x9F);
     ck_assert_uint_eq((uint8_t)text[4], 0x8E);
     ck_assert_uint_eq((uint8_t)text[5], 0x89);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 6);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 6); }
 
     talloc_free(ctx);
 }
@@ -99,7 +99,7 @@ START_TEST(test_insert_utf8_3byte) {
     ck_assert_uint_eq((uint8_t)text[0], 0xE2);
     ck_assert_uint_eq((uint8_t)text[1], 0x98);
     ck_assert_uint_eq((uint8_t)text[2], 0x83);
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 3);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 3); }
 
     talloc_free(ctx);
 }
@@ -117,7 +117,7 @@ START_TEST(test_insert_middle) {
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
 
     /* Move cursor to position 1 (between 'a' and 'b') */
-    input_buffer->cursor_byte_offset = 1;
+    { size_t _tl; const char *_t = ik_input_buffer_get_text(input_buffer, &_tl); ik_input_buffer_cursor_set_position(input_buffer->cursor, _t, _tl, 1); }
 
     /* Insert 'x' */
     res_t res = ik_input_buffer_insert_codepoint(input_buffer, 'x');
@@ -130,7 +130,7 @@ START_TEST(test_insert_middle) {
     ck_assert_mem_eq(text, "axb", 3);
 
     /* Verify cursor at position 2 (after 'x') */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 2);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 2); }
 
     talloc_free(ctx);
 }
@@ -153,7 +153,7 @@ START_TEST(test_insert_invalid_codepoint) {
     ck_assert_uint_eq(len, 0);
 
     /* Verify cursor still at 0 */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 0);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 0); }
 
     talloc_free(ctx);
 }
@@ -191,7 +191,7 @@ START_TEST(test_insert_newline) {
     ck_assert_mem_eq(text, "hello\nworld", 11);
 
     /* Verify cursor at end */
-    ck_assert_uint_eq(input_buffer->cursor_byte_offset, 11);
+    { size_t _b = 0, _g = 0; ik_input_buffer_get_cursor_position(input_buffer, &_b, &_g); ck_assert_uint_eq(_b, 11); }
 
     talloc_free(ctx);
 }

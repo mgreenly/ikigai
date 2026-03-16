@@ -36,7 +36,6 @@ START_TEST(test_cursor_down_basic) {
     ik_input_buffer_insert_codepoint(input_buffer, '3');
 
     /* Move cursor to start of line1 (byte 0) */
-    input_buffer->cursor_byte_offset = 0;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 0);
@@ -115,7 +114,6 @@ START_TEST(test_cursor_down_column_preservation) {
     ik_input_buffer_insert_codepoint(input_buffer, 'j');
 
     /* Move to position 3 (column 3 of first line: after 'c') */
-    input_buffer->cursor_byte_offset = 3;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 3);
@@ -155,7 +153,6 @@ START_TEST(test_cursor_down_shorter_line) {
     ik_input_buffer_insert_codepoint(input_buffer, 'b');
 
     /* Move to position 4 (column 4 of first line: after 'd') */
-    input_buffer->cursor_byte_offset = 4;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 4);
@@ -190,7 +187,6 @@ START_TEST(test_cursor_down_empty_line) {
     ik_input_buffer_insert_newline(input_buffer);
 
     /* Move to position 1 (column 1 of first line: after 'a') */
-    input_buffer->cursor_byte_offset = 1;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 1);
@@ -229,7 +225,6 @@ START_TEST(test_cursor_down_utf8) {
     ik_input_buffer_insert_codepoint(input_buffer, 0x1F389);      // 🎉 (4 bytes)
 
     /* Move to position 2 (column 2 of first line: after 'b') */
-    input_buffer->cursor_byte_offset = 2;
     size_t text_len;
     const char *text = ik_input_buffer_get_text(input_buffer, &text_len);
     ik_input_buffer_cursor_set_position(input_buffer->cursor, text, text_len, 2);
