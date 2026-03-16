@@ -237,10 +237,10 @@ START_TEST(test_scrollback_layer_render_partial_end) {
     // Render only first 2 rows (ending mid-line, before "CCCCCCCCCC")
     layer->render(layer, output, 10, 0, 2);
 
-    // Should render "AAAAAAAAAA" + "BBBBBBBBBB" with NO trailing \r\n
-    // (we stopped mid-logical-line)
-    ck_assert_uint_eq(output->size, 20);  // 20 chars, no \r\n
-    ck_assert(memcmp(output->data, "AAAAAAAAAABBBBBBBBBB", 20) == 0);
+    // Should render "AAAAAAAAAA\x1b[K\r\n" + "BBBBBBBBBB" with explicit \r\n
+    // between wrapped rows. The last row has no \r\n (not end of logical line).
+    ck_assert_uint_eq(output->size, 25);  // 10 + 5 + 10
+    ck_assert(memcmp(output->data, "AAAAAAAAAA\x1b[K\r\nBBBBBBBBBB", 25) == 0);
 
     talloc_free(ctx);
 }
@@ -261,9 +261,10 @@ START_TEST(test_scrollback_layer_render_partial_middle) {
     // Render rows 1-2 (skip AAAA, stop before DDDD)
     layer->render(layer, output, 10, 1, 2);
 
-    // Should render "BBBBBBBBBB" + "CCCCCCCCCC" with NO trailing \r\n
-    ck_assert_uint_eq(output->size, 20);
-    ck_assert(memcmp(output->data, "BBBBBBBBBBCCCCCCCCCC", 20) == 0);
+    // Should render "BBBBBBBBBB\x1b[K\r\n" + "CCCCCCCCCC" with explicit \r\n
+    // between wrapped rows. The last row has no \r\n (not end of logical line).
+    ck_assert_uint_eq(output->size, 25);  // 10 + 5 + 10
+    ck_assert(memcmp(output->data, "BBBBBBBBBB\x1b[K\r\nCCCCCCCCCC", 25) == 0);
 
     talloc_free(ctx);
 }
@@ -371,6 +372,32 @@ START_TEST(test_scrollback_layer_render_multiple_lines_partial) {
 }
 
 END_TEST
+// Test: A line wider than terminal width produces explicit \r\n between wrapped rows.
+// This ensures read_framebuffer is a 1:1 match with what the terminal displays.
+START_TEST(test_scrollback_layer_render_wide_line_explicit_crlf) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+
+    // Width=10, line is 20 chars — wraps to 2 physical rows
+    ik_scrollback_t *scrollback = ik_scrollback_create(ctx, 10);
+    ik_scrollback_append_line(scrollback, "AAAAAAAAAABBBBBBBBBB", 20);
+
+    ik_layer_t *layer = ik_scrollback_layer_create(ctx, "scrollback", scrollback);
+    ik_output_buffer_t *output = ik_output_buffer_create(ctx, 256);
+
+    // Render all 2 physical rows of the wide line
+    layer->render(layer, output, 10, 0, 2);
+
+    // Each physical row must have an explicit \x1b[K\r\n so the framebuffer
+    // serializer (which splits on \r\n) sees two separate rows, matching the
+    // terminal which wraps at width=10.
+    // Expected: "AAAAAAAAAA\x1b[K\r\nBBBBBBBBBB\x1b[K\r\n" (30 bytes)
+    ck_assert_uint_eq(output->size, 30);
+    ck_assert(memcmp(output->data, "AAAAAAAAAA\x1b[K\r\nBBBBBBBBBB\x1b[K\r\n", 30) == 0);
+
+    talloc_free(ctx);
+}
+
+END_TEST
 
 static Suite *scrollback_layer_suite(void)
 {
@@ -394,6 +421,7 @@ static Suite *scrollback_layer_suite(void)
     tcase_add_test(tc_core, test_scrollback_layer_render_partial_ansi);
     tcase_add_test(tc_core, test_scrollback_layer_render_single_row_line);
     tcase_add_test(tc_core, test_scrollback_layer_render_multiple_lines_partial);
+    tcase_add_test(tc_core, test_scrollback_layer_render_wide_line_explicit_crlf);
     suite_add_tcase(s, tc_core);
 
     return s;

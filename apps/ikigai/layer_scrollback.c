@@ -93,25 +93,41 @@ static void scrollback_render(const ik_layer_t *layer,
             line_row_count = scrollback->layouts[i].physical_lines - line_start_row;
         }
 
-        // Get byte range for this portion
-        size_t render_start, render_end;
-        bool is_line_end;
-        ik_scrollback_calc_byte_range_for_rows(scrollback, i, width,
-                                               line_start_row, line_row_count,
-                                               &render_start, &render_end, &is_line_end);
+        // Render each physical row separately so the output buffer has explicit
+        // \r\n between wrapped rows. This makes read_framebuffer a 1:1 match
+        // with what the terminal displays — without it, the serializer (which
+        // splits on \r\n) would report all wrapped content as a single row.
+        for (size_t row_off = line_start_row;
+             row_off < line_start_row + line_row_count;
+             row_off++) {
+            bool is_last_row = (row_off == line_start_row + line_row_count - 1);
 
-        // Copy line text from render_start to render_end, converting \n to \x1b[K\r\n
-        for (size_t j = render_start; j < render_end; j++) {
-            if (line_text[j] == '\n') {
-                ik_output_buffer_append(output, "\x1b[K\r\n", 5);
-            } else {
-                ik_output_buffer_append(output, &line_text[j], 1);
+            size_t render_start, render_end;
+            bool is_line_end;
+            ik_scrollback_calc_byte_range_for_rows(scrollback, i, width,
+                                                   row_off, 1,
+                                                   &render_start, &render_end,
+                                                   &is_line_end);
+
+            // Copy bytes for this physical row, converting \n to \x1b[K\r\n
+            bool ends_with_newline = false;
+            for (size_t j = render_start; j < render_end; j++) {
+                if (line_text[j] == '\n') {
+                    ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+                    ends_with_newline = true;
+                } else {
+                    ik_output_buffer_append(output, &line_text[j], 1);
+                    ends_with_newline = false;
+                }
             }
-        }
 
-        // Add \x1b[K\r\n only if we rendered to end of logical line
-        if (is_line_end) {
-            ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+            // Add \x1b[K\r\n after each physical row unless the range already
+            // ended with an embedded \n (which added its own \r\n). Add it when:
+            // - this is the end of the logical line, OR
+            // - more rows follow in this render request (to produce proper rows)
+            if (!ends_with_newline && (is_line_end || !is_last_row)) {
+                ik_output_buffer_append(output, "\x1b[K\r\n", 5);
+            }
         }
     }
 }
