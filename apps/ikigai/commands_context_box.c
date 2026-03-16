@@ -262,6 +262,12 @@ void ctx_render_budget_line(ctx_rend_t *r, int32_t budget, int32_t total)
         " Budget: %s tok    Used: %s    Remaining: %s", bs, pbuf, rs);
     if (!content) PANIC("OOM");  /* LCOV_EXCL_LINE */
     int clen = ctx_disp_width(content);
+    if (clen > r->W - 2) {
+        char *trimmed = ctx_trim_middle(r->ctx, content, r->W - 2);
+        talloc_free(content);
+        content = trimmed;
+        clen = r->W - 2;
+    }
     int pad  = r->W - 2 - clen;
     if (pad < 0) pad = 0;
     char *sp   = ctx_make_spaces(r->ctx, pad);

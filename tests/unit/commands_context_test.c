@@ -416,6 +416,28 @@ START_TEST(test_context_skill_catalog) {
 }
 END_TEST
 
+START_TEST(test_line_widths) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+    ctx_rend_t r;
+    ctx_rend_init(&r, ctx, agent->scrollback, 80);
+    ik_scrollback_clear(agent->scrollback);
+    ctx_render_group_row(&r, "label", "42 tok");
+    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 80);
+    ik_scrollback_clear(agent->scrollback);
+    ctx_render_total_line(&r, 1234567);
+    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 80);
+    ctx_rend_t r2;
+    ctx_rend_init(&r2, ctx, agent->scrollback, 60);
+    ik_scrollback_clear(agent->scrollback);
+    ctx_render_budget_line(&r2, 2000000000, 1000000000);
+    ck_assert_int_eq(ctx_disp_width(get_line(agent->scrollback, 0)), 60);
+    talloc_free(ctx);
+}
+END_TEST
+
 /* ================================================================
  * Test suite registration
  * ================================================================ */
@@ -436,6 +458,7 @@ static Suite *commands_context_suite(void)
     tcase_add_test(tc, test_context_with_recent_summary);
     tcase_add_test(tc, test_context_footer_lines);
     tcase_add_test(tc, test_context_skill_catalog);
+    tcase_add_test(tc, test_line_widths);
     suite_add_tcase(s, tc);
     return s;
 }
