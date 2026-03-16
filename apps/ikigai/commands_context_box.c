@@ -74,15 +74,18 @@ char *ctx_format_tok(TALLOC_CTX *ctx, int32_t n)
 }
 
 /*
- * Display width of string with ASCII and 3-byte UTF-8 sequences.
- * Each byte sequence starting with 0xe2 counts as 1 display column.
+ * Display width of string with ASCII and multi-byte UTF-8 sequences.
+ * Each complete UTF-8 code point counts as 1 display column.
  */
 int ctx_disp_width(const char *s)
 {
     const unsigned char *p = (const unsigned char *)s;
     int w = 0;
     while (*p) {
-        p += (*p == 0xe2) ? 3 : 1;
+        if (*p >= 0xf0)      p += 4;
+        else if (*p >= 0xe0) p += 3;
+        else if (*p >= 0xc0) p += 2;
+        else                 p += 1;
         w++;
     }
     return w;

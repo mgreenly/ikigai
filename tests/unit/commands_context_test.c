@@ -61,11 +61,7 @@ START_TEST(test_context_basic_render) {
     ck_assert(is_ok(&res));
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     ck_assert_uint_gt(count, 10);
-    const char *line0 = get_line(agent->scrollback, 0);
-    ck_assert_ptr_nonnull(line0);
-    ck_assert_ptr_nonnull(strstr(line0, "Context"));
-    const char *last = get_line(agent->scrollback, count - 1);
-    ck_assert_ptr_nonnull(last);
+    ck_assert_ptr_nonnull(strstr(get_line(agent->scrollback, 0), "Context"));
     talloc_free(ctx);
 }
 END_TEST
@@ -98,12 +94,9 @@ END_TEST
 
 START_TEST(test_context_with_skill) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
-    /* Add a loaded skill */
     agent->loaded_skills = talloc_array(agent, ik_loaded_skill_t *, 1);
     ck_assert_ptr_nonnull(agent->loaded_skills);
     agent->loaded_skills[0] = talloc(agent, ik_loaded_skill_t);
@@ -111,128 +104,86 @@ START_TEST(test_context_with_skill) {
     agent->loaded_skills[0]->content = talloc_strdup(agent, "style guide content here");
     agent->loaded_skills[0]->load_position = 0;
     agent->loaded_skill_count = 1;
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Look for "style" skill name in output */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
-    int found_skill = 0;
+    int found_skill = 0, skills_empty = 0;
     for (size_t i = 0; i < count; i++) {
         const char *line = get_line(agent->scrollback, i);
         if (line && strstr(line, "style")) found_skill = 1;
-    }
-    ck_assert_int_eq(found_skill, 1);
-
-    /* Skills group should NOT be "(empty)" */
-    int skills_empty = 0;
-    for (size_t i = 0; i < count; i++) {
-        const char *line = get_line(agent->scrollback, i);
         if (line && strstr(line, "Skills") && strstr(line, "(empty)")) skills_empty = 1;
     }
+    ck_assert_int_eq(found_skill, 1);
     ck_assert_int_eq(skills_empty, 0);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_min_width) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
-    /* Set terminal width below minimum */
     set_term_width(ctx, agent, 30);
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Should still produce output */
-    size_t count = ik_scrollback_get_line_count(agent->scrollback);
-    ck_assert_uint_gt(count, 5);
-
+    ck_assert_uint_gt(ik_scrollback_get_line_count(agent->scrollback), 5);
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_wider_terminal) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
-    /* Set a wider terminal */
     set_term_width(ctx, agent, 100);
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Title line should contain "Context" */
     const char *line0 = get_line(agent->scrollback, 0);
     ck_assert_ptr_nonnull(line0);
     ck_assert_ptr_nonnull(strstr(line0, "Context"));
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_line_trimming) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
-    /* ctx_trim_middle with max_cols = 10 should trim a long string */
-    const char *long_str = "/home/user/very/long/path/to/some/file.md";
-    char *trimmed = ctx_trim_middle(ctx, long_str, 10);
+    char *trimmed = ctx_trim_middle(ctx, "/home/user/very/long/path/to/some/file.md", 10);
     ck_assert_ptr_nonnull(trimmed);
-    /* Trimmed display width should be <= 10 */
-    int dw = ctx_disp_width(trimmed);
-    ck_assert_int_le(dw, 10);
-    /* Should contain ellipsis */
+    ck_assert_int_le(ctx_disp_width(trimmed), 10);
     ck_assert_ptr_nonnull(strstr(trimmed, CTX_ELLIPSIS));
     talloc_free(trimmed);
-
-    /* String shorter than max should not be trimmed */
-    const char *short_str = "foo.md";
-    char *not_trimmed = ctx_trim_middle(ctx, short_str, 20);
-    ck_assert_ptr_nonnull(not_trimmed);
-    ck_assert_str_eq(not_trimmed, short_str);
+    char *not_trimmed = ctx_trim_middle(ctx, "foo.md", 20);
+    ck_assert_str_eq(not_trimmed, "foo.md");
     talloc_free(not_trimmed);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_format_tok) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
-    char *s = ctx_format_tok(ctx, 0);       ck_assert_str_eq(s, "0");       talloc_free(s);
-    s = ctx_format_tok(ctx, 999);           ck_assert_str_eq(s, "999");     talloc_free(s);
-    s = ctx_format_tok(ctx, 1000);          ck_assert_str_eq(s, "1,000");   talloc_free(s);
-    s = ctx_format_tok(ctx, 12345);         ck_assert_str_eq(s, "12,345");  talloc_free(s);
-    s = ctx_format_tok(ctx, 1234567);       ck_assert_str_eq(s, "1,234,567"); talloc_free(s);
-
+    char *s;
+    s = ctx_format_tok(ctx, 0);       ck_assert_str_eq(s, "0");         talloc_free(s);
+    s = ctx_format_tok(ctx, 999);     ck_assert_str_eq(s, "999");       talloc_free(s);
+    s = ctx_format_tok(ctx, 1000);    ck_assert_str_eq(s, "1,000");     talloc_free(s);
+    s = ctx_format_tok(ctx, 12345);   ck_assert_str_eq(s, "12,345");    talloc_free(s);
+    s = ctx_format_tok(ctx, 1234567); ck_assert_str_eq(s, "1,234,567"); talloc_free(s);
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_with_session_summaries) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
     agent->session_summaries = talloc_array(agent, ik_session_summary_t *, 2);
     ck_assert_ptr_nonnull(agent->session_summaries);
     agent->session_summaries[0] = talloc(agent, ik_session_summary_t);
@@ -242,14 +193,10 @@ START_TEST(test_context_with_session_summaries) {
     agent->session_summaries[1]->summary     = talloc_strdup(agent, "second summary");
     agent->session_summaries[1]->token_count = 300;
     agent->session_summary_count = 2;
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* Look for "Session 1" and "Session 2" in output */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int found_s1 = 0, found_s2 = 0;
     for (size_t i = 0; i < count; i++) {
@@ -259,28 +206,21 @@ START_TEST(test_context_with_session_summaries) {
     }
     ck_assert_int_eq(found_s1, 1);
     ck_assert_int_eq(found_s2, 1);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_with_recent_summary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
     agent->recent_summary        = talloc_strdup(agent, "summary text");
     agent->recent_summary_tokens = 150;
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* "Current session" row should appear */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int found = 0;
     for (size_t i = 0; i < count; i++) {
@@ -288,24 +228,19 @@ START_TEST(test_context_with_recent_summary) {
         if (line && strstr(line, "Current session")) found = 1;
     }
     ck_assert_int_eq(found, 1);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_footer_lines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int found_total = 0, found_budget = 0;
     for (size_t i = 0; i < count; i++) {
@@ -315,18 +250,15 @@ START_TEST(test_context_footer_lines) {
     }
     ck_assert_int_eq(found_total,  1);
     ck_assert_int_eq(found_budget, 1);
-
     talloc_free(ctx);
 }
 END_TEST
 
 START_TEST(test_context_skill_catalog) {
     TALLOC_CTX *ctx = talloc_new(NULL);
-
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
     agent->skillset_catalog = talloc_array(agent, ik_skillset_catalog_entry_t *, 2);
     ck_assert_ptr_nonnull(agent->skillset_catalog);
     agent->skillset_catalog[0] = talloc(agent, ik_skillset_catalog_entry_t);
@@ -338,14 +270,10 @@ START_TEST(test_context_skill_catalog) {
     agent->skillset_catalog[1]->description  = talloc_strdup(agent, "Error docs");
     agent->skillset_catalog[1]->load_position = 0;
     agent->skillset_catalog_count = 2;
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
-
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* "2 entries" should appear */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int found_entries = 0;
     for (size_t i = 0; i < count; i++) {
@@ -353,7 +281,6 @@ START_TEST(test_context_skill_catalog) {
         if (line && strstr(line, "2 entries")) found_entries = 1;
     }
     ck_assert_int_eq(found_entries, 1);
-
     talloc_free(ctx);
 }
 END_TEST
@@ -380,6 +307,7 @@ START_TEST(test_line_widths) {
     CLR; ctx_render_outer_close(&r);                          ck_assert_int_eq(WID, 80);
     CLR; ctx_render_group_header(&r, "Tools", "0 tok");       ck_assert_int_eq(WID, 80);
     CLR; ctx_render_group_row(&r, "label", "42 tok");         ck_assert_int_eq(WID, 80);
+    CLR; ctx_render_group_row(&r, "3 turns \xc2\xb7 2 tool calls", NULL); ck_assert_int_eq(WID, 80);
     CLR; ctx_render_group_footer(&r);                         ck_assert_int_eq(WID, 80);
     CLR; ctx_render_total_line(&r, 1234567);                  ck_assert_int_eq(WID, 80);
     ctx_rend_t r2;
@@ -396,11 +324,8 @@ START_TEST(test_context_message_history_turns) {
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
-
-    /* 2 user + 2 assistant messages; assistant[0] has 1 tool call */
     agent->messages = talloc_array(agent, ik_message_t *, 4);
-    for (int i = 0; i < 4; i++)
-        agent->messages[i] = talloc_zero(agent, ik_message_t);
+    for (int i = 0; i < 4; i++) agent->messages[i] = talloc_zero(agent, ik_message_t);
     agent->messages[0]->role = IK_ROLE_USER;
     agent->messages[1]->role = IK_ROLE_ASSISTANT;
     agent->messages[1]->content_blocks =
@@ -412,13 +337,10 @@ START_TEST(test_context_message_history_turns) {
     agent->messages[2]->role = IK_ROLE_USER;
     agent->messages[3]->role = IK_ROLE_ASSISTANT;
     agent->message_count = 4;
-
     ik_scrollback_clear(agent->scrollback);
     ik_repl_ctx_t *repl = make_repl(ctx, agent);
     res = ik_cmd_context(ctx, repl, NULL);
     ck_assert(is_ok(&res));
-
-    /* "2 turns · 1 tool calls" must appear */
     size_t count = ik_scrollback_get_line_count(agent->scrollback);
     int found = 0;
     for (size_t i = 0; i < count; i++) {
@@ -426,6 +348,32 @@ START_TEST(test_context_message_history_turns) {
         if (line && strstr(line, "2 turns") && strstr(line, "1 tool calls")) found = 1;
     }
     ck_assert_int_eq(found, 1);
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_context_uniform_line_widths) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = NULL;
+    res_t r = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&r));
+    agent->messages = talloc_array(agent, ik_message_t *, 2);
+    agent->messages[0] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_USER;
+    agent->messages[1] = talloc_zero(agent, ik_message_t);
+    agent->messages[1]->role = IK_ROLE_ASSISTANT;
+    agent->message_count = 2;
+    set_term_width(ctx, agent, 100);
+    ik_scrollback_clear(agent->scrollback);
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+    r = ik_cmd_context(ctx, repl, NULL);
+    ck_assert(is_ok(&r));
+    size_t count = ik_scrollback_get_line_count(agent->scrollback);
+    ck_assert_uint_gt(count, 10);
+    int expected = line_disp_width(agent->scrollback, 0);
+    ck_assert_int_gt(expected, 0);
+    for (size_t i = 1; i < count; i++)
+        ck_assert_int_eq(line_disp_width(agent->scrollback, i), expected);
     talloc_free(ctx);
 }
 END_TEST
@@ -452,6 +400,7 @@ static Suite *commands_context_suite(void)
     tcase_add_test(tc, test_context_skill_catalog);
     tcase_add_test(tc, test_line_widths);
     tcase_add_test(tc, test_context_message_history_turns);
+    tcase_add_test(tc, test_context_uniform_line_widths);
     suite_add_tcase(s, tc);
     return s;
 }
