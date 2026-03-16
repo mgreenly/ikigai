@@ -67,16 +67,15 @@ static int32_t collect_tool_toks(ik_tool_registry_t *reg)
 
 typedef struct {
     int32_t tokens;
-    size_t  user_count, asst_count, tool_pairs;
+    size_t  user_count, tool_pairs;
 } ctx_msg_stats_t;
 
 static ctx_msg_stats_t collect_msg_stats(ik_agent_ctx_t *agent)
 {
-    ctx_msg_stats_t s = {0, 0, 0, 0};
+    ctx_msg_stats_t s = {0, 0, 0};
     for (size_t i = 0; i < agent->message_count; i++) {
         ik_message_t *msg = agent->messages[i];
         if (msg->role == IK_ROLE_USER) s.user_count++;
-        else if (msg->role == IK_ROLE_ASSISTANT) s.asst_count++;
         for (size_t j = 0; j < msg->content_count; j++) {
             ik_content_block_t *cb = &msg->content_blocks[j];
             const char *text = NULL;
@@ -249,14 +248,9 @@ static void render_message_history(ctx_rend_t *r, ik_agent_ctx_t *agent,
         char *rl = ctx_make_tok_label(r->ctx, ms->tokens);
         ctx_render_group_header(r, "Message History", rl); talloc_free(rl);
         char tline[128];
-        snprintf(tline, sizeof(tline), "%zu turns · %zu user · %zu assistant",
-                 agent->message_count, ms->user_count, ms->asst_count);
+        snprintf(tline, sizeof(tline), "%zu turns · %zu tool calls",
+                 ms->user_count, ms->tool_pairs);
         ctx_render_group_row(r, tline, NULL);
-        if (ms->tool_pairs > 0) {
-            char tpline[64];
-            snprintf(tpline, sizeof(tpline), "%zu tool_use / tool_result pairs", ms->tool_pairs);
-            ctx_render_group_row(r, tpline, NULL);
-        }
     }
     ctx_render_group_footer(r);
 }

@@ -9,6 +9,7 @@
 #include <talloc.h>
 
 #include "apps/ikigai/agent.h"
+#include "apps/ikigai/message.h"
 #include "apps/ikigai/commands_context.h"
 #include "apps/ikigai/commands_context_box.h"
 #include "apps/ikigai/repl.h"
@@ -48,10 +49,6 @@ static void set_term_width(TALLOC_CTX *ctx, ik_agent_ctx_t *agent, int width)
     agent->shared->term = term;
 }
 
-/* ================================================================
- * Basic rendering: command runs and produces output
- * ================================================================ */
-
 START_TEST(test_context_basic_render) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -81,10 +78,6 @@ START_TEST(test_context_basic_render) {
     talloc_free(ctx);
 }
 END_TEST
-
-/* ================================================================
- * Groups always shown; empty groups show "(empty)"
- * ================================================================ */
 
 START_TEST(test_context_empty_groups) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -121,10 +114,6 @@ START_TEST(test_context_empty_groups) {
     talloc_free(ctx);
 }
 END_TEST
-
-/* ================================================================
- * Groups show content when data is present
- * ================================================================ */
 
 START_TEST(test_context_with_skill) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -168,10 +157,6 @@ START_TEST(test_context_with_skill) {
     talloc_free(ctx);
 }
 END_TEST
-
-/* ================================================================
- * Width adaptation: minimum 60 columns enforced
- * ================================================================ */
 
 START_TEST(test_context_min_width) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -222,10 +207,6 @@ START_TEST(test_context_wider_terminal) {
 }
 END_TEST
 
-/* ================================================================
- * Line trimming: long labels are trimmed with ellipsis
- * ================================================================ */
-
 START_TEST(test_context_line_trimming) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -251,10 +232,6 @@ START_TEST(test_context_line_trimming) {
 }
 END_TEST
 
-/* ================================================================
- * Format token count with commas
- * ================================================================ */
-
 START_TEST(test_context_format_tok) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -267,10 +244,6 @@ START_TEST(test_context_format_tok) {
     talloc_free(ctx);
 }
 END_TEST
-
-/* ================================================================
- * Session summaries shown when present
- * ================================================================ */
 
 START_TEST(test_context_with_session_summaries) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -310,10 +283,6 @@ START_TEST(test_context_with_session_summaries) {
 }
 END_TEST
 
-/* ================================================================
- * Recent summary shown when present
- * ================================================================ */
-
 START_TEST(test_context_with_recent_summary) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -343,10 +312,6 @@ START_TEST(test_context_with_recent_summary) {
 }
 END_TEST
 
-/* ================================================================
- * Footer shows "Total" and "Budget"
- * ================================================================ */
-
 START_TEST(test_context_footer_lines) {
     TALLOC_CTX *ctx = talloc_new(NULL);
 
@@ -373,10 +338,6 @@ START_TEST(test_context_footer_lines) {
     talloc_free(ctx);
 }
 END_TEST
-
-/* ================================================================
- * Skill catalog entries shown
- * ================================================================ */
 
 START_TEST(test_context_skill_catalog) {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -438,6 +399,45 @@ START_TEST(test_line_widths) {
 }
 END_TEST
 
+START_TEST(test_context_message_history_turns) {
+    TALLOC_CTX *ctx = talloc_new(NULL);
+    ik_agent_ctx_t *agent = NULL;
+    res_t res = ik_test_create_agent(ctx, &agent);
+    ck_assert(is_ok(&res));
+
+    /* 2 user + 2 assistant messages; assistant[0] has 1 tool call */
+    agent->messages = talloc_array(agent, ik_message_t *, 4);
+    for (int i = 0; i < 4; i++)
+        agent->messages[i] = talloc_zero(agent, ik_message_t);
+    agent->messages[0]->role = IK_ROLE_USER;
+    agent->messages[1]->role = IK_ROLE_ASSISTANT;
+    agent->messages[1]->content_blocks =
+        talloc_array(agent->messages[1], ik_content_block_t, 1);
+    agent->messages[1]->content_blocks[0].type = IK_CONTENT_TOOL_CALL;
+    agent->messages[1]->content_blocks[0].data.tool_call.arguments =
+        talloc_strdup(agent->messages[1], "{}");
+    agent->messages[1]->content_count = 1;
+    agent->messages[2]->role = IK_ROLE_USER;
+    agent->messages[3]->role = IK_ROLE_ASSISTANT;
+    agent->message_count = 4;
+
+    ik_scrollback_clear(agent->scrollback);
+    ik_repl_ctx_t *repl = make_repl(ctx, agent);
+    res = ik_cmd_context(ctx, repl, NULL);
+    ck_assert(is_ok(&res));
+
+    /* "2 turns · 1 tool calls" must appear */
+    size_t count = ik_scrollback_get_line_count(agent->scrollback);
+    int found = 0;
+    for (size_t i = 0; i < count; i++) {
+        const char *line = get_line(agent->scrollback, i);
+        if (line && strstr(line, "2 turns") && strstr(line, "1 tool calls")) found = 1;
+    }
+    ck_assert_int_eq(found, 1);
+    talloc_free(ctx);
+}
+END_TEST
+
 /* ================================================================
  * Test suite registration
  * ================================================================ */
@@ -459,6 +459,7 @@ static Suite *commands_context_suite(void)
     tcase_add_test(tc, test_context_footer_lines);
     tcase_add_test(tc, test_context_skill_catalog);
     tcase_add_test(tc, test_line_widths);
+    tcase_add_test(tc, test_context_message_history_turns);
     suite_add_tcase(s, tc);
     return s;
 }
