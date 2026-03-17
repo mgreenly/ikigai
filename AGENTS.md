@@ -20,9 +20,6 @@ ikigai/
 │   └── helpers/               # Test utilities
 ├── project/                   # Docs, specs, ADRs (start with project/README.md)
 │   └── decisions/             # Architecture Decision Records
-├── scripts/
-│   ├── bin/                   # Symlinks to goal scripts (on PATH)
-│   └── goal-*/run             # Goal state management scripts (Ruby, return JSON)
 ├── .envrc                     # direnv config (env vars, PATH)
 └── AGENTS.md                  # This file
 ```
