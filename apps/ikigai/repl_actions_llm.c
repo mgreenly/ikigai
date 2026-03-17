@@ -338,6 +338,16 @@ res_t ik_repl_handle_newline_action(ik_repl_ctx_t *repl)
         command_text[text_len] = '\0';
     }
 
+    // Guard: if this is a regular text submission (not slash/bang command) and the
+    // agent is not idle, silently ignore to prevent crashing from rapid Enter presses
+    // (e.g. pasting multi-line text). Slash/bang commands always proceed regardless.
+    if (!is_slash_command && !is_bang_command) {
+        ik_agent_state_t current_state = atomic_load(&repl->current->state);
+        if (current_state != IK_AGENT_STATE_IDLE) {
+            return OK(NULL);
+        }
+    }
+
     ik_repl_dismiss_completion(repl);
 
     if (is_slash_command || is_bang_command) {
