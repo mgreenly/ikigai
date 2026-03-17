@@ -39,29 +39,6 @@ res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
     return OK(NULL);
 }
 
-static int g_template_call_count = 0;
-static bool g_template_fail = false;
-static const char *g_template_output = NULL; /* NULL = don't provide result */
-
-res_t ik_template_process_file(TALLOC_CTX *ctx, const char *text, ik_agent_ctx_t *agent,
-                                ik_config_t *config, const char *file_path, ik_template_result_t **out)
-{
-    (void)agent; (void)config; (void)file_path;
-    g_template_call_count++;
-    if (g_template_fail) {
-        return ERR(ctx, IO, "mock template failure");
-    }
-    if (g_template_output != NULL) {
-        ik_template_result_t *r = talloc_zero(ctx, ik_template_result_t);
-        r->processed = talloc_strdup(ctx, g_template_output);
-        *out = r;
-    } else {
-        (void)text;
-        *out = NULL;
-    }
-    return OK(NULL);
-}
-
 static int g_insert_call_count = 0;
 static bool g_insert_fail = false;
 
@@ -83,9 +60,6 @@ static void reset_mocks(void)
     g_doc_cache_call_count = 0;
     g_doc_cache_fail = false;
     g_doc_cache_content = "# Skill Content";
-    g_template_call_count = 0;
-    g_template_fail = false;
-    g_template_output = NULL;
     g_insert_call_count = 0;
     g_insert_fail = false;
 }
@@ -270,7 +244,6 @@ START_TEST(test_cmd_load_with_positional_args) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     reset_mocks();
     g_doc_cache_content = "Hello ${1}, welcome to ${2}!";
-    g_template_output = NULL;
 
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
@@ -298,7 +271,7 @@ END_TEST
 START_TEST(test_cmd_load_with_template_result) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     reset_mocks();
-    g_template_output = "processed skill content";
+    g_doc_cache_content = "cost: $$10";  /* $$ → $ after real template processing */
 
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
@@ -312,7 +285,7 @@ START_TEST(test_cmd_load_with_template_result) {
     res = ik_cmd_load(ctx, repl, "myskill");
     ck_assert(is_ok(&res));
     ck_assert_uint_eq(agent->loaded_skill_count, 1);
-    ck_assert_str_eq(agent->loaded_skills[0]->content, "processed skill content");
+    ck_assert_str_eq(agent->loaded_skills[0]->content, "cost: $10");
 
     talloc_free(ctx);
 }

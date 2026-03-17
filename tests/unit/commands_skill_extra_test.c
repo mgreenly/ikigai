@@ -37,22 +37,6 @@ res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
     return OK(NULL);
 }
 
-static const char *g_tpl_output = NULL;
-
-res_t ik_template_process_file(TALLOC_CTX *ctx, const char *text, ik_agent_ctx_t *agent,
-                                ik_config_t *config, const char *file_path, ik_template_result_t **out)
-{
-    (void)agent; (void)config; (void)text; (void)file_path;
-    if (g_tpl_output != NULL) {
-        ik_template_result_t *r = talloc_zero(ctx, ik_template_result_t);
-        r->processed = talloc_strdup(ctx, g_tpl_output);
-        *out = r;
-    } else {
-        *out = NULL;
-    }
-    return OK(NULL);
-}
-
 static int g_ins_count = 0;
 static bool g_ins_fail = false;
 
@@ -73,7 +57,6 @@ static void reset_mocks(void)
 {
     g_doc_fail = false;
     g_doc_content = "# Skill Content";
-    g_tpl_output = NULL;
     g_ins_count = 0;
     g_ins_fail = false;
 }
@@ -258,7 +241,7 @@ END_TEST
 START_TEST(test_skill_load_by_name_with_template) {
     TALLOC_CTX *ctx = talloc_new(NULL);
     reset_mocks();
-    g_tpl_output = "processed content";
+    g_doc_content = "cost: $$10";  /* $$ → $ after real template processing */
     ik_agent_ctx_t *agent = NULL;
     res_t res = ik_test_create_agent(ctx, &agent);
     ck_assert(is_ok(&res));
@@ -267,7 +250,7 @@ START_TEST(test_skill_load_by_name_with_template) {
     repl->shared->session_id = 0;
     bool ok = ik_skill_load_by_name(ctx, repl, agent, "myskill");
     ck_assert(ok);
-    ck_assert_str_eq(agent->loaded_skills[0]->content, "processed content");
+    ck_assert_str_eq(agent->loaded_skills[0]->content, "cost: $10");
     talloc_free(ctx);
 }
 END_TEST
