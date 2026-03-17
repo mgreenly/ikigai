@@ -37,6 +37,8 @@ typedef enum {
     IK_INPUT_NAV_NEXT_SIBLING, // Ctrl+Right (next sibling agent)
     IK_INPUT_NAV_PARENT,  // Ctrl+Up (parent agent)
     IK_INPUT_NAV_CHILD,   // Ctrl+Down (child agent)
+    IK_INPUT_PASTE_START, // \e[200~ (bracketed paste begin)
+    IK_INPUT_PASTE_END,   // \e[201~ (bracketed paste end)
     IK_INPUT_UNKNOWN      // Unrecognized sequence
 } ik_input_action_type_t;
 

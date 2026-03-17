@@ -24,6 +24,8 @@
 #define ESC_CSI_U_QUERY "\x1b[?u"              // Query CSI u support
 #define ESC_CSI_U_ENABLE "\x1b[>9u"            // Enable CSI u with flag 9
 #define ESC_CSI_U_DISABLE "\x1b[<u"            // Disable CSI u
+#define ESC_BRACKETED_PASTE_ENABLE "\x1b[?2004h"   // Enable bracketed paste mode
+#define ESC_BRACKETED_PASTE_DISABLE "\x1b[?2004l"  // Disable bracketed paste mode
 
 // Probe for CSI u support
 static bool probe_csi_u_support(int tty_fd)
@@ -234,6 +236,9 @@ res_t ik_term_init_with_fd(TALLOC_CTX *ctx, ik_logger_t *logger, int tty_fd, ik_
         return ERR(ctx, IO, "Failed to clear screen");
     }
 
+    // Enable bracketed paste mode
+    (void)posix_write_(tty_fd, ESC_BRACKETED_PASTE_ENABLE, 8);
+
     // Probe for CSI u support and enable if available
     term_ctx->csi_u_supported = probe_csi_u_support(tty_fd);
     if (term_ctx->csi_u_supported) {
@@ -277,6 +282,9 @@ void ik_term_cleanup(ik_term_ctx_t *ctx)
     if (ctx->csi_u_supported) {
         (void)posix_write_(ctx->tty_fd, ESC_CSI_U_DISABLE, 4);
     }
+
+    // Disable bracketed paste mode
+    (void)posix_write_(ctx->tty_fd, ESC_BRACKETED_PASTE_DISABLE, 8);
 
     // Exit alternate screen
     (void)posix_write_(ctx->tty_fd, ESC_ALT_SCREEN_EXIT, 8);

@@ -72,6 +72,8 @@ typedef struct ik_repl_ctx_t {
     int32_t cursor_row;              // Final cursor row (0-indexed)
     int32_t cursor_col;              // Final cursor col (0-indexed)
 
+    bool in_paste_mode;               // True between PASTE_START and PASTE_END
+
     // Note: completion removed - now in agent context (repl->current->completion)
     // Note: history removed - now in shared context (repl->shared->history)
     // Note: tool state removed - now in agent context (repl->current->pending_tool_call, etc.)

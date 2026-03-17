@@ -299,6 +299,10 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             repl->current->viewport_offset = 0;
             return ik_input_buffer_insert_newline(repl->current->input_buffer);
         case IK_INPUT_NEWLINE:
+            if (repl->in_paste_mode) {
+                repl->current->viewport_offset = 0;
+                return ik_input_buffer_insert_newline(repl->current->input_buffer);
+            }
             return ik_repl_handle_newline_action(repl);
         case IK_INPUT_BACKSPACE: {
             repl->current->viewport_offset = 0;
@@ -374,6 +378,12 @@ res_t ik_repl_process_action(ik_repl_ctx_t *repl, const ik_input_action_t *actio
             return ik_repl_nav_parent(repl);
         case IK_INPUT_NAV_CHILD:
             return ik_repl_nav_child(repl);
+        case IK_INPUT_PASTE_START:
+            repl->in_paste_mode = true;
+            return OK(NULL);
+        case IK_INPUT_PASTE_END:
+            repl->in_paste_mode = false;
+            return OK(NULL);
         case IK_INPUT_UNKNOWN:
             return OK(NULL);
         default: // LCOV_EXCL_LINE

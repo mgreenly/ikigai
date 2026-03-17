@@ -239,6 +239,8 @@ static bool parse_tilde_sequences(ik_input_parser_t *parser, char byte,
         case 4: action_out->type = IK_INPUT_CTRL_E; return true;
         case 5: action_out->type = IK_INPUT_PAGE_UP; return true;
         case 6: action_out->type = IK_INPUT_PAGE_DOWN; return true;
+        case 200: action_out->type = IK_INPUT_PASTE_START; return true;
+        case 201: action_out->type = IK_INPUT_PASTE_END; return true;
         default: action_out->type = IK_INPUT_UNKNOWN; return true;
     }
 }

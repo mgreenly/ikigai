@@ -30,8 +30,8 @@ END_TEST
 // Test: CSI u probe write failure
 START_TEST(test_csi_u_probe_write_fails) {
     reset_mocks();
-    // Fail on third write (CSI u query) - first write is alt screen enter, second is screen clear
-    mock_write_fail_on_call = 3;
+    // Fail on fourth write (CSI u query) - 1=alt screen, 2=clear screen, 3=bracket paste, 4=CSI u query
+    mock_write_fail_on_call = 4;
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
@@ -96,8 +96,8 @@ END_TEST
 START_TEST(test_csi_u_enable_fails) {
     reset_mocks();
     mock_select_return = 1; // Indicate CSI u is supported
-    // Write sequence: 1=alt screen, 2=CSI u query, 3=CSI u enable
-    mock_write_fail_on_call = 3; // Fail on CSI u enable (3rd write)
+    // Write sequence: 1=alt screen, 2=clear screen, 3=bracket paste, 4=CSI u query, 5=CSI u enable
+    mock_write_fail_on_call = 5; // Fail on CSI u enable (5th write)
 
     TALLOC_CTX *ctx = talloc_new(NULL);
     ik_term_ctx_t *term = NULL;
