@@ -181,7 +181,6 @@ res_t ik_bang_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
     // Load command file from doc cache
     char *file_content = NULL;
     res_t cache_res = ik_doc_cache_get(repl->current->doc_cache, uri, &file_content);
-    talloc_free(uri);
 
     if (is_err(&cache_res)) {
         char *err_text = talloc_asprintf(ctx, "Command not found: !%s", cmd_name);
@@ -192,6 +191,7 @@ res_t ik_bang_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
         talloc_free(msg);
         res_t result = ERR(ctx, INVALID_ARG, "Command not found: !%s", cmd_name);
         talloc_free(cache_res.err);
+        talloc_free(uri);
         talloc_free(cmd_name);
         return result;
     }
@@ -201,8 +201,9 @@ res_t ik_bang_dispatch(void *ctx, ik_repl_ctx_t *repl, const char *input)
 
     // Apply full template processing
     ik_template_result_t *tmpl_result = NULL;
-    res_t tmpl_res = ik_template_process(ctx, substituted, repl->current,
-                                         repl->shared->cfg, &tmpl_result);
+    res_t tmpl_res = ik_template_process_file(ctx, substituted, repl->current,
+                                              repl->shared->cfg, uri, &tmpl_result);
+    talloc_free(uri);
     talloc_free(substituted);
 
     if (is_err(&tmpl_res)) {  /* LCOV_EXCL_BR_LINE */

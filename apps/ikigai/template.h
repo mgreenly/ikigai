@@ -24,6 +24,7 @@ typedef struct {
  * - ${config.*} - config fields
  * - ${env.*} - environment variables
  * - ${func.*} - computed values (now, cwd, hostname, random)
+ * - ${template.*} - template metadata (path resolves to "undefined")
  * - $$ - escape to literal $
  *
  * Unresolved variables remain as literal text (not replaced).
@@ -40,5 +41,27 @@ res_t ik_template_process(TALLOC_CTX *ctx,
                           ik_agent_ctx_t *agent,
                           ik_config_t *config,
                           ik_template_result_t **out);
+
+/**
+ * @brief Process template text with file path context
+ *
+ * Same as ik_template_process() but also resolves ${template.*} variables
+ * using the provided file_path. Use this when processing a file or resource
+ * that has a known path or URI.
+ *
+ * @param ctx       Talloc context for allocations
+ * @param text      Input text to process
+ * @param agent     Agent context (for ${agent.*})
+ * @param config    Config (for ${config.*})
+ * @param file_path Path or URI of the template file (for ${template.path})
+ * @param out       Template result (allocated on ctx)
+ * @return          OK on success, ERR on failure
+ */
+res_t ik_template_process_file(TALLOC_CTX *ctx,
+                               const char *text,
+                               ik_agent_ctx_t *agent,
+                               ik_config_t *config,
+                               const char *file_path,
+                               ik_template_result_t **out);
 
 #endif // IK_TEMPLATE_H

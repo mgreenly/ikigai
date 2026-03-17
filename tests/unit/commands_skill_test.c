@@ -11,9 +11,11 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands_skill.h"
+#include "apps/ikigai/config.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/template.h"
 #include "apps/ikigai/token_cache.h"
 #include "shared/error.h"
 #include "shared/wrapper_internal.h"
@@ -41,18 +43,16 @@ static int g_template_call_count = 0;
 static bool g_template_fail = false;
 static const char *g_template_output = NULL; /* NULL = don't provide result */
 
-res_t ik_template_process_(TALLOC_CTX *ctx, const char *text, void *agent,
-                            void *config, void **out)
+res_t ik_template_process_file(TALLOC_CTX *ctx, const char *text, ik_agent_ctx_t *agent,
+                                ik_config_t *config, const char *file_path, ik_template_result_t **out)
 {
-    (void)agent; (void)config;
+    (void)agent; (void)config; (void)file_path;
     g_template_call_count++;
     if (g_template_fail) {
         return ERR(ctx, IO, "mock template failure");
     }
     if (g_template_output != NULL) {
-        /* Return a fake template result */
-        typedef struct { const char *processed; } fake_result_t;
-        fake_result_t *r = talloc_zero(ctx, fake_result_t);
+        ik_template_result_t *r = talloc_zero(ctx, ik_template_result_t);
         r->processed = talloc_strdup(ctx, g_template_output);
         *out = r;
     } else {

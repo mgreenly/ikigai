@@ -252,7 +252,7 @@ res_t ik_cmd_load(void *ctx, ik_repl_ctx_t *repl, const char *args)
     char *substituted = apply_positional_args_(ctx, file_content, pos_args, pos_arg_count);
     ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;  /* LCOV_EXCL_BR_LINE */
     ik_template_result_t *template_result = NULL;
-    res_t template_res = ik_template_process_(ctx, substituted, agent, config, (void **)&template_result);
+    res_t template_res = ik_template_process_file(ctx, substituted, agent, config, uri, &template_result);
     const char *resolved_content = substituted;
     if (is_ok(&template_res) && template_result != NULL) {  /* LCOV_EXCL_BR_LINE */
         resolved_content = template_result->processed;
@@ -383,11 +383,11 @@ bool ik_skill_load_by_name(void *ctx, ik_repl_ctx_t *repl, ik_agent_ctx_t *agent
         talloc_free(uri);
         return false;
     }
-    talloc_free(uri);
 
     ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;  /* LCOV_EXCL_BR_LINE */
     ik_template_result_t *template_result = NULL;
-    res_t template_res = ik_template_process_(ctx, file_content, agent, config, (void **)&template_result);
+    res_t template_res = ik_template_process_file(ctx, file_content, agent, config, uri, &template_result);
+    talloc_free(uri);
     const char *resolved_content = file_content;
     if (is_ok(&template_res) && template_result != NULL) {  /* LCOV_EXCL_BR_LINE */
         resolved_content = template_result->processed;

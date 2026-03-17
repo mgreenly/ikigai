@@ -31,12 +31,13 @@ static char temp_dir[256];
 static int mock_template_return_error = 0;
 static int mock_template_return_null = 0;
 
-// Mock implementation of ik_template_process for testing error paths
-res_t ik_template_process_(TALLOC_CTX *ctx,
-                           const char *text,
-                           void *agent,
-                           void *config,
-                           void **out)
+// Mock implementation of ik_template_process_file for testing error paths
+res_t ik_template_process_file(TALLOC_CTX *ctx,
+                               const char *text,
+                               ik_agent_ctx_t *agent,
+                               ik_config_t *config,
+                               const char *file_path,
+                               ik_template_result_t **out)
 {
     if (mock_template_return_error) {
         *out = NULL;
@@ -47,7 +48,8 @@ res_t ik_template_process_(TALLOC_CTX *ctx,
         return OK(NULL);
     }
     // Default: call the real implementation
-    return ik_template_process(ctx, text, (ik_agent_ctx_t *)agent, (ik_config_t *)config, (ik_template_result_t **)out);
+    (void)file_path;
+    return ik_template_process(ctx, text, agent, config, out);
 }
 
 static void setup(void)

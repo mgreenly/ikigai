@@ -148,10 +148,19 @@ static char *resolve_func_value(TALLOC_CTX *ctx, const char *func_name)
     return NULL;
 }
 
+static char *resolve_template_field(TALLOC_CTX *ctx, const char *field, const char *file_path)
+{
+    if (strcmp(field, "path") == 0) {
+        return talloc_strdup(ctx, file_path != NULL ? file_path : "undefined");
+    }
+    return NULL;
+}
+
 static char *resolve_variable(TALLOC_CTX *ctx,
                               const char *var,
                               ik_agent_ctx_t *agent,
-                              ik_config_t *config)
+                              ik_config_t *config,
+                              const char *file_path)
 {
     if (strncmp(var, "agent.", 6) == 0) {
         return resolve_agent_field(ctx, var + 6, agent);
@@ -165,6 +174,9 @@ static char *resolve_variable(TALLOC_CTX *ctx,
     }
     if (strncmp(var, "func.", 5) == 0) {
         return resolve_func_value(ctx, var + 5);
+    }
+    if (strncmp(var, "template.", 9) == 0) {
+        return resolve_template_field(ctx, var + 9, file_path);
     }
     return NULL;
 }
@@ -195,11 +207,12 @@ static void track_unresolved(TALLOC_CTX *ctx,
     (*unresolved_count)++;
 }
 
-res_t ik_template_process(TALLOC_CTX *ctx,
-                          const char *text,
-                          ik_agent_ctx_t *agent,
-                          ik_config_t *config,
-                          ik_template_result_t **out)
+static res_t process_impl_(TALLOC_CTX *ctx,
+                           const char *text,
+                           ik_agent_ctx_t *agent,
+                           ik_config_t *config,
+                           const char *file_path,
+                           ik_template_result_t **out)
 {
     assert(text != NULL);       // LCOV_EXCL_BR_LINE
     assert(out != NULL);        // LCOV_EXCL_BR_LINE
@@ -236,7 +249,7 @@ res_t ik_template_process(TALLOC_CTX *ctx,
             char *var = talloc_strndup(result, p + 2, var_len);
             if (var == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
 
-            char *value = resolve_variable(result, var, agent, config);
+            char *value = resolve_variable(result, var, agent, config, file_path);
             if (value != NULL) {
                 append_to_processed(result, &processed, value);
             } else {
@@ -263,4 +276,23 @@ res_t ik_template_process(TALLOC_CTX *ctx,
 
     *out = result;
     return OK(*out);
+}
+
+res_t ik_template_process_file(TALLOC_CTX *ctx,
+                               const char *text,
+                               ik_agent_ctx_t *agent,
+                               ik_config_t *config,
+                               const char *file_path,
+                               ik_template_result_t **out)
+{
+    return process_impl_(ctx, text, agent, config, file_path, out);
+}
+
+res_t ik_template_process(TALLOC_CTX *ctx,
+                          const char *text,
+                          ik_agent_ctx_t *agent,
+                          ik_config_t *config,
+                          ik_template_result_t **out)
+{
+    return process_impl_(ctx, text, agent, config, NULL, out);
 }

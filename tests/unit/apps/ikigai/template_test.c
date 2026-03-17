@@ -316,21 +316,6 @@ START_TEST(test_agent_field_null) {
 }
 END_TEST
 
-START_TEST(test_config_field_null) {
-    ik_config_t *null_config = talloc_zero(ctx, ik_config_t);
-    ck_assert_ptr_nonnull(null_config);
-
-    const char *input = "Model: ${config.openai_model}";
-    ik_template_result_t *result = NULL;
-
-    res_t res = ik_template_process(ctx, input, agent, null_config, &result);
-    ck_assert(is_ok(&res));
-    ck_assert_ptr_nonnull(result);
-    ck_assert_str_eq(result->processed, "Model: undefined");
-    ck_assert_int_eq((int32_t)result->unresolved_count, 0);
-}
-END_TEST
-
 START_TEST(test_unknown_namespace) {
     const char *input = "Unknown: ${unknown.field}";
     ik_template_result_t *result = NULL;
@@ -340,20 +325,6 @@ START_TEST(test_unknown_namespace) {
     ck_assert_ptr_nonnull(result);
     ck_assert_str_eq(result->processed, "Unknown: ${unknown.field}");
     ck_assert_int_eq((int32_t)result->unresolved_count, 1);
-}
-END_TEST
-
-START_TEST(test_known_field_null_resolves_to_undefined) {
-    ik_agent_ctx_t *test_agent = talloc_zero(ctx, ik_agent_ctx_t);
-    ck_assert_ptr_nonnull(test_agent);
-
-    const char *input = "Provider: ${agent.provider}";
-    ik_template_result_t *result = NULL;
-
-    res_t res = ik_template_process(ctx, input, test_agent, config, &result);
-    ck_assert(is_ok(&res));
-    ck_assert_str_eq(result->processed, "Provider: undefined");
-    ck_assert_int_eq((int32_t)result->unresolved_count, 0);
 }
 END_TEST
 
@@ -408,6 +379,32 @@ START_TEST(test_config_string_fields_null) {
 }
 END_TEST
 
+START_TEST(test_template_path) {
+    ik_template_result_t *r = NULL;
+    const char *paths[] = {"/a/b.md", "/x/note (1).md", "rel/s.md", "sk://m"};
+    for (size_t i = 0; i < 4; i++) {
+        res_t res = ik_template_process_file(ctx, "${template.path}", agent, config,
+                                             paths[i], &r);
+        ck_assert(is_ok(&res));
+        ck_assert_str_eq(r->processed, paths[i]);
+        talloc_free(r); r = NULL;
+    }
+    res_t res = ik_template_process_file(
+        ctx, "A:${agent.uuid} P:${template.path} D:${config.db_host}",
+        agent, config, "/s/m.md", &r);
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(r->processed, "A:test-uuid-1234 P:/s/m.md D:localhost");
+    talloc_free(r); r = NULL;
+    res = ik_template_process_file(ctx, "${template.path}", agent, config, NULL, &r);
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(r->processed, "undefined");
+    talloc_free(r); r = NULL;
+    res = ik_template_process(ctx, "${template.path}", agent, config, &r);
+    ck_assert(is_ok(&res));
+    ck_assert_str_eq(r->processed, "undefined");
+}
+END_TEST
+
 static Suite *template_suite(void)
 {
     Suite *s = suite_create("template");
@@ -433,12 +430,11 @@ static Suite *template_suite(void)
     tcase_add_test(tc, test_agent_null);
     tcase_add_test(tc, test_config_null);
     tcase_add_test(tc, test_agent_field_null);
-    tcase_add_test(tc, test_config_field_null);
     tcase_add_test(tc, test_unknown_namespace);
     tcase_add_test(tc, test_duplicate_unresolved);
     tcase_add_test(tc, test_agent_string_fields_null);
     tcase_add_test(tc, test_config_string_fields_null);
-    tcase_add_test(tc, test_known_field_null_resolves_to_undefined);
+    tcase_add_test(tc, test_template_path);
 
     suite_add_tcase(s, tc);
     return s;

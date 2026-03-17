@@ -161,7 +161,7 @@ char *ik_internal_tool_load_skill_handler(TALLOC_CTX *ctx,
                                                pos_arg_count);
     ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;
     ik_template_result_t *tmpl = NULL;
-    res_t tr = ik_template_process(ctx, substituted, agent, config, &tmpl);
+    res_t tr = ik_template_process_file(ctx, substituted, agent, config, uri, &tmpl);
     const char *resolved = substituted;
     if (is_ok(&tr) && tmpl != NULL) resolved = tmpl->processed;  /* LCOV_EXCL_BR_LINE */
 

@@ -52,15 +52,15 @@ static void load_one_preload_skill_(TALLOC_CTX *ctx, ik_agent_ctx_t *agent,
     if (!uri) PANIC("OOM");  /* LCOV_EXCL_LINE */
     char *content = NULL;
     res_t sr = ik_doc_cache_get(agent->doc_cache, uri, &content);
-    talloc_free(uri);
     if (is_err(&sr) || content == NULL) {
         if (is_err(&sr)) talloc_free(sr.err);
+        talloc_free(uri);
         return;  /* skip missing skills */
     }
 
     ik_config_t *cfg = (agent->shared != NULL) ? agent->shared->cfg : NULL;  // LCOV_EXCL_BR_LINE
     ik_template_result_t *tmpl = NULL;
-    res_t tr = ik_template_process(ctx, content, agent, cfg, &tmpl);
+    res_t tr = ik_template_process_file(ctx, content, agent, cfg, uri, &tmpl);
     const char *resolved = content;
     if (is_ok(&tr) && tmpl != NULL) resolved = tmpl->processed;
 
@@ -71,6 +71,7 @@ static void load_one_preload_skill_(TALLOC_CTX *ctx, ik_agent_ctx_t *agent,
     data->skill_count++;
 
     if (tmpl != NULL) talloc_free(tmpl);  // LCOV_EXCL_BR_LINE
+    talloc_free(uri);
 }
 
 /* Populate skill_names/contents from preload array. */

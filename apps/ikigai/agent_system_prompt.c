@@ -53,11 +53,13 @@ static void display_template_warnings(ik_agent_ctx_t *agent, ik_template_result_
     }
 }
 
-static char *process_pinned_content(ik_agent_ctx_t *agent, const char *content)
+static char *process_pinned_content(ik_agent_ctx_t *agent, const char *content,
+                                     const char *file_path)
 {
     ik_config_t *config = (agent->shared != NULL) ? agent->shared->cfg : NULL;
     ik_template_result_t *template_result = NULL;
-    res_t template_res = ik_template_process_(agent, content, agent, config, (void **)&template_result);
+    res_t template_res = ik_template_process_file(agent, content, agent, config,
+                                                  file_path, &template_result);
 
     const char *processed_content = content;
     if (is_ok(&template_res) && template_result != NULL) {
@@ -111,7 +113,7 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
             res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
 
             if (is_ok(&doc_res) && content != NULL) {
-                char *processed_content = process_pinned_content(agent, content);
+                char *processed_content = process_pinned_content(agent, content, path);
                 char *new_assembled = talloc_asprintf(agent, "%s%s", assembled, processed_content);
                 if (new_assembled == NULL) PANIC("Out of memory");  // LCOV_EXCL_BR_LINE
                 talloc_free(assembled);
@@ -135,14 +137,15 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
 
         char *content = NULL;
         res_t read_res = ik_file_read_all(agent, prompt_path, &content, NULL);
-        talloc_free(prompt_path);
 
         if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
-            char *base = process_pinned_content(agent, content);
+            char *base = process_pinned_content(agent, content, prompt_path);
+            talloc_free(prompt_path);
             talloc_free(content);
             *out = append_loaded_skills_(agent, base);
             return OK(*out);
         }
+        talloc_free(prompt_path);
         if (content != NULL) {
             talloc_free(content);
         }
@@ -151,7 +154,7 @@ res_t ik_agent_get_effective_system_prompt(ik_agent_ctx_t *agent, char **out)
     // Priority 3: Config fallback
     if (agent->shared != NULL && agent->shared->cfg != NULL &&
         agent->shared->cfg->openai_system_message != NULL) {
-        char *base = process_pinned_content(agent, agent->shared->cfg->openai_system_message);
+        char *base = process_pinned_content(agent, agent->shared->cfg->openai_system_message, NULL);
         *out = append_loaded_skills_(agent, base);
         return OK(*out);
     }
@@ -173,13 +176,14 @@ static char *resolve_base_prompt_(ik_agent_ctx_t *agent)
 
         char *content = NULL;
         res_t read_res = ik_file_read_all(agent, prompt_path, &content, NULL);
-        talloc_free(prompt_path);
 
         if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
-            char *result = process_pinned_content(agent, content);
+            char *result = process_pinned_content(agent, content, prompt_path);
+            talloc_free(prompt_path);
             talloc_free(content);
             return result;
         }
+        talloc_free(prompt_path);
         if (content != NULL) talloc_free(content);
     }
 
@@ -187,7 +191,7 @@ static char *resolve_base_prompt_(ik_agent_ctx_t *agent)
     if (agent->shared != NULL && agent->shared->cfg != NULL &&
         agent->shared->cfg->openai_system_message != NULL &&
         strlen(agent->shared->cfg->openai_system_message) > 0) {
-        return process_pinned_content(agent, agent->shared->cfg->openai_system_message);
+        return process_pinned_content(agent, agent->shared->cfg->openai_system_message, NULL);
     }
 
     // Priority 3: Hardcoded default
@@ -212,12 +216,13 @@ static void load_agents_md_(ik_agent_ctx_t *agent)
 
     char *content = NULL;
     res_t read_res = ik_file_read_all(agent, path, &content, NULL);
-    talloc_free(path);
 
     if (is_ok(&read_res) && content != NULL && strlen(content) > 0) {
-        agent->agents_md_content = process_pinned_content(agent, content);
+        agent->agents_md_content = process_pinned_content(agent, content, path);
+        talloc_free(path);
         talloc_free(content);
     } else {
+        talloc_free(path);
         if (content != NULL) talloc_free(content);
         if (is_err(&read_res)) talloc_free(read_res.err);
     }
@@ -233,7 +238,7 @@ static res_t add_pinned_doc_blocks_(ik_request_t *req, ik_agent_ctx_t *agent)
         res_t doc_res = ik_doc_cache_get(agent->doc_cache, path, &content);
 
         if (is_ok(&doc_res) && content != NULL) {
-            char *processed = process_pinned_content(agent, content);
+            char *processed = process_pinned_content(agent, content, path);
             res_t res = ik_request_add_system_block(req, processed, true, IK_SYSTEM_BLOCK_PINNED_DOC);
             talloc_free(processed);
             if (is_err(&res)) return res;  // LCOV_EXCL_BR_LINE

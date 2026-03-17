@@ -11,9 +11,11 @@
 
 #include "apps/ikigai/agent.h"
 #include "apps/ikigai/commands_skill.h"
+#include "apps/ikigai/config.h"
 #include "apps/ikigai/doc_cache.h"
 #include "apps/ikigai/repl.h"
 #include "apps/ikigai/scrollback.h"
+#include "apps/ikigai/template.h"
 #include "apps/ikigai/token_cache.h"
 #include "shared/error.h"
 #include "shared/wrapper_internal.h"
@@ -37,13 +39,12 @@ res_t ik_doc_cache_get_(void *cache, const char *path, char **out_content)
 
 static const char *g_tpl_output = NULL;
 
-res_t ik_template_process_(TALLOC_CTX *ctx, const char *text, void *agent,
-                            void *config, void **out)
+res_t ik_template_process_file(TALLOC_CTX *ctx, const char *text, ik_agent_ctx_t *agent,
+                                ik_config_t *config, const char *file_path, ik_template_result_t **out)
 {
-    (void)agent; (void)config; (void)text;
+    (void)agent; (void)config; (void)text; (void)file_path;
     if (g_tpl_output != NULL) {
-        typedef struct { const char *processed; } r_t;
-        r_t *r = talloc_zero(ctx, r_t);
+        ik_template_result_t *r = talloc_zero(ctx, ik_template_result_t);
         r->processed = talloc_strdup(ctx, g_tpl_output);
         *out = r;
     } else {
