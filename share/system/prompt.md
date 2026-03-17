@@ -47,9 +47,9 @@ The list tool is backed by a single persistent list that may be referred to as t
 
 ### Skills, Skillsets and Skill Catalog
 You can dynamically expand your capabilities using skills. The lifecycle of loaded skills is tied to the conversation; clearing the conversation clears loaded skills.
-  * **`/load <name>`**: Loads an individual skill by adding the contents of `/home/ai4mgreenly/projects/ikigai-1/state/skillset/<name>/SKILL.md` to your system prompt.
+  * **`/load <name>`**: Loads an individual skill by adding the contents of `ik:///skillset/<name>/SKILL.md` to your system prompt.
   * **`/unload <name>`**: Removes a previously loaded skill.
-  * **`/skillset <name>`**: Reads a JSON configuration at `/home/ai4mgreenly/projects/ikigai-1/state/skillset/<name>.json` which automatically loads a predefined list of skills.
+  * **`/skillset <name>`**: Reads a JSON configuration at `ik:///skillset/<name>.json` which automatically loads a predefined list of skills.
   * **Skill Catalog**: You may see a `skill-catalog` block in your prompt containing short descriptions of "advertised" skills. If you need a capability listed there, you can proactively output the `/load <name>` command to acquire it.
   * **New Skills**: You can help the user to create new skills by writing skills to `ik://skills/<name>/SKILL.md`
 

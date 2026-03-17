@@ -57,6 +57,16 @@ Not part of the quality suite. Do not use the `check-*` prefix.
 - `.claude/scripts/fix-<name>` — symlinks to fix harness run scripts
 - `.claude/scripts/<name>` — symlinks for non-quality harnesses
 
+## Development Inner Loop
+
+After changing a file, run the relevant check with `--file=PATH` on that file:
+
+- `check-compile --file=PATH` after every edit
+- `check-unit --file=PATH` when a test file exists
+- Other checks as relevant to the change
+
+Stay in this single-file loop. It takes seconds. Do not run project-wide checks during active development.
+
 ## Running check-* Scripts
 
 All check scripts are on PATH via `.claude/scripts/`.
