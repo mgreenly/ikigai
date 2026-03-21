@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
+## [0.14.0] - 2026-03-21
+
+### Added
+
+#### Parallel Tool Execution (Complete)
+- **Parallel tool execution scheduler**: Concurrent dispatch of independent tool calls with visual progress display
+- **Google provider multi-call support**: Google provider handles multiple function calls per response
+- **Parallel scheduler message replay**: Scheduler display rebuilt correctly on message replay
+
+#### Background Processes (Complete)
+- **Line index data structure**: Indexed line tracking for process output
+- **ANSI escape sequence stripper**: Strip ANSI escapes from process output for clean storage
+- **Database schema and MOCKABLE wrappers**: Persistence layer for background process state
+- **Process lifecycle**: Start, kill, and state machine for managed background processes
+- **Process I/O**: stdin writing, output reading, and cursor tracking
+- **Event loop reader**: `select()` integration with TTL-based cleanup
+- **LLM internal tools**: `pstart`, `pread`, `pwrite`, `pkill`, `ps` tools available to the LLM
+- **User slash commands**: `/ps`, `/pread`, `/pkill`, `/pwrite`, `/pclose` for user-facing process management
+- **Agent lifecycle integration**: Exit messages, startup recovery, and system prompt wiring
+
+#### System Prompt Enhancements
+- **AGENTS.md as system block**: `AGENTS.md` loaded as a system block on fresh session start
+- **Permissions section**: Permissions block added to the system prompt
+
+#### `/context` Slash Command (Complete)
+- **`/context` visual layout**: New slash command displaying tools, system blocks, and message history with box-drawing UI
+
+#### Template System
+- **`${template.path}` variable**: Template resolver supports the `${template.path}` variable
+
+#### Input Handling
+- **Bracketed paste mode**: Multi-line paste support via terminal bracketed paste
+
+#### E2E Testing
+- **fork-weather e2e tests**: End-to-end test coverage for fork-weather scenario
+
+### Changed
+
+- **Version bumped to 0.14.0**: Version and README install tag updated
+- **Token count display repositioned**: Token count shown immediately after LLM response text
+- **Tool lifecycle display styling**: Indentation removed, gray styling applied to tool lifecycle lines
+- **`/pinspect` renamed to `/pread`**: More intuitive name for process output inspection
+- **`/context` display order**: Reordered to show tools, system blocks, then messages
+- **`/system` slash command removed**: Replaced by the more comprehensive `/context` command
+- **`cursor_byte_offset` removed**: Deprecated field removed from `ik_input_buffer_t`
+- **`scripts/` directory removed**: Stale scripts directory and references cleaned up
+- **Agent prompts reorganized**: Agent prompts, Claude metadata, and skill configuration restructured
+- **Template test mocking simplified**: Unnecessary template process mocking removed from skill tests
+- **`IKIGAI_SLIDING_CONTEXT_TOKENS` disabled**: Commented out in `.envrc`
+- **`IKIGAI_AGENT_ID` added to `.envrc`**: Agent ID environment variable configured
+
+### Fixed
+
+- **Parallel tool execution display formatting**: Correct layout for concurrent tool progress
+- **Internal tool dispatch in parallel scheduler**: Internal tools dispatched correctly under parallel execution
+- **OpenAI Responses API `IK_STREAM_DONE`**: `IK_STREAM_DONE` emitted in `response.completed` handler
+- **Tool call `thought_signature` persistence**: `thought_signature` survives DB round-trip
+- **Mock provider `response.completed` payload**: Proper SSE payload for Responses API
+- **ikigai-ctl broken pipe recovery**: Broken pipe errors handled gracefully
+- **`/context` box-drawing width**: Box-drawing characters render at correct width
+- **`/context` message history turn counting**: Accurate turn count in message history display
+- **`/context` outer box right border**: Right border no longer clipped
+- **`/context` Message History content row width**: Content rows sized correctly
+- **Framebuffer screen output match**: Framebuffer contents match actual screen output
+- **Submit guard for non-IDLE state**: Submit path rejects input when agent is not in IDLE state
+
 ## [0.13.0] - 2026-03-14
 
 ### Added

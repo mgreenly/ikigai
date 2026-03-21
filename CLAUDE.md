@@ -74,7 +74,7 @@ Use `/skillset <name>` to load a skillset.
 | `developer` | Writing new code (TDD, style, quality, coverage, jj) |
 | `architect` | Architectural decisions (DDD, DI, patterns, naming) |
 | `security` | Discovering security flaws |
-| `meta` | Improving the .claude/ system |
+| `default` | Default skillset for all sessions |
 
 ## Claude Code-Specific Notes
 

@@ -6,7 +6,7 @@ Load a skillset (composite skill set) from `.claude/skillsets/`.
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
-- `meta` - For improving the .claude/ system
+- `default` - Default skillset for all sessions
 - `security` - For discovering security flaws
 
 **Skillset JSON format:**
@@ -36,7 +36,7 @@ For `advertise`: Skills you can load with `/load <skill>` when you determine you
 **Available skillsets:**
 - `architect` - For architectural decisions (DDD, DI, patterns, naming, style)
 - `developer` - For writing new code (TDD, style, naming, quality, coverage, zero-debt, jj)
-- `meta` - For improving the .claude/ system
+- `default` - Default skillset for all sessions
 - `security` - For discovering security flaws
 
 Use `/skillset <name>` to load a skillset.

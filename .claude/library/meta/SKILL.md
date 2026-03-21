@@ -70,7 +70,7 @@ JSON files listing skills to load together.
 - `developer` - Implementation (TDD, quality)
 - `architect` - Architectural decisions (DDD, DI, patterns)
 - `security` - Security review
-- `meta` - Agent system management
+- `default` - Default skillset for all sessions
 
 ## Best Practices
 
