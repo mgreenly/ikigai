@@ -1,14 +1,6 @@
 # Roadmap to MVP
 
-Releases rel-01 through rel-13 are complete. See [CHANGELOG.md](../CHANGELOG.md) for details.
-
-### rel-14: Parallel Tool Execution (future)
-
-**Objective**: Parallelize read only tool calls
-
-**Features**:
-- Parallelize read only tool calls
-
+Releases rel-01 through rel-14 are complete. See [CHANGELOG.md](../CHANGELOG.md) for details.
 
 ### rel-15: Per-Agent Configuration (future)
 
@@ -47,12 +39,24 @@ Releases rel-01 through rel-13 are complete. See [CHANGELOG.md](../CHANGELOG.md)
 - fix scrolling when scrolled up
 
 
-### rel-18: Codebase Refactor & MVP Release (future)
+### rel-18: Safety & Configuration Hardening (future)
+
+**Objective**: Harden the agent system against prompt injection and protect configuration integrity before MVP release
+
+**Features**:
+- Protect agent configuration files (.claude/) from prompt injection attacks
+- Validate and sanitize tool inputs that reference configuration paths
+- Prevent model-generated content from modifying skill definitions, hooks, or settings
+- Audit configuration mutations and flag unauthorized changes
+- Sandbox boundary enforcement between agent-authored content and system configuration
+
+
+### rel-19: Codebase Refactor & MVP Release (future)
 
 **Objective**: Improve code organization, reduce complexity, and clean up technical debt before MVP release.
 
 
-### rel-19: Programmatic Tool Calling (future)
+### rel-20: Programmatic Tool Calling (future)
 
 **Objective**: Allow the model to orchestrate complex multi-tool workflows by writing Python code that calls tools programmatically inside a sandboxed execution environment
 

@@ -32,7 +32,7 @@ The 6 core quality checks are the default exit gate for all work. Run these in o
 
 ### Full Quality Suite
 
-The full quality suite is the 6 core quality checks plus these 5 additional checks. Run only when explicitly requested.
+The full quality suite is the 6 core quality checks plus these 4 additional checks. Run only when explicitly requested.
 
 | Script | What it verifies |
 |--------|------------------|
@@ -40,6 +40,13 @@ The full quality suite is the 6 core quality checks plus these 5 additional chec
 | `check-tsan` | ThreadSanitizer clean |
 | `check-valgrind` | Valgrind memcheck clean |
 | `check-helgrind` | Valgrind helgrind clean |
+
+### Manual Checks
+
+Not part of any automated suite. Run only when explicitly requested by the user.
+
+| Script | What it verifies |
+|--------|------------------|
 | `check-coverage` | 90% line coverage met |
 
 ## Other Harnesses
