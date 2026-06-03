@@ -192,6 +192,22 @@ func scanDealCards(rows *sql.Rows) ([]map[string]any, error) {
 	return out, rows.Err()
 }
 
+// openDealCardsByContact lists the live, open deals a contact participates in
+// (via deal_contacts).
+func openDealCardsByContact(tx *sql.Tx, contactID string) ([]map[string]any, error) {
+	rows, err := tx.Query(`
+		SELECT d.id, d.name, d.stage, d.amount_cents, d.currency
+		FROM deals d
+		JOIN deal_contacts dc ON dc.deal_id = d.id AND dc.deleted_at IS NULL
+		WHERE dc.contact_id = ? AND d.deleted_at IS NULL AND d.stage NOT IN ('won','lost')
+		ORDER BY d.updated_at DESC, d.id DESC`, contactID)
+	if err != nil {
+		return nil, fmt.Errorf("open deals by contact: %w", err)
+	}
+	defer rows.Close()
+	return scanDealCards(rows)
+}
+
 // recentInteractionCards lists the newest N interactions for a subject column.
 func recentInteractionCards(tx *sql.Tx, col, id string, limit int) ([]map[string]any, error) {
 	if !subjectCols[col] {
@@ -283,6 +299,23 @@ func dealStatus(stage string) string {
 	default:
 		return "open"
 	}
+}
+
+// filterString extracts a non-empty string filter from a SearchParams.Filters
+// map, returning ok=false when absent, non-string, or empty.
+func filterString(f map[string]any, key string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+	v, ok := f[key]
+	if !ok {
+		return "", false
+	}
+	s, ok := v.(string)
+	if !ok || s == "" {
+		return "", false
+	}
+	return s, true
 }
 
 // keysetAfter returns the SQL predicate and args for recency keyset pagination

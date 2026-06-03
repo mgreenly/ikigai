@@ -152,6 +152,14 @@ type Summary struct {
 	Fields    map[string]any `json:"fields,omitempty"`
 
 	sortKey time.Time
+
+	// Side-band for the dispatcher's first-wave event emission (PLAN.md §6) —
+	// not part of the wire summary. A Save sets isCreate to distinguish
+	// contact.created from contact.updated; contactStore.Save populates the
+	// tag diff (added/removed) that becomes contact.tagged/untagged.
+	isCreate    bool
+	tagsAdded   []string
+	tagsRemoved []string
 }
 
 // Card is the rich per-type read shape (PLAN.md §4): each entity's Get hook
