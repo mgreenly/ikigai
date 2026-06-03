@@ -1,5 +1,5 @@
 # marketplace stays its own standalone repo (mgreenly/marketplace, public).
-# It lives here on disk but is NOT part of the hub monorepo — git never
+# It lives here on disk but is NOT part of the ikigai monorepo — git never
 # descends into it, so its own .git and the public plugin-add URL are preserved.
 /marketplace/
 

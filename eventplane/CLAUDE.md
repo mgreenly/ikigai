@@ -5,7 +5,7 @@ SSE event plane described in `../docs/event-protocol.md` (the normative wire
 contract; on any conflict that doc wins).
 
 This is a **library, not a service**: no port, no nginx fragment, no `bin/run`.
-It is a sixth git repo under `hub/`, wired for local dev by `hub/go.work` and for
+It is a sixth git repo under `ikigai/`, wired for local dev by `ikigai/go.work` and for
 deterministic builds by a committed `replace eventplane => ../eventplane` in each
 consumer's `go.mod`.
 
@@ -70,7 +70,7 @@ together cover the wire contract end to end. The first real consumer is the
 
 ## Tests
 
-`go test ./...` (workspace mode via `hub/go.work`). The three §5.3 producer
+`go test ./...` (workspace mode via `ikigai/go.work`). The three §5.3 producer
 correctness tests live in `outbox`: the concurrency stress test, the startup
 behavioural probe (two `BEGIN IMMEDIATE`; the second must be refused), and the
 slow-reader backpressure test. The consumer's highest-value tests live in

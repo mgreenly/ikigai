@@ -1,18 +1,18 @@
-# hub
+# ikigai
 
 The deployable **application suite** for metaspot — the dashboard plus its
-services that run *on* a metaspot box. `hub` is a **single mono-repo** (one
+services that run *on* a metaspot box. `ikigai` is a **single mono-repo** (one
 `.git`): the dashboard, the path-routed services, the shared `eventplane`
 library, the local-dev `nginx` front door, and `docs` all live here as
 **subdirectories of this one repo** — they are *not* independent repos. The only
-related project that lives **outside** hub is `marketplace`
+related project that lives **outside** ikigai is `marketplace`
 (`mgreenly/marketplace`, public, GitHub-hosted) — a plugin marketplace for
 delivering skills/commands (and Claude Code MCP config) to Claude clients,
 **not** an on-box service.
 
 The **infrastructure** half of the system lives in the sibling repo
 `../metaspot` (Terraform: AWS org/accounts, DNS, the one-box-per-customer
-platform). metaspot builds the box; hub is what gets installed on it.
+platform). metaspot builds the box; ikigai is what gets installed on it.
 
 ## Authoritative specs live in metaspot, not here
 
@@ -85,7 +85,7 @@ each Go service on its loopback port, then `cd nginx && ./run`.
 
 Production is the box at `<account>.metaspot.org` (first/only account: **ai**).
 **Deploy is rsync of built artifacts, not `git push`.** The repo has a GitHub
-remote (`origin` → `mgreenly/hub`) for version-control backup, but pushing there
+remote (`origin` → `mgreenly/ikigai`) for version-control backup, but pushing there
 ships nothing to the box; shipping is the `bin/*` scripts below. Work the
 services in dependency order and verify on the box after each step.
 
@@ -194,15 +194,15 @@ per-service connector add is irreducible for Cowork.
 Two structural changes happened in 2026-06, and stale references to the old
 shape survive in places:
 
-1. **Projects moved under `hub/`.** They used to live directly under
-   `~/projects/`; they were moved into `~/projects/hub/`. Sub-project docs still
+1. **Projects moved under `ikigai/`.** They used to live directly under
+   `~/projects/`; they were moved into `~/projects/ikigai/`. Sub-project docs still
    reference the **old** sibling-relative path `../metaspot` (e.g.
-   `crm/CLAUDE.md`), which from `hub/<svc>/` now resolves to the non-existent
-   `hub/metaspot` — the correct relative path is `../../metaspot` from a service,
-   or `../metaspot` from this hub root. A few comments still name
-   `~/projects/nginx` (now `~/projects/hub/nginx`).
-2. **`hub/` became a single mono-repo.** What were separate per-project git
-   repos are now plain subdirectories of one repo (one `.git` at the hub root).
+   `crm/CLAUDE.md`), which from `ikigai/<svc>/` now resolves to the non-existent
+   `ikigai/metaspot` — the correct relative path is `../../metaspot` from a service,
+   or `../metaspot` from this ikigai root. A few comments still name
+   `~/projects/nginx` (now `~/projects/ikigai/nginx`).
+2. **`ikigai/` became a single mono-repo.** What were separate per-project git
+   repos are now plain subdirectories of one repo (one `.git` at the ikigai root).
    Sub-project docs that still describe themselves as standalone repos (their own
    `.git`, "deploy is `git push`", etc.) are describing the pre-mono-repo shape.
 

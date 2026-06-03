@@ -86,7 +86,7 @@ so tests point it at a mock.
 
 ## Tests
 
-`go test ./...` (workspace mode via `hub/go.work`). The migration-assertion test
+`go test ./...` (workspace mode via `ikigai/go.work`). The migration-assertion test
 guards that `002_feed_offset.sql` stays byte-identical to `consumer.SchemaSQL`.
 The §13c e2e (`internal/push`) wires the **real** `outbox.FeedHandler` to a
 consumer whose handler points at a **mock** ntfy server, and asserts a

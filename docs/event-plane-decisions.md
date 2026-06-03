@@ -25,7 +25,7 @@
 - **Shared library in its own (sixth) repo.** The outbox writer, the SSE feed
   handler, the offset-tracking consumer, the in-process notifier, and the
   per-engine `Dialect` live in one Go module, `require`d by `crm` / `ledger` /
-  `notify` / `dashboard`. A `go.work` at the `hub/` root wires it for local dev.
+  `notify` / `dashboard`. A `go.work` at the `ikigai/` root wires it for local dev.
   It is a *library*, not an on-box service — no port, no nginx fragment.
 
 ## Two planes

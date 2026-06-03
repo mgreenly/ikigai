@@ -50,8 +50,7 @@ of `ui/`. No login, no token store, no OAuth endpoints.
   (both from env). It is the only route without auth.
 - Add a no-side-effect **`crm_whoami`** MCP tool returning the authenticated
   owner email — the dashboard's connect skill uses it to verify the chain.
-- Rename the MCP tools `lr_crm_* -> crm_*` (drop the legacy "logic-refinery"
-  prefix).
+- Rename the MCP tools `lr_crm_* -> crm_*` (drop the legacy `lr_` prefix).
 
 ## nginx fragment (not a vhost)
 

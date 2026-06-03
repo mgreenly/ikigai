@@ -1,6 +1,6 @@
 # Event Plane Technical Overview
 
-This document is a first technical look at the metaspot hub event plane: what it
+This document is a first technical look at the metaspot ikigai event plane: what it
 is, how the current `crm -> notify` implementation works, why it is shaped this
 way, and how it compares with more common messaging tools and protocols.
 
@@ -20,7 +20,7 @@ described in `docs/event-plane-decisions.md`. The shared implementation lives in
 
 ## System Context
 
-The hub suite runs on one box per customer. The public surface is the dashboard
+The ikigai suite runs on one box per customer. The public surface is the dashboard
 plus path-routed services behind nginx. That north/south plane handles external
 owner-facing traffic: Claude clients reach MCP/REST endpoints through nginx,
 nginx authenticates through the dashboard, strips `/srv/<service>/`, and injects
@@ -287,7 +287,7 @@ SQLite file, which aligns with the suite's existing backup/restore discipline.
 Compared with AWS SQS/SNS or cloud pub/sub systems, this is intentionally local.
 Managed queues solve durability and fanout outside the box and are a good fit
 for cloud-native HA services. They also add network dependencies, IAM, billing,
-delivery semantics to learn, and another restore story. The hub design favors a
+delivery semantics to learn, and another restore story. The ikigai design favors a
 single appliance that can run through local downtime and restore practice without
 depending on external infrastructure for internal coordination.
 

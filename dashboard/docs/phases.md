@@ -88,7 +88,7 @@ only its logged-out state; there is no concept of a signed-in user yet.
   `DASHBOARD_*`). Note `METASPOT_*` is already the platform/node-identity
   namespace in `/etc/metaspot/env`; app config is distinct and lives in the SSM
   `app-config` blob under `dashboard`.
-- **Product name / banner string** — no longer "Logic Refinery CRM."
+- **Product name / banner string** — branded **ikigai**.
 
 ---
 
@@ -144,9 +144,9 @@ shows identity and logout only.
 
 ### Phase-1 decisions to confirm before coding
 
-- **`GOOGLE_WORKSPACE_DOMAIN` for the `ai` box.** crm.bak's value was
-  `logic-refinery.com`. Confirm the workspace domain the demo authenticates
-  against.
+- **`GOOGLE_WORKSPACE_DOMAIN` for the `ai` box.** crm.bak's value was the old
+  `logic-refinery.com` Workspace domain. Confirm the workspace domain the demo
+  authenticates against (revisit for the ikigai rebrand).
 - **Public base URL / redirect URI.** The Google redirect URI must match exactly
   what's registered: `http://localhost:3000/oauth/google/callback` (dev) and
   `https://ai.metaspot.org/oauth/google/callback` (deployed) — both registered on
