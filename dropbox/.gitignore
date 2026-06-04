@@ -1,6 +1,9 @@
 # Build artifacts
 /build/
 
+# Local-dev runtime state (dev DB, private mirror, logs — default ./tmp/)
+/tmp/
+
 # SQLite databases (runtime; default path is ./tmp/dropbox.db)
 *.db
 *.db-journal
