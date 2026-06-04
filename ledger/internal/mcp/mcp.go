@@ -18,7 +18,10 @@ package mcp
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+
+	"ledger/internal/ledger"
 )
 
 // Identity is the authenticated caller, as told to us authoritatively by nginx
@@ -28,14 +31,20 @@ type Identity struct {
 	ClientID   string
 }
 
-// Handler is the http.Handler for POST /mcp. It dispatches JSON-RPC methods.
-// The skeleton holds no domain service; a future ledger domain service is
-// injected here (see NewHandler) the same way crm injects internal/contacts.
-type Handler struct{}
+// Handler is the http.Handler for POST /mcp. It is constructed once at wiring
+// time with a non-nil ledger service and dispatches JSON-RPC methods.
+type Handler struct {
+	ledger *ledger.Service
+}
 
-// NewHandler builds a Handler.
-func NewHandler() *Handler {
-	return &Handler{}
+// NewHandler builds a Handler. The ledger service is required; a nil service is
+// a wiring error and panics at this seam rather than deferring a nil dereference
+// to first request.
+func NewHandler(svc *ledger.Service) *Handler {
+	if svc == nil {
+		panic("mcp: ledger service is required")
+	}
+	return &Handler{ledger: svc}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the
@@ -63,7 +72,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "tools/list":
 		writeJSONRPCResult(w, req.ID, map[string]any{"tools": toolDescriptors()})
 	case "tools/call":
-		h.handleToolCall(w, req, id)
+		h.handleToolCall(r.Context(), w, req, id)
 	default:
 		writeJSONRPCError(w, req.ID, -32601, "method not found")
 	}
@@ -109,4 +118,32 @@ func toolResultText(text string) map[string]any {
 
 func toolResultErr(msg string) map[string]any {
 	return map[string]any{"isError": true, "content": []map[string]any{{"type": "text", "text": msg}}}
+}
+
+// translateLedgerError maps a ledger domain/validation sentinel to the
+// structured wire error the tool surface returns — the same sentinel→wire
+// pattern crm uses. bad_root points the agent at ledger_describe so it can
+// discover the five typed roots.
+func translateLedgerError(err error) string {
+	switch {
+	case errors.Is(err, ledger.ErrUnbalanced):
+		return `{"error":{"code":"unbalanced","message":"` + jsonEscape(err.Error()) + `"}}`
+	case errors.Is(err, ledger.ErrBadRoot):
+		return `{"error":{"code":"bad_root","message":"account root must be one of Assets, Liabilities, Equity, Income (alias Revenue), Expenses — call ledger_describe"}}`
+	case errors.Is(err, ledger.ErrAlreadyReversed):
+		return `{"error":{"code":"already_reversed","message":"transaction already has a reversal; reverse its mirror instead"}}`
+	case errors.Is(err, ledger.ErrNotFound):
+		return `{"error":{"code":"not_found","message":"` + jsonEscape(err.Error()) + `"}}`
+	case errors.Is(err, ledger.ErrValidation):
+		return `{"error":{"code":"validation","message":"` + jsonEscape(err.Error()) + `"}}`
+	default:
+		return `{"error":{"code":"internal","message":"internal error"}}`
+	}
+}
+
+// jsonEscape renders s as a JSON string body (without the surrounding quotes) so
+// it can be embedded safely in the hand-built error envelopes above.
+func jsonEscape(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b[1 : len(b)-1])
 }

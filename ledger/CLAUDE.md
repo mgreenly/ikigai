@@ -4,13 +4,14 @@ The **ledger** service for the metaspot single-tenant suite. A pure MCP API with
 **no UI** and **no token logic**, deployed at `<account>.metaspot.org/srv/ledger/`
 (e.g. `ai.metaspot.org/srv/ledger/`). First demo account: **ai**.
 
-**This is a skeleton.** It exists to be the *second* service on the box, proving
-the dashboard's multi-app mechanics end to end (service inventory, per-mount nginx
-routing, per-resource token binding, per-app identity passthrough). It was
-duplicated from `../crm` with the contacts domain stripped out. The only MCP tool
-is `ledger_whoami` — the end-to-end auth proof. Real ledger domain logic comes
-later; until then, **cut breadth, keep depth**: every line that *is* here is the
-production-grade crm chassis, renamed.
+A real **double-entry bookkeeping** service for personal and small-business use,
+modeled conceptually on [ledger-cli](https://ledger-cli.org/): an **immutable
+journal** of balanced transactions, with every report a query over postings. The
+surface is a **fixed set of eight verbs** (it does not grow as features are
+added — see `PLAN.md` §1–2) over a single write entity, the transaction. It is an
+event-plane **producer** (emits `transaction.recorded` to an outbox at `GET
+/feed`, mirroring `../crm`). The chassis (auth, nginx, deploy, transport) is the
+same production-grade crm chassis, renamed.
 
 **Read the decisions first — do not re-derive them:**
 
@@ -20,8 +21,10 @@ production-grade crm chassis, renamed.
 - `../metaspot/docs/connector-and-install.md` — the suite plugin + install layer.
   Note: a service's connector **skills live in the `dashboard` repo's `plugin/`**,
   not here.
-- `../crm` — the sibling service this was duplicated from. The reference for how a
-  real domain (`internal/contacts`) wires into this chassis.
+- `PLAN.md` — the ledger design (the 8-verb rationale, the immutable-journal /
+  emergent-typed-account model, the transaction contract, the events).
+- `../crm` — the sibling service that shares this chassis and is the reference
+  event-plane **producer** (`internal/contacts` → `/feed` outbox).
 
 If anything here conflicts with those docs, the docs win — and flag the conflict.
 
@@ -31,31 +34,78 @@ A loopback-only domain service. nginx (owned by the dashboard) terminates TLS,
 introspects every request via `auth_request` against the dashboard, and injects
 `X-Owner-Email` / `X-Client-Id`. This service **trusts those headers** and does
 no token validation of its own. nginx strips the `/srv/ledger/` prefix, so
-internally routes stay bare (`/mcp`, `/.well-known/...`). Small business, ≤100
-users: SQLite, single instance, is correct and deliberate.
+internally routes stay bare (`/mcp`, `/whoami`, `/feed`, `/.well-known/...`).
+Small business, ≤100 users: SQLite, single instance, is correct and deliberate.
 
-## What's in the skeleton
+**Books are global to the box** — one set of books per instance; no owner/tenant
+column on transactions/postings. `Identity` (the injected headers) is consulted
+only by `ledger_whoami`, matching crm and the single-tenant model.
 
-- **`internal/mcp`** — JSON-RPC 2.0 MCP transport. One tool: `ledger_whoami`,
-  returning the authenticated `owner_email` + `client_id` from the nginx-injected
-  headers. New domain tools are added to `toolDescriptors()` and `dispatchTool()`.
-- **`internal/server`** — routing, the unauthenticated RFC 9728
-  protected-resource metadata document, the `requireIdentityHeaders` gate, the
-  `/whoami` proof handler, security headers, graceful shutdown.
+## The MCP surface (8 fixed verbs)
+
+There is **one write entity — the transaction** (a set of balanced postings); the
+surface area is reads. The journal is **immutable** (transactions are never
+mutated, only reversed). The chart of accounts is **emergent and typed**: accounts
+spring into existence on first posting to a colon-path (`Assets:Bank:Checking`),
+the only guardrail being that the top-level root must be one of five known types
+(`Assets`, `Liabilities`, `Equity`, `Income` [alias `Revenue`], `Expenses`), with
+alias + case-fold canonicalization so the tree can't fork. Money is integer cents,
+single-currency USD. See `PLAN.md` §2–4 for the full contract.
+
+- **`ledger_record`** — record one immutable double-entry transaction (≥2 postings
+  that must balance to zero; at most one posting may elide its amount and receive
+  the balancing residual; optional per-posting/txn status and array ordering).
+- **`ledger_reverse`** — the correction primitive: post the sign-flipped mirror of
+  an existing transaction, linked both ways (`reverses_id`/`reversed_by_id`); the
+  mirror's legs reset to `pending`. Double-reversal is guarded.
+- **`ledger_reconcile`** — the *only* mutation of existing rows: free status
+  transitions among `pending`/`cleared`/`reconciled`, idempotent, all-or-nothing.
+- **`ledger_balance`** — account balances with depth roll-up across the typed
+  account tree; no args = the whole live chart. Raw signed sums (ledger-cli style).
+- **`ledger_register`** — the running-total register for matched accounts over a
+  period; also the list verb.
+- **`ledger_get`** — fetch one transaction in full (postings, per-posting status,
+  ord, reversal links).
+- **`ledger_describe`** — static introspection (the five typed roots + normal
+  balances, statuses, recipes) merged with the live account tree. The first call
+  an agent should make.
+- **`ledger_whoami`** — unchanged identity probe; the end-to-end auth proof.
+
+## Domain layout
+
+- **`internal/ledger/`** — the domain package, one file per concern within a single
+  package (not a second dispatch layer): `types.go` (structs, account-type table,
+  error sentinels), `store.go` (SQL-only, `*sql.Tx` methods), `service.go` (the
+  `Service` type — owns transactions, the balance invariant, and event emission),
+  `transaction.go` (record + get), `reverse.go`, `reconcile.go`, `balance.go`,
+  `register.go`, `describe.go`, `events.go` (event payloads/builders).
+- **`internal/mcp`** — JSON-RPC 2.0 MCP transport. `tools.go` holds the 8
+  descriptors and is the **sole** dispatcher + arg-validation/normalization site
+  (account canonicalization, date parsing, elision well-formedness), translating
+  typed sentinels (`unbalanced`, `bad_root`, `validation`, `not_found`,
+  `already_reversed`) to MCP tool-error text. `mcp.go` is the transport, unchanged.
+- **`internal/server`** — routing, the unauthenticated RFC 9728 protected-resource
+  metadata document, the `requireIdentityHeaders` gate, the `/whoami` proof, the
+  unauthenticated `GET /feed` event handler, security headers, graceful shutdown.
 - **`internal/db`** — SQLite open (WAL, FK, single-writer) + embedded migration
-  runner. **Boots and migrates, but no tool reads it yet.** This is the wired seam
-  where real ledger tables and a domain service attach — the same way `../crm`
-  wires `internal/contacts`. Migration `001_schema_migrations` is the only one;
-  add `002_*.sql` when the domain arrives.
-- **`internal/logging`, `internal/ids`** — structured slog + request-id
-  middleware, ULID generation. Carried from the chassis unchanged.
+  runner. Migrations: `001_schema_migrations` (chassis), `002_ledger.sql`
+  (`transactions` + `postings`; no accounts table — accounts are `SELECT DISTINCT
+  account FROM postings`), `003_outbox.sql` (byte-identical to `outbox.SchemaSQL`,
+  with a test asserting that equality).
+- **`internal/logging`, `internal/ids`** — structured slog + request-id middleware,
+  ULID generation. Carried from the chassis unchanged.
 
-## Adding the real domain later
+## Events (event-plane producer)
 
-1. Add `internal/ledger/` (types/service/repo), mirroring `../crm/internal/contacts`.
-2. Add `internal/db/migrations/002_ledger.sql`.
-3. Inject the domain service into `mcp.NewHandler(...)` and store it on `Handler`.
-4. Add tools to `toolDescriptors()` + `dispatchTool()`; keep `ledger_whoami`.
+Producer-only. The outbox shares ledger's single SQLite writer; the event is
+appended on the **same transaction** as the journal write, and `Ring()` fires
+after commit. **Every committed transaction emits exactly one
+`transaction.recorded`** through one shared insert helper — including a
+`ledger_reverse` mirror (its payload carries `reverses_id` so a consumer can tell
+it's a correction). `cmd/ledger/main.go` wires the `outbox` and injects it into
+`ledger.Service`; the SSE handler is mounted at `GET /feed` (unauthenticated,
+loopback-only — the perimeter is nginx). Second-wave payloads (`transaction.reversed`,
+`posting.reconciled`) are designed but unwired in v1 (`PLAN.md` §6).
 
 ## nginx fragment (not a vhost)
 

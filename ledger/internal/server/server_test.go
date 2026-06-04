@@ -23,6 +23,7 @@ func newTestServer(t *testing.T) http.Handler {
 		ResourceID: testResourceID,
 		AuthServer: testAuthServer,
 		MCP:        http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
+		Feed:       http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
 	})
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -33,14 +34,16 @@ func newTestServer(t *testing.T) http.Handler {
 func TestNewRequiresConfig(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	mcpStub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	feedStub := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 	cases := []struct {
 		name string
 		opts Options
 	}{
-		{"no logger", Options{ResourceID: testResourceID, AuthServer: testAuthServer, MCP: mcpStub}},
-		{"no resource", Options{Logger: logger, AuthServer: testAuthServer, MCP: mcpStub}},
-		{"no auth server", Options{Logger: logger, ResourceID: testResourceID, MCP: mcpStub}},
-		{"no mcp", Options{Logger: logger, ResourceID: testResourceID, AuthServer: testAuthServer}},
+		{"no logger", Options{ResourceID: testResourceID, AuthServer: testAuthServer, MCP: mcpStub, Feed: feedStub}},
+		{"no resource", Options{Logger: logger, AuthServer: testAuthServer, MCP: mcpStub, Feed: feedStub}},
+		{"no auth server", Options{Logger: logger, ResourceID: testResourceID, MCP: mcpStub, Feed: feedStub}},
+		{"no mcp", Options{Logger: logger, ResourceID: testResourceID, AuthServer: testAuthServer, Feed: feedStub}},
+		{"no feed", Options{Logger: logger, ResourceID: testResourceID, AuthServer: testAuthServer, MCP: mcpStub}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

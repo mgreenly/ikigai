@@ -23,9 +23,12 @@ import (
 	"syscall"
 
 	"ledger/internal/db"
+	"ledger/internal/ledger"
 	"ledger/internal/logging"
 	"ledger/internal/mcp"
 	"ledger/internal/server"
+
+	"eventplane/outbox"
 )
 
 // version is the product version, overridden at build time via -ldflags.
@@ -75,12 +78,26 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) er
 	// LEDGER_DB_PATH is the SQLite database file. db.Open pins SetMaxOpenConns(1)
 	// for single-writer discipline; we resolve the path here at the boundary.
 	dbPath := envOr(getenv, "LEDGER_DB_PATH", "./tmp/ledger.db")
+	// LEDGER_GENERATION_PATH is the event-plane generation/epoch token sidecar
+	// (event-protocol.md §9.3). It MUST live outside the DB file so a file-level
+	// restore does not roll it back; default is the DB path plus ".generation".
+	genPath := envOr(getenv, "LEDGER_GENERATION_PATH", dbPath+".generation")
+	// Event-plane retention knobs (§11.3). Zero means "use the library default"
+	// (7 days / 1,000,000 rows). Set via manifest.env on the box.
+	retentionDays, err := envOrInt(getenv, "OUTBOX_RETENTION_DAYS", 0)
+	if err != nil {
+		return err
+	}
+	retentionMaxRows, err := envOrInt(getenv, "OUTBOX_RETENTION_MAX_ROWS", 0)
+	if err != nil {
+		return err
+	}
 
-	return serve(*ip, *port, *logLevel, resourceID, authServer, dbPath, stdout)
+	return serve(*ip, *port, *logLevel, resourceID, authServer, dbPath, genPath, retentionDays, retentionMaxRows, stdout)
 }
 
 // serve runs the long-running HTTP server until interrupted.
-func serve(ip string, port int, logLevel, resourceID, authServer, dbPath string, stdout io.Writer) error {
+func serve(ip string, port int, logLevel, resourceID, authServer, dbPath, genPath string, retentionDays, retentionMaxRows int, stdout io.Writer) error {
 	level, err := logging.ParseLevel(logLevel)
 	if err != nil {
 		return err
@@ -90,9 +107,6 @@ func serve(ip string, port int, logLevel, resourceID, authServer, dbPath string,
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// The skeleton opens and migrates the database to prove the chassis end to
-	// end, even though no tool reads it yet. This is the wired seam for real
-	// ledger domain logic; do not remove it.
 	conn, err := db.Open(dbPath)
 	if err != nil {
 		return err
@@ -102,7 +116,27 @@ func serve(ip string, port int, logLevel, resourceID, authServer, dbPath string,
 		return fmt.Errorf("migrate: %w", err)
 	}
 
-	mcpHandler := mcp.NewHandler()
+	// Event-plane producer (event-protocol.md). New runs the §5.3 startup probe
+	// (it crashes us here if a second concurrent write tx is not refused) and
+	// loads/mints the generation token. The outbox shares ledger's single-writer
+	// SQLite handle so the transaction.recorded event commits atomically with the
+	// journal write.
+	ob, err := outbox.New(conn, outbox.Options{
+		Source:           "ledger",
+		DBPath:           dbPath,
+		GenerationPath:   genPath,
+		Logger:           logger,
+		RetentionDays:    retentionDays,
+		RetentionMaxRows: int64(retentionMaxRows),
+	})
+	if err != nil {
+		return fmt.Errorf("event plane: %w", err)
+	}
+	go ob.StartRetention(ctx)
+
+	ledgerSvc := ledger.NewService(conn)
+	ledgerSvc.Outbox = ledger.NewOutboxProducer(ob)
+	mcpHandler := mcp.NewHandler(ledgerSvc)
 
 	addr := net.JoinHostPort(ip, strconv.Itoa(port))
 	srv, err := server.New(server.Options{
@@ -111,12 +145,13 @@ func serve(ip string, port int, logLevel, resourceID, authServer, dbPath string,
 		ResourceID: resourceID,
 		AuthServer: authServer,
 		MCP:        mcpHandler,
+		Feed:       ob.FeedHandler(),
 	})
 	if err != nil {
 		return err
 	}
 
-	logger.Info("starting ledger", "addr", addr, "resource_id", resourceID, "auth_server", authServer, "db_path", dbPath, "version", version)
+	logger.Info("starting ledger", "addr", addr, "resource_id", resourceID, "auth_server", authServer, "db_path", dbPath, "generation", ob.Generation(), "version", version)
 	return server.Run(ctx, srv, logger)
 }
 

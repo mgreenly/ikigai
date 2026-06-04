@@ -2,7 +2,15 @@ module ledger
 
 go 1.26
 
-require modernc.org/sqlite v1.50.1
+require (
+	eventplane v0.0.0
+	modernc.org/sqlite v1.50.1
+)
+
+// The shared event-plane library is a sibling source tree, not a published
+// module. go.work resolves it for local dev; this committed replace makes
+// bin/build deterministic with or without the workspace.
+replace eventplane => ../eventplane
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

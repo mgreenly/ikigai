@@ -31,6 +31,7 @@ type Options struct {
 	ResourceID string       // this service's canonical resource id (required)
 	AuthServer string       // the dashboard authorization-server base URL (required)
 	MCP        http.Handler // the JSON-RPC MCP handler mounted at POST /mcp (required)
+	Feed       http.Handler // the event-plane SSE handler mounted at GET /feed (required)
 }
 
 // app holds the HTTP layer's dependencies. Handlers are methods on app so new
@@ -41,6 +42,7 @@ type app struct {
 	resourceID string
 	authServer string
 	mcp        http.Handler
+	feed       http.Handler
 }
 
 // New builds the HTTP server with its routes, security headers, and pinned
@@ -59,12 +61,16 @@ func New(opts Options) (*http.Server, error) {
 	if opts.MCP == nil {
 		return nil, errors.New("server: MCP handler is required")
 	}
+	if opts.Feed == nil {
+		return nil, errors.New("server: Feed handler is required")
+	}
 
 	a := &app{
 		logger:     opts.Logger,
 		resourceID: opts.ResourceID,
 		authServer: opts.AuthServer,
 		mcp:        opts.MCP,
+		feed:       opts.Feed,
 	}
 
 	srv := &http.Server{
@@ -94,6 +100,13 @@ func (a *app) routes() http.Handler {
 
 	// Authenticated: the JSON-RPC MCP endpoint and the ledger_* tool surface.
 	mux.Handle("POST /mcp", a.requireIdentityHeaders(a.mcp))
+
+	// Event plane (event-protocol.md §2): the SSE feed is UNAUTHENTICATED and
+	// loopback-only, deliberately NOT behind requireIdentityHeaders — one box is
+	// one owner, so there is no second principal. It is kept off the public proxy
+	// by nginx (an exact-match 404 on /srv/ledger/feed) and the handler itself
+	// rejects any request bearing nginx identity headers.
+	mux.Handle("GET /feed", a.feed)
 
 	return securityHeaders(logging.RequestIDMiddleware(a.logger, mux))
 }
