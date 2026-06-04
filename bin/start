@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+#
+# start — local-dev orchestrator: build and stand up the whole suite for manual
+# testing. This is the dev mirror of the on-box systemd story (each service's own
+# bin/start is systemctl control on the box) — here it native-builds every Go
+# service, launches each on its loopback port, and brings up the nginx front door
+# on :8080 so the full path-routed auth chain is reachable end to end.
+#
+# Counterpart: bin/stop tears the whole stack back down.
+#
+# Per-service env/secrets come from each service's own .envrc (sourced in a
+# scoped subshell so secrets reach the process env and nothing else). Binaries,
+# logs, pidfiles, and SQLite state all live under tmp/ (gitignored).
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(cd "$here/.." && pwd)"
+RUN_DIR="$repo/tmp"
+mkdir -p "$RUN_DIR/bin"
+
+# running <name> — true if a tracked, live process exists for <name>.
+running() {
+	local pf="$RUN_DIR/$1.pid"
+	[ -f "$pf" ] && kill -0 "$(cat "$pf")" 2>/dev/null
+}
+
+# run_bg <name> <launch-fn> — invoke <launch-fn> in a scoped subshell, detached,
+# with stdout+stderr to tmp/<name>.log and the resulting PID in tmp/<name>.pid.
+# The launch fn ends in `exec`, so the recorded PID is the server itself (clean
+# to signal from bin/stop).
+run_bg() {
+	local name="$1" fn="$2"
+	if running "$name"; then
+		echo "  $name already running (pid $(cat "$RUN_DIR/$name.pid")) — skipping"
+		return 0
+	fi
+	("$fn") >"$RUN_DIR/$name.log" 2>&1 &
+	echo $! >"$RUN_DIR/$name.pid"
+	echo "  started $name (pid $!) -> tmp/$name.log"
+}
+
+# build_svc <name> — native build of <name>/cmd/<name> into tmp/bin/<name>. -C
+# runs go from the service dir; the root go.work (one level up) resolves the
+# shared eventplane lib without a network fetch. -buildvcs=false for the same
+# reason as each service's bin/build: Go's VCS stamping walks up to the bare
+# mono-repo .git and fails (exit 128), and the stamp is not needed for dev.
+build_svc() {
+	echo "  building $1"
+	go build -C "$repo/$1" -buildvcs=false -o "$RUN_DIR/bin/$1" ./cmd/"$1"
+}
+
+# --- per-service launchers (each sources its .envrc, then execs its binary) ---
+# DB paths are pinned under tmp/ so dev state is isolated and wiped with bin/stop
+# --clean. Resource-id / auth-server defaults already point at the :8080 front
+# door, so only the port and db path need setting here.
+
+launch_dashboard() {
+	# dashboard/.envrc supplies GOOGLE_* secrets, DASHBOARD_PUBLIC_BASE_URL
+	# (http://localhost:8080) and DASHBOARD_MANIFEST_ROOT (the repo root, from
+	# which it derives its AS resource list).
+	source "$repo/dashboard/.envrc"
+	exec "$RUN_DIR/bin/dashboard" serve --port 3000 --db "$RUN_DIR/dashboard.db"
+}
+
+launch_crm() {
+	export CRM_DB_PATH="$RUN_DIR/crm.db"
+	exec "$RUN_DIR/bin/crm" --port 3001
+}
+
+launch_ledger() {
+	export LEDGER_DB_PATH="$RUN_DIR/ledger.db"
+	exec "$RUN_DIR/bin/ledger" --port 3002
+}
+
+launch_notify() {
+	# notify/.envrc supplies NTFY_* secrets and resolves CRM_FEED_URL by name via
+	# bin/registry against the repo-root manifests.
+	source "$repo/notify/.envrc"
+	export NOTIFY_DB_PATH="$RUN_DIR/notify.db"
+	exec "$RUN_DIR/bin/notify" --port 3003
+}
+
+launch_ralph() {
+	source "$repo/ralph/.envrc"
+	export RALPH_DB_PATH="$RUN_DIR/ralph.db"
+	exec "$RUN_DIR/bin/ralph" --port 3004
+}
+
+launch_nginx() {
+	# nginx/run regenerates the dev /srv/<svc>/ fragments (via bin/registry) and
+	# execs nginx with `daemon off`, so the tracked PID is the nginx master.
+	exec "$repo/nginx/run"
+}
+
+# wait_port <port> — best-effort readiness probe: true once <port> accepts a
+# loopback TCP connection (up to ~5s).
+wait_port() {
+	local i
+	for i in $(seq 1 50); do
+		if (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; then
+			exec 3>&- 3<&- 2>/dev/null || true
+			return 0
+		fi
+		sleep 0.1
+	done
+	return 1
+}
+
+echo ">> building services"
+for svc in dashboard crm ledger notify ralph; do
+	build_svc "$svc"
+done
+
+echo ">> starting services"
+# Order: dashboard (the AS) first; crm before notify (notify consumes crm's
+# /feed); nginx last, once the upstreams it proxies are up.
+run_bg dashboard launch_dashboard
+run_bg crm launch_crm
+run_bg ledger launch_ledger
+run_bg notify launch_notify
+run_bg ralph launch_ralph
+run_bg nginx launch_nginx
+
+echo ">> waiting for listeners"
+declare -A PORTS=([dashboard]=3000 [crm]=3001 [ledger]=3002 [notify]=3003 [ralph]=3004 [nginx]=8080)
+fail=0
+for name in dashboard crm ledger notify ralph nginx; do
+	port="${PORTS[$name]}"
+	if ! running "$name"; then
+		echo "  ✗ $name exited — see tmp/$name.log"
+		fail=1
+		continue
+	fi
+	if wait_port "$port"; then
+		echo "  ✓ $name listening on :$port"
+	else
+		echo "  ✗ $name not listening on :$port (still building? see tmp/$name.log)"
+		fail=1
+	fi
+done
+
+cat <<EOF
+
+Suite up. Front door: http://localhost:8080  (apex -> dashboard)
+  /srv/crm/    /srv/ledger/    /srv/notify/    /srv/ralph/
+Loopback:  dashboard :3000  crm :3001  ledger :3002  notify :3003  ralph :3004
+Logs: tmp/<svc>.log   Stop: bin/stop   (bin/stop --clean also wipes tmp/ state)
+EOF
+
+exit "$fail"

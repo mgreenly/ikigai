@@ -26,3 +26,6 @@
 *.swo
 .idea/
 .vscode/
+
+# --- Local-dev stack state (bin/start): binaries, logs, pidfiles, dev SQLite ---
+/tmp/

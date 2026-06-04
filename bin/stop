@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#
+# stop — local-dev orchestrator: shut down everything bin/start brought up.
+# Signals each tracked PID (TERM, then KILL for stragglers) and removes its
+# pidfile. nginx's tracked PID is the master, so TERM stops it cleanly.
+#
+#   bin/stop            stop all services + nginx
+#   bin/stop --clean    also wipe tmp/ dev state (binaries, logs, SQLite dbs)
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(cd "$here/.." && pwd)"
+RUN_DIR="$repo/tmp"
+
+clean=0
+[ "${1:-}" = "--clean" ] && clean=1
+
+if [ ! -d "$RUN_DIR" ]; then
+	echo "nothing to stop (no tmp/ dir)"
+	exit 0
+fi
+
+# Reverse of start order: front door first, then services.
+for name in nginx ralph notify ledger crm dashboard; do
+	pf="$RUN_DIR/$name.pid"
+	[ -f "$pf" ] || continue
+	pid="$(cat "$pf")"
+	if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+		kill "$pid" 2>/dev/null || true
+		# Give it up to ~3s to exit on TERM before forcing.
+		for _ in $(seq 1 30); do
+			kill -0 "$pid" 2>/dev/null || break
+			sleep 0.1
+		done
+		if kill -0 "$pid" 2>/dev/null; then
+			kill -9 "$pid" 2>/dev/null || true
+			echo "  killed $name (pid $pid, forced)"
+		else
+			echo "  stopped $name (pid $pid)"
+		fi
+	else
+		echo "  $name not running (stale pidfile)"
+	fi
+	rm -f "$pf"
+done
+
+if [ "$clean" -eq 1 ]; then
+	# The whole tmp/ tree is dev state (binaries, logs, SQLite dbs, ralph's
+	# sandboxes) — all gitignored and recreated by bin/start. Wipe it wholesale.
+	echo ">> cleaning dev state under tmp/"
+	rm -rf "$RUN_DIR"
+fi
+
+echo "suite down."
