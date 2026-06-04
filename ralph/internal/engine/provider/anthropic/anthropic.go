@@ -39,6 +39,13 @@ const (
 	// the model name is sent on the wire.
 	contextOneMillionSuffix = "[1m]"
 	contextOneMillionBeta   = "context-1m-2025-08-07"
+
+	// defaultMaxTokens is the conservative fallback applied only when a
+	// request arrives with MaxTokens unset (<= 0). The driver normally
+	// resolves a concrete ceiling from the session config / model
+	// registry, so this is a safety net to keep the required Anthropic
+	// field present, not the effective default.
+	defaultMaxTokens = 4096
 )
 
 // Client is the Anthropic Messages API backend.
@@ -144,10 +151,17 @@ func (c *Client) Stream(ctx context.Context, req provider.Request) (<-chan provi
 // a tool_use block and the content/is_error on a tool_result block
 // pass through unchanged.
 func buildPayload(model string, req provider.Request) map[string]any {
+	// The driver resolves req.MaxTokens from the session config / model
+	// registry. A zero value (e.g. an unresolved model) falls back to a
+	// conservative cap so the required Anthropic field is always present.
+	maxTokens := req.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = defaultMaxTokens
+	}
 	payload := map[string]any{
 		"model":      model,
 		"stream":     true,
-		"max_tokens": 4096,
+		"max_tokens": maxTokens,
 		"messages":   translateMessages(req.Messages),
 	}
 	if req.SystemPrompt != "" {

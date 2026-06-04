@@ -184,6 +184,15 @@ func (r *Runner) buildRequest(sess session.Session, resolved model.Resolved) pro
 		systemPrompt = agent.FramingPrompt + "\n\n" + sess.SystemPrompt
 	}
 
+	// Resolve the output-token ceiling: honor an explicit Config.MaxTokens,
+	// otherwise default to the model's registry-pinned maximum so a run is
+	// not silently truncated at a fixed low cap (the default is effectively
+	// "unlimited within the model's bounds").
+	maxTokens := sess.Config.MaxTokens
+	if maxTokens <= 0 {
+		maxTokens = model.ModelContext(resolved).MaxOutputTokens
+	}
+
 	return provider.Request{
 		Model:        resolved.BareID,
 		Effort:       effort,
@@ -192,10 +201,11 @@ func (r *Runner) buildRequest(sess session.Session, resolved model.Resolved) pro
 			Role:   provider.RoleUser,
 			Blocks: []provider.Block{provider.TextBlock{Text: sess.Prompt}},
 		}},
-		Tools: provTools,
+		Tools:     provTools,
+		MaxTokens: maxTokens,
 		// ResponseSchema left nil → freeform terminal mode.
-		// Config.MaxTokens / Config.Temperature have no field on
-		// provider.Request, so they are intentionally not applied here.
+		// Config.Temperature has no field on provider.Request yet, so it
+		// is intentionally not applied here.
 	}
 }
 

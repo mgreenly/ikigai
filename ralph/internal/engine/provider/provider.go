@@ -100,6 +100,13 @@ type Tool struct {
 // Request is one streaming generation call. ResponseSchema is nil
 // when the caller has no --json-schema constraint. SystemPrompt is
 // set to the framing prompt on every provider call per R-8PF6-I8FP.
+//
+// MaxTokens is the upper bound on output tokens for the call. The
+// driver resolves it from the session config (an explicit max_tokens),
+// falling back to the model's registry-pinned maximum output tokens
+// when unset, so the default is "as many as the model allows" rather
+// than a fixed low cap. A zero value lets the backend apply its own
+// conservative fallback.
 type Request struct {
 	Model          string
 	Effort         string
@@ -107,6 +114,7 @@ type Request struct {
 	Messages       []Message
 	Tools          []Tool
 	ResponseSchema json.RawMessage
+	MaxTokens      int
 }
 
 // Event is one normalized item in a streaming response. The
