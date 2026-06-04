@@ -163,16 +163,32 @@ func (s *Service) Save(ctx context.Context, typ, id string, fields []byte, force
 		return Summary{}, err
 	}
 
-	// Phase 4 seam: first-wave event emission (PLAN.md §6) appends contact
-	// events (created/updated, tagged/untagged from summary.tagsAdded/Removed)
-	// onto THIS tx before commit, then Ring()s after commit. Not implemented in
-	// Phase 2 — the side-band fields on summary are already populated by the
-	// entity stores so this stays a localized additive change.
-	//
-	// TODO(phase4): if s.Outbox != nil { append events on tx here }
+	// Phase 4 seam: first-wave event emission (PLAN.md §6). Only contacts are
+	// wired: contact.created/updated plus one contact.tagged/untagged per tag in
+	// the diff captured on the summary side-band by contactStore.Save. The events
+	// are appended onto THIS tx (so they commit atomically with the domain write
+	// or not at all), then Ring()'d AFTER commit. The deal/task second wave is
+	// documented intent only and is not emitted here. The nil-Outbox guard keeps
+	// tests and other callers without an event plane working.
+	ring := false
+	if s.Outbox != nil && typ == "contact" {
+		events, err := contactEvents(tx, summary)
+		if err != nil {
+			return Summary{}, err
+		}
+		for _, ev := range events {
+			if err := s.Outbox.Append(tx, ev); err != nil {
+				return Summary{}, err
+			}
+		}
+		ring = len(events) > 0
+	}
 
 	if err := tx.Commit(); err != nil {
 		return Summary{}, fmt.Errorf("commit: %w", err)
+	}
+	if ring {
+		s.Outbox.Ring()
 	}
 	return summary, nil
 }
