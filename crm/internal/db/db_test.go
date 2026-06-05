@@ -11,6 +11,9 @@ func tempDB(t *testing.T) string {
 	return filepath.Join(t.TempDir(), "test.db")
 }
 
+// TestOpenAndMigrate smoke-checks that crm's embedded migration set applies
+// cleanly through appkit's runner (the runner's own behaviors — idempotency,
+// downgrade guard, ordering — are covered by appkit/db's tests).
 func TestOpenAndMigrate(t *testing.T) {
 	ctx := context.Background()
 	conn, err := Open(tempDB(t))
@@ -32,6 +35,8 @@ func TestOpenAndMigrate(t *testing.T) {
 	}
 }
 
+// TestMigrate_IsIdempotent re-asserts that crm's set is safe to re-apply (the
+// embedded set must declare each version once).
 func TestMigrate_IsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	conn, err := Open(tempDB(t))
@@ -56,45 +61,5 @@ func TestMigrate_IsIdempotent(t *testing.T) {
 	}
 	if before != after {
 		t.Fatalf("idempotent migrate changed count: %d -> %d", before, after)
-	}
-}
-
-func TestMigrate_RefusesDowngrade(t *testing.T) {
-	ctx := context.Background()
-	conn, err := Open(tempDB(t))
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	defer conn.Close()
-
-	if err := Migrate(ctx, conn); err != nil {
-		t.Fatalf("baseline migrate: %v", err)
-	}
-	// Simulate a future migration having run against this DB.
-	if _, err := conn.ExecContext(ctx,
-		`INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`,
-		999, "2099-01-01T00:00:00Z",
-	); err != nil {
-		t.Fatalf("inject future version: %v", err)
-	}
-
-	err = Migrate(ctx, conn)
-	if err == nil {
-		t.Fatal("expected downgrade refusal, got nil")
-	}
-}
-
-func TestLoadMigrations_Order(t *testing.T) {
-	migs, err := loadMigrations()
-	if err != nil {
-		t.Fatalf("loadMigrations: %v", err)
-	}
-	if len(migs) == 0 {
-		t.Fatal("no migrations embedded")
-	}
-	for i, m := range migs {
-		if m.version != i+1 {
-			t.Errorf("migration %d has version %d (gaps not yet allowed)", i, m.version)
-		}
 	}
 }
