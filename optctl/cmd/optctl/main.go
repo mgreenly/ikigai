@@ -12,9 +12,42 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"optctl/internal/optctl"
 )
+
+// reorderArgs moves flag tokens ahead of positional tokens so the standard
+// flag package — which stops scanning at the first non-flag token — accepts
+// flags written AFTER positionals (e.g. `optctl install ledger v0.1.0
+// --artifact X`, the form bin/deploy emits, and `optctl setup ledger --port N`).
+// A bare `--` terminates flag scanning: everything after it is positional and is
+// passed through verbatim. A flag that takes a separate value is detected by the
+// known set of value-taking flags so the value token is not mistaken for a
+// positional.
+func reorderArgs(args []string, valueFlags map[string]bool) []string {
+	var flags, pos []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if a == "--" {
+			pos = append(pos, args[i+1:]...)
+			break
+		}
+		if strings.HasPrefix(a, "-") && a != "-" {
+			flags = append(flags, a)
+			// If this flag takes a separate value (`--artifact X`, not `--artifact=X`)
+			// pull the next token along as its value.
+			name := strings.TrimLeft(a, "-")
+			if !strings.Contains(a, "=") && valueFlags[name] && i+1 < len(args) {
+				i++
+				flags = append(flags, args[i])
+			}
+			continue
+		}
+		pos = append(pos, a)
+	}
+	return append(flags, pos...)
+}
 
 const usage = `optctl — ikigai on-box platform CLI
 
@@ -73,7 +106,7 @@ func main() {
 func cmdInstall(ctx context.Context, root string, args []string) error {
 	fs := flag.NewFlagSet("install", flag.ContinueOnError)
 	artifact := fs.String("artifact", "", "path to the static linux/amd64 artifact (required)")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args, map[string]bool{"artifact": true})); err != nil {
 		return err
 	}
 	pos := fs.Args()
@@ -105,7 +138,7 @@ func cmdRollback(ctx context.Context, root string, args []string) error {
 func cmdPrune(ctx context.Context, root string, args []string) error {
 	fs := flag.NewFlagSet("prune", flag.ContinueOnError)
 	keep := fs.Int("keep", optctl.DefaultKeep, "number of recent releases to retain")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args, map[string]bool{"keep": true})); err != nil {
 		return err
 	}
 	pos := fs.Args()
@@ -125,7 +158,9 @@ func cmdInitBox(ctx context.Context, root string, args []string) error {
 	email := fs.String("email", "", "certbot email for HTTP-01 cert issuance")
 	apexBlock := fs.String("apex-block", "", "path to the apex nginx server block source (required)")
 	skipCert := fs.Bool("skip-cert", false, "do not issue a TLS cert (stage the block only)")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args, map[string]bool{
+		"default-app": true, "domain": true, "port": true, "email": true, "apex-block": true,
+	})); err != nil {
 		return err
 	}
 	if *domain == "" {
@@ -149,7 +184,7 @@ func cmdSetup(ctx context.Context, root string, args []string) error {
 	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
 	port := fs.Int("port", 0, "the service's loopback port (substituted for __PORT__ in the fragment)")
 	fragment := fs.String("fragment", "", "path to the service's nginx location fragment source (omit for a worker)")
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args, map[string]bool{"port": true, "fragment": true})); err != nil {
 		return err
 	}
 	pos := fs.Args()

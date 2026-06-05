@@ -413,12 +413,19 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 ### 5e. Prune check
 
 The surface (`cmdPrune`): `optctl prune <app> [--keep N]`, default keep **3**
-(`DefaultKeep`). `current`'s target and its immediate predecessor are kept
-unconditionally regardless of N. With only two releases (`v0.1.0`, `v0.1.1`) and
-default keep=3, prune deletes nothing — confirming it never over-prunes. To
-observe a deletion you can pass `--keep 1`; even then `current` (v0.1.0) and its
-predecessor are protected, so v0.1.1 (the only non-protected, non-current release)
-is the one eligible to drop.
+(`DefaultKeep`). The kept set is the **newest N** releases, *plus* — regardless of
+N — `current`'s target and `current`'s immediate predecessor (the live rollback
+target). With only two releases (`v0.1.0`, `v0.1.1`) and default keep=3, prune
+deletes nothing — confirming it never over-prunes.
+
+Note the post-rollback geometry here: after §5c, `current` → **v0.1.0** and the
+rolled-back-FROM **v0.1.1** is the *newest* release. So even `--keep 1` is a no-op
+on this box: the keep window's newest-1 is v0.1.1, and `current` (v0.1.0) is
+separately protected — both releases are retained. There is **no** non-protected
+release to drop in this state; observing a real deletion would need a third,
+older, non-current/non-predecessor release. (Real deletion behaviour is covered
+directly by optctl's prune unit tests; this step only re-confirms the
+never-over-prune property on the box.)
 
 ```
 ssh … 'sudo optctl prune ledger'                 # keep=3 default: no-op, prints nothing
@@ -427,15 +434,15 @@ ssh … 'ls /opt/ledger/releases'                  # still v0.1.0 and v0.1.1
 - Expected: with default keep, `prune` prints no `>> prune release …` lines and
   both releases remain. (Install already runs prune at its tail, so this standalone
   call mostly confirms the kept count.)
-- Optional, to see a real prune (and confirm the kept count = the protected set):
+- Optional, to confirm the never-over-prune property explicitly:
   ```
   ssh … 'sudo optctl prune ledger --keep 1'
   ssh … 'ls /opt/ledger/releases'
   ```
-  Expected: `>> prune release v0.1.1` then `releases/` holds only `v0.1.0`
-  (current + its protection win over `--keep 1`). The matching
-  `backups/pre-v0.1.1.db` (if the extended schema-advance drill created one) is
-  removed with it.
+  Expected: still a **no-op** — `prune` prints no `>> prune release …` lines and
+  `releases/` still holds **both** v0.1.0 and v0.1.1. With `current` → v0.1.0,
+  v0.1.1 is the newest-1 (kept by the window) and v0.1.0 is current (kept
+  unconditionally), so neither is eligible to drop.
   - **Abort/restore:** prune deletes *non-current, non-predecessor* release dirs
     and their backups; it never touches `current`, the rollback target, or the
     data DB. If you pruned a release you wanted back, re-`bin/deploy` that tag (the

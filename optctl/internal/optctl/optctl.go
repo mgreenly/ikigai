@@ -106,11 +106,21 @@ func ensureSymlink(linkPath, target string) error {
 		if cur == target {
 			return nil
 		}
-		// Repoint via the atomic technique to stay valid mid-change.
+		// Already a symlink, but pointing elsewhere — repoint via the atomic
+		// technique to stay valid mid-change.
 		return atomicSwap(linkPath, target)
 	}
 	if err := os.MkdirAll(filepath.Dir(linkPath), 0o755); err != nil {
 		return err
+	}
+	// linkPath either does not exist or exists as a NON-symlink (Readlink returns
+	// EINVAL on a regular file / dir). On a brand-new tree it is absent; on a
+	// conversion from the OLD layout it is the legacy `bin/run` wrapper SCRIPT (a
+	// regular file). A plain os.Symlink fails with EEXIST in that case, so route
+	// the replacement through atomicSwap, whose rename(2) atomically replaces an
+	// existing regular file — leaving the stable path valid throughout.
+	if _, err := os.Lstat(linkPath); err == nil {
+		return atomicSwap(linkPath, target)
 	}
 	return os.Symlink(target, linkPath)
 }

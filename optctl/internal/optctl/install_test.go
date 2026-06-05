@@ -253,6 +253,73 @@ func TestPreflight_Rejections(t *testing.T) {
 	}
 }
 
+// TestInstall_ConvertsLegacyBinRunFile asserts the conversion case the D2 box
+// prototype hit: when /opt/<app>/bin/run already exists as a REGULAR FILE (the
+// old pre-redesign layout's wrapper script), install must replace it with the
+// stable ../current/<app> symlink rather than failing with EEXIST.
+func TestInstall_ConvertsLegacyBinRunFile(t *testing.T) {
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	// Seed the OLD layout: bin/run is a regular file (the legacy wrapper script).
+	if err := os.MkdirAll(l.BinDir(), 0o755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+	if err := os.WriteFile(l.RunLink(), []byte("#!/bin/sh\nexec ./ledger.bin\n"), 0o755); err != nil {
+		t.Fatalf("seed legacy bin/run: %v", err)
+	}
+
+	o := newOptctl(t, root, app, sys, fakeEnv(app, "v0.1.0", 3, ""))
+	if err := o.Install(context.Background(), app, "v0.1.0", stageArtifact(t, "ledger-v0.1.0")); err != nil {
+		t.Fatalf("install over legacy bin/run: %v", err)
+	}
+	// bin/run is now a symlink at ../current/<app> and resolves to a real binary.
+	got, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run is not a symlink after conversion: %v", err)
+	}
+	if got != l.RunTarget() {
+		t.Fatalf("bin/run -> %q, want %q", got, l.RunTarget())
+	}
+	resolveThroughStablePaths(t, l)
+}
+
+// TestStampDataPaths asserts the regenerated manifest gains the absolute on-box
+// state paths the serving process needs (the D2 box prototype hit the serving
+// binary falling back to appkit's relative ./tmp/<app>.db default because nothing
+// injected <APP>_DB_PATH into metaspot-launch's exported env).
+func TestStampDataPaths(t *testing.T) {
+	l := NewLayout("/opt", "ledger")
+	portable := "APP=ledger\nMOUNT=/srv/ledger/\nPORT=3002\nMCP=true\n"
+	got := stampDataPaths(portable, l)
+
+	for _, want := range []string{
+		"LEDGER_DB_PATH=/opt/ledger/data/ledger.db",
+		"LEDGER_GENERATION_PATH=/opt/ledger/data/ledger.db.generation",
+		"APP=ledger", "PORT=3002",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("stamped manifest missing %q\n--- got ---\n%s", want, got)
+		}
+	}
+	if !strings.HasSuffix(got, "\n") || strings.HasSuffix(got, "\n\n") {
+		t.Errorf("stamped manifest must end with exactly one newline, got %q", got)
+	}
+
+	// Idempotent + binary-wins: a manifest that already assigns the key keeps its
+	// value and gains no duplicate.
+	withKey := "APP=ledger\nLEDGER_DB_PATH=/custom/path.db\n"
+	got2 := stampDataPaths(withKey, l)
+	if strings.Count(got2, "LEDGER_DB_PATH=") != 1 {
+		t.Errorf("expected exactly one LEDGER_DB_PATH assignment, got:\n%s", got2)
+	}
+	if !strings.Contains(got2, "LEDGER_DB_PATH=/custom/path.db") {
+		t.Errorf("binary's own LEDGER_DB_PATH should win, got:\n%s", got2)
+	}
+}
+
 // TestInstall_IsActiveFailure asserts a failed is-active surfaces an error that
 // points the operator at rollback (the release dir + backup are left intact).
 func TestInstall_IsActiveFailure(t *testing.T) {

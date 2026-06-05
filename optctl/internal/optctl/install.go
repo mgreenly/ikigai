@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Install ships a new version live, following the ADR install sequence exactly:
@@ -48,11 +49,23 @@ func (o *Optctl) Install(ctx context.Context, app, version, artifact string) err
 
 	// 3. Regenerate the stable manifest from the binary that will serve it. Written
 	//    via temp+rename so the stable path never holds a partial file mid-write.
+	//    The binary emits a PORTABLE manifest (no box paths baked in — appkit's
+	//    config defaults the DB to a relative ./tmp/<app>.db suited to local dev).
+	//    metaspot-launch sources this manifest and exports every KEY into the
+	//    serving process's env (AGENTS.md "Service layer"), but it never sets the
+	//    on-box <APP>_DB_PATH/<APP>_GENERATION_PATH — so the serving binary would
+	//    otherwise fall back to the relative dev default and miss the real DB at
+	//    data/<app>.db. optctl is the on-box authority that owns the absolute /opt
+	//    paths (it already injects them for its own migrate/schema/backup verbs via
+	//    dbEnv), so it stamps them into the stable manifest here. Idempotent: the
+	//    keys are only appended if the binary's own manifest did not already carry
+	//    them.
 	o.logf("regenerate %s", l.ManifestPath())
 	manOut, err := o.Runner.Run(ctx, relBin, "manifest", nil, nil)
 	if err != nil {
 		return fmt.Errorf("install: manifest: %w", err)
 	}
+	manOut = stampDataPaths(manOut, l)
 	if err := writeFileAtomic(l.ManifestPath(), []byte(manOut), 0o644); err != nil {
 		return fmt.Errorf("install: write manifest: %w", err)
 	}
@@ -125,6 +138,40 @@ func (o *Optctl) Install(ctx context.Context, app, version, artifact string) err
 
 	o.logf("installed %s %s", app, version)
 	return nil
+}
+
+// stampDataPaths ensures the regenerated manifest carries the absolute on-box
+// state paths the SERVING process needs (<APP>_DB_PATH, <APP>_GENERATION_PATH).
+// metaspot-launch exports every manifest key into the app's env, so stamping
+// them here is what points `<app> serve` at data/<app>.db instead of appkit's
+// relative dev default. A key already present in the binary's own manifest output
+// is left untouched (the binary wins); missing keys are appended. The result
+// always ends with exactly one trailing newline.
+func stampDataPaths(manifest string, l Layout) string {
+	up := strings.ToUpper(l.App)
+	want := []struct{ key, val string }{
+		{up + "_DB_PATH", l.DBPath()},
+		{up + "_GENERATION_PATH", l.GenerationPath()},
+	}
+	body := strings.TrimRight(manifest, "\n")
+	for _, kv := range want {
+		if manifestHasKey(body, kv.key) {
+			continue
+		}
+		body += "\n" + kv.key + "=" + kv.val
+	}
+	return body + "\n"
+}
+
+// manifestHasKey reports whether the flat KEY=value manifest already assigns key
+// (ignoring leading whitespace; comment lines never match a bare KEY= prefix).
+func manifestHasKey(manifest, key string) bool {
+	for _, line := range strings.Split(manifest, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), key+"=") {
+			return true
+		}
+	}
+	return false
 }
 
 // schemaAdvances asks the binary (via the `schema` verb) whether this deploy
