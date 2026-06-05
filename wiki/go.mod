@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	agentkit v0.0.0-00010101000000-000000000000
+	appkit v0.0.0
 	eventplane v0.0.0
 	golang.org/x/net v0.12.0
 	modernc.org/sqlite v1.50.1
@@ -16,6 +17,8 @@ require (
 replace eventplane => ../eventplane
 
 replace agentkit => ../agentkit
+
+replace appkit => ../appkit
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+
+	appkitdb "appkit/db"
 )
 
 func tempDB(t *testing.T) string {
@@ -174,17 +176,22 @@ func TestMigrate_AppliesWikiSchemaOnFreshDB(t *testing.T) {
 	}
 }
 
+// TestLoadMigrations_Order guards that wiki's embedded migration set (now applied
+// through appkit's shared forward-only runner) is well-formed: contiguous 1..N
+// versions with no gaps. The runner mechanism itself is tested in appkit/db; this
+// asserts only that wiki's *.sql, exposed via FS for Spec.Migrations, parse and
+// order correctly.
 func TestLoadMigrations_Order(t *testing.T) {
-	migs, err := loadMigrations()
+	migs, err := appkitdb.LoadMigrations(FS, "migrations")
 	if err != nil {
-		t.Fatalf("loadMigrations: %v", err)
+		t.Fatalf("LoadMigrations: %v", err)
 	}
 	if len(migs) == 0 {
 		t.Fatal("no migrations embedded")
 	}
 	for i, m := range migs {
-		if m.version != i+1 {
-			t.Errorf("migration %d has version %d (gaps not yet allowed)", i, m.version)
+		if m.Version != i+1 {
+			t.Errorf("migration %d has version %d (gaps not yet allowed)", i, m.Version)
 		}
 	}
 }

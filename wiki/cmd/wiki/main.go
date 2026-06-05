@@ -1,28 +1,46 @@
 // Command wiki is the loopback-only domain service behind nginx. It trusts the
 // X-Owner-Email / X-Client-Id headers nginx injects after a successful
 // auth_request against the dashboard's authorization server, and performs no
-// token logic of its own. See internal/server for the auth contract.
+// token logic of its own. See appkit/server for the auth contract.
 //
-// This is the scaffold wiki service (Task 2.1): it boots the chassis (config,
-// db + migrations, logging, server) and exposes a single MCP tool, wiki_whoami,
-// the end-to-end auth proof. The database connection is opened and migrated but
-// not yet read by any tool — it is the wired seam where real wiki domain logic
-// (the agentic ingest core, the search store) attaches in later phases. wiki is
-// NOT an event-plane producer in Phase 1, so there is no outbox / /feed wiring.
+// wiki is the proof that the two shared libraries COMPOSE: the uniform deploy/
+// serve chassis — the fixed subcommands (serve/version/manifest/migrate/backup/
+// restore), config-from-env, the migration runner + downgrade guard, the loopback
+// HTTP server + PRM + identity gate, and the serve lifecycle — is owned by appkit;
+// the LLM provider + async job-runner that powers ingest/ask/lint is owned by
+// agentkit; the dropbox file-lifecycle subscription is owned by eventplane. main.go
+// declares wiki's identity (the Spec) and wires its domain surface:
+//
+//   - Handlers builds the agentkit-backed domain graph (the immutable content
+//     store, the BM25 search index, the ingest/ask cores over the agentkit
+//     provider + job-runner) over appkit's shared single-writer DB handle, and
+//     mounts the wiki_* MCP surface. This is the composition root where the
+//     agentkit provider is constructed: its client factory closes over
+//     ANTHROPIC_API_KEY read env-only here (presence-checked, never logged — §2.8);
+//     an absent key disables the agent verbs without blocking boot.
+//   - Workers carries the single event-plane CONSUMER loop (eventplane/consumer.Run
+//     over dropbox's /feed). appkit runs it on the serve context alongside the HTTP
+//     server (the E2 Workers seam). The consumer feeds the SAME ingest core the MCP
+//     verbs use, which SPAWNS the async agentkit integration job and returns
+//     immediately — so the agentkit job-runner is per-trigger, not a standing
+//     Worker; one Worker (the consumer) matches the pre-appkit behavior exactly.
+//
+// The HTTP server and the consumer worker share appkit's serve context: a SIGTERM
+// cancels both; a STRUCTURAL consumer fault (consumer.Run escaping on a missing
+// feed_offset table — a deploy bug, event-protocol.md decision 11) returns from
+// the worker, which cancels the serve context and brings the server down too — no
+// half-alive HTTP-up / consumer-dead state. A transport fault (dropbox down) is
+// retried indefinitely inside the engine and never returns.
 package main
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
-	"io"
-	"net"
 	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
+
+	"appkit"
 
 	"agentkit/provider"
 	"agentkit/provider/anthropic"
@@ -34,395 +52,323 @@ import (
 	"wiki/internal/db"
 	"wiki/internal/ingest"
 	"wiki/internal/lint"
-	"wiki/internal/logging"
 	"wiki/internal/mcp"
 	"wiki/internal/search"
-	"wiki/internal/server"
 	"wiki/internal/store"
 )
 
 // The event-plane upstream wiki consumes and the stable id it presents on every
 // connect (event-protocol.md §7.1). Both are fixed constants — wiki consumes
 // exactly dropbox's file-lifecycle feed, and its X-Consumer-Id is the literal
-// "wiki". CONSUMES=dropbox in etc/manifest.env mirrors this for the registry.
+// "wiki". CONSUMES=dropbox in etc/manifest.env mirrors upstreamSource for the
+// registry.
 const (
 	upstreamSource = "dropbox"
 	consumerID     = "wiki"
 )
 
-// version is the product version, overridden at build time via -ldflags.
-var version = "dev"
-
 func main() {
-	if err := run(os.Args[1:], os.Getenv, os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintln(os.Stderr, "wiki:", err)
-		os.Exit(1)
-	}
-}
+	// ingestCore and rt are captured by the Handlers hook (which appkit runs after
+	// it opens + migrates the shared single-writer DB) so the consumer worker can
+	// reach the same ingest core, DB handle, and logger. The worker runs strictly
+	// after Handlers has built the graph, so the captures are always set by the
+	// time it executes (nil ingestCore ⇒ no ANTHROPIC_API_KEY ⇒ consumer disabled).
+	var (
+		rt         *appkit.Router
+		ingestCore *ingest.Core
+	)
 
-func run(args []string, getenv func(string) string, stdout, stderr io.Writer) error {
-	portDef, err := envOrInt(getenv, "WIKI_PORT", 3006)
-	if err != nil {
-		return err
-	}
-
-	fs := flag.NewFlagSet("wiki", flag.ContinueOnError)
-	fs.SetOutput(stderr)
-	showVersion := fs.Bool("version", false, "print version and exit")
-	// Bind 127.0.0.1 by default and in production: nginx is the only ingress
-	// and sets identity headers authoritatively. Binding a public interface
-	// would let anyone connect directly and spoof X-Owner-Email — a security
-	// defect. The flag exists only so tests/local runs can override deliberately.
-	ip := fs.String("ip", envOr(getenv, "WIKI_IP", "127.0.0.1"), "listen address — keep loopback (env: WIKI_IP)")
-	port := fs.Int("port", portDef, "listen port (env: WIKI_PORT)")
-	logLevel := fs.String("log-level", envOr(getenv, "WIKI_LOG_LEVEL", "info"), "log level: debug|info|warn|error (env: WIKI_LOG_LEVEL)")
-	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
+	appkit.Main(appkit.Spec{
+		App:        "wiki",
+		Mount:      "/srv/wiki/",
+		Port:       3006,
+		MCP:        true,
+		Consumes:   []string{upstreamSource}, // event-plane consumer → CONSUMES=dropbox
+		Migrations: db.FS,
+		// Non-secret ingest config the old bin/build wrapper exported, now declared
+		// here so `wiki manifest` round-trips it (§1.1). The ANTHROPIC_API_KEY secret
+		// is NEVER a ManifestExtra — it flows env-only into the client factory below.
+		ManifestExtras: []appkit.ManifestKV{
+			{Key: "WIKI_INGEST_MODEL", Value: envOr(os.Getenv, "WIKI_INGEST_MODEL", ingest.DefaultModel)},
+			{Key: "WIKI_INGEST_MAX_TOKENS", Value: strconv.Itoa(envOrIntOrDefault(os.Getenv, "WIKI_INGEST_MAX_TOKENS", ingest.DefaultMaxTokens))},
+		},
+		// Handlers is wiki's composition root: it builds the agentkit-backed domain
+		// graph over appkit's shared DB handle (rt.DB()) and mounts the MCP surface.
+		// The agentkit provider is constructed here (client factory closing over the
+		// env-only ANTHROPIC_API_KEY); an absent key disables the agent verbs but the
+		// service still serves wiki_whoami / wiki_search / tools/list.
+		Handlers: func(r *appkit.Router) error {
+			rt = r
+			core, h, err := buildDomain(r)
+			if err != nil {
+				return err
+			}
+			ingestCore = core
+			rt.Handle("POST /mcp", rt.RequireIdentity(h))
 			return nil
-		}
-		return err
-	}
-	if *showVersion {
-		fmt.Fprintln(stdout, version)
-		return nil
-	}
-
-	// WIKI_RESOURCE_ID is this service's canonical resource identifier (must be
-	// byte-equal to the `resource` in the PRM doc and the dashboard's token
-	// binding). WIKI_AUTH_SERVER is the dashboard authorization-server base URL
-	// advertised to clients. Both have local-dev defaults; we resolve them here
-	// at the boundary so nothing deeper reads the environment.
-	resourceID := envOr(getenv, "WIKI_RESOURCE_ID", "http://localhost:8080/srv/wiki/mcp")
-	authServer := envOr(getenv, "WIKI_AUTH_SERVER", "http://localhost:8080")
-	// WIKI_DB_PATH is the SQLite database file. db.Open pins SetMaxOpenConns(1)
-	// for single-writer discipline; we resolve the path here at the boundary.
-	dbPath := envOr(getenv, "WIKI_DB_PATH", "./tmp/wiki.db")
-
-	// Ingest config (PLAN Decision 3 + Task 4.1). All read here at the boundary
-	// and threaded down; the inner ingest package is env-free.
-	//   WIKI_DATA_ROOT       — filesystem content store root (raw/ + page tree).
-	//   ANTHROPIC_API_KEY    — the ingest agent's credential (via SSM app-config
-	//                          on the box, .envrc in dev). Presence-checked, but
-	//                          its ABSENCE only disables ingest — the service still
-	//                          boots and serves wiki_whoami + tools/list.
-	//   WIKI_INGEST_MODEL    — ingest model (default claude-sonnet-4-6).
-	//   WIKI_INGEST_MAX_TOKENS — per-job output-token / cost ceiling.
-	//   WIKI_INGEST_JOB_TTL_SECONDS — per-run wall-clock TTL (0 = no deadline).
-	dataRoot := envOr(getenv, "WIKI_DATA_ROOT", "./tmp/data")
-	apiKey := getenv("ANTHROPIC_API_KEY")
-	ingestModel := envOr(getenv, "WIKI_INGEST_MODEL", ingest.DefaultModel)
-	maxTokens, err := envOrInt(getenv, "WIKI_INGEST_MAX_TOKENS", ingest.DefaultMaxTokens)
-	if err != nil {
-		return err
-	}
-	ttlSeconds, err := envOrInt(getenv, "WIKI_INGEST_JOB_TTL_SECONDS", 600)
-	if err != nil {
-		return err
-	}
-
-	// Lint config (Task 5.2). Lint reuses the ingest agent/job machinery; its
-	// model + cost ceiling + TTL are separate config knobs (PLAN Decision 3) so the
-	// maintenance pass can be tuned independently of ingest, but default to the
-	// same values. The lint trigger (Linter.Lint) is MANUAL/internal for now — the
-	// cadence (manual/scheduled/post-ingest) is DEFERRED per GOALS, so lint is NOT
-	// on the public MCP surface (the five Task-5.1 verbs are unchanged).
-	lintModel := envOr(getenv, "WIKI_LINT_MODEL", lint.DefaultModel)
-	lintMaxTokens, err := envOrInt(getenv, "WIKI_LINT_MAX_TOKENS", lint.DefaultMaxTokens)
-	if err != nil {
-		return err
-	}
-	lintTTLSeconds, err := envOrInt(getenv, "WIKI_LINT_JOB_TTL_SECONDS", 600)
-	if err != nil {
-		return err
-	}
-
-	// Ask config (Task 6.2). wiki_ask is the agentic synthesis read: it reuses the
-	// ingest agent/job machinery but with a navigation-first toolset (read+glob+grep
-	// plus write for the synthesis page only). Its model + cost ceiling + TTL are
-	// separate config knobs (PLAN Decision 3) so the synthesis pass can be tuned
-	// independently of ingest/lint, but default to the same values. Like ingest it
-	// needs ANTHROPIC_API_KEY — its absence only disables wiki_ask.
-	askModel := envOr(getenv, "WIKI_ASK_MODEL", ask.DefaultModel)
-	askMaxTokens, err := envOrInt(getenv, "WIKI_ASK_MAX_TOKENS", ask.DefaultMaxTokens)
-	if err != nil {
-		return err
-	}
-	askTTLSeconds, err := envOrInt(getenv, "WIKI_ASK_JOB_TTL_SECONDS", 600)
-	if err != nil {
-		return err
-	}
-
-	// Event-plane consumer config (Task 6.1). wiki is a notify-shaped consumer of
-	// dropbox's file-lifecycle feed for the hardcoded wiki/ingest folder.
-	//   DROPBOX_FEED_URL — dropbox's loopback /feed (the upstream-named key,
-	//                      event-protocol.md §3). On the box the bin/build wrapper
-	//                      resolves it BY NAME via `registry feed-url dropbox`; the
-	//                      dev default below is for `go run`/tests without env. An
-	//                      empty value DISABLES the consumer (graceful — the MCP
-	//                      surface still comes up).
-	//   WIKI_OWNER       — the box owner every wiki/ingest file is filed under.
-	//                      Dropbox is single-owner and its events carry no owner, so
-	//                      the owner is service config, not derived from the event.
-	//                      Empty also disables the consumer (it cannot file without
-	//                      an owner).
-	//   WIKI_CONSUMER_FROM — first-subscription choice (tail|earliest); tail by
-	//                      default so a fresh wiki does not re-ingest the whole
-	//                      folder backlog on first boot.
-	feedURL := envOr(getenv, "DROPBOX_FEED_URL", "http://127.0.0.1:3005/feed")
-	consumerOwner := getenv("WIKI_OWNER")
-	consumerFrom := envOr(getenv, "WIKI_CONSUMER_FROM", "tail")
-
-	cfg := serveConfig{
-		ip:            *ip,
-		port:          *port,
-		logLevel:      *logLevel,
-		resourceID:    resourceID,
-		authServer:    authServer,
-		dbPath:        dbPath,
-		dataRoot:      dataRoot,
-		apiKey:        apiKey,
-		ingestModel:   ingestModel,
-		maxTokens:     maxTokens,
-		jobTTL:        time.Duration(ttlSeconds) * time.Second,
-		lintModel:     lintModel,
-		lintMaxTokens: lintMaxTokens,
-		lintJobTTL:    time.Duration(lintTTLSeconds) * time.Second,
-		askModel:      askModel,
-		askMaxTokens:  askMaxTokens,
-		askJobTTL:     time.Duration(askTTLSeconds) * time.Second,
-		feedURL:       feedURL,
-		consumerOwner: consumerOwner,
-		consumerFrom:  consumerFrom,
-	}
-	return serve(cfg, stdout)
+		},
+		// Workers carries wiki's event-plane consumer loop. appkit launches it on the
+		// serve context alongside the HTTP server (the E2 consumer seam). The consumer
+		// Config + dropbox→ingest Handler stay app-side — appkit owns the lifecycle,
+		// not the event semantics. When ingest is disabled (no key) the consumer is a
+		// graceful no-op (nothing to file dropbox events into).
+		Workers: []func(context.Context) error{
+			func(ctx context.Context) error {
+				return runConsumer(ctx, rt, ingestCore)
+			},
+		},
+	})
 }
 
-// serveConfig is the resolved composition-root configuration. main reads it from
-// the environment at the boundary; serve assembles the dependency graph from it.
-type serveConfig struct {
-	ip          string
-	port        int
-	logLevel    string
-	resourceID  string
-	authServer  string
-	dbPath        string
-	dataRoot      string
-	apiKey        string
-	ingestModel   string
-	maxTokens     int
-	jobTTL        time.Duration
-	lintModel     string
-	lintMaxTokens int
-	lintJobTTL    time.Duration
-	askModel      string
-	askMaxTokens  int
-	askJobTTL     time.Duration
-
-	// Event-plane consumer (Task 6.1). feedURL is dropbox's loopback /feed;
-	// consumerOwner is the box owner every wiki/ingest file is filed under;
-	// consumerFrom is the first-subscription choice. An empty feedURL or
-	// consumerOwner disables the consumer (graceful).
-	feedURL       string
-	consumerOwner string
-	consumerFrom  string
-}
-
-// serve runs the long-running HTTP server until interrupted. It assembles the
-// dependency graph (store, search index, db + job store, the anthropic client
-// factory, the ingest core) from cfg and injects the ingest core into the MCP
-// handler. The inner packages never read the environment — config flows as args.
-func serve(cfg serveConfig, stdout io.Writer) error {
-	level, err := logging.ParseLevel(cfg.logLevel)
+// buildDomain assembles wiki's agentkit-backed domain graph over appkit's shared
+// single-writer DB handle and returns the ingest core (shared with the consumer
+// worker) plus the MCP handler to mount. It is the composition root where the
+// agentkit provider is constructed and the LLM secret is read.
+//
+// wiki_search is a SYNCHRONOUS BM25 read (no agent, no key), so it is always
+// wired. ingest/ask are agentic: their client factories close over the env-only
+// ANTHROPIC_API_KEY; when it is absent they are nil and the corresponding verbs
+// return a clear "unavailable" tool-error while the rest of the surface stays up.
+func buildDomain(rt *appkit.Router) (*ingest.Core, *mcp.Handler, error) {
+	cfg, err := resolveDomainCfg(os.Getenv)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	logger := logging.New(level, stdout)
-
-	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	// A cancelable child so a STRUCTURAL consumer fault (a missing feed_offset
-	// table — a deploy bug) can tear the server down too, mirroring notify: no
-	// half-alive (HTTP up / consumer dead) state (event-protocol.md decision 11).
-	ctx, cancel := context.WithCancel(sigCtx)
-	defer cancel()
-
-	conn, err := db.Open(cfg.dbPath)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	if err := db.Migrate(ctx, conn); err != nil {
-		return fmt.Errorf("migrate: %w", err)
-	}
+	logger := rt.Logger()
+	conn := rt.DB()
 
 	// Filesystem content store + BM25 search index (the index file lives under the
 	// store's per-collection .search/ slot).
 	st, err := store.New(cfg.dataRoot)
 	if err != nil {
-		return fmt.Errorf("store: %w", err)
+		return nil, nil, fmt.Errorf("store: %w", err)
 	}
 	idx := search.NewBM25Index(st.SearchIndexPath)
-	defer idx.Close()
 
-	// Ingest core. The anthropic client factory closes over the API key + model
-	// resolved at this boundary; it is only invoked when a job actually runs, so a
-	// missing key disables ingest without blocking boot. We presence-check here and
-	// log a clear warning so the operator knows ingest is off (mirrors the suite's
-	// fail-loud-at-boot for secrets, softened to "degrade" per Task 4.1: the
-	// non-ingest surface must still come up).
-	var ingester mcp.Ingester
-	var ingestCore *ingest.Core // concrete core, also fed by the event-plane consumer (Task 6.1)
-	var linter *lint.Linter
-	var asker mcp.Asker
+	var (
+		ingester   mcp.Ingester
+		ingestCore *ingest.Core
+		asker      mcp.Asker
+	)
+
+	// The agentkit provider is built here, behind the env-only secret. We
+	// presence-check the key (NEVER its value) and degrade loudly when absent: the
+	// non-agent surface (wiki_whoami, wiki_search, tools/list) must still come up.
 	if cfg.apiKey == "" {
-		logger.Warn("ANTHROPIC_API_KEY is not set — ingest and ask are DISABLED (wiki_whoami, wiki_search, and tools/list still work); set it via SSM app-config (box) or .envrc (dev) to enable the agent verbs")
+		logger.Warn("ANTHROPIC_API_KEY is not set — ingest and ask are DISABLED (wiki_whoami, wiki_search, and tools/list still work); set it via app-config (box) or .envrc (dev) to enable the agent verbs")
 	} else {
-		newClient := func() (provider.Client, error) {
+		// The agentkit anthropic client factory: it closes over the env-only API key
+		// and the ingest model resolved at this boundary. It is only invoked when a
+		// job actually runs, so a missing key never blocks boot — but here the key is
+		// present, so ingest/ask are live.
+		newIngestClient := func() (provider.Client, error) {
 			return anthropic.New(cfg.apiKey, cfg.ingestModel)
 		}
-		core := ingest.New(st, idx, conn, newClient, ingest.Config{
+		core := ingest.New(st, idx, conn, newIngestClient, ingest.Config{
 			Model:     cfg.ingestModel,
 			MaxTokens: cfg.maxTokens,
 			JobTTL:    cfg.jobTTL,
 		})
 		// Boot-time crash recovery: flip any 'running' rows orphaned by a crash to
-		// 'failed' before serving (the runner's per-spawn nature means this is the
-		// one place the whole table is swept). Lint jobs live in the same wiki_jobs
-		// table, so this one sweep recovers both ingest and lint orphans.
-		if n, err := core.Recover(ctx); err != nil {
-			return fmt.Errorf("ingest recover: %w", err)
+		// 'failed' before serving (the agentkit runner's per-spawn nature means this
+		// is the one place the whole table is swept; ingest + lint share wiki_jobs).
+		if n, err := core.Recover(context.Background()); err != nil {
+			return nil, nil, fmt.Errorf("ingest recover: %w", err)
 		} else if n > 0 {
 			logger.Warn("swept crash-orphaned ingest/lint jobs at boot", "count", n)
 		}
 		ingester = core
 		ingestCore = core
 
-		// Lint maintenance pass (Task 5.2): reuses the same agent/job machinery as
+		// Lint maintenance pass: reuses the same agentkit agent/job machinery as
 		// ingest, sharing the single-writer DB, the wiki_jobs table, and ingest's
-		// per-(owner,collection) flight key (so a lint and an ingest never run
-		// concurrently over the same wiki). The trigger (Linter.Lint) is MANUAL and
-		// internal for now — cadence (manual/scheduled/post-ingest) is DEFERRED per
-		// GOALS, so lint is deliberately NOT a public MCP verb (the surface stays the
-		// five Task-5.1 verbs). It is constructed here so it is callable today and
-		// schedulable later without re-plumbing.
-		linter = lint.New(st, idx, conn, newClient, lint.Config{
+		// per-(owner,collection) flight key. Its trigger (Linter.Lint) is MANUAL and
+		// internal for now — cadence DEFERRED — so it is deliberately NOT a public MCP
+		// verb. It is constructed so it is callable today and schedulable later. The
+		// blank assignment keeps it live in the composition root without an MCP wire.
+		_ = lint.New(st, idx, conn, newIngestClient, lint.Config{
 			Model:     cfg.lintModel,
 			MaxTokens: cfg.lintMaxTokens,
 			JobTTL:    cfg.lintJobTTL,
 		})
 
-		// Ask synthesis pass (Task 6.2): the agentic, async read behind wiki_ask. It
-		// reuses the same agent/job machinery as ingest/lint, shares the single-writer
-		// DB, the wiki_jobs table, and ingest's per-(owner,collection) flight key (so an
-		// ask never runs concurrently with an ingest/lint over the same wiki — it files
-		// a synthesis page and re-indexes, so it is a write-pass). Its client factory
-		// closes over the ask-specific model so its cost/latency can be tuned
-		// independently of ingest. Like ingest it requires ANTHROPIC_API_KEY, so it is
-		// only constructed inside this branch; otherwise wiki_ask returns a clear
-		// "ask unavailable" tool-error while the rest of the surface stays up.
-		askClient := func() (provider.Client, error) {
+		// Ask synthesis pass: the agentic, async read behind wiki_ask. It reuses the
+		// same agentkit agent/job machinery and shares ingest's flight key. Its client
+		// factory closes over the ask-specific model so its cost/latency tune
+		// independently of ingest; like ingest it needs the env-only key.
+		newAskClient := func() (provider.Client, error) {
 			return anthropic.New(cfg.apiKey, cfg.askModel)
 		}
-		asker = ask.New(st, idx, conn, askClient, ask.Config{
+		asker = ask.New(st, idx, conn, newAskClient, ask.Config{
 			Model:     cfg.askModel,
 			MaxTokens: cfg.askMaxTokens,
 			JobTTL:    cfg.askJobTTL,
 		})
 	}
-	// linter is wired and ready (manual/internal trigger); reference it so the
-	// composition root keeps it live even though no MCP verb exposes it yet
-	// (cadence DEFERRED — Task 5.2). When a cadence is chosen (Phase 7), this is
-	// where the scheduler / post-ingest hook attaches.
-	_ = linter
 
-	// wiki_search is a SYNCHRONOUS read over the BM25 index — no agent, no key —
-	// so it is wired independently of ingest and stays available even when
-	// ANTHROPIC_API_KEY is absent (ingest disabled). The *search.BM25Index
-	// satisfies mcp.Searcher directly.
-	mcpHandler := mcp.NewHandler(ingester, idx, asker)
+	// wiki_search is a SYNCHRONOUS read over the BM25 index — no agent, no key — so
+	// the *search.BM25Index is wired directly and stays available even when the key
+	// is absent (ingest disabled).
+	h := mcp.NewHandler(ingester, idx, asker)
 
-	addr := net.JoinHostPort(cfg.ip, strconv.Itoa(cfg.port))
-	srv, err := server.New(server.Options{
-		Addr:       addr,
-		Logger:     logger,
-		ResourceID: cfg.resourceID,
-		AuthServer: cfg.authServer,
-		MCP:        mcpHandler,
-	})
-	if err != nil {
-		return err
-	}
+	logger.Info("wiki domain ready",
+		"data_root", cfg.dataRoot, "ingest_model", cfg.ingestModel,
+		"ingest_enabled", cfg.apiKey != "")
+	return ingestCore, h, nil
+}
 
-	// Event-plane consumer (Task 6.1): wiki is a notify-shaped consumer of
-	// dropbox's file-lifecycle feed for the hardcoded wiki/ingest folder. It runs
-	// ONLY when ingest is enabled (it feeds the same ingest core — no core, nothing
-	// to file), a feed URL resolved, and a box owner is configured. Otherwise the
-	// service still boots and serves the MCP surface (graceful, mirroring the
-	// ingest-disabled path). The consumer feeds Core.Ingest, which spawns the async
-	// integration job, so it never blocks the MCP server.
-	consumerEnabled := ingestCore != nil && cfg.feedURL != "" && cfg.consumerOwner != ""
+// runConsumer is wiki's event-plane consumer worker. It maps dropbox's
+// file-lifecycle events (for the hardcoded wiki/ingest folder) into the SAME async
+// ingest core the MCP verbs use, then drives eventplane/consumer.Run over dropbox's
+// /feed until ctx is cancelled (clean shutdown → nil) or a structural fault escapes
+// (→ error, which appkit propagates to cancel the server too — decision 11).
+//
+// The consumer runs ONLY when ingest is enabled (ingestCore != nil — no core,
+// nothing to file), a feed URL resolved, and a box owner is configured. When it is
+// intentionally disabled it must NOT return early: under appkit's Workers seam a
+// worker that returns (even nil) cancels the serve context and tears the HTTP
+// server down (the decision-11 fault coupling). A *disabled* consumer is not a
+// fault, so it blocks on ctx until shutdown and then returns nil — the server stays
+// up serving the MCP surface, exactly like a transport-fault-free idle worker
+// (appkit workers_test TestWorkers_TransportFaultDoesNotKillServer).
+func runConsumer(ctx context.Context, rt *appkit.Router, ingestCore *ingest.Core) error {
+	logger := rt.Logger()
+	cfg := resolveConsumerCfg(os.Getenv)
+
 	switch {
 	case ingestCore == nil:
 		logger.Warn("event-plane consumer DISABLED: ingest is off (no ANTHROPIC_API_KEY) — nothing to file dropbox events into")
+		return blockUntilDone(ctx)
 	case cfg.feedURL == "":
-		logger.Warn("event-plane consumer DISABLED: no DROPBOX_FEED_URL (the bin/build wrapper resolves it via `registry feed-url dropbox`)")
-	case cfg.consumerOwner == "":
+		logger.Warn("event-plane consumer DISABLED: no DROPBOX_FEED_URL")
+		return blockUntilDone(ctx)
+	case cfg.owner == "":
 		logger.Warn("event-plane consumer DISABLED: no WIKI_OWNER (dropbox is single-owner; the box owner must be configured to file wiki/ingest events)")
+		return blockUntilDone(ctx)
 	}
 
-	logger.Info("starting wiki",
-		"addr", addr, "resource_id", cfg.resourceID, "auth_server", cfg.authServer,
-		"db_path", cfg.dbPath, "data_root", cfg.dataRoot,
-		"ingest_model", cfg.ingestModel, "ingest_enabled", cfg.apiKey != "",
-		"consumer_enabled", consumerEnabled, "feed_url", cfg.feedURL,
-		"consumer_owner", cfg.consumerOwner, "version", version)
-
-	if !consumerEnabled {
-		// No consumer: just run the HTTP server, as in earlier phases.
-		return server.Run(ctx, srv, logger)
-	}
-
-	// Run the server and the consumer concurrently. errCh collects both
-	// terminations; the first fatal error cancels ctx so the other unwinds. A
-	// structural consumer fault (decision 11) crashes the whole process rather than
-	// lingering HTTP-up / consumer-dead; a transport fault (dropbox down) is retried
-	// indefinitely inside the engine and never escapes Run.
 	consumerCfg := consumer.Config{
 		FeedURL:    cfg.feedURL,
-		From:       cfg.consumerFrom,
-		DB:         conn,
+		From:       cfg.from,
+		DB:         rt.DB(),
 		Source:     upstreamSource,
 		ConsumerID: consumerID,
 		Logger:     logger,
 	}
 	handler := consume.Handler(consume.Config{
-		Owner:    cfg.consumerOwner,
+		Owner:    cfg.owner,
 		Ingester: ingestCore,
 		Logger:   logger,
 	})
-
-	errCh := make(chan error, 2)
-	go func() {
-		err := consumer.Run(ctx, consumerCfg, handler)
-		if err != nil {
-			err = fmt.Errorf("event-plane consumer: %w", err)
-		}
-		cancel() // bring the server down too — no half-alive state (decision 11)
-		errCh <- err
-	}()
-	go func() {
-		errCh <- server.Run(ctx, srv, logger)
-	}()
-
-	var firstErr error
-	for i := 0; i < 2; i++ {
-		if e := <-errCh; e != nil && firstErr == nil {
-			firstErr = e
-		}
+	logger.Info("starting wiki consumer",
+		"feed_url", cfg.feedURL, "from", cfg.from, "owner", cfg.owner)
+	if err := consumer.Run(ctx, consumerCfg, handler); err != nil {
+		return fmt.Errorf("event-plane consumer: %w", err)
 	}
-	return firstErr
+	return nil
 }
 
+// domainCfg is wiki's agentic-domain configuration, read once at the composition
+// root. The plain config (data root, model ids, cost ceilings, TTLs) carries dev
+// fallbacks; apiKey is the deployment SECRET (ANTHROPIC_API_KEY) injected via the
+// environment (.envrc locally; app-config in prod) and never read from source,
+// composed in, or logged (§2.8).
+type domainCfg struct {
+	dataRoot string
+	apiKey   string // ANTHROPIC_API_KEY — SECRET (presence drives the agent verbs)
+
+	ingestModel string
+	maxTokens   int
+	jobTTL      time.Duration
+
+	lintModel     string
+	lintMaxTokens int
+	lintJobTTL    time.Duration
+
+	askModel     string
+	askMaxTokens int
+	askJobTTL    time.Duration
+}
+
+// resolveDomainCfg reads wiki's agentic-domain config from the environment.
+// WIKI_INGEST_MODEL / WIKI_INGEST_MAX_TOKENS mirror the ManifestExtras (the
+// manifest round-trips the non-secret ingest config). ANTHROPIC_API_KEY is read
+// here — its value is never logged; only its presence is observed.
+func resolveDomainCfg(getenv func(string) string) (domainCfg, error) {
+	maxTokens, err := envOrInt(getenv, "WIKI_INGEST_MAX_TOKENS", ingest.DefaultMaxTokens)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	ttlSeconds, err := envOrInt(getenv, "WIKI_INGEST_JOB_TTL_SECONDS", 600)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	lintMaxTokens, err := envOrInt(getenv, "WIKI_LINT_MAX_TOKENS", lint.DefaultMaxTokens)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	lintTTLSeconds, err := envOrInt(getenv, "WIKI_LINT_JOB_TTL_SECONDS", 600)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	askMaxTokens, err := envOrInt(getenv, "WIKI_ASK_MAX_TOKENS", ask.DefaultMaxTokens)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	askTTLSeconds, err := envOrInt(getenv, "WIKI_ASK_JOB_TTL_SECONDS", 600)
+	if err != nil {
+		return domainCfg{}, err
+	}
+	return domainCfg{
+		dataRoot: envOr(getenv, "WIKI_DATA_ROOT", "./tmp/data"),
+		apiKey:   getenv("ANTHROPIC_API_KEY"), // SECRET — value never logged
+
+		ingestModel: envOr(getenv, "WIKI_INGEST_MODEL", ingest.DefaultModel),
+		maxTokens:   maxTokens,
+		jobTTL:      time.Duration(ttlSeconds) * time.Second,
+
+		lintModel:     envOr(getenv, "WIKI_LINT_MODEL", lint.DefaultModel),
+		lintMaxTokens: lintMaxTokens,
+		lintJobTTL:    time.Duration(lintTTLSeconds) * time.Second,
+
+		askModel:     envOr(getenv, "WIKI_ASK_MODEL", ask.DefaultModel),
+		askMaxTokens: askMaxTokens,
+		askJobTTL:    time.Duration(askTTLSeconds) * time.Second,
+	}, nil
+}
+
+// consumerCfg is wiki's event-plane consumer configuration, read at the worker's
+// composition root. All non-secret: the feed URL (dropbox's loopback /feed — the
+// event plane bypasses nginx), the first-subscription choice, and the configured
+// box owner (dropbox is single-owner; its events carry no owner).
+type consumerCfg struct {
+	feedURL string // dropbox's loopback feed (DROPBOX_FEED_URL)
+	from    string // first-subscription choice: tail|earliest (WIKI_CONSUMER_FROM)
+	owner   string // box owner every wiki/ingest file is filed under (WIKI_OWNER)
+}
+
+// resolveConsumerCfg reads wiki's consumer config from the environment. An empty
+// feedURL or owner disables the consumer gracefully (the MCP surface still comes
+// up) — the same degrade-don't-crash policy as the ingest-disabled path.
+func resolveConsumerCfg(getenv func(string) string) consumerCfg {
+	return consumerCfg{
+		feedURL: envOr(getenv, "DROPBOX_FEED_URL", "http://127.0.0.1:3005/feed"),
+		from:    envOr(getenv, "WIKI_CONSUMER_FROM", "tail"),
+		owner:   getenv("WIKI_OWNER"),
+	}
+}
+
+// blockUntilDone parks a deliberately-disabled worker until the serve context is
+// cancelled, then returns nil. A disabled consumer must not RETURN early: appkit's
+// Workers seam cancels the server when any worker returns (the decision-11 fault
+// coupling), so an early return would take the HTTP surface down. Blocking models
+// an idle, transport-fault-free worker — the server stays up; a SIGTERM unwinds it.
+func blockUntilDone(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+// envOr returns getenv(key) when non-empty, else def.
 func envOr(getenv func(string) string, key, def string) string {
 	if v := getenv(key); v != "" {
 		return v
@@ -430,8 +376,8 @@ func envOr(getenv func(string) string, key, def string) string {
 	return def
 }
 
-// envOrInt returns def when key is unset/empty, the parsed value when it holds
-// a valid integer, and an error naming the variable otherwise — a malformed
+// envOrInt returns def when key is unset/empty, the parsed value when it holds a
+// valid integer, and an error naming the variable otherwise — a malformed
 // override fails loudly rather than silently reverting to def.
 func envOrInt(getenv func(string) string, key string, def int) (int, error) {
 	v := getenv(key)
@@ -443,4 +389,16 @@ func envOrInt(getenv func(string) string, key string, def int) (int, error) {
 		return 0, fmt.Errorf("%s: invalid integer %q", key, v)
 	}
 	return n, nil
+}
+
+// envOrIntOrDefault is the silent variant used only for the manifest ManifestExtra
+// (a malformed WIKI_INGEST_MAX_TOKENS surfaces as a real error on serve/migrate via
+// resolveDomainCfg; the manifest emit just falls back to the default so `wiki
+// manifest` always renders). Distinct name to avoid masking the error-returning one.
+func envOrIntOrDefault(getenv func(string) string, key string, def int) int {
+	n, err := envOrInt(getenv, key, def)
+	if err != nil {
+		return def
+	}
+	return n
 }
