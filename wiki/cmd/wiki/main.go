@@ -29,6 +29,7 @@ import (
 
 	"eventplane/consumer"
 
+	"wiki/internal/ask"
 	"wiki/internal/consume"
 	"wiki/internal/db"
 	"wiki/internal/ingest"
@@ -135,6 +136,22 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) er
 		return err
 	}
 
+	// Ask config (Task 6.2). wiki_ask is the agentic synthesis read: it reuses the
+	// ingest agent/job machinery but with a navigation-first toolset (read+glob+grep
+	// plus write for the synthesis page only). Its model + cost ceiling + TTL are
+	// separate config knobs (PLAN Decision 3) so the synthesis pass can be tuned
+	// independently of ingest/lint, but default to the same values. Like ingest it
+	// needs ANTHROPIC_API_KEY — its absence only disables wiki_ask.
+	askModel := envOr(getenv, "WIKI_ASK_MODEL", ask.DefaultModel)
+	askMaxTokens, err := envOrInt(getenv, "WIKI_ASK_MAX_TOKENS", ask.DefaultMaxTokens)
+	if err != nil {
+		return err
+	}
+	askTTLSeconds, err := envOrInt(getenv, "WIKI_ASK_JOB_TTL_SECONDS", 600)
+	if err != nil {
+		return err
+	}
+
 	// Event-plane consumer config (Task 6.1). wiki is a notify-shaped consumer of
 	// dropbox's file-lifecycle feed for the hardcoded wiki/ingest folder.
 	//   DROPBOX_FEED_URL — dropbox's loopback /feed (the upstream-named key,
@@ -170,6 +187,9 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) er
 		lintModel:     lintModel,
 		lintMaxTokens: lintMaxTokens,
 		lintJobTTL:    time.Duration(lintTTLSeconds) * time.Second,
+		askModel:      askModel,
+		askMaxTokens:  askMaxTokens,
+		askJobTTL:     time.Duration(askTTLSeconds) * time.Second,
 		feedURL:       feedURL,
 		consumerOwner: consumerOwner,
 		consumerFrom:  consumerFrom,
@@ -194,6 +214,9 @@ type serveConfig struct {
 	lintModel     string
 	lintMaxTokens int
 	lintJobTTL    time.Duration
+	askModel      string
+	askMaxTokens  int
+	askJobTTL     time.Duration
 
 	// Event-plane consumer (Task 6.1). feedURL is dropbox's loopback /feed;
 	// consumerOwner is the box owner every wiki/ingest file is filed under;
@@ -250,8 +273,9 @@ func serve(cfg serveConfig, stdout io.Writer) error {
 	var ingester mcp.Ingester
 	var ingestCore *ingest.Core // concrete core, also fed by the event-plane consumer (Task 6.1)
 	var linter *lint.Linter
+	var asker mcp.Asker
 	if cfg.apiKey == "" {
-		logger.Warn("ANTHROPIC_API_KEY is not set — ingest is DISABLED (wiki_whoami and tools/list still work); set it via SSM app-config (box) or .envrc (dev) to enable ingest")
+		logger.Warn("ANTHROPIC_API_KEY is not set — ingest and ask are DISABLED (wiki_whoami, wiki_search, and tools/list still work); set it via SSM app-config (box) or .envrc (dev) to enable the agent verbs")
 	} else {
 		newClient := func() (provider.Client, error) {
 			return anthropic.New(cfg.apiKey, cfg.ingestModel)
@@ -286,6 +310,24 @@ func serve(cfg serveConfig, stdout io.Writer) error {
 			MaxTokens: cfg.lintMaxTokens,
 			JobTTL:    cfg.lintJobTTL,
 		})
+
+		// Ask synthesis pass (Task 6.2): the agentic, async read behind wiki_ask. It
+		// reuses the same agent/job machinery as ingest/lint, shares the single-writer
+		// DB, the wiki_jobs table, and ingest's per-(owner,collection) flight key (so an
+		// ask never runs concurrently with an ingest/lint over the same wiki — it files
+		// a synthesis page and re-indexes, so it is a write-pass). Its client factory
+		// closes over the ask-specific model so its cost/latency can be tuned
+		// independently of ingest. Like ingest it requires ANTHROPIC_API_KEY, so it is
+		// only constructed inside this branch; otherwise wiki_ask returns a clear
+		// "ask unavailable" tool-error while the rest of the surface stays up.
+		askClient := func() (provider.Client, error) {
+			return anthropic.New(cfg.apiKey, cfg.askModel)
+		}
+		asker = ask.New(st, idx, conn, askClient, ask.Config{
+			Model:     cfg.askModel,
+			MaxTokens: cfg.askMaxTokens,
+			JobTTL:    cfg.askJobTTL,
+		})
 	}
 	// linter is wired and ready (manual/internal trigger); reference it so the
 	// composition root keeps it live even though no MCP verb exposes it yet
@@ -297,7 +339,7 @@ func serve(cfg serveConfig, stdout io.Writer) error {
 	// so it is wired independently of ingest and stays available even when
 	// ANTHROPIC_API_KEY is absent (ingest disabled). The *search.BM25Index
 	// satisfies mcp.Searcher directly.
-	mcpHandler := mcp.NewHandler(ingester, idx)
+	mcpHandler := mcp.NewHandler(ingester, idx, asker)
 
 	addr := net.JoinHostPort(cfg.ip, strconv.Itoa(cfg.port))
 	srv, err := server.New(server.Options{

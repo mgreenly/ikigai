@@ -10,12 +10,13 @@ import (
 	"wiki/internal/store"
 )
 
-// toolDescriptors returns the wiki MCP surface. After Task 5.1 that is five
-// verbs: wiki_whoami (the auth proof), wiki_ingest_text (the inline-bytes ingest
+// toolDescriptors returns the wiki MCP surface. After Task 6.2 that is six verbs:
+// wiki_whoami (the auth proof), wiki_ingest_text (the inline-bytes ingest
 // trigger), wiki_ingest_url (the service-fetches-a-URL ingest trigger),
-// wiki_search (the synchronous BM25 read over curated whole pages), and
-// wiki_job_status (the async-job status read). Schemas are hand-coded with
-// per-field docs to improve LLM hinting.
+// wiki_search (the synchronous BM25 read over curated whole pages), wiki_ask (the
+// agentic, async synthesis read that returns a cited answer and files it back as a
+// synthesis page), and wiki_job_status (the async-job status read). Schemas are
+// hand-coded with per-field docs to improve LLM hinting.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc("wiki_whoami", "Return the authenticated caller's identity (owner email and client id) as established by the platform's auth gate. Takes no inputs; the end-to-end auth proof.", obj(map[string]any{})),
@@ -52,10 +53,15 @@ func toolDescriptors() []map[string]any {
 					"description": "Optional maximum number of ranked pages to return (default 10, capped at 50). The index page is always returned in addition and does not count against this limit.",
 				},
 			}, "query")),
-		desc("wiki_job_status",
-			"Read the status of an asynchronous wiki job (e.g. an ingest integration pass) by its job_id. Returns the lifecycle state (running|succeeded|failed|cancelled), start/end timestamps, any error, and token usage. Owner-scoped: you can only read your own jobs.",
+		desc("wiki_ask",
+			"Ask your personal wiki a question and get a synthesized, cited answer. Unlike wiki_search (a fast keyword read), this runs an asynchronous agent that navigates your wiki index-first, reads the relevant curated pages, and composes a direct answer citing the pages it used — then files that answer back as a synthesis page so future questions compound (subsequent wiki_search calls will find it). Returns a job_id to poll with wiki_job_status; when the job succeeds, the cited synthesis page is searchable. Answers are drawn ONLY from what your wiki already contains. Prefer wiki_search for quick lookups; use wiki_ask when you want a digested answer.",
 			obj(map[string]any{
-				"job_id": strField("The job id returned by wiki_ingest_text (or another async verb)."),
+				"question": strField("The question to answer from your wiki (free text)."),
+			}, "question")),
+		desc("wiki_job_status",
+			"Read the status of an asynchronous wiki job (e.g. an ingest integration pass or a wiki_ask synthesis) by its job_id. Returns the lifecycle state (running|succeeded|failed|cancelled), start/end timestamps, any error, and token usage. Owner-scoped: you can only read your own jobs.",
+			obj(map[string]any{
+				"job_id": strField("The job id returned by wiki_ingest_text, wiki_ask, or another async verb."),
 			}, "job_id")),
 	}
 }
@@ -109,6 +115,8 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, args json.RawMe
 		return h.toolIngestURL(ctx, args, id)
 	case "wiki_search":
 		return h.toolSearch(ctx, args, id)
+	case "wiki_ask":
+		return h.toolAsk(ctx, args, id)
 	case "wiki_job_status":
 		return h.toolJobStatus(ctx, args, id)
 	default:
@@ -274,6 +282,38 @@ func (h *Handler) toolSearch(ctx context.Context, raw json.RawMessage, id Identi
 	}
 	out["results"] = pages
 	return toolResultJSON(out)
+}
+
+// ── ask verb ────────────────────────────────────────────────────────────────
+
+type askArgs struct {
+	Question string `json:"question"`
+}
+
+// toolAsk drives the agentic synthesis pass for the caller's owner. Unlike
+// wiki_search (synchronous, no agent), wiki_ask is ASYNC: it spawns an agentkit
+// job that navigates the wiki index-first, synthesizes a cited answer, and files
+// it back as a synthesis page — then returns the job id (poll it with
+// wiki_job_status; the answer is searchable once the job succeeds). Collection is
+// always the default (no collection arg per PLAN Decision 4).
+func (h *Handler) toolAsk(ctx context.Context, raw json.RawMessage, id Identity) (map[string]any, error) {
+	if h.ask == nil {
+		return nil, errors.New("ask unavailable: this wiki has no agent backend configured")
+	}
+	var a askArgs
+	if err := json.Unmarshal(raw, &a); err != nil {
+		return nil, errors.New("invalid arguments: " + err.Error())
+	}
+	if a.Question == "" {
+		return nil, errors.New("question is required and must be non-empty")
+	}
+	res, err := h.ask.Ask(ctx, id.OwnerEmail, "" /* default collection */, a.Question)
+	if err != nil {
+		return nil, errors.New("ask failed: " + err.Error())
+	}
+	return toolResultJSON(map[string]any{
+		"job_id": res.JobID,
+	})
 }
 
 type jobStatusArgs struct {

@@ -40,7 +40,7 @@ func TestSearch_Verb_Dispatch(t *testing.T) {
 			{Path: "concepts/wildlife.md", Title: "Wildlife", Body: "# Wildlife\none otter", Score: -1.1},
 		},
 	}}
-	h := NewHandler(nil, stub)
+	h := NewHandler(nil, stub, nil)
 
 	p, isErr := callTool(t, h, "wiki_search", `{"query":"otter","limit":5}`)
 	if isErr {
@@ -106,7 +106,7 @@ func TestSearch_Verb_EmptyNoMatch(t *testing.T) {
 		Index: &search.Result{Path: "index.md", Title: "Index", Body: "# Index\nnav"},
 		Hits:  nil,
 	}}
-	h := NewHandler(nil, stub)
+	h := NewHandler(nil, stub, nil)
 
 	p, isErr := callTool(t, h, "wiki_search", `{"query":"zzznotpresent"}`)
 	if isErr {
@@ -128,7 +128,7 @@ func TestSearch_Verb_EmptyNoMatch(t *testing.T) {
 }
 
 func TestSearch_Verb_RequiresQuery(t *testing.T) {
-	h := NewHandler(nil, &stubSearcher{})
+	h := NewHandler(nil, &stubSearcher{}, nil)
 	_, isErr := callTool(t, h, "wiki_search", `{"limit":5}`)
 	if !isErr {
 		t.Fatal("wiki_search with empty query should be a tool-error")
@@ -136,7 +136,7 @@ func TestSearch_Verb_RequiresQuery(t *testing.T) {
 }
 
 func TestSearch_Verb_NilBackendUnavailable(t *testing.T) {
-	h := NewHandler(nil, nil)
+	h := NewHandler(nil, nil, nil)
 	_, isErr := callTool(t, h, "wiki_search", `{"query":"x"}`)
 	if !isErr {
 		t.Fatal("wiki_search with nil backend should be a tool-error")
@@ -193,7 +193,7 @@ func TestSearch_Verb_OverRealIndex(t *testing.T) {
 		t.Fatalf("ReindexCollection: %v", err)
 	}
 
-	h := NewHandler(nil, idx)
+	h := NewHandler(nil, idx, nil)
 	p, isErr := callTool(t, h, "wiki_search", `{"query":"otter"}`)
 	if isErr {
 		t.Fatalf("wiki_search returned isError: %v", p)

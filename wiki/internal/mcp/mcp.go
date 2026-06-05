@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"wiki/internal/ask"
 	"wiki/internal/ingest"
 	"wiki/internal/search"
 	"wiki/internal/store"
@@ -63,23 +64,42 @@ type Searcher interface {
 	Search(ctx context.Context, owner, collection, query string, limit int) (search.Results, error)
 }
 
+// Asker is the MCP surface's dependency on the agentic synthesis pass (Task 6.2 —
+// wiki_ask). The handler holds the interface, not the concrete *ask.Asker, so the
+// verb tests can drive a stub and main.go injects the real Asker. Ask is ASYNC
+// (it rides the agentkit job lifecycle like ingest): Ask returns a job id pollable
+// via wiki_job_status, and the synthesized cited answer is filed back as a
+// synthesis page (findable via wiki_search once the job succeeds). Like the other
+// agentic passes it needs ANTHROPIC_API_KEY, so it may be nil when the service
+// boots without an agent backend. Collection is always the default ("") — no
+// collection arg on the verbs yet (PLAN Decision 4).
+type Asker interface {
+	// Ask spawns the async synthesis job for owner and returns its job id. The
+	// agent navigates the (owner, collection) page tree index-first, synthesizes a
+	// cited answer, and files it back as a synthesis page.
+	Ask(ctx context.Context, owner, collection, question string) (ask.Result, error)
+}
+
 // Handler is the http.Handler for POST /mcp. It dispatches JSON-RPC methods. It
-// holds the ingest core (backs wiki_ingest_text/_url and wiki_job_status) and the
-// search index (backs wiki_search); the no-side-effect wiki_whoami needs no
-// dependency. ingest may be nil when the service boots without an ingest backend
-// (e.g. ANTHROPIC_API_KEY absent) — the ingest verbs then return a clear "ingest
-// unavailable" tool-error while wiki_whoami, wiki_search, and tools/list keep
-// working. search may be nil only in degenerate/test setups; the wiki_search verb
-// returns a clear "search unavailable" tool-error in that case.
+// holds the ingest core (backs wiki_ingest_text/_url and wiki_job_status), the
+// search index (backs wiki_search), and the asker (backs wiki_ask); the
+// no-side-effect wiki_whoami needs no dependency. ingest/ask may be nil when the
+// service boots without an agent backend (e.g. ANTHROPIC_API_KEY absent) — those
+// verbs then return a clear "unavailable" tool-error while wiki_whoami,
+// wiki_search, and tools/list keep working. search may be nil only in
+// degenerate/test setups; the wiki_search verb returns a clear "search
+// unavailable" tool-error in that case.
 type Handler struct {
 	ingest Ingester
 	search Searcher
+	ask    Asker
 }
 
 // NewHandler builds a Handler over the given ingest core (may be nil to run the
-// non-ingest surface only) and search index (may be nil to disable wiki_search).
-func NewHandler(ing Ingester, srch Searcher) *Handler {
-	return &Handler{ingest: ing, search: srch}
+// non-ingest surface only), search index (may be nil to disable wiki_search), and
+// asker (may be nil to disable wiki_ask).
+func NewHandler(ing Ingester, srch Searcher, asker Asker) *Handler {
+	return &Handler{ingest: ing, search: srch, ask: asker}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the

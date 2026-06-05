@@ -13,7 +13,7 @@ func newHandler(t *testing.T) *Handler {
 	// nil ingest + nil search: the dependency-free surface (whoami, tools/list)
 	// works; the ingest/search verbs return an "unavailable" tool-error, which the
 	// capability-specific tests below assert against stubs.
-	return NewHandler(nil, nil)
+	return NewHandler(nil, nil, nil)
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
@@ -63,9 +63,9 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 	return payload, isErr
 }
 
-// TestToolsList_Surface asserts the Task-5.1 surface is exactly wiki_whoami,
-// wiki_ingest_text, wiki_ingest_url, wiki_search, and wiki_job_status — and
-// nothing else.
+// TestToolsList_Surface asserts the Task-6.2 surface is exactly wiki_whoami,
+// wiki_ingest_text, wiki_ingest_url, wiki_search, wiki_ask, and wiki_job_status —
+// and nothing else.
 func TestToolsList_Surface(t *testing.T) {
 	h := newHandler(t)
 	res := rpc(t, h, "tools/list", `{}`)
@@ -74,7 +74,7 @@ func TestToolsList_Surface(t *testing.T) {
 	for _, tl := range tools {
 		got[tl.(map[string]any)["name"].(string)] = true
 	}
-	want := []string{"wiki_whoami", "wiki_ingest_text", "wiki_ingest_url", "wiki_search", "wiki_job_status"}
+	want := []string{"wiki_whoami", "wiki_ingest_text", "wiki_ingest_url", "wiki_search", "wiki_ask", "wiki_job_status"}
 	if len(got) != len(want) {
 		t.Fatalf("tools/list returned %d tools (%v), want %v", len(got), got, want)
 	}
