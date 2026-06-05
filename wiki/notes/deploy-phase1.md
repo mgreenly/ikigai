@@ -47,6 +47,10 @@ blocked on the human SSO step.
    test -r ~/.secrets/ANTHROPIC_API_KEY && echo present || echo MISSING
    ```
 
+4. **`WIKI_OWNER` supplied (Phase 6.1 — see the section below).** Required as of
+   Phase 6.1 so `bin/secrets` can seed the event-plane consumer's owner. Supply it
+   either as `~/.secrets/WIKI_OWNER` or inline (`WIKI_OWNER=<email> ./bin/secrets`).
+
 ---
 
 ## Steps (run in this exact order)
@@ -158,6 +162,58 @@ curl -s -D - -o /dev/null https://ai.metaspot.org/srv/wiki/mcp | grep -i www-aut
    until the async ingest+integration completes), then `wiki_search` for a term
    from that text → the integrated page is returned. (Confirms the ingest agent
    has its `ANTHROPIC_API_KEY` from SSM and the BM25 index is live.)
+
+---
+
+## Phase 6.1 — consumer enablement (dropbox → wiki event plane)
+
+Phase 6.1 turns on wiki's event-plane consumer: it subscribes to dropbox's
+file-lifecycle `/feed` and autonomously ingests files dropped in the hardcoded
+`wiki/ingest` folder. The consumer boots **DISABLED** unless **both** the
+upstream feed URL and the box owner are present in wiki's environment:
+
+- **`DROPBOX_FEED_URL`** is resolved on the box by the `bin/build` wrapper via
+  `registry feed-url dropbox` (the same by-name mechanism notify uses for crm).
+  No operator action — it is baked into `/opt/wiki/bin/run` at build.
+- **`WIKI_OWNER`** is supplied per-box through SSM app-config by `bin/secrets`.
+  Dropbox is single-owner and its events carry no owner, so the owner is service
+  config. **It must EXACTLY match the `X-Owner-Email` the dashboard injects for
+  the authenticated user on this box** — otherwise autonomously-ingested dropbox
+  content would land under a different owner than the one the user's MCP session
+  reads. Use the correct per-box owner email; do **not** guess.
+
+### Before `bin/secrets` (Step 1): supply `WIKI_OWNER`
+
+Provide the value either way (it is an email, not a secret, but is still kept
+per-box and never committed — `bin/secrets` resolves it from a file or env, like
+`ANTHROPIC_API_KEY`):
+
+```
+# option A — drop it in ~/.secrets (parallel to ANTHROPIC_API_KEY)
+printf '%s' '<owner-email>' > ~/.secrets/WIKI_OWNER && ./bin/secrets
+
+# option B — inline for this one invocation
+WIKI_OWNER='<owner-email>' ./bin/secrets
+```
+
+`bin/secrets` now writes **both** `ANTHROPIC_API_KEY` and `WIKI_OWNER` into the
+`.wiki` object (siblings preserved), shows `WIKI_OWNER` in the summary (not
+masked — it is an email), and **fails loudly** if `WIKI_OWNER` resolves empty.
+Then continue with Steps 2–4 unchanged (`bin/setup`, `bin/deploy`, dashboard
+restart).
+
+### Verify the consumer is enabled (extends Step 5b)
+
+```
+ssh -i <key> <box> "journalctl -u wiki -n 50 --no-pager"
+```
+
+Look for the `starting wiki` line showing `consumer_enabled=true` and
+`consumer_owner=<email>`, and confirm there is **no**
+`event-plane consumer DISABLED: no WIKI_OWNER` Warn (nor the `no DROPBOX_FEED_URL`
+/ ingest-off Warns). End-to-end: drop a file into the box's `wiki/ingest` dropbox
+folder and confirm wiki ingests it (it appears via `wiki_search` under the
+configured owner).
 
 ---
 

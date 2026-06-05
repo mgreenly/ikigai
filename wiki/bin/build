@@ -47,6 +47,16 @@ export WIKI_DB_PATH=/opt/wiki/data/wiki.db
 # The filesystem content store (immutable raw/ + the curated page tree + the
 # per-collection search index) lives under the app's data dir, beside the DB.
 export WIKI_DATA_ROOT=/opt/wiki/data/store
+# Event-plane consumer config (Task 6.1). Resolve dropbox's event-feed address BY
+# NAME from the on-box registry (the resolver is this wrapper's sibling at
+# /opt/wiki/bin/registry, and dropbox's manifest is a peer under /opt — the
+# resolver's default REGISTRY_ROOT) — no hardcoded peer port. The feed is dropbox's
+# loopback port: the event plane bypasses nginx (event-protocol.md §2), so this is a
+# direct 127.0.0.1 address. DROPBOX_FEED_URL is the upstream-named key
+# (event-protocol.md §3). WIKI_OWNER is NOT set here: it is an app-config secret
+# (seeded by bin/secrets) already in the environment. WIKI_CONSUMER_FROM defaults to
+# "tail" in the binary, so the wrapper need not set it.
+export DROPBOX_FEED_URL="$("$(dirname "$0")/registry" feed-url dropbox)"
 # Ingest model + per-job cost ceiling come from etc/manifest.env (already sourced
 # by metaspot-launch); re-export with sane fallbacks so the wrapper is the single
 # place the on-box public ingest config is composed.
