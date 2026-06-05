@@ -46,6 +46,11 @@ func (s *stubSystem) EnsureSystemUser(ctx context.Context, app, homeDir string) 
 	return nil
 }
 
+func (s *stubSystem) ChownTree(ctx context.Context, owner, group, path string) error {
+	s.record("chown:" + owner + ":" + group + ":" + path)
+	return nil
+}
+
 func (s *stubSystem) DaemonReload(ctx context.Context) error {
 	s.record("daemon-reload")
 	return nil

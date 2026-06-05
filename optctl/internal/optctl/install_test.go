@@ -320,6 +320,37 @@ func TestStampDataPaths(t *testing.T) {
 	}
 }
 
+// TestInstall_ChownsDataDirToAppUser asserts install hands the data tree back to
+// the `<app>` service user after the root-run migrate (the cutover-reset bug:
+// migrate, run as root, creates a fresh DB owned root:root, which the unit's
+// dedicated <app> user cannot write — crash-loop). The chown must request the
+// bare app name as BOTH owner and group (matching setup's EnsureSystemUser) and
+// target the data dir, on every install. The stub records (never executes) the
+// op, so no real system path is chowned under the temp OPTCTL_ROOT.
+func TestInstall_ChownsDataDirToAppUser(t *testing.T) {
+	root := t.TempDir()
+	app := "crm"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o := newOptctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
+	if err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "crm-v1.0.0")); err != nil {
+		t.Fatalf("install: %v", err)
+	}
+
+	want := "chown:" + app + ":" + app + ":" + l.DataDir()
+	var found bool
+	for _, op := range sys.opSeq() {
+		if op == want {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("install did not request the data-dir chown; want %q in ops %v", want, sys.opSeq())
+	}
+}
+
 // TestInstall_IsActiveFailure asserts a failed is-active surfaces an error that
 // points the operator at rollback (the release dir + backup are left intact).
 func TestInstall_IsActiveFailure(t *testing.T) {

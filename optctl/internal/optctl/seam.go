@@ -35,6 +35,12 @@ type System interface {
 	// box runs `useradd --system --home-dir /opt/<app> --shell /usr/sbin/nologin
 	// <app>`). Idempotent: a no-op when the user already exists.
 	EnsureSystemUser(ctx context.Context, app, homeDir string) error
+	// ChownTree recursively chowns path to owner:group (the box runs `chown -R
+	// <owner>:<group> <path>`). install uses it to hand the data dir back to the
+	// `<app>` service user after the root-run migrate, which would otherwise leave
+	// a freshly-created DB (+ -wal/-shm + generation file) owned root:root and
+	// crash-loop the unit (the service user cannot take a write lock). Idempotent.
+	ChownTree(ctx context.Context, owner, group, path string) error
 	// DaemonReload reloads systemd's unit cache after a unit file is written (the
 	// box runs `systemctl daemon-reload`).
 	DaemonReload(ctx context.Context) error
@@ -129,6 +135,10 @@ func (s RealSystem) EnsureSystemUser(ctx context.Context, app, homeDir string) e
 		return nil
 	}
 	return run(ctx, "useradd", "--system", "--home-dir", homeDir, "--shell", "/usr/sbin/nologin", app)
+}
+
+func (s RealSystem) ChownTree(ctx context.Context, owner, group, path string) error {
+	return run(ctx, "chown", "-R", owner+":"+group, path)
 }
 
 func (s RealSystem) DaemonReload(ctx context.Context) error {

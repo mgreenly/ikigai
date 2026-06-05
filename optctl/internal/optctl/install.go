@@ -108,6 +108,21 @@ func (o *Optctl) Install(ctx context.Context, app, version, artifact string) err
 		return fmt.Errorf("install: migrate: %w", err)
 	}
 
+	// optctl runs privileged (sudo optctl …), so the root-run migrate above creates
+	// any FRESH DB (+ its -wal/-shm and the generation sidecar) owned root:root.
+	// The unit runs as the dedicated `<app>` system user (optctl setup's
+	// EnsureSystemUser → `useradd --system <app>`, which also makes the matching
+	// `<app>` group), so a root-owned DB leaves the service unable to take a write
+	// lock — e.g. crm's event-plane outbox single-writer probe (`BEGIN IMMEDIATE`)
+	// fails and the unit crash-loops. Hand the whole data tree back to <app>:<app>
+	// before the swap/restart. Unconditional + idempotent on every install: it also
+	// reclaims root-owned -wal/-shm files migrate may create against an EXISTING DB.
+	// The user/group is the bare app name to match setup exactly (EnsureSystemUser).
+	o.logf("chown %s -> %s:%s", l.DataDir(), app, app)
+	if err := o.System.ChownTree(ctx, app, app, l.DataDir()); err != nil {
+		return fmt.Errorf("install: chown data dir: %w", err)
+	}
+
 	// Ensure the stable bin/run -> ../current/<app> link exists (self-heal). This
 	// is set at setup; install never repoints it (the cutover is `current`).
 	if err := ensureSymlink(l.RunLink(), l.RunTarget()); err != nil {
