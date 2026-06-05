@@ -1,19 +1,15 @@
-module ledger
+module appkit
 
 go 1.26
 
 require (
-	appkit v0.0.0
 	eventplane v0.0.0
 	modernc.org/sqlite v1.50.1
 )
 
-// The shared chassis (appkit) and event-plane (eventplane) libraries are sibling
-// source trees, not published modules. go.work resolves them for local dev; these
-// committed replaces make the prod build deterministic with or without the
-// workspace (PLAN §1.6: never a versioned require for an in-repo library).
-replace appkit => ../appkit
-
+// The shared event-plane library is a sibling source tree, not a published
+// module. go.work resolves it for local dev; this committed replace makes the
+// build deterministic with or without the workspace (PLAN §2 invariants 3–4).
 replace eventplane => ../eventplane
 
 require (

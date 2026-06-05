@@ -8,12 +8,14 @@ go 1.26
 
 use (
 	./agentkit
+	./appkit
 	./crm
 	./dashboard
 	./dropbox
 	./eventplane
 	./ledger
 	./notify
+	./optctl
 	./ralph
 	./wiki
 )

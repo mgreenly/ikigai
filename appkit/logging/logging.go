@@ -1,6 +1,10 @@
-// Package logging configures the ledger service's structured logger: log/slog
+// Package logging configures an ikigai app's structured logger: log/slog
 // emitting JSON records to a writer at a configured level, plus a request-id
-// middleware that tags each request and emits begin/end debug records.
+// middleware that tags each request and emits begin/end debug records. It also
+// folds in ULID id generation (formerly each service's internal/ids).
+//
+// This is the uniform half lifted verbatim from every service's
+// internal/logging + internal/ids (appkit extraction, PLAN §B).
 package logging
 
 import (
@@ -40,14 +44,13 @@ func New(level slog.Level, w io.Writer) *slog.Logger {
 	return slog.New(h)
 }
 
-type ctxKey struct{}
+var enc = base32.StdEncoding.WithPadding(base32.NoPadding)
 
-var requestIDKey ctxKey
-
-// NewRequestID returns a ULID-shaped (RFC 4648 base32, 26-char) opaque id: 48
-// bits of millisecond time followed by 80 bits of randomness, time-ordered and
-// unguessable. No external dependency is needed for that property.
-func NewRequestID() string {
+// NewULID returns a ULID-shaped (RFC 4648 base32, 26-char) opaque id: 48 bits of
+// millisecond time followed by 80 bits of cryptographic randomness, time-ordered
+// and unguessable. No external dependency is needed for that property. It is the
+// fold-in of each service's internal/ids.NewULID.
+func NewULID() string {
 	var b [16]byte
 	now := uint64(time.Now().UnixMilli())
 	b[0] = byte(now >> 40)
@@ -60,9 +63,12 @@ func NewRequestID() string {
 		// crypto/rand failure is non-recoverable.
 		panic("crypto/rand failed: " + err.Error())
 	}
-	enc := base32.StdEncoding.WithPadding(base32.NoPadding)
 	return enc.EncodeToString(b[:])
 }
+
+type ctxKey struct{}
+
+var requestIDKey ctxKey
 
 // WithRequestID stashes a request id on the context.
 func WithRequestID(ctx context.Context, id string) context.Context {
@@ -80,7 +86,7 @@ func RequestID(ctx context.Context) string {
 // It logs only the presence of identity headers, never their values.
 func RequestIDMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := NewRequestID()
+		id := NewULID()
 		ctx := WithRequestID(r.Context(), id)
 		w.Header().Set("X-Request-ID", id)
 

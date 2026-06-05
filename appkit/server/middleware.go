@@ -5,8 +5,10 @@ import (
 	"net/http"
 )
 
-// identity is the authenticated caller, as told to us authoritatively by nginx.
-type identity struct {
+// Identity is the authenticated caller, as told to us authoritatively by nginx.
+// It is exported so a service's own gated handlers (registered via Router) can
+// read it off the request context behind RequireIdentity.
+type Identity struct {
 	OwnerEmail string
 	ClientID   string
 }
@@ -14,29 +16,29 @@ type identity struct {
 type identityCtxKey struct{}
 
 // withIdentity stashes the caller identity on the request context.
-func withIdentity(ctx context.Context, id identity) context.Context {
+func withIdentity(ctx context.Context, id Identity) context.Context {
 	return context.WithValue(ctx, identityCtxKey{}, id)
 }
 
-// identityFrom returns the caller identity on the context, and whether one was
-// present. Handlers behind requireIdentityHeaders always get ok == true.
-func identityFrom(ctx context.Context) (identity, bool) {
-	id, ok := ctx.Value(identityCtxKey{}).(identity)
+// IdentityFrom returns the caller identity on the context, and whether one was
+// present. Handlers behind RequireIdentity always get ok == true.
+func IdentityFrom(ctx context.Context) (Identity, bool) {
+	id, ok := ctx.Value(identityCtxKey{}).(Identity)
 	return id, ok
 }
 
-// requireIdentityHeaders is the trivial replacement for crm.bak's requireBearer:
-// it does NO token parsing, NO ValidateAccess, NO hashing. ledger performs no token
-// logic at all. nginx is the only ingress, the server binds 127.0.0.1, and nginx
-// sets X-Owner-Email / X-Client-Id authoritatively only AFTER a successful
-// auth_request against the dashboard (clearing any inbound spoof first). So an
-// empty X-Owner-Email means the request did not come through the authenticated
-// front door (or nginx is misconfigured) — we refuse to serve it.
+// requireIdentityHeaders does NO token parsing, NO ValidateAccess, NO hashing —
+// an ikigai service performs no token logic at all. nginx is the only ingress,
+// the server binds 127.0.0.1, and nginx sets X-Owner-Email / X-Client-Id
+// authoritatively only AFTER a successful auth_request against the dashboard
+// (clearing any inbound spoof first). So an empty X-Owner-Email means the
+// request did not come through the authenticated front door (or nginx is
+// misconfigured) — we refuse to serve it (PLAN §2.9).
 //
 // We trust X-Owner-Email / X-Client-Id precisely because that loopback bind plus
 // nginx-only ingress is the entire security boundary; binding a public interface
-// would let anyone spoof these headers, which is why main binds 127.0.0.1.
-func (a *app) requireIdentityHeaders(next http.Handler) http.Handler {
+// would let anyone spoof these headers, which is why the server binds 127.0.0.1.
+func (a *appHandler) requireIdentityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		owner := r.Header.Get("X-Owner-Email")
 		if owner == "" {
@@ -50,7 +52,7 @@ func (a *app) requireIdentityHeaders(next http.Handler) http.Handler {
 			})
 			return
 		}
-		id := identity{
+		id := Identity{
 			OwnerEmail: owner,
 			ClientID:   r.Header.Get("X-Client-Id"),
 		}
@@ -59,8 +61,8 @@ func (a *app) requireIdentityHeaders(next http.Handler) http.Handler {
 }
 
 // securityHeaders sets transport-hardening headers that don't depend on auth:
-// nosniff and no-store on every response, and HSTS only when the request
-// arrived over HTTPS (signalled by nginx's X-Forwarded-Proto).
+// nosniff and no-store on every response, and HSTS only when the request arrived
+// over HTTPS (signalled by nginx's X-Forwarded-Proto).
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

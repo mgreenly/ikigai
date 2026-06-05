@@ -1,0 +1,267 @@
+package optctl
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// newOptctl builds an Optctl over a temp root with the stub system and a fake
+// runner carrying the given FAKE_* scenario env.
+func newOptctl(t *testing.T, root, app string, sys *stubSystem, base []string) *Optctl {
+	t.Helper()
+	sys.currentLink = NewLayout(root, app).CurrentLink()
+	sys.app = app
+	return &Optctl{
+		Root:   root,
+		Keep:   3,
+		System: sys,
+		Runner: fakeRunner{baseEnv: base},
+		Out:    &strings.Builder{},
+		Err:    &strings.Builder{},
+	}
+}
+
+func fakeEnv(app, version string, embedded int, manifest string) []string {
+	env := []string{
+		"FAKE_APP=" + app,
+		"FAKE_VERSION=" + version,
+		"FAKE_EMBEDDED=" + itoa(embedded),
+	}
+	if manifest != "" {
+		env = append(env, "FAKE_MANIFEST="+manifest)
+	}
+	return env
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	var b []byte
+	for n > 0 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+		n /= 10
+	}
+	if neg {
+		b = append([]byte{'-'}, b...)
+	}
+	return string(b)
+}
+
+// readlinkBase resolves current → its version basename.
+func readlinkBase(t *testing.T, link string) string {
+	t.Helper()
+	dst, err := os.Readlink(link)
+	if err != nil {
+		t.Fatalf("readlink %s: %v", link, err)
+	}
+	return filepath.Base(dst)
+}
+
+// dbApplied reads the fake "DB" file (a single integer = applied schema version).
+func dbApplied(t *testing.T, l Layout) (int, bool) {
+	t.Helper()
+	b, err := os.ReadFile(l.DBPath())
+	if err != nil {
+		return 0, false
+	}
+	n := 0
+	for _, c := range strings.TrimSpace(string(b)) {
+		n = n*10 + int(c-'0')
+	}
+	return n, true
+}
+
+// resolveThroughStablePaths asserts the launcher-facing stable paths are valid:
+// bin/run resolves (through current) to an existing binary, and etc/manifest.env
+// exists and names the app. This must hold after every install/rollback (PLAN
+// §2.6 — load-bearing at all times, including mid-swap).
+func resolveThroughStablePaths(t *testing.T, l Layout) {
+	t.Helper()
+	// bin/run -> ../current/<app>; resolving it must reach a real file.
+	runResolved, err := filepath.EvalSymlinks(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run does not resolve: %v", err)
+	}
+	if fi, err := os.Stat(runResolved); err != nil || fi.IsDir() {
+		t.Fatalf("bin/run target %s is not a runnable file: %v", runResolved, err)
+	}
+	man, err := os.ReadFile(l.ManifestPath())
+	if err != nil {
+		t.Fatalf("manifest.env missing: %v", err)
+	}
+	if !strings.Contains(string(man), "APP="+l.App) {
+		t.Fatalf("manifest.env does not name app: %q", string(man))
+	}
+}
+
+// TestInstallInstallRollback is the C2 acceptance core: a full install, then a
+// second install, then a rollback, against a temp OPTCTL_ROOT — asserting the
+// atomic repoint, the stable paths staying valid throughout, that a no-schema-
+// change deploy never modifies the DB, and (in the schema-advance variant below)
+// that the backup/restore wires together.
+func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	// First install: v1.0.0, embedded schema 2 (creates the DB at applied=2).
+	o := newOptctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
+	art1 := stageArtifact(t, "ledger-v1.0.0")
+	if err := o.Install(context.Background(), app, "v1.0.0", art1); err != nil {
+		t.Fatalf("install v1.0.0: %v", err)
+	}
+	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
+		t.Fatalf("current = %q, want v1.0.0", got)
+	}
+	resolveThroughStablePaths(t, l)
+	applied1, ok := dbApplied(t, l)
+	if !ok || applied1 != 2 {
+		t.Fatalf("after v1.0.0 install, applied = %d (ok=%v), want 2", applied1, ok)
+	}
+	dbInfo1, _ := os.Stat(l.DBPath())
+
+	// Second install: v1.1.0, SAME embedded schema 2 → no schema advance → the DB
+	// must NOT be modified and NO backup taken.
+	o2 := newOptctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 2, ""))
+	art2 := stageArtifact(t, "ledger-v1.1.0")
+	if err := o2.Install(context.Background(), app, "v1.1.0", art2); err != nil {
+		t.Fatalf("install v1.1.0: %v", err)
+	}
+	if got := readlinkBase(t, l.CurrentLink()); got != "v1.1.0" {
+		t.Fatalf("current = %q, want v1.1.0", got)
+	}
+	resolveThroughStablePaths(t, l)
+
+	// DB untouched by a no-schema-change deploy (mtime + content unchanged).
+	dbInfo2, _ := os.Stat(l.DBPath())
+	if !dbInfo1.ModTime().Equal(dbInfo2.ModTime()) {
+		t.Errorf("no-schema-change install modified the DB mtime: %v -> %v", dbInfo1.ModTime(), dbInfo2.ModTime())
+	}
+	if _, err := os.Stat(l.PreMigrationBackup("v1.1.0")); err == nil {
+		t.Errorf("no-schema-change install took a pre-migration backup, want none")
+	}
+
+	// Rollback to the prior release (v1.0.0). No schema advance ⇒ no DB restore.
+	if err := o2.Rollback(context.Background(), app, ""); err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
+		t.Fatalf("after rollback current = %q, want v1.0.0", got)
+	}
+	resolveThroughStablePaths(t, l)
+
+	// The stub observed current resolving to a complete release at EVERY restart.
+	for i, ver := range sys.seenAtRestart {
+		if !sys.binExistsAtRun[i] {
+			t.Errorf("restart #%d: current pointed at %q but the binary was not present (incomplete release)", i, ver)
+		}
+	}
+	// Three restarts: install, install, rollback — current was v1.0.0, v1.1.0, v1.0.0.
+	wantSeq := []string{"v1.0.0", "v1.1.0", "v1.0.0"}
+	if strings.Join(sys.seenAtRestart, ",") != strings.Join(wantSeq, ",") {
+		t.Fatalf("restart sequence saw current = %v, want %v", sys.seenAtRestart, wantSeq)
+	}
+}
+
+// TestSchemaAdvance_BackupAndRollbackRestores proves the schema-aware path: a
+// schema-advancing install takes a pre-migration backup and migrates the DB
+// forward; a subsequent rollback restores the backup so the older binary's
+// downgrade guard would accept the DB.
+func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	// v1.0.0 — embedded schema 2, fresh DB → applied=2.
+	o1 := newOptctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
+	if err := o1.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "v1")); err != nil {
+		t.Fatalf("install v1.0.0: %v", err)
+	}
+	if applied, _ := dbApplied(t, l); applied != 2 {
+		t.Fatalf("applied after v1.0.0 = %d, want 2", applied)
+	}
+
+	// v2.0.0 — embedded schema 5 → schema ADVANCES (2 → 5). Install must back up the
+	// DB (named pre-v2.0.0.db) BEFORE migrating it forward to 5.
+	o2 := newOptctl(t, root, app, sys, fakeEnv(app, "v2.0.0", 5, ""))
+	if err := o2.Install(context.Background(), app, "v2.0.0", stageArtifact(t, "v2")); err != nil {
+		t.Fatalf("install v2.0.0: %v", err)
+	}
+	backup := l.PreMigrationBackup("v2.0.0")
+	if _, err := os.Stat(backup); err != nil {
+		t.Fatalf("schema-advancing install took NO pre-migration backup: %v", err)
+	}
+	// The backup must capture the PRE-migration state (applied=2), not the migrated 5.
+	bb, _ := os.ReadFile(backup)
+	if strings.TrimSpace(string(bb)) != "2" {
+		t.Fatalf("pre-migration backup holds applied=%q, want 2 (the pre-migrate state)", strings.TrimSpace(string(bb)))
+	}
+	// The live DB advanced to 5.
+	if applied, _ := dbApplied(t, l); applied != 5 {
+		t.Fatalf("applied after v2.0.0 = %d, want 5 (migrated forward)", applied)
+	}
+
+	// Rollback to v1.0.0 — because v2.0.0 advanced the schema (its pre-migration
+	// backup exists), rollback must RESTORE the DB to applied=2 first, then swap.
+	if err := o2.Rollback(context.Background(), app, ""); err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
+		t.Fatalf("after rollback current = %q, want v1.0.0", got)
+	}
+	if applied, _ := dbApplied(t, l); applied != 2 {
+		t.Fatalf("after rollback applied = %d, want 2 (DB restored from pre-migration backup)", applied)
+	}
+	resolveThroughStablePaths(t, l)
+}
+
+// TestPreflight_Rejections asserts install refuses a bad artifact and leaves the
+// live release untouched.
+func TestPreflight_Rejections(t *testing.T) {
+	root := t.TempDir()
+	app := "ledger"
+	sys := &stubSystem{}
+
+	// Version mismatch: artifact self-reports v9.9.9 but we install it as v1.0.0.
+	o := newOptctl(t, root, app, sys, fakeEnv(app, "v9.9.9", 1, ""))
+	err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "mismatch"))
+	if err == nil || !strings.Contains(err.Error(), "self-reports version") {
+		t.Fatalf("version-mismatch install err = %v, want a version-mismatch refusal", err)
+	}
+	if sys.restarts != 0 {
+		t.Errorf("preflight failure still restarted the unit (%d times)", sys.restarts)
+	}
+
+	// Not a static ELF: a text file as the artifact.
+	bad := filepath.Join(t.TempDir(), "not-elf")
+	if err := os.WriteFile(bad, []byte("#!/bin/sh\necho hi\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	o2 := newOptctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	if err := o2.Install(context.Background(), app, "v1.0.0", bad); err == nil || !strings.Contains(err.Error(), "ELF") {
+		t.Fatalf("non-ELF install err = %v, want an ELF refusal", err)
+	}
+}
+
+// TestInstall_IsActiveFailure asserts a failed is-active surfaces an error that
+// points the operator at rollback (the release dir + backup are left intact).
+func TestInstall_IsActiveFailure(t *testing.T) {
+	root := t.TempDir()
+	app := "ledger"
+	sys := &stubSystem{failIsActive: true}
+	o := newOptctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "v1"))
+	if err == nil || !strings.Contains(err.Error(), "did not come up") {
+		t.Fatalf("is-active failure err = %v, want a 'did not come up' error", err)
+	}
+}
