@@ -185,24 +185,23 @@ ai` — interactive, the user runs it; the token expires).
 > pre-production, and then only by resetting (backup + drop) every DB that ran
 > the old body. (This bit crm: `002_crm.sql` was rewritten greenfield-style after
 > the `ai` box had already applied the old v2, so the box needed a backup+reset
-> rather than a plain deploy.)
+> rather than a plain deploy — the now-standard pattern, since **no DB needs
+> preserving** (2026-06-05).)
 
-> **🚨 DASHBOARD MIGRATION-LEDGER CUTOVER LANDMINE — do NOT plain-`install` the
-> converted dashboard.** Adopting appkit's **integer-keyed** migration runner
-> renumbered the dashboard's migrations from their old **name/timestamp-keyed**
-> scheme (`schema_migrations.name`) to `NNN_*.sql` (+ a new
-> `001_schema_migrations.sql`). A *fresh* DB migrates correctly (verified, v5),
-> but the live `ai` box's `/opt/dashboard/data/dashboard.db` already applied the
-> OLD name-keyed ledger — the integer runner will not recognize it, so the new
-> binary will **not cleanly boot** against the existing DB. That DB holds the live
-> OAuth AS state (DCR clients, grants, IAM, web sessions), so a backup+reset is
-> **not** acceptable. The dashboard box cutover needs a **bespoke runbook** (not a
-> plain `optctl install`): back up the DB, then one-time rewrite the old name-keyed
-> ledger into `schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT)`
-> marking versions **1–5 already applied** (the data tables already exist
-> unchanged), so the new runner sees `applied=5` and applies nothing. Off-box code
-> is fine; this is purely the box-DB reconciliation. A dashboard cutover runbook is
-> the operator deliverable.
+> **Dashboard cutover = reset + install (no DB preservation).** Per the
+> 2026-06-05 directive **no databases need to be preserved**, so the dashboard
+> box cutover is the same backup+reset pattern as every other DB. Adopting
+> appkit's **integer-keyed** migration runner renumbered the dashboard's
+> migrations from their old **name/timestamp-keyed** scheme
+> (`schema_migrations.name`) to `NNN_*.sql` (+ a new `001_schema_migrations.sql`).
+> A *fresh* DB migrates correctly (verified, v5); the live `ai` box's
+> `/opt/dashboard/data/dashboard.db` applied the OLD name-keyed ledger, which the
+> integer runner will not recognize — so a plain `optctl install` against the
+> **existing** DB would fail to boot. That is exactly why the cutover includes a
+> one-time DB reset: **stop → (optional backup) → drop/reset the DB → `optctl
+> install` (the fresh DB migrates clean to v5) → restart → verify**. Off-box code
+> needs no change; this is purely the box-DB reset. The operator deliverable is
+> `docs/runbook-dashboard-box-cutover.md`.
 
 **Secrets** — single SSM SecureString `/metaspot/<account>/app-config`: a JSON
 blob keyed per app. `metaspot-launch` extracts `.["<app>"]` at every start,

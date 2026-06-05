@@ -139,12 +139,14 @@ dashboard` (per-app). The only `bin/*` scripts it still carries are `start`/`sto
 optctl verb yet). Drop everything `contacts`/`mcp-crm` from the port — that is the
 crm service's.
 
-> **🚨 Migration-ledger cutover landmine.** The dashboard's migrations were
-> renumbered name/timestamp-keyed → integer-keyed for the appkit runner. A fresh
-> DB migrates correctly, but the **live `ai` box** `/opt/dashboard/data/dashboard.db`
-> already applied the OLD name-keyed ledger and holds live OAuth AS state (DCR
-> clients, grants, IAM, sessions) — so it must **not** be plain-`optctl install`ed
-> and must **not** be backup+reset. The box cutover needs a bespoke,
-> data-preserving runbook that rewrites `schema_migrations` to mark versions 1–5
-> applied (data tables unchanged) before the new binary boots. See the landmine
-> block in the root `AGENTS.md` Deployments section.
+> **Cutover = reset + install (no DB preservation).** The dashboard's migrations
+> were renumbered name/timestamp-keyed → integer-keyed for the appkit runner. A
+> fresh DB migrates correctly, but the **live `ai` box**
+> `/opt/dashboard/data/dashboard.db` applied the OLD name-keyed ledger, which the
+> integer runner will not recognize — so a plain `optctl install` against the
+> existing DB would fail to boot. Per the 2026-06-05 directive **no databases need
+> to be preserved**, the cutover therefore just resets the DB: **stop → (optional
+> backup) → drop/reset the DB → `bin/deploy dashboard` → `optctl install` (fresh
+> DB migrates clean to v5) → restart → verify**. Off-box code needs no change.
+> See `docs/runbook-dashboard-box-cutover.md` (and the cutover note in the root
+> `AGENTS.md` Deployments section).
