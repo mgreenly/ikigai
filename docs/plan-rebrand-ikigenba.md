@@ -1,9 +1,11 @@
 # Plan — Rebrand to ikigenba
 
-Status: **Phase A complete** (infra stood up & verified — see §4 Phase A and
-the "Phase A results" block). Phase 0 decisions locked (§6). Next: **Phase B**
-(suite rename) in a fresh session. This is the execution plan for renaming the
-project's public identity from **metaspot/ikigai** to **ikigenba**, deployed to
+Status: **Phases A–D complete — the suite is LIVE on `int.ikigenba.com`** (200
+over valid TLS; all 7 units active; all 6 MCP services advertised — see the
+"Phase A results" through "Phase D results" blocks). Phase 0 decisions locked
+(§6). **Only Phase E remains** (`ai` teardown — a separate infra-repo hand-off,
+not done this run). This is the execution plan for renaming the project's public
+identity from **metaspot/ikigai** to **ikigenba**, deployed to
 **int.ikigenba.com**. It spans **two repos**: this one (the per-account suite)
 and the sibling infra repo `../metaspot` (Terraform/AWS/DNS), whose specs are
 authoritative — on any conflict, that repo wins.
@@ -348,9 +350,35 @@ Gate: `int.ikigenba.com` resolves; valid TLS; box reachable over `ssh int`;
 `terraform plan` clean in `mgmt`/`int`. **Sign-off here is the hand-off from
 interactive to autonomous.**
 
-### Phase B — Suite: the full rename (autonomous; this repo) — *was Phase 1*
+### Phase B — Suite: the full rename (autonomous; this repo) — *was Phase 1* — **DONE**
 
 The functional rename, committed to `main` and pushed when green.
+
+> **Phase B results (2026-06-06) — captured facts for Phase C–D.**
+> The full rename landed in one commit on `main` (commit `9ddd2ba`, **97 files**,
+> pushed to `origin`). Gate met: all **11 modules** `go build` + `go test` green.
+>
+> - **Codename `METASPOT_*` → `IKIGENBA_*`** across appkit config, dashboard
+>   backup, opsctl templates/units, and the 5 `*/bin/secrets` SSM paths
+>   (`/metaspot/` → `/ikigenba/`). Extended beyond the §3b inventory to
+>   `crm|ralph/bin/{backup,restore}` and the host-deriving
+>   `bin/{start,stop,teardown}` scripts that read the same box env.
+> - **Brand/domain `metaspot.org` → `ikigenba.com`:** promoted the apex suffix to
+>   a new **`APEX_SUFFIX`** `deploy.env` var (default `ikigenba.com`) so no domain
+>   literal remains in `bin/ship` (§6/Q6); updated ship/opsctl help + fixtures/
+>   tests, `wiki/internal/ingest/url.go` User-Agent
+>   (`ikigenba-wiki/1 (+https://ikigenba.com)`), and README/AGENTS/docs prose.
+> - **Account `ai` → `int`:** all 7 `etc/deploy.env` now `ACCOUNT=int`,
+>   `SSH_KEY=~/.ssh/id_ed25519_int_ikigenba_com`, `APEX_SUFFIX=ikigenba.com`;
+>   `--profile ai` → `int` in secrets headers/docs.
+> - **Retired bare-suite `ikigai`** via the hand allowlist (README/AGENTS titles →
+>   "suite", appkit package docs, opsctl banner, docs prose).
+> - **Intentionally preserved** (per §2/§3c/§6): the sibling tokens `ikigai-cli` /
+>   `ikigai-tui` / `ai4mgreenly/ikigai-cli` / `ikigai-onebox`; the googleidp
+>   self-consistent stub `StubIdentity.HostedDomain="metaspot.org"` (§6/Q2); the
+>   infra-repo `../metaspot` references and the metaspot-prefixed tfstate / AWS-org
+>   identity; and the deferred GitHub-repo / `go.work` / local-checkout rename
+>   (§2/Q4).
 
 1. **Codename → `IKIGENBA_*` (§3b):** `appkit/config/config.go`
    (`METASPOT_DOMAIN` → `IKIGENBA_DOMAIN`); `dashboard/internal/backup/backup.go`
@@ -378,9 +406,27 @@ Gate: `go build ./...` && `go test ./...` green; no `metaspot` string and no
 bare-suite `ikigai` string remains (the sibling-project `ikigai-*` tokens and the
 deferred GitHub references are expected to remain). Commit to `main`; push.
 
-### Phase C — Bridge: provision the box from the renamed suite (autonomous)
+### Phase C — Bridge: provision the box from the renamed suite (autonomous) — **DONE**
 
 Needs Phase A (box exists) **and** Phase B (renamed `opsctl`/`bin/secrets`).
+
+> **Phase C results (2026-06-06) — captured facts for Phase D.**
+> The box was greenfield (no `opsctl` present). Built a fresh ikigenba-named
+> `opsctl` (static `linux/amd64` from `opsctl/cmd/opsctl`) and installed it to
+> `/usr/local/bin/opsctl`.
+>
+> - **`opsctl init-box --skip-cert`** (TLS deferred), then **`opsctl setup`** for
+>   all 7 services — units enabled-not-started, nginx fragments staged. Port map:
+>   dashboard **3000** (apex), crm **3001**, ledger **3002**, notify **3003**,
+>   ralph **3004**, dropbox **3005**, wiki **3006**.
+> - **Seeded all 5 secret-bearing apps** into SSM `/ikigenba/int/app-config`
+>   (final keys: dashboard, dropbox, notify, ralph, wiki).
+>   `WIKI_OWNER = michaelgreenly@logic-refinery.com` (authoritative per §6
+>   Decision #2; passed as an env override — no `~/.secrets/WIKI_OWNER` file
+>   needed). Values originated locally; no migration from `ai`.
+> - **opsctl fix `ae6ef00`:** defer nginx validate/reload (and add
+>   `setup --defer-nginx`) on a greenfield box whose apex `:443` block references
+>   a not-yet-existent cert.
 
 1. `opsctl init-box` on the new box (Phase-B `opsctl`), then `opsctl setup <app>`
    per service as the deploy model requires.
@@ -397,7 +443,32 @@ Needs Phase A (box exists) **and** Phase B (renamed `opsctl`/`bin/secrets`).
 Gate: `ikigenba-launch` finds `.["<app>"]` for every service that needs secrets
 (launcher hard-fails otherwise); box healthy.
 
-### Phase D — Suite: deploy to `int` (autonomous)
+### Phase D — Suite: deploy to `int` (autonomous) — **DONE — suite LIVE**
+
+> **Phase D results (2026-06-06) — the suite is live on `int.ikigenba.com`.**
+> All 7 apps deployed via bump → ship → stage → deploy; final HEAD `226a888`,
+> pushed to `origin/main` (confirmed via `git ls-remote`).
+>
+> - **Deployed (services first, dashboard last):** crm **v0.2.2**, ledger
+>   **v0.2.2**, notify **v0.2.2**, dropbox **v0.2.3**, ralph **v0.2.1**, wiki
+>   **v0.2.2** — each `active`, `manifest.env` present — then dashboard
+>   **v0.1.1** (commit `226a888`) **last**, so it read every
+>   `/opt/*/etc/manifest.env` at startup.
+> - **Two first-boot bugs found & fixed:** dropbox `8006af8` (derive
+>   `DROPBOX_MIRROR_PATH` from the data dir, not the unwritable cwd `./tmp`) and
+>   wiki `efb2013` (same for `WIKI_DATA_ROOT`). opsctl only stamps DB/generation
+>   path vars into `manifest.env`, so these per-service writable paths fell back
+>   to dev defaults under root-owned `/opt/<svc>` — now derived from the DB path's
+>   directory.
+> - **TLS issued:** brought nginx up and issued the apex Let's Encrypt cert
+>   (`CN=int.ikigenba.com`). **opsctl fix `530ab17`:** bootstrap the FIRST apex
+>   cert via `certbot certonly --standalone` (binds :80 itself, before any
+>   `nginx -t`) then reconcile onto webroot for renewals — resolves the greenfield
+>   first-cert chicken-and-egg; idempotent via a `CertExists` check.
+> - **Verified live:** all 7 units `active`; `https://int.ikigenba.com/` → 200
+>   over valid TLS; OAuth AS metadata valid JSON; `/services` advertises all 6 MCP
+>   services at `https://int.ikigenba.com/srv/<svc>/mcp`; each `/srv/<svc>/`
+>   returns a controlled 401 (no 502s).
 
 Per service: `bin/bump <app> <level>` (commits `VERSION` to `main`, pushes) →
 `bin/ship <app>` → `ssh int sudo opsctl stage <app> v<ver> --artifact …` →
