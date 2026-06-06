@@ -75,17 +75,33 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 	// 4 + 5. Bring nginx up and obtain the apex TLS cert — UNLESS --skip-cert.
 	//
 	// The apex block's 443 server references the apex cert by path, so `nginx -t`
-	// (and therefore enable/reload) cannot succeed until that cert exists. On a
-	// greenfield box the cert is issued later (the apex/dashboard deploy gate),
-	// so --skip-cert must stage the block WITHOUT validating/starting nginx —
-	// otherwise nginx -t hard-fails on the not-yet-present cert. The block + the
-	// locations dir are still written above; nginx is brought up when the cert
-	// lands. (Cert issuance itself is HTTP-01 webroot, idempotent.)
+	// (and therefore enable/reload) cannot succeed until that cert EXISTS. This is
+	// a chicken-and-egg on a greenfield box: nginx can't validate without the
+	// cert, but the usual HTTP-01 webroot issuance needs nginx already serving
+	// :80. We break it by bootstrapping the FIRST cert via certbot --standalone
+	// (certbot binds :80 itself, nginx not running) BEFORE `nginx -t`. Once the
+	// cert is on disk, nginx -t passes and we enable+reload. On reruns the cert
+	// already exists, so we skip the standalone bootstrap and just (re)validate +
+	// reload nginx; the renewal timer owns ongoing renewals via webroot.
+	//
+	// --skip-cert stages the block WITHOUT validating/starting nginx or issuing a
+	// cert (the block + locations dir are still written above); used to defer the
+	// whole cert/nginx bring-up.
 	if !opts.SkipCert {
 		if opts.Email == "" {
 			return fmt.Errorf("init-box: certbot email is required (set --email or --skip-cert)")
 		}
-		// 4. Validate + bring nginx up.
+		// 4. Bootstrap the FIRST apex cert via standalone (no nginx) if it does
+		//    not exist yet — this lets the apex :443 block validate below.
+		if !o.System.CertExists(opts.Domain) {
+			o.logf("bootstrap first apex cert for %s (certbot --standalone, nginx not yet up)", opts.Domain)
+			if err := o.System.ObtainCertStandalone(ctx, opts.Domain, opts.Email); err != nil {
+				return fmt.Errorf("init-box: bootstrap apex cert: %w", err)
+			}
+		} else {
+			o.logf("apex cert for %s already present — skipping standalone bootstrap", opts.Domain)
+		}
+		// 5. With the cert on disk, validate + bring nginx up.
 		if err := o.System.NginxTest(ctx); err != nil {
 			return fmt.Errorf("init-box: nginx -t: %w", err)
 		}
@@ -95,11 +111,15 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 		if err := o.System.NginxReload(ctx); err != nil {
 			return fmt.Errorf("init-box: nginx reload: %w", err)
 		}
-		// 5. The one apex TLS cert (HTTP-01 webroot). Idempotent: certbot reuses
-		//    a live cert.
-		o.logf("obtain apex cert for %s", opts.Domain)
+		// 6. Reconcile the renewal method to HTTP-01 webroot now that nginx serves
+		//    :80 (the ACME-challenge location). The first cert was bootstrapped via
+		//    --standalone, which would otherwise pin renewals to :80-binding
+		//    standalone and collide with the running nginx. certbot sees the live
+		//    cert and does NOT re-issue; it just rewrites the renewal config to
+		//    webroot. Idempotent on reruns.
+		o.logf("reconcile apex cert renewal to webroot for %s", opts.Domain)
 		if err := o.System.ObtainCert(ctx, opts.Domain, opts.Email, l.LetsEncryptWebroot()); err != nil {
-			return fmt.Errorf("init-box: obtain cert: %w", err)
+			return fmt.Errorf("init-box: reconcile cert renewal: %w", err)
 		}
 	} else {
 		o.logf("skip-cert: staging apex block only (nginx not validated/started; cert issued later)")

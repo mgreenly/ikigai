@@ -128,8 +128,12 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 	}
 
 	// Privileged box ops were REQUESTED through the seam, in order — and not run.
+	// Greenfield box (cert absent): the first cert is bootstrapped via certbot
+	// --standalone BEFORE nginx -t, since the apex :443 block references that cert
+	// and nginx cannot validate without it.
 	wantOps := []string{
 		"install-packages:nginx,certbot",
+		"obtain-cert-standalone:int.ikigenba.com",
 		"nginx-test",
 		"enable-now:nginx",
 		"nginx-reload",
@@ -176,6 +180,39 @@ func TestInitBox_SkipCert(t *testing.T) {
 	// The apex block is still written so the cert step can validate it later.
 	if got := readRepoFile(t, o.layout("dashboard").ApexBlockPath()); !strings.Contains(got, "server_name int.ikigenba.com;") {
 		t.Errorf("--skip-cert did not stage the apex block")
+	}
+}
+
+// TestInitBox_CertExists covers a rerun on a box that already has the apex cert:
+// init-box must NOT re-bootstrap via standalone (which would need :80 free); it
+// just (re)validates + reloads nginx, leaving renewals to the timer. Idempotency.
+func TestInitBox_CertExists(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{certExists: true}
+	o := newProvisioner(t, root, sysRoot, sys)
+	apexSrc := readRepoFile(t, "../../../dashboard/etc/nginx.conf")
+
+	if err := o.InitBox(context.Background(), InitBoxOptions{
+		DefaultApp: "dashboard", Domain: "int.ikigenba.com", Port: 3000,
+		Email: "ops@example.com", ApexBlock: apexSrc, SkipCert: false,
+	}); err != nil {
+		t.Fatalf("init-box (cert exists): %v", err)
+	}
+
+	// No standalone bootstrap; nginx validate/enable/reload, then a webroot
+	// obtain-cert that reconciles the renewal config (no re-issue, cert is live).
+	wantOps := []string{
+		"install-packages:nginx,certbot",
+		"nginx-test",
+		"enable-now:nginx",
+		"nginx-reload",
+		"obtain-cert:int.ikigenba.com",
+		"daemon-reload",
+		"enable-now:ikigenba-certbot-renew.timer",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("init-box (cert exists) ops = %v, want %v", got, wantOps)
 	}
 }
 

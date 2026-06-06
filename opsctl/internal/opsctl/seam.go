@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -75,8 +76,20 @@ type System interface {
 	// ObtainCert obtains (or confirms) the apex TLS cert via certbot HTTP-01
 	// webroot (the box runs `certbot certonly --webroot …`). init-box only; a
 	// path-routed service never issues a cert. Idempotent: certbot reuses a live
-	// cert and never re-issues unnecessarily.
+	// cert and never re-issues unnecessarily. Requires nginx already serving :80
+	// (it answers the ACME challenge from the webroot).
 	ObtainCert(ctx context.Context, domain, email, webroot string) error
+	// ObtainCertStandalone bootstraps the FIRST apex cert on a greenfield box via
+	// certbot HTTP-01 standalone (the box runs `certbot certonly --standalone …`).
+	// certbot binds :80 itself, so nginx need not — must not — be running. This
+	// breaks the chicken-and-egg where the apex :443 server references a cert that
+	// does not exist yet, so `nginx -t` (hence enable/reload) cannot pass until
+	// the cert is on disk. init-box only.
+	ObtainCertStandalone(ctx context.Context, domain, email string) error
+	// CertExists reports whether the apex cert (live/<domain>/fullchain.pem) is
+	// already on disk, so init-box can pick standalone-bootstrap (first cert) vs.
+	// the webroot path (renewals are owned by the timer).
+	CertExists(domain string) bool
 }
 
 // AppRunner is the seam over invoking the app binary's fixed verbs (version |
@@ -216,6 +229,17 @@ func (s RealSystem) ObtainCert(ctx context.Context, domain, email, webroot strin
 	return run(ctx, "certbot", "certonly", "--webroot", "-w", webroot,
 		"-d", domain, "--non-interactive", "--agree-tos", "-m", email,
 		"--deploy-hook", "systemctl reload nginx")
+}
+
+func (s RealSystem) ObtainCertStandalone(ctx context.Context, domain, email string) error {
+	return run(ctx, "certbot", "certonly", "--standalone",
+		"-d", domain, "--non-interactive", "--agree-tos", "-m", email,
+		"--deploy-hook", "systemctl reload nginx")
+}
+
+func (s RealSystem) CertExists(domain string) bool {
+	_, err := os.Stat(filepath.Join("/etc/letsencrypt/live", domain, "fullchain.pem"))
+	return err == nil
 }
 
 // RealRunner execs the app binary directly. The binary reads its config from the

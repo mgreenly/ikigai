@@ -20,6 +20,7 @@ type stubSystem struct {
 	restarts       int
 	failIsActive   bool
 	activeState    string   // state IsActiveState reports (default "active" if "")
+	certExists     bool     // what CertExists reports (false = greenfield box)
 	currentLink    string   // /opt/<app>/current — read on each Restart
 	seenAtRestart  []string // current's target version observed at each restart
 	binExistsAtRun []bool   // whether current/<app> existed (complete release) at restart
@@ -79,6 +80,16 @@ func (s *stubSystem) NginxReload(ctx context.Context) error {
 func (s *stubSystem) ObtainCert(ctx context.Context, domain, email, webroot string) error {
 	s.record("obtain-cert:" + domain)
 	return nil
+}
+
+func (s *stubSystem) ObtainCertStandalone(ctx context.Context, domain, email string) error {
+	s.record("obtain-cert-standalone:" + domain)
+	return nil
+}
+
+// certExists forces CertExists's answer; default false models a greenfield box.
+func (s *stubSystem) CertExists(domain string) bool {
+	return s.certExists
 }
 
 // opSeq returns the recorded provisioning ops as a single comma-joined string for
