@@ -3,7 +3,7 @@
 //
 // The dashboard is the apex app: its state is the SQLite DB PLUS the one apex TLS
 // cert, so the path-routed default (a bare SQLite snapshot) is insufficient. This
-// package snapshots both to s3://$METASPOT_BACKUP_BUCKET/<app>/ under the per-app
+// package snapshots both to s3://$IKIGENBA_BACKUP_BUCKET/<app>/ under the per-app
 // prefix convention (one immutable DB + one immutable cert tar per run, a `latest`
 // pointer for each, count-based retention), matching what the prior operator-side
 // bin/backup did on the box — now running IN the binary, on the box, as the verb.
@@ -21,7 +21,7 @@
 // unexported) so opsctl's contract is preserved byte-for-byte.
 //
 // SECRETS: this package reads only NON-secret config from the env
-// (METASPOT_BACKUP_BUCKET, METASPOT_AWS_REGION, METASPOT_DOMAIN). It never reads,
+// (IKIGENBA_BACKUP_BUCKET, IKIGENBA_AWS_REGION, IKIGENBA_DOMAIN). It never reads,
 // composes, or logs any secret (PLAN §2.8). The cert files it tars are public-key
 // material handled as opaque bytes for archival; they are not logged.
 package backup
@@ -270,19 +270,19 @@ type boxEnv struct {
 	domain string
 }
 
-// resolveEnv reads METASPOT_BACKUP_BUCKET / METASPOT_AWS_REGION / METASPOT_DOMAIN.
+// resolveEnv reads IKIGENBA_BACKUP_BUCKET / IKIGENBA_AWS_REGION / IKIGENBA_DOMAIN.
 // The bucket and domain are required for the S3 branch; the region defaults to
 // us-east-2 (the platform default). None of these are secrets.
 func resolveEnv() (boxEnv, error) {
-	bucket := os.Getenv("METASPOT_BACKUP_BUCKET")
+	bucket := os.Getenv("IKIGENBA_BACKUP_BUCKET")
 	if bucket == "" {
-		return boxEnv{}, fmt.Errorf("backup: METASPOT_BACKUP_BUCKET is required for the cert+S3 backup")
+		return boxEnv{}, fmt.Errorf("backup: IKIGENBA_BACKUP_BUCKET is required for the cert+S3 backup")
 	}
-	domain := os.Getenv("METASPOT_DOMAIN")
+	domain := os.Getenv("IKIGENBA_DOMAIN")
 	if domain == "" {
-		return boxEnv{}, fmt.Errorf("backup: METASPOT_DOMAIN is required for the cert+S3 backup")
+		return boxEnv{}, fmt.Errorf("backup: IKIGENBA_DOMAIN is required for the cert+S3 backup")
 	}
-	region := os.Getenv("METASPOT_AWS_REGION")
+	region := os.Getenv("IKIGENBA_AWS_REGION")
 	if region == "" {
 		region = "us-east-2"
 	}

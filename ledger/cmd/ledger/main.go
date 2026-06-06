@@ -9,7 +9,7 @@
 // owned by appkit. main.go declares only ledger's identity (the Spec) and wires
 // its domain surface (the ledger_* MCP tools and the transaction.recorded
 // producer) through the Spec hooks. RESOURCE_ID / AUTH_SERVER are composed
-// in-binary by appkit/config from METASPOT_DOMAIN + MOUNT (was the deleted
+// in-binary by appkit/config from IKIGENBA_DOMAIN + MOUNT (was the deleted
 // bin/build run-wrapper's job).
 package main
 

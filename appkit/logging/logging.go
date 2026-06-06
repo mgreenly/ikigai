@@ -1,4 +1,4 @@
-// Package logging configures an ikigai app's structured logger: log/slog
+// Package logging configures a suite app's structured logger: log/slog
 // emitting JSON records to a writer at a configured level, plus a request-id
 // middleware that tags each request and emits begin/end debug records. It also
 // folds in ULID id generation (formerly each service's internal/ids).

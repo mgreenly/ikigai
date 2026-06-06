@@ -49,12 +49,12 @@ func (a *app) handleAuthn() http.HandlerFunc {
 		//     "/srv/crm/mcp" (possibly with a "?query"). Strip the query.
 		//   - The service mount is "/srv/<svc>/". We find the configured
 		//     resource (a full URL such as
-		//     "https://ai.metaspot.org/srv/crm/mcp") whose URL path begins with
+		//     "https://int.ikigenba.com/srv/crm/mcp") whose URL path begins with
 		//     that mount; that full URL is the boundResource.
 		//   - The protected-resource-metadata (PRM) URL is boundResource with
 		//     its final path segment ("mcp") replaced by
 		//     ".well-known/oauth-protected-resource", i.e.
-		//     "https://ai.metaspot.org/srv/crm/.well-known/oauth-protected-resource".
+		//     "https://int.ikigenba.com/srv/crm/.well-known/oauth-protected-resource".
 		//     It is derived from boundResource (NOT publicBaseURL) so its host
 		//     matches the token's resource host in every environment.
 		boundResource, ok := a.resourceForOriginalURI(r.Header.Get("X-Original-URI"))
@@ -183,7 +183,7 @@ func (a *app) resourceForOriginalURI(originalURI string) (boundResource string, 
 	svc := rest[:slash]
 	mount := prefix + svc + "/" // "/srv/crm/"
 	for _, res := range a.resources {
-		// res is a full URL such as "https://ai.metaspot.org/srv/crm/mcp".
+		// res is a full URL such as "https://int.ikigenba.com/srv/crm/mcp".
 		// Match on its path component beginning with the mount.
 		if p := urlPath(res); strings.HasPrefix(p, mount) {
 			return res, true
@@ -212,8 +212,8 @@ func urlPath(raw string) string {
 // protectedResourceMetadataURL derives the RFC 9728 protected-resource-metadata
 // URL for a bound resource by replacing the resource's final path segment with
 // ".well-known/oauth-protected-resource". For
-// "https://ai.metaspot.org/srv/crm/mcp" this yields
-// "https://ai.metaspot.org/srv/crm/.well-known/oauth-protected-resource".
+// "https://int.ikigenba.com/srv/crm/mcp" this yields
+// "https://int.ikigenba.com/srv/crm/.well-known/oauth-protected-resource".
 func protectedResourceMetadataURL(boundResource string) string {
 	const wellKnown = ".well-known/oauth-protected-resource"
 	if i := strings.LastIndexByte(boundResource, '/'); i >= 0 {

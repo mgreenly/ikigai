@@ -15,7 +15,7 @@ func TestIndexLoggedIn(t *testing.T) {
 	srv := testServer(t)
 	sess := liveSession(t, srv)
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/", map[string]string{"Cookie": sess.Name + "=" + sess.Value})
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", map[string]string{"Cookie": sess.Name + "=" + sess.Value})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -35,7 +35,7 @@ func TestIndexLoggedIn(t *testing.T) {
 // link, no owner.
 func TestIndexLoggedOut(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/", nil)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -53,7 +53,7 @@ func TestIndexLoggedOut(t *testing.T) {
 // can never redeem.
 func TestIndexDeadCookie(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/",
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/",
 		map[string]string{"Cookie": sessionCookieName + "=bogus-value"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)

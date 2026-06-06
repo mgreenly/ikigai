@@ -11,7 +11,7 @@ import (
 
 // indexData is the data passed to the index template. Host self-templates the
 // page from the request so the same binary serves any account's apex (e.g.
-// ai.metaspot.org). Owner is the signed-in user's email, or "" when logged out;
+// int.ikigenba.com). Owner is the signed-in user's email, or "" when logged out;
 // the template branches on it ({{if .Owner}}).
 type indexData struct {
 	Host     string

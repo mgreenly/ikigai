@@ -3,7 +3,7 @@
 This document proposes replacing our cloud secret store (AWS Secrets Manager)
 with on-box secrets sealed to the machine's **TPM** via **`systemd-creds`**,
 backed by an off-box, provider-neutral recovery key. The goal is to remove a
-cloud-provider dependency from the runtime so that an ikigai box depends on
+cloud-provider dependency from the runtime so that an ikigenba box depends on
 nothing more than **a Linux server with a static IP** — cloud vTPM or bare-metal
 silicon, the mechanism is identical.
 
@@ -20,7 +20,7 @@ jobs and must not be conflated.
 Secrets today live in AWS Secrets Manager, reached at runtime via an instance
 IAM role. That couples the runtime to a specific cloud provider and to the IAM
 machinery that justifies the box talking to AWS at all. It runs against the
-operating bet behind ikigai: a quiet, recoverable appliance on one box per
+operating bet behind ikigenba: a quiet, recoverable appliance on one box per
 customer, with no hard dependency on cluster or cloud-managed services.
 
 Two facts make a different design available:
@@ -160,7 +160,7 @@ One-liner, key never written to a file:
 ```bash
 age -d -i <(keepassxc-cli show -s -a Password vault.kdbx "ikigai/age-recovery") \
     recovery/db_password.age \
-  | ssh ai 'sudo systemd-creds encrypt --name=db_password - /etc/credstore.encrypted/db_password.cred'
+  | ssh int 'sudo systemd-creds encrypt --name=db_password - /etc/credstore.encrypted/db_password.cred'
 ```
 
 The two paths must not blur: **normal submission uses only the public key + TPM;
@@ -194,7 +194,7 @@ The web submission UI lives on the box and calls the same seal path as
    ```bash
    aws secretsmanager get-secret-value --secret-id db/password \
      --query SecretString --output text \
-   | ssh ai 'sudo opsctl secrets seal db_password'
+   | ssh int 'sudo opsctl secrets seal db_password'
    ```
 4. Add `LoadCredentialEncrypted=<name>` to the units; change apps to read
    `$CREDENTIALS_DIRECTORY/<name>`.

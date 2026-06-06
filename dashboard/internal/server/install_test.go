@@ -16,7 +16,7 @@ func TestMcpInstalls(t *testing.T) {
 		{Name: "crm", Mount: "/srv/crm/"},
 		{Name: "notes", Mount: "/srv/notes/"},
 	}
-	installs := mcpInstalls("https", "ai.metaspot.org", svcs)
+	installs := mcpInstalls("https", "int.ikigenba.com", svcs)
 	if len(installs) != 2 {
 		t.Fatalf("got %d installs, want 2", len(installs))
 	}
@@ -27,7 +27,7 @@ func TestMcpInstalls(t *testing.T) {
 	if len(crm.Cards) != 2 {
 		t.Fatalf("crm has %d cards, want 2 (Claude Code, Codex)", len(crm.Cards))
 	}
-	wantInstall := `\claude mcp add --transport http crm https://ai.metaspot.org/srv/crm/mcp`
+	wantInstall := `\claude mcp add --transport http crm https://int.ikigenba.com/srv/crm/mcp`
 	if crm.Cards[0].InstallCommand != wantInstall {
 		t.Errorf("Claude install = %q, want %q", crm.Cards[0].InstallCommand, wantInstall)
 	}
@@ -55,7 +55,7 @@ func TestIndexConnectBlock(t *testing.T) {
 	}
 	sess := liveSession(t, srv)
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/", map[string]string{
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", map[string]string{
 		"Cookie":            sess.Name + "=" + sess.Value,
 		"X-Forwarded-Proto": "https",
 	})
@@ -72,7 +72,7 @@ func TestIndexConnectBlock(t *testing.T) {
 	if !strings.Contains(body, `<option value="crm"`) {
 		t.Errorf("index missing crm option:\n%s", body)
 	}
-	if !strings.Contains(body, `\claude mcp add --transport http crm https://ai.metaspot.org/srv/crm/mcp`) {
+	if !strings.Contains(body, `\claude mcp add --transport http crm https://int.ikigenba.com/srv/crm/mcp`) {
 		t.Errorf("index missing crm install snippet:\n%s", body)
 	}
 	// The dashboard itself (no MCP=true) must not appear as a connect target.
@@ -94,7 +94,7 @@ func TestIndexConnectBlockLoggedOut(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/", nil)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", nil)
 	if strings.Contains(rec.Body.String(), "Connect an MCP client") {
 		t.Errorf("connect block shown to logged-out visitor:\n%s", rec.Body.String())
 	}

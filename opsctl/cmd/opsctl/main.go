@@ -1,4 +1,4 @@
-// Command opsctl is the ikigai on-box platform CLI (PLAN §1.3). It implements the
+// Command opsctl is the suite on-box platform CLI (PLAN §1.3). It implements the
 // deploy-critical verbs stage / deploy / rollback / prune over the versioned
 // release-dir + atomic-symlink layout (PLAN §1.4), the operator read/control verbs
 // status / releases / tail and the start/stop/restart/enable/disable systemctl
@@ -153,7 +153,7 @@ const helpIndent = 4 // leading spaces before each verb form
 
 func usage() string {
 	var b strings.Builder
-	b.WriteString("opsctl — ikigai on-box platform CLI\n\nusage:\n")
+	b.WriteString("opsctl — suite on-box platform CLI\n\nusage:\n")
 	indent := strings.Repeat(" ", helpIndent)
 	for _, g := range groups {
 		fmt.Fprintf(&b, "\n  %s\n", g.title)
@@ -358,7 +358,7 @@ func runServiceControl(ctx context.Context, root, name string, args []string) er
 func runInitBox(ctx context.Context, root, name string, args []string) error {
 	fs := newFlagSet(name)
 	defaultApp := fs.String("default-app", "dashboard", "the apex/DEFAULT app name")
-	domain := fs.String("domain", "", "apex domain, e.g. ai.metaspot.org (required)")
+	domain := fs.String("domain", "", "apex domain, e.g. int.ikigenba.com (required)")
 	port := fs.Int("port", 3000, "the apex app's loopback port")
 	email := fs.String("email", "", "certbot email for HTTP-01 cert issuance")
 	apexBlock := fs.String("apex-block", "", "path to the apex nginx server block source (required)")

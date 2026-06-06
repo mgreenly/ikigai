@@ -1,4 +1,4 @@
-// Command dashboard is the apex/DEFAULT app of the metaspot suite: the OAuth
+// Command dashboard is the apex/DEFAULT app of the ikigenba suite: the OAuth
 // authorization server, IAM index, push, install landing, and service inventory.
 // It is the box's trust boundary — it ISSUES identity (it does not consume it),
 // so unlike the path-routed services it has no PRM document and no identity gate;
@@ -95,7 +95,7 @@ func registerRoutes(rt *appkit.Router) error {
 	// publicBaseURL is the exact origin Google redirects back to and that the later
 	// code-exchange must resend verbatim; it must match the redirect URI registered
 	// in the Google Cloud console. On the box bin-side this was composed from
-	// METASPOT_DOMAIN by the deleted run-wrapper; appkit's config composes the same
+	// IKIGENBA_DOMAIN by the deleted run-wrapper; appkit's config composes the same
 	// AUTH_SERVER origin in-binary, so default to it and let DASHBOARD_PUBLIC_BASE_URL
 	// override for local dev.
 	cfg, err := config.Resolve("dashboard", "/", 3000, getenv)

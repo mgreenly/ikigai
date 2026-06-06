@@ -10,7 +10,7 @@
 // Spec) and wires its domain surface through the Handlers hook: the session
 // store, per-session sandbox tree, async runner, the boot-time crash-recovery
 // sweep, and the ralph_* MCP surface. RESOURCE_ID / AUTH_SERVER are composed
-// in-binary by appkit/config from METASPOT_DOMAIN + MOUNT (was the deleted
+// in-binary by appkit/config from IKIGENBA_DOMAIN + MOUNT (was the deleted
 // bin/build run-wrapper's job).
 //
 // ralph is an LLM service: it uses agentkit (the LLM engine + tool surface) for

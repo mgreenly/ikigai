@@ -177,7 +177,7 @@ func sampleMCPContext() MCPContext {
 		CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
 		CodeChallengeMethod: "S256",
 		ClientState:         "client-state-xyz",
-		Resource:            "https://ai.metaspot.org/mcp/crm",
+		Resource:            "https://int.ikigenba.com/mcp/crm",
 	}
 }
 

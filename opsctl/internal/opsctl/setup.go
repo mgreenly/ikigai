@@ -26,7 +26,7 @@ type SetupOptions struct {
 //  1. create the dedicated --system app user (seam; idempotent),
 //  2. create the /opt/<app> tree (releases/ bin/ etc/ data/ backups/),
 //  3. write + enable-NOT-start the systemd unit
-//     (ExecStart=/usr/local/bin/metaspot-launch <app>),
+//     (ExecStart=/usr/local/bin/ikigenba-launch <app>),
 //  4. drop the service's nginx fragment into conf.d/locations/<app>.conf (with
 //     __PORT__ substituted), then nginx -t + reload.
 //

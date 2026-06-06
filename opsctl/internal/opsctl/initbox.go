@@ -15,7 +15,7 @@ type InitBoxOptions struct {
 	// server block lands at conf.d/<DefaultApp>.conf and the apex app's loopback
 	// port is what /_authn proxies to.
 	DefaultApp string
-	Domain     string // apex domain (e.g. ai.metaspot.org) — __DOMAIN__ in the block
+	Domain     string // apex domain (e.g. int.ikigenba.com) — __DOMAIN__ in the block
 	Port       int    // the apex app's loopback PORT — __PORT__ in the block
 	Email      string // CERTBOT_EMAIL — for HTTP-01 cert issuance
 	ApexBlock  string // the apex nginx server{} SOURCE (committed dashboard
@@ -108,7 +108,7 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 	if err := o.System.DaemonReload(ctx); err != nil {
 		return fmt.Errorf("init-box: daemon-reload: %w", err)
 	}
-	if err := o.System.EnableUnit(ctx, "metaspot-certbot-renew.timer", true); err != nil {
+	if err := o.System.EnableUnit(ctx, "ikigenba-certbot-renew.timer", true); err != nil {
 		return fmt.Errorf("init-box: enable renew timer: %w", err)
 	}
 

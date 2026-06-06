@@ -11,7 +11,7 @@
 // its domain surface (the dropbox_* MCP tools, the private /content route, the
 // file.* producer, and the background sync engine) through the Spec hooks.
 // RESOURCE_ID / AUTH_SERVER are composed in-binary by appkit/config from
-// METASPOT_DOMAIN + MOUNT (was the deleted bin/build run-wrapper's job).
+// IKIGENBA_DOMAIN + MOUNT (was the deleted bin/build run-wrapper's job).
 //
 // dropbox differs from the passive crm/ledger producers: it carries a background
 // sync engine (the longpoll → continue → apply loop, "the heart"). That loop runs
@@ -124,7 +124,7 @@ func main() {
 			}
 
 			// The three Dropbox secrets arrive via .envrc/direnv in dev or app-config
-			// (metaspot-launch) on the box. They are read here at the boundary and
+			// (ikigenba-launch) on the box. They are read here at the boundary and
 			// passed into the client — NEVER logged (§2.8).
 			cfg := dropbox.Config{
 				AppKey:        os.Getenv("DROPBOX_APP_KEY"),

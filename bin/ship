@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/ship — the ONE shared SHIP wrapper for the whole ikigai suite (laptop side).
+# bin/ship — the ONE shared SHIP wrapper for the whole suite (laptop side).
 # Renamed from bin/deploy; replaces the per-service cloned */bin/deploy.
 #
 #   bin/ship <app>
@@ -18,8 +18,8 @@
 # state.
 #
 # What it does:
-#   1. Source <app>/etc/deploy.env (ACCOUNT, SSH_USER, SSH_KEY; HOST defaults to
-#      ${ACCOUNT}.metaspot.org).
+#   1. Source <app>/etc/deploy.env (ACCOUNT, SSH_USER, SSH_KEY, APEX_SUFFIX;
+#      HOST defaults to ${ACCOUNT}.${APEX_SUFFIX}).
 #   2. Add a throwaway detached `git worktree` of HEAD and read the version FROM
 #      THE WORKTREE'S <app>/VERSION (the actual build source), prepend "v" -> the
 #      BARE release name (the cheap half).
@@ -50,7 +50,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-bin/ship — build the current main of an ikigai service off-box and ship the artifact to the box /tmp.
+bin/ship — build the current main of a suite service off-box and ship the artifact to the box /tmp.
 
 Usage:
   bin/ship <app>
@@ -127,7 +127,7 @@ cd "$REPO"
 # --- routing/auth config (non-secret) --------------------------------------
 # shellcheck source=/dev/null
 . "${APP}/etc/deploy.env"
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"   # expand a leading ~ ; contents are never read/printed
 : "${SSH_USER:?SSH_USER must be set in ${APP}/etc/deploy.env}"
 
@@ -143,8 +143,8 @@ BRANCH="$(git branch --show-current || echo '(detached)')"
 echo ">> ${APP}: building current main (HEAD ${SHA})"
 
 # --- throwaway worktree of HEAD --------------------------------------------
-WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/ikigai-ship-${APP}.XXXXXX")"
-ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ikigai-artifact-${APP}.XXXXXX")"
+WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/suite-ship-${APP}.XXXXXX")"
+ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/suite-artifact-${APP}.XXXXXX")"
 ARTIFACT="${ARTIFACT_DIR}/${APP}"
 
 cleanup() {

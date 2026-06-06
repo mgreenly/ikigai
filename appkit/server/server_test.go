@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	testResourceID = "https://ai.metaspot.org/srv/ledger/mcp"
-	testAuthServer = "https://ai.metaspot.org"
+	testResourceID = "https://int.ikigenba.com/srv/ledger/mcp"
+	testAuthServer = "https://int.ikigenba.com"
 	testVersion    = "v1.2.3 (abc1234)"
 	testService    = "ledger"
 )

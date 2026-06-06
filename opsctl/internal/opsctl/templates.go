@@ -8,7 +8,7 @@ import (
 // unitFile renders the per-app systemd unit `setup` writes. It byte-matches what
 // today's */bin/setup emits: the heredoc body below, written via `printf '%s\n'`
 // (so a single trailing newline). ExecStart hands off to the stable launcher
-// contract /usr/local/bin/metaspot-launch <app> (PLAN §2.6); the unit is enabled
+// contract /usr/local/bin/ikigenba-launch <app> (PLAN §2.6); the unit is enabled
 // but NOT started by setup.
 //
 // Verified against ledger/bin/setup: the produced ledger.service is 285 bytes
@@ -23,8 +23,8 @@ Wants=network-online.target
 Type=simple
 User=%[1]s
 WorkingDirectory=/opt/%[1]s
-EnvironmentFile=/etc/metaspot/env
-ExecStart=/usr/local/bin/metaspot-launch %[1]s
+EnvironmentFile=/etc/ikigenba/env
+ExecStart=/usr/local/bin/ikigenba-launch %[1]s
 Restart=on-failure
 
 [Install]
@@ -47,11 +47,11 @@ func renderApexBlock(src, domain string, port int) string {
 // renewTimer / renewService are the self-contained certbot renewal timer+service
 // init-box writes (PLAN §D1: "the renew timer systemd unit"). The old
 // dashboard/bin/setup only `enable --now`'d the package-provided
-// certbot-renew.timer; init-box writes its OWN metaspot-certbot-renew pair so the
+// certbot-renew.timer; init-box writes its OWN ikigenba-certbot-renew pair so the
 // renewal cadence + deploy-hook are owned by the suite and the bytes are
 // test-assertable. `certbot renew` is a no-op until a cert is near expiry.
 const renewTimer = `[Unit]
-Description=metaspot certbot renewal timer
+Description=ikigenba certbot renewal timer
 
 [Timer]
 OnCalendar=*-*-* 00,12:00:00
@@ -63,7 +63,7 @@ WantedBy=timers.target
 `
 
 const renewService = `[Unit]
-Description=metaspot certbot renewal
+Description=ikigenba certbot renewal
 
 [Service]
 Type=oneshot

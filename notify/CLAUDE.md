@@ -1,8 +1,8 @@
 # notify
 
-The **notify** service for the metaspot single-tenant suite. A pure MCP API with
-**no UI** and **no token logic**, deployed at `<account>.metaspot.org/srv/notify/`
-(e.g. `ai.metaspot.org/srv/notify/`). First demo account: **ai**.
+The **notify** service for the ikigenba single-tenant suite. A pure MCP API with
+**no UI** and **no token logic**, deployed at `<account>.ikigenba.com/srv/notify/`
+(e.g. `int.ikigenba.com/srv/notify/`). First demo account: **int**.
 
 notify is the suite's **first event-plane consumer**. It was duplicated from
 `../ledger` (the health-only chassis skeleton) and given a domain: it subscribes

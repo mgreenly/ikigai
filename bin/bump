@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/bump — advance the committed version of an ikigai service, without you having
+# bin/bump — advance the committed version of a suite service, without you having
 # to know its current version. The companion to bin/ship: `bump` decides the
 # version (writes the committed <app>/VERSION file), `ship` builds + ships it.
 # They stay separate steps — bumping never touches the live box.

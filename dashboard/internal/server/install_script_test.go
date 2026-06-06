@@ -23,7 +23,7 @@ func TestInstallScript(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/install",
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/install",
 		map[string]string{"X-Forwarded-Proto": "https"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -37,9 +37,9 @@ func TestInstallScript(t *testing.T) {
 		"#!/usr/bin/env bash",
 		"set -euo pipefail",
 		"claude mcp remove --scope user crm >/dev/null 2>&1 || true",
-		"claude mcp add --scope user --transport http crm https://ai.metaspot.org/srv/crm/mcp",
+		"claude mcp add --scope user --transport http crm https://int.ikigenba.com/srv/crm/mcp",
 		"claude mcp remove --scope user ledger >/dev/null 2>&1 || true",
-		"claude mcp add --scope user --transport http ledger https://ai.metaspot.org/srv/ledger/mcp",
+		"claude mcp add --scope user --transport http ledger https://int.ikigenba.com/srv/ledger/mcp",
 	}
 	for _, want := range wantLines {
 		if !strings.Contains(body, want) {

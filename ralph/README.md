@@ -9,7 +9,7 @@ designed-for but **deferred** — see Deferred.
 
 ## What ralph is
 
-ralph is a metaspot suite **service** (path-routed under `/srv/ralph/`, loopback,
+ralph is a ikigenba suite **service** (path-routed under `/srv/ralph/`, loopback,
 behind the dashboard's nginx auth — same chassis as every other service) whose
 **domain is agentic tasks**. It is a *meta-service*: a deterministic outer MCP
 service that lets the owner create, configure, run, and supervise **agent
@@ -136,7 +136,7 @@ once → poll status → read the output / the file it wrote.*
   *basic* confinement to get running; **isolation hardening** (bubblewrap /
   rootless podman `--network none` + bind-mounted volume + python image, the
   no-bash-network enforcement) is a **known gap, deferred**, and likely a
-  metaspot **platform** concern since it owns the box.
+  ikigenba **platform** concern since it owns the box.
 - **Run engine** — borrow the `ikigai-cli` provider seam (Anthropic reference
   adapter) + agent loop + tool registry (`bash/read/write/edit/grep/glob` +
   `websearch/webfetch`). `ikigenba_ralph_session_run` (one-shot) spawns a run, collects
@@ -215,7 +215,7 @@ subscribe trigger verbs.
 ## Reuses vs. new
 
 **Reuses (clone/borrow):**
-- metaspot **chassis** from `../ledger` (loopback bind, nginx fragment, identity
+- ikigenba **chassis** from `../ledger` (loopback bind, nginx fragment, identity
   gate, PRM doc, `ikigenba_<svc>_health`, `bin/*` lifecycle, SQLite + migrations, MCP
   JSON-RPC).
 - **run engine** architecture from `ikigai-cli` (provider seam + neutral wire

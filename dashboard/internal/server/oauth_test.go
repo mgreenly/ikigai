@@ -207,10 +207,10 @@ func TestASMetadata(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if doc["issuer"] != "https://ai.metaspot.org" {
-		t.Errorf("issuer = %v, want https://ai.metaspot.org", doc["issuer"])
+	if doc["issuer"] != "https://int.ikigenba.com" {
+		t.Errorf("issuer = %v, want https://int.ikigenba.com", doc["issuer"])
 	}
-	if doc["token_endpoint"] != "https://ai.metaspot.org/oauth/token" {
+	if doc["token_endpoint"] != "https://int.ikigenba.com/oauth/token" {
 		t.Errorf("token_endpoint = %v", doc["token_endpoint"])
 	}
 	if methods, ok := doc["code_challenge_methods_supported"].([]any); !ok || len(methods) != 1 || methods[0] != "S256" {

@@ -306,7 +306,7 @@ func TestInstall_ConvertsLegacyBinRunFile(t *testing.T) {
 // TestStampDataPaths asserts the regenerated manifest gains the absolute on-box
 // state paths the serving process needs (the D2 box prototype hit the serving
 // binary falling back to appkit's relative ./tmp/<app>.db default because nothing
-// injected <APP>_DB_PATH into metaspot-launch's exported env).
+// injected <APP>_DB_PATH into ikigenba-launch's exported env).
 func TestStampDataPaths(t *testing.T) {
 	l := NewLayout("/opt", "ledger")
 	portable := "APP=ledger\nMOUNT=/srv/ledger/\nPORT=3002\nMCP=true\n"

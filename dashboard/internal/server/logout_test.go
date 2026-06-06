@@ -12,7 +12,7 @@ func TestLogoutRevokesAndClears(t *testing.T) {
 	srv, database := loginServer(t)
 	sess := liveSession(t, srv)
 
-	rec := do(t, srv, "POST", "https://ai.metaspot.org/logout",
+	rec := do(t, srv, "POST", "https://int.ikigenba.com/logout",
 		map[string]string{"Cookie": sess.Name + "=" + sess.Value})
 
 	if rec.Code != http.StatusFound {
@@ -50,7 +50,7 @@ func TestLogoutRevokesAndClears(t *testing.T) {
 // without error — logout is idempotent and forgiving of an absent session.
 func TestLogoutNoCookie(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "POST", "https://ai.metaspot.org/logout", nil)
+	rec := do(t, srv, "POST", "https://int.ikigenba.com/logout", nil)
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302", rec.Code)
 	}

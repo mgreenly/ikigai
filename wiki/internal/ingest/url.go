@@ -53,7 +53,7 @@ func FetchAndExtract(ctx context.Context, rawURL string) ([]byte, string, error)
 	if err != nil {
 		return nil, "", fmt.Errorf("build request: %w", err)
 	}
-	req.Header.Set("User-Agent", "metaspot-wiki/1 (+https://metaspot.org)")
+	req.Header.Set("User-Agent", "ikigenba-wiki/1 (+https://ikigenba.com)")
 	req.Header.Set("Accept", "text/html,text/markdown,text/plain;q=0.9,*/*;q=0.8")
 
 	resp, err := client.Do(req)

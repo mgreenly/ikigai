@@ -1,6 +1,6 @@
 # Event Plane Technical Overview
 
-This document is a first technical look at the metaspot ikigai event plane: what it
+This document is a first technical look at the ikigenba event plane: what it
 is, how the current `crm -> notify` implementation works, why it is shaped this
 way, and how it compares with more common messaging tools and protocols.
 
@@ -20,7 +20,7 @@ described in `docs/event-plane-decisions.md`. The shared implementation lives in
 
 ## System Context
 
-The ikigai suite runs on one box per customer. The public surface is the dashboard
+The suite runs on one box per customer. The public surface is the dashboard
 plus path-routed services behind nginx. That north/south plane handles external
 owner-facing traffic: Claude clients reach MCP/REST endpoints through nginx,
 nginx authenticates through the dashboard, strips `/srv/<service>/`, and injects
@@ -259,14 +259,14 @@ than advance.
 Compared with Kafka, this design borrows the idea of an append-only log and
 consumer-held offsets, but removes the broker cluster. Kafka is built for high
 throughput, partitioning, retention policies, consumer groups, replay, and
-multi-node operation. The metaspot event plane is intentionally smaller: one
+multi-node operation. The ikigenba event plane is intentionally smaller: one
 producer's SQLite outbox is the log, one SSE connection is the subscription, and
 the service database is the persistence layer. There are no partitions, group
 rebalancing, broker metadata, or separate operational surface.
 
 Compared with RabbitMQ or AMQP queues, this is less broker-centric and less
 command-oriented. RabbitMQ models queues, exchanges, bindings, acknowledgements,
-redelivery, and routing policies inside a broker. The metaspot design keeps
+redelivery, and routing policies inside a broker. The ikigenba design keeps
 routing outside the producer, has no broker acknowledgements, and makes
 consumers own their offsets. It is closer to "read my durable feed" than "the
 broker owns pending deliveries."
@@ -274,7 +274,7 @@ broker owns pending deliveries."
 Compared with NATS or NATS JetStream, this design is much less general. Core
 NATS is excellent lightweight pub/sub but volatile unless JetStream is added.
 JetStream adds persistence, replay, acknowledgements, retention policies, and
-consumer state. The metaspot event plane implements only the subset needed for
+consumer state. The ikigenba event plane implements only the subset needed for
 one box: durable producer log, replay after cursor, and low idle cost. It avoids
 running and configuring another daemon.
 
@@ -287,13 +287,13 @@ SQLite file, which aligns with the suite's existing backup/restore discipline.
 Compared with AWS SQS/SNS or cloud pub/sub systems, this is intentionally local.
 Managed queues solve durability and fanout outside the box and are a good fit
 for cloud-native HA services. They also add network dependencies, IAM, billing,
-delivery semantics to learn, and another restore story. The ikigai design favors a
+delivery semantics to learn, and another restore story. The ikigenba design favors a
 single appliance that can run through local downtime and restore practice without
 depending on external infrastructure for internal coordination.
 
 Compared with Postgres `LISTEN/NOTIFY`, this design is more durable.
 `LISTEN/NOTIFY` is useful as a wakeup signal but not a durable event log; if a
-listener is down, notifications are missed. The metaspot doorbell is similarly
+listener is down, notifications are missed. The ikigenba doorbell is similarly
 only a wakeup signal, but the actual event is stored in the outbox. Missing the
 doorbell is harmless.
 

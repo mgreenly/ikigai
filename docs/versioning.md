@@ -1,7 +1,7 @@
 # Versioning — the bump→ship→stage→deploy workflow
 
 > **Operator how-to.** This is the concrete, day-to-day procedure for advancing
-> the version of an ikigai service and shipping it. The *why* lives in
+> the version of a suite service and shipping it. The *why* lives in
 > [`adr-deployment-redesign.md`](./adr-deployment-redesign.md) (§6 Versioning, the
 > decisions list, and the "known build bugs" appendix) and in `PLAN.md` §1.6 /
 > §F1 — on any conflict those win and this doc is corrected to match.

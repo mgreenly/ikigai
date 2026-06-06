@@ -1,9 +1,9 @@
 # dropbox
 
-The **dropbox** service for the metaspot single-tenant suite. A loopback-only
+The **dropbox** service for the ikigenba single-tenant suite. A loopback-only
 **daemon + event-plane producer** (not an API wrapper) with **no UI** and **no
-token logic of its own**, deployed at `<account>.metaspot.org/srv/dropbox/`
-(e.g. `ai.metaspot.org/srv/dropbox/`). First demo account: **ai**.
+token logic of its own**, deployed at `<account>.ikigenba.com/srv/dropbox/`
+(e.g. `int.ikigenba.com/srv/dropbox/`). First demo account: **int**.
 
 It keeps a **private local mirror in sync** with a single Dropbox **app folder**
 (one-way, **download-only**) and **emits a file-lifecycle event** for every
@@ -231,15 +231,15 @@ of data** — the enabled systemd unit, the nginx fragment).
 
 - **Secrets — dropbox HAS them (unlike ledger).** Three values reach the process
   env only: `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET`, `DROPBOX_REFRESH_TOKEN`. On
-  the box they live in SSM `/metaspot/<account>/app-config` under the `dropbox`
-  key, injected by `metaspot-launch`. `bin/secrets` (operator-side, no opsctl verb)
+  the box they live in SSM `/ikigenba/<account>/app-config` under the `dropbox`
+  key, injected by `ikigenba-launch`. `bin/secrets` (operator-side, no opsctl verb)
   does a non-destructive read-modify-write of **only** the `dropbox` key, pulling
   values from `~/.secrets/DROPBOX_*` (masked summary, never printed; siblings
   preserved). In dev, `.envrc` exports them from `~/.secrets/DROPBOX_*`.
 - **Non-secret config** (resolved in-binary at the composition root):
   `DROPBOX_MIRROR_PATH` (box `/opt/dropbox/data/mirror`, dev `./tmp/mirror`),
   `DROPBOX_DB_PATH`, `DROPBOX_GENERATION_PATH`, `RESOURCE_ID`/`AUTH_SERVER` (now
-  composed in-binary from `METASPOT_DOMAIN`+`MOUNT`, not a wrapper),
+  composed in-binary from `IKIGENBA_DOMAIN`+`MOUNT`, not a wrapper),
   `DROPBOX_LONGPOLL_TIMEOUT` (default 480), `DROPBOX_MAX_ENTRY_RETRIES` (default 5),
   `DROPBOX_APP_FOLDER_ROOT` (default `""` = app folder root). Plus the shared
   `OUTBOX_RETENTION_DAYS` / `OUTBOX_RETENTION_MAX_ROWS`.

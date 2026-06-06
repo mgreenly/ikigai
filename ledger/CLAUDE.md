@@ -1,8 +1,8 @@
 # ledger
 
-The **ledger** service for the metaspot single-tenant suite. A pure MCP API with
-**no UI** and **no token logic**, deployed at `<account>.metaspot.org/srv/ledger/`
-(e.g. `ai.metaspot.org/srv/ledger/`). First demo account: **ai**.
+The **ledger** service for the ikigenba single-tenant suite. A pure MCP API with
+**no UI** and **no token logic**, deployed at `<account>.ikigenba.com/srv/ledger/`
+(e.g. `int.ikigenba.com/srv/ledger/`). First demo account: **int**.
 
 A real **double-entry bookkeeping** service for personal and small-business use,
 modeled conceptually on [ledger-cli](https://ledger-cli.org/): an **immutable

@@ -106,7 +106,7 @@ func (o *Opsctl) dbEnv(l Layout) []string {
 // rename technique — the POSIX-atomic equivalent of `ln -sfn`. The symlink only
 // ever resolves to a complete release: the temp link is fully formed before the
 // rename, and rename(2) on the same directory is atomic, so a concurrent
-// metaspot-launch either sees the old or the new target, never a half-written
+// ikigenba-launch either sees the old or the new target, never a half-written
 // one (PLAN §1.4, §2.6).
 func atomicSwap(linkPath, target string) error {
 	dir := filepath.Dir(linkPath)

@@ -61,7 +61,7 @@ func doAuthn(h http.Handler, headers map[string]string) *httptest.ResponseRecord
 	return rec
 }
 
-const wantPRM = "https://ai.metaspot.org/srv/crm/.well-known/oauth-protected-resource"
+const wantPRM = "https://int.ikigenba.com/srv/crm/.well-known/oauth-protected-resource"
 
 func TestAuthnValidToken(t *testing.T) {
 	d := newServerDeps(t)
@@ -192,7 +192,7 @@ func TestAuthnTokenBoundToDifferentResource(t *testing.T) {
 	// first → the token's resource binding does not match this service.
 	d := newServerDeps(t)
 	opts := d.opts()
-	other := "https://ai.metaspot.org/srv/notes/mcp"
+	other := "https://int.ikigenba.com/srv/notes/mcp"
 	opts.Resources = []string{testResource, other}
 	srv, err := New(opts)
 	if err != nil {

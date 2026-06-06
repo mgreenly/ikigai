@@ -90,7 +90,7 @@ func TestGrantsFragmentListsOwnGrant(t *testing.T) {
 	cookie := mintSession(t, deps, owner)
 	_, clientName := issueChain(t, deps, owner, "Claude Code")
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/grants/fragment",
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment",
 		map[string]string{"Cookie": cookie.Name + "=" + cookie.Value})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -114,7 +114,7 @@ func TestGrantsFragmentListsOwnGrant(t *testing.T) {
 // route contract.
 func TestGrantsFragmentRequiresSession(t *testing.T) {
 	srv, _ := grantsTestServer(t)
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/grants/fragment", nil)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rec.Code)
 	}
@@ -128,10 +128,10 @@ func TestGrantRevoke(t *testing.T) {
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Claude Code")
 
-	rec := do(t, srv, "POST", "https://ai.metaspot.org/grants/"+publicID+"/revoke",
+	rec := do(t, srv, "POST", "https://int.ikigenba.com/grants/"+publicID+"/revoke",
 		map[string]string{
 			"Cookie": cookie.Name + "=" + cookie.Value,
-			"Origin": "https://ai.metaspot.org",
+			"Origin": "https://int.ikigenba.com",
 		})
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("revoke status = %d, want 303", rec.Code)
@@ -140,7 +140,7 @@ func TestGrantRevoke(t *testing.T) {
 		t.Errorf("Location = %q, want /", loc)
 	}
 
-	frag := do(t, srv, "GET", "https://ai.metaspot.org/grants/fragment",
+	frag := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment",
 		map[string]string{"Cookie": cookie.Name + "=" + cookie.Value})
 	if strings.Contains(frag.Body.String(), clientName) {
 		t.Errorf("revoked grant still listed:\n%s", frag.Body.String())
@@ -155,7 +155,7 @@ func TestGrantRevokeCrossOrigin(t *testing.T) {
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Claude Code")
 
-	rec := do(t, srv, "POST", "https://ai.metaspot.org/grants/"+publicID+"/revoke",
+	rec := do(t, srv, "POST", "https://int.ikigenba.com/grants/"+publicID+"/revoke",
 		map[string]string{
 			"Cookie": cookie.Name + "=" + cookie.Value,
 			"Origin": "https://evil.example",
@@ -163,7 +163,7 @@ func TestGrantRevokeCrossOrigin(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("cross-origin revoke status = %d, want 403", rec.Code)
 	}
-	frag := do(t, srv, "GET", "https://ai.metaspot.org/grants/fragment",
+	frag := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment",
 		map[string]string{"Cookie": cookie.Name + "=" + cookie.Value})
 	if !strings.Contains(frag.Body.String(), clientName) {
 		t.Errorf("grant was wrongly revoked on a cross-origin request")
@@ -177,17 +177,17 @@ func TestGrantRevokeOtherOwner(t *testing.T) {
 	cookie := mintSession(t, deps, "attacker@metaspot.org")
 	publicID, clientName := issueChain(t, deps, "victim@metaspot.org", "Victim Client")
 
-	rec := do(t, srv, "POST", "https://ai.metaspot.org/grants/"+publicID+"/revoke",
+	rec := do(t, srv, "POST", "https://int.ikigenba.com/grants/"+publicID+"/revoke",
 		map[string]string{
 			"Cookie": cookie.Name + "=" + cookie.Value,
-			"Origin": "https://ai.metaspot.org",
+			"Origin": "https://int.ikigenba.com",
 		})
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("foreign-chain revoke status = %d, want 404", rec.Code)
 	}
 	// Victim's grant still present.
 	victimCookie := mintSession(t, deps, "victim@metaspot.org")
-	frag := do(t, srv, "GET", "https://ai.metaspot.org/grants/fragment",
+	frag := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment",
 		map[string]string{"Cookie": victimCookie.Name + "=" + victimCookie.Value})
 	if !strings.Contains(frag.Body.String(), clientName) {
 		t.Errorf("victim's grant was revoked by another owner")
@@ -203,7 +203,7 @@ func TestGrantsStreamEmitsChainsEvent(t *testing.T) {
 	cookie := mintSession(t, deps, owner)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	rec := doCtx(t, srv, ctx, "GET", "https://ai.metaspot.org/grants/stream",
+	rec := doCtx(t, srv, ctx, "GET", "https://int.ikigenba.com/grants/stream",
 		map[string]string{"Cookie": cookie.Name + "=" + cookie.Value})
 
 	// Give the handler time to write the initial event and subscribe, then
@@ -227,7 +227,7 @@ func TestGrantsStreamEmitsChainsEvent(t *testing.T) {
 // TestGrantsStreamRequiresSession: no cookie → 401.
 func TestGrantsStreamRequiresSession(t *testing.T) {
 	srv, _ := grantsTestServer(t)
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/grants/stream", nil)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/grants/stream", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rec.Code)
 	}

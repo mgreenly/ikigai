@@ -36,8 +36,8 @@ func expectedUnit(app string) string {
 		"Type=simple\n" +
 		"User=" + app + "\n" +
 		"WorkingDirectory=/opt/" + app + "\n" +
-		"EnvironmentFile=/etc/metaspot/env\n" +
-		"ExecStart=/usr/local/bin/metaspot-launch " + app + "\n" +
+		"EnvironmentFile=/etc/ikigenba/env\n" +
+		"ExecStart=/usr/local/bin/ikigenba-launch " + app + "\n" +
 		"Restart=on-failure\n" +
 		"\n" +
 		"[Install]\n" +
@@ -70,7 +70,7 @@ func runInitBox(t *testing.T, o *Opsctl, apexSrc string) {
 	t.Helper()
 	if err := o.InitBox(context.Background(), InitBoxOptions{
 		DefaultApp: "dashboard",
-		Domain:     "ai.metaspot.org",
+		Domain:     "int.ikigenba.com",
 		Port:       3000,
 		Email:      "ops@example.com",
 		ApexBlock:  apexSrc,
@@ -103,7 +103,7 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 	// The apex block byte-matches the committed nginx.conf with __DOMAIN__/__PORT__
 	// substituted (the old dashboard/bin/setup output, modulo the split).
 	wantApex := shellSubst(apexSrc, map[string]string{
-		"__DOMAIN__": "ai.metaspot.org",
+		"__DOMAIN__": "int.ikigenba.com",
 		"__PORT__":   "3000",
 	})
 	gotApex := readRepoFile(t, l.ApexBlockPath())
@@ -133,9 +133,9 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 		"nginx-test",
 		"enable-now:nginx",
 		"nginx-reload",
-		"obtain-cert:ai.metaspot.org",
+		"obtain-cert:int.ikigenba.com",
 		"daemon-reload",
-		"enable-now:metaspot-certbot-renew.timer",
+		"enable-now:ikigenba-certbot-renew.timer",
 	}
 	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
 		t.Fatalf("init-box ops = %v, want %v", got, wantOps)
@@ -152,7 +152,7 @@ func TestInitBox_SkipCert(t *testing.T) {
 	apexSrc := readRepoFile(t, "../../../dashboard/etc/nginx.conf")
 
 	if err := o.InitBox(context.Background(), InitBoxOptions{
-		DefaultApp: "dashboard", Domain: "ai.metaspot.org", Port: 3000,
+		DefaultApp: "dashboard", Domain: "int.ikigenba.com", Port: 3000,
 		ApexBlock: apexSrc, SkipCert: true,
 	}); err != nil {
 		t.Fatalf("init-box --skip-cert: %v", err)

@@ -1,4 +1,4 @@
-// Package manifest emits and parses an ikigai app's manifest.env — the
+// Package manifest emits and parses a suite app's manifest.env — the
 // deploy-time identity file at /opt/<app>/etc/manifest.env. The binary is the
 // source of truth for its own identity (PLAN §1.1): `<app> manifest` writes this
 // file, and the same KEY=value parser the two on-box readers use

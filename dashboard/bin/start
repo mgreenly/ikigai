@@ -6,7 +6,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$REPO/etc/manifest.env"
 . "$REPO/etc/deploy.env"
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 
 ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}" \

@@ -9,7 +9,7 @@
 // owned by appkit. main.go declares only crm's identity (the Spec) and wires its
 // domain surface (the ikigenba_crm_* MCP tools and the contact.* producer) through the
 // Spec hooks. RESOURCE_ID / AUTH_SERVER are composed in-binary by appkit/config
-// from METASPOT_DOMAIN + MOUNT (was the deleted bin/build run-wrapper's job).
+// from IKIGENBA_DOMAIN + MOUNT (was the deleted bin/build run-wrapper's job).
 package main
 
 import (

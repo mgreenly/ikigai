@@ -19,10 +19,10 @@ in `opsctl/cmd/opsctl/main.go`, `opsctl/internal/opsctl/*`, and `bin/deploy`.
 - **Run from** the repo root `/mnt/projects/ikigai/deployments` on your
   workstation. Never `cd` into a sub-service for these — `bin/deploy` resolves
   paths itself.
-- `$BOX` = `ai.metaspot.org`, `$SSH` = `ssh -i ~/.ssh/id_ed25519_ai4mgreenly
-  ec2-user@ai.metaspot.org` (the values come from `ledger/etc/deploy.env`:
-  `ACCOUNT=ai`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_ai4mgreenly`;
-  `HOST` defaults to `${ACCOUNT}.metaspot.org`). Wherever this runbook says "on
+- `$BOX` = `int.ikigenba.com`, `$SSH` = `ssh -i ~/.ssh/id_ed25519_int_ikigenba_com
+  ec2-user@int.ikigenba.com` (the values come from `ledger/etc/deploy.env`:
+  `ACCOUNT=int`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_int_ikigenba_com`;
+  `HOST` defaults to `${ACCOUNT}.ikigenba.com`). Wherever this runbook says "on
   the box", prefix the command with `$SSH` or run it from an interactive `$SSH`
   shell.
 - `opsctl` runs privileged on the box: always `sudo opsctl …`.
@@ -45,7 +45,7 @@ in `opsctl/cmd/opsctl/main.go`, `opsctl/internal/opsctl/*`, and `bin/deploy`.
 **0a. Interactive SSO login (you run this; the token expires).**
 
 ```
-aws sso login --profile ai
+aws sso login --profile int
 ```
 
 - Expected: a browser opens; on approval the terminal prints
@@ -57,7 +57,7 @@ aws sso login --profile ai
 **0b. Confirm SSH reachability and that `ai` is the only account.**
 
 ```
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org 'hostname; uptime'
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com 'hostname; uptime'
 ```
 
 - Expected: the box's hostname and an uptime line, no password prompt.
@@ -97,13 +97,13 @@ file /tmp/opsctl
 **1b. Ship it to the box and install it.**
 
 ```
-scp -i ~/.ssh/id_ed25519_ai4mgreenly /tmp/opsctl ec2-user@ai.metaspot.org:/tmp/opsctl
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
+scp -i ~/.ssh/id_ed25519_int_ikigenba_com /tmp/opsctl ec2-user@int.ikigenba.com:/tmp/opsctl
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com \
     'sudo install -m 0755 /tmp/opsctl /usr/local/bin/opsctl && opsctl --help | head -3'
 ```
 
 - Expected: `scp` shows a 100% transfer; the `opsctl --help` head prints the
-  usage banner starting `opsctl — ikigai on-box platform CLI`.
+  usage banner starting `opsctl — suite on-box platform CLI`.
 - Abort/restore: `opsctl` is a standalone binary that does nothing until invoked;
   installing it touches no running service. To remove:
   `ssh … 'sudo rm -f /usr/local/bin/opsctl'`.
@@ -134,8 +134,8 @@ and fails fast if it does not — so it is safe and self-guarding.
 the committed `ledger/etc/nginx.conf` up:
 
 ```
-scp -i ~/.ssh/id_ed25519_ai4mgreenly ledger/etc/nginx.conf \
-    ec2-user@ai.metaspot.org:/tmp/ledger-nginx.conf
+scp -i ~/.ssh/id_ed25519_int_ikigenba_com ledger/etc/nginx.conf \
+    ec2-user@int.ikigenba.com:/tmp/ledger-nginx.conf
 ```
 
 - Expected: 100% transfer.
@@ -153,7 +153,7 @@ opsctl setup <app> [--port N] [--fragment <path>]
 `ledger/etc/deploy.env`), and its fragment templates `__PORT__`. So, on the box:
 
 ```
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com \
     'sudo opsctl setup ledger --port 3002 --fragment /tmp/ledger-nginx.conf'
 ```
 
@@ -168,7 +168,7 @@ ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
   ```
 - `setup` **enables but does NOT start** the unit (there is no binary yet), creates
   the `--system` `ledger` user and the `/opt/ledger/{releases,bin,etc,data,backups}`
-  tree, writes `ledger.service` (`ExecStart=/usr/local/bin/metaspot-launch ledger`),
+  tree, writes `ledger.service` (`ExecStart=/usr/local/bin/ikigenba-launch ledger`),
   drops the `__PORT__`-substituted fragment, and runs `nginx -t` + reload.
 - If you see `setup: …/conf.d/locations missing — run opsctl init-box first`: the
   box substrate is NOT what step 0c implied — STOP and reassess; do **not** run
@@ -225,7 +225,7 @@ bin/deploy ledger
   >> ledger: release v0.1.0 (commit <sha>)
   >> build ledger -> <tmp-artifact>/ledger
   >> built ledger (<size>)
-  >> scp ledger v0.1.0 -> ai.metaspot.org:/tmp/ledger-v0.1.0
+  >> scp ledger v0.1.0 -> int.ikigenba.com:/tmp/ledger-v0.1.0
   >> ssh sudo opsctl install ledger v0.1.0
   ```
 - Expected (box side — `opsctl install` progress, from
@@ -252,7 +252,7 @@ ssh … 'ls -l /opt/ledger/current /opt/ledger/bin/run; \
 
 - Expected:
   - `current -> releases/v0.1.0` (a symlink).
-  - `bin/run -> ../current/ledger` (the STABLE path `metaspot-launch` execs).
+  - `bin/run -> ../current/ledger` (the STABLE path `ikigenba-launch` execs).
   - `releases/` contains `v0.1.0`.
   - `etc/manifest.env` is the regenerated manifest (byte-equals the committed
     `ledger/etc/manifest.env`: `APP=ledger … PORT=3002 … FEED=/feed …`).
@@ -303,14 +303,14 @@ curl -s -i http://127.0.0.1:3002/mcp | grep -i 'HTTP/\|WWW-Authenticate'
 
 From your workstation (through nginx + TLS), unauthenticated:
 ```
-curl -s -i https://ai.metaspot.org/srv/ledger/mcp | grep -i 'HTTP/\|WWW-Authenticate'
+curl -s -i https://int.ikigenba.com/srv/ledger/mcp | grep -i 'HTTP/\|WWW-Authenticate'
 ```
 - Expected: `401` with a `WWW-Authenticate:` carrying `resource_metadata=…`. This
   proves the nginx fragment routes the mount and the PRM bootstrap is reachable.
   Also confirm the open PRM path returns 200 publicly:
   ```
   curl -s -o /dev/null -w '%{http_code}\n' \
-       https://ai.metaspot.org/srv/ledger/.well-known/oauth-protected-resource
+       https://int.ikigenba.com/srv/ledger/.well-known/oauth-protected-resource
   ```
   Expected `200`.
 
@@ -389,7 +389,7 @@ The surface (`opsctl/cmd/opsctl/main.go cmdRollback`): `opsctl rollback <app>
 (v0.1.0).
 
 ```
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com \
     'sudo opsctl rollback ledger'
 ```
 
@@ -480,7 +480,7 @@ systemctl is-active ledger nginx dashboard      # all 'active'
 readlink /opt/ledger/current                     # points at the intended release
 /opt/ledger/current/ledger version               # matches that release
 curl -s -o /dev/null -w '%{http_code}\n' \
-     https://ai.metaspot.org/srv/ledger/.well-known/oauth-protected-resource   # 200
+     https://int.ikigenba.com/srv/ledger/.well-known/oauth-protected-resource   # 200
 ```
 
 The data DB at `/opt/ledger/data/ledger.db` is **never** deleted or overwritten by

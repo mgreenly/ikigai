@@ -278,7 +278,7 @@ step to stay green.*
 *Depends on: Step 8 (build from committed state for reproducibility).*
 
 - Rebuild linux/amd64 opsctl → `scp` → `sudo install -m 0755 /usr/local/bin/opsctl`
-  on `ai.metaspot.org`. `/opt/*` release dirs untouched.
+  on `int.ikigenba.com`. `/opt/*` release dirs untouched.
 - **Ordering constraint:** the box's `opsctl` must be replaced **before** the new
   `bin/ship` is used against the box — the old box binary only knows `install` and
   will reject the `stage`/`deploy` commands ship prints. (Saved `opsctl install`

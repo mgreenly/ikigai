@@ -1,6 +1,6 @@
-# metaspot
+# ikigenba
 
-metaspot is a deployable application suite for a single customer on a single
+ikigenba is a deployable application suite for a single customer on a single
 modest server. It is one dashboard, a set of small services, and the operating
 conventions that let those services be built, shipped, backed up, restored, and
 used by agents.
@@ -18,7 +18,7 @@ prompts.
 
 ## The Shape
 
-A metaspot deployment answers at `<account>.metaspot.org`. On that box:
+A ikigenba deployment answers at `<account>.ikigenba.com`. On that box:
 
 - the dashboard owns login, OAuth, API keys and grants, service inventory,
   install guidance, health, and operations;
@@ -39,12 +39,12 @@ a single release train.
 
 The set of services is deliberately open-ended. One customer might run CRM,
 bookkeeping, and notifications. Another might run inventory, scheduling,
-document intake, and private analytics. metaspot fixes the operating model, not
+document intake, and private analytics. ikigenba fixes the operating model, not
 the set of domains.
 
 ## AI First
 
-metaspot assumes that most people will reach business software through a
+ikigenba assumes that most people will reach business software through a
 general-purpose agent: ChatGPT, Claude, Codex, or whatever comes next. The owner
 asks for work in plain language; the agent calls well-scoped tools.
 
@@ -75,10 +75,10 @@ domain as the real work.
 
 ## Two Communication Planes
 
-metaspot separates external and internal traffic.
+ikigenba separates external and internal traffic.
 
 The north/south plane is public and owner-facing. An MCP client reaches
-`https://<account>.metaspot.org/srv/<service>/mcp` through nginx. nginx asks the
+`https://<account>.ikigenba.com/srv/<service>/mcp` through nginx. nginx asks the
 dashboard to authenticate the request, strips the `/srv/<service>/` prefix, and
 forwards the request to the loopback service with trusted identity headers.
 Services trust those headers; they do not run their own OAuth servers, token
@@ -127,7 +127,7 @@ beside the data that produced it and is restored with it.
 
 ## Scheduled Downtime
 
-metaspot does not optimize for staying online through every deploy or every
+ikigenba does not optimize for staying online through every deploy or every
 failure.
 
 That choice saves more than infrastructure. It avoids data replication,
@@ -153,7 +153,7 @@ The goal is recovery the owner can reason about:
 
 ## Why It Is Fast To Build On
 
-metaspot is narrow on purpose. Every service can have the same anatomy:
+ikigenba is narrow on purpose. Every service can have the same anatomy:
 
 - one static Go binary over SQLite, built on the shared `appkit` chassis, with
   embedded migrations and structured logs;
@@ -176,14 +176,14 @@ It also keeps the box cheap. Idle services stay idle, and caught-up feeds do not
 spin. On a burstable instance, the box can bank credits while nothing is
 happening instead of spending them on an always-on broker or orchestration layer.
 
-metaspot's host requirements are modest: a conservative Linux VM, DNS, durable
+ikigenba's host requirements are modest: a conservative Linux VM, DNS, durable
 backup storage, and a place to keep secrets. AWS is a convenient place to run it,
 not a core dependency. The same suite should run on another provider or on a
 plain VPS.
 
 ## The Trade
 
-metaspot is dependable because it is willing to be specific.
+ikigenba is dependable because it is willing to be specific.
 
 It serves one customer per box, not many tenants on a shared cluster. It is for
 people who can schedule downtime, not for anyone who must stay up through every
@@ -198,6 +198,6 @@ MCP the way in lets an owner use and extend the suite by asking for what they
 want. Making backup and restore routine turns recovery into something they can
 count on.
 
-Within those conditions, metaspot aims to be a small, coherent suite that is
+Within those conditions, ikigenba aims to be a small, coherent suite that is
 quick to build on, cheap to keep running, and clear about when it is the wrong
 choice.

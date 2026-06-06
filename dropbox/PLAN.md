@@ -336,8 +336,8 @@ text.
   env only: `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET`, `DROPBOX_REFRESH_TOKEN`.
   - **Dev:** `.envrc` → `export DROPBOX_*="$(cat ~/.secrets/DROPBOX_*)"`
     (already provisioned in §"setup done").
-  - **Box:** SSM `/metaspot/<account>/app-config` key `dropbox`, injected by
-    `metaspot-launch`. New `bin/secrets` does a non-destructive read-modify-write
+  - **Box:** SSM `/ikigenba/<account>/app-config` key `dropbox`, injected by
+    `ikigenba-launch`. New `bin/secrets` does a non-destructive read-modify-write
     of only the `dropbox` key from `~/.secrets/DROPBOX_*` (masked summary, never
     printed).
 - **Non-secret config** resolved at the `main.go` boundary: `DROPBOX_MIRROR_PATH`
@@ -346,7 +346,7 @@ text.
   `DROPBOX_LONGPOLL_TIMEOUT` (default 480), `DROPBOX_MAX_ENTRY_RETRIES` (default
   5, the §2 poison-entry bound), `DROPBOX_APP_FOLDER_ROOT` (default `""` = the app
   folder root). The `bin/build` wrapper sets the non-secret public config from
-  `METASPOT_DOMAIN`; the launcher adds the secrets.
+  `IKIGENBA_DOMAIN`; the launcher adds the secrets.
 - **`bin/*`:** `build deploy setup start stop secrets` (six — ledger's five plus
   `secrets`). `bin/setup` creates the `dropbox` user + `/opt/dropbox` tree (data
   `0750`, **mirror is a private subdir of data**), enables the systemd unit, drops
@@ -492,7 +492,7 @@ Store, Mirror) compile green even though nothing calls them yet — the engine p
 
 7. **Phase 6 — Deploy & config wiring.**
    - *Owns:* finalize `etc/{manifest.env,nginx.conf,deploy.env}`, the `bin/build`
-     wrapper env (`DROPBOX_*` public config from `METASPOT_DOMAIN`; `OUTBOX_*`
+     wrapper env (`DROPBOX_*` public config from `IKIGENBA_DOMAIN`; `OUTBOX_*`
      left alone), `bin/secrets` (read-modify-write only the `dropbox` key from
      `~/.secrets/DROPBOX_*`, modeled on `notify`/`ralph` `bin/secrets`), the
      optional `/srv/dropbox/content`→404 nginx block, and confirm the `nginx/run`

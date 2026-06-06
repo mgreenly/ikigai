@@ -44,13 +44,13 @@ func TestDeriveResources(t *testing.T) {
 	writeManifest(t, root, "notify", "APP=notify\nMOUNT=/srv/notify/\nPORT=3003\nCONSUMES=crm\n")
 	writeManifest(t, root, "dashboard", "APP=dashboard\nMOUNT=/\nDEFAULT=true\nPORT=3000\n")
 
-	got, err := deriveResources(root, "https://ai.metaspot.org")
+	got, err := deriveResources(root, "https://int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("deriveResources: %v", err)
 	}
 	want := []string{
-		"https://ai.metaspot.org/srv/crm/mcp",
-		"https://ai.metaspot.org/srv/ledger/mcp",
+		"https://int.ikigenba.com/srv/crm/mcp",
+		"https://int.ikigenba.com/srv/ledger/mcp",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("deriveResources = %v, want %v", got, want)
@@ -60,7 +60,7 @@ func TestDeriveResources(t *testing.T) {
 // TestDeriveResourcesEmpty: a manifest root with no MCP services yields an empty
 // list (main's caller turns that into a hard boot failure).
 func TestDeriveResourcesEmpty(t *testing.T) {
-	got, err := deriveResources(t.TempDir(), "https://ai.metaspot.org")
+	got, err := deriveResources(t.TempDir(), "https://int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("deriveResources: %v", err)
 	}

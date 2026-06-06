@@ -20,8 +20,8 @@ cd "$REPO"
 . etc/manifest.env
 . etc/deploy.env
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
-DOMAIN="${DOMAIN:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
+DOMAIN="${DOMAIN:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 
 PURGE_CERT=0

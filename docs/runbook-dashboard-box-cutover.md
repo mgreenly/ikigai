@@ -32,10 +32,10 @@ the only difference from a normal `bin/ship dashboard` → `opsctl stage`/`deplo
 - **Run from** the repo root `/mnt/projects/ikigai/deployments` on your
   workstation. Never `cd` into `dashboard/` for `bin/ship` — it resolves paths
   itself.
-- `$BOX` = `ai.metaspot.org`, `$SSH` = `ssh -i ~/.ssh/id_ed25519_ai4mgreenly
-  ec2-user@ai.metaspot.org` (the values come from `dashboard/etc/deploy.env`:
-  `ACCOUNT=ai`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_ai4mgreenly`;
-  `HOST` defaults to `${ACCOUNT}.metaspot.org`). Wherever this runbook says "on
+- `$BOX` = `int.ikigenba.com`, `$SSH` = `ssh -i ~/.ssh/id_ed25519_int_ikigenba_com
+  ec2-user@int.ikigenba.com` (the values come from `dashboard/etc/deploy.env`:
+  `ACCOUNT=int`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_int_ikigenba_com`;
+  `HOST` defaults to `${ACCOUNT}.ikigenba.com`). Wherever this runbook says "on
   the box", prefix the command with `$SSH` or run it from an interactive `$SSH`
   shell.
 - `opsctl` runs privileged on the box: always `sudo opsctl …`.
@@ -56,7 +56,7 @@ the only difference from a normal `bin/ship dashboard` → `opsctl stage`/`deplo
 **0a. Interactive SSO login (you run this; the token expires).**
 
 ```
-aws sso login --profile ai
+aws sso login --profile int
 ```
 
 - Expected: a browser opens; on approval the terminal prints
@@ -68,7 +68,7 @@ aws sso login --profile ai
 **0b. Confirm SSH reachability and that `ai` is the only account.**
 
 ```
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org 'hostname; uptime'
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com 'hostname; uptime'
 ```
 
 - Expected: the box's hostname and an uptime line, no password prompt.
@@ -80,7 +80,7 @@ ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org 'hostname; uptime'
 ssh … 'opsctl --help | head -3'
 ```
 
-- Expected: the usage banner starting `opsctl — ikigai on-box platform CLI`.
+- Expected: the usage banner starting `opsctl — suite on-box platform CLI`.
   If absent, install it first (see runbook D2 §1: build off-box static
   `linux/amd64`, `scp` to `/tmp`, `sudo install -m 0755 …`). Abort/restore:
   read-only.
@@ -108,7 +108,7 @@ bin/secrets dashboard      # operator-side, non-destructive read-modify-write of
 ```
 
 - Expected: a masked summary confirming the dashboard's key is present in SSM
-  `/metaspot/ai/app-config` (siblings preserved, values never printed). If it
+  `/ikigenba/ai/app-config` (siblings preserved, values never printed). If it
   was already seeded this is a safe no-op. Abort/restore: `bin/secrets` only
   touches its own key; rerun is idempotent.
 
@@ -116,7 +116,7 @@ bin/secrets dashboard      # operator-side, non-destructive read-modify-write of
 
 ```
 ssh … 'systemctl is-active dashboard; readlink /opt/dashboard/current 2>/dev/null'
-curl -s -o /dev/null -w '%{http_code}\n' https://ai.metaspot.org/   # apex reachable today
+curl -s -o /dev/null -w '%{http_code}\n' https://int.ikigenba.com/   # apex reachable today
 ```
 
 - Expected: `active`, the current release path (old layout), and a 200/302 from
@@ -130,7 +130,7 @@ The cutover resets state under `/opt/dashboard/data`, so the unit must be stoppe
 first (a running dashboard holds the SQLite file open).
 
 ```
-ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
+ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com \
     'sudo systemctl stop dashboard; systemctl is-active dashboard || true'
 ```
 
@@ -231,7 +231,7 @@ bin/ship dashboard
   >> dashboard: release vX.Y.Z (commit <sha>)
   >> build dashboard -> <tmp-artifact>/dashboard
   >> built dashboard (<size>)
-  >> scp dashboard vX.Y.Z -> ai.metaspot.org:/tmp/dashboard-vX.Y.Z
+  >> scp dashboard vX.Y.Z -> int.ikigenba.com:/tmp/dashboard-vX.Y.Z
   >> SHIPPED -> /tmp/dashboard-vX.Y.Z; next, on the box:
   >>   sudo opsctl stage dashboard vX.Y.Z --artifact /tmp/dashboard-vX.Y.Z
   >>   sudo opsctl deploy dashboard vX.Y.Z
@@ -277,7 +277,7 @@ ssh … 'ls -l /opt/dashboard/current /opt/dashboard/bin/run; \
 
 - Expected:
   - `current -> releases/vX.Y.Z` (a symlink).
-  - `bin/run -> ../current/dashboard` (the STABLE path `metaspot-launch` execs).
+  - `bin/run -> ../current/dashboard` (the STABLE path `ikigenba-launch` execs).
   - `releases/` contains `vX.Y.Z`.
   - `etc/manifest.env` is the regenerated manifest:
     `APP=dashboard … MOUNT=/ … DEFAULT=true … PORT=3000` (no `MCP`).
@@ -307,7 +307,7 @@ systemctl is-active dashboard
 
 From your workstation:
 ```
-curl -s -o /dev/null -w '%{http_code}\n' https://ai.metaspot.org/
+curl -s -o /dev/null -w '%{http_code}\n' https://int.ikigenba.com/
 ```
 - Expected: `200` (logged-out landing/install page) or `302` to login — not a
   502/connection refused. This proves the fresh-DB dashboard is serving the apex.
@@ -318,7 +318,7 @@ The box-wide auth hook is loopback-only. Confirm an unauthenticated service moun
 challenges correctly through nginx — i.e. the dashboard is answering the
 `auth_request` again:
 ```
-curl -s -i https://ai.metaspot.org/srv/crm/mcp | grep -i 'HTTP/\|WWW-Authenticate'
+curl -s -i https://int.ikigenba.com/srv/crm/mcp | grep -i 'HTTP/\|WWW-Authenticate'
 ```
 - Expected: `401` with a `WWW-Authenticate:` header. A 502 here instead means the
   dashboard is not answering `/internal/authn` — investigate (4f) / recover (§5).
@@ -328,7 +328,7 @@ registered).** For every MCP service that should be live (crm, ledger, notify, �
 ```
 for svc in crm ledger notify; do
   echo "== $svc =="
-  curl -s -i https://ai.metaspot.org/srv/$svc/mcp | grep -i 'WWW-Authenticate'
+  curl -s -i https://int.ikigenba.com/srv/$svc/mcp | grep -i 'WWW-Authenticate'
 done
 ```
 - Expected: each `WWW-Authenticate:` value contains
@@ -399,7 +399,7 @@ you stopped):
 ssh … 'systemctl is-active dashboard nginx crm ledger notify'   # all 'active'
 ssh … 'readlink /opt/dashboard/current'                          # intended release
 ssh … '/opt/dashboard/current/dashboard version'                 # matches that release
-curl -s -o /dev/null -w '%{http_code}\n' https://ai.metaspot.org/   # 200/302
+curl -s -o /dev/null -w '%{http_code}\n' https://int.ikigenba.com/   # 200/302
 ```
 
 ---

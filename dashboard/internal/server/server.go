@@ -38,7 +38,7 @@ import (
 type Options struct {
 	Logger          *slog.Logger               // structured logger (required)
 	IDPProvider     googleidp.Provider         // Google identity-provider seam (required for login)
-	PublicBaseURL   string                     // public origin, e.g. "https://ai.metaspot.org" (for the OAuth redirect URI)
+	PublicBaseURL   string                     // public origin, e.g. "https://int.ikigenba.com" (for the OAuth redirect URI)
 	Handshakes      *oauthstate.HandshakeStore // login-handshake store (required for login)
 	WorkspaceDomain string                     // Google Workspace hosted domain federation is restricted to (required for login)
 	Sessions        *session.SessionStore      // web-session store (required for login)

@@ -127,7 +127,7 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	//    via temp+rename so the stable path never holds a partial file mid-write.
 	//    The binary emits a PORTABLE manifest (no box paths baked in — appkit's
 	//    config defaults the DB to a relative ./tmp/<app>.db suited to local dev).
-	//    metaspot-launch sources this manifest and exports every KEY into the
+	//    ikigenba-launch sources this manifest and exports every KEY into the
 	//    serving process's env (AGENTS.md "Service layer"), but it never sets the
 	//    on-box <APP>_DB_PATH/<APP>_GENERATION_PATH — so the serving binary would
 	//    otherwise fall back to the relative dev default and miss the real DB at
@@ -233,7 +233,7 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 
 // stampDataPaths ensures the regenerated manifest carries the absolute on-box
 // state paths the SERVING process needs (<APP>_DB_PATH, <APP>_GENERATION_PATH).
-// metaspot-launch exports every manifest key into the app's env, so stamping
+// ikigenba-launch exports every manifest key into the app's env, so stamping
 // them here is what points `<app> serve` at data/<app>.db instead of appkit's
 // relative dev default. A key already present in the binary's own manifest output
 // is left untouched (the binary wins); missing keys are appended. The result

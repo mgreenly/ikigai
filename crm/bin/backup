@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bin/backup — snapshot crm's SQLite state to
-# s3://$METASPOT_BACKUP_BUCKET/<APP>/ under the per-app prefix convention.
+# s3://$IKIGENBA_BACKUP_BUCKET/<APP>/ under the per-app prefix convention.
 #
 # Layout:
 #   <APP>/crm.db.<UTC>.tar.gz   one immutable DB snapshot per run
@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$REPO/etc/manifest.env"
 . "$REPO/etc/deploy.env"
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 
 echo ">> backup: ${SSH_USER}@${HOST}  db=/opt/${APP}/data/crm.db  -> s3://<bucket>/${APP}/"
@@ -33,7 +33,7 @@ ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}" sudo APP="$APP" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}"
 
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 DATA_DIR="/opt/${APP}/data"
 DB_BASENAME=crm.db
 KEEP=30
@@ -41,9 +41,9 @@ KEEP=30
 [ -r "$ENV_FILE" ] || { echo "!! $ENV_FILE missing" >&2; exit 1; }
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-: "${METASPOT_BACKUP_BUCKET:?}"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-BUCKET="$METASPOT_BACKUP_BUCKET"
+: "${IKIGENBA_BACKUP_BUCKET:?}"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+BUCKET="$IKIGENBA_BACKUP_BUCKET"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 WORK="$(mktemp -d)"

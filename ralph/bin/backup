@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bin/backup — snapshot ralph's durable state to the per-account backup bucket
-# under the per-app prefix convention s3://$METASPOT_BACKUP_BUCKET/<APP>/.
+# under the per-app prefix convention s3://$IKIGENBA_BACKUP_BUCKET/<APP>/.
 #
 # ralph's durable state (all under /opt/ralph/data/) is three things:
 #   - ralph.db        the SQLite file (sessions + run history)
@@ -15,7 +15,7 @@
 # `VACUUM INTO`, falling back to the `.backup` API) and sync THAT in place of the
 # hot ralph.db, alongside the folders. ralph keeps running throughout — no stop.
 #
-# AWS via the box's instance role (region from /etc/metaspot/env). The control
+# AWS via the box's instance role (region from /etc/ikigenba/env). The control
 # leg is `aws s3 sync` run ON the box; a live SSO session is NOT required for the
 # box's own credentials, but invoking this script does ssh to the box. (No deploy
 # is performed in this phase — this is the authored script only.)
@@ -26,7 +26,7 @@ cd "$REPO"
 . etc/manifest.env
 . etc/deploy.env
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 
 echo ">> backup: ${SSH_USER}@${HOST}  data=/opt/${APP}/data  -> s3://<bucket>/${APP}/data/"
@@ -35,16 +35,16 @@ ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}" sudo APP="$APP" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}"
 
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 DATA_DIR="/opt/${APP}/data"
 DB_BASENAME=ralph.db
 
 [ -r "$ENV_FILE" ] || { echo "!! $ENV_FILE missing" >&2; exit 1; }
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-: "${METASPOT_BACKUP_BUCKET:?}"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-BUCKET="$METASPOT_BACKUP_BUCKET"
+: "${IKIGENBA_BACKUP_BUCKET:?}"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+BUCKET="$IKIGENBA_BACKUP_BUCKET"
 DEST="s3://$BUCKET/${APP}/data"
 
 [ -d "$DATA_DIR" ] || { echo "!! $DATA_DIR does not exist — nothing to back up (has ${APP} started?)" >&2; exit 1; }

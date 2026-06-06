@@ -1,8 +1,8 @@
-# nginx — metaspot suite dev front door
+# nginx — ikigenba suite dev front door
 
 An unprivileged, foreground nginx that fronts the suite locally the way the apex
 nginx block fronts it in production — so `localhost:8080/...` behaves like
-`ai.metaspot.org/...`, minus TLS.
+`int.ikigenba.com/...`, minus TLS.
 
 Why this exists: the auth contract (Phase 2b) puts nginx *between* the MCP client
 and the services — `auth_request` to the dashboard's `/internal/authn`, path

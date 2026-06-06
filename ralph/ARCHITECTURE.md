@@ -176,7 +176,7 @@ Wraps `data/sandboxes/<session_id>/`. Two jobs:
 **no** network isolation and **no** OS sandbox — `bash` can still reach the
 network and, with effort, escape. Real isolation (bubblewrap / rootless podman
 `--network none` + bind-mounted volume + python image) is **deferred** and is
-likely a metaspot *platform* concern. This is a known, accepted gap for draft 1.
+likely an ikigenba *platform* concern. This is a known, accepted gap for draft 1.
 
 The agent's `python` is reached *through* `bash` (`python3 ...`), so the only
 runtime requirement is a `python3` interpreter on the box's `PATH` (§8).
@@ -285,7 +285,7 @@ so the box must have a Python interpreter.
   interpreter + pip — no persistent package set (draft-1 sandboxes aren't
   isolated, and pip installs are meant to evaporate per run).
 - **`bin/secrets`** — new. One secret: `ANTHROPIC_API_KEY`. Non-destructive
-  read-modify-write of ralph's own key in SSM `/metaspot/<account>/app-config`,
+  read-modify-write of ralph's own key in SSM `/ikigenba/<account>/app-config`,
   value from `~/.secrets/ANTHROPIC_API_KEY`. Must be seeded **before first
   start** (launcher hard-fails if `.["ralph"]` is missing). Locally the same
   secret arrives via `.envrc` → env; the engine reads `os.Getenv("ANTHROPIC_API_KEY")`.
@@ -308,10 +308,10 @@ so the box must have a Python interpreter.
 - **`bin/build` / `bin/deploy`** — ledger shape, renamed (3002→3004,
   ledger→ralph). The launcher injects `ANTHROPIC_API_KEY` from app-config at
   start; the build wrapper composes `RALPH_*` public config from
-  `METASPOT_DOMAIN` / `PORT`.
+  `IKIGENBA_DOMAIN` / `PORT`.
 
 **Registering with the dashboard:** add
-`https://${METASPOT_DOMAIN}/srv/ralph/mcp` to `dashboard/bin/build →
+`https://${IKIGENBA_DOMAIN}/srv/ralph/mcp` to `dashboard/bin/build →
 DASHBOARD_RESOURCES` and redeploy the dashboard, or `/internal/authn` won't
 issue a PRM challenge for ralph and connector OAuth can't discover it.
 
@@ -336,7 +336,7 @@ issue a PRM challenge for ralph and connector OAuth can't discover it.
 ## 10. Config & secrets
 
 - **Public config** (`RALPH_*` env, composed by the build wrapper from
-  `METASPOT_DOMAIN`/`PORT`): port 3004, resource id, auth server, db path, log
+  `IKIGENBA_DOMAIN`/`PORT`): port 3004, resource id, auth server, db path, log
   level, plus `RALPH_RUN_TTL` (the run backstop, e.g. `30m`).
 - **Secret**: `ANTHROPIC_API_KEY` — the only one. On the box: SSM app-config →
   launcher → process env. Locally: `~/.secrets/ANTHROPIC_API_KEY` → `.envrc` →

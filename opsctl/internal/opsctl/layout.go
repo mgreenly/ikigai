@@ -74,7 +74,7 @@ func (l Layout) CurrentBinary() string { return filepath.Join(l.CurrentLink(), l
 // BinDir is /opt/<app>/bin.
 func (l Layout) BinDir() string { return filepath.Join(l.AppDir(), "bin") }
 
-// RunLink is /opt/<app>/bin/run — the STABLE path metaspot-launch execs. A
+// RunLink is /opt/<app>/bin/run — the STABLE path ikigenba-launch execs. A
 // symlink to ../current/<app>; set once and never repointed (the cutover happens
 // at CurrentLink), so it stays valid mid-swap (PLAN §2.6).
 func (l Layout) RunLink() string { return filepath.Join(l.BinDir(), "run") }
@@ -122,7 +122,7 @@ func (l Layout) SystemdDir() string {
 }
 
 // UnitPath is <SysRoot>/etc/systemd/system/<app>.service — the per-app unit
-// setup writes (ExecStart=/usr/local/bin/metaspot-launch <app>, enabled not
+// setup writes (ExecStart=/usr/local/bin/ikigenba-launch <app>, enabled not
 // started), byte-matching today's bin/setup heredoc.
 func (l Layout) UnitPath() string {
 	return filepath.Join(l.SystemdDir(), l.App+".service")
@@ -130,14 +130,14 @@ func (l Layout) UnitPath() string {
 
 // RenewTimerPath / RenewServicePath are the certbot renewal timer+service
 // init-box writes (the apex cert renewal). A self-contained
-// metaspot-certbot-renew.{timer,service} pair, so the byte content is asserted
+// ikigenba-certbot-renew.{timer,service} pair, so the byte content is asserted
 // in tests rather than depending on a package-provided timer.
 func (l Layout) RenewTimerPath() string {
-	return filepath.Join(l.SystemdDir(), "metaspot-certbot-renew.timer")
+	return filepath.Join(l.SystemdDir(), "ikigenba-certbot-renew.timer")
 }
 
 func (l Layout) RenewServicePath() string {
-	return filepath.Join(l.SystemdDir(), "metaspot-certbot-renew.service")
+	return filepath.Join(l.SystemdDir(), "ikigenba-certbot-renew.service")
 }
 
 // NginxConfDir is <SysRoot>/etc/nginx/conf.d — where the apex server block lands.

@@ -1,8 +1,8 @@
 # dashboard
 
-The **dashboard** for the metaspot single-tenant suite. It is the privileged,
-per-box "apex" app, deployed at `<account>.metaspot.org/` (e.g.
-`ai.metaspot.org/`). First demo account: **ai**.
+The **dashboard** for the ikigenba single-tenant suite. It is the privileged,
+per-box "apex" app, deployed at `<account>.ikigenba.com/` (e.g.
+`int.ikigenba.com/`). First demo account: **int**.
 
 This is a greenfield repo. **Read the decisions first — do not re-derive them:**
 
@@ -57,7 +57,7 @@ do it properly.
 
 We build in phases — see `docs/phases.md`. Each phase is bounded-breadth /
 production-depth and is **not done until it works both on localhost and deployed
-on its real DNS name (`ai.metaspot.org`) with real TLS.**
+on its real DNS name (`int.ikigenba.com`) with real TLS.**
 
 - **Phase 0 (current): structural web app, no auth.** A plain Go web app with all
   the bits in the right structure — serves the index page + static assets, does
@@ -66,7 +66,7 @@ on its real DNS name (`ai.metaspot.org`) with real TLS.**
   contract shipped via the shared `bin/ship` → `opsctl stage`/`deploy`, systemd via the
   platform launcher, the apex nginx `server` block + HTTP-01 TLS). **No
   auth, no identity, no tokens.** Phase 0 is **fully deployed and serving the
-  index over real TLS on `ai.metaspot.org` before Phase 1 begins** — the deploy
+  index over real TLS on `int.ikigenba.com` before Phase 1 begins** — the deploy
   architecture is proven before any auth complexity confounds it.
 - **Phase 1: login, identity-aware index, logout.** Layers Google Workspace
   federation + web sessions onto the deployed Phase 0 app; the index becomes

@@ -1,10 +1,10 @@
-// Package server builds and runs an ikigai app's loopback-only HTTP server:
+// Package server builds and runs a suite app's loopback-only HTTP server:
 // routing, the unauthenticated RFC 9728 protected-resource metadata document,
 // the identity-header gate, the ungated health route, security headers, and graceful
 // shutdown. It is the uniform HTTP layer lifted from every path-routed service's
 // internal/server (appkit extraction, PLAN §B).
 //
-// An ikigai app is loopback-only. nginx (owned by the dashboard) terminates TLS,
+// A suite app is loopback-only. nginx (owned by the dashboard) terminates TLS,
 // introspects every request via auth_request against the dashboard, strips the
 // /srv/<app>/ prefix, and injects X-Owner-Email / X-Client-Id authoritatively.
 // Services trust those headers and do NO token logic of their own

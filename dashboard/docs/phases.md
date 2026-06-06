@@ -4,7 +4,7 @@ We build the dashboard in phases. Each phase is **bounded breadth, production
 depth** (see the Scope section in `CLAUDE.md`): only the capabilities named for
 that phase, but each built to ship — full hardening, error handling, security,
 tests. The standing bar: a phase is not done until it works **both** on localhost
-(dev) **and** deployed on its real DNS name (`ai.metaspot.org`) with real TLS.
+(dev) **and** deployed on its real DNS name (`int.ikigenba.com`) with real TLS.
 
 Phases are defined just-in-time. Phase 0 and Phase 1 are done; Phase 2 (MCP and
 the token leg) is now split into sub-phases 2a/2b/2c, specified below; Phase 3
@@ -54,11 +54,11 @@ place to hang code.
 - **Deploy spine** — stand the box up now, serving the index over real TLS, so
   the deploy architecture is proven before any auth complexity confounds it:
   - `etc/manifest.env` (`APP=dashboard MOUNT=/ DEFAULT=true PORT=3000`),
-    `etc/deploy.env` (`ACCOUNT=ai`, SSH user/key, `CERTBOT_EMAIL`).
+    `etc/deploy.env` (`ACCOUNT=int`, SSH user/key, `CERTBOT_EMAIL`).
   - The seven `bin/*` verbs; only `bin/build` is dashboard-specific (Go build to
     `build/dashboard`). `/opt/dashboard/bin/run` entrypoint + systemd unit via
-    the platform launcher (`ExecStart=/usr/local/bin/metaspot-launch dashboard`).
-  - The dashboard-owned **apex nginx `server` block** for `ai.metaspot.org`, the
+    the platform launcher (`ExecStart=/usr/local/bin/ikigenba-launch dashboard`).
+  - The dashboard-owned **apex nginx `server` block** for `int.ikigenba.com`, the
     one HTTP-01 (`--webroot`) cert + renewal with `--deploy-hook "systemctl
     reload nginx"`, the ACME-challenge location, the 80→443 redirect, and
     `include /etc/nginx/conf.d/locations/*.conf;` (the dir is empty — no
@@ -75,7 +75,7 @@ only its logged-out state; there is no concept of a signed-in user yet.
 1. **Local:** `dashboard serve` on `127.0.0.1:3000`; `http://localhost:3000`
    serves the index page and its assets; logs are structured JSON with request
    ids.
-2. **Deployed:** `https://ai.metaspot.org` serves the same index over a real
+2. **Deployed:** `https://int.ikigenba.com` serves the same index over a real
    Let's Encrypt cert — HSTS present, 80→443 redirect, cert renewal wired, the
    app running under systemd via the platform launcher.
 3. **Hardened:** `go test ./...` green (config fail-loud per var, migrations
@@ -85,10 +85,10 @@ only its logged-out state; there is no concept of a signed-in user yet.
 ### Phase-0 decisions to confirm
 
 - **Env var naming.** crm.bak uses `CRM_*`. Pick the dashboard's prefix (likely
-  `DASHBOARD_*`). Note `METASPOT_*` is already the platform/node-identity
-  namespace in `/etc/metaspot/env`; app config is distinct and lives in the SSM
+  `DASHBOARD_*`). Note `IKIGENBA_*` is already the platform/node-identity
+  namespace in `/etc/ikigenba/env`; app config is distinct and lives in the SSM
   `app-config` blob under `dashboard`.
-- **Product name / banner string** — branded **ikigai**.
+- **Product name / banner string** — branded **ikigenba**.
 
 ---
 
@@ -135,7 +135,7 @@ shows identity and logout only.
 1. **Local:** visit `http://localhost:3000`, "Sign in," complete a real Google
    Workspace login, land signed-in showing the owner email, sign out. A
    non-workspace identity is rejected with no session.
-2. **Deployed:** the same flow on `https://ai.metaspot.org` — `Secure` cookies,
+2. **Deployed:** the same flow on `https://int.ikigenba.com` — `Secure` cookies,
    HSTS, real cert.
 3. **Hardened:** `go test ./...` green, including the full Run-2 security suite
    (state-binding rejections, workspace/`email_verified`/audience rejections,
@@ -146,10 +146,10 @@ shows identity and logout only.
 
 - **`GOOGLE_WORKSPACE_DOMAIN` for the `ai` box.** crm.bak's value was the old
   `logic-refinery.com` Workspace domain. Confirm the workspace domain the demo
-  authenticates against (revisit for the ikigai rebrand).
+  authenticates against (revisit for the ikigenba rebrand).
 - **Public base URL / redirect URI.** The Google redirect URI must match exactly
   what's registered: `http://localhost:3000/oauth/google/callback` (dev) and
-  `https://ai.metaspot.org/oauth/google/callback` (deployed) — both registered on
+  `https://int.ikigenba.com/oauth/google/callback` (deployed) — both registered on
   the Google OAuth client. Decide whether the base URL is self-templated from the
   request `Host` or a config value; the redirect must round-trip in both
   environments either way.
@@ -182,10 +182,10 @@ bar in its own right.
 - **Config** — stays `DASHBOARD_*`-prefixed; new AS/auth values fail-loud at the
   composition root like the rest.
 - **Service mount prefix** — services live under the reserved `/srv/<svc>/`
-  namespace (e.g. `ai.metaspot.org/srv/crm/mcp`, PRM at
+  namespace (e.g. `int.ikigenba.com/srv/crm/mcp`, PRM at
   `/srv/crm/.well-known/oauth-protected-resource`), so the DEFAULT=true apex's
   many top-level routes never collide with a service. (See
-  `metaspot/docs/path-routing-architecture.md`.)
+  `ikigenba/docs/path-routing-architecture.md`.)
 - **Build order** — dashboard first, then the real crm. 2b/2c are tested against
   a throwaway stub service (serves its static PRM well-known doc + echoes the
   injected `X-Owner-Email`), **not** the real crm.

@@ -18,7 +18,7 @@ import (
 
 func TestAuthorizeURL(t *testing.T) {
 	p := New(Credentials{ClientID: "client-123", WorkspaceDomain: "example.com"})
-	raw := p.AuthorizeURL("STATE-XYZ", "https://ai.metaspot.org/oauth/google/callback")
+	raw := p.AuthorizeURL("STATE-XYZ", "https://int.ikigenba.com/oauth/google/callback")
 
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -33,7 +33,7 @@ func TestAuthorizeURL(t *testing.T) {
 		"client_id":     "client-123",
 		"hd":            "example.com",
 		"state":         "STATE-XYZ",
-		"redirect_uri":  "https://ai.metaspot.org/oauth/google/callback",
+		"redirect_uri":  "https://int.ikigenba.com/oauth/google/callback",
 		"response_type": "code",
 		"scope":         "openid email profile",
 		"access_type":   "online",

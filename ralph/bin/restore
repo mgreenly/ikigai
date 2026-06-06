@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bin/restore — replace ralph's live durable state from a backups-bucket
 # snapshot. Symmetric with bin/backup: an `aws s3 sync` back from
-# s3://$METASPOT_BACKUP_BUCKET/<APP>/data/ into /opt/ralph/data/.
+# s3://$IKIGENBA_BACKUP_BUCKET/<APP>/data/ into /opt/ralph/data/.
 #
 # Restores ALL of ralph's durable state: the consistent ralph.db snapshot, the
 # sandbox folders (data/sandboxes/), and the run logs (data/runs/).
@@ -12,7 +12,7 @@
 # restarted. Per the lifecycle, run restore AFTER `opsctl setup ralph` and
 # BEFORE the first `bin/ship ralph` → `opsctl stage`/`deploy` on a rebuilt box.
 #
-# AWS via the box's instance role (region from /etc/metaspot/env). Invoking this
+# AWS via the box's instance role (region from /etc/ikigenba/env). Invoking this
 # script does ssh to the box. (No deploy is performed in this phase — authored
 # script only.)
 set -euo pipefail
@@ -22,7 +22,7 @@ cd "$REPO"
 . etc/manifest.env
 . etc/deploy.env
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 SSH=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}")
 
@@ -30,13 +30,13 @@ SSH=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}")
 RESOLVED="$("${SSH[@]}" sudo APP="$APP" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}"
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 [ -r "$ENV_FILE" ] || { echo "!! $ENV_FILE missing" >&2; exit 1; }
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-: "${METASPOT_BACKUP_BUCKET:?}"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-B="$METASPOT_BACKUP_BUCKET"
+: "${IKIGENBA_BACKUP_BUCKET:?}"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+B="$IKIGENBA_BACKUP_BUCKET"
 SRC="${APP}/data"
 
 # Confirm there is something under the prefix before we destroy anything.
@@ -69,14 +69,14 @@ read -r ANS
 "${SSH[@]}" sudo APP="$APP" SRC="$SRC" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}" "${SRC:?}"
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 DATA_DIR="/opt/${APP}/data"
 DB_BASENAME=ralph.db
 
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-BUCKET="$METASPOT_BACKUP_BUCKET"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+BUCKET="$IKIGENBA_BACKUP_BUCKET"
 
 APP_WAS_STOPPED=0
 cleanup() {

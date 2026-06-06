@@ -156,7 +156,7 @@ rewrite.
     string).
   - **Mandatory here, free with opacity: the generation/epoch token.** Because
     the cursor is opaque, the producer embeds a **generation/epoch token** inside
-    it at no cost to the consumer. This is **not optional** on the metaspot box:
+    it at no cost to the consumer. This is **not optional** on the ikigenba box:
     its lifecycle includes restore-from-snapshot / rebuild (`bin/restore` is a
     mandated verb), and without the token a file-level restore is silently unsafe
     — `sqlite_sequence` rolls back with the DB file, `seq` re-climbs through values
@@ -502,7 +502,7 @@ offset rather than only the offset it presented at connect.
   cost depends on this.
 - **Topology (Axis 1)** — monolith vs. services — still open and upstream of all
   of this (carried from the exploration draft).
-- **Spec collision with metaspot** — the authoritative path-routing/auth/Service
+- **Spec collision with ikigenba** — the authoritative path-routing/auth/Service
   specs. Mostly *relieved* by the two-plane model above (the event plane is
   internal/loopback and outside the nginx auth contract), but worth a deliberate
   confirmation pass.

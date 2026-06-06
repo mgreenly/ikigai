@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$REPO/etc/manifest.env"
 . "$REPO/etc/deploy.env"
 
-HOST="${HOST:-${ACCOUNT}.metaspot.org}"
+HOST="${HOST:-${ACCOUNT}.${APEX_SUFFIX:-ikigenba.com}}"
 SSH_KEY="${SSH_KEY/#\~/$HOME}"
 REQ="${1:-}"
 SSH=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}")
@@ -33,13 +33,13 @@ SSH=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}")
 RESOLVED="$("${SSH[@]}" sudo APP="$APP" REQ="$REQ" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}"
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 [ -r "$ENV_FILE" ] || { echo "!! $ENV_FILE missing" >&2; exit 1; }
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-: "${METASPOT_BACKUP_BUCKET:?}"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-B="$METASPOT_BACKUP_BUCKET"
+: "${IKIGENBA_BACKUP_BUCKET:?}"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+B="$IKIGENBA_BACKUP_BUCKET"
 
 if [ -z "${REQ:-}" ]; then
   KEY="$(aws s3 cp "s3://$B/${APP}/latest" - 2>/dev/null | tr -d '[:space:]')" || true
@@ -75,15 +75,15 @@ read -r ANS
 "${SSH[@]}" sudo APP="$APP" KEY="$KEY" bash -s <<'REMOTE'
 set -euo pipefail
 : "${APP:?}" "${KEY:?}"
-ENV_FILE=/etc/metaspot/env
+ENV_FILE=/etc/ikigenba/env
 DATA_DIR="/opt/${APP}/data"
 DB_BASENAME=crm.db
 PRE_KEEP=10
 
 # shellcheck disable=SC1090
 . "$ENV_FILE"
-export AWS_DEFAULT_REGION="${METASPOT_AWS_REGION:-us-east-2}"
-BUCKET="$METASPOT_BACKUP_BUCKET"
+export AWS_DEFAULT_REGION="${IKIGENBA_AWS_REGION:-us-east-2}"
+BUCKET="$IKIGENBA_BACKUP_BUCKET"
 
 WORK="$(mktemp -d)"
 APP_WAS_STOPPED=0

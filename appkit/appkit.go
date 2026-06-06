@@ -1,4 +1,4 @@
-// Package appkit is the ikigai app chassis: the uniform half of every service on
+// Package appkit is the suite app chassis: the uniform half of every service on
 // the box. A service's main.go collapses to a single appkit.Main(appkit.Spec{…})
 // call. appkit owns the fixed-verb dispatcher, config-from-env, the migration
 // runner + downgrade guard, the loopback HTTP server (PRM + identity gate +
@@ -86,7 +86,7 @@ type RestoreReq struct {
 	Stderr         io.Writer
 }
 
-// Spec is the entire contract of an ikigai app — "an ikigai app is exactly this"
+// Spec is the entire contract of a suite app — "a suite app is exactly this"
 // (PLAN §1.1). main.go declares one and passes it to Main. The chassis half is
 // appkit's; the domain half plugs in through Handlers / Config / Migrations /
 // Backup / Restore.
@@ -95,7 +95,7 @@ type Spec struct {
 	// the install root, log identity, and the env-var prefix (<APP>_PORT, …).
 	App string
 	// Mount is the /srv/<app>/ prefix (manifest MOUNT). Composes RESOURCE_ID /
-	// AUTH_SERVER from METASPOT_DOMAIN and builds the PRM route. The apex is "/".
+	// AUTH_SERVER from IKIGENBA_DOMAIN and builds the PRM route. The apex is "/".
 	Mount string
 	// Default marks the apex/DEFAULT=true app (the dashboard only). Emits DEFAULT
 	// and selects the apex server shape (no PRM/identity routes — Handlers owns

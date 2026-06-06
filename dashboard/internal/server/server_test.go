@@ -27,7 +27,7 @@ const testWorkspaceDomain = "metaspot.org"
 
 // testResource is a configured resource identifier the authorize/token endpoints
 // accept; it is the sole member of Options.Resources in tests.
-const testResource = "https://ai.metaspot.org/srv/crm/mcp"
+const testResource = "https://int.ikigenba.com/srv/crm/mcp"
 
 // serverDeps bundles a server's collaborators built over one shared, migrated
 // SQLite db, so a full token flow (handshake → callback → authcode → token) sees
@@ -72,7 +72,7 @@ func (d serverDeps) opts() Options {
 	return Options{
 		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
 		IDPProvider:     googleidp.NewStub(),
-		PublicBaseURL:   "https://ai.metaspot.org",
+		PublicBaseURL:   "https://int.ikigenba.com",
 		Handshakes:      d.handshakes,
 		WorkspaceDomain: testWorkspaceDomain,
 		Sessions:        d.sessions,
@@ -109,7 +109,7 @@ func do(t *testing.T, srv *http.Server, method, target string, hdr map[string]st
 
 func TestIndex(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "http://ai.metaspot.org/", nil)
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/", nil)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -118,11 +118,11 @@ func TestIndex(t *testing.T) {
 		t.Errorf("Content-Type = %q, want text/html", ct)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "metaspot") {
+	if !strings.Contains(body, "ikigenba") {
 		t.Errorf("body missing product name:\n%s", body)
 	}
 	// Host self-templating: the request host appears in the page.
-	if !strings.Contains(body, "ai.metaspot.org") {
+	if !strings.Contains(body, "int.ikigenba.com") {
 		t.Errorf("body missing request host:\n%s", body)
 	}
 }
@@ -138,7 +138,7 @@ func TestIndexEscapesHost(t *testing.T) {
 
 func TestStaticAsset(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "http://ai.metaspot.org/static/app.css", nil)
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/static/app.css", nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -149,7 +149,7 @@ func TestStaticAsset(t *testing.T) {
 
 func TestStaticDirListingDisabled(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "http://ai.metaspot.org/static/", nil)
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/static/", nil)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("GET /static/ = %d, want 404 (no autoindex)", rec.Code)
 	}
@@ -200,7 +200,7 @@ func TestNewAcceptsManyResources(t *testing.T) {
 
 func TestUnknownPath404(t *testing.T) {
 	srv := testServer(t)
-	rec := do(t, srv, "GET", "http://ai.metaspot.org/nope", nil)
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/nope", nil)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)
 	}
@@ -213,7 +213,7 @@ func TestUnknownPath404(t *testing.T) {
 func TestSecurityHeaders(t *testing.T) {
 	srv := testServer(t)
 
-	plain := do(t, srv, "GET", "http://ai.metaspot.org/", nil)
+	plain := do(t, srv, "GET", "http://int.ikigenba.com/", nil)
 	if plain.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Error("nosniff missing")
 	}
@@ -224,7 +224,7 @@ func TestSecurityHeaders(t *testing.T) {
 		t.Error("HSTS must not be set on plain HTTP")
 	}
 
-	https := do(t, srv, "GET", "http://ai.metaspot.org/", map[string]string{"X-Forwarded-Proto": "https"})
+	https := do(t, srv, "GET", "http://int.ikigenba.com/", map[string]string{"X-Forwarded-Proto": "https"})
 	if https.Header().Get("Strict-Transport-Security") == "" {
 		t.Error("HSTS must be set when X-Forwarded-Proto is https")
 	}

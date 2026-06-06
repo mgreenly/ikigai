@@ -14,15 +14,15 @@ func envFunc(m map[string]string) func(string) string {
 
 func TestResolve_ComposesURLsFromDomain(t *testing.T) {
 	cfg, err := config.Resolve("ledger", "/srv/ledger/", 3002, envFunc(map[string]string{
-		"METASPOT_DOMAIN": "ai.metaspot.org",
+		"IKIGENBA_DOMAIN": "int.ikigenba.com",
 	}))
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	if want := "https://ai.metaspot.org/srv/ledger/mcp"; cfg.ResourceID != want {
+	if want := "https://int.ikigenba.com/srv/ledger/mcp"; cfg.ResourceID != want {
 		t.Errorf("ResourceID = %q, want %q", cfg.ResourceID, want)
 	}
-	if want := "https://ai.metaspot.org"; cfg.AuthServer != want {
+	if want := "https://int.ikigenba.com"; cfg.AuthServer != want {
 		t.Errorf("AuthServer = %q, want %q", cfg.AuthServer, want)
 	}
 	if cfg.Port != 3002 {
@@ -48,7 +48,7 @@ func TestResolve_LocalhostDefaults(t *testing.T) {
 
 func TestResolve_ExplicitOverrideWins(t *testing.T) {
 	cfg, err := config.Resolve("ledger", "/srv/ledger/", 3002, envFunc(map[string]string{
-		"METASPOT_DOMAIN":    "ai.metaspot.org",
+		"IKIGENBA_DOMAIN":    "int.ikigenba.com",
 		"LEDGER_RESOURCE_ID": "https://override.example/srv/ledger/mcp",
 		"LEDGER_AUTH_SERVER": "https://override.example",
 		"LEDGER_PORT":        "9999",
@@ -76,12 +76,12 @@ func TestResolve_ExplicitOverrideWins(t *testing.T) {
 
 func TestResolve_ApexMount(t *testing.T) {
 	cfg, err := config.Resolve("dashboard", "/", 3000, envFunc(map[string]string{
-		"METASPOT_DOMAIN": "ai.metaspot.org",
+		"IKIGENBA_DOMAIN": "int.ikigenba.com",
 	}))
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	if want := "https://ai.metaspot.org/mcp"; cfg.ResourceID != want {
+	if want := "https://int.ikigenba.com/mcp"; cfg.ResourceID != want {
 		t.Errorf("ResourceID = %q, want %q", cfg.ResourceID, want)
 	}
 }

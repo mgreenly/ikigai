@@ -58,13 +58,13 @@ assert_eq "port crm" "3001" "$("$REGISTRY" port crm)"
 assert_eq "addr crm" "127.0.0.1:3001" "$("$REGISTRY" addr crm)"
 assert_eq "mount crm (quote-stripped)" "/srv/crm/" "$("$REGISTRY" mount crm)"
 assert_eq "feed-url crm" "http://127.0.0.1:3001/feed" "$("$REGISTRY" feed-url crm)"
-assert_eq "resource-url crm" "https://ai.metaspot.org/srv/crm/mcp" "$("$REGISTRY" resource-url ai.metaspot.org crm)"
+assert_eq "resource-url crm" "https://int.ikigenba.com/srv/crm/mcp" "$("$REGISTRY" resource-url int.ikigenba.com crm)"
 assert_eq "mount dashboard" "/" "$("$REGISTRY" mount dashboard)"
 # noport also has MCP=true, so it is listed too (list-mcp keys only on MCP=true).
 assert_eq "list-mcp (sorted, mcp only)" $'crm\nnoport\nnotify' "$("$REGISTRY" list-mcp)"
 
 assert_fails "feed-url on non-producer (notify)" "$REGISTRY" feed-url notify
-assert_fails "resource-url on non-MCP (dashboard)" "$REGISTRY" resource-url ai.metaspot.org dashboard
+assert_fails "resource-url on non-MCP (dashboard)" "$REGISTRY" resource-url int.ikigenba.com dashboard
 assert_fails "port on missing service" "$REGISTRY" port nope
 assert_fails "port on service missing PORT" "$REGISTRY" port noport
 assert_fails "unknown subcommand" "$REGISTRY" bogus

@@ -15,7 +15,7 @@ import (
 // values the callback leg needs to prove it is the same round-trip.
 func startLogin(t *testing.T, srv *http.Server) (state string, binding *http.Cookie) {
 	t.Helper()
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/login", nil)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/login", nil)
 	if rec.Code != http.StatusFound {
 		t.Fatalf("login status = %d, want 302", rec.Code)
 	}
@@ -44,7 +44,7 @@ func startLogin(t *testing.T, srv *http.Server) (state string, binding *http.Coo
 func liveSession(t *testing.T, srv *http.Server) *http.Cookie {
 	t.Helper()
 	state, binding := startLogin(t, srv)
-	target := "https://ai.metaspot.org/oauth/google/callback?state=" + url.QueryEscape(state) + "&code=auth-code"
+	target := "https://int.ikigenba.com/oauth/google/callback?state=" + url.QueryEscape(state) + "&code=auth-code"
 	rec := do(t, srv, "GET", target, map[string]string{"Cookie": binding.Name + "=" + binding.Value})
 	if rec.Code != http.StatusFound {
 		t.Fatalf("callback status = %d, want 302", rec.Code)
@@ -74,7 +74,7 @@ func TestCallbackSuccessMintsSession(t *testing.T) {
 	srv, database := loginServer(t)
 	state, binding := startLogin(t, srv)
 
-	target := "https://ai.metaspot.org/oauth/google/callback?state=" + url.QueryEscape(state) + "&code=auth-code"
+	target := "https://int.ikigenba.com/oauth/google/callback?state=" + url.QueryEscape(state) + "&code=auth-code"
 	rec := do(t, srv, "GET", target, map[string]string{"Cookie": binding.Name + "=" + binding.Value})
 
 	if rec.Code != http.StatusFound {

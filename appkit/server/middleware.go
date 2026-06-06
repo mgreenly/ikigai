@@ -28,7 +28,7 @@ func IdentityFrom(ctx context.Context) (Identity, bool) {
 }
 
 // requireIdentityHeaders does NO token parsing, NO ValidateAccess, NO hashing —
-// an ikigai service performs no token logic at all. nginx is the only ingress,
+// a suite service performs no token logic at all. nginx is the only ingress,
 // the server binds 127.0.0.1, and nginx sets X-Owner-Email / X-Client-Id
 // authoritatively only AFTER a successful auth_request against the dashboard
 // (clearing any inbound spoof first). So an empty X-Owner-Email means the

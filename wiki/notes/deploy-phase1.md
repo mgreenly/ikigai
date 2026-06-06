@@ -1,7 +1,7 @@
 # Deploy Phase-1 wiki to the `ai` box — operator runbook (Task 5.4)
 
-Ship `wiki` to `ai.metaspot.org` as a path-routed MCP service at `/srv/wiki/`
-(loopback port **3006**), in the metaspot `bin/*` order. This runbook is the
+Ship `wiki` to `int.ikigenba.com` as a path-routed MCP service at `/srv/wiki/`
+(loopback port **3006**), in the ikigenba `bin/*` order. This runbook is the
 exact command sequence for a human operator to run **after** an interactive SSO
 login. Nothing here was executed during preparation — the scaffolding was
 audited read-only and the offline build was verified; the actual deploy is
@@ -18,17 +18,17 @@ blocked on the human SSO step.
    token expires; `bin/secrets` and every AWS/SSM call below need a live session:
 
    ```
-   aws sso login --profile ai
+   aws sso login --profile int
    ```
 
    Verify (non-interactive, does NOT log in):
 
    ```
-   aws sts get-caller-identity --profile ai
+   aws sts get-caller-identity --profile int
    ```
 
    A JSON identity block ⇒ session active. An `Error … SSO session … expired`
-   ⇒ run `aws sso login --profile ai` again.
+   ⇒ run `aws sso login --profile int` again.
 
 2. **Operator shell direnv (local).** wiki's committed `.envrc` injects the
    ingest config / `ANTHROPIC_API_KEY` for any *local* run. One-time per shell:
@@ -58,7 +58,7 @@ blocked on the human SSO step.
 ### 1. Seed wiki's secret into SSM app-config — `bin/secrets`
 
 After SSO. Non-destructive read-modify-write of **only** wiki's key in the
-shared SecureString `/metaspot/ai/app-config`; every other app's key is
+shared SecureString `/ikigenba/ai/app-config`; every other app's key is
 preserved. Seeds `ANTHROPIC_API_KEY` from `~/.secrets/ANTHROPIC_API_KEY`.
 
 ```
@@ -68,14 +68,14 @@ cd wiki && ./bin/secrets
 Expect: a summary showing `profile/region : ai / us-east-2`, a **masked**
 `ANTHROPIC_API_KEY` (`xxxx…xxxx`), and the preserved sibling keys (crm, notify,
 dashboard, …). It prompts `Type "yes" to write:` — type `yes`. On success:
-`>> .wiki written to /metaspot/ai/app-config`. (Must run **before** first start:
-`metaspot-launch` hard-fails if the key is missing at boot.)
+`>> .wiki written to /ikigenba/ai/app-config`. (Must run **before** first start:
+`ikigenba-launch` hard-fails if the key is missing at boot.)
 
 ### 2. One-time box provision — `bin/setup`
 
 Creates the `--system` `wiki` user + `/opt/wiki/{bin,etc,data}` tree, writes &
 **enables (not starts)** the `wiki.service` systemd unit
-(`ExecStart=/usr/local/bin/metaspot-launch wiki`), drops the nginx fragment to
+(`ExecStart=/usr/local/bin/ikigenba-launch wiki`), drops the nginx fragment to
 `/etc/nginx/conf.d/locations/wiki.conf`, runs `nginx -t`, reloads nginx.
 
 ```
@@ -108,7 +108,7 @@ Expect: each `>> rsync …` line, then `active`, then `>> deploy complete.`
 The dashboard derives its AS resource list from the per-service manifests under
 `/opt` at startup (`DASHBOARD_MANIFEST_ROOT=/opt`, `inventory.Read`). wiki's
 `manifest.env` carries `MCP=true`, so a dashboard **restart** registers
-`https://ai.metaspot.org/srv/wiki/mcp` as a known resource — **no
+`https://int.ikigenba.com/srv/wiki/mcp` as a known resource — **no
 `DASHBOARD_RESOURCES` edit needed** (that env var no longer exists; the CLAUDE.md
 "Registering a new MCP service" note is stale on this point).
 
@@ -117,15 +117,15 @@ cd ../dashboard && ./bin/deploy
 ```
 
 (Or, if you don't want to re-ship the dashboard artifact, a bare restart on the
-box: `ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org "sudo
+box: `ssh -i ~/.ssh/id_ed25519_int_ikigenba_com ec2-user@int.ikigenba.com "sudo
 systemctl restart dashboard"`.) Either way the restart **briefly drops
 `/internal/authn` box-wide for a few seconds** — expected; every service's
 `auth_request` is unavailable during the restart.
 
 ### 5. Verify on the box
 
-(Per CLAUDE.md "Verify on the box". `<key>` = `~/.ssh/id_ed25519_ai4mgreenly`,
-`<box>` = `ec2-user@ai.metaspot.org`.)
+(Per CLAUDE.md "Verify on the box". `<key>` = `~/.ssh/id_ed25519_int_ikigenba_com`,
+`<box>` = `ec2-user@int.ikigenba.com`.)
 
 ```
 # a. service up
@@ -144,17 +144,17 @@ ssh -i <key> <box> \
 
 # d. PRM well-known → 200 (public, unauthenticated)
 curl -s -o /dev/null -w '%{http_code}\n' \
-  https://ai.metaspot.org/srv/wiki/.well-known/oauth-protected-resource   # → 200
+  https://int.ikigenba.com/srv/wiki/.well-known/oauth-protected-resource   # → 200
 
 # e. the /srv/wiki/mcp 401 challenge MUST carry resource_metadata
-curl -s -D - -o /dev/null https://ai.metaspot.org/srv/wiki/mcp | grep -i www-authenticate
+curl -s -D - -o /dev/null https://int.ikigenba.com/srv/wiki/mcp | grep -i www-authenticate
 #    → WWW-Authenticate: Bearer resource_metadata="…/srv/wiki/mcp/.well-known/oauth-protected-resource"
 ```
 
 **End-to-end (the real proof):**
 
 1. **Connector OAuth round-trip + `wiki_whoami`.** In a Claude client, add the
-   connector URL `https://ai.metaspot.org/srv/wiki/mcp`, authorize through the
+   connector URL `https://int.ikigenba.com/srv/wiki/mcp`, authorize through the
    dashboard OAuth AS, then call `wiki_whoami` → returns your owner email +
    client id. (This exercises plugin/connector → dashboard OAuth → wiki.)
 2. **`wiki_ingest_text` → `wiki_search` round-trip.** Call `wiki_ingest_text`
@@ -224,11 +224,11 @@ leftovers were found in any file — **nothing needed fixing**.
 
 | file | verdict |
 |---|---|
-| `etc/deploy.env` | Correct. `ACCOUNT=ai`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_ai4mgreenly`; `HOST` defaults to `${ACCOUNT}.metaspot.org` in each script. Identical to notify's. |
+| `etc/deploy.env` | Correct. `ACCOUNT=int`, `SSH_USER=ec2-user`, `SSH_KEY=~/.ssh/id_ed25519_int_ikigenba_com`; `HOST` defaults to `${ACCOUNT}.ikigenba.com` in each script. Identical to notify's. |
 | `etc/manifest.env` | Correct. `APP=wiki`, `MOUNT=/srv/wiki/`, `DEFAULT=false`, `PORT=3006`, `MCP=true`, plus non-secret ingest config (`WIKI_INGEST_MODEL`, `WIKI_INGEST_MAX_TOKENS`). No ledger port (3002) / mount. |
 | `etc/nginx.conf` | Correct. Two wiki location blocks (open PRM exact-match + gated `/srv/wiki/` prefix), `__PORT__` templated, 429-faithful `@wiki_authn_500` error path. Structurally identical to notify's, all `wiki`-named. |
-| `bin/secrets` | Correct. Non-destructive read-modify-write of only `.wiki` in `/metaspot/ai/app-config` under `--profile ai --region us-east-2`; seeds the single `ANTHROPIC_API_KEY` from `~/.secrets/` (resolved, masked, never printed); siblings preserved; mirrors notify's structure. |
-| `bin/setup` | Correct. `--system` user + `/opt/wiki` tree; writes & **enables (not starts)** `wiki.service` with `ExecStart=/usr/local/bin/metaspot-launch wiki`; drops fragment to `/etc/nginx/conf.d/locations/wiki.conf`; `nginx -t`; reload. No ledger leftovers. |
+| `bin/secrets` | Correct. Non-destructive read-modify-write of only `.wiki` in `/ikigenba/ai/app-config` under `--profile int --region us-east-2`; seeds the single `ANTHROPIC_API_KEY` from `~/.secrets/` (resolved, masked, never printed); siblings preserved; mirrors notify's structure. |
+| `bin/setup` | Correct. `--system` user + `/opt/wiki` tree; writes & **enables (not starts)** `wiki.service` with `ExecStart=/usr/local/bin/ikigenba-launch wiki`; drops fragment to `/etc/nginx/conf.d/locations/wiki.conf`; `nginx -t`; reload. No ledger leftovers. |
 | `bin/deploy` | Correct. stop → rsync wrapper/registry/`wiki.bin`/`manifest.env` → chown → start → `is-active`. **Never touches `/opt/wiki/data/wiki.db`** (migrations run on start). |
 | `bin/build` | Correct & deterministic offline. |
 
@@ -239,9 +239,9 @@ statically linked, stripped`; `ldd` → `not a dynamic executable`. The build is
 go.work-independent — `wiki/go.mod` carries committed `replace eventplane =>
 ../eventplane` and `replace agentkit => ../agentkit`.
 
-**SSO status (at prep time):** `aws sts get-caller-identity --profile ai`
+**SSO status (at prep time):** `aws sts get-caller-identity --profile int`
 returned a valid identity — a session was **active** during preparation. SSO
-tokens expire, so the operator should re-verify (and `aws sso login --profile ai`
+tokens expire, so the operator should re-verify (and `aws sso login --profile int`
 if expired) immediately before Step 1.
 
 **Dashboard inventory (confirmed, no env edit):** `dashboard/internal/inventory`
@@ -256,4 +256,4 @@ restart, not an edit.
 ## Status
 
 **Phase-1 wiki is build-ready; deploy is BLOCKED on interactive `aws sso login
---profile ai` (human step). Run the steps above to complete.**
+--profile int` (human step). Run the steps above to complete.**

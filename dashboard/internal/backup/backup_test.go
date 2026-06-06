@@ -70,11 +70,11 @@ func TestRestore_LocalFromVia(t *testing.T) {
 }
 
 // TestBackup_S3RequiresBucket confirms the operator (no --out) branch fails loudly
-// when METASPOT_BACKUP_BUCKET is unset — it must never silently no-op, and it must
+// when IKIGENBA_BACKUP_BUCKET is unset — it must never silently no-op, and it must
 // never read a secret to get there.
 func TestBackup_S3RequiresBucket(t *testing.T) {
-	t.Setenv("METASPOT_BACKUP_BUCKET", "")
-	t.Setenv("METASPOT_DOMAIN", "")
+	t.Setenv("IKIGENBA_BACKUP_BUCKET", "")
+	t.Setenv("IKIGENBA_DOMAIN", "")
 	dbPath := freshDB(t)
 	var stdout, stderr bytes.Buffer
 	err := Backup(context.Background(), appkit.BackupReq{

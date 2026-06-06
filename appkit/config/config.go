@@ -1,6 +1,6 @@
-// Package config is the env contract at an ikigai app's composition root. It
+// Package config is the env contract at a suite app's composition root. It
 // parses the universal runtime knobs from the environment and composes the
-// public RESOURCE_ID / AUTH_SERVER in-binary from METASPOT_DOMAIN + the app's
+// public RESOURCE_ID / AUTH_SERVER in-binary from IKIGENBA_DOMAIN + the app's
 // Mount — work that used to live in the deleted bin/build run-wrapper and now
 // moves into Go (PLAN §1.1).
 //
@@ -21,8 +21,8 @@ type Config struct {
 	IP             string // listen interface — loopback in prod (env <APP>_IP)
 	Port           int    // loopback port (env <APP>_PORT, default Spec.Port)
 	LogLevel       string // debug|info|warn|error (env <APP>_LOG_LEVEL)
-	ResourceID     string // canonical resource id, composed from METASPOT_DOMAIN+Mount
-	AuthServer     string // dashboard AS base URL, composed from METASPOT_DOMAIN
+	ResourceID     string // canonical resource id, composed from IKIGENBA_DOMAIN+Mount
+	AuthServer     string // dashboard AS base URL, composed from IKIGENBA_DOMAIN
 	DBPath         string // SQLite file (env <APP>_DB_PATH)
 	GenerationPath string // event-plane epoch sidecar (env <APP>_GENERATION_PATH)
 }
@@ -31,8 +31,8 @@ type Config struct {
 // /srv/<app>/ prefix (or "/" for the apex); defaultPort is Spec.Port. getenv is
 // the injected environment (os.Getenv in prod, a map in tests).
 //
-// RESOURCE_ID / AUTH_SERVER are composed from METASPOT_DOMAIN + mount when
-// METASPOT_DOMAIN is set (the production path); otherwise they fall back to the
+// RESOURCE_ID / AUTH_SERVER are composed from IKIGENBA_DOMAIN + mount when
+// IKIGENBA_DOMAIN is set (the production path); otherwise they fall back to the
 // localhost dev values an explicit <APP>_RESOURCE_ID / <APP>_AUTH_SERVER can
 // still override. This is the in-binary move of the run-wrapper's composition.
 func Resolve(app, mount string, defaultPort int, getenv func(string) string) (Config, error) {
@@ -60,12 +60,12 @@ func Resolve(app, mount string, defaultPort int, getenv func(string) string) (Co
 }
 
 // composeURLs derives RESOURCE_ID and AUTH_SERVER. Production composes them from
-// METASPOT_DOMAIN + mount (RESOURCE_ID = https://<domain><mount>mcp,
+// IKIGENBA_DOMAIN + mount (RESOURCE_ID = https://<domain><mount>mcp,
 // AUTH_SERVER = https://<domain>); an explicit <APP>_RESOURCE_ID /
 // <APP>_AUTH_SERVER override wins (and is the local-dev default behind nginx on
 // :8080).
 func composeURLs(getenv func(string) string, up, mount string) (resourceID, authServer string) {
-	domain := strings.TrimSpace(getenv("METASPOT_DOMAIN"))
+	domain := strings.TrimSpace(getenv("IKIGENBA_DOMAIN"))
 	if domain != "" {
 		resourceID = "https://" + domain + mount + "mcp"
 		authServer = "https://" + domain

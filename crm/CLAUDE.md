@@ -1,9 +1,9 @@
 # crm
 
-The **crm** service for the metaspot single-tenant suite. A pure REST + MCP API
+The **crm** service for the ikigenba single-tenant suite. A pure REST + MCP API
 with **no UI** and **no token logic**, deployed at
-`<account>.metaspot.org/srv/crm/` (e.g. `ai.metaspot.org/srv/crm/`). First demo
-account: **ai**.
+`<account>.ikigenba.com/srv/crm/` (e.g. `int.ikigenba.com/srv/crm/`). First demo
+account: **int**.
 
 This is a greenfield repo. **Read the decisions first — do not re-derive them:**
 

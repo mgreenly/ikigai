@@ -29,7 +29,7 @@ func loginServer(t *testing.T) (*http.Server, *sql.DB) {
 // cookie — never the cookie itself.
 func TestLoginPersistsHandshakeAndBindsBrowser(t *testing.T) {
 	srv, database := loginServer(t)
-	rec := do(t, srv, "GET", "http://ai.metaspot.org/login", nil)
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/login", nil)
 
 	if rec.Code != http.StatusFound {
 		t.Fatalf("status = %d, want 302", rec.Code)
@@ -98,7 +98,7 @@ func TestSetBindingCookieAttributes(t *testing.T) {
 		return nil
 	}
 
-	plain := read(httptest.NewRequest("GET", "http://ai.metaspot.org/login", nil))
+	plain := read(httptest.NewRequest("GET", "http://int.ikigenba.com/login", nil))
 	if plain.Value != "secret-value" {
 		t.Errorf("value = %q, want secret-value", plain.Value)
 	}
@@ -115,7 +115,7 @@ func TestSetBindingCookieAttributes(t *testing.T) {
 		t.Error("Secure must be off on plain HTTP")
 	}
 
-	fwd := httptest.NewRequest("GET", "http://ai.metaspot.org/login", nil)
+	fwd := httptest.NewRequest("GET", "http://int.ikigenba.com/login", nil)
 	fwd.Header.Set("X-Forwarded-Proto", "https")
 	if !read(fwd).Secure {
 		t.Error("Secure must be on when X-Forwarded-Proto is https")

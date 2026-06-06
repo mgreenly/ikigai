@@ -2,7 +2,7 @@
 
 ## Context
 
-ikigai is meant to be a **space people connect agents to**, where those agents can
+The suite is meant to be a **space people connect agents to**, where those agents can
 build software that runs in the space — self-improving. For an agent to build a
 new event-plane service, it must be able to *discover*, at runtime, the **event
 graph**: what facts each service publishes (and their exact shapes), and what each

@@ -35,7 +35,7 @@ func TestInventoryServices(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	rec := do(t, srv, "GET", "https://ai.metaspot.org/services",
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/services",
 		map[string]string{"X-Forwarded-Proto": "https"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -50,7 +50,7 @@ func TestInventoryServices(t *testing.T) {
 	if !strings.Contains(body, `"mount":"/srv/crm/"`) {
 		t.Errorf("body missing crm mount:\n%s", body)
 	}
-	if !strings.Contains(body, `"resource":"https://ai.metaspot.org/srv/crm/mcp"`) {
+	if !strings.Contains(body, `"resource":"https://int.ikigenba.com/srv/crm/mcp"`) {
 		t.Errorf("body missing crm resource:\n%s", body)
 	}
 	if strings.Contains(body, "dashboard") {

@@ -1,8 +1,8 @@
-# ikigai
+# suite
 
-ikigai is the deployable **application suite** for metaspot — one **dashboard**
+The **suite** is the deployable **application suite** for ikigenba — one **dashboard**
 plus N small **services** that run together on a single box, one box per
-customer, answering on the apex `<account>.metaspot.org`. It is a **single
+customer, answering on the apex `<account>.ikigenba.com`. It is a **single
 mono-repo** (one `.git`): the dashboard, every service, the shared libraries,
 the local-dev nginx front door, and the docs are all subdirectories of this one
 repo, not independent projects. The dashboard owns identity (OAuth authorization
@@ -54,9 +54,9 @@ production build forces `GOWORK=off`.
 
 ## Deploying — bump → ship → stage → deploy
 
-We deploy to **`ai.metaspot.org`** (the first and only account, `ai`). Your
-`~/.ssh/config` already has a `Host ai.metaspot.org` (alias `ai`) entry pinning
-the right key, so `ssh ai` and the deploy scripts connect with the correct
+We deploy to **`int.ikigenba.com`** (the first and only account, `int`). Your
+`~/.ssh/config` already has a `Host int.ikigenba.com` (alias `int`) entry pinning
+the right key, so `ssh int` and the deploy scripts connect with the correct
 identity automatically — no `-i` flag needed.
 
 Deploy ships one static binary into a versioned release dir — **not** `git push`
@@ -69,14 +69,14 @@ and **not** an in-place overwrite. Four steps:
    static `linux/amd64` binary in a throwaway git worktree, `scp`s the artifact
    to the box `/tmp`, then **prints the two box commands and stops** — it makes
    no other change on the box.
-3. **`ssh ai sudo opsctl stage <app> v<ver> --artifact /tmp/<app>-v<ver>`** —
+3. **`ssh int sudo opsctl stage <app> v<ver> --artifact /tmp/<app>-v<ver>`** —
    preflight + SHA collision guard, place the binary into `releases/<ver>/`, and
    delete the `/tmp` artifact on success. Stages a release without making it live.
-4. **`ssh ai sudo opsctl deploy <app> v<ver>`** — regenerate `etc/manifest.env`
+4. **`ssh int sudo opsctl deploy <app> v<ver>`** — regenerate `etc/manifest.env`
    from the new binary, back up the DB if the schema advances, `migrate`, atomic
    swap `current`, restart the unit, and prune old releases.
 
-Roll back with **`ssh ai sudo opsctl rollback <app> [ver]`**. Inspect with
+Roll back with **`ssh int sudo opsctl rollback <app> [ver]`**. Inspect with
 `opsctl status` / `opsctl releases <app>`; follow logs with `opsctl tail <app>`.
 A brand-new service needs `opsctl setup <app>` first (and `opsctl init-box` once
 per box). After deploying a new MCP service, restart the dashboard so it

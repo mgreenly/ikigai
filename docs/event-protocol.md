@@ -667,7 +667,7 @@ and told to resync (§10, reason `stale-epoch`) — a producer-only mechanism th
 consumer is none the wiser about.
 
 This is not optional on a box whose lifecycle includes restore-from-snapshot or
-rebuild — which the metaspot box's does (`bin/restore` is a mandated verb, and a
+rebuild — which the ikigenba box's does (`bin/restore` is a mandated verb, and a
 restore is a routine lifecycle event, not an exception). Without the token a
 file-level restore is silently unsafe: `sqlite_sequence` rolls back with the DB
 file (§4.5), `seq` re-climbs through values it already issued, and a consumer

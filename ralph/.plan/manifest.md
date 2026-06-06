@@ -419,7 +419,7 @@ Chassis tree: `/mnt/projects/ikigai/ralph/ledger/`. Module `ledger`.
 | MCP server name | `Ledger` | `Ralph` |
 | sqlite db file | `ledger.db` | `ralph.db` |
 | install root | `/opt/ledger` | `/opt/ralph` |
-| systemd unit | `ledger` (`ledger.conf`, `ExecStart=metaspot-launch ledger`) | `ralph` |
+| systemd unit | `ledger` (`ledger.conf`, `ExecStart=ikigenba-launch ledger`) | `ralph` |
 | Makefile APP | `ledger` | `ralph` |
 
 Also: add `./ralph` to `/mnt/projects/ikigai/ralph/go.work` `use(...)` block —
@@ -475,7 +475,7 @@ Rewrite prefix `ledger/internal/` -> `ralph/internal/`.
 - 29: comment "ledger performs no token"
 
 **internal/server/server_test.go**:
-- 13: `testResourceID = "https://ai.metaspot.org/srv/ledger/mcp"` -> `/srv/ralph/mcp`
+- 13: `testResourceID = "https://int.ikigenba.com/srv/ledger/mcp"` -> `/srv/ralph/mcp`
 
 **internal/logging/logging.go**:
 - 1: package doc "ledger service's structured logger"
@@ -522,7 +522,7 @@ Rewrite prefix `ledger/internal/` -> `ralph/internal/`.
   `LEDGER_RESOURCE_ID/AUTH_SERVER`, `build/ledger.bin`, `/opt/ledger/bin/ledger.bin`,
   `/srv/ledger/`)
 - 28: `-o "build/${APP}.bin" ./cmd/ledger` -> `./cmd/ralph`
-- 38: `export LEDGER_RESOURCE_ID="https://${METASPOT_DOMAIN}/srv/ledger/mcp"`
+- 38: `export LEDGER_RESOURCE_ID="https://${IKIGENBA_DOMAIN}/srv/ledger/mcp"`
 - 39: `export LEDGER_AUTH_SERVER=...`
 - 40: `export LEDGER_DB_PATH=/opt/ledger/data/ledger.db`
 - 41: `exec /opt/ledger/bin/ledger.bin \`
@@ -565,7 +565,7 @@ asserts; module-path rewrite only). Asserts:
   the one non-Go data file in the chassis and is required for these tests.
 
 **internal/server/server_test.go** — asserts:
-- `testResourceID = "https://ai.metaspot.org/srv/ledger/mcp"` (line 13) →
+- `testResourceID = "https://int.ikigenba.com/srv/ledger/mcp"` (line 13) →
   **must change to `/srv/ralph/mcp`**.
 - `TestNewRequiresConfig` (33): `New` errors when any of logger/auth-server/mcp
   missing.

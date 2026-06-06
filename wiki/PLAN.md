@@ -384,8 +384,8 @@ local demo, and the service live on the box.*
   with the raw doc immutable and provenance stamped.
 
 ### Task 5.4 — Deploy Phase-1 wiki to the `ai` box
-- **Brief:** Ship wiki to `<account>.metaspot.org` (account `ai`) in the metaspot
-  bin/* order. Human-in-the-loop: the user runs `aws sso login --profile ai`
+- **Brief:** Ship wiki to `<account>.ikigenba.com` (account `int`) in the ikigenba
+  bin/* order. Human-in-the-loop: the user runs `aws sso login --profile int`
   (interactive) before any SSM/secrets step. Order: (1) `bin/secrets` to seed
   `ANTHROPIC_API_KEY` (after SSO); (2) `bin/setup` (provision user/tree/systemd/
   nginx fragment, enable-not-start); (3) `bin/deploy` (ship + start); (4) restart
